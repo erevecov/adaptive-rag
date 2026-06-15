@@ -20,8 +20,9 @@ auth.
 ## Non-goals
 
 The v1 will not implement a full frontend, OAuth/login, hosted SaaS
-observability, graph RAG, multimodal retrieval, PDF ingestion, LangGraph agent
-mode, or learned sparse retrieval. Those are deliberate follow-up phases.
+observability, graph RAG, multimodal retrieval, production-grade PDF/Office
+ingestion as the default path, LangGraph agent mode, or learned sparse
+retrieval. Those are deliberate follow-up phases.
 
 The v1 will not depend on Redis, Celery, ARQ, Neo4j, OpenSearch, Langfuse, or
 any required external database service beyond Postgres with pgvector.
@@ -45,6 +46,8 @@ any required external database service beyond Postgres with pgvector.
 - Database: Postgres with pgvector
 - ORM and migrations: SQLAlchemy 2 and Alembic
 - RAG toolkit: LlamaIndex
+- Optional advanced document parsing: Unstructured OSS/local, with hosted
+  Unstructured API available only when explicitly configured
 - Eval framework: Ragas plus custom deterministic metrics
 - Tests: pytest
 - Package and local workflow: uv
@@ -84,6 +87,7 @@ indexing-time contextualization.
 LlamaIndex is the main toolkit for RAG primitives:
 
 - readers and loaders for URLs, Markdown, and TXT
+- conversion of optional Unstructured elements into LlamaIndex documents/nodes
 - `Document` and `Node` abstractions where useful
 - node parsing and chunking
 - metadata handling during ingestion
@@ -191,7 +195,9 @@ denormalized to make retrieval filters simple and safe.
 
 ## Ingestion Pipeline
 
-The v1 supports public URLs, Markdown files, and TXT files.
+The default v1 product path supports public URLs, Markdown files, and TXT files.
+Advanced parsers may support additional formats as opt-in profiles, but those
+formats are not required for the v1 baseline.
 
 The ingestion flow is:
 
@@ -200,7 +206,7 @@ The ingestion flow is:
 3. A Postgres-backed worker claims queued jobs with
    `SELECT ... FOR UPDATE SKIP LOCKED`.
 4. The worker loads source content with LlamaIndex readers.
-5. LlamaIndex parsing creates document nodes/chunks.
+5. The selected document parser produces structured text units.
 6. The contextual chunking step adds a short per-chunk context.
 7. Voyage creates embeddings for the contextualized embedding input.
 8. Chunks, embeddings, metadata, and status are stored in Postgres.
@@ -209,6 +215,46 @@ The ingestion flow is:
 The worker is idempotent by source content hash and chunk text hash. Reindexing
 a source replaces or supersedes previous chunks for that source under the same
 project.
+
+## Document Parsing Providers
+
+Document parsing is behind a small `DocumentParser` interface so the ingestion
+pipeline can support simple and advanced parsers without changing the domain
+model.
+
+Initial parser providers:
+
+- `LlamaIndexBasicParser`: default v1 parser for URLs, Markdown, and TXT.
+- `UnstructuredLocalParser`: optional parser using the open-source
+  `unstructured` library or a locally hosted Unstructured API.
+- `UnstructuredApiParser`: optional hosted API adapter, disabled unless the
+  user explicitly configures credentials.
+
+Default configuration:
+
+```yaml
+parsing:
+  provider: llamaindex_basic
+```
+
+Optional advanced configuration:
+
+```yaml
+parsing:
+  provider: unstructured_local
+  strategy: fast
+```
+
+Unstructured is useful for complex HTML, PDFs, Office documents, emails, and
+image-heavy documents because it partitions raw files into structured elements
+such as titles, narrative text, and list items with metadata. In v1, it is an
+optional capability for learning and experimentation. It becomes a product
+default only if future evals show better retrieval quality and the operational
+cost is justified.
+
+When Unstructured is used, Adaptive RAG still owns source lifecycle,
+project isolation, content hashing, citations, contextual chunking, embeddings,
+and persistence. Unstructured only provides parsed elements.
 
 ## Contextual Chunks
 
@@ -488,6 +534,9 @@ Docker Compose services:
 - `worker`
 - `postgres` with pgvector
 
+Optional Docker Compose profiles may add an Unstructured API service later, but
+the default local stack must run without it.
+
 The schema includes `users` and `projects.owner_user_id` for future multi-user
 auth, but v1 does not implement registration, login, sessions, or OAuth.
 
@@ -502,6 +551,8 @@ TDD coverage starts with core behavior:
 - contextual chunk storage behavior
 - embedding metadata tracking
 - provider registry behavior with fakes
+- document parser registry behavior with fakes
+- Unstructured parser contract tests with representative fixture files
 - retrieval filters by project
 - RRF fusion
 - citation payload generation
