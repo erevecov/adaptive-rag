@@ -24,8 +24,10 @@ observability, graph RAG, multimodal retrieval, production-grade PDF/Office
 ingestion as the default path, LangGraph agent mode, or learned sparse
 retrieval. Those are deliberate follow-up phases.
 
-The v1 will not depend on Redis, Celery, ARQ, Neo4j, OpenSearch, Langfuse, or
-any required external database service beyond Postgres with pgvector.
+The v1 default stack will not depend on Redis, Celery, ARQ, Neo4j, OpenSearch,
+Langfuse, Qdrant, or any required external database service beyond Postgres
+with pgvector. Optional Docker Compose profiles may add self-hosted services
+such as Qdrant or Unstructured for explicit experiments.
 
 ## Core Principles
 
@@ -44,6 +46,8 @@ any required external database service beyond Postgres with pgvector.
 - CLI: Typer and Rich
 - Runtime: Python
 - Database: Postgres with pgvector
+- Default vector store: pgvector
+- Optional vector store profile: self-hosted Qdrant
 - ORM and migrations: SQLAlchemy 2 and Alembic
 - RAG toolkit: LlamaIndex
 - Optional advanced document parsing: Unstructured OSS/local, with hosted
@@ -51,7 +55,8 @@ any required external database service beyond Postgres with pgvector.
 - Eval framework: Ragas plus custom deterministic metrics
 - Tests: pytest
 - Package and local workflow: uv
-- Deployment: Docker Compose with API, worker, and Postgres/pgvector
+- Deployment: Docker Compose with API, worker, and Postgres/pgvector by default;
+  optional profiles may add Qdrant or Unstructured
 
 ## AI Providers
 
@@ -81,6 +86,35 @@ The initial provider interfaces are:
 
 Each project stores provider configuration for chat, embeddings, rerank, and
 indexing-time contextualization.
+
+## Storage Boundary
+
+Postgres is always the source of truth for project data, source lifecycle,
+documents, chunks, jobs, chat history, evals, audit trail, usage, and costs.
+The vector store is replaceable behind a small `VectorStore` interface.
+
+Initial vector store adapters:
+
+- `PgVectorStoreAdapter`: default v1 adapter. Stores embeddings in Postgres
+  with pgvector and keeps the default local stack to one database service.
+- `QdrantVectorStoreAdapter`: optional self-hosted Docker profile for learning,
+  benchmarking, and vector-database-specific filtering/search experiments.
+
+When Qdrant is enabled, Postgres still stores canonical chunk rows and metadata.
+Postgres may also keep the chunk embedding for portability and fallback, while
+Qdrant acts as the active vector-search index. Qdrant stores vector-search
+payloads:
+
+- `point_id`: `chunk_id`
+- `vector`: embedding
+- `payload.project_id`
+- `payload.source_id`
+- `payload.document_id`
+- `payload.text_hash`
+- selected filterable metadata
+
+Retrieval code depends on `VectorStore`, not on pgvector or Qdrant directly.
+Qdrant must not be required to run the default v1 product path.
 
 ## LlamaIndex Boundary
 
@@ -310,7 +344,8 @@ The main v1 retrieval tool is `search_project_knowledge`.
 
 The default retrieval strategy is:
 
-1. Dense retrieval with Voyage embeddings and pgvector.
+1. Dense retrieval with Voyage embeddings and the configured vector store
+   adapter, defaulting to pgvector.
 2. Lexical retrieval with Postgres full-text for the product path.
 3. Fusion with reciprocal rank fusion.
 4. Reranking with Voyage `rerank-2.5-lite`.
@@ -328,6 +363,7 @@ The retrieval interface must support future implementations:
 - lexical-only
 - hybrid RRF
 - hybrid RRF plus rerank
+- Qdrant-backed dense retrieval
 - learned sparse retrieval with
   `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
 
@@ -560,8 +596,12 @@ Docker Compose services:
 - `worker`
 - `postgres` with pgvector
 
-Optional Docker Compose profiles may add an Unstructured API service later, but
-the default local stack must run without it.
+Optional Docker Compose profiles may add:
+
+- `qdrant` for vector-store benchmarking and optional dense retrieval.
+- an Unstructured API service for advanced document parsing.
+
+The default local stack must run without Qdrant or Unstructured.
 
 The schema includes `users` and `projects.owner_user_id` for future multi-user
 auth, but v1 does not implement registration, login, sessions, or OAuth.
@@ -579,6 +619,7 @@ TDD coverage starts with core behavior:
 - provider registry behavior with fakes
 - document parser registry behavior with fakes
 - Unstructured parser contract tests with representative fixture files
+- vector store adapter contract tests shared by pgvector and Qdrant
 - retrieval filters by project
 - RRF fusion
 - citation payload generation
@@ -592,6 +633,9 @@ tests are explicit, opt-in, and skipped when API keys are absent.
 
 Phase 2 candidates:
 
+- promoting Qdrant from optional vector-store profile to default if benchmarks
+  against pgvector justify it on latency, filter behavior, operational cost,
+  and retrieval quality
 - true BM25 or OpenSearch lexical retrieval if evals justify the added service
 - learned sparse retrieval with
   `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
