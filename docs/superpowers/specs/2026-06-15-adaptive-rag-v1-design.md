@@ -1,14 +1,15 @@
-# BeFlow-lite v1 Design
+# Adaptive RAG v1 Design
 
 Date: 2026-06-15
 Status: Approved design baseline
 
 ## Purpose
 
-BeFlow-lite is a public, portfolio-quality RAG project inspired by the
-company `beflow-graph-rag` system, but intentionally smaller and easier to
-learn from. The v1 goal is to build a real, configurable, project-scoped RAG
-system using modern but proven Python tools.
+Adaptive RAG is a personal, public, portfolio-quality RAG project. It is
+informed by prior experience with production RAG systems, but it is an
+independent project with its own name, scope, architecture, repository, and
+product direction. The v1 goal is to build a real, configurable,
+project-scoped RAG system using modern but proven Python tools.
 
 The product must support multiple projects in one installation. Each project
 owns its own sources, documents, chunks, provider settings, retrieval
@@ -32,7 +33,7 @@ any required external database service beyond Postgres with pgvector.
 - Keep infrastructure minimal and local-first.
 - Prefer explicit project isolation over hidden global state.
 - Use LlamaIndex as the main RAG toolkit, but keep product orchestration owned
-  by BeFlow-lite code.
+  by Adaptive RAG code.
 - Make retrieval changes measurable through evals, not intuition.
 - Keep providers replaceable through small capability interfaces.
 
@@ -91,7 +92,7 @@ LlamaIndex is the main toolkit for RAG primitives:
 - reranking integrations when they stay transparent
 - optional RAG evaluation integrations
 
-BeFlow-lite owns the product layer:
+Adaptive RAG owns the product layer:
 
 - domain models such as Project, Source, Document, Chunk, Job, EvalRun, and
   ChatSession
@@ -287,7 +288,7 @@ Future tools are planned but out of v1 implementation scope:
 - `add_knowledge`
 - `add_to_memory`
 
-The tool loop stays in BeFlow-lite code. LlamaIndex is used underneath for RAG
+The tool loop stays in Adaptive RAG code. LlamaIndex is used underneath for RAG
 primitives, not as the owner of chat orchestration.
 
 ## Citations
@@ -460,13 +461,13 @@ Initial FastAPI endpoints:
 
 Initial Typer commands:
 
-- `beflow-lite projects create`
-- `beflow-lite sources add-url`
-- `beflow-lite sources add-file`
-- `beflow-lite jobs run-worker`
-- `beflow-lite chat ask`
-- `beflow-lite retrieval search`
-- `beflow-lite eval run`
+- `adaptive-rag projects create`
+- `adaptive-rag sources add-url`
+- `adaptive-rag sources add-file`
+- `adaptive-rag jobs run-worker`
+- `adaptive-rag chat ask`
+- `adaptive-rag retrieval search`
+- `adaptive-rag eval run`
 
 The CLI is a first-class development and learning surface while the frontend is
 deferred.
@@ -477,7 +478,7 @@ The v1 is single-user and local-first.
 
 Optional API key auth:
 
-- If `BEFLOW_LITE_API_KEY` is set, mutable endpoints require
+- If `ADAPTIVE_RAG_API_KEY` is set, mutable endpoints require
   `Authorization: Bearer <key>`.
 - If it is not set, the app runs in local development mode without auth.
 
