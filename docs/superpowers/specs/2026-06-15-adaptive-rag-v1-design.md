@@ -152,6 +152,10 @@ The v1 schema includes these main tables.
 - `source_id`
 - `title`
 - `text_hash`
+- `parser_provider`
+- `parser_version`
+- `parser_config_hash`
+- `index_fingerprint`
 - `metadata_json`
 - `created_at`
 
@@ -170,6 +174,11 @@ The v1 schema includes these main tables.
 - `contextualizer_provider`
 - `contextualizer_model`
 - `contextualizer_version`
+- `parser_provider`
+- `parser_version`
+- `parser_config_hash`
+- `chunker_version`
+- `index_fingerprint`
 - `embedding`, `vector(1024)`
 - `embedding_provider`
 - `embedding_model`
@@ -212,9 +221,26 @@ The ingestion flow is:
 8. Chunks, embeddings, metadata, and status are stored in Postgres.
 9. The source and job finish as `indexed`/`succeeded` or `failed`.
 
-The worker is idempotent by source content hash and chunk text hash. Reindexing
-a source replaces or supersedes previous chunks for that source under the same
-project.
+The worker is idempotent by source content hash, parser configuration, chunker
+configuration, contextualizer configuration, embedding model, and chunk text
+hash. These inputs are combined into an `index_fingerprint`.
+
+Parser changes are forward-only by default. Changing a project from
+`LlamaIndexBasicParser` to `UnstructuredLocalParser` affects only new ingestions
+unless the user explicitly starts a reindex job. Existing chunks remain valid
+and searchable because each document and chunk stores the parser metadata and
+`index_fingerprint` that produced it.
+
+Supported reindex modes:
+
+- `none`: default forward-only behavior; do not touch existing chunks.
+- `source`: reprocess one source with the current parser/index settings.
+- `project`: reprocess all sources in a project with the current parser/index
+  settings.
+
+Reindexing a source replaces or supersedes previous chunks for that source
+under the same project. Full project backfills are opt-in and should be used
+only for homogeneity, eval comparisons, or major indexing upgrades.
 
 ## Document Parsing Providers
 
