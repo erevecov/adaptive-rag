@@ -208,6 +208,13 @@ El schema v1 incluye estas tablas principales.
 - `ordinal`
 - `text`
 - `text_hash`
+- `section_path`
+- `heading`
+- `char_start`
+- `char_end`
+- `token_count`
+- `prev_chunk_id`
+- `next_chunk_id`
 - `contextual_text`
 - `embedding_input_text`
 - `lexical_input_text`
@@ -219,6 +226,7 @@ El schema v1 incluye estas tablas principales.
 - `parser_version`
 - `parser_config_hash`
 - `chunker_version`
+- `chunker_config_hash`
 - `index_fingerprint`
 - `embedding`, `vector(1024)`
 - `embedding_provider`
@@ -315,6 +323,55 @@ Docker y decisiones de calidad que no son necesarias para el alcance inicial.
 El schema mantiene `parser_provider`, `parser_version`, `parser_config_hash` e
 `index_fingerprint` para que un parser futuro pueda convivir con datos ya
 indexados sin exigir backfill obligatorio.
+
+## Chunking semántico
+
+El chunking v1 debe minimizar cortes erróneos antes de aplicar Contextual
+Retrieval. La estrategia es estructura primero y tokens solo como fallback:
+
+1. El parser produce texto normalizado y, cuando sea posible, bloques
+   estructurales: headings, párrafos, listas, tablas Markdown y code fences.
+2. El chunker agrupa bloques respetando límites semánticos.
+3. Si un bloque excede `max_chunk_tokens`, se parte con una regla específica
+   para su tipo.
+4. Si no hay estructura suficiente, se usa fallback por frases/párrafos.
+5. El corte puramente por tokens se usa solo como último recurso.
+
+Reglas de corte:
+
+- No cortar dentro de code fences salvo que el bloque supere `max_chunk_tokens`.
+- No cortar dentro de tablas Markdown salvo que la tabla supere
+  `max_chunk_tokens`; si se parte, repetir el header de tabla en cada chunk
+  derivado.
+- No cortar en medio de una lista si el grupo completo cabe dentro de
+  `max_chunk_tokens`.
+- Preferir cortes por heading, luego párrafo, luego frase, luego tokens.
+- Mantener overlap pequeño entre chunks vecinos para conservar continuidad.
+- Preservar `section_path` y `heading` para mejorar context generation,
+  metadata filtering y citations.
+
+Defaults v1:
+
+```yaml
+chunking:
+  strategy: semantic_markdown_v1
+  target_chunk_tokens: 500
+  max_chunk_tokens: 800
+  overlap_tokens: 80
+```
+
+Cada chunk guarda `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
+`next_chunk_id`, `chunker_version` y `chunker_config_hash`. Los offsets se
+refieren al texto normalizado del documento, no al texto contextual generado.
+
+Invariantes:
+
+- Reconstruir los chunks por `ordinal` debe preservar el contenido original
+  normalizado, ignorando solo el overlap explícito.
+- `text` nunca incluye `contextual_text`.
+- Citations usan `text`, `char_start`, `char_end`, `section_path` y `heading`.
+- Cambios de estrategia o configuración de chunking cambian el
+  `index_fingerprint`.
 
 ## Contextual Retrieval
 
@@ -679,6 +736,10 @@ La cobertura TDD empieza con comportamiento core:
 - creación de sources y content hashing
 - claim de ingestion jobs con `FOR UPDATE SKIP LOCKED`
 - creación de chunks y preservación de metadata
+- chunking semántico de Markdown con headings, listas, tablas y code fences
+- fallback por frases/párrafos/tokens para bloques largos
+- reconstrucción de contenido normalizado desde chunks ordenados por `ordinal`
+- offsets `char_start`/`char_end` válidos para citations
 - comportamiento de storage para contextual chunks
 - construcción de `embedding_input_text` y `lexical_input_text`
 - tracking de metadata de embeddings

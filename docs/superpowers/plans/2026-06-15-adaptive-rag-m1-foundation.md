@@ -881,7 +881,12 @@ El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
 tablas SQLAlchemy, migración Alembic para projects/sources/documents/chunks/jobs
 /audit/evals, columnas tipadas para metadata filtering y tests de repository
 para aislamiento por proyecto más filtros por `source_id`, `document_id`,
-`source_type`, `tags` y fechas. El schema de chunks debe incluir los campos de
-Contextual Retrieval (`contextual_text`, `embedding_input_text`,
-`lexical_input_text`, metadata del contextualizer y `index_fingerprint`), aunque
-la generación Qwen del contexto se implemente en un hito posterior.
+`source_type`, `tags` y fechas. El schema de chunks debe incluir campos de
+chunking semántico (`section_path`, `heading`, `char_start`, `char_end`,
+`token_count`, `prev_chunk_id`, `next_chunk_id`, `chunker_version`,
+`chunker_config_hash`) y campos de Contextual Retrieval (`contextual_text`,
+`embedding_input_text`, `lexical_input_text`, metadata del contextualizer e
+`index_fingerprint`), aunque la generación Qwen del contexto se implemente en un
+hito posterior. M2 también debe incluir fixtures de Markdown con headings,
+listas, tablas, code fences, párrafos largos y documentos cortos para probar que
+el chunker no corta estructuras de forma errónea ni pierde contenido.
