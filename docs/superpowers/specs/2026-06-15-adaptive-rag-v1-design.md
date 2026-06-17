@@ -47,6 +47,7 @@ retrieval ni parsers avanzados.
   convertirlo en provider de IA ni en dueño del retrieval.
 - Versionar prompts como artefactos del repositorio, no como strings anónimos
   pegados en el código.
+- Medir y limitar usage/costos de providers desde el primer provider call.
 - Medir cambios de retrieval con evals, no con intuición.
 - Mantener interfaces pequeñas por capability, aunque la v1 implemente solo
   Qwen como provider de IA. No se prometen otros providers antes de producción.
@@ -116,6 +117,72 @@ Las interfaces iniciales de capabilities son:
 Cada proyecto almacena configuración Qwen para chat, embeddings, rerank y
 contextualización en tiempo de indexing. Aunque exista una capa de interfaces,
 la única implementación v1 es Qwen.
+
+## Budgets, rate limits y cost tracking
+
+La v1 debe tratar las llamadas a Qwen como operaciones con costo y capacidad
+limitada. Todo provider call pasa por una capa interna antes de tocar la API:
+
+- `BudgetGuard`: valida límites del proyecto y de la operación antes de llamar
+  al provider.
+- `ProviderUsageTracker`: registra el uso real o estimado después de cada
+  llamada.
+- `ModelPriceCatalog`: resuelve precios versionados por provider, modelo,
+  región y fecha efectiva.
+
+Operaciones medidas:
+
+- `chat`
+- `contextualize`
+- `embedding`
+- `rerank`
+- `eval_judge`
+
+Límites configurables por proyecto:
+
+- `daily_cost_limit`
+- `monthly_cost_limit`
+- `max_provider_requests_per_minute`
+- `max_provider_tokens_per_minute`
+- `max_tokens_per_request`
+- `max_concurrent_ingestion_provider_calls`
+- `evals_enabled`
+
+Los límites son locales y defensivos. No reemplazan los rate limits del provider
+hosted, pero evitan gastar de más o saturar Qwen por error de producto,
+ingestion masiva o evals demasiado grandes. Si una operación supera un hard
+limit, falla antes del provider call y registra el bloqueo. Si supera un soft
+limit configurable, puede registrar warning sin bloquear.
+
+El costo guardado por Adaptive RAG es estimado. La factura real sigue siendo la
+del provider. Los precios no se hardcodean en lógica de negocio; se guardan como
+snapshots versionados para poder reproducir costos históricos aunque Qwen cambie
+precios o modelos.
+
+El flujo esperado de una llamada a provider es:
+
+1. Construir `ProviderCallPlan` con proyecto, operación, modelo, tokens
+   estimados cuando existan y metadata no sensible.
+2. `BudgetGuard` valida presupuesto, rate limits locales y tamaño máximo de
+   request.
+3. El provider adapter ejecuta la llamada a Qwen.
+4. `ProviderUsageTracker` registra tokens reales devueltos por Qwen cuando estén
+   disponibles, latencia, status, error y costo estimado con el price snapshot
+   vigente.
+5. Si el provider no entrega usage, se registra `usage_source = estimated` y el
+   cálculo se corrige solo con datos futuros si existe evidencia confiable.
+
+Defaults v1 conservadores:
+
+- evals LLM-as-judge desactivados hasta habilitación explícita por proyecto
+- concurrencia baja para contextualización durante ingestion
+- rerank limitado a un top-N acotado
+- batch size de embeddings limitado
+- errores de rate limit hosted no cambian automáticamente de modelo porque v1
+  mantiene un solo provider/modelo configurado por capability
+
+Esta capa debe estar en el borde de providers, no dentro de handlers FastAPI ni
+del worker. Así chat, ingestion, rerank y evals comparten la misma política.
 
 ## Límite de storage
 
@@ -295,6 +362,23 @@ El schema v1 incluye estas tablas principales.
 - `slug`
 - `description`
 - `ai_config_json`
+- `budget_config_json`
+- `created_at`
+
+`model_price_snapshots`:
+
+- `id`
+- `provider`, por ejemplo `qwen`
+- `model`
+- `region`
+- `operation`, por ejemplo `chat`, `embedding`, `rerank` o `eval_judge`
+- `input_price_per_million_tokens`
+- `output_price_per_million_tokens`, nullable para operaciones sin output
+- `request_price`, nullable para modelos cobrados por request
+- `currency`
+- `effective_from`
+- `effective_to`, nullable
+- `metadata_json`
 - `created_at`
 
 `sources`:
@@ -794,13 +878,26 @@ Tablas:
 
 `provider_usage`:
 
-- `session_id`
+- `project_id`
+- `session_id`, nullable
+- `ingestion_job_id`, nullable
+- `eval_run_id`, nullable
+- `operation`, uno de `chat`, `contextualize`, `embedding`, `rerank` o
+  `eval_judge`
 - `provider`
 - `model`
+- `provider_request_id`, nullable
+- `price_snapshot_id`
 - `input_tokens`
 - `output_tokens`
+- `total_tokens`
+- `usage_source`, uno de `provider_reported` o `estimated`
 - `estimated_cost`
+- `currency`
 - `latency_ms`
+- `status`
+- `error_message`
+- `created_at`
 
 Adaptadores futuros pueden exportar a OpenTelemetry o Langfuse, pero v1 no
 depende de ellos.
@@ -931,6 +1028,10 @@ La cobertura TDD empieza con comportamiento core:
 - construcción de `embedding_input_text` y `lexical_input_text`
 - tracking de metadata de embeddings
 - comportamiento del provider registry con fakes
+- `BudgetGuard` bloquea provider calls que superan presupuesto, rate limits
+  locales o tamaño máximo de request
+- `ProviderUsageTracker` registra usage/costo para chat, contextualización,
+  embeddings, rerank y evals con provider fakes
 - comportamiento del document parser registry con fakes
 - resolución y tracking de versiones de prompts
 - contract tests del adapter pgvector
