@@ -1,153 +1,427 @@
-# Adaptive RAG v1 Design
+# Diseño v1 de Adaptive RAG
 
-Date: 2026-06-15
-Status: Approved design baseline
+Fecha: 2026-06-15
+Estado: línea base de diseño aprobada
 
-## Purpose
+## Propósito
 
-Adaptive RAG is a personal, public, portfolio-quality RAG project. It is
-informed by prior experience with production RAG systems, but it is an
-independent project with its own name, scope, architecture, repository, and
-product direction. The v1 goal is to build a real, configurable,
-project-scoped RAG system using modern but proven Python tools.
+Adaptive RAG es un proyecto RAG personal, público y con calidad de portafolio.
+Está informado por experiencia previa con sistemas RAG en producción, pero es
+un proyecto independiente con su propio nombre, alcance, arquitectura,
+repositorio y dirección de producto. El objetivo de v1 es construir un sistema
+RAG real, configurable y aislado por proyecto, usando herramientas Python
+modernas pero probadas.
 
-The product must support multiple projects in one installation. Each project
-owns its own sources, documents, chunks, provider settings, retrieval
-configuration, chat history, eval datasets, and audit trail. The v1 system is
-single-user and local-first, but the schema leaves room for future multi-user
-auth.
+El producto debe soportar múltiples proyectos en una misma instalación. Cada
+proyecto es dueño de sus propias fuentes, documentos, chunks, configuración de
+providers, configuración de retrieval, historial de chat, datasets de evals y
+audit trail. El sistema v1 es single-user y local-first, pero el schema deja
+espacio para auth multi-user en el futuro.
 
-## Non-goals
+Los specs del repositorio se escriben en español. Se mantienen en inglés los
+términos técnicos que sean más precisos o reconocibles, como `retrieval`,
+`provider`, `chunk`, `tool calling`, `rerank` o `embedding`.
 
-The v1 will not implement a full frontend, OAuth/login, hosted SaaS
-observability, graph RAG, multimodal retrieval, production-grade PDF/Office
-ingestion as the default path, LangGraph agent mode, or learned sparse
-retrieval. Those are deliberate follow-up phases.
+## Fuera de alcance
 
-The v1 default stack will not depend on Redis, Celery, ARQ, Neo4j, OpenSearch,
-Langfuse, Qdrant, or any required external database service beyond Postgres
-with pgvector. Optional Docker Compose profiles may add self-hosted services
-such as Qdrant or Unstructured for explicit experiments.
+La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
+hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
+productiva como ruta por defecto, modo agente con LangGraph, Okapi BM25 real,
+SPLADE, learned sparse retrievers externos ni Unstructured como parser
+integrado. Esas son decisiones deliberadas para llegar a producción con menos
+piezas móviles.
 
-## Core Principles
+Qwen sparse embeddings sí entra en v1 como modo experimental configurable por
+proyecto, no como default. El objetivo es aprender el endpoint nativo de
+DashScope y medir si aporta calidad sobre Postgres full-text, manteniendo el
+camino estable `dense` como configuración inicial.
 
-- Use OpenSpec for behavior and architecture changes.
-- Use TDD for core RAG behavior and provider boundaries.
-- Keep infrastructure minimal and local-first.
-- Prefer explicit project isolation over hidden global state.
-- Use LlamaIndex as the main RAG toolkit, but keep product orchestration owned
-  by Adaptive RAG code.
-- Make retrieval changes measurable through evals, not intuition.
-- Keep providers replaceable through small capability interfaces.
+El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
+OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
+datos más allá de Postgres con pgvector. Docker Compose v1 no agrega motores de
+retrieval ni parsers avanzados.
 
-## Technology Stack
+## Principios principales
+
+- Usar OpenSpec para cambios de comportamiento y arquitectura.
+- Usar TDD para el comportamiento core de RAG y los límites de providers.
+- Mantener infraestructura mínima y local-first.
+- Preferir aislamiento explícito por proyecto sobre estado global oculto.
+- Usar LlamaIndex como toolkit RAG principal, pero mantener la orquestación de
+  producto en código propio de Adaptive RAG.
+- Usar Pydantic AI como runtime del agente conversacional y tool calling, sin
+  convertirlo en provider de IA ni en dueño del retrieval.
+- Versionar prompts como artefactos del repositorio, no como strings anónimos
+  pegados en el código.
+- Medir y limitar usage/costos de providers desde el primer provider call.
+- Medir cambios de retrieval con evals, no con intuición.
+- Mantener interfaces pequeñas por capability, aunque la v1 implemente solo
+  Qwen como provider de IA. No se prometen otros providers antes de producción.
+
+## Stack tecnológico
 
 - Backend API: FastAPI
-- CLI: Typer and Rich
+- CLI: Typer y Rich
 - Runtime: Python
-- Database: Postgres with pgvector
-- Default vector store: pgvector
-- Optional vector store profile: self-hosted Qdrant
-- ORM and migrations: SQLAlchemy 2 and Alembic
-- RAG toolkit: LlamaIndex
-- Optional advanced document parsing: Unstructured OSS/local, with hosted
-  Unstructured API available only when explicitly configured
-- Eval framework: Ragas plus custom deterministic metrics
+- Base de datos: Postgres con pgvector
+- Vector store v1: pgvector
+- ORM y migraciones: SQLAlchemy 2 y Alembic
+- Toolkit RAG: LlamaIndex
+- Runtime de agente y tool calling: Pydantic AI slim con soporte
+  OpenAI-compatible
+- Extracción HTML para URLs: Trafilatura
+- Parsing de documentos v1: Trafilatura para URLs HTML; readers y parsers
+  básicos apoyados en LlamaIndex para Markdown y TXT
+- Framework de evals: Ragas más métricas determinísticas propias
+- Estimación local de tokens: tiktoken con encoding `o200k_base`
+- Prompts: archivos Markdown versionados en `prompts/`
 - Tests: pytest
-- Package and local workflow: uv
-- Deployment: Docker Compose with API, worker, and Postgres/pgvector by default;
-  optional profiles may add Qdrant or Unstructured
+- Tests de integración con servicios reales: Testcontainers for Python
+- Job queue v1: Postgres con `FOR UPDATE SKIP LOCKED`
+- Packaging y workflow local: uv
+- Deployment: Docker Compose con API, worker y Postgres/pgvector
 
-## AI Providers
+## Provider de IA
 
-Provider integration is capability-based. The RAG core must not depend directly
-on vendor SDKs.
+La v1 usa Qwen como único provider de IA hasta llegar a producción. Esto reduce
+credenciales, costos mentales, documentación, smoke tests y superficie de
+fallos. Otros providers, modelos locales no-Qwen o agregadores quedan fuera de
+alcance y no se prometen como roadmap; solo podrán evaluarse después de
+producción si una necesidad medible lo justifica.
 
-Default hosted providers:
+La técnica de Contextual Retrieval de Anthropic se adopta como patrón de
+indexing, no como dependencia de provider. Adaptive RAG genera el contexto de
+cada chunk con Qwen y no llama a la API de Anthropic en v1.
 
-- Chat default: DeepSeek direct, `deepseek-v4-flash`
-- Chat stronger option: DeepSeek direct, `deepseek-v4-pro`
-- Embeddings default: Voyage, `voyage-4-lite`, 1024 dimensions
-- Rerank default: Voyage, `rerank-2.5-lite`
-- Rerank quality option: Voyage, `rerank-2.5`
+Pydantic AI se usa como runtime de agente, no como provider de IA. La
+integración de chat usa Qwen mediante una API OpenAI-compatible configurada con
+`base_url` y API key de Qwen. Esto no agrega costos propios, servicios hosted ni
+containers; solo agrega una dependencia Python para manejar tool calling,
+dependencias tipadas y outputs estructurados.
 
-Optional local providers:
+Modelos Qwen configurados para v1:
 
-- Chat: Ollama or OpenAI-compatible local server
-- Embeddings: local embedding server or future TEI-compatible provider
-- Rerank: local BGE reranker, starting with `BAAI/bge-reranker-v2-m3`
+- Chat rápido y contextualización: Qwen, `qwen3.5-flash`
+- Chat de mayor calidad dentro de Qwen: `qwen3.7-plus`
+- Chat fuerte opcional dentro de Qwen: `qwen3.7-max`
+- Embeddings: Qwen `text-embedding-v4`, 1024 dimensiones
+- Rerank: Qwen `qwen3-rerank`
 
-The initial provider interfaces are:
+La integración de embeddings v1 soporta dos modos por proyecto:
+
+- `dense`: default estable. Usa Qwen `text-embedding-v4` por la API
+  OpenAI-compatible. El adapter envía `dimensions = 1024`, valida que la
+  respuesta tenga exactamente 1024 floats y registra `embedding_dim = 1024`.
+- `dense_sparse`: modo experimental v1. Usa Qwen `text-embedding-v4` por el
+  endpoint nativo DashScope con `parameters.output_type = "dense&sparse"` y
+  `parameters.dimension = 1024`. Se implementa con `httpx`, no con un SDK nuevo.
+
+Cambiar la dimensión no es un flag inocuo: requiere nueva estrategia de índice,
+migración o columna nueva y re-embedding de los documentos afectados. La v1 fija
+1024 dimensiones para ambos modos.
+
+Qwen documenta `output_type` con valores `dense`, `sparse` y `dense&sparse` para
+`text-embedding-v3` y `text-embedding-v4`, disponible mediante DashScope SDK/API
+nativo. Esto no implica agregar otro provider de IA: Qwen sigue siendo el único
+provider. Sí implica agregar otro contrato de endpoint y adapter,
+`QwenDashScopeEmbeddingProvider`, separado del adapter OpenAI-compatible.
+
+La respuesta sparse no es un vector float compatible con pgvector. Es una lista
+de pesos por término, con elementos como `index`, `value` y `token`. Por eso v1
+guarda dense y sparse por separado: dense en `chunks.embedding` y sparse en
+`chunk_sparse_embeddings`. La documentación indica que `dense&sparse` mantiene
+el mismo costo de generación que el modo de vector único; el costo a controlar
+es complejidad de storage, scoring, tests y debugging.
+
+No debe activarse como un parámetro oculto del adapter OpenAI-compatible. Solo
+se usa cuando el proyecto tiene `embedding_mode = "dense_sparse"`.
+
+Después de salir a producción, evaluar la integración de modelos Multimodal
+Embeddings de Qwen para mejorar retrieval de documentos con imágenes, tablas u
+otros elementos no textuales.
+
+Los nombres exactos de modelos son configuración de deployment, no constantes
+de dominio. El código debe permitir cambiar snapshots Qwen sin migrar datos
+históricos.
+
+Las interfaces iniciales de capabilities son:
 
 - `ChatProvider`
 - `EmbeddingProvider`
 - `Reranker`
 - `Contextualizer`
 
-Each project stores provider configuration for chat, embeddings, rerank, and
-indexing-time contextualization.
+Cada proyecto almacena configuración Qwen para chat, embeddings, rerank y
+contextualización en tiempo de indexing. Aunque exista una capa de interfaces,
+la única implementación v1 es Qwen.
 
-## Storage Boundary
+## Budgets, rate limits y cost tracking
 
-Postgres is always the source of truth for project data, source lifecycle,
-documents, chunks, jobs, chat history, evals, audit trail, usage, and costs.
-The vector store is replaceable behind a small `VectorStore` interface.
+La v1 debe tratar las llamadas a Qwen como operaciones con costo y capacidad
+limitada. Todo provider call pasa por una capa interna antes de tocar la API:
 
-Initial vector store adapters:
+- `BudgetGuard`: valida límites del proyecto y de la operación antes de llamar
+  al provider.
+- `ProviderUsageTracker`: registra el uso real o estimado después de cada
+  llamada.
+- `ModelPriceCatalog`: resuelve precios versionados por provider, modelo,
+  región y fecha efectiva.
 
-- `PgVectorStoreAdapter`: default v1 adapter. Stores embeddings in Postgres
-  with pgvector and keeps the default local stack to one database service.
-- `QdrantVectorStoreAdapter`: optional self-hosted Docker profile for learning,
-  benchmarking, and vector-database-specific filtering/search experiments.
+Operaciones medidas:
 
-When Qdrant is enabled, Postgres still stores canonical chunk rows and metadata.
-Postgres may also keep the chunk embedding for portability and fallback, while
-Qdrant acts as the active vector-search index. Qdrant stores vector-search
-payloads:
+- `chat`
+- `contextualize`
+- `embedding`
+- `rerank`
+- `eval_judge`
 
-- `point_id`: `chunk_id`
-- `vector`: embedding
-- `payload.project_id`
-- `payload.source_id`
-- `payload.document_id`
-- `payload.text_hash`
-- selected filterable metadata
+Límites configurables por proyecto:
 
-Retrieval code depends on `VectorStore`, not on pgvector or Qdrant directly.
-Qdrant must not be required to run the default v1 product path.
+- `daily_cost_limit`
+- `monthly_cost_limit`
+- `max_provider_requests_per_minute`
+- `max_provider_tokens_per_minute`
+- `max_tokens_per_request`
+- `max_concurrent_ingestion_provider_calls`
+- `evals_enabled`
 
-## LlamaIndex Boundary
+Los límites son locales y defensivos. No reemplazan los rate limits del provider
+hosted, pero evitan gastar de más o saturar Qwen por error de producto,
+ingestion masiva o evals demasiado grandes. Si una operación supera un hard
+limit, falla antes del provider call y registra el bloqueo. Si supera un soft
+limit configurable, puede registrar warning sin bloquear.
 
-LlamaIndex is the main toolkit for RAG primitives:
+El costo guardado por Adaptive RAG es estimado. La factura real sigue siendo la
+del provider. Los precios no se hardcodean en lógica de negocio; se guardan como
+snapshots versionados para poder reproducir costos históricos aunque Qwen cambie
+precios o modelos.
 
-- readers and loaders for URLs, Markdown, and TXT
-- conversion of optional Unstructured elements into LlamaIndex documents/nodes
-- `Document` and `Node` abstractions where useful
-- node parsing and chunking
-- metadata handling during ingestion
-- embedding and vector store integrations where they fit the schema
-- BM25 or lexical retrieval baselines when useful for evals
-- reranking integrations when they stay transparent
-- optional RAG evaluation integrations
+El flujo esperado de una llamada a provider es:
 
-Adaptive RAG owns the product layer:
+1. Construir `ProviderCallPlan` con proyecto, operación, modelo, tokens
+   estimados cuando existan y metadata no sensible.
+2. `BudgetGuard` valida presupuesto, rate limits locales y tamaño máximo de
+   request.
+3. El provider adapter ejecuta la llamada a Qwen.
+4. `ProviderUsageTracker` registra tokens reales devueltos por Qwen cuando estén
+   disponibles, latencia, status, error y costo estimado con el price snapshot
+   vigente.
+5. Si el provider no entrega usage, se registra `usage_source = estimated` y el
+   cálculo se corrige solo con datos futuros si existe evidencia confiable.
 
-- domain models such as Project, Source, Document, Chunk, Job, EvalRun, and
+Defaults v1 conservadores:
+
+- evals LLM-as-judge desactivados hasta habilitación explícita por proyecto
+- concurrencia baja para contextualización durante ingestion
+- rerank limitado a un top-N acotado
+- batch size de embeddings limitado
+- errores de rate limit hosted no cambian automáticamente de modelo porque v1
+  mantiene un solo provider/modelo configurado por capability
+
+Esta capa debe estar en el borde de providers, no dentro de handlers FastAPI ni
+del worker. Así chat, ingestion, rerank y evals comparten la misma política.
+
+## Límite de storage
+
+Postgres siempre es la source of truth para datos de proyecto, ciclo de vida de
+fuentes, documentos, chunks, jobs, historial de chat, evals, audit trail, usage
+y costos. En v1, Postgres también es el único motor de retrieval persistente:
+guarda embeddings densos con pgvector y mantiene la rama lexical con full-text
+search.
+
+Adaptador inicial de vector store:
+
+- `PgVectorStoreAdapter`: adaptador v1. Guarda embeddings Qwen en Postgres con
+  pgvector y mantiene el stack local en un solo servicio de base de datos.
+
+El código de retrieval puede conservar una interfaz pequeña `VectorStore` para
+evitar acoplamiento innecesario, pero no se implementa Qdrant en v1. Qdrant
+queda como posible evaluación post-producción, no como compromiso de roadmap.
+
+## Estrategia de índices pgvector
+
+La v1 usa pgvector con búsqueda exacta como baseline inicial de correctness. Las
+consultas ordenan por distancia vectorial sobre `chunks.embedding vector(1024)`
+después de aplicar filtros tipados como `project_id`, `source_id`, `document_id`,
+`source_type`, `tags` y rangos de fecha.
+
+No se crea índice HNSW por defecto en las primeras migraciones. Exact search es
+más simple de razonar, facilita tests determinísticos y evita confundir errores
+de calidad del RAG con recall aproximado del índice mientras el volumen es bajo.
+
+HNSW queda preparado como optimización posterior dentro de pgvector, no como
+cambio de arquitectura ni migración a otro vector database. Solo se habilita si
+hay evidencia de volumen o latencia:
+
+- latencia de dense retrieval inaceptable con datos reales
+- evals que comparen recall@k exacto versus HNSW
+- pruebas de metadata filtering que demuestren que `project_id` y filtros
+  opcionales siguen devolviendo suficientes candidatos
+- configuración explícita de parámetros como `m`, `ef_construction`,
+  `ef_search` e `iterative_scan` cuando aplique
+
+Si HNSW se agrega sobre una tabla con datos existentes, la migración debe usar
+una estrategia no bloqueante, por ejemplo `CREATE INDEX CONCURRENTLY` cuando sea
+compatible con el entorno de migraciones.
+
+El baseline de evals y contract tests siempre debe poder correr con exact
+search, incluso si un deployment productivo activa HNSW.
+
+## Límite con LlamaIndex
+
+LlamaIndex es el toolkit principal para primitivas RAG:
+
+- readers y loaders para Markdown y TXT
+- abstracciones `Document` y `Node` cuando sean útiles
+- node parsing como baseline o utilidad secundaria
+- manejo de metadata durante ingestion
+- integraciones de embeddings y vector stores cuando encajen con el schema
+- baselines de lexical retrieval cuando sean útiles para evals
+- integraciones de reranking cuando sigan siendo transparentes
+- integraciones opcionales de evaluación RAG
+
+Adaptive RAG es dueño de la capa de producto:
+
+- modelos de dominio como Project, Source, Document, Chunk, Job, EvalRun y
   ChatSession
-- project isolation
-- API and CLI contracts
-- provider registry
-- DeepSeek tool-calling loop
-- tool contracts
-- citations and audit trail
-- eval run persistence and deterministic metrics
+- aislamiento por proyecto
+- contratos de API y CLI
+- registry de providers
+- orquestación de chat con Pydantic AI y Qwen
+- contratos de tools
+- citations y audit trail
+- persistencia de eval runs y métricas determinísticas
+- chunking principal `semantic_markdown_v1`
 
-This boundary keeps LlamaIndex valuable for learning and CV signal without
-turning the project into an opaque framework wrapper.
+El chunker principal de v1 es propio de Adaptive RAG. LlamaIndex no es dueño de
+las reglas de corte, overlap, offsets ni preservación de estructura. Puede
+usarse para readers, objetos `Document`, metadata y comparaciones de baseline,
+pero el comportamiento que afecta citations, `index_fingerprint` y evals vive en
+código propio.
 
-## Data Model
+Este límite mantiene a LlamaIndex valioso para aprendizaje y señal de CV sin
+convertir el proyecto en un wrapper opaco de framework.
 
-The v1 schema includes these main tables.
+## Límite con Trafilatura
+
+Trafilatura se adopta en v1 como extractor HTML por defecto para fuentes URL.
+Su trabajo es convertir HTML público en texto principal y metadata útil antes
+del chunking. Esto mejora la calidad de ingestion al reducir navegación,
+footers, sidebars, banners y texto boilerplate que degradaría embeddings,
+Postgres full-text y citations.
+
+Uso esperado:
+
+- `httpx` descarga la URL con timeouts, headers, límites de tamaño y manejo de
+  errores propio de Adaptive RAG.
+- Trafilatura recibe el HTML descargado y extrae texto principal más metadata
+  como título, autor, fecha y URL canónica cuando estén disponibles.
+- El texto limpio se convierte a documentos internos para chunking semántico y
+  Contextual Retrieval.
+- Markdown y TXT no pasan por Trafilatura.
+
+Trafilatura no se usa en v1 como crawler general, scheduler de scraping,
+browser automation, renderer JavaScript ni fuente de verdad de URLs. La fuente
+de verdad sigue siendo Postgres y la orquestación de ingestion sigue viviendo en
+Adaptive RAG.
+
+## Política de fetch de URLs
+
+Las fuentes URL de v1 son URLs públicas HTML. Antes de descargar una URL, el
+worker aplica `UrlFetchPolicy` para reducir riesgo de SSRF, fugas de red local y
+jobs colgados.
+
+Reglas mínimas:
+
+- Permitir solo esquemas `http` y `https`.
+- Bloquear `localhost`, loopback, IPs privadas RFC1918, link-local, multicast y
+  endpoints de metadata cloud conocidos.
+- Resolver DNS y validar las IPs resultantes antes de conectar.
+- La conexión TCP debe usar una IP ya validada o una política equivalente de pin
+  de IP para evitar DNS rebinding entre validación y conexión.
+- Revalidar la URL y las IPs después de cada redirect.
+- Limitar redirects, tamaño máximo de respuesta, timeout de conexión y timeout
+  de lectura.
+- Enviar un `User-Agent` propio del proyecto.
+- No enviar cookies, credenciales, headers sensibles ni auth heredada del
+  entorno.
+- Aceptar solo content types HTML/texto permitidos para la ruta v1.
+- Registrar metadata de fetch para auditoría, pero no guardar headers sensibles
+  ni cuerpos completos en logs.
+
+Trafilatura solo recibe HTML que ya pasó por esta política. Si la política
+bloquea una URL, el job termina como `failed` con error no retryable y un mensaje
+auditable.
+
+## Límite con Pydantic AI
+
+Pydantic AI se adopta en v1 para implementar la experiencia agentic de chat:
+
+- tool calling
+- dependencias tipadas por request, como `project_id`, configuración del
+  proyecto, repositorios y retriever
+- structured outputs para respuestas con citations
+- integración con Qwen a través de un cliente OpenAI-compatible
+
+La dependencia instalada debe ser `pydantic-ai-slim[openai]`, no el paquete
+completo `pydantic-ai`, para evitar SDKs de providers que no usaremos. El extra
+`openai` se usa solo porque Qwen expone una superficie compatible; el provider
+real de IA sigue siendo Qwen.
+
+Pydantic AI no es dueño de:
+
+- ingestion
+- parsing
+- chunking
+- embeddings
+- Postgres full-text
+- pgvector
+- RRF
+- reranking
+- evals
+- persistencia de chat, tool calls, retrieval runs o usage
+
+Adaptive RAG debe envolverlo detrás de una interfaz propia, por ejemplo
+`ChatAgentRuntime`, para mantener aisladas las decisiones de framework. Si en el
+futuro Pydantic AI no encaja, el dominio, retrieval, storage y contratos de API
+deben poder sobrevivir sin una reescritura completa.
+
+## Prompt versioning
+
+Los prompts son parte del comportamiento del sistema y se versionan como
+artefactos del repositorio. No deben vivir como strings largos sin nombre dentro
+de handlers, providers o tests.
+
+Convención v1:
+
+- Directorio: `prompts/`
+- Formato: Markdown.
+- Identificador de versión: nombre del archivo sin extensión, por ejemplo
+  `answer_with_citations_v1`.
+- Los prompts que ya fueron usados para datos persistidos no se editan en
+  caliente. Un cambio semántico crea un archivo nuevo, por ejemplo
+  `answer_with_citations_v2.md`.
+
+Prompts previstos para v1:
+
+- `contextual_chunk_v1.md`: genera `contextual_text` para Contextual Retrieval.
+- `answer_with_citations_v1.md`: responde usando chunks recuperados y citations.
+- `tool_selection_v1.md`: guía cuándo usar `search_project_knowledge`.
+- `eval_judge_v1.md`: guía evaluaciones LLM-as-judge cuando Ragas use Qwen.
+
+Persistencia esperada:
+
+- Chunks contextualizados guardan la versión del prompt de contextualización.
+- Sesiones de chat guardan la versión del prompt principal de respuesta.
+- Eval runs guardan un mapa de versiones de prompts usados durante el run.
+
+Los cambios de prompts se tratan como cambios medibles. Antes de promover un
+prompt nuevo como default, se comparan al menos con evals determinísticos,
+métricas Ragas relevantes, costo y latencia.
+
+## Modelo de datos
+
+El schema v1 incluye estas tablas principales.
 
 `users`:
 
@@ -159,21 +433,40 @@ The v1 schema includes these main tables.
 `projects`:
 
 - `id`
-- `owner_user_id`, nullable in v1
+- `owner_user_id`, nullable en v1
 - `name`
 - `slug`
 - `description`
+- `embedding_mode`, uno de `dense` o `dense_sparse`, default `dense`
 - `ai_config_json`
+- `budget_config_json`
+- `created_at`
+
+`model_price_snapshots`:
+
+- `id`
+- `provider`, por ejemplo `qwen`
+- `model`
+- `region`
+- `operation`, por ejemplo `chat`, `embedding`, `rerank` o `eval_judge`
+- `input_price_per_million_tokens`
+- `output_price_per_million_tokens`, nullable para operaciones sin output
+- `request_price`, nullable para modelos cobrados por request
+- `currency`
+- `effective_from`
+- `effective_to`, nullable
+- `metadata_json`
 - `created_at`
 
 `sources`:
 
 - `id`
 - `project_id`
-- `type`, one of `url` or `file`
+- `type`, uno de `url` o `file`
 - `uri`
 - `title`
-- `status`, one of `pending`, `indexing`, `indexed`, `failed`
+- `tags`, array de texto para filtros explícitos
+- `status`, uno de `pending`, `indexing`, `indexed`, `failed`
 - `content_hash`
 - `metadata_json`
 - `created_at`
@@ -185,12 +478,26 @@ The v1 schema includes these main tables.
 - `project_id`
 - `source_id`
 - `title`
+- `tags`, array de texto heredable desde la fuente o asignable al documento
+- `current_version_id`, nullable mientras el primer indexing está en curso
+- `metadata_json`
+- `created_at`
+- `updated_at`
+
+`document_versions`:
+
+- `id`
+- `project_id`
+- `source_id`
+- `document_id`
+- `version`
+- `normalized_text`
 - `text_hash`
 - `parser_provider`
 - `parser_version`
 - `parser_config_hash`
+- `extraction_metadata_json`
 - `index_fingerprint`
-- `metadata_json`
 - `created_at`
 
 `chunks`:
@@ -199,19 +506,32 @@ The v1 schema includes these main tables.
 - `project_id`
 - `source_id`
 - `document_id`
+- `document_version_id`
+- `source_type`
+- `tags`, array de texto denormalizado para filtros de retrieval
 - `ordinal`
 - `text`
 - `text_hash`
+- `section_path`
+- `heading`
+- `char_start`
+- `char_end`
+- `token_count`
+- `prev_chunk_id`
+- `next_chunk_id`
 - `contextual_text`
 - `embedding_input_text`
+- `lexical_input_text`
 - `contextualized`
 - `contextualizer_provider`
 - `contextualizer_model`
 - `contextualizer_version`
+- `contextualizer_prompt_version`
 - `parser_provider`
 - `parser_version`
 - `parser_config_hash`
 - `chunker_version`
+- `chunker_config_hash`
 - `index_fingerprint`
 - `embedding`, `vector(1024)`
 - `embedding_provider`
@@ -220,188 +540,593 @@ The v1 schema includes these main tables.
 - `metadata_json`
 - `created_at`
 
-`ingestion_jobs`:
+`chunk_sparse_embeddings`:
 
 - `id`
 - `project_id`
-- `source_id`
-- `status`, one of `queued`, `running`, `succeeded`, `failed`
-- `attempts`
-- `error_message`
+- `chunk_id`
+- `embedding_provider`, `qwen`
+- `embedding_model`, por ejemplo `text-embedding-v4`
+- `embedding_mode`, `dense_sparse`
+- `sparse_indices`, `integer[]`
+- `sparse_values`, `real[]`
+- `sparse_tokens`, `text[]`, nullable para reducir storage si se decide no
+  conservar tokens
+- `sparse_size`
+- `input_hash`
+- `index_fingerprint`
 - `created_at`
+
+`jobs`:
+
+- `id`
+- `project_id`
+- `queue_name`, default `default`
+- `job_type`, uno de `ingest_source`, `reindex_source`, `reindex_project` o
+  `eval_run`
+- `status`, uno de `queued`, `running`, `blocked`, `succeeded`, `failed`,
+  `dead_letter` o `cancelled`
+- `priority`
+- `run_after`
+- `attempts`
+- `max_attempts`
+- `locked_by`
+- `locked_at`
+- `heartbeat_at`
+- `lease_expires_at`
+- `idempotency_key`
+- `source_id`, nullable
+- `document_id`, nullable
+- `eval_run_id`, nullable
+- `payload_json`
+- `result_json`
+- `last_error_code`
+- `last_error_message`
+- `created_at`
+- `updated_at`
 - `started_at`
 - `finished_at`
 
-Project isolation must be enforced by direct `project_id` filters on all
-project-scoped reads and writes. `chunks.project_id` is intentionally
-denormalized to make retrieval filters simple and safe.
+`job_events`:
 
-## Ingestion Pipeline
+- `id`
+- `job_id`
+- `event_type`
+- `from_status`
+- `to_status`
+- `message`
+- `metadata_json`
+- `created_at`
 
-The default v1 product path supports public URLs, Markdown files, and TXT files.
-Advanced parsers may support additional formats as opt-in profiles, but those
-formats are not required for the v1 baseline.
+El aislamiento por proyecto debe aplicarse con filtros directos de `project_id`
+en todas las lecturas y escrituras scoped a proyecto. `chunks.project_id` está
+desnormalizado intencionalmente para que los filtros de retrieval sean simples
+y seguros. `chunks.source_type` y `chunks.tags` también se desnormalizan para
+que dense retrieval y lexical retrieval apliquen los mismos filtros sin depender
+de joins complejos en la ruta caliente.
 
-The ingestion flow is:
+`document_versions` conserva el texto normalizado exacto que fue parseado y
+chunkeado. Los offsets `char_start` y `char_end` de `chunks` apuntan a
+`document_versions.normalized_text`, no al HTML original, al archivo bruto ni al
+texto contextual generado. Esto permite reindexar una fuente de forma
+forward-only, comparar versiones y mantener citations reproducibles.
 
-1. API or CLI creates a Source under a Project.
-2. API or CLI enqueues an `ingestion_jobs` row.
-3. A Postgres-backed worker claims queued jobs with
-   `SELECT ... FOR UPDATE SKIP LOCKED`.
-4. The worker loads source content with LlamaIndex readers.
-5. The selected document parser produces structured text units.
-6. The contextual chunking step adds a short per-chunk context.
-7. Voyage creates embeddings for the contextualized embedding input.
-8. Chunks, embeddings, metadata, and status are stored in Postgres.
-9. The source and job finish as `indexed`/`succeeded` or `failed`.
+`chunk_sparse_embeddings` existe solo para proyectos con
+`embedding_mode = "dense_sparse"`. Se mantiene separada de `chunks` para no
+ensuciar la tabla caliente principal ni obligar a todo proyecto a pagar storage
+sparse. Debe tener índice GIN sobre `sparse_indices` para prefiltrar candidatos
+por overlap antes de calcular score.
 
-The worker is idempotent by source content hash, parser configuration, chunker
-configuration, contextualizer configuration, embedding model, and chunk text
-hash. These inputs are combined into an `index_fingerprint`.
+## Cola de jobs en Postgres
 
-Parser changes are forward-only by default. Changing a project from
-`LlamaIndexBasicParser` to `UnstructuredLocalParser` affects only new ingestions
-unless the user explicitly starts a reindex job. Existing chunks remain valid
-and searchable because each document and chunk stores the parser metadata and
-`index_fingerprint` that produced it.
+La v1 usa Postgres como job queue. No se agrega Redis, Celery, ARQ, Temporal ni
+otro broker. La tabla `jobs` es genérica aunque el primer uso productivo sea
+ingestion. Esto evita duplicar lógica cuando aparezcan reindex, evals u otras
+operaciones async.
 
-Supported reindex modes:
+Endpoints semánticos como `POST /projects/{project_id}/ingestion-jobs` pueden
+seguir existiendo en la API, pero por debajo crean un job `job_type =
+ingest_source`. El CLI `adaptive-rag jobs run-worker` consume la tabla genérica.
 
-- `none`: default forward-only behavior; do not touch existing chunks.
-- `source`: reprocess one source with the current parser/index settings.
-- `project`: reprocess all sources in a project with the current parser/index
-  settings.
+Estados:
 
-Reindexing a source replaces or supersedes previous chunks for that source
-under the same project. Full project backfills are opt-in and should be used
-only for homogeneity, eval comparisons, or major indexing upgrades.
+- `queued`: listo para ejecutarse cuando `run_after <= now()`.
+- `running`: reclamado por un worker con lease vigente.
+- `blocked`: no debe reintentarse automáticamente porque falta una condición
+  externa, por ejemplo API key, presupuesto, proyecto pausado o configuración
+  inválida.
+- `succeeded`: terminó correctamente.
+- `failed`: error final no retryable.
+- `dead_letter`: agotó `max_attempts`.
+- `cancelled`: cancelado explícitamente por usuario o sistema.
 
-## Document Parsing Providers
+Claim de jobs:
 
-Document parsing is behind a small `DocumentParser` interface so the ingestion
-pipeline can support simple and advanced parsers without changing the domain
-model.
+```sql
+UPDATE jobs
+SET status = 'running',
+    locked_by = :worker_id,
+    locked_at = now(),
+    heartbeat_at = now(),
+    lease_expires_at = now() + :lease_duration,
+    attempts = attempts + 1,
+    started_at = coalesce(started_at, now()),
+    updated_at = now()
+WHERE id = (
+  SELECT id
+  FROM jobs
+  WHERE status = 'queued'
+    AND queue_name = :queue_name
+    AND run_after <= now()
+  ORDER BY priority DESC, run_after ASC, created_at ASC
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1
+)
+RETURNING *;
+```
 
-Initial parser providers:
+La transacción de claim debe ser corta: reclamar y hacer commit. El
+procesamiento pesado ocurre fuera de esa transacción. Nunca mantener locks de
+Postgres mientras se descarga una URL, se parsea contenido o se llama a Qwen.
 
-- `LlamaIndexBasicParser`: default v1 parser for URLs, Markdown, and TXT.
-- `UnstructuredLocalParser`: optional parser using the open-source
-  `unstructured` library or a locally hosted Unstructured API.
-- `UnstructuredApiParser`: optional hosted API adapter, disabled unless the
-  user explicitly configures credentials.
+Retries y backoff:
 
-Default configuration:
+- Errores transitorios vuelven a `queued` con `run_after` futuro.
+- Backoff exponencial con jitter.
+- Si `attempts >= max_attempts`, el job pasa a `dead_letter`.
+- Errores no retryable pasan a `failed`.
+- Faltas externas recuperables pasan a `blocked` sin consumir intentos
+  adicionales hasta que el usuario o sistema desbloquee la condición.
+
+Leases:
+
+- Cada job `running` tiene `lease_expires_at`.
+- El worker actualiza `heartbeat_at` y extiende el lease mientras trabaja.
+- Un sweeper reencola jobs `running` con lease vencido si aún tienen intentos
+  disponibles.
+- Si un worker recibe shutdown, termina el job actual si puede y deja de
+  reclamar nuevos jobs.
+
+Modelo de concurrencia:
+
+- Un proceso worker reclama un job a la vez.
+- Dentro de un job de ingestion, el worker puede ejecutar llamadas a provider con
+  un pool async acotado por `max_concurrent_ingestion_provider_calls`.
+- El heartbeat del job debe seguir activo mientras existan tareas internas en
+  ejecución.
+- Escalar workers significa levantar más procesos o réplicas, cada uno con su
+  propio `worker_id` y su propio límite interno.
+- El `BudgetGuard` y los rate limits locales se evalúan antes de cada llamada
+  concurrente a provider, no solo al inicio del job.
+
+Idempotencia:
+
+- Todo job tiene `idempotency_key`.
+- Enqueue debe devolver un job activo o ya exitoso si existe el mismo
+  `project_id`, `job_type` e `idempotency_key`.
+- Ingestion construye la key con `project_id`, `source_id`, `content_hash`,
+  `parser_config_hash`, `chunker_config_hash`, configuración de
+  contextualizer, modelo de embedding y `index_fingerprint`.
+- Un reindex forzado debe cambiar explícitamente la key o el payload para no
+  confundirse con una ingestion ya resuelta.
+- Los writes del worker también deben ser idempotentes: chunks se reemplazan o
+  superseden por `index_fingerprint`, no por suposición de que el job corre una
+  sola vez.
+
+Índices mínimos:
+
+- índice para claim por `queue_name`, `status`, `run_after`, `priority` y
+  `created_at`
+- índice para sweeper por `status` y `lease_expires_at`
+- índice por `project_id` y `status` para vistas de proyecto
+- índice por `job_type`, `project_id` e `idempotency_key`
+
+La unicidad de idempotencia debe impedir duplicados activos. Para jobs ya
+exitosos con la misma key, enqueue puede devolver el job existente como no-op;
+un reindex intencional debe usar una key diferente.
+
+Observabilidad:
+
+- Cada transición relevante crea un `job_events`.
+- `last_error_code` debe ser estable y testeable; `last_error_message` es para
+  diagnóstico humano.
+- Los eventos no guardan API keys, texto completo de documentos ni prompts
+  completos.
+
+Taxonomía inicial de `last_error_code`:
+
+- `URL_BLOCKED`: no retryable, pasa a `failed`.
+- `URL_TOO_LARGE`: no retryable, pasa a `failed`.
+- `UNSUPPORTED_CONTENT_TYPE`: no retryable, pasa a `failed`.
+- `FETCH_TIMEOUT`: retryable, vuelve a `queued` con backoff.
+- `FETCH_5XX`: retryable, vuelve a `queued` con backoff.
+- `PARSE_EMPTY`: no retryable, pasa a `failed`.
+- `PARSE_FAILED`: no retryable salvo que el parser indique error transitorio.
+- `EMBED_DIM_MISMATCH`: no retryable, pasa a `failed`.
+- `SPARSE_EMBEDDING_INVALID`: no retryable, pasa a `failed`.
+- `BUDGET_EXCEEDED`: recuperable externamente, pasa a `blocked`.
+- `API_KEY_MISSING`: recuperable externamente, pasa a `blocked`.
+- `PROVIDER_RATE_LIMIT`: retryable, vuelve a `queued` con backoff.
+- `PROVIDER_5XX`: retryable, vuelve a `queued` con backoff.
+- `PROVIDER_4XX_NON_RETRYABLE`: no retryable, pasa a `failed`.
+- `UNKNOWN_TRANSIENT`: retryable hasta `max_attempts`, luego `dead_letter`.
+
+## Pipeline de ingestion
+
+La ruta de producto por defecto de v1 soporta URLs públicas HTML, archivos
+Markdown y archivos TXT. Parsers avanzados pueden soportar formatos adicionales
+como profiles opt-in, pero esos formatos no son requeridos para la línea base de
+v1.
+
+El flujo de ingestion es:
+
+1. La API o CLI crea una Source dentro de un Project.
+2. La API o CLI encola un job `ingest_source`.
+3. Un worker respaldado por Postgres reclama jobs encolados con
+   `FOR UPDATE SKIP LOCKED` a través de la tabla `jobs`.
+4. El worker carga el contenido de la fuente. Para URLs HTML descarga con
+   `httpx` después de aplicar `UrlFetchPolicy` y extrae texto principal con
+   Trafilatura; para Markdown y TXT usa el parser básico del proyecto apoyado en
+   LlamaIndex cuando sea útil.
+5. El document parser seleccionado produce texto normalizado y metadata de
+   extracción.
+6. El sistema crea una fila `document_versions` con `normalized_text`, hash,
+   parser metadata e `index_fingerprint`.
+7. El chunker crea chunks desde `document_versions.normalized_text`.
+8. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
+   Qwen.
+9. Qwen crea embeddings para el input contextualizado según `embedding_mode`.
+   En modo `dense`, crea solo el vector dense por OpenAI-compatible. En modo
+   `dense_sparse`, crea dense y sparse por endpoint nativo DashScope.
+10. Postgres full-text indexa el input contextualizado para la rama lexical.
+11. Chunks, embeddings dense, embeddings sparse opcionales, metadata y status se
+    guardan en Postgres.
+12. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
+
+El worker de ingestion es idempotente por hash de contenido de la fuente,
+configuración de parser, configuración de chunker, configuración de
+contextualizer, modelo de embedding y hash del texto del chunk. Estos inputs se
+combinan en un `index_fingerprint`.
+
+Los cambios de parser son forward-only por defecto. Cambiar un proyecto desde
+`LlamaIndexBasicParser` a un parser futuro afecta solo nuevas ingestions, salvo
+que el usuario inicie explícitamente un reindex job. Los chunks existentes
+siguen siendo válidos y buscables porque cada documento y chunk guarda la
+metadata de parser y el `index_fingerprint` que lo produjo.
+
+Modos de reindex soportados:
+
+- `none`: comportamiento forward-only por defecto; no tocar chunks existentes.
+- `source`: reprocesar una fuente con la configuración actual de parser/index.
+- `project`: reprocesar todas las fuentes de un proyecto con la configuración
+  actual de parser/index.
+
+Reindexar una fuente reemplaza o supersede los chunks anteriores de esa fuente
+dentro del mismo proyecto. Backfills completos de proyecto son opt-in y deben
+usarse solo para homogeneidad, comparaciones de evals o upgrades importantes de
+indexing.
+
+## Document parsing
+
+El document parsing está detrás de una pequeña interfaz `DocumentParser`, para
+que el pipeline de ingestion soporte parsers simples y avanzados sin cambiar el
+modelo de dominio.
+
+Parser v1:
+
+- `TrafilaturaHtmlExtractor`: extractor por defecto para URLs HTML públicas.
+- `LlamaIndexBasicParser`: parser por defecto de v1 para Markdown y TXT.
+
+Configuración por defecto:
 
 ```yaml
 parsing:
-  provider: llamaindex_basic
+  url_html_extractor: trafilatura
+  text_parser: llamaindex_basic
 ```
 
-Optional advanced configuration:
+Trafilatura produce texto limpio y metadata para URLs HTML. Ese resultado se
+convierte directamente en `document_versions.normalized_text` y bloques
+estructurales internos cuando sea posible; no vuelve a pasar por
+`LlamaIndexBasicParser` como si fuera Markdown, salvo que un parser futuro lo
+declare explícitamente como parte de su contrato.
+
+Unstructured no se instala ni se implementa en v1. Puede mejorar documentos
+complejos como PDFs, Office, HTML ruidoso, emails, tablas o documentos con OCR,
+pero agrega dependencias pesadas, modos de parsing, latencia, edge cases de
+Docker y decisiones de calidad que no son necesarias para el alcance inicial.
+
+El schema mantiene `parser_provider`, `parser_version`, `parser_config_hash` e
+`index_fingerprint` para que un parser futuro pueda convivir con datos ya
+indexados sin exigir backfill obligatorio.
+
+## Chunking semántico
+
+El chunking v1 debe minimizar cortes erróneos antes de aplicar Contextual
+Retrieval. La estrategia es estructura primero y tokens solo como fallback:
+
+1. El parser produce texto normalizado y, cuando sea posible, bloques
+   estructurales: headings, párrafos, listas, tablas Markdown y code fences.
+2. El chunker agrupa bloques respetando límites semánticos.
+3. Si un bloque excede `max_chunk_tokens`, se parte con una regla específica
+   para su tipo.
+4. Si no hay estructura suficiente, se usa fallback por frases/párrafos.
+5. El corte puramente por tokens se usa solo como último recurso.
+
+Reglas de corte:
+
+- No cortar dentro de code fences salvo que el bloque supere `max_chunk_tokens`.
+- No cortar dentro de tablas Markdown salvo que la tabla supere
+  `max_chunk_tokens`; si se parte, repetir el header de tabla en cada chunk
+  derivado.
+- No cortar en medio de una lista si el grupo completo cabe dentro de
+  `max_chunk_tokens`.
+- Preferir cortes por heading, luego párrafo, luego frase, luego tokens.
+- Mantener overlap pequeño entre chunks vecinos para conservar continuidad.
+- Preservar `section_path` y `heading` para mejorar context generation,
+  metadata filtering y citations.
+
+Defaults v1:
 
 ```yaml
-parsing:
-  provider: unstructured_local
-  strategy: fast
+chunking:
+  strategy: semantic_markdown_v1
+  target_chunk_tokens: 500
+  max_chunk_tokens: 800
+  overlap_tokens: 80
 ```
 
-Unstructured is useful for complex HTML, PDFs, Office documents, emails, and
-image-heavy documents because it partitions raw files into structured elements
-such as titles, narrative text, and list items with metadata. In v1, it is an
-optional capability for learning and experimentation. It becomes a product
-default only if future evals show better retrieval quality and the operational
-cost is justified.
+Tokenización y estimación:
 
-When Unstructured is used, Adaptive RAG still owns source lifecycle,
-project isolation, content hashing, citations, contextual chunking, embeddings,
-and persistence. Unstructured only provides parsed elements.
+- El dominio usa una interfaz `TokenEstimator`.
+- La implementación v1 es `TiktokenTokenEstimator` con encoding `o200k_base`.
+- `tiktoken` se usa como estimador local determinístico, no como tokenizer exacto
+  de Qwen.
+- Para contenido de usuario o documentos se usa `disallowed_special=()` para que
+  strings similares a tokens especiales se cuenten como texto normal.
+- Los límites operativos aplican margen de seguridad y no deben consumir más del
+  80% del límite máximo documentado del provider.
+- `token_count` de chunks, `max_tokens_per_request`, batch sizing de embeddings
+  y presupuestos pre-call usan el mismo `TokenEstimator`.
+- El costo final usa usage real reportado por Qwen cuando esté disponible; si no,
+  queda marcado como estimado.
 
-## Contextual Chunks
+Batching de embeddings:
 
-Contextual chunking is enabled by default for new projects.
+- `text-embedding-v4` se llama con batches acotados.
+- El batch no debe superar el máximo de items documentado por el provider.
+- Cada item debe estar bajo el límite por input.
+- La suma estimada del batch debe estar bajo `max_tokens_per_request` del
+  proyecto y bajo el margen de seguridad del provider.
+- Si un batch excede límites, se divide; si un item individual excede límites,
+  el job falla con error estable.
 
-For each chunk, the system stores:
+Cada chunk guarda `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
+`next_chunk_id`, `chunker_version` y `chunker_config_hash`. Los offsets se
+refieren al texto normalizado del documento, no al texto contextual generado.
 
-- `text`: the original chunk text used for citations and answer context
-- `contextual_text`: the generated short context for retrieval
-- `embedding_input_text`: `contextual_text` plus `text`
+`prev_chunk_id` y `next_chunk_id` son redundantes con `ordinal` para reconstruir
+orden, pero se mantienen para expansión contextual de citas y navegación rápida
+por chunks vecinos sin recalcular ordinales.
 
-The contextual text improves retrieval, but it is not treated as factual
-evidence. Citations and user-facing source snippets use original source text.
+Invariantes:
 
-Default contextualizer:
+- Reconstruir los chunks por `ordinal` debe preservar el contenido original
+  normalizado, ignorando solo el overlap explícito.
+- `text` nunca incluye `contextual_text`.
+- Citations usan `text`, `char_start`, `char_end`, `section_path` y `heading`.
+- Cambios de estrategia o configuración de chunking cambian el
+  `index_fingerprint`.
 
-- Provider: DeepSeek direct
-- Model: `deepseek-v4-flash`
-- Maximum context target: 120 tokens
+## Contextual Retrieval
 
-The contextualizer is provider-agnostic and can later use Anthropic, OpenAI-
-compatible providers, or local models.
+El Contextual Retrieval está habilitado por defecto para proyectos nuevos. Esta
+técnica está inspirada en el patrón publicado por Anthropic: antes de indexar un
+chunk, el sistema usa un LLM para generar una descripción breve que sitúa ese
+chunk dentro de su documento completo. En Adaptive RAG, ese LLM es Qwen.
+
+La configuración de proyecto conserva `retrieval_contextualization_enabled`,
+con default `true`. Desactivarlo existe para debugging, evals de ablation y
+control de costos durante pruebas, no como ruta de producto principal. Cada
+cambio relevante de chunking, prompt o retrieval debe compararse con Contextual
+Retrieval activado y desactivado para medir impacto en calidad, costo y
+latencia.
+
+Para cada chunk, el sistema almacena:
+
+- `text`: texto original del chunk usado para citations y contexto de respuesta
+- `contextual_text`: contexto corto generado para retrieval
+- `embedding_input_text`: `contextual_text` más `text`
+- `lexical_input_text`: `contextual_text` más `text`, usado por Postgres
+  full-text
+
+El texto contextual mejora dense retrieval y lexical retrieval, pero no se trata
+como evidencia factual. Las citations y snippets visibles para el usuario usan
+el texto original de la fuente.
+
+Contextualizer por defecto:
+
+- Provider: Qwen
+- Modelo: `qwen3.5-flash`
+- Objetivo máximo de contexto: 120 tokens
+
+El contextualizer usa la misma integración Qwen que chat para mantener un solo
+provider de IA en producción.
+
+La implementación v1 adopta dos variantes del patrón:
+
+- Contextual embeddings: `embedding_input_text` se envía a Qwen
+  `text-embedding-v4`.
+- Contextual full-text: `lexical_input_text` se indexa con Postgres full-text.
+
+No se implementa Contextual BM25 literal porque v1 no usa Okapi BM25.
 
 ## Retrieval
 
-The main v1 retrieval tool is `search_project_knowledge`.
+La tool principal de retrieval en v1 es `search_project_knowledge`.
 
-The default retrieval strategy is:
+La estrategia de retrieval por defecto es:
 
-1. Dense retrieval with Voyage embeddings and the configured vector store
-   adapter, defaulting to pgvector.
-2. Lexical retrieval with Postgres full-text for the product path.
-3. Fusion with reciprocal rank fusion.
-4. Reranking with Voyage `rerank-2.5-lite`.
-5. Return ranked chunks with source metadata and citation payloads.
+1. Dense retrieval con embeddings Qwen `text-embedding-v4` y pgvector.
+2. Lexical retrieval local con Postgres full-text search sobre
+   `lexical_input_text` (`tsvector`, `tsquery`, GIN y ranking con
+   `ts_rank_cd`).
+3. Fusión con reciprocal rank fusion.
+4. Reranking con Qwen `qwen3-rerank`.
+5. Retornar chunks rankeados con metadata de fuente y payloads de citation.
 
-The public API must name the lexical leg as lexical retrieval, not BM25,
-because the default product implementation is Postgres full-text rather than
-Okapi BM25. A true BM25 retriever can be used through LlamaIndex as an eval
-baseline and can become a future implementation if it supports clean
-project-scoped retrieval and beats the default in evals.
+Si el proyecto usa `embedding_mode = "dense_sparse"`, se habilita una rama
+adicional de sparse retrieval con Qwen. Esta rama:
 
-The retrieval interface must support future implementations:
+1. Genera sparse embedding para la query con el endpoint nativo DashScope.
+2. Prefiltra candidatos con `chunk_sparse_embeddings.sparse_indices` y GIN.
+3. Calcula score por dot product sobre índices compartidos entre query y chunk.
+4. Entrega un ranking independiente que puede entrar a RRF junto a dense y
+   lexical.
+
+La API pública debe llamar a la segunda rama como lexical retrieval o Postgres
+full-text, no BM25, porque la implementación de producto no es Okapi BM25. Esta
+rama no usa un provider de IA: es infraestructura local de Postgres para mejorar
+recall en nombres propios, rutas de API, errores exactos, siglas y términos
+raros.
+
+Okapi BM25 real, SPLADE y otros learned sparse retrievers externos quedan fuera
+de v1. No se implementan ni se prometen como roadmap. Después de producción
+pueden evaluarse si las métricas muestran que las ramas Qwen dense, Qwen sparse
+experimental, Postgres full-text y Qwen rerank no alcanzan.
+
+Qwen sparse embeddings no reemplaza Postgres full-text en v1. Se implementa
+para aprender y medir learned sparse retrieval de Qwen, no para eliminar la rama
+lexical local. Si no mejora evals frente a dense + lexical + rerank, puede
+quedar como modo experimental documentado.
+
+La interfaz de retrieval v1 debe soportar:
 
 - dense-only
 - lexical-only
+- sparse-only, solo para proyectos `dense_sparse`
 - hybrid RRF
-- hybrid RRF plus rerank
-- Qdrant-backed dense retrieval
-- learned sparse retrieval with
-  `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
+- hybrid dense + sparse RRF
+- hybrid dense + lexical + sparse RRF
+- hybrid RRF más rerank
 
-Learned sparse retrieval is deferred to phase 2 and must be justified with eval
-results before becoming default.
+Estas variantes existen para evals y debugging, no para prometer múltiples
+motores de search.
 
-## Chat and Tool Calling
+## Metadata filtering
 
-The v1 chat experience is agentic but guarded.
+Metadata filtering es parte de v1 porque el sistema es multi-project y el
+usuario necesita controlar sobre qué subconjunto de conocimiento pregunta. Los
+filtros se aplican antes de rankear candidatos y deben comportarse igual en
+dense retrieval y lexical retrieval.
 
-The orchestration flow is:
+El filtro obligatorio de toda operación scoped a proyecto es:
 
-1. User sends a question to a project chat endpoint or CLI command.
-2. `ChatOrchestrator` calls DeepSeek with available tools.
-3. The model can call `search_project_knowledge`.
-4. The tool executes deterministic retrieval and returns ranked, cited chunks.
-5. The model answers using retrieved context.
-6. Tool calls, retrieval runs, citations, messages, usage, and costs are stored.
+- `project_id`
 
-Rule for factual project questions:
+Filtros opcionales v1:
 
-If a chat is associated with a project that has indexed data, the assistant
-must call `search_project_knowledge` before answering factual questions about
-that project. It may skip retrieval for greetings, app help, configuration, or
-general questions unrelated to the project knowledge base.
+- `source_ids`
+- `document_ids`
+- `source_types`, por ejemplo `url` o `file`
+- `tags`
+- `created_from`
+- `created_to`
 
-Future tools are planned but out of v1 implementation scope:
+La API expone estos filtros como un objeto `metadata_filter` en retrieval y
+chat. El CLI los expone como flags simples, por ejemplo `--source-id`,
+`--document-id`, `--source-type`, `--tag`, `--created-from` y `--created-to`.
+
+En v1 no se implementa un lenguaje arbitrario de filtros sobre `metadata_json`.
+`metadata_json` existe para conservar información original de parsers, fuentes y
+documentos, pero solo los campos promovidos a columnas tipadas participan en el
+filtro de retrieval. Esto mantiene los índices, tests y contratos de API
+simples.
+
+Implementación esperada:
+
+- dense retrieval usa `WHERE project_id = :project_id` más los filtros
+  opcionales antes de ordenar por distancia vectorial.
+- lexical retrieval usa los mismos filtros antes de ordenar por `ts_rank_cd`.
+- sparse retrieval usa los mismos filtros antes de prefiltrar por overlap y
+  calcular dot product.
+- RRF fusiona listas que ya respetan el mismo filtro.
+- Qwen rerank solo recibe candidatos ya filtrados.
+- citations deben incluir los filtros aplicados en el audit trail del
+  `retrieval_run`.
+
+La constante inicial de reciprocal rank fusion es `RRF_K = 60`. Cambiarla se
+trata como cambio de estrategia y debe registrarse en `retrieval_run` y
+`eval_runs`.
+
+## Chat y tool calling
+
+La experiencia de chat v1 es agentic pero con guardrails.
+
+El flujo de orquestación es:
+
+1. El usuario envía una pregunta a un endpoint de chat de proyecto o comando
+   CLI.
+2. `ChatOrchestrator` evalúa una regla determinística `should_retrieve` usando
+   proyecto, disponibilidad de chunks indexados, tipo de pregunta y filtros
+   explícitos.
+3. Si la regla exige retrieval, `ChatOrchestrator` ejecuta
+   `search_project_knowledge` antes de pedir la respuesta final al modelo e
+   inyecta el contexto recuperado en el prompt de respuesta.
+4. `ChatOrchestrator` construye un agente Pydantic AI con modelo Qwen
+   OpenAI-compatible, dependencias del proyecto y tools disponibles.
+5. El modelo puede llamar a `search_project_knowledge` mediante tool calling de
+   Pydantic AI para búsquedas adicionales o refinamientos.
+6. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
+   citations.
+7. El modelo responde usando el contexto recuperado.
+8. Tool calls, retrieval runs, citations, mensajes, usage y costos se guardan.
+
+Regla para preguntas factuales de proyecto:
+
+Si un chat está asociado a un proyecto que tiene datos indexados, el assistant
+debe llamar a `search_project_knowledge` antes de responder preguntas factuales
+sobre ese proyecto. Puede saltarse retrieval para saludos, ayuda de la app,
+configuración o preguntas generales no relacionadas con la knowledge base del
+proyecto.
+
+Esta regla se implementa en código y se prueba con fakes. El prompt
+`tool_selection_v1` puede guiar al modelo, pero no es el único mecanismo que
+protege contra respuestas factuales sin retrieval.
+
+Streaming v1:
+
+- `POST /projects/{project_id}/chat` retorna request/response JSON.
+- `POST /projects/{project_id}/chat/stream` retorna `text/event-stream`.
+- El streaming v1 usa SSE, no WebSockets.
+- WebSockets queda fuera de v1 porque el chat RAG inicial es principalmente
+  servidor a cliente: estado de retrieval, deltas del modelo, citations, usage y
+  cierre.
+
+Eventos SSE v1:
+
+- `retrieval.started`
+- `retrieval.chunk`
+- `rerank.started`
+- `model.delta`
+- `citation`
+- `usage`
+- `done`
+- `error`
+
+Tools futuras planificadas, pero fuera del alcance de implementación de v1:
 
 - `self_knowledge`
 - `add_knowledge`
 - `add_to_memory`
 
-The tool loop stays in Adaptive RAG code. LlamaIndex is used underneath for RAG
-primitives, not as the owner of chat orchestration.
+El tool loop vive en una capa propia de Adaptive RAG respaldada por Pydantic AI.
+LlamaIndex se usa por debajo para primitivas RAG, no como dueño de la
+orquestación del chat.
 
 ## Citations
 
-Each retrieved chunk returns a citation payload:
+Cada chunk recuperado retorna un payload de citation:
 
 - `source_id`
 - `source_title`
@@ -411,19 +1136,20 @@ Each retrieved chunk returns a citation payload:
 - `snippet`
 - `rank`
 - `retrieval_method`
-- dense score, when available
-- lexical score, when available
-- RRF score, when available
-- rerank score, when available
+- dense score, cuando exista
+- lexical score, cuando exista
+- RRF score, cuando exista
+- rerank score, cuando exista
 
-Answer citations must point back to original source text and source metadata.
-Generated contextual prefixes are not user-facing evidence.
+Las citations de una respuesta deben apuntar al texto original de la fuente y a
+su metadata. Los prefijos contextuales generados no son evidencia visible para
+el usuario.
 
-## Eval Harness
+## Eval harness
 
-Evals are part of v1 and can be run from the CLI and API without a frontend.
+Los evals son parte de v1 y pueden ejecutarse desde CLI y API sin frontend.
 
-Tables:
+Tablas:
 
 `eval_questions`:
 
@@ -441,6 +1167,7 @@ Tables:
 - `project_id`
 - `retrieval_strategy`
 - `model_config_json`
+- `prompt_versions_json`
 - `metrics_json`
 - `created_at`
 
@@ -454,39 +1181,58 @@ Tables:
 - `citations`
 - `metrics_json`
 
-Ragas provides LLM-judge metrics:
+Ragas aporta métricas LLM-as-judge:
 
 - faithfulness
 - response relevancy
 - context precision
 - context recall
 
-Custom deterministic metrics provide:
+Métricas determinísticas propias:
 
 - recall@k
 - MRR
 - source_hit_rate
 - citation_coverage
-- cost per run
-- latency per strategy
+- costo por run
+- latencia por estrategia
 
-The first strategy matrix is:
+La primera matriz de estrategias es:
 
 - dense-only
 - lexical-only
+- sparse-only, solo para proyectos `dense_sparse`
 - hybrid RRF
-- hybrid RRF plus rerank
-- hybrid RRF plus rerank plus contextual chunks
+- dense + sparse RRF
+- dense + lexical + sparse RRF
+- hybrid RRF más rerank
+- dense + lexical + sparse RRF más rerank
+- hybrid RRF más rerank más contextual chunks
 
-The eval harness persists enough data to reproduce why one strategy beat
-another.
+Las estrategias que dependan de chunks indexados deben reportarse con
+`retrieval_contextualization_enabled = true` y con la ablation equivalente en
+`false` cuando exista un índice comparable. El objetivo no es hacer opcional el
+Contextual Retrieval en producto, sino medir cuánto aporta frente a su costo y
+latencia.
 
-## Observability and Audit Trail
+El eval harness persiste suficientes datos para reproducir por qué una
+estrategia superó a otra.
 
-The v1 uses local-first observability through Postgres and structured JSON logs.
-No SaaS observability provider is required.
+Reproducibilidad:
 
-Tables:
+- Cada eval run guarda `RRF_K`, modelo de judge, región/deployment, temperatura,
+  prompt versions y configuración de retrieval.
+- Los evals LLM-as-judge usan temperatura `0` por defecto.
+- Si el provider no ofrece seed estable, el run debe marcar la reproducibilidad
+  como dependiente del provider y conservar respuestas intermedias necesarias
+  para auditoría.
+
+## Observabilidad y audit trail
+
+La v1 usa observabilidad local-first mediante Postgres y logs JSON
+estructurados. No se requiere ningún provider SaaS de observabilidad.
+
+Tablas:
 
 `chat_sessions`:
 
@@ -536,20 +1282,128 @@ Tables:
 
 `provider_usage`:
 
-- `session_id`
+- `project_id`
+- `session_id`, nullable
+- `job_id`, nullable
+- `eval_run_id`, nullable
+- `operation`, uno de `chat`, `contextualize`, `embedding`, `rerank` o
+  `eval_judge`
 - `provider`
 - `model`
+- `provider_request_id`, nullable
+- `price_snapshot_id`
 - `input_tokens`
 - `output_tokens`
+- `total_tokens`
+- `usage_source`, uno de `provider_reported` o `estimated`
 - `estimated_cost`
+- `currency`
 - `latency_ms`
+- `status`
+- `error_message`
+- `created_at`
 
-Future adapters may export to OpenTelemetry or Langfuse, but v1 does not depend
-on them.
+Adaptadores futuros pueden exportar a OpenTelemetry o Langfuse, pero v1 no
+depende de ellos.
 
-## API Surface
+## Preparación para OpenTelemetry
 
-Initial FastAPI endpoints:
+La v1 no instala ni inicializa OpenTelemetry todavía. El camino queda preparado
+con nombres estables de spans y atributos para que, cuando existan flujos reales
+de API, ingestion, retrieval, chat y evals, se pueda agregar instrumentación sin
+renombrar conceptos ni cambiar contratos de audit trail.
+
+Spans reservados:
+
+- `api.request`
+- `ingestion.source.fetch`
+- `ingestion.document.parse`
+- `ingestion.chunk.create`
+- `ingestion.chunk.contextualize`
+- `embedding.create`
+- `retrieval.dense.search`
+- `retrieval.lexical.search`
+- `retrieval.rrf.fuse`
+- `rerank.qwen`
+- `chat.agent.run`
+- `chat.tool.search_project_knowledge`
+- `eval.run`
+
+Atributos comunes:
+
+- `adaptive_rag.project_id`
+- `adaptive_rag.source_id`
+- `adaptive_rag.document_id`
+- `adaptive_rag.chunk_id`
+- `adaptive_rag.session_id`
+- `adaptive_rag.eval_run_id`
+- `adaptive_rag.provider`
+- `adaptive_rag.model`
+- `adaptive_rag.prompt_version`
+- `adaptive_rag.retrieval_strategy`
+
+Reglas:
+
+- No registrar contenido sensible, texto completo de chunks, prompts completos,
+  API keys ni respuestas completas en spans.
+- Usar spans para latencia, errores, conteos y correlación; usar Postgres como
+  audit trail durable.
+- Mantener logs JSON y tablas de auditoría como observabilidad principal de v1.
+- Agregar dependencias `opentelemetry-*` solo cuando implementemos
+  instrumentación real o un exporter concreto.
+
+## Release v1.0 de portafolio
+
+La primera release pública debe priorizar un vertical slice completo y
+demostrable antes que profundidad de plataforma. Debe permitir crear proyectos,
+agregar fuentes Markdown, TXT y URL HTML pública, indexarlas, ejecutar retrieval
+híbrido, chatear con citations, correr evals y mostrar un reporte reproducible
+de calidad/costo/latencia.
+
+Incluye:
+
+- multi-project single-user
+- ingestion por worker Postgres
+- `document_versions`
+- chunking semántico Markdown/texto
+- Contextual Retrieval con Qwen
+- embeddings dense Qwen `text-embedding-v4` de 1024 dimensiones
+- Qwen sparse embeddings como modo experimental configurable `dense_sparse`
+- pgvector exact search
+- Postgres full-text como rama lexical local
+- RRF y rerank Qwen
+- metadata filtering tipado
+- chat retrieval-first con Pydantic AI tool calling
+- prompt versioning
+- usage/cost tracking básico por provider call
+- eval harness CLI/API con métricas determinísticas y Ragas opt-in
+- Docker Compose con API, worker y Postgres/pgvector
+- README, demo script y reporte de evals para portafolio
+
+Hitos internos publicables:
+
+- `v0.1`: CLI-first, single-project lógico sobre el schema multi-project,
+  ingestion síncrona de Markdown/TXT, chunker propio `semantic_markdown_v1`,
+  Qwen dense embeddings, pgvector exact search, citations y evals
+  determinísticos.
+- `v0.2`: worker Postgres, ingestion de URLs HTML con `UrlFetchPolicy`,
+  Postgres full-text, metadata filtering y RRF.
+- `v0.3`: Contextual Retrieval con Qwen, Qwen rerank, chat retrieval-first con
+  Pydantic AI y SSE para chat streaming.
+- `v0.4`: modo experimental `dense_sparse`, storage
+  `chunk_sparse_embeddings`, sparse retrieval y matriz de evals comparativa.
+- `v1.0`: Docker Compose completo, usage/cost tracking consolidado, README,
+  demo script y reporte de evals/costo/latencia listo para portafolio.
+
+Quedan fuera de la primera release pública aunque existan huecos preparados en
+el diseño: frontend completo, auth multi-user, PDF/Office, Unstructured, Qdrant,
+HNSW, SPLADE, sparse retrievers externos, WebSockets, OpenTelemetry exporter,
+dashboards de costos avanzados, optimización avanzada de sparse scoring,
+servidor MCP y reindex masivo de proyecto como flujo principal.
+
+## Superficie de API
+
+Endpoints FastAPI iniciales:
 
 - `POST /projects`
 - `GET /projects`
@@ -560,14 +1414,23 @@ Initial FastAPI endpoints:
 - `POST /projects/{project_id}/ingestion-jobs`
 - `GET /projects/{project_id}/ingestion-jobs/{job_id}`
 - `POST /projects/{project_id}/chat`
+- `POST /projects/{project_id}/chat/stream`
 - `GET /projects/{project_id}/chat-sessions/{session_id}`
 - `POST /projects/{project_id}/retrieval/search`
 - `POST /projects/{project_id}/eval-runs`
 - `GET /projects/{project_id}/eval-runs/{run_id}`
 
-## CLI Surface
+`POST /projects/{project_id}/chat` y
+`POST /projects/{project_id}/retrieval/search` aceptan `metadata_filter` con los
+campos tipados de v1. El backend rechaza filtros con campos desconocidos en vez
+de ignorarlos silenciosamente.
 
-Initial Typer commands:
+Los endpoints de `ingestion-jobs` son una superficie semántica de producto. En
+la base de datos crean y leen filas de `jobs` con `job_type = ingest_source`.
+
+## Superficie de CLI
+
+Comandos Typer iniciales:
 
 - `adaptive-rag projects create`
 - `adaptive-rag sources add-url`
@@ -577,71 +1440,135 @@ Initial Typer commands:
 - `adaptive-rag retrieval search`
 - `adaptive-rag eval run`
 
-The CLI is a first-class development and learning surface while the frontend is
-deferred.
+La CLI es una superficie de desarrollo y aprendizaje de primera clase mientras
+el frontend queda diferido.
 
-## Auth and Deployment
+`adaptive-rag chat ask` y `adaptive-rag retrieval search` aceptan flags de
+filtro como `--source-id`, `--document-id`, `--source-type`, `--tag`,
+`--created-from` y `--created-to`.
 
-The v1 is single-user and local-first.
+## Auth y deployment
 
-Optional API key auth:
+La v1 es single-user y local-first.
 
-- If `ADAPTIVE_RAG_API_KEY` is set, mutable endpoints require
+Auth opcional con API key:
+
+- Si `ADAPTIVE_RAG_API_KEY` está seteada, los endpoints mutables requieren
   `Authorization: Bearer <key>`.
-- If it is not set, the app runs in local development mode without auth.
+- Si no está seteada, la app corre en modo desarrollo local sin auth.
 
-Docker Compose services:
+Servicios de Docker Compose:
 
 - `api`
 - `worker`
-- `postgres` with pgvector
+- `postgres` con pgvector
 
-Optional Docker Compose profiles may add:
+El stack local de v1 no requiere profiles adicionales para document parsing.
 
-- `qdrant` for vector-store benchmarking and optional dense retrieval.
-- an Unstructured API service for advanced document parsing.
+El schema incluye `users` y `projects.owner_user_id` para auth multi-user
+futura, pero v1 no implementa registro, login, sesiones ni OAuth. En v1 las
+filas `users` pueden no existir y `projects.owner_user_id` puede quedar `NULL`.
+Un usuario por defecto solo se creará si una migración o comando `init` futuro
+lo necesita explícitamente.
 
-The default local stack must run without Qdrant or Unstructured.
+## Estrategia de testing
 
-The schema includes `users` and `projects.owner_user_id` for future multi-user
-auth, but v1 does not implement registration, login, sessions, or OAuth.
+La cobertura TDD empieza con comportamiento core:
 
-## Testing Strategy
+- aislamiento por proyecto
+- creación de sources y content hashing
+- claim de jobs con `FOR UPDATE SKIP LOCKED`
+- leases, heartbeat y reencolado de jobs `running` expirados
+- modelo de worker de un job por proceso con pool interno acotado para provider
+  calls
+- retries con backoff, `blocked`, `failed` y `dead_letter`
+- mapping de `last_error_code` a retry, `failed`, `blocked` y `dead_letter`
+- enqueue idempotente por `idempotency_key`
+- `job_events` para transiciones relevantes
+- `UrlFetchPolicy` bloquea esquemas no permitidos, localhost, IPs privadas,
+  redirects inseguros, responses demasiado grandes y content types no soportados
+- extracción de HTML con Trafilatura usando HTML descargado por el sistema
+- creación y versionado de `document_versions`
+- creación de chunks y preservación de metadata
+- chunking semántico de Markdown con headings, listas, tablas y code fences
+- fallback por frases/párrafos/tokens para bloques largos
+- `TiktokenTokenEstimator` con `o200k_base` y `disallowed_special=()`
+- batch sizing de embeddings con límites por item, por batch y por
+  `max_tokens_per_request`
+- reconstrucción de contenido normalizado desde chunks ordenados por `ordinal`
+- offsets `char_start`/`char_end` válidos para citations
+- comportamiento de storage para contextual chunks
+- construcción de `embedding_input_text` y `lexical_input_text`
+- tracking de metadata de embeddings
+- comportamiento del provider registry con fakes
+- `BudgetGuard` bloquea provider calls que superan presupuesto, rate limits
+  locales o tamaño máximo de request
+- `ProviderUsageTracker` registra usage/costo para chat, contextualización,
+  embeddings, rerank y evals con provider fakes
+- el adapter Qwen de embeddings valida `embedding_dim = 1024` y rechaza vectores
+  de tamaño inesperado
+- el adapter Qwen DashScope parsea respuestas `dense&sparse` con `embedding` y
+  `sparse_embedding`
+- storage de `chunk_sparse_embeddings` para proyectos `dense_sparse`
+- sparse scoring por dot product sobre índices compartidos
+- comportamiento del document parser registry con fakes
+- resolución y tracking de versiones de prompts
+- contract tests del adapter pgvector
+- dense retrieval exacto como baseline de correctness
+- pruebas comparativas para HNSW solo si se habilita como optimización
+- filtros de retrieval por proyecto
+- metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
+  rango de fechas
+- paridad de filtros entre dense retrieval y lexical retrieval
+- paridad de filtros entre dense, lexical y sparse retrieval cuando
+  `embedding_mode = "dense_sparse"`
+- paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
+- fusión RRF
+- `RRF_K = 60` queda persistido en runs relevantes
+- fusión RRF con rama sparse opcional
+- generación de citation payload
+- regla determinística `should_retrieve` para preguntas factuales de proyecto
+- endpoint SSE de chat streaming emite eventos esperados y persiste el resultado
+  final de la sesión
+- orquestación de tool calls con Pydantic AI usando modelos y tools fake
+- cálculo de métricas de eval
 
-TDD coverage starts with core behavior:
+Las llamadas a SDKs de providers usan fakes y contract tests primero. Los smoke
+tests con providers hosted son explícitos, opt-in y se saltan cuando faltan API
+keys.
 
-- project isolation
-- source creation and content hashing
-- ingestion job claiming with `FOR UPDATE SKIP LOCKED`
-- chunk creation and metadata preservation
-- contextual chunk storage behavior
-- embedding metadata tracking
-- provider registry behavior with fakes
-- document parser registry behavior with fakes
-- Unstructured parser contract tests with representative fixture files
-- vector store adapter contract tests shared by pgvector and Qdrant
-- retrieval filters by project
-- RRF fusion
-- citation payload generation
-- tool-call orchestration with fake providers
-- eval metric calculations
+Los tests de integración contra infraestructura usan Testcontainers for Python
+como dependencia de desarrollo. Se usa para levantar Postgres/pgvector efímero
+durante pruebas de migraciones, constraints, full-text search, pgvector,
+`FOR UPDATE SKIP LOCKED`, leases de jobs y comportamiento real de transacciones.
+Testcontainers no forma parte del runtime productivo, no agrega servicios a
+Docker Compose y requiere Docker disponible solo en el entorno que ejecute esos
+tests.
+Los tests deben generar URLs SQLAlchemy usando el driver `psycopg`, coherente
+con el stack del proyecto, en vez de introducir `psycopg2`.
 
-Provider SDK calls use fakes and contract tests first. Hosted provider smoke
-tests are explicit, opt-in, and skipped when API keys are absent.
+## Fases posteriores
 
-## Follow-up Phases
+Candidatos para después de producción:
 
-Phase 2 candidates:
-
-- promoting Qdrant from optional vector-store profile to default if benchmarks
-  against pgvector justify it on latency, filter behavior, operational cost,
-  and retrieval quality
-- true BM25 or OpenSearch lexical retrieval if evals justify the added service
-- learned sparse retrieval with
-  `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
-- LangGraph experimental agent mode
-- PDF ingestion
-- frontend built with an agent against stable API contracts
-- local model profiles for chat, embeddings, and rerank
-- OpenTelemetry or Langfuse export
-- multi-user auth
+- evaluar Okapi BM25 real, SPLADE o learned sparse retrievers externos solo si
+  los evals muestran que Postgres full-text y Qwen sparse limitan el recall o la
+  calidad final
+- optimizar Qwen sparse embeddings solo si los evals v1 muestran aporte claro;
+  candidatos posteriores incluyen SQL ranking más eficiente, storage comprimido
+  o un inverted index dedicado
+- servidor MCP local posterior a v1, empezando por transporte `stdio` y tools
+  read-only como `list_projects`, `search_project_knowledge`, `get_source` y
+  `get_document_chunks`; tools de escritura como `add_knowledge` o
+  `add_to_memory` requieren diseño de permisos y quedan para después
+- evaluar Qdrant u otro vector database solo si pgvector limita latencia,
+  filtros, costo operacional o calidad de retrieval
+- evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,
+  emails, tablas u OCR; la promoción debe justificarse con parse_success_rate,
+  text_coverage, retrieval recall@k, citation_coverage y costo/latencia de
+  ingestion
+- modo agente experimental con LangGraph
+- ingestion de PDF
+- frontend construido con un agente contra contratos de API estables
+- export a OpenTelemetry o Langfuse
+- auth multi-user

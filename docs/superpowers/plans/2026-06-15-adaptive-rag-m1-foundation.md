@@ -1,28 +1,54 @@
-# Adaptive RAG M1 Foundation Implementation Plan
+# Plan de implementación M1 Foundation de Adaptive RAG
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Para workers agentic:** SUB-SKILL REQUERIDA: usar
+> `superpowers:subagent-driven-development` (recomendado) o
+> `superpowers:executing-plans` para implementar este plan tarea por tarea. Los
+> pasos usan sintaxis de checkbox (`- [ ]`) para tracking.
 
-**Goal:** Create the Python project foundation for Adaptive RAG: package layout, settings, logging, DB session/Alembic base, FastAPI health endpoint, Typer CLI shell, and quality gates.
+**Objetivo:** crear la base del proyecto Python para Adaptive RAG: layout del
+paquete, settings, logging, sesión de DB/base Alembic, endpoint de health en
+FastAPI, shell CLI con Typer y quality gates.
 
-**Architecture:** This milestone creates infrastructure only. API and CLI are thin entrypoints; shared configuration lives in `adaptive_rag.config`; database connection code lives in `adaptive_rag.db`; no RAG, providers, ingestion, or retrieval behavior is implemented yet.
+**Arquitectura:** este hito crea solo infraestructura. API y CLI son
+entrypoints delgados; la configuración compartida vive en `adaptive_rag.config`;
+el código de conexión a base de datos vive en `adaptive_rag.db`; todavía no se
+implementa comportamiento de RAG, providers, ingestion ni retrieval.
 
-**Tech Stack:** Python 3.12, uv, FastAPI, Typer, Rich, Pydantic Settings, SQLAlchemy 2, Alembic, psycopg, pytest, httpx, ruff, mypy.
+**Stack técnico:** Python 3.12, uv, FastAPI, Typer, Rich, Pydantic Settings,
+Pydantic AI slim con soporte OpenAI-compatible, SQLAlchemy 2, Alembic, psycopg,
+pytest, Testcontainers for Python, httpx, Trafilatura, prompts Markdown
+versionados, ruff y mypy.
 
 ---
 
-## Scope
+## Alcance
 
-This plan covers only Milestone 1. It intentionally does not implement domain tables, ingestion jobs, LlamaIndex, Unstructured, Voyage, DeepSeek, pgvector models, Qdrant, chat orchestration, or evals. Those belong in later plans.
+Este plan cubre solo Milestone 1. Intencionalmente no implementa tablas de
+dominio, job queue, LlamaIndex, integración Qwen, modelos pgvector,
+retrieval, orquestación de chat ni evals. La dependencia `pydantic-ai-slim`
+queda instalada como base del runtime de agente futuro y la dependencia
+`trafilatura` queda instalada como base del extractor HTML futuro, pero ninguna
+de las dos se usa en código productivo durante M1. Testcontainers queda
+instalado solo como dependencia `dev` para tests de integración con
+Postgres/pgvector real. Eso pertenece a planes posteriores.
+Unstructured queda fuera de v1 y solo debe reaparecer como experimento
+post-producción si los evals de parsing/retrieval lo justifican.
+El directorio `prompts/` queda creado con una convención de versionado, pero M1
+no implementa prompt loading ni prompts productivos.
+OpenTelemetry queda preparado solo como convención de nombres de spans y
+atributos en el spec; M1 no agrega dependencias `opentelemetry-*`, exporters ni
+instrumentación.
 
-## Target File Structure
+## Estructura objetivo de archivos
 
-Files created in this milestone:
+Archivos creados en este hito:
 
 ```txt
 pyproject.toml
 .gitignore
 .env.example
 README.md
+prompts/README.md
 alembic.ini
 alembic/env.py
 alembic/versions/.gitkeep
@@ -47,23 +73,26 @@ tests/integration/cli/test_cli.py
 
 ---
 
-### Task 1: Project Package Skeleton
+### Tarea 1: esqueleto del paquete del proyecto
 
-**Files:**
-- Create: `pyproject.toml`
-- Create: `.gitignore`
-- Create: `.env.example`
-- Create: `README.md`
-- Create: `src/adaptive_rag/__init__.py`
-- Create: package `__init__.py` files under `api`, `api/routes`, `cli`, `config`, and `db`
+**Estado:** completada en el commit `d2d23d4 chore: scaffold adaptive rag package`.
 
-- [ ] **Step 1: Create `pyproject.toml`**
+**Archivos:**
+- Crear: `pyproject.toml`
+- Crear: `.gitignore`
+- Crear: `.env.example`
+- Crear: `README.md`
+- Crear: `src/adaptive_rag/__init__.py`
+- Crear: archivos `__init__.py` de paquete bajo `api`, `api/routes`, `cli`,
+  `config` y `db`
+
+- [x] **Paso 1: crear `pyproject.toml`**
 
 ```toml
 [project]
 name = "adaptive-rag"
 version = "0.1.0"
-description = "Personal, project-scoped adaptive RAG system."
+description = "Sistema RAG adaptativo personal y aislado por proyecto."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -72,9 +101,11 @@ dependencies = [
   "httpx>=0.28",
   "pgvector>=0.3",
   "psycopg[binary]>=3.2",
+  "pydantic-ai-slim[openai]>=1.107.0",
   "pydantic-settings>=2.6",
   "rich>=13.9",
   "sqlalchemy>=2.0",
+  "trafilatura>=2.1.0",
   "typer>=0.15",
   "uvicorn[standard]>=0.32",
 ]
@@ -85,6 +116,7 @@ dev = [
   "pytest>=8.3",
   "pytest-asyncio>=0.24",
   "ruff>=0.8",
+  "testcontainers[postgres]>=4.14.2",
 ]
 
 [project.scripts]
@@ -115,7 +147,7 @@ strict = true
 packages = ["adaptive_rag"]
 ```
 
-- [ ] **Step 2: Create `.gitignore`**
+- [x] **Paso 2: crear `.gitignore`**
 
 ```gitignore
 .env
@@ -134,7 +166,7 @@ build/
 htmlcov/
 ```
 
-- [ ] **Step 3: Create `.env.example`**
+- [x] **Paso 3: crear `.env.example`**
 
 ```dotenv
 ADAPTIVE_RAG_ENV=local
@@ -144,14 +176,15 @@ ADAPTIVE_RAG_API_KEY=
 ADAPTIVE_RAG_VECTOR_STORE=pgvector
 ```
 
-- [ ] **Step 4: Create `README.md`**
+- [x] **Paso 4: crear `README.md`**
 
 ````markdown
 # Adaptive RAG
 
-Personal, project-scoped RAG system for learning and portfolio use.
+Sistema RAG personal, aislado por proyecto, pensado para aprendizaje y
+portafolio.
 
-## Local Development
+## Desarrollo local
 
 ```bash
 uv sync --extra dev
@@ -161,7 +194,7 @@ uv run mypy src
 ```
 ````
 
-- [ ] **Step 5: Create package init files**
+- [x] **Paso 5: crear archivos init de paquete**
 
 ```python
 # src/adaptive_rag/__init__.py
@@ -170,7 +203,7 @@ __all__ = ["__version__"]
 __version__ = "0.1.0"
 ```
 
-Create empty files:
+Crear archivos vacíos:
 
 ```txt
 src/adaptive_rag/api/__init__.py
@@ -180,31 +213,31 @@ src/adaptive_rag/config/__init__.py
 src/adaptive_rag/db/__init__.py
 ```
 
-- [ ] **Step 6: Sync dependencies**
+- [x] **Paso 6: sincronizar dependencias**
 
-Run:
+Ejecutar:
 
 ```bash
 uv sync --extra dev
 ```
 
-Expected: command exits with code `0` and creates `.venv`.
+Resultado esperado: el comando termina con código `0` y crea `.venv`.
 
-- [ ] **Step 7: Verify package import**
+- [x] **Paso 7: verificar import del paquete**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run python -c "import adaptive_rag; print(adaptive_rag.__version__)"
 ```
 
-Expected output:
+Output esperado:
 
 ```txt
 0.1.0
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Paso 8: commit**
 
 ```bash
 git add pyproject.toml .gitignore .env.example README.md src/adaptive_rag
@@ -213,14 +246,14 @@ git commit -m "chore: scaffold adaptive rag package"
 
 ---
 
-### Task 2: Settings and Logging
+### Tarea 2: settings y logging
 
-**Files:**
-- Create: `src/adaptive_rag/config/settings.py`
-- Create: `src/adaptive_rag/config/logging.py`
-- Create: `tests/unit/config/test_settings.py`
+**Archivos:**
+- Crear: `src/adaptive_rag/config/settings.py`
+- Crear: `src/adaptive_rag/config/logging.py`
+- Crear: `tests/unit/config/test_settings.py`
 
-- [ ] **Step 1: Write failing settings tests**
+- [ ] **Paso 1: escribir tests de settings que fallen**
 
 ```python
 # tests/unit/config/test_settings.py
@@ -247,17 +280,18 @@ def test_api_key_is_optional(monkeypatch):
     assert settings.api_key is None
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [ ] **Paso 2: correr tests para verificar el fallo**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/unit/config/test_settings.py -q
 ```
 
-Expected: FAIL with `ModuleNotFoundError` for `adaptive_rag.config.settings`.
+Resultado esperado: FAIL con `ModuleNotFoundError` para
+`adaptive_rag.config.settings`.
 
-- [ ] **Step 3: Implement settings**
+- [ ] **Paso 3: implementar settings**
 
 ```python
 # src/adaptive_rag/config/settings.py
@@ -268,7 +302,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-VectorStoreName = Literal["pgvector", "qdrant"]
+VectorStoreName = Literal["pgvector"]
 
 
 class Settings(BaseSettings):
@@ -294,7 +328,7 @@ def get_settings() -> Settings:
     return Settings()
 ```
 
-- [ ] **Step 4: Implement logging configuration**
+- [ ] **Paso 4: implementar configuración de logging**
 
 ```python
 # src/adaptive_rag/config/logging.py
@@ -308,27 +342,27 @@ def configure_logging(level: str) -> None:
     )
 ```
 
-- [ ] **Step 5: Run settings tests**
+- [ ] **Paso 5: correr tests de settings**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/unit/config/test_settings.py -q
 ```
 
-Expected: `2 passed`.
+Resultado esperado: `2 passed`.
 
-- [ ] **Step 6: Run lint for config package**
+- [ ] **Paso 6: correr lint del paquete de config**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run ruff check src/adaptive_rag/config tests/unit/config
 ```
 
-Expected: command exits with code `0`.
+Resultado esperado: el comando termina con código `0`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Paso 7: commit**
 
 ```bash
 git add src/adaptive_rag/config tests/unit/config
@@ -337,17 +371,17 @@ git commit -m "feat: add application settings"
 
 ---
 
-### Task 3: Database Session and Alembic Base
+### Tarea 3: sesión de database y base Alembic
 
-**Files:**
-- Create: `src/adaptive_rag/db/base.py`
-- Create: `src/adaptive_rag/db/session.py`
-- Create: `tests/unit/db/test_session.py`
-- Create: `alembic.ini`
-- Create: `alembic/env.py`
-- Create: `alembic/versions/.gitkeep`
+**Archivos:**
+- Crear: `src/adaptive_rag/db/base.py`
+- Crear: `src/adaptive_rag/db/session.py`
+- Crear: `tests/unit/db/test_session.py`
+- Crear: `alembic.ini`
+- Crear: `alembic/env.py`
+- Crear: `alembic/versions/.gitkeep`
 
-- [ ] **Step 1: Write failing DB session tests**
+- [ ] **Paso 1: escribir tests de sesión DB que fallen**
 
 ```python
 # tests/unit/db/test_session.py
@@ -371,17 +405,18 @@ def test_sqlite_engine_can_execute_query():
     assert value == 1
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [ ] **Paso 2: correr tests para verificar el fallo**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/unit/db/test_session.py -q
 ```
 
-Expected: FAIL with `ModuleNotFoundError` for `adaptive_rag.db.base` or `adaptive_rag.db.session`.
+Resultado esperado: FAIL con `ModuleNotFoundError` para `adaptive_rag.db.base`
+o `adaptive_rag.db.session`.
 
-- [ ] **Step 3: Implement SQLAlchemy base**
+- [ ] **Paso 3: implementar base SQLAlchemy**
 
 ```python
 # src/adaptive_rag/db/base.py
@@ -392,7 +427,7 @@ class Base(DeclarativeBase):
     pass
 ```
 
-- [ ] **Step 4: Implement DB session helpers**
+- [ ] **Paso 4: implementar helpers de sesión DB**
 
 ```python
 # src/adaptive_rag/db/session.py
@@ -423,7 +458,7 @@ def session_scope() -> Iterator[Session]:
         yield session
 ```
 
-- [ ] **Step 5: Create Alembic config**
+- [ ] **Paso 5: crear config de Alembic**
 
 ```ini
 # alembic.ini
@@ -466,7 +501,7 @@ formatter = generic
 format = %(levelname)-5.5s [%(name)s] %(message)s
 ```
 
-- [ ] **Step 6: Create Alembic env**
+- [ ] **Paso 6: crear env de Alembic**
 
 ```python
 # alembic/env.py
@@ -524,35 +559,35 @@ else:
     run_migrations_online()
 ```
 
-- [ ] **Step 7: Keep Alembic versions directory**
+- [ ] **Paso 7: mantener el directorio de versiones de Alembic**
 
-Create empty file:
+Crear archivo vacío:
 
 ```txt
 alembic/versions/.gitkeep
 ```
 
-- [ ] **Step 8: Run DB tests**
+- [ ] **Paso 8: correr tests DB**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/unit/db/test_session.py -q
 ```
 
-Expected: `2 passed`.
+Resultado esperado: `2 passed`.
 
-- [ ] **Step 9: Run Alembic syntax check**
+- [ ] **Paso 9: correr syntax check de Alembic**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run python -m py_compile alembic/env.py
 ```
 
-Expected: command exits with code `0`.
+Resultado esperado: el comando termina con código `0`.
 
-- [ ] **Step 10: Commit**
+- [ ] **Paso 10: commit**
 
 ```bash
 git add src/adaptive_rag/db tests/unit/db alembic.ini alembic
@@ -561,14 +596,14 @@ git commit -m "feat: add database session foundation"
 
 ---
 
-### Task 4: FastAPI Health Endpoint
+### Tarea 4: endpoint de health en FastAPI
 
-**Files:**
-- Create: `src/adaptive_rag/api/app.py`
-- Create: `src/adaptive_rag/api/routes/health.py`
-- Create: `tests/integration/api/test_health.py`
+**Archivos:**
+- Crear: `src/adaptive_rag/api/app.py`
+- Crear: `src/adaptive_rag/api/routes/health.py`
+- Crear: `tests/integration/api/test_health.py`
 
-- [ ] **Step 1: Write failing API test**
+- [ ] **Paso 1: escribir test de API que falle**
 
 ```python
 # tests/integration/api/test_health.py
@@ -586,17 +621,17 @@ def test_health_endpoint_returns_ok():
     assert response.json() == {"status": "ok", "service": "adaptive-rag"}
 ```
 
-- [ ] **Step 2: Run API test to verify failure**
+- [ ] **Paso 2: correr test de API para verificar el fallo**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/integration/api/test_health.py -q
 ```
 
-Expected: FAIL with `ModuleNotFoundError` for `adaptive_rag.api.app`.
+Resultado esperado: FAIL con `ModuleNotFoundError` para `adaptive_rag.api.app`.
 
-- [ ] **Step 3: Implement health route**
+- [ ] **Paso 3: implementar ruta de health**
 
 ```python
 # src/adaptive_rag/api/routes/health.py
@@ -610,7 +645,7 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "adaptive-rag"}
 ```
 
-- [ ] **Step 4: Implement FastAPI app factory**
+- [ ] **Paso 4: implementar app factory de FastAPI**
 
 ```python
 # src/adaptive_rag/api/app.py
@@ -633,31 +668,31 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
-- [ ] **Step 5: Run API test**
+- [ ] **Paso 5: correr test de API**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/integration/api/test_health.py -q
 ```
 
-Expected: `1 passed`.
+Resultado esperado: `1 passed`.
 
-- [ ] **Step 6: Run app import smoke test**
+- [ ] **Paso 6: correr smoke test de import de la app**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run python -c "from adaptive_rag.api.app import app; print(app.title)"
 ```
 
-Expected output:
+Output esperado:
 
 ```txt
 Adaptive RAG
 ```
 
-- [ ] **Step 7: Commit**
+- [ ] **Paso 7: commit**
 
 ```bash
 git add src/adaptive_rag/api tests/integration/api
@@ -666,13 +701,13 @@ git commit -m "feat: add FastAPI health endpoint"
 
 ---
 
-### Task 5: Typer CLI Shell
+### Tarea 5: shell CLI con Typer
 
-**Files:**
-- Create: `src/adaptive_rag/cli/app.py`
-- Create: `tests/integration/cli/test_cli.py`
+**Archivos:**
+- Crear: `src/adaptive_rag/cli/app.py`
+- Crear: `tests/integration/cli/test_cli.py`
 
-- [ ] **Step 1: Write failing CLI tests**
+- [ ] **Paso 1: escribir tests de CLI que fallen**
 
 ```python
 # tests/integration/cli/test_cli.py
@@ -699,17 +734,17 @@ def test_cli_health_command():
     assert "ok" in result.stdout
 ```
 
-- [ ] **Step 2: Run CLI tests to verify failure**
+- [ ] **Paso 2: correr tests de CLI para verificar el fallo**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/integration/cli/test_cli.py -q
 ```
 
-Expected: FAIL with `ModuleNotFoundError` for `adaptive_rag.cli.app`.
+Resultado esperado: FAIL con `ModuleNotFoundError` para `adaptive_rag.cli.app`.
 
-- [ ] **Step 3: Implement CLI app**
+- [ ] **Paso 3: implementar app CLI**
 
 ```python
 # src/adaptive_rag/cli/app.py
@@ -744,31 +779,31 @@ def main() -> None:
     app()
 ```
 
-- [ ] **Step 4: Run CLI tests**
+- [ ] **Paso 4: correr tests de CLI**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest tests/integration/cli/test_cli.py -q
 ```
 
-Expected: `2 passed`.
+Resultado esperado: `2 passed`.
 
-- [ ] **Step 5: Run installed CLI command**
+- [ ] **Paso 5: correr comando CLI instalado**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run adaptive-rag version
 ```
 
-Expected output includes:
+El output esperado incluye:
 
 ```txt
 adaptive-rag 0.1.0
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Paso 6: commit**
 
 ```bash
 git add src/adaptive_rag/cli tests/integration/cli
@@ -777,62 +812,63 @@ git commit -m "feat: add Typer CLI shell"
 
 ---
 
-### Task 6: Quality Gate
+### Tarea 6: quality gate
 
-**Files:**
-- Modify only if tools report concrete errors in files created by this milestone.
+**Archivos:**
+- Modificar solo si las tools reportan errores concretos en archivos creados
+  por este hito.
 
-- [ ] **Step 1: Run all tests**
+- [ ] **Paso 1: correr todos los tests**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run pytest
 ```
 
-Expected: all tests pass.
+Resultado esperado: todos los tests pasan.
 
-- [ ] **Step 2: Run Ruff**
+- [ ] **Paso 2: correr Ruff**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run ruff check .
 ```
 
-Expected: command exits with code `0`.
+Resultado esperado: el comando termina con código `0`.
 
-- [ ] **Step 3: Run mypy**
+- [ ] **Paso 3: correr mypy**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run mypy src
 ```
 
-Expected: command exits with code `0`.
+Resultado esperado: el comando termina con código `0`.
 
-- [ ] **Step 4: Run import smoke tests**
+- [ ] **Paso 4: correr smoke tests de import**
 
-Run:
+Ejecutar:
 
 ```bash
 uv run python -c "from adaptive_rag.api.app import app; print(app.title)"
 uv run adaptive-rag health
 ```
 
-Expected output includes:
+El output esperado incluye:
 
 ```txt
 Adaptive RAG
 ok
 ```
 
-- [ ] **Step 5: Commit fixes if any quality-gate changes were required**
+- [ ] **Paso 5: commitear fixes si el quality gate requirió cambios**
 
-If no changes were required, do not create an empty commit.
+Si no se requieren cambios, no crear un commit vacío.
 
-If changes were required, run:
+Si se requieren cambios, ejecutar:
 
 ```bash
 git add src tests pyproject.toml alembic.ini alembic README.md .env.example .gitignore
@@ -841,18 +877,71 @@ git commit -m "chore: pass foundation quality gates"
 
 ---
 
-## Completion Criteria
+## Criterios de completitud
 
-Milestone 1 is complete when:
+Milestone 1 está completo cuando:
 
-- `uv sync --extra dev` succeeds.
-- `uv run pytest` passes.
-- `uv run ruff check .` passes.
-- `uv run mypy src` passes.
-- `uv run adaptive-rag version` prints `adaptive-rag 0.1.0`.
-- `uv run python -c "from adaptive_rag.api.app import app; print(app.title)"` prints `Adaptive RAG`.
-- The repo has commits for package scaffold, settings, DB foundation, API health, and CLI shell.
+- `uv sync --extra dev` funciona correctamente.
+- `uv run pytest` pasa.
+- `uv run ruff check .` pasa.
+- `uv run mypy src` pasa.
+- `uv run adaptive-rag version` imprime `adaptive-rag 0.1.0`.
+- `uv run python -c "from adaptive_rag.api.app import app; print(app.title)"`
+  imprime `Adaptive RAG`.
+- El repo tiene commits para package scaffold, settings, base DB, health API y
+  shell CLI.
 
-## Next Plan
+## Siguiente plan
 
-The next implementation plan should be Milestone 2: domain models, SQLAlchemy tables, Alembic migration for projects/sources/documents/chunks/jobs/audit/evals, and repository tests for project isolation.
+El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
+tablas SQLAlchemy, migración Alembic para projects, sources, documents, chunks,
+document_versions, chunk_sparse_embeddings, jobs, job_events, audit, evals y
+usage, columnas tipadas para metadata filtering y tests de repository para
+aislamiento por proyecto más filtros por `source_id`, `document_id`,
+`source_type`, `tags` y fechas.
+`document_versions` debe guardar `normalized_text`, hash, metadata de parser,
+metadata de extracción e `index_fingerprint`; `chunks.document_version_id` debe
+apuntar a esa versión y los offsets de citation deben referirse a
+`document_versions.normalized_text`. `projects` debe incluir
+`budget_config_json`, `retrieval_contextualization_enabled` con default `true` y
+`embedding_mode` con valores `dense` o `dense_sparse` y default `dense`; el
+schema debe incluir `model_price_snapshots` y `provider_usage` con
+referencias nullable a chat sessions, jobs y eval runs para registrar costos de
+todas las operaciones de provider. La migración debe crear una cola genérica
+`jobs` con `FOR UPDATE SKIP LOCKED`, `lease_expires_at`, `heartbeat_at`,
+`idempotency_key`, retries, `blocked` y `dead_letter`; los endpoints de
+ingestion deben crear jobs `job_type = ingest_source`. El diseño de jobs debe
+incluir taxonomía estable de `last_error_code`, mapping a retry/failed/blocked y
+modelo de concurrencia de un job por worker process con pool async interno para
+provider calls. M2 debe definir `UrlFetchPolicy` y sus tests para bloquear SSRF,
+DNS rebinding, redirects inseguros, responses demasiado grandes y content types
+no soportados antes de entregar HTML a Trafilatura. La migración debe crear la
+columna `chunks.embedding vector(1024)` sin índice HNSW inicial; dense retrieval
+exacto queda como baseline de correctness y el adapter Qwen debe validar que
+`text-embedding-v4` retorne 1024 floats. La migración también debe crear
+`chunk_sparse_embeddings` para el modo experimental `dense_sparse`, con
+`sparse_indices integer[]`, `sparse_values real[]`, `sparse_tokens text[]`
+nullable, `sparse_size`, `input_hash`, `index_fingerprint` e índice GIN sobre
+`sparse_indices`. HNSW solo debe aparecer en planes posteriores si hay evals de
+recall/latencia que lo justifiquen.
+El schema de chunks debe incluir campos de chunking semántico (`section_path`,
+`heading`, `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
+`next_chunk_id`, `chunker_version`, `chunker_config_hash`) y campos de
+Contextual Retrieval (`contextual_text`, `embedding_input_text`,
+`lexical_input_text`, metadata del contextualizer e
+`contextualizer_prompt_version`, `index_fingerprint`), aunque la generación Qwen
+del contexto se implemente en un hito posterior. Los eval runs deben incluir
+`prompt_versions_json` y registrar ablations con Contextual Retrieval activado y
+desactivado cuando exista índice comparable; además deben poder registrar
+`RRF_K = 60`, temperatura de judge `0`, estrategias sparse-only, dense+sparse
+RRF y dense+lexical+sparse RRF para proyectos `dense_sparse`. M2 también debe
+incluir la decisión de usar `tiktoken` como dependencia del hito de chunking,
+con `TiktokenTokenEstimator`, encoding `o200k_base`, margen de seguridad y
+batch sizing de embeddings por item, batch y `max_tokens_per_request`. M2
+también debe incluir fixtures de
+Markdown con headings, listas, tablas, code fences, párrafos largos y documentos
+cortos para probar que el chunker no corta estructuras de forma errónea ni
+pierde contenido. El diseño de chat debe preparar una regla determinística
+`should_retrieve` para preguntas factuales de proyecto y reservar el endpoint
+`POST /projects/{project_id}/chat/stream` con SSE, aunque la orquestación
+completa con Pydantic AI quede para un hito posterior.
