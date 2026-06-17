@@ -70,6 +70,7 @@ retrieval ni parsers avanzados.
 - Prompts: archivos Markdown versionados en `prompts/`
 - Tests: pytest
 - Tests de integración con servicios reales: Testcontainers for Python
+- Job queue v1: Postgres con `FOR UPDATE SKIP LOCKED`
 - Packaging y workflow local: uv
 - Deployment: Docker Compose con API, worker y Postgres/pgvector
 
@@ -449,17 +450,46 @@ El schema v1 incluye estas tablas principales.
 - `metadata_json`
 - `created_at`
 
-`ingestion_jobs`:
+`jobs`:
 
 - `id`
 - `project_id`
-- `source_id`
-- `status`, uno de `queued`, `running`, `succeeded`, `failed`
+- `queue_name`, default `default`
+- `job_type`, uno de `ingest_source`, `reindex_source`, `reindex_project` o
+  `eval_run`
+- `status`, uno de `queued`, `running`, `blocked`, `succeeded`, `failed`,
+  `dead_letter` o `cancelled`
+- `priority`
+- `run_after`
 - `attempts`
-- `error_message`
+- `max_attempts`
+- `locked_by`
+- `locked_at`
+- `heartbeat_at`
+- `lease_expires_at`
+- `idempotency_key`
+- `source_id`, nullable
+- `document_id`, nullable
+- `eval_run_id`, nullable
+- `payload_json`
+- `result_json`
+- `last_error_code`
+- `last_error_message`
 - `created_at`
+- `updated_at`
 - `started_at`
 - `finished_at`
+
+`job_events`:
+
+- `id`
+- `job_id`
+- `event_type`
+- `from_status`
+- `to_status`
+- `message`
+- `metadata_json`
+- `created_at`
 
 El aislamiento por proyecto debe aplicarse con filtros directos de `project_id`
 en todas las lecturas y escrituras scoped a proyecto. `chunks.project_id` está
@@ -467,6 +497,110 @@ desnormalizado intencionalmente para que los filtros de retrieval sean simples
 y seguros. `chunks.source_type` y `chunks.tags` también se desnormalizan para
 que dense retrieval y lexical retrieval apliquen los mismos filtros sin depender
 de joins complejos en la ruta caliente.
+
+## Cola de jobs en Postgres
+
+La v1 usa Postgres como job queue. No se agrega Redis, Celery, ARQ, Temporal ni
+otro broker. La tabla `jobs` es genérica aunque el primer uso productivo sea
+ingestion. Esto evita duplicar lógica cuando aparezcan reindex, evals u otras
+operaciones async.
+
+Endpoints semánticos como `POST /projects/{project_id}/ingestion-jobs` pueden
+seguir existiendo en la API, pero por debajo crean un job `job_type =
+ingest_source`. El CLI `adaptive-rag jobs run-worker` consume la tabla genérica.
+
+Estados:
+
+- `queued`: listo para ejecutarse cuando `run_after <= now()`.
+- `running`: reclamado por un worker con lease vigente.
+- `blocked`: no debe reintentarse automáticamente porque falta una condición
+  externa, por ejemplo API key, presupuesto, proyecto pausado o configuración
+  inválida.
+- `succeeded`: terminó correctamente.
+- `failed`: error final no retryable.
+- `dead_letter`: agotó `max_attempts`.
+- `cancelled`: cancelado explícitamente por usuario o sistema.
+
+Claim de jobs:
+
+```sql
+UPDATE jobs
+SET status = 'running',
+    locked_by = :worker_id,
+    locked_at = now(),
+    heartbeat_at = now(),
+    lease_expires_at = now() + :lease_duration,
+    attempts = attempts + 1,
+    started_at = coalesce(started_at, now()),
+    updated_at = now()
+WHERE id = (
+  SELECT id
+  FROM jobs
+  WHERE status = 'queued'
+    AND queue_name = :queue_name
+    AND run_after <= now()
+  ORDER BY priority DESC, run_after ASC, created_at ASC
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1
+)
+RETURNING *;
+```
+
+La transacción de claim debe ser corta: reclamar y hacer commit. El
+procesamiento pesado ocurre fuera de esa transacción. Nunca mantener locks de
+Postgres mientras se descarga una URL, se parsea contenido o se llama a Qwen.
+
+Retries y backoff:
+
+- Errores transitorios vuelven a `queued` con `run_after` futuro.
+- Backoff exponencial con jitter.
+- Si `attempts >= max_attempts`, el job pasa a `dead_letter`.
+- Errores no retryable pasan a `failed`.
+- Faltas externas recuperables pasan a `blocked` sin consumir intentos
+  adicionales hasta que el usuario o sistema desbloquee la condición.
+
+Leases:
+
+- Cada job `running` tiene `lease_expires_at`.
+- El worker actualiza `heartbeat_at` y extiende el lease mientras trabaja.
+- Un sweeper reencola jobs `running` con lease vencido si aún tienen intentos
+  disponibles.
+- Si un worker recibe shutdown, termina el job actual si puede y deja de
+  reclamar nuevos jobs.
+
+Idempotencia:
+
+- Todo job tiene `idempotency_key`.
+- Enqueue debe devolver un job activo o ya exitoso si existe el mismo
+  `project_id`, `job_type` e `idempotency_key`.
+- Ingestion construye la key con `project_id`, `source_id`, `content_hash`,
+  `parser_config_hash`, `chunker_config_hash`, configuración de
+  contextualizer, modelo de embedding y `index_fingerprint`.
+- Un reindex forzado debe cambiar explícitamente la key o el payload para no
+  confundirse con una ingestion ya resuelta.
+- Los writes del worker también deben ser idempotentes: chunks se reemplazan o
+  superseden por `index_fingerprint`, no por suposición de que el job corre una
+  sola vez.
+
+Índices mínimos:
+
+- índice para claim por `queue_name`, `status`, `run_after`, `priority` y
+  `created_at`
+- índice para sweeper por `status` y `lease_expires_at`
+- índice por `project_id` y `status` para vistas de proyecto
+- índice por `job_type`, `project_id` e `idempotency_key`
+
+La unicidad de idempotencia debe impedir duplicados activos. Para jobs ya
+exitosos con la misma key, enqueue puede devolver el job existente como no-op;
+un reindex intencional debe usar una key diferente.
+
+Observabilidad:
+
+- Cada transición relevante crea un `job_events`.
+- `last_error_code` debe ser estable y testeable; `last_error_message` es para
+  diagnóstico humano.
+- Los eventos no guardan API keys, texto completo de documentos ni prompts
+  completos.
 
 ## Pipeline de ingestion
 
@@ -478,9 +612,9 @@ v1.
 El flujo de ingestion es:
 
 1. La API o CLI crea una Source dentro de un Project.
-2. La API o CLI encola una fila en `ingestion_jobs`.
+2. La API o CLI encola un job `ingest_source`.
 3. Un worker respaldado por Postgres reclama jobs encolados con
-   `SELECT ... FOR UPDATE SKIP LOCKED`.
+   `FOR UPDATE SKIP LOCKED` a través de la tabla `jobs`.
 4. El worker carga el contenido de la fuente. Para URLs HTML descarga con
    `httpx` y extrae texto principal con Trafilatura; para Markdown y TXT usa el
    parser básico del proyecto apoyado en LlamaIndex cuando sea útil.
@@ -492,10 +626,10 @@ El flujo de ingestion es:
 9. Chunks, embeddings, metadata y status se guardan en Postgres.
 10. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
-El worker es idempotente por hash de contenido de la fuente, configuración de
-parser, configuración de chunker, configuración de contextualizer, modelo de
-embedding y hash del texto del chunk. Estos inputs se combinan en un
-`index_fingerprint`.
+El worker de ingestion es idempotente por hash de contenido de la fuente,
+configuración de parser, configuración de chunker, configuración de
+contextualizer, modelo de embedding y hash del texto del chunk. Estos inputs se
+combinan en un `index_fingerprint`.
 
 Los cambios de parser son forward-only por defecto. Cambiar un proyecto desde
 `LlamaIndexBasicParser` a un parser futuro afecta solo nuevas ingestions, salvo
@@ -880,7 +1014,7 @@ Tablas:
 
 - `project_id`
 - `session_id`, nullable
-- `ingestion_job_id`, nullable
+- `job_id`, nullable
 - `eval_run_id`, nullable
 - `operation`, uno de `chat`, `contextualize`, `embedding`, `rerank` o
   `eval_judge`
@@ -971,6 +1105,9 @@ Endpoints FastAPI iniciales:
 campos tipados de v1. El backend rechaza filtros con campos desconocidos en vez
 de ignorarlos silenciosamente.
 
+Los endpoints de `ingestion-jobs` son una superficie semántica de producto. En
+la base de datos crean y leen filas de `jobs` con `job_type = ingest_source`.
+
 ## Superficie de CLI
 
 Comandos Typer iniciales:
@@ -1017,7 +1154,11 @@ La cobertura TDD empieza con comportamiento core:
 
 - aislamiento por proyecto
 - creación de sources y content hashing
-- claim de ingestion jobs con `FOR UPDATE SKIP LOCKED`
+- claim de jobs con `FOR UPDATE SKIP LOCKED`
+- leases, heartbeat y reencolado de jobs `running` expirados
+- retries con backoff, `blocked`, `failed` y `dead_letter`
+- enqueue idempotente por `idempotency_key`
+- `job_events` para transiciones relevantes
 - extracción de HTML con Trafilatura usando HTML descargado por el sistema
 - creación de chunks y preservación de metadata
 - chunking semántico de Markdown con headings, listas, tablas y code fences
@@ -1054,9 +1195,10 @@ keys.
 Los tests de integración contra infraestructura usan Testcontainers for Python
 como dependencia de desarrollo. Se usa para levantar Postgres/pgvector efímero
 durante pruebas de migraciones, constraints, full-text search, pgvector,
-`FOR UPDATE SKIP LOCKED` y comportamiento real de transacciones. Testcontainers
-no forma parte del runtime productivo, no agrega servicios a Docker Compose y
-requiere Docker disponible solo en el entorno que ejecute esos tests.
+`FOR UPDATE SKIP LOCKED`, leases de jobs y comportamiento real de transacciones.
+Testcontainers no forma parte del runtime productivo, no agrega servicios a
+Docker Compose y requiere Docker disponible solo en el entorno que ejecute esos
+tests.
 Los tests deben generar URLs SQLAlchemy usando el driver `psycopg`, coherente
 con el stack del proyecto, en vez de introducir `psycopg2`.
 

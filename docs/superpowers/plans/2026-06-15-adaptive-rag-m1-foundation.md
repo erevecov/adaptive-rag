@@ -24,7 +24,7 @@ versionados, ruff y mypy.
 ## Alcance
 
 Este plan cubre solo Milestone 1. Intencionalmente no implementa tablas de
-dominio, ingestion jobs, LlamaIndex, integración Qwen, modelos pgvector,
+dominio, job queue, LlamaIndex, integración Qwen, modelos pgvector,
 retrieval, orquestación de chat ni evals. La dependencia `pydantic-ai-slim`
 queda instalada como base del runtime de agente futuro y la dependencia
 `trafilatura` queda instalada como base del extractor HTML futuro, pero ninguna
@@ -894,13 +894,16 @@ Milestone 1 está completo cuando:
 ## Siguiente plan
 
 El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
-tablas SQLAlchemy, migración Alembic para projects/sources/documents/chunks/jobs
-/audit/evals/usage, columnas tipadas para metadata filtering y tests de
+tablas SQLAlchemy, migración Alembic para projects, sources, documents, chunks,
+jobs, job_events, audit, evals y usage, columnas tipadas para metadata filtering y tests de
 repository para aislamiento por proyecto más filtros por `source_id`,
 `document_id`, `source_type`, `tags` y fechas. `projects` debe incluir
 `budget_config_json`; el schema debe incluir `model_price_snapshots` y
-`provider_usage` con referencias nullable a chat sessions, ingestion jobs y eval
-runs para registrar costos de todas las operaciones de provider. La migración
+`provider_usage` con referencias nullable a chat sessions, jobs y eval runs para
+registrar costos de todas las operaciones de provider. La migración debe crear
+una cola genérica `jobs` con `FOR UPDATE SKIP LOCKED`, `lease_expires_at`,
+`heartbeat_at`, `idempotency_key`, retries, `blocked` y `dead_letter`; los
+endpoints de ingestion deben crear jobs `job_type = ingest_source`. La migración
 debe crear la columna `chunks.embedding vector(1024)` sin índice HNSW inicial;
 dense retrieval exacto queda como baseline de correctness. HNSW solo debe
 aparecer en un plan posterior si hay evals de recall/latencia y pruebas de
