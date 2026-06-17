@@ -27,12 +27,14 @@ términos técnicos que sean más precisos o reconocibles, como `retrieval`,
 La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
 hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
 productiva como ruta por defecto, modo agente con LangGraph, Okapi BM25 real,
-SPLADE, learned sparse retrieval ni Unstructured como parser integrado. Esas son
-decisiones deliberadas para llegar a producción con menos piezas móviles.
-Tampoco implementará sparse embeddings de Qwen en v1, porque el soporte
-`dense`, `sparse` y `dense&sparse` de `text-embedding-v4` requiere usar la API o
-SDK nativo de DashScope para esa capacidad avanzada, no solo el modo
-OpenAI-compatible que usará la integración inicial.
+SPLADE, learned sparse retrievers externos ni Unstructured como parser
+integrado. Esas son decisiones deliberadas para llegar a producción con menos
+piezas móviles.
+
+Qwen sparse embeddings sí entra en v1 como modo experimental configurable por
+proyecto, no como default. El objetivo es aprender el endpoint nativo de
+DashScope y medir si aporta calidad sobre Postgres full-text, manteniendo el
+camino estable `dense` como configuración inicial.
 
 El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
 OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
@@ -104,31 +106,34 @@ Modelos Qwen configurados para v1:
 - Embeddings: Qwen `text-embedding-v4`, 1024 dimensiones
 - Rerank: Qwen `qwen3-rerank`
 
-La integración de embeddings v1 usa `text-embedding-v4` en modo dense por la
-API OpenAI-compatible de Qwen. El adapter debe enviar `dimensions = 1024`,
-validar que la respuesta tenga exactamente 1024 floats y registrar
-`embedding_dim = 1024`. Cambiar esa dimensión no es un flag inocuo: requiere
-nueva estrategia de índice, migración o columna nueva y re-embedding de los
-documentos afectados.
+La integración de embeddings v1 soporta dos modos por proyecto:
+
+- `dense`: default estable. Usa Qwen `text-embedding-v4` por la API
+  OpenAI-compatible. El adapter envía `dimensions = 1024`, valida que la
+  respuesta tenga exactamente 1024 floats y registra `embedding_dim = 1024`.
+- `dense_sparse`: modo experimental v1. Usa Qwen `text-embedding-v4` por el
+  endpoint nativo DashScope con `parameters.output_type = "dense&sparse"` y
+  `parameters.dimension = 1024`. Se implementa con `httpx`, no con un SDK nuevo.
+
+Cambiar la dimensión no es un flag inocuo: requiere nueva estrategia de índice,
+migración o columna nueva y re-embedding de los documentos afectados. La v1 fija
+1024 dimensiones para ambos modos.
 
 Qwen documenta `output_type` con valores `dense`, `sparse` y `dense&sparse` para
-`text-embedding-v3` y `text-embedding-v4`, pero esa capacidad se considera fuera
-de v1 porque está documentada como disponible mediante DashScope SDK/API nativo.
-Esto no implica agregar otro provider de IA: Qwen seguiría siendo el único
-provider. Sí implica agregar otro contrato de endpoint y adapter, por ejemplo
-`DashScopeEmbeddingProvider` implementado con `httpx` contra el endpoint nativo.
+`text-embedding-v3` y `text-embedding-v4`, disponible mediante DashScope SDK/API
+nativo. Esto no implica agregar otro provider de IA: Qwen sigue siendo el único
+provider. Sí implica agregar otro contrato de endpoint y adapter,
+`QwenDashScopeEmbeddingProvider`, separado del adapter OpenAI-compatible.
 
 La respuesta sparse no es un vector float compatible con pgvector. Es una lista
-de pesos por término, con elementos como `index`, `value` y `token`. Evaluarla
-después de producción requiere storage para postings sparse, por ejemplo
-columnas `integer[]`/`real[]` o JSONB con índices GIN, scoring por dot product
-sobre índices compartidos, una tercera rama en RRF y comparación contra
-Postgres full-text. La documentación indica que `dense&sparse` mantiene el mismo
-costo de generación que el modo de vector único; por lo tanto, se excluye de v1
-por complejidad de storage, scoring y evals, no por costo de API ni por requerir
-otro provider.
+de pesos por término, con elementos como `index`, `value` y `token`. Por eso v1
+guarda dense y sparse por separado: dense en `chunks.embedding` y sparse en
+`chunk_sparse_embeddings`. La documentación indica que `dense&sparse` mantiene
+el mismo costo de generación que el modo de vector único; el costo a controlar
+es complejidad de storage, scoring, tests y debugging.
 
-No debe activarse como un parámetro oculto del adapter OpenAI-compatible.
+No debe activarse como un parámetro oculto del adapter OpenAI-compatible. Solo
+se usa cuando el proyecto tiene `embedding_mode = "dense_sparse"`.
 
 Después de salir a producción, evaluar la integración de modelos Multimodal
 Embeddings de Qwen para mejorar retrieval de documentos con imágenes, tablas u
@@ -418,6 +423,7 @@ El schema v1 incluye estas tablas principales.
 - `name`
 - `slug`
 - `description`
+- `embedding_mode`, uno de `dense` o `dense_sparse`, default `dense`
 - `ai_config_json`
 - `budget_config_json`
 - `created_at`
@@ -520,6 +526,23 @@ El schema v1 incluye estas tablas principales.
 - `metadata_json`
 - `created_at`
 
+`chunk_sparse_embeddings`:
+
+- `id`
+- `project_id`
+- `chunk_id`
+- `embedding_provider`, `qwen`
+- `embedding_model`, por ejemplo `text-embedding-v4`
+- `embedding_mode`, `dense_sparse`
+- `sparse_indices`, `integer[]`
+- `sparse_values`, `real[]`
+- `sparse_tokens`, `text[]`, nullable para reducir storage si se decide no
+  conservar tokens
+- `sparse_size`
+- `input_hash`
+- `index_fingerprint`
+- `created_at`
+
 `jobs`:
 
 - `id`
@@ -573,6 +596,12 @@ chunkeado. Los offsets `char_start` y `char_end` de `chunks` apuntan a
 `document_versions.normalized_text`, no al HTML original, al archivo bruto ni al
 texto contextual generado. Esto permite reindexar una fuente de forma
 forward-only, comparar versiones y mantener citations reproducibles.
+
+`chunk_sparse_embeddings` existe solo para proyectos con
+`embedding_mode = "dense_sparse"`. Se mantiene separada de `chunks` para no
+ensuciar la tabla caliente principal ni obligar a todo proyecto a pagar storage
+sparse. Debe tener índice GIN sobre `sparse_indices` para prefiltrar candidatos
+por overlap antes de calcular score.
 
 ## Cola de jobs en Postgres
 
@@ -702,9 +731,12 @@ El flujo de ingestion es:
 7. El chunker crea chunks desde `document_versions.normalized_text`.
 8. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
    Qwen.
-9. Qwen crea embeddings dense para el input contextualizado de embedding.
+9. Qwen crea embeddings para el input contextualizado según `embedding_mode`.
+   En modo `dense`, crea solo el vector dense por OpenAI-compatible. En modo
+   `dense_sparse`, crea dense y sparse por endpoint nativo DashScope.
 10. Postgres full-text indexa el input contextualizado para la rama lexical.
-11. Chunks, embeddings, metadata y status se guardan en Postgres.
+11. Chunks, embeddings dense, embeddings sparse opcionales, metadata y status se
+    guardan en Postgres.
 12. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
 El worker de ingestion es idempotente por hash de contenido de la fuente,
@@ -865,28 +897,39 @@ La estrategia de retrieval por defecto es:
 4. Reranking con Qwen `qwen3-rerank`.
 5. Retornar chunks rankeados con metadata de fuente y payloads de citation.
 
+Si el proyecto usa `embedding_mode = "dense_sparse"`, se habilita una rama
+adicional de sparse retrieval con Qwen. Esta rama:
+
+1. Genera sparse embedding para la query con el endpoint nativo DashScope.
+2. Prefiltra candidatos con `chunk_sparse_embeddings.sparse_indices` y GIN.
+3. Calcula score por dot product sobre índices compartidos entre query y chunk.
+4. Entrega un ranking independiente que puede entrar a RRF junto a dense y
+   lexical.
+
 La API pública debe llamar a la segunda rama como lexical retrieval o Postgres
 full-text, no BM25, porque la implementación de producto no es Okapi BM25. Esta
 rama no usa un provider de IA: es infraestructura local de Postgres para mejorar
 recall en nombres propios, rutas de API, errores exactos, siglas y términos
 raros.
 
-Okapi BM25 real, SPLADE y otros learned sparse retrievers quedan fuera de v1.
-No se implementan ni se prometen como roadmap. Después de producción pueden
-evaluarse si las métricas muestran que dense retrieval + Postgres full-text +
-Qwen rerank no alcanzan.
+Okapi BM25 real, SPLADE y otros learned sparse retrievers externos quedan fuera
+de v1. No se implementan ni se prometen como roadmap. Después de producción
+pueden evaluarse si las métricas muestran que las ramas Qwen dense, Qwen sparse
+experimental, Postgres full-text y Qwen rerank no alcanzan.
 
-Qwen sparse embeddings también quedan fuera de v1. Aunque `text-embedding-v4`
-soporta salida sparse en la API nativa de DashScope, adoptarlo cambiaría el
-contrato de endpoint, el formato persistido y el ranking. En v1, la rama
-lexical local de Postgres cubre el objetivo pragmático de exact match sin sumar
-storage sparse custom ni una tercera rama de retrieval.
+Qwen sparse embeddings no reemplaza Postgres full-text en v1. Se implementa
+para aprender y medir learned sparse retrieval de Qwen, no para eliminar la rama
+lexical local. Si no mejora evals frente a dense + lexical + rerank, puede
+quedar como modo experimental documentado.
 
 La interfaz de retrieval v1 debe soportar:
 
 - dense-only
 - lexical-only
+- sparse-only, solo para proyectos `dense_sparse`
 - hybrid RRF
+- hybrid dense + sparse RRF
+- hybrid dense + lexical + sparse RRF
 - hybrid RRF más rerank
 
 Estas variantes existen para evals y debugging, no para prometer múltiples
@@ -927,6 +970,8 @@ Implementación esperada:
 - dense retrieval usa `WHERE project_id = :project_id` más los filtros
   opcionales antes de ordenar por distancia vectorial.
 - lexical retrieval usa los mismos filtros antes de ordenar por `ts_rank_cd`.
+- sparse retrieval usa los mismos filtros antes de prefiltrar por overlap y
+  calcular dot product.
 - RRF fusiona listas que ya respetan el mismo filtro.
 - Qwen rerank solo recibe candidatos ya filtrados.
 - citations deben incluir los filtros aplicados en el audit trail del
@@ -1053,8 +1098,12 @@ La primera matriz de estrategias es:
 
 - dense-only
 - lexical-only
+- sparse-only, solo para proyectos `dense_sparse`
 - hybrid RRF
+- dense + sparse RRF
+- dense + lexical + sparse RRF
 - hybrid RRF más rerank
+- dense + lexical + sparse RRF más rerank
 - hybrid RRF más rerank más contextual chunks
 
 Las estrategias que dependan de chunks indexados deben reportarse con
@@ -1207,6 +1256,7 @@ Incluye:
 - chunking semántico Markdown/texto
 - Contextual Retrieval con Qwen
 - embeddings dense Qwen `text-embedding-v4` de 1024 dimensiones
+- Qwen sparse embeddings como modo experimental configurable `dense_sparse`
 - pgvector exact search
 - Postgres full-text como rama lexical local
 - RRF y rerank Qwen
@@ -1220,8 +1270,9 @@ Incluye:
 
 Quedan fuera de la primera release pública aunque existan huecos preparados en
 el diseño: frontend completo, auth multi-user, PDF/Office, Unstructured, Qdrant,
-HNSW, Qwen sparse embeddings, SPLADE, OpenTelemetry exporter, dashboards de
-costos avanzados y reindex masivo de proyecto como flujo principal.
+HNSW, SPLADE, sparse retrievers externos, OpenTelemetry exporter, dashboards de
+costos avanzados, optimización avanzada de sparse scoring y reindex masivo de
+proyecto como flujo principal.
 
 ## Superficie de API
 
@@ -1319,6 +1370,10 @@ La cobertura TDD empieza con comportamiento core:
   embeddings, rerank y evals con provider fakes
 - el adapter Qwen de embeddings valida `embedding_dim = 1024` y rechaza vectores
   de tamaño inesperado
+- el adapter Qwen DashScope parsea respuestas `dense&sparse` con `embedding` y
+  `sparse_embedding`
+- storage de `chunk_sparse_embeddings` para proyectos `dense_sparse`
+- sparse scoring por dot product sobre índices compartidos
 - comportamiento del document parser registry con fakes
 - resolución y tracking de versiones de prompts
 - contract tests del adapter pgvector
@@ -1328,8 +1383,11 @@ La cobertura TDD empieza con comportamiento core:
 - metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
   rango de fechas
 - paridad de filtros entre dense retrieval y lexical retrieval
+- paridad de filtros entre dense, lexical y sparse retrieval cuando
+  `embedding_mode = "dense_sparse"`
 - paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
 - fusión RRF
+- fusión RRF con rama sparse opcional
 - generación de citation payload
 - regla determinística `should_retrieve` para preguntas factuales de proyecto
 - orquestación de tool calls con Pydantic AI usando modelos y tools fake
@@ -1353,12 +1411,12 @@ con el stack del proyecto, en vez de introducir `psycopg2`.
 
 Candidatos para después de producción:
 
-- evaluar Okapi BM25 real, SPLADE o learned sparse retrieval solo si los evals
-  muestran que Postgres full-text limita el recall o la calidad final
-- evaluar Qwen sparse embeddings mediante DashScope SDK/API nativo solo si la
-  rama lexical de Postgres no alcanza; debe compararse contra Postgres full-text
-  y Qwen rerank antes de agregar storage sparse custom, scoring por índices
-  compartidos o una nueva rama de RRF
+- evaluar Okapi BM25 real, SPLADE o learned sparse retrievers externos solo si
+  los evals muestran que Postgres full-text y Qwen sparse limitan el recall o la
+  calidad final
+- optimizar Qwen sparse embeddings solo si los evals v1 muestran aporte claro;
+  candidatos posteriores incluyen SQL ranking más eficiente, storage comprimido
+  o un inverted index dedicado
 - evaluar Qdrant u otro vector database solo si pgvector limita latencia,
   filtros, costo operacional o calidad de retrieval
 - evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,

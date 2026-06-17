@@ -895,15 +895,17 @@ Milestone 1 está completo cuando:
 
 El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
 tablas SQLAlchemy, migración Alembic para projects, sources, documents, chunks,
-document_versions, jobs, job_events, audit, evals y usage, columnas tipadas para
-metadata filtering y tests de repository para aislamiento por proyecto más
-filtros por `source_id`, `document_id`, `source_type`, `tags` y fechas.
+document_versions, chunk_sparse_embeddings, jobs, job_events, audit, evals y
+usage, columnas tipadas para metadata filtering y tests de repository para
+aislamiento por proyecto más filtros por `source_id`, `document_id`,
+`source_type`, `tags` y fechas.
 `document_versions` debe guardar `normalized_text`, hash, metadata de parser,
 metadata de extracción e `index_fingerprint`; `chunks.document_version_id` debe
 apuntar a esa versión y los offsets de citation deben referirse a
 `document_versions.normalized_text`. `projects` debe incluir
-`budget_config_json` y `retrieval_contextualization_enabled` con default `true`;
-el schema debe incluir `model_price_snapshots` y `provider_usage` con
+`budget_config_json`, `retrieval_contextualization_enabled` con default `true` y
+`embedding_mode` con valores `dense` o `dense_sparse` y default `dense`; el
+schema debe incluir `model_price_snapshots` y `provider_usage` con
 referencias nullable a chat sessions, jobs y eval runs para registrar costos de
 todas las operaciones de provider. La migración debe crear una cola genérica
 `jobs` con `FOR UPDATE SKIP LOCKED`, `lease_expires_at`, `heartbeat_at`,
@@ -914,10 +916,12 @@ demasiado grandes y content types no soportados antes de entregar HTML a
 Trafilatura. La migración debe crear la columna `chunks.embedding vector(1024)`
 sin índice HNSW inicial; dense retrieval exacto queda como baseline de
 correctness y el adapter Qwen debe validar que `text-embedding-v4` retorne 1024
-floats. HNSW y Qwen sparse embeddings vía DashScope nativo solo deben aparecer
-en planes posteriores si hay evals de recall/latencia que lo justifiquen; en el
-caso sparse, el costo principal a validar es complejidad de storage, scoring y
-mantenimiento, no otro provider ni necesariamente mayor costo de API.
+floats. La migración también debe crear `chunk_sparse_embeddings` para el modo
+experimental `dense_sparse`, con `sparse_indices integer[]`,
+`sparse_values real[]`, `sparse_tokens text[]` nullable, `sparse_size`,
+`input_hash`, `index_fingerprint` e índice GIN sobre `sparse_indices`. HNSW solo
+debe aparecer en planes posteriores si hay evals de recall/latencia que lo
+justifiquen.
 El schema de chunks debe incluir campos de chunking semántico (`section_path`,
 `heading`, `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
 `next_chunk_id`, `chunker_version`, `chunker_config_hash`) y campos de
@@ -926,7 +930,9 @@ Contextual Retrieval (`contextual_text`, `embedding_input_text`,
 `contextualizer_prompt_version`, `index_fingerprint`), aunque la generación Qwen
 del contexto se implemente en un hito posterior. Los eval runs deben incluir
 `prompt_versions_json` y registrar ablations con Contextual Retrieval activado y
-desactivado cuando exista índice comparable. M2 también debe incluir fixtures de
+desactivado cuando exista índice comparable; además deben poder registrar
+estrategias sparse-only, dense+sparse RRF y dense+lexical+sparse RRF para
+proyectos `dense_sparse`. M2 también debe incluir fixtures de
 Markdown con headings, listas, tablas, code fences, párrafos largos y documentos
 cortos para probar que el chunker no corta estructuras de forma errónea ni
 pierde contenido. El diseño de chat debe preparar una regla determinística
