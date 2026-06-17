@@ -16,7 +16,7 @@ implementa comportamiento de RAG, providers, ingestion ni retrieval.
 
 **Stack técnico:** Python 3.12, uv, FastAPI, Typer, Rich, Pydantic Settings,
 Pydantic AI slim con soporte OpenAI-compatible, SQLAlchemy 2, Alembic, psycopg,
-pytest, httpx, Trafilatura, ruff y mypy.
+pytest, Testcontainers for Python, httpx, Trafilatura, ruff y mypy.
 
 ---
 
@@ -27,8 +27,9 @@ dominio, ingestion jobs, LlamaIndex, integración Qwen, modelos pgvector,
 retrieval, orquestación de chat ni evals. La dependencia `pydantic-ai-slim`
 queda instalada como base del runtime de agente futuro y la dependencia
 `trafilatura` queda instalada como base del extractor HTML futuro, pero ninguna
-de las dos se usa en código productivo durante M1. Eso pertenece a planes
-posteriores.
+de las dos se usa en código productivo durante M1. Testcontainers queda
+instalado solo como dependencia `dev` para tests de integración con
+Postgres/pgvector real. Eso pertenece a planes posteriores.
 Unstructured queda fuera de v1 y solo debe reaparecer como experimento
 post-producción si los evals de parsing/retrieval lo justifican.
 
@@ -108,6 +109,7 @@ dev = [
   "pytest>=8.3",
   "pytest-asyncio>=0.24",
   "ruff>=0.8",
+  "testcontainers[postgres]>=4.14.2",
 ]
 
 [project.scripts]

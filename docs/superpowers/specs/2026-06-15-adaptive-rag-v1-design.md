@@ -65,6 +65,7 @@ retrieval ni parsers avanzados.
   de LlamaIndex para Markdown, TXT y texto ya extraído
 - Framework de evals: Ragas más métricas determinísticas propias
 - Tests: pytest
+- Tests de integración con servicios reales: Testcontainers for Python
 - Packaging y workflow local: uv
 - Deployment: Docker Compose con API, worker y Postgres/pgvector
 
@@ -836,6 +837,15 @@ La cobertura TDD empieza con comportamiento core:
 Las llamadas a SDKs de providers usan fakes y contract tests primero. Los smoke
 tests con providers hosted son explícitos, opt-in y se saltan cuando faltan API
 keys.
+
+Los tests de integración contra infraestructura usan Testcontainers for Python
+como dependencia de desarrollo. Se usa para levantar Postgres/pgvector efímero
+durante pruebas de migraciones, constraints, full-text search, pgvector,
+`FOR UPDATE SKIP LOCKED` y comportamiento real de transacciones. Testcontainers
+no forma parte del runtime productivo, no agrega servicios a Docker Compose y
+requiere Docker disponible solo en el entorno que ejecute esos tests.
+Los tests deben generar URLs SQLAlchemy usando el driver `psycopg`, coherente
+con el stack del proyecto, en vez de introducir `psycopg2`.
 
 ## Fases posteriores
 
