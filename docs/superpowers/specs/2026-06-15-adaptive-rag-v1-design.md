@@ -73,6 +73,10 @@ fallos. Otros providers, modelos locales no-Qwen o agregadores quedan fuera de
 alcance y no se prometen como roadmap; solo podrán evaluarse después de
 producción si una necesidad medible lo justifica.
 
+La técnica de Contextual Retrieval de Anthropic se adopta como patrón de
+indexing, no como dependencia de provider. Adaptive RAG genera el contexto de
+cada chunk con Qwen y no llama a la API de Anthropic en v1.
+
 Modelos Qwen configurados para v1:
 
 - Chat rápido y contextualización: Qwen, `qwen3.5-flash`
@@ -210,6 +214,7 @@ El schema v1 incluye estas tablas principales.
 - `text_hash`
 - `contextual_text`
 - `embedding_input_text`
+- `lexical_input_text`
 - `contextualized`
 - `contextualizer_provider`
 - `contextualizer_model`
@@ -259,10 +264,12 @@ El flujo de ingestion es:
    `SELECT ... FOR UPDATE SKIP LOCKED`.
 4. El worker carga el contenido de la fuente con readers de LlamaIndex.
 5. El document parser seleccionado produce unidades de texto estructuradas.
-6. El paso de contextual chunking agrega un contexto corto por chunk.
+6. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
+   Qwen.
 7. Qwen crea embeddings para el input contextualizado de embedding.
-8. Chunks, embeddings, metadata y status se guardan en Postgres.
-9. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
+8. Postgres full-text indexa el input contextualizado para la rama lexical.
+9. Chunks, embeddings, metadata y status se guardan en Postgres.
+10. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
 El worker es idempotente por hash de contenido de la fuente, configuración de
 parser, configuración de chunker, configuración de contextualizer, modelo de
@@ -328,19 +335,24 @@ fuentes, aislamiento por proyecto, content hashing, citations, contextual
 chunking, embeddings y persistencia. Unstructured solo entrega elementos
 parseados.
 
-## Chunks contextuales
+## Contextual Retrieval
 
-El contextual chunking está habilitado por defecto para proyectos nuevos.
+El Contextual Retrieval está habilitado por defecto para proyectos nuevos. Esta
+técnica está inspirada en el patrón publicado por Anthropic: antes de indexar un
+chunk, el sistema usa un LLM para generar una descripción breve que sitúa ese
+chunk dentro de su documento completo. En Adaptive RAG, ese LLM es Qwen.
 
 Para cada chunk, el sistema almacena:
 
 - `text`: texto original del chunk usado para citations y contexto de respuesta
 - `contextual_text`: contexto corto generado para retrieval
 - `embedding_input_text`: `contextual_text` más `text`
+- `lexical_input_text`: `contextual_text` más `text`, usado por Postgres
+  full-text
 
-El texto contextual mejora retrieval, pero no se trata como evidencia factual.
-Las citations y snippets visibles para el usuario usan el texto original de la
-fuente.
+El texto contextual mejora dense retrieval y lexical retrieval, pero no se trata
+como evidencia factual. Las citations y snippets visibles para el usuario usan
+el texto original de la fuente.
 
 Contextualizer por defecto:
 
@@ -351,6 +363,14 @@ Contextualizer por defecto:
 El contextualizer usa la misma integración Qwen que chat para mantener un solo
 provider de IA en producción.
 
+La implementación v1 adopta dos variantes del patrón:
+
+- Contextual embeddings: `embedding_input_text` se envía a Qwen
+  `text-embedding-v4`.
+- Contextual full-text: `lexical_input_text` se indexa con Postgres full-text.
+
+No se implementa Contextual BM25 literal porque v1 no usa Okapi BM25.
+
 ## Retrieval
 
 La tool principal de retrieval en v1 es `search_project_knowledge`.
@@ -358,8 +378,9 @@ La tool principal de retrieval en v1 es `search_project_knowledge`.
 La estrategia de retrieval por defecto es:
 
 1. Dense retrieval con embeddings Qwen `text-embedding-v4` y pgvector.
-2. Lexical retrieval local con Postgres full-text search (`tsvector`,
-   `tsquery`, GIN y ranking con `ts_rank_cd`).
+2. Lexical retrieval local con Postgres full-text search sobre
+   `lexical_input_text` (`tsvector`, `tsquery`, GIN y ranking con
+   `ts_rank_cd`).
 3. Fusión con reciprocal rank fusion.
 4. Reranking con Qwen `qwen3-rerank`.
 5. Retornar chunks rankeados con metadata de fuente y payloads de citation.
@@ -682,6 +703,7 @@ La cobertura TDD empieza con comportamiento core:
 - claim de ingestion jobs con `FOR UPDATE SKIP LOCKED`
 - creación de chunks y preservación de metadata
 - comportamiento de storage para contextual chunks
+- construcción de `embedding_input_text` y `lexical_input_text`
 - tracking de metadata de embeddings
 - comportamiento del provider registry con fakes
 - comportamiento del document parser registry con fakes
@@ -691,6 +713,7 @@ La cobertura TDD empieza con comportamiento core:
 - metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
   rango de fechas
 - paridad de filtros entre dense retrieval y lexical retrieval
+- paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
 - fusión RRF
 - generación de citation payload
 - orquestación de tool calls con providers fake
