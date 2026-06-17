@@ -1,109 +1,119 @@
-# Adaptive RAG v1 Design
+# Diseño v1 de Adaptive RAG
 
-Date: 2026-06-15
-Status: Approved design baseline
+Fecha: 2026-06-15
+Estado: línea base de diseño aprobada
 
-## Purpose
+## Propósito
 
-Adaptive RAG is a personal, public, portfolio-quality RAG project. It is
-informed by prior experience with production RAG systems, but it is an
-independent project with its own name, scope, architecture, repository, and
-product direction. The v1 goal is to build a real, configurable,
-project-scoped RAG system using modern but proven Python tools.
+Adaptive RAG es un proyecto RAG personal, público y con calidad de portafolio.
+Está informado por experiencia previa con sistemas RAG en producción, pero es
+un proyecto independiente con su propio nombre, alcance, arquitectura,
+repositorio y dirección de producto. El objetivo de v1 es construir un sistema
+RAG real, configurable y aislado por proyecto, usando herramientas Python
+modernas pero probadas.
 
-The product must support multiple projects in one installation. Each project
-owns its own sources, documents, chunks, provider settings, retrieval
-configuration, chat history, eval datasets, and audit trail. The v1 system is
-single-user and local-first, but the schema leaves room for future multi-user
-auth.
+El producto debe soportar múltiples proyectos en una misma instalación. Cada
+proyecto es dueño de sus propias fuentes, documentos, chunks, configuración de
+providers, configuración de retrieval, historial de chat, datasets de evals y
+audit trail. El sistema v1 es single-user y local-first, pero el schema deja
+espacio para auth multi-user en el futuro.
 
-## Non-goals
+Los specs del repositorio se escriben en español. Se mantienen en inglés los
+términos técnicos que sean más precisos o reconocibles, como `retrieval`,
+`provider`, `chunk`, `tool calling`, `rerank` o `embedding`.
 
-The v1 will not implement a full frontend, OAuth/login, hosted SaaS
-observability, graph RAG, multimodal retrieval, production-grade PDF/Office
-ingestion as the default path, LangGraph agent mode, or learned sparse
-retrieval. Those are deliberate follow-up phases.
+## Fuera de alcance
 
-The v1 default stack will not depend on Redis, Celery, ARQ, Neo4j, OpenSearch,
-Langfuse, Qdrant, or any required external database service beyond Postgres
-with pgvector. Optional Docker Compose profiles may add self-hosted services
-such as Qdrant or Unstructured for explicit experiments.
+La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
+hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
+productiva como ruta por defecto, modo agente con LangGraph ni learned sparse
+retrieval. Esas son fases posteriores deliberadas.
 
-## Core Principles
+El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
+OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
+datos más allá de Postgres con pgvector. Los profiles opcionales de Docker
+Compose pueden agregar servicios self-hosted como Qdrant o Unstructured para
+experimentos explícitos.
 
-- Use OpenSpec for behavior and architecture changes.
-- Use TDD for core RAG behavior and provider boundaries.
-- Keep infrastructure minimal and local-first.
-- Prefer explicit project isolation over hidden global state.
-- Use LlamaIndex as the main RAG toolkit, but keep product orchestration owned
-  by Adaptive RAG code.
-- Make retrieval changes measurable through evals, not intuition.
-- Keep providers replaceable through small capability interfaces.
+## Principios principales
 
-## Technology Stack
+- Usar OpenSpec para cambios de comportamiento y arquitectura.
+- Usar TDD para el comportamiento core de RAG y los límites de providers.
+- Mantener infraestructura mínima y local-first.
+- Preferir aislamiento explícito por proyecto sobre estado global oculto.
+- Usar LlamaIndex como toolkit RAG principal, pero mantener la orquestación de
+  producto en código propio de Adaptive RAG.
+- Medir cambios de retrieval con evals, no con intuición.
+- Mantener los providers reemplazables mediante interfaces pequeñas por
+  capability.
+
+## Stack tecnológico
 
 - Backend API: FastAPI
-- CLI: Typer and Rich
+- CLI: Typer y Rich
 - Runtime: Python
-- Database: Postgres with pgvector
-- Default vector store: pgvector
-- Optional vector store profile: self-hosted Qdrant
-- ORM and migrations: SQLAlchemy 2 and Alembic
-- RAG toolkit: LlamaIndex
-- Optional advanced document parsing: Unstructured OSS/local, with hosted
-  Unstructured API available only when explicitly configured
-- Eval framework: Ragas plus custom deterministic metrics
+- Base de datos: Postgres con pgvector
+- Vector store por defecto: pgvector
+- Profile opcional de vector store: Qdrant self-hosted
+- ORM y migraciones: SQLAlchemy 2 y Alembic
+- Toolkit RAG: LlamaIndex
+- Parsing avanzado opcional de documentos: Unstructured OSS/local, con API
+  hosted de Unstructured disponible solo cuando se configure explícitamente
+- Framework de evals: Ragas más métricas determinísticas propias
 - Tests: pytest
-- Package and local workflow: uv
-- Deployment: Docker Compose with API, worker, and Postgres/pgvector by default;
-  optional profiles may add Qdrant or Unstructured
+- Packaging y workflow local: uv
+- Deployment: Docker Compose con API, worker y Postgres/pgvector por defecto;
+  profiles opcionales pueden agregar Qdrant o Unstructured
 
-## AI Providers
+## Providers de IA
 
-Provider integration is capability-based. The RAG core must not depend directly
-on vendor SDKs.
+La integración de providers se basa en capabilities. El core RAG no debe
+depender directamente de SDKs de vendors.
 
-Default hosted providers:
+Providers hosted por defecto:
 
-- Chat default: DeepSeek direct, `deepseek-v4-flash`
-- Chat stronger option: DeepSeek direct, `deepseek-v4-pro`
-- Embeddings default: Voyage, `voyage-4-lite`, 1024 dimensions
-- Rerank default: Voyage, `rerank-2.5-lite`
-- Rerank quality option: Voyage, `rerank-2.5`
+- Chat por defecto: DeepSeek directo, `deepseek-v4-flash`
+- Opción de chat más fuerte: DeepSeek directo, `deepseek-v4-pro`
+- Embeddings por defecto: Voyage, `voyage-4-lite`, 1024 dimensiones
+- Rerank por defecto: Voyage, `rerank-2.5-lite`
+- Opción de rerank de mayor calidad: Voyage, `rerank-2.5`
 
-Optional local providers:
+Providers locales opcionales:
 
-- Chat: Ollama or OpenAI-compatible local server
-- Embeddings: local embedding server or future TEI-compatible provider
-- Rerank: local BGE reranker, starting with `BAAI/bge-reranker-v2-m3`
+- Chat: Ollama o servidor local OpenAI-compatible
+- Embeddings: servidor local de embeddings o futuro provider TEI-compatible
+- Rerank: BGE reranker local, partiendo con `BAAI/bge-reranker-v2-m3`
 
-The initial provider interfaces are:
+Las interfaces iniciales de providers son:
 
 - `ChatProvider`
 - `EmbeddingProvider`
 - `Reranker`
 - `Contextualizer`
 
-Each project stores provider configuration for chat, embeddings, rerank, and
-indexing-time contextualization.
+Cada proyecto almacena configuración de provider para chat, embeddings, rerank
+y contextualización en tiempo de indexing.
 
-## Storage Boundary
+## Límite de storage
 
-Postgres is always the source of truth for project data, source lifecycle,
-documents, chunks, jobs, chat history, evals, audit trail, usage, and costs.
-The vector store is replaceable behind a small `VectorStore` interface.
+Postgres siempre es la source of truth para datos de proyecto, ciclo de vida de
+fuentes, documentos, chunks, jobs, historial de chat, evals, audit trail, usage
+y costos. El vector store es reemplazable detrás de una pequeña interfaz
+`VectorStore`.
 
-Initial vector store adapters:
+Adaptadores iniciales de vector store:
 
-- `PgVectorStoreAdapter`: default v1 adapter. Stores embeddings in Postgres
-  with pgvector and keeps the default local stack to one database service.
-- `QdrantVectorStoreAdapter`: optional self-hosted Docker profile for learning,
-  benchmarking, and vector-database-specific filtering/search experiments.
+- `PgVectorStoreAdapter`: adaptador por defecto de v1. Guarda embeddings en
+  Postgres con pgvector y mantiene el stack local por defecto en un solo
+  servicio de base de datos.
+- `QdrantVectorStoreAdapter`: profile opcional self-hosted con Docker para
+  aprender, benchmarkear y experimentar con filtering/search específicos de
+  vector databases.
 
-When Qdrant is enabled, Postgres still stores canonical chunk rows and metadata.
-Postgres may also keep the chunk embedding for portability and fallback, while
-Qdrant acts as the active vector-search index. Qdrant stores vector-search
-payloads:
+Cuando Qdrant está habilitado, Postgres sigue almacenando las filas canónicas de
+chunks y metadata. Postgres también puede conservar el embedding del chunk para
+portabilidad y fallback, mientras Qdrant actúa como índice activo de
+vector-search. Qdrant almacena payloads de vector-search:
 
 - `point_id`: `chunk_id`
 - `vector`: embedding
@@ -111,43 +121,45 @@ payloads:
 - `payload.source_id`
 - `payload.document_id`
 - `payload.text_hash`
-- selected filterable metadata
+- metadata filtrable seleccionada
 
-Retrieval code depends on `VectorStore`, not on pgvector or Qdrant directly.
-Qdrant must not be required to run the default v1 product path.
+El código de retrieval depende de `VectorStore`, no directamente de pgvector ni
+de Qdrant. Qdrant no debe ser necesario para ejecutar la ruta de producto por
+defecto de v1.
 
-## LlamaIndex Boundary
+## Límite con LlamaIndex
 
-LlamaIndex is the main toolkit for RAG primitives:
+LlamaIndex es el toolkit principal para primitivas RAG:
 
-- readers and loaders for URLs, Markdown, and TXT
-- conversion of optional Unstructured elements into LlamaIndex documents/nodes
-- `Document` and `Node` abstractions where useful
-- node parsing and chunking
-- metadata handling during ingestion
-- embedding and vector store integrations where they fit the schema
-- BM25 or lexical retrieval baselines when useful for evals
-- reranking integrations when they stay transparent
-- optional RAG evaluation integrations
+- readers y loaders para URLs, Markdown y TXT
+- conversión de elementos opcionales de Unstructured a documentos/nodes de
+  LlamaIndex
+- abstracciones `Document` y `Node` cuando sean útiles
+- node parsing y chunking
+- manejo de metadata durante ingestion
+- integraciones de embeddings y vector stores cuando encajen con el schema
+- baselines de BM25 o lexical retrieval cuando sean útiles para evals
+- integraciones de reranking cuando sigan siendo transparentes
+- integraciones opcionales de evaluación RAG
 
-Adaptive RAG owns the product layer:
+Adaptive RAG es dueño de la capa de producto:
 
-- domain models such as Project, Source, Document, Chunk, Job, EvalRun, and
+- modelos de dominio como Project, Source, Document, Chunk, Job, EvalRun y
   ChatSession
-- project isolation
-- API and CLI contracts
-- provider registry
-- DeepSeek tool-calling loop
-- tool contracts
-- citations and audit trail
-- eval run persistence and deterministic metrics
+- aislamiento por proyecto
+- contratos de API y CLI
+- registry de providers
+- loop de tool calling con DeepSeek
+- contratos de tools
+- citations y audit trail
+- persistencia de eval runs y métricas determinísticas
 
-This boundary keeps LlamaIndex valuable for learning and CV signal without
-turning the project into an opaque framework wrapper.
+Este límite mantiene a LlamaIndex valioso para aprendizaje y señal de CV sin
+convertir el proyecto en un wrapper opaco de framework.
 
-## Data Model
+## Modelo de datos
 
-The v1 schema includes these main tables.
+El schema v1 incluye estas tablas principales.
 
 `users`:
 
@@ -159,7 +171,7 @@ The v1 schema includes these main tables.
 `projects`:
 
 - `id`
-- `owner_user_id`, nullable in v1
+- `owner_user_id`, nullable en v1
 - `name`
 - `slug`
 - `description`
@@ -170,10 +182,10 @@ The v1 schema includes these main tables.
 
 - `id`
 - `project_id`
-- `type`, one of `url` or `file`
+- `type`, uno de `url` o `file`
 - `uri`
 - `title`
-- `status`, one of `pending`, `indexing`, `indexed`, `failed`
+- `status`, uno de `pending`, `indexing`, `indexed`, `failed`
 - `content_hash`
 - `metadata_json`
 - `created_at`
@@ -225,79 +237,82 @@ The v1 schema includes these main tables.
 - `id`
 - `project_id`
 - `source_id`
-- `status`, one of `queued`, `running`, `succeeded`, `failed`
+- `status`, uno de `queued`, `running`, `succeeded`, `failed`
 - `attempts`
 - `error_message`
 - `created_at`
 - `started_at`
 - `finished_at`
 
-Project isolation must be enforced by direct `project_id` filters on all
-project-scoped reads and writes. `chunks.project_id` is intentionally
-denormalized to make retrieval filters simple and safe.
+El aislamiento por proyecto debe aplicarse con filtros directos de `project_id`
+en todas las lecturas y escrituras scoped a proyecto. `chunks.project_id` está
+desnormalizado intencionalmente para que los filtros de retrieval sean simples
+y seguros.
 
-## Ingestion Pipeline
+## Pipeline de ingestion
 
-The default v1 product path supports public URLs, Markdown files, and TXT files.
-Advanced parsers may support additional formats as opt-in profiles, but those
-formats are not required for the v1 baseline.
+La ruta de producto por defecto de v1 soporta URLs públicas, archivos Markdown y
+archivos TXT. Parsers avanzados pueden soportar formatos adicionales como
+profiles opt-in, pero esos formatos no son requeridos para la línea base de v1.
 
-The ingestion flow is:
+El flujo de ingestion es:
 
-1. API or CLI creates a Source under a Project.
-2. API or CLI enqueues an `ingestion_jobs` row.
-3. A Postgres-backed worker claims queued jobs with
+1. La API o CLI crea una Source dentro de un Project.
+2. La API o CLI encola una fila en `ingestion_jobs`.
+3. Un worker respaldado por Postgres reclama jobs encolados con
    `SELECT ... FOR UPDATE SKIP LOCKED`.
-4. The worker loads source content with LlamaIndex readers.
-5. The selected document parser produces structured text units.
-6. The contextual chunking step adds a short per-chunk context.
-7. Voyage creates embeddings for the contextualized embedding input.
-8. Chunks, embeddings, metadata, and status are stored in Postgres.
-9. The source and job finish as `indexed`/`succeeded` or `failed`.
+4. El worker carga el contenido de la fuente con readers de LlamaIndex.
+5. El document parser seleccionado produce unidades de texto estructuradas.
+6. El paso de contextual chunking agrega un contexto corto por chunk.
+7. Voyage crea embeddings para el input contextualizado de embedding.
+8. Chunks, embeddings, metadata y status se guardan en Postgres.
+9. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
-The worker is idempotent by source content hash, parser configuration, chunker
-configuration, contextualizer configuration, embedding model, and chunk text
-hash. These inputs are combined into an `index_fingerprint`.
+El worker es idempotente por hash de contenido de la fuente, configuración de
+parser, configuración de chunker, configuración de contextualizer, modelo de
+embedding y hash del texto del chunk. Estos inputs se combinan en un
+`index_fingerprint`.
 
-Parser changes are forward-only by default. Changing a project from
-`LlamaIndexBasicParser` to `UnstructuredLocalParser` affects only new ingestions
-unless the user explicitly starts a reindex job. Existing chunks remain valid
-and searchable because each document and chunk stores the parser metadata and
-`index_fingerprint` that produced it.
+Los cambios de parser son forward-only por defecto. Cambiar un proyecto de
+`LlamaIndexBasicParser` a `UnstructuredLocalParser` afecta solo nuevas
+ingestions, salvo que el usuario inicie explícitamente un reindex job. Los
+chunks existentes siguen siendo válidos y buscables porque cada documento y
+chunk guarda la metadata de parser y el `index_fingerprint` que lo produjo.
 
-Supported reindex modes:
+Modos de reindex soportados:
 
-- `none`: default forward-only behavior; do not touch existing chunks.
-- `source`: reprocess one source with the current parser/index settings.
-- `project`: reprocess all sources in a project with the current parser/index
-  settings.
+- `none`: comportamiento forward-only por defecto; no tocar chunks existentes.
+- `source`: reprocesar una fuente con la configuración actual de parser/index.
+- `project`: reprocesar todas las fuentes de un proyecto con la configuración
+  actual de parser/index.
 
-Reindexing a source replaces or supersedes previous chunks for that source
-under the same project. Full project backfills are opt-in and should be used
-only for homogeneity, eval comparisons, or major indexing upgrades.
+Reindexar una fuente reemplaza o supersede los chunks anteriores de esa fuente
+dentro del mismo proyecto. Backfills completos de proyecto son opt-in y deben
+usarse solo para homogeneidad, comparaciones de evals o upgrades importantes de
+indexing.
 
-## Document Parsing Providers
+## Providers de document parsing
 
-Document parsing is behind a small `DocumentParser` interface so the ingestion
-pipeline can support simple and advanced parsers without changing the domain
-model.
+El document parsing está detrás de una pequeña interfaz `DocumentParser`, para
+que el pipeline de ingestion soporte parsers simples y avanzados sin cambiar el
+modelo de dominio.
 
-Initial parser providers:
+Providers iniciales de parser:
 
-- `LlamaIndexBasicParser`: default v1 parser for URLs, Markdown, and TXT.
-- `UnstructuredLocalParser`: optional parser using the open-source
-  `unstructured` library or a locally hosted Unstructured API.
-- `UnstructuredApiParser`: optional hosted API adapter, disabled unless the
-  user explicitly configures credentials.
+- `LlamaIndexBasicParser`: parser por defecto de v1 para URLs, Markdown y TXT.
+- `UnstructuredLocalParser`: parser opcional usando la librería open-source
+  `unstructured` o una API de Unstructured alojada localmente.
+- `UnstructuredApiParser`: adaptador opcional de API hosted, deshabilitado
+  salvo que el usuario configure credenciales explícitamente.
 
-Default configuration:
+Configuración por defecto:
 
 ```yaml
 parsing:
   provider: llamaindex_basic
 ```
 
-Optional advanced configuration:
+Configuración avanzada opcional:
 
 ```yaml
 parsing:
@@ -305,103 +320,108 @@ parsing:
   strategy: fast
 ```
 
-Unstructured is useful for complex HTML, PDFs, Office documents, emails, and
-image-heavy documents because it partitions raw files into structured elements
-such as titles, narrative text, and list items with metadata. In v1, it is an
-optional capability for learning and experimentation. It becomes a product
-default only if future evals show better retrieval quality and the operational
-cost is justified.
+Unstructured es útil para HTML complejo, PDFs, documentos Office, emails y
+documentos con muchas imágenes porque particiona archivos crudos en elementos
+estructurados como títulos, narrative text y list items con metadata. En v1 es
+una capability opcional para aprendizaje y experimentación. Se convierte en
+default de producto solo si evals futuras muestran mejor calidad de retrieval y
+el costo operacional se justifica.
 
-When Unstructured is used, Adaptive RAG still owns source lifecycle,
-project isolation, content hashing, citations, contextual chunking, embeddings,
-and persistence. Unstructured only provides parsed elements.
+Cuando se usa Unstructured, Adaptive RAG sigue siendo dueño del ciclo de vida de
+fuentes, aislamiento por proyecto, content hashing, citations, contextual
+chunking, embeddings y persistencia. Unstructured solo entrega elementos
+parseados.
 
-## Contextual Chunks
+## Chunks contextuales
 
-Contextual chunking is enabled by default for new projects.
+El contextual chunking está habilitado por defecto para proyectos nuevos.
 
-For each chunk, the system stores:
+Para cada chunk, el sistema almacena:
 
-- `text`: the original chunk text used for citations and answer context
-- `contextual_text`: the generated short context for retrieval
-- `embedding_input_text`: `contextual_text` plus `text`
+- `text`: texto original del chunk usado para citations y contexto de respuesta
+- `contextual_text`: contexto corto generado para retrieval
+- `embedding_input_text`: `contextual_text` más `text`
 
-The contextual text improves retrieval, but it is not treated as factual
-evidence. Citations and user-facing source snippets use original source text.
+El texto contextual mejora retrieval, pero no se trata como evidencia factual.
+Las citations y snippets visibles para el usuario usan el texto original de la
+fuente.
 
-Default contextualizer:
+Contextualizer por defecto:
 
-- Provider: DeepSeek direct
-- Model: `deepseek-v4-flash`
-- Maximum context target: 120 tokens
+- Provider: DeepSeek directo
+- Modelo: `deepseek-v4-flash`
+- Objetivo máximo de contexto: 120 tokens
 
-The contextualizer is provider-agnostic and can later use Anthropic, OpenAI-
-compatible providers, or local models.
+El contextualizer es provider-agnostic y más adelante puede usar Anthropic,
+providers OpenAI-compatible o modelos locales.
 
 ## Retrieval
 
-The main v1 retrieval tool is `search_project_knowledge`.
+La tool principal de retrieval en v1 es `search_project_knowledge`.
 
-The default retrieval strategy is:
+La estrategia de retrieval por defecto es:
 
-1. Dense retrieval with Voyage embeddings and the configured vector store
-   adapter, defaulting to pgvector.
-2. Lexical retrieval with Postgres full-text for the product path.
-3. Fusion with reciprocal rank fusion.
-4. Reranking with Voyage `rerank-2.5-lite`.
-5. Return ranked chunks with source metadata and citation payloads.
+1. Dense retrieval con embeddings Voyage y el adaptador de vector store
+   configurado, por defecto pgvector.
+2. Lexical retrieval con Postgres full-text para la ruta de producto.
+3. Fusión con reciprocal rank fusion.
+4. Reranking con Voyage `rerank-2.5-lite`.
+5. Retornar chunks rankeados con metadata de fuente y payloads de citation.
 
-The public API must name the lexical leg as lexical retrieval, not BM25,
-because the default product implementation is Postgres full-text rather than
-Okapi BM25. A true BM25 retriever can be used through LlamaIndex as an eval
-baseline and can become a future implementation if it supports clean
-project-scoped retrieval and beats the default in evals.
+La API pública debe llamar a la rama lexical como lexical retrieval, no BM25,
+porque la implementación de producto por defecto es Postgres full-text y no
+Okapi BM25. Un verdadero BM25 retriever puede usarse mediante LlamaIndex como
+baseline de evals y puede convertirse en implementación futura si soporta
+retrieval limpio scoped por proyecto y supera al default en evals.
 
-The retrieval interface must support future implementations:
+La interfaz de retrieval debe soportar implementaciones futuras:
 
 - dense-only
 - lexical-only
 - hybrid RRF
-- hybrid RRF plus rerank
-- Qdrant-backed dense retrieval
-- learned sparse retrieval with
+- hybrid RRF más rerank
+- dense retrieval respaldado por Qdrant
+- learned sparse retrieval con
   `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
 
-Learned sparse retrieval is deferred to phase 2 and must be justified with eval
-results before becoming default.
+Learned sparse retrieval queda diferido a fase 2 y debe justificarse con
+resultados de eval antes de convertirse en default.
 
-## Chat and Tool Calling
+## Chat y tool calling
 
-The v1 chat experience is agentic but guarded.
+La experiencia de chat v1 es agentic pero con guardrails.
 
-The orchestration flow is:
+El flujo de orquestación es:
 
-1. User sends a question to a project chat endpoint or CLI command.
-2. `ChatOrchestrator` calls DeepSeek with available tools.
-3. The model can call `search_project_knowledge`.
-4. The tool executes deterministic retrieval and returns ranked, cited chunks.
-5. The model answers using retrieved context.
-6. Tool calls, retrieval runs, citations, messages, usage, and costs are stored.
+1. El usuario envía una pregunta a un endpoint de chat de proyecto o comando
+   CLI.
+2. `ChatOrchestrator` llama a DeepSeek con las tools disponibles.
+3. El modelo puede llamar a `search_project_knowledge`.
+4. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
+   citations.
+5. El modelo responde usando el contexto recuperado.
+6. Tool calls, retrieval runs, citations, mensajes, usage y costos se guardan.
 
-Rule for factual project questions:
+Regla para preguntas factuales de proyecto:
 
-If a chat is associated with a project that has indexed data, the assistant
-must call `search_project_knowledge` before answering factual questions about
-that project. It may skip retrieval for greetings, app help, configuration, or
-general questions unrelated to the project knowledge base.
+Si un chat está asociado a un proyecto que tiene datos indexados, el assistant
+debe llamar a `search_project_knowledge` antes de responder preguntas factuales
+sobre ese proyecto. Puede saltarse retrieval para saludos, ayuda de la app,
+configuración o preguntas generales no relacionadas con la knowledge base del
+proyecto.
 
-Future tools are planned but out of v1 implementation scope:
+Tools futuras planificadas, pero fuera del alcance de implementación de v1:
 
 - `self_knowledge`
 - `add_knowledge`
 - `add_to_memory`
 
-The tool loop stays in Adaptive RAG code. LlamaIndex is used underneath for RAG
-primitives, not as the owner of chat orchestration.
+El tool loop vive en código de Adaptive RAG. LlamaIndex se usa por debajo para
+primitivas RAG, no como dueño de la orquestación del chat.
 
 ## Citations
 
-Each retrieved chunk returns a citation payload:
+Cada chunk recuperado retorna un payload de citation:
 
 - `source_id`
 - `source_title`
@@ -411,19 +431,20 @@ Each retrieved chunk returns a citation payload:
 - `snippet`
 - `rank`
 - `retrieval_method`
-- dense score, when available
-- lexical score, when available
-- RRF score, when available
-- rerank score, when available
+- dense score, cuando exista
+- lexical score, cuando exista
+- RRF score, cuando exista
+- rerank score, cuando exista
 
-Answer citations must point back to original source text and source metadata.
-Generated contextual prefixes are not user-facing evidence.
+Las citations de una respuesta deben apuntar al texto original de la fuente y a
+su metadata. Los prefijos contextuales generados no son evidencia visible para
+el usuario.
 
-## Eval Harness
+## Eval harness
 
-Evals are part of v1 and can be run from the CLI and API without a frontend.
+Los evals son parte de v1 y pueden ejecutarse desde CLI y API sin frontend.
 
-Tables:
+Tablas:
 
 `eval_questions`:
 
@@ -454,39 +475,39 @@ Tables:
 - `citations`
 - `metrics_json`
 
-Ragas provides LLM-judge metrics:
+Ragas aporta métricas LLM-as-judge:
 
 - faithfulness
 - response relevancy
 - context precision
 - context recall
 
-Custom deterministic metrics provide:
+Métricas determinísticas propias:
 
 - recall@k
 - MRR
 - source_hit_rate
 - citation_coverage
-- cost per run
-- latency per strategy
+- costo por run
+- latencia por estrategia
 
-The first strategy matrix is:
+La primera matriz de estrategias es:
 
 - dense-only
 - lexical-only
 - hybrid RRF
-- hybrid RRF plus rerank
-- hybrid RRF plus rerank plus contextual chunks
+- hybrid RRF más rerank
+- hybrid RRF más rerank más contextual chunks
 
-The eval harness persists enough data to reproduce why one strategy beat
-another.
+El eval harness persiste suficientes datos para reproducir por qué una
+estrategia superó a otra.
 
-## Observability and Audit Trail
+## Observabilidad y audit trail
 
-The v1 uses local-first observability through Postgres and structured JSON logs.
-No SaaS observability provider is required.
+La v1 usa observabilidad local-first mediante Postgres y logs JSON
+estructurados. No se requiere ningún provider SaaS de observabilidad.
 
-Tables:
+Tablas:
 
 `chat_sessions`:
 
@@ -544,12 +565,12 @@ Tables:
 - `estimated_cost`
 - `latency_ms`
 
-Future adapters may export to OpenTelemetry or Langfuse, but v1 does not depend
-on them.
+Adaptadores futuros pueden exportar a OpenTelemetry o Langfuse, pero v1 no
+depende de ellos.
 
-## API Surface
+## Superficie de API
 
-Initial FastAPI endpoints:
+Endpoints FastAPI iniciales:
 
 - `POST /projects`
 - `GET /projects`
@@ -565,9 +586,9 @@ Initial FastAPI endpoints:
 - `POST /projects/{project_id}/eval-runs`
 - `GET /projects/{project_id}/eval-runs/{run_id}`
 
-## CLI Surface
+## Superficie de CLI
 
-Initial Typer commands:
+Comandos Typer iniciales:
 
 - `adaptive-rag projects create`
 - `adaptive-rag sources add-url`
@@ -577,71 +598,73 @@ Initial Typer commands:
 - `adaptive-rag retrieval search`
 - `adaptive-rag eval run`
 
-The CLI is a first-class development and learning surface while the frontend is
-deferred.
+La CLI es una superficie de desarrollo y aprendizaje de primera clase mientras
+el frontend queda diferido.
 
-## Auth and Deployment
+## Auth y deployment
 
-The v1 is single-user and local-first.
+La v1 es single-user y local-first.
 
-Optional API key auth:
+Auth opcional con API key:
 
-- If `ADAPTIVE_RAG_API_KEY` is set, mutable endpoints require
+- Si `ADAPTIVE_RAG_API_KEY` está seteada, los endpoints mutables requieren
   `Authorization: Bearer <key>`.
-- If it is not set, the app runs in local development mode without auth.
+- Si no está seteada, la app corre en modo desarrollo local sin auth.
 
-Docker Compose services:
+Servicios de Docker Compose:
 
 - `api`
 - `worker`
-- `postgres` with pgvector
+- `postgres` con pgvector
 
-Optional Docker Compose profiles may add:
+Profiles opcionales de Docker Compose pueden agregar:
 
-- `qdrant` for vector-store benchmarking and optional dense retrieval.
-- an Unstructured API service for advanced document parsing.
+- `qdrant` para benchmark de vector stores y dense retrieval opcional.
+- un servicio de Unstructured API para document parsing avanzado.
 
-The default local stack must run without Qdrant or Unstructured.
+El stack local por defecto debe correr sin Qdrant ni Unstructured.
 
-The schema includes `users` and `projects.owner_user_id` for future multi-user
-auth, but v1 does not implement registration, login, sessions, or OAuth.
+El schema incluye `users` y `projects.owner_user_id` para auth multi-user
+futura, pero v1 no implementa registro, login, sesiones ni OAuth.
 
-## Testing Strategy
+## Estrategia de testing
 
-TDD coverage starts with core behavior:
+La cobertura TDD empieza con comportamiento core:
 
-- project isolation
-- source creation and content hashing
-- ingestion job claiming with `FOR UPDATE SKIP LOCKED`
-- chunk creation and metadata preservation
-- contextual chunk storage behavior
-- embedding metadata tracking
-- provider registry behavior with fakes
-- document parser registry behavior with fakes
-- Unstructured parser contract tests with representative fixture files
-- vector store adapter contract tests shared by pgvector and Qdrant
-- retrieval filters by project
-- RRF fusion
-- citation payload generation
-- tool-call orchestration with fake providers
-- eval metric calculations
+- aislamiento por proyecto
+- creación de sources y content hashing
+- claim de ingestion jobs con `FOR UPDATE SKIP LOCKED`
+- creación de chunks y preservación de metadata
+- comportamiento de storage para contextual chunks
+- tracking de metadata de embeddings
+- comportamiento del provider registry con fakes
+- comportamiento del document parser registry con fakes
+- contract tests de Unstructured parser con archivos fixture representativos
+- contract tests de vector store adapter compartidos por pgvector y Qdrant
+- filtros de retrieval por proyecto
+- fusión RRF
+- generación de citation payload
+- orquestación de tool calls con providers fake
+- cálculo de métricas de eval
 
-Provider SDK calls use fakes and contract tests first. Hosted provider smoke
-tests are explicit, opt-in, and skipped when API keys are absent.
+Las llamadas a SDKs de providers usan fakes y contract tests primero. Los smoke
+tests con providers hosted son explícitos, opt-in y se saltan cuando faltan API
+keys.
 
-## Follow-up Phases
+## Fases posteriores
 
-Phase 2 candidates:
+Candidatos para fase 2:
 
-- promoting Qdrant from optional vector-store profile to default if benchmarks
-  against pgvector justify it on latency, filter behavior, operational cost,
-  and retrieval quality
-- true BM25 or OpenSearch lexical retrieval if evals justify the added service
-- learned sparse retrieval with
+- promover Qdrant desde profile opcional de vector store a default si los
+  benchmarks contra pgvector lo justifican en latencia, filtros, costo
+  operacional y calidad de retrieval
+- BM25 real u OpenSearch lexical retrieval si los evals justifican el servicio
+  adicional
+- learned sparse retrieval con
   `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
-- LangGraph experimental agent mode
-- PDF ingestion
-- frontend built with an agent against stable API contracts
-- local model profiles for chat, embeddings, and rerank
-- OpenTelemetry or Langfuse export
-- multi-user auth
+- modo agente experimental con LangGraph
+- ingestion de PDF
+- frontend construido con un agente contra contratos de API estables
+- profiles de modelos locales para chat, embeddings y rerank
+- export a OpenTelemetry o Langfuse
+- auth multi-user
