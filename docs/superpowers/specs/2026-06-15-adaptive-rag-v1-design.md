@@ -26,14 +26,15 @@ términos técnicos que sean más precisos o reconocibles, como `retrieval`,
 
 La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
 hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
-productiva como ruta por defecto, modo agente con LangGraph ni learned sparse
-retrieval. Esas son fases posteriores deliberadas.
+productiva como ruta por defecto, modo agente con LangGraph, Okapi BM25 real,
+SPLADE ni learned sparse retrieval. Esas son decisiones deliberadas para llegar
+a producción con menos piezas móviles.
 
 El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
 OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
 datos más allá de Postgres con pgvector. Los profiles opcionales de Docker
-Compose pueden agregar servicios self-hosted como Qdrant o Unstructured para
-experimentos explícitos.
+Compose pueden agregar servicios self-hosted como Unstructured para
+experimentos explícitos de parsing, pero el retrieval v1 vive en Postgres.
 
 ## Principios principales
 
@@ -44,8 +45,8 @@ experimentos explícitos.
 - Usar LlamaIndex como toolkit RAG principal, pero mantener la orquestación de
   producto en código propio de Adaptive RAG.
 - Medir cambios de retrieval con evals, no con intuición.
-- Mantener los providers reemplazables mediante interfaces pequeñas por
-  capability.
+- Mantener interfaces pequeñas por capability, aunque la v1 implemente solo
+  Qwen como provider de IA. No se prometen otros providers antes de producción.
 
 ## Stack tecnológico
 
@@ -53,8 +54,7 @@ experimentos explícitos.
 - CLI: Typer y Rich
 - Runtime: Python
 - Base de datos: Postgres con pgvector
-- Vector store por defecto: pgvector
-- Profile opcional de vector store: Qdrant self-hosted
+- Vector store v1: pgvector
 - ORM y migraciones: SQLAlchemy 2 y Alembic
 - Toolkit RAG: LlamaIndex
 - Parsing avanzado opcional de documentos: Unstructured OSS/local, con API
@@ -63,69 +63,55 @@ experimentos explícitos.
 - Tests: pytest
 - Packaging y workflow local: uv
 - Deployment: Docker Compose con API, worker y Postgres/pgvector por defecto;
-  profiles opcionales pueden agregar Qdrant o Unstructured
+  profiles opcionales pueden agregar Unstructured
 
-## Providers de IA
+## Provider de IA
 
-La integración de providers se basa en capabilities. El core RAG no debe
-depender directamente de SDKs de vendors.
+La v1 usa Qwen como único provider de IA hasta llegar a producción. Esto reduce
+credenciales, costos mentales, documentación, smoke tests y superficie de
+fallos. Otros providers, modelos locales no-Qwen o agregadores quedan fuera de
+alcance y no se prometen como roadmap; solo podrán evaluarse después de
+producción si una necesidad medible lo justifica.
 
-Providers hosted por defecto:
+Modelos Qwen configurados para v1:
 
-- Chat por defecto: DeepSeek directo, `deepseek-v4-flash`
-- Opción de chat más fuerte: DeepSeek directo, `deepseek-v4-pro`
-- Embeddings por defecto: Voyage, `voyage-4-lite`, 1024 dimensiones
-- Rerank por defecto: Voyage, `rerank-2.5-lite`
-- Opción de rerank de mayor calidad: Voyage, `rerank-2.5`
+- Chat rápido y contextualización: Qwen, `qwen3.5-flash`
+- Chat de mayor calidad dentro de Qwen: `qwen3.5-plus`
+- Chat fuerte opcional dentro de Qwen: `qwen3-max`
+- Embeddings: Qwen `text-embedding-v4`, 1024 dimensiones
+- Rerank: Qwen `qwen3-rerank`
 
-Providers locales opcionales:
+Los nombres exactos de modelos son configuración de deployment, no constantes
+de dominio. El código debe permitir cambiar snapshots Qwen sin migrar datos
+históricos.
 
-- Chat: Ollama o servidor local OpenAI-compatible
-- Embeddings: servidor local de embeddings o futuro provider TEI-compatible
-- Rerank: BGE reranker local, partiendo con `BAAI/bge-reranker-v2-m3`
-
-Las interfaces iniciales de providers son:
+Las interfaces iniciales de capabilities son:
 
 - `ChatProvider`
 - `EmbeddingProvider`
 - `Reranker`
 - `Contextualizer`
 
-Cada proyecto almacena configuración de provider para chat, embeddings, rerank
-y contextualización en tiempo de indexing.
+Cada proyecto almacena configuración Qwen para chat, embeddings, rerank y
+contextualización en tiempo de indexing. Aunque exista una capa de interfaces,
+la única implementación v1 es Qwen.
 
 ## Límite de storage
 
 Postgres siempre es la source of truth para datos de proyecto, ciclo de vida de
 fuentes, documentos, chunks, jobs, historial de chat, evals, audit trail, usage
-y costos. El vector store es reemplazable detrás de una pequeña interfaz
-`VectorStore`.
+y costos. En v1, Postgres también es el único motor de retrieval persistente:
+guarda embeddings densos con pgvector y mantiene la rama lexical con full-text
+search.
 
-Adaptadores iniciales de vector store:
+Adaptador inicial de vector store:
 
-- `PgVectorStoreAdapter`: adaptador por defecto de v1. Guarda embeddings en
-  Postgres con pgvector y mantiene el stack local por defecto en un solo
-  servicio de base de datos.
-- `QdrantVectorStoreAdapter`: profile opcional self-hosted con Docker para
-  aprender, benchmarkear y experimentar con filtering/search específicos de
-  vector databases.
+- `PgVectorStoreAdapter`: adaptador v1. Guarda embeddings Qwen en Postgres con
+  pgvector y mantiene el stack local en un solo servicio de base de datos.
 
-Cuando Qdrant está habilitado, Postgres sigue almacenando las filas canónicas de
-chunks y metadata. Postgres también puede conservar el embedding del chunk para
-portabilidad y fallback, mientras Qdrant actúa como índice activo de
-vector-search. Qdrant almacena payloads de vector-search:
-
-- `point_id`: `chunk_id`
-- `vector`: embedding
-- `payload.project_id`
-- `payload.source_id`
-- `payload.document_id`
-- `payload.text_hash`
-- metadata filtrable seleccionada
-
-El código de retrieval depende de `VectorStore`, no directamente de pgvector ni
-de Qdrant. Qdrant no debe ser necesario para ejecutar la ruta de producto por
-defecto de v1.
+El código de retrieval puede conservar una interfaz pequeña `VectorStore` para
+evitar acoplamiento innecesario, pero no se implementa Qdrant en v1. Qdrant
+queda como posible evaluación post-producción, no como compromiso de roadmap.
 
 ## Límite con LlamaIndex
 
@@ -138,7 +124,7 @@ LlamaIndex es el toolkit principal para primitivas RAG:
 - node parsing y chunking
 - manejo de metadata durante ingestion
 - integraciones de embeddings y vector stores cuando encajen con el schema
-- baselines de BM25 o lexical retrieval cuando sean útiles para evals
+- baselines de lexical retrieval cuando sean útiles para evals
 - integraciones de reranking cuando sigan siendo transparentes
 - integraciones opcionales de evaluación RAG
 
@@ -149,7 +135,7 @@ Adaptive RAG es dueño de la capa de producto:
 - aislamiento por proyecto
 - contratos de API y CLI
 - registry de providers
-- loop de tool calling con DeepSeek
+- loop de tool calling con Qwen
 - contratos de tools
 - citations y audit trail
 - persistencia de eval runs y métricas determinísticas
@@ -264,7 +250,7 @@ El flujo de ingestion es:
 4. El worker carga el contenido de la fuente con readers de LlamaIndex.
 5. El document parser seleccionado produce unidades de texto estructuradas.
 6. El paso de contextual chunking agrega un contexto corto por chunk.
-7. Voyage crea embeddings para el input contextualizado de embedding.
+7. Qwen crea embeddings para el input contextualizado de embedding.
 8. Chunks, embeddings, metadata y status se guardan en Postgres.
 9. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
@@ -348,12 +334,12 @@ fuente.
 
 Contextualizer por defecto:
 
-- Provider: DeepSeek directo
-- Modelo: `deepseek-v4-flash`
+- Provider: Qwen
+- Modelo: `qwen3.5-flash`
 - Objetivo máximo de contexto: 120 tokens
 
-El contextualizer es provider-agnostic y más adelante puede usar Anthropic,
-providers OpenAI-compatible o modelos locales.
+El contextualizer usa la misma integración Qwen que chat para mantener un solo
+provider de IA en producción.
 
 ## Retrieval
 
@@ -361,31 +347,33 @@ La tool principal de retrieval en v1 es `search_project_knowledge`.
 
 La estrategia de retrieval por defecto es:
 
-1. Dense retrieval con embeddings Voyage y el adaptador de vector store
-   configurado, por defecto pgvector.
-2. Lexical retrieval con Postgres full-text para la ruta de producto.
+1. Dense retrieval con embeddings Qwen `text-embedding-v4` y pgvector.
+2. Lexical retrieval local con Postgres full-text search (`tsvector`,
+   `tsquery`, GIN y ranking con `ts_rank_cd`).
 3. Fusión con reciprocal rank fusion.
-4. Reranking con Voyage `rerank-2.5-lite`.
+4. Reranking con Qwen `qwen3-rerank`.
 5. Retornar chunks rankeados con metadata de fuente y payloads de citation.
 
-La API pública debe llamar a la rama lexical como lexical retrieval, no BM25,
-porque la implementación de producto por defecto es Postgres full-text y no
-Okapi BM25. Un verdadero BM25 retriever puede usarse mediante LlamaIndex como
-baseline de evals y puede convertirse en implementación futura si soporta
-retrieval limpio scoped por proyecto y supera al default en evals.
+La API pública debe llamar a la segunda rama como lexical retrieval o Postgres
+full-text, no BM25, porque la implementación de producto no es Okapi BM25. Esta
+rama no usa un provider de IA: es infraestructura local de Postgres para mejorar
+recall en nombres propios, rutas de API, errores exactos, siglas y términos
+raros.
 
-La interfaz de retrieval debe soportar implementaciones futuras:
+Okapi BM25 real, SPLADE y otros learned sparse retrievers quedan fuera de v1.
+No se implementan ni se prometen como roadmap. Después de producción pueden
+evaluarse si las métricas muestran que dense retrieval + Postgres full-text +
+Qwen rerank no alcanzan.
+
+La interfaz de retrieval v1 debe soportar:
 
 - dense-only
 - lexical-only
 - hybrid RRF
 - hybrid RRF más rerank
-- dense retrieval respaldado por Qdrant
-- learned sparse retrieval con
-  `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
 
-Learned sparse retrieval queda diferido a fase 2 y debe justificarse con
-resultados de eval antes de convertirse en default.
+Estas variantes existen para evals y debugging, no para prometer múltiples
+motores de search.
 
 ## Chat y tool calling
 
@@ -395,7 +383,7 @@ El flujo de orquestación es:
 
 1. El usuario envía una pregunta a un endpoint de chat de proyecto o comando
    CLI.
-2. `ChatOrchestrator` llama a DeepSeek con las tools disponibles.
+2. `ChatOrchestrator` llama a Qwen con las tools disponibles.
 3. El modelo puede llamar a `search_project_knowledge`.
 4. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
    citations.
@@ -619,10 +607,9 @@ Servicios de Docker Compose:
 
 Profiles opcionales de Docker Compose pueden agregar:
 
-- `qdrant` para benchmark de vector stores y dense retrieval opcional.
 - un servicio de Unstructured API para document parsing avanzado.
 
-El stack local por defecto debe correr sin Qdrant ni Unstructured.
+El stack local por defecto debe correr sin Unstructured.
 
 El schema incluye `users` y `projects.owner_user_id` para auth multi-user
 futura, pero v1 no implementa registro, login, sesiones ni OAuth.
@@ -640,7 +627,7 @@ La cobertura TDD empieza con comportamiento core:
 - comportamiento del provider registry con fakes
 - comportamiento del document parser registry con fakes
 - contract tests de Unstructured parser con archivos fixture representativos
-- contract tests de vector store adapter compartidos por pgvector y Qdrant
+- contract tests del adapter pgvector
 - filtros de retrieval por proyecto
 - fusión RRF
 - generación de citation payload
@@ -653,18 +640,14 @@ keys.
 
 ## Fases posteriores
 
-Candidatos para fase 2:
+Candidatos para después de producción:
 
-- promover Qdrant desde profile opcional de vector store a default si los
-  benchmarks contra pgvector lo justifican en latencia, filtros, costo
-  operacional y calidad de retrieval
-- BM25 real u OpenSearch lexical retrieval si los evals justifican el servicio
-  adicional
-- learned sparse retrieval con
-  `opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1`
+- evaluar Okapi BM25 real, SPLADE o learned sparse retrieval solo si los evals
+  muestran que Postgres full-text limita el recall o la calidad final
+- evaluar Qdrant u otro vector database solo si pgvector limita latencia,
+  filtros, costo operacional o calidad de retrieval
 - modo agente experimental con LangGraph
 - ingestion de PDF
 - frontend construido con un agente contra contratos de API estables
-- profiles de modelos locales para chat, embeddings y rerank
 - export a OpenTelemetry o Langfuse
 - auth multi-user

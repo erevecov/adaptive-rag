@@ -22,8 +22,8 @@ SQLAlchemy 2, Alembic, psycopg, pytest, httpx, ruff y mypy.
 ## Alcance
 
 Este plan cubre solo Milestone 1. Intencionalmente no implementa tablas de
-dominio, ingestion jobs, LlamaIndex, Unstructured, Voyage, DeepSeek, modelos
-pgvector, Qdrant, orquestación de chat ni evals. Eso pertenece a planes
+dominio, ingestion jobs, LlamaIndex, Unstructured, integración Qwen, modelos
+pgvector, retrieval, orquestación de chat ni evals. Eso pertenece a planes
 posteriores.
 
 ## Estructura objetivo de archivos
@@ -285,7 +285,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-VectorStoreName = Literal["pgvector", "qdrant"]
+VectorStoreName = Literal["pgvector"]
 
 
 class Settings(BaseSettings):
