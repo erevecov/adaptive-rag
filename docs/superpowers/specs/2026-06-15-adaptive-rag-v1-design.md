@@ -29,6 +29,10 @@ hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
 productiva como ruta por defecto, modo agente con LangGraph, Okapi BM25 real,
 SPLADE, learned sparse retrieval ni Unstructured como parser integrado. Esas son
 decisiones deliberadas para llegar a producción con menos piezas móviles.
+Tampoco implementará sparse embeddings de Qwen en v1, porque el soporte
+`dense`, `sparse` y `dense&sparse` de `text-embedding-v4` requiere usar la API o
+SDK nativo de DashScope para esa capacidad avanzada, no solo el modo
+OpenAI-compatible que usará la integración inicial.
 
 El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
 OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
@@ -99,6 +103,21 @@ Modelos Qwen configurados para v1:
 - Chat fuerte opcional dentro de Qwen: `qwen3.7-max`
 - Embeddings: Qwen `text-embedding-v4`, 1024 dimensiones
 - Rerank: Qwen `qwen3-rerank`
+
+La integración de embeddings v1 usa `text-embedding-v4` en modo dense por la
+API OpenAI-compatible de Qwen. El adapter debe enviar `dimensions = 1024`,
+validar que la respuesta tenga exactamente 1024 floats y registrar
+`embedding_dim = 1024`. Cambiar esa dimensión no es un flag inocuo: requiere
+nueva estrategia de índice, migración o columna nueva y re-embedding de los
+documentos afectados.
+
+Qwen documenta `output_type` con valores `dense`, `sparse` y `dense&sparse` para
+`text-embedding-v3` y `text-embedding-v4`, pero esa capacidad se considera fuera
+de v1 porque está documentada como disponible mediante DashScope SDK/API nativo.
+Evaluarla después de producción requiere un adapter explícito
+`DashScopeEmbeddingProvider`, storage para postings o vectores sparse,
+comparación contra Postgres full-text y evals de calidad/costo. No debe
+activarse como un parámetro oculto del adapter OpenAI-compatible.
 
 Después de salir a producción, evaluar la integración de modelos Multimodal
 Embeddings de Qwen para mejorar retrieval de documentos con imágenes, tablas u
@@ -278,6 +297,32 @@ browser automation, renderer JavaScript ni fuente de verdad de URLs. La fuente
 de verdad sigue siendo Postgres y la orquestación de ingestion sigue viviendo en
 Adaptive RAG.
 
+## Política de fetch de URLs
+
+Las fuentes URL de v1 son URLs públicas HTML. Antes de descargar una URL, el
+worker aplica `UrlFetchPolicy` para reducir riesgo de SSRF, fugas de red local y
+jobs colgados.
+
+Reglas mínimas:
+
+- Permitir solo esquemas `http` y `https`.
+- Bloquear `localhost`, loopback, IPs privadas RFC1918, link-local, multicast y
+  endpoints de metadata cloud conocidos.
+- Resolver DNS y validar las IPs resultantes antes de conectar.
+- Revalidar la URL y las IPs después de cada redirect.
+- Limitar redirects, tamaño máximo de respuesta, timeout de conexión y timeout
+  de lectura.
+- Enviar un `User-Agent` propio del proyecto.
+- No enviar cookies, credenciales, headers sensibles ni auth heredada del
+  entorno.
+- Aceptar solo content types HTML/texto permitidos para la ruta v1.
+- Registrar metadata de fetch para auditoría, pero no guardar headers sensibles
+  ni cuerpos completos en logs.
+
+Trafilatura solo recibe HTML que ya pasó por esta política. Si la política
+bloquea una URL, el job termina como `failed` con error no retryable y un mensaje
+auditable.
+
 ## Límite con Pydantic AI
 
 Pydantic AI se adopta en v1 para implementar la experiencia agentic de chat:
@@ -403,12 +448,25 @@ El schema v1 incluye estas tablas principales.
 - `source_id`
 - `title`
 - `tags`, array de texto heredable desde la fuente o asignable al documento
+- `current_version_id`, nullable mientras el primer indexing está en curso
+- `metadata_json`
+- `created_at`
+- `updated_at`
+
+`document_versions`:
+
+- `id`
+- `project_id`
+- `source_id`
+- `document_id`
+- `version`
+- `normalized_text`
 - `text_hash`
 - `parser_provider`
 - `parser_version`
 - `parser_config_hash`
+- `extraction_metadata_json`
 - `index_fingerprint`
-- `metadata_json`
 - `created_at`
 
 `chunks`:
@@ -417,6 +475,7 @@ El schema v1 incluye estas tablas principales.
 - `project_id`
 - `source_id`
 - `document_id`
+- `document_version_id`
 - `source_type`
 - `tags`, array de texto denormalizado para filtros de retrieval
 - `ordinal`
@@ -497,6 +556,12 @@ desnormalizado intencionalmente para que los filtros de retrieval sean simples
 y seguros. `chunks.source_type` y `chunks.tags` también se desnormalizan para
 que dense retrieval y lexical retrieval apliquen los mismos filtros sin depender
 de joins complejos en la ruta caliente.
+
+`document_versions` conserva el texto normalizado exacto que fue parseado y
+chunkeado. Los offsets `char_start` y `char_end` de `chunks` apuntan a
+`document_versions.normalized_text`, no al HTML original, al archivo bruto ni al
+texto contextual generado. Esto permite reindexar una fuente de forma
+forward-only, comparar versiones y mantener citations reproducibles.
 
 ## Cola de jobs en Postgres
 
@@ -616,15 +681,20 @@ El flujo de ingestion es:
 3. Un worker respaldado por Postgres reclama jobs encolados con
    `FOR UPDATE SKIP LOCKED` a través de la tabla `jobs`.
 4. El worker carga el contenido de la fuente. Para URLs HTML descarga con
-   `httpx` y extrae texto principal con Trafilatura; para Markdown y TXT usa el
-   parser básico del proyecto apoyado en LlamaIndex cuando sea útil.
-5. El document parser seleccionado produce unidades de texto estructuradas.
-6. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
+   `httpx` después de aplicar `UrlFetchPolicy` y extrae texto principal con
+   Trafilatura; para Markdown y TXT usa el parser básico del proyecto apoyado en
+   LlamaIndex cuando sea útil.
+5. El document parser seleccionado produce texto normalizado y metadata de
+   extracción.
+6. El sistema crea una fila `document_versions` con `normalized_text`, hash,
+   parser metadata e `index_fingerprint`.
+7. El chunker crea chunks desde `document_versions.normalized_text`.
+8. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
    Qwen.
-7. Qwen crea embeddings para el input contextualizado de embedding.
-8. Postgres full-text indexa el input contextualizado para la rama lexical.
-9. Chunks, embeddings, metadata y status se guardan en Postgres.
-10. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
+9. Qwen crea embeddings dense para el input contextualizado de embedding.
+10. Postgres full-text indexa el input contextualizado para la rama lexical.
+11. Chunks, embeddings, metadata y status se guardan en Postgres.
+12. La fuente y el job terminan como `indexed`/`succeeded` o `failed`.
 
 El worker de ingestion es idempotente por hash de contenido de la fuente,
 configuración de parser, configuración de chunker, configuración de
@@ -734,6 +804,13 @@ técnica está inspirada en el patrón publicado por Anthropic: antes de indexar
 chunk, el sistema usa un LLM para generar una descripción breve que sitúa ese
 chunk dentro de su documento completo. En Adaptive RAG, ese LLM es Qwen.
 
+La configuración de proyecto conserva `retrieval_contextualization_enabled`,
+con default `true`. Desactivarlo existe para debugging, evals de ablation y
+control de costos durante pruebas, no como ruta de producto principal. Cada
+cambio relevante de chunking, prompt o retrieval debe compararse con Contextual
+Retrieval activado y desactivado para medir impacto en calidad, costo y
+latencia.
+
 Para cada chunk, el sistema almacena:
 
 - `text`: texto original del chunk usado para citations y contexto de respuesta
@@ -787,6 +864,12 @@ Okapi BM25 real, SPLADE y otros learned sparse retrievers quedan fuera de v1.
 No se implementan ni se prometen como roadmap. Después de producción pueden
 evaluarse si las métricas muestran que dense retrieval + Postgres full-text +
 Qwen rerank no alcanzan.
+
+Qwen sparse embeddings también quedan fuera de v1. Aunque `text-embedding-v4`
+soporta salida sparse en la API nativa de DashScope, adoptarlo cambiaría el
+contrato de provider, el formato persistido y el ranking. En v1, la rama lexical
+local de Postgres cubre el objetivo pragmático de exact match sin sumar otro
+modo de API ni otro tipo de índice.
 
 La interfaz de retrieval v1 debe soportar:
 
@@ -846,14 +929,19 @@ El flujo de orquestación es:
 
 1. El usuario envía una pregunta a un endpoint de chat de proyecto o comando
    CLI.
-2. `ChatOrchestrator` construye un agente Pydantic AI con modelo Qwen
+2. `ChatOrchestrator` evalúa una regla determinística `should_retrieve` usando
+   proyecto, disponibilidad de chunks indexados, tipo de pregunta y filtros
+   explícitos.
+3. Si la regla exige retrieval, `ChatOrchestrator` ejecuta
+   `search_project_knowledge` antes de pedir la respuesta final al modelo.
+4. `ChatOrchestrator` construye un agente Pydantic AI con modelo Qwen
    OpenAI-compatible, dependencias del proyecto y tools disponibles.
-3. El modelo puede llamar a `search_project_knowledge` mediante tool calling de
-   Pydantic AI.
-4. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
+5. El modelo puede llamar a `search_project_knowledge` mediante tool calling de
+   Pydantic AI para búsquedas adicionales o refinamientos.
+6. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
    citations.
-5. El modelo responde usando el contexto recuperado.
-6. Tool calls, retrieval runs, citations, mensajes, usage y costos se guardan.
+7. El modelo responde usando el contexto recuperado.
+8. Tool calls, retrieval runs, citations, mensajes, usage y costos se guardan.
 
 Regla para preguntas factuales de proyecto:
 
@@ -862,6 +950,10 @@ debe llamar a `search_project_knowledge` antes de responder preguntas factuales
 sobre ese proyecto. Puede saltarse retrieval para saludos, ayuda de la app,
 configuración o preguntas generales no relacionadas con la knowledge base del
 proyecto.
+
+Esta regla se implementa en código y se prueba con fakes. El prompt
+`tool_selection_v1` puede guiar al modelo, pero no es el único mecanismo que
+protege contra respuestas factuales sin retrieval.
 
 Tools futuras planificadas, pero fuera del alcance de implementación de v1:
 
@@ -953,6 +1045,12 @@ La primera matriz de estrategias es:
 - hybrid RRF
 - hybrid RRF más rerank
 - hybrid RRF más rerank más contextual chunks
+
+Las estrategias que dependan de chunks indexados deben reportarse con
+`retrieval_contextualization_enabled = true` y con la ablation equivalente en
+`false` cuando exista un índice comparable. El objetivo no es hacer opcional el
+Contextual Retrieval en producto, sino medir cuánto aporta frente a su costo y
+latencia.
 
 El eval harness persiste suficientes datos para reproducir por qué una
 estrategia superó a otra.
@@ -1082,6 +1180,38 @@ Reglas:
 - Agregar dependencias `opentelemetry-*` solo cuando implementemos
   instrumentación real o un exporter concreto.
 
+## Release v1.0 de portafolio
+
+La primera release pública debe priorizar un vertical slice completo y
+demostrable antes que profundidad de plataforma. Debe permitir crear proyectos,
+agregar fuentes Markdown, TXT y URL HTML pública, indexarlas, ejecutar retrieval
+híbrido, chatear con citations, correr evals y mostrar un reporte reproducible
+de calidad/costo/latencia.
+
+Incluye:
+
+- multi-project single-user
+- ingestion por worker Postgres
+- `document_versions`
+- chunking semántico Markdown/texto
+- Contextual Retrieval con Qwen
+- embeddings dense Qwen `text-embedding-v4` de 1024 dimensiones
+- pgvector exact search
+- Postgres full-text como rama lexical local
+- RRF y rerank Qwen
+- metadata filtering tipado
+- chat retrieval-first con Pydantic AI tool calling
+- prompt versioning
+- usage/cost tracking básico por provider call
+- eval harness CLI/API con métricas determinísticas y Ragas opt-in
+- Docker Compose con API, worker y Postgres/pgvector
+- README, demo script y reporte de evals para portafolio
+
+Quedan fuera de la primera release pública aunque existan huecos preparados en
+el diseño: frontend completo, auth multi-user, PDF/Office, Unstructured, Qdrant,
+HNSW, Qwen sparse embeddings, SPLADE, OpenTelemetry exporter, dashboards de
+costos avanzados y reindex masivo de proyecto como flujo principal.
+
 ## Superficie de API
 
 Endpoints FastAPI iniciales:
@@ -1159,7 +1289,10 @@ La cobertura TDD empieza con comportamiento core:
 - retries con backoff, `blocked`, `failed` y `dead_letter`
 - enqueue idempotente por `idempotency_key`
 - `job_events` para transiciones relevantes
+- `UrlFetchPolicy` bloquea esquemas no permitidos, localhost, IPs privadas,
+  redirects inseguros, responses demasiado grandes y content types no soportados
 - extracción de HTML con Trafilatura usando HTML descargado por el sistema
+- creación y versionado de `document_versions`
 - creación de chunks y preservación de metadata
 - chunking semántico de Markdown con headings, listas, tablas y code fences
 - fallback por frases/párrafos/tokens para bloques largos
@@ -1173,6 +1306,8 @@ La cobertura TDD empieza con comportamiento core:
   locales o tamaño máximo de request
 - `ProviderUsageTracker` registra usage/costo para chat, contextualización,
   embeddings, rerank y evals con provider fakes
+- el adapter Qwen de embeddings valida `embedding_dim = 1024` y rechaza vectores
+  de tamaño inesperado
 - comportamiento del document parser registry con fakes
 - resolución y tracking de versiones de prompts
 - contract tests del adapter pgvector
@@ -1185,6 +1320,7 @@ La cobertura TDD empieza con comportamiento core:
 - paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
 - fusión RRF
 - generación de citation payload
+- regla determinística `should_retrieve` para preguntas factuales de proyecto
 - orquestación de tool calls con Pydantic AI usando modelos y tools fake
 - cálculo de métricas de eval
 
@@ -1208,6 +1344,9 @@ Candidatos para después de producción:
 
 - evaluar Okapi BM25 real, SPLADE o learned sparse retrieval solo si los evals
   muestran que Postgres full-text limita el recall o la calidad final
+- evaluar Qwen sparse embeddings mediante DashScope SDK/API nativo solo si la
+  rama lexical de Postgres no alcanza; debe compararse contra Postgres full-text
+  y Qwen rerank antes de cambiar storage o ranking
 - evaluar Qdrant u otro vector database solo si pgvector limita latencia,
   filtros, costo operacional o calidad de retrieval
 - evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,
