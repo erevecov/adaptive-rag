@@ -114,10 +114,21 @@ documentos afectados.
 Qwen documenta `output_type` con valores `dense`, `sparse` y `dense&sparse` para
 `text-embedding-v3` y `text-embedding-v4`, pero esa capacidad se considera fuera
 de v1 porque está documentada como disponible mediante DashScope SDK/API nativo.
-Evaluarla después de producción requiere un adapter explícito
-`DashScopeEmbeddingProvider`, storage para postings o vectores sparse,
-comparación contra Postgres full-text y evals de calidad/costo. No debe
-activarse como un parámetro oculto del adapter OpenAI-compatible.
+Esto no implica agregar otro provider de IA: Qwen seguiría siendo el único
+provider. Sí implica agregar otro contrato de endpoint y adapter, por ejemplo
+`DashScopeEmbeddingProvider` implementado con `httpx` contra el endpoint nativo.
+
+La respuesta sparse no es un vector float compatible con pgvector. Es una lista
+de pesos por término, con elementos como `index`, `value` y `token`. Evaluarla
+después de producción requiere storage para postings sparse, por ejemplo
+columnas `integer[]`/`real[]` o JSONB con índices GIN, scoring por dot product
+sobre índices compartidos, una tercera rama en RRF y comparación contra
+Postgres full-text. La documentación indica que `dense&sparse` mantiene el mismo
+costo de generación que el modo de vector único; por lo tanto, se excluye de v1
+por complejidad de storage, scoring y evals, no por costo de API ni por requerir
+otro provider.
+
+No debe activarse como un parámetro oculto del adapter OpenAI-compatible.
 
 Después de salir a producción, evaluar la integración de modelos Multimodal
 Embeddings de Qwen para mejorar retrieval de documentos con imágenes, tablas u
@@ -867,9 +878,9 @@ Qwen rerank no alcanzan.
 
 Qwen sparse embeddings también quedan fuera de v1. Aunque `text-embedding-v4`
 soporta salida sparse en la API nativa de DashScope, adoptarlo cambiaría el
-contrato de provider, el formato persistido y el ranking. En v1, la rama lexical
-local de Postgres cubre el objetivo pragmático de exact match sin sumar otro
-modo de API ni otro tipo de índice.
+contrato de endpoint, el formato persistido y el ranking. En v1, la rama
+lexical local de Postgres cubre el objetivo pragmático de exact match sin sumar
+storage sparse custom ni una tercera rama de retrieval.
 
 La interfaz de retrieval v1 debe soportar:
 
@@ -1346,7 +1357,8 @@ Candidatos para después de producción:
   muestran que Postgres full-text limita el recall o la calidad final
 - evaluar Qwen sparse embeddings mediante DashScope SDK/API nativo solo si la
   rama lexical de Postgres no alcanza; debe compararse contra Postgres full-text
-  y Qwen rerank antes de cambiar storage o ranking
+  y Qwen rerank antes de agregar storage sparse custom, scoring por índices
+  compartidos o una nueva rama de RRF
 - evaluar Qdrant u otro vector database solo si pgvector limita latencia,
   filtros, costo operacional o calidad de retrieval
 - evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,

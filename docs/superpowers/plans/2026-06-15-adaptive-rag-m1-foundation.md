@@ -915,7 +915,9 @@ Trafilatura. La migración debe crear la columna `chunks.embedding vector(1024)`
 sin índice HNSW inicial; dense retrieval exacto queda como baseline de
 correctness y el adapter Qwen debe validar que `text-embedding-v4` retorne 1024
 floats. HNSW y Qwen sparse embeddings vía DashScope nativo solo deben aparecer
-en planes posteriores si hay evals de recall/latencia/costo que lo justifiquen.
+en planes posteriores si hay evals de recall/latencia que lo justifiquen; en el
+caso sparse, el costo principal a validar es complejidad de storage, scoring y
+mantenimiento, no otro provider ni necesariamente mayor costo de API.
 El schema de chunks debe incluir campos de chunking semántico (`section_path`,
 `heading`, `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
 `next_chunk_id`, `chunker_version`, `chunker_config_hash`) y campos de
