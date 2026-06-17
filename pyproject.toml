@@ -10,6 +10,7 @@ dependencies = [
   "httpx>=0.28",
   "pgvector>=0.3",
   "psycopg[binary]>=3.2",
+  "pydantic-ai-slim[openai]>=1.107.0",
   "pydantic-settings>=2.6",
   "rich>=13.9",
   "sqlalchemy>=2.0",

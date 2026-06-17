@@ -15,7 +15,8 @@ el código de conexión a base de datos vive en `adaptive_rag.db`; todavía no s
 implementa comportamiento de RAG, providers, ingestion ni retrieval.
 
 **Stack técnico:** Python 3.12, uv, FastAPI, Typer, Rich, Pydantic Settings,
-SQLAlchemy 2, Alembic, psycopg, pytest, httpx, ruff y mypy.
+Pydantic AI slim con soporte OpenAI-compatible, SQLAlchemy 2, Alembic, psycopg,
+pytest, httpx, ruff y mypy.
 
 ---
 
@@ -23,7 +24,9 @@ SQLAlchemy 2, Alembic, psycopg, pytest, httpx, ruff y mypy.
 
 Este plan cubre solo Milestone 1. Intencionalmente no implementa tablas de
 dominio, ingestion jobs, LlamaIndex, integración Qwen, modelos pgvector,
-retrieval, orquestación de chat ni evals. Eso pertenece a planes posteriores.
+retrieval, orquestación de chat ni evals. La dependencia `pydantic-ai-slim`
+queda instalada como base del runtime de agente futuro, pero no se usa en código
+productivo durante M1. Eso pertenece a planes posteriores.
 Unstructured queda fuera de v1 y solo debe reaparecer como experimento
 post-producción si los evals de parsing/retrieval lo justifican.
 
@@ -88,6 +91,7 @@ dependencies = [
   "httpx>=0.28",
   "pgvector>=0.3",
   "psycopg[binary]>=3.2",
+  "pydantic-ai-slim[openai]>=1.107.0",
   "pydantic-settings>=2.6",
   "rich>=13.9",
   "sqlalchemy>=2.0",

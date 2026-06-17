@@ -43,6 +43,8 @@ retrieval ni parsers avanzados.
 - Preferir aislamiento explícito por proyecto sobre estado global oculto.
 - Usar LlamaIndex como toolkit RAG principal, pero mantener la orquestación de
   producto en código propio de Adaptive RAG.
+- Usar Pydantic AI como runtime del agente conversacional y tool calling, sin
+  convertirlo en provider de IA ni en dueño del retrieval.
 - Medir cambios de retrieval con evals, no con intuición.
 - Mantener interfaces pequeñas por capability, aunque la v1 implemente solo
   Qwen como provider de IA. No se prometen otros providers antes de producción.
@@ -56,6 +58,8 @@ retrieval ni parsers avanzados.
 - Vector store v1: pgvector
 - ORM y migraciones: SQLAlchemy 2 y Alembic
 - Toolkit RAG: LlamaIndex
+- Runtime de agente y tool calling: Pydantic AI slim con soporte
+  OpenAI-compatible
 - Parsing de documentos v1: readers y node parsers de LlamaIndex para URLs,
   Markdown y TXT
 - Framework de evals: Ragas más métricas determinísticas propias
@@ -74,6 +78,12 @@ producción si una necesidad medible lo justifica.
 La técnica de Contextual Retrieval de Anthropic se adopta como patrón de
 indexing, no como dependencia de provider. Adaptive RAG genera el contexto de
 cada chunk con Qwen y no llama a la API de Anthropic en v1.
+
+Pydantic AI se usa como runtime de agente, no como provider de IA. La
+integración de chat usa Qwen mediante una API OpenAI-compatible configurada con
+`base_url` y API key de Qwen. Esto no agrega costos propios, servicios hosted ni
+containers; solo agrega una dependencia Python para manejar tool calling,
+dependencias tipadas y outputs estructurados.
 
 Modelos Qwen configurados para v1:
 
@@ -139,13 +149,46 @@ Adaptive RAG es dueño de la capa de producto:
 - aislamiento por proyecto
 - contratos de API y CLI
 - registry de providers
-- loop de tool calling con Qwen
+- orquestación de chat con Pydantic AI y Qwen
 - contratos de tools
 - citations y audit trail
 - persistencia de eval runs y métricas determinísticas
 
 Este límite mantiene a LlamaIndex valioso para aprendizaje y señal de CV sin
 convertir el proyecto en un wrapper opaco de framework.
+
+## Límite con Pydantic AI
+
+Pydantic AI se adopta en v1 para implementar la experiencia agentic de chat:
+
+- tool calling
+- dependencias tipadas por request, como `project_id`, configuración del
+  proyecto, repositorios y retriever
+- structured outputs para respuestas con citations
+- integración con Qwen a través de un cliente OpenAI-compatible
+
+La dependencia instalada debe ser `pydantic-ai-slim[openai]`, no el paquete
+completo `pydantic-ai`, para evitar SDKs de providers que no usaremos. El extra
+`openai` se usa solo porque Qwen expone una superficie compatible; el provider
+real de IA sigue siendo Qwen.
+
+Pydantic AI no es dueño de:
+
+- ingestion
+- parsing
+- chunking
+- embeddings
+- Postgres full-text
+- pgvector
+- RRF
+- reranking
+- evals
+- persistencia de chat, tool calls, retrieval runs o usage
+
+Adaptive RAG debe envolverlo detrás de una interfaz propia, por ejemplo
+`ChatAgentRuntime`, para mantener aisladas las decisiones de framework. Si en el
+futuro Pydantic AI no encaja, el dominio, retrieval, storage y contratos de API
+deben poder sobrevivir sin una reescritura completa.
 
 ## Modelo de datos
 
@@ -492,8 +535,10 @@ El flujo de orquestación es:
 
 1. El usuario envía una pregunta a un endpoint de chat de proyecto o comando
    CLI.
-2. `ChatOrchestrator` llama a Qwen con las tools disponibles.
-3. El modelo puede llamar a `search_project_knowledge`.
+2. `ChatOrchestrator` construye un agente Pydantic AI con modelo Qwen
+   OpenAI-compatible, dependencias del proyecto y tools disponibles.
+3. El modelo puede llamar a `search_project_knowledge` mediante tool calling de
+   Pydantic AI.
 4. La tool ejecuta retrieval determinístico y retorna chunks rankeados con
    citations.
 5. El modelo responde usando el contexto recuperado.
@@ -513,8 +558,9 @@ Tools futuras planificadas, pero fuera del alcance de implementación de v1:
 - `add_knowledge`
 - `add_to_memory`
 
-El tool loop vive en código de Adaptive RAG. LlamaIndex se usa por debajo para
-primitivas RAG, no como dueño de la orquestación del chat.
+El tool loop vive en una capa propia de Adaptive RAG respaldada por Pydantic AI.
+LlamaIndex se usa por debajo para primitivas RAG, no como dueño de la
+orquestación del chat.
 
 ## Citations
 
@@ -753,7 +799,7 @@ La cobertura TDD empieza con comportamiento core:
 - paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
 - fusión RRF
 - generación de citation payload
-- orquestación de tool calls con providers fake
+- orquestación de tool calls con Pydantic AI usando modelos y tools fake
 - cálculo de métricas de eval
 
 Las llamadas a SDKs de providers usan fakes y contract tests primero. Los smoke
