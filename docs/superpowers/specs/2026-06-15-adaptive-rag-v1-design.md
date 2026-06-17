@@ -45,6 +45,8 @@ retrieval ni parsers avanzados.
   producto en código propio de Adaptive RAG.
 - Usar Pydantic AI como runtime del agente conversacional y tool calling, sin
   convertirlo en provider de IA ni en dueño del retrieval.
+- Versionar prompts como artefactos del repositorio, no como strings anónimos
+  pegados en el código.
 - Medir cambios de retrieval con evals, no con intuición.
 - Mantener interfaces pequeñas por capability, aunque la v1 implemente solo
   Qwen como provider de IA. No se prometen otros providers antes de producción.
@@ -64,6 +66,7 @@ retrieval ni parsers avanzados.
 - Parsing de documentos v1: Trafilatura para URLs HTML; readers y node parsers
   de LlamaIndex para Markdown, TXT y texto ya extraído
 - Framework de evals: Ragas más métricas determinísticas propias
+- Prompts: archivos Markdown versionados en `prompts/`
 - Tests: pytest
 - Tests de integración con servicios reales: Testcontainers for Python
 - Packaging y workflow local: uv
@@ -215,6 +218,39 @@ Adaptive RAG debe envolverlo detrás de una interfaz propia, por ejemplo
 futuro Pydantic AI no encaja, el dominio, retrieval, storage y contratos de API
 deben poder sobrevivir sin una reescritura completa.
 
+## Prompt versioning
+
+Los prompts son parte del comportamiento del sistema y se versionan como
+artefactos del repositorio. No deben vivir como strings largos sin nombre dentro
+de handlers, providers o tests.
+
+Convención v1:
+
+- Directorio: `prompts/`
+- Formato: Markdown.
+- Identificador de versión: nombre del archivo sin extensión, por ejemplo
+  `answer_with_citations_v1`.
+- Los prompts que ya fueron usados para datos persistidos no se editan en
+  caliente. Un cambio semántico crea un archivo nuevo, por ejemplo
+  `answer_with_citations_v2.md`.
+
+Prompts previstos para v1:
+
+- `contextual_chunk_v1.md`: genera `contextual_text` para Contextual Retrieval.
+- `answer_with_citations_v1.md`: responde usando chunks recuperados y citations.
+- `tool_selection_v1.md`: guía cuándo usar `search_project_knowledge`.
+- `eval_judge_v1.md`: guía evaluaciones LLM-as-judge cuando Ragas use Qwen.
+
+Persistencia esperada:
+
+- Chunks contextualizados guardan la versión del prompt de contextualización.
+- Sesiones de chat guardan la versión del prompt principal de respuesta.
+- Eval runs guardan un mapa de versiones de prompts usados durante el run.
+
+Los cambios de prompts se tratan como cambios medibles. Antes de promover un
+prompt nuevo como default, se comparan al menos con evals determinísticos,
+métricas Ragas relevantes, costo y latencia.
+
 ## Modelo de datos
 
 El schema v1 incluye estas tablas principales.
@@ -290,6 +326,7 @@ El schema v1 incluye estas tablas principales.
 - `contextualizer_provider`
 - `contextualizer_model`
 - `contextualizer_version`
+- `contextualizer_prompt_version`
 - `parser_provider`
 - `parser_version`
 - `parser_config_hash`
@@ -636,6 +673,7 @@ Tablas:
 - `project_id`
 - `retrieval_strategy`
 - `model_config_json`
+- `prompt_versions_json`
 - `metrics_json`
 - `created_at`
 
@@ -823,6 +861,7 @@ La cobertura TDD empieza con comportamiento core:
 - tracking de metadata de embeddings
 - comportamiento del provider registry con fakes
 - comportamiento del document parser registry con fakes
+- resolución y tracking de versiones de prompts
 - contract tests del adapter pgvector
 - filtros de retrieval por proyecto
 - metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y

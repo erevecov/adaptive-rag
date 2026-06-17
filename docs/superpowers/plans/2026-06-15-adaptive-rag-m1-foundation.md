@@ -16,7 +16,8 @@ implementa comportamiento de RAG, providers, ingestion ni retrieval.
 
 **Stack técnico:** Python 3.12, uv, FastAPI, Typer, Rich, Pydantic Settings,
 Pydantic AI slim con soporte OpenAI-compatible, SQLAlchemy 2, Alembic, psycopg,
-pytest, Testcontainers for Python, httpx, Trafilatura, ruff y mypy.
+pytest, Testcontainers for Python, httpx, Trafilatura, prompts Markdown
+versionados, ruff y mypy.
 
 ---
 
@@ -32,6 +33,8 @@ instalado solo como dependencia `dev` para tests de integración con
 Postgres/pgvector real. Eso pertenece a planes posteriores.
 Unstructured queda fuera de v1 y solo debe reaparecer como experimento
 post-producción si los evals de parsing/retrieval lo justifican.
+El directorio `prompts/` queda creado con una convención de versionado, pero M1
+no implementa prompt loading ni prompts productivos.
 
 ## Estructura objetivo de archivos
 
@@ -42,6 +45,7 @@ pyproject.toml
 .gitignore
 .env.example
 README.md
+prompts/README.md
 alembic.ini
 alembic/env.py
 alembic/versions/.gitkeep
@@ -895,7 +899,9 @@ chunking semántico (`section_path`, `heading`, `char_start`, `char_end`,
 `token_count`, `prev_chunk_id`, `next_chunk_id`, `chunker_version`,
 `chunker_config_hash`) y campos de Contextual Retrieval (`contextual_text`,
 `embedding_input_text`, `lexical_input_text`, metadata del contextualizer e
-`index_fingerprint`), aunque la generación Qwen del contexto se implemente en un
-hito posterior. M2 también debe incluir fixtures de Markdown con headings,
-listas, tablas, code fences, párrafos largos y documentos cortos para probar que
-el chunker no corta estructuras de forma errónea ni pierde contenido.
+`contextualizer_prompt_version`, `index_fingerprint`), aunque la generación Qwen
+del contexto se implemente en un hito posterior. Los eval runs deben incluir
+`prompt_versions_json` para reproducibilidad. M2 también debe incluir fixtures
+de Markdown con headings, listas, tablas, code fences, párrafos largos y
+documentos cortos para probar que el chunker no corta estructuras de forma
+errónea ni pierde contenido.
