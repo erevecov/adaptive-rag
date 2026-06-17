@@ -1,0 +1,8 @@
+project: adaptive-rag
+workflow: spec-driven
+language: es
+default_branch: main
+change_directory: openspec/changes
+spec_directory: openspec/specs
+archive_directory: openspec/changes/archive
+
