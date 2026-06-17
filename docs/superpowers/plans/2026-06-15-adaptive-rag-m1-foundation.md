@@ -35,6 +35,9 @@ Unstructured queda fuera de v1 y solo debe reaparecer como experimento
 post-producción si los evals de parsing/retrieval lo justifican.
 El directorio `prompts/` queda creado con una convención de versionado, pero M1
 no implementa prompt loading ni prompts productivos.
+OpenTelemetry queda preparado solo como convención de nombres de spans y
+atributos en el spec; M1 no agrega dependencias `opentelemetry-*`, exporters ni
+instrumentación.
 
 ## Estructura objetivo de archivos
 

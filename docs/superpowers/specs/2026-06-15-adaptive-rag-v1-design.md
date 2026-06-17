@@ -780,6 +780,52 @@ Tablas:
 Adaptadores futuros pueden exportar a OpenTelemetry o Langfuse, pero v1 no
 depende de ellos.
 
+## Preparación para OpenTelemetry
+
+La v1 no instala ni inicializa OpenTelemetry todavía. El camino queda preparado
+con nombres estables de spans y atributos para que, cuando existan flujos reales
+de API, ingestion, retrieval, chat y evals, se pueda agregar instrumentación sin
+renombrar conceptos ni cambiar contratos de audit trail.
+
+Spans reservados:
+
+- `api.request`
+- `ingestion.source.fetch`
+- `ingestion.document.parse`
+- `ingestion.chunk.create`
+- `ingestion.chunk.contextualize`
+- `embedding.create`
+- `retrieval.dense.search`
+- `retrieval.lexical.search`
+- `retrieval.rrf.fuse`
+- `rerank.qwen`
+- `chat.agent.run`
+- `chat.tool.search_project_knowledge`
+- `eval.run`
+
+Atributos comunes:
+
+- `adaptive_rag.project_id`
+- `adaptive_rag.source_id`
+- `adaptive_rag.document_id`
+- `adaptive_rag.chunk_id`
+- `adaptive_rag.session_id`
+- `adaptive_rag.eval_run_id`
+- `adaptive_rag.provider`
+- `adaptive_rag.model`
+- `adaptive_rag.prompt_version`
+- `adaptive_rag.retrieval_strategy`
+
+Reglas:
+
+- No registrar contenido sensible, texto completo de chunks, prompts completos,
+  API keys ni respuestas completas en spans.
+- Usar spans para latencia, errores, conteos y correlación; usar Postgres como
+  audit trail durable.
+- Mantener logs JSON y tablas de auditoría como observabilidad principal de v1.
+- Agregar dependencias `opentelemetry-*` solo cuando implementemos
+  instrumentación real o un exporter concreto.
+
 ## Superficie de API
 
 Endpoints FastAPI iniciales:
