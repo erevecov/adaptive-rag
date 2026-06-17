@@ -910,18 +910,20 @@ referencias nullable a chat sessions, jobs y eval runs para registrar costos de
 todas las operaciones de provider. La migración debe crear una cola genérica
 `jobs` con `FOR UPDATE SKIP LOCKED`, `lease_expires_at`, `heartbeat_at`,
 `idempotency_key`, retries, `blocked` y `dead_letter`; los endpoints de
-ingestion deben crear jobs `job_type = ingest_source`. M2 debe definir
-`UrlFetchPolicy` y sus tests para bloquear SSRF, redirects inseguros, responses
-demasiado grandes y content types no soportados antes de entregar HTML a
-Trafilatura. La migración debe crear la columna `chunks.embedding vector(1024)`
-sin índice HNSW inicial; dense retrieval exacto queda como baseline de
-correctness y el adapter Qwen debe validar que `text-embedding-v4` retorne 1024
-floats. La migración también debe crear `chunk_sparse_embeddings` para el modo
-experimental `dense_sparse`, con `sparse_indices integer[]`,
-`sparse_values real[]`, `sparse_tokens text[]` nullable, `sparse_size`,
-`input_hash`, `index_fingerprint` e índice GIN sobre `sparse_indices`. HNSW solo
-debe aparecer en planes posteriores si hay evals de recall/latencia que lo
-justifiquen.
+ingestion deben crear jobs `job_type = ingest_source`. El diseño de jobs debe
+incluir taxonomía estable de `last_error_code`, mapping a retry/failed/blocked y
+modelo de concurrencia de un job por worker process con pool async interno para
+provider calls. M2 debe definir `UrlFetchPolicy` y sus tests para bloquear SSRF,
+DNS rebinding, redirects inseguros, responses demasiado grandes y content types
+no soportados antes de entregar HTML a Trafilatura. La migración debe crear la
+columna `chunks.embedding vector(1024)` sin índice HNSW inicial; dense retrieval
+exacto queda como baseline de correctness y el adapter Qwen debe validar que
+`text-embedding-v4` retorne 1024 floats. La migración también debe crear
+`chunk_sparse_embeddings` para el modo experimental `dense_sparse`, con
+`sparse_indices integer[]`, `sparse_values real[]`, `sparse_tokens text[]`
+nullable, `sparse_size`, `input_hash`, `index_fingerprint` e índice GIN sobre
+`sparse_indices`. HNSW solo debe aparecer en planes posteriores si hay evals de
+recall/latencia que lo justifiquen.
 El schema de chunks debe incluir campos de chunking semántico (`section_path`,
 `heading`, `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
 `next_chunk_id`, `chunker_version`, `chunker_config_hash`) y campos de
@@ -931,10 +933,15 @@ Contextual Retrieval (`contextual_text`, `embedding_input_text`,
 del contexto se implemente en un hito posterior. Los eval runs deben incluir
 `prompt_versions_json` y registrar ablations con Contextual Retrieval activado y
 desactivado cuando exista índice comparable; además deben poder registrar
-estrategias sparse-only, dense+sparse RRF y dense+lexical+sparse RRF para
-proyectos `dense_sparse`. M2 también debe incluir fixtures de
+`RRF_K = 60`, temperatura de judge `0`, estrategias sparse-only, dense+sparse
+RRF y dense+lexical+sparse RRF para proyectos `dense_sparse`. M2 también debe
+incluir la decisión de usar `tiktoken` como dependencia del hito de chunking,
+con `TiktokenTokenEstimator`, encoding `o200k_base`, margen de seguridad y
+batch sizing de embeddings por item, batch y `max_tokens_per_request`. M2
+también debe incluir fixtures de
 Markdown con headings, listas, tablas, code fences, párrafos largos y documentos
 cortos para probar que el chunker no corta estructuras de forma errónea ni
 pierde contenido. El diseño de chat debe preparar una regla determinística
-`should_retrieve` para preguntas factuales de proyecto, aunque la orquestación
+`should_retrieve` para preguntas factuales de proyecto y reservar el endpoint
+`POST /projects/{project_id}/chat/stream` con SSE, aunque la orquestación
 completa con Pydantic AI quede para un hito posterior.

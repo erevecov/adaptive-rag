@@ -70,9 +70,10 @@ retrieval ni parsers avanzados.
 - Runtime de agente y tool calling: Pydantic AI slim con soporte
   OpenAI-compatible
 - Extracción HTML para URLs: Trafilatura
-- Parsing de documentos v1: Trafilatura para URLs HTML; readers y node parsers
-  de LlamaIndex para Markdown, TXT y texto ya extraído
+- Parsing de documentos v1: Trafilatura para URLs HTML; readers y parsers
+  básicos apoyados en LlamaIndex para Markdown y TXT
 - Framework de evals: Ragas más métricas determinísticas propias
+- Estimación local de tokens: tiktoken con encoding `o200k_base`
 - Prompts: archivos Markdown versionados en `prompts/`
 - Tests: pytest
 - Tests de integración con servicios reales: Testcontainers for Python
@@ -259,6 +260,10 @@ hay evidencia de volumen o latencia:
 - configuración explícita de parámetros como `m`, `ef_construction`,
   `ef_search` e `iterative_scan` cuando aplique
 
+Si HNSW se agrega sobre una tabla con datos existentes, la migración debe usar
+una estrategia no bloqueante, por ejemplo `CREATE INDEX CONCURRENTLY` cuando sea
+compatible con el entorno de migraciones.
+
 El baseline de evals y contract tests siempre debe poder correr con exact
 search, incluso si un deployment productivo activa HNSW.
 
@@ -268,7 +273,7 @@ LlamaIndex es el toolkit principal para primitivas RAG:
 
 - readers y loaders para Markdown y TXT
 - abstracciones `Document` y `Node` cuando sean útiles
-- node parsing y chunking
+- node parsing como baseline o utilidad secundaria
 - manejo de metadata durante ingestion
 - integraciones de embeddings y vector stores cuando encajen con el schema
 - baselines de lexical retrieval cuando sean útiles para evals
@@ -286,6 +291,13 @@ Adaptive RAG es dueño de la capa de producto:
 - contratos de tools
 - citations y audit trail
 - persistencia de eval runs y métricas determinísticas
+- chunking principal `semantic_markdown_v1`
+
+El chunker principal de v1 es propio de Adaptive RAG. LlamaIndex no es dueño de
+las reglas de corte, overlap, offsets ni preservación de estructura. Puede
+usarse para readers, objetos `Document`, metadata y comparaciones de baseline,
+pero el comportamiento que afecta citations, `index_fingerprint` y evals vive en
+código propio.
 
 Este límite mantiene a LlamaIndex valioso para aprendizaje y señal de CV sin
 convertir el proyecto en un wrapper opaco de framework.
@@ -325,6 +337,8 @@ Reglas mínimas:
 - Bloquear `localhost`, loopback, IPs privadas RFC1918, link-local, multicast y
   endpoints de metadata cloud conocidos.
 - Resolver DNS y validar las IPs resultantes antes de conectar.
+- La conexión TCP debe usar una IP ya validada o una política equivalente de pin
+  de IP para evitar DNS rebinding entre validación y conexión.
 - Revalidar la URL y las IPs después de cada redirect.
 - Limitar redirects, tamaño máximo de respuesta, timeout de conexión y timeout
   de lectura.
@@ -673,6 +687,18 @@ Leases:
 - Si un worker recibe shutdown, termina el job actual si puede y deja de
   reclamar nuevos jobs.
 
+Modelo de concurrencia:
+
+- Un proceso worker reclama un job a la vez.
+- Dentro de un job de ingestion, el worker puede ejecutar llamadas a provider con
+  un pool async acotado por `max_concurrent_ingestion_provider_calls`.
+- El heartbeat del job debe seguir activo mientras existan tareas internas en
+  ejecución.
+- Escalar workers significa levantar más procesos o réplicas, cada uno con su
+  propio `worker_id` y su propio límite interno.
+- El `BudgetGuard` y los rate limits locales se evalúan antes de cada llamada
+  concurrente a provider, no solo al inicio del job.
+
 Idempotencia:
 
 - Todo job tiene `idempotency_key`.
@@ -706,6 +732,24 @@ Observabilidad:
   diagnóstico humano.
 - Los eventos no guardan API keys, texto completo de documentos ni prompts
   completos.
+
+Taxonomía inicial de `last_error_code`:
+
+- `URL_BLOCKED`: no retryable, pasa a `failed`.
+- `URL_TOO_LARGE`: no retryable, pasa a `failed`.
+- `UNSUPPORTED_CONTENT_TYPE`: no retryable, pasa a `failed`.
+- `FETCH_TIMEOUT`: retryable, vuelve a `queued` con backoff.
+- `FETCH_5XX`: retryable, vuelve a `queued` con backoff.
+- `PARSE_EMPTY`: no retryable, pasa a `failed`.
+- `PARSE_FAILED`: no retryable salvo que el parser indique error transitorio.
+- `EMBED_DIM_MISMATCH`: no retryable, pasa a `failed`.
+- `SPARSE_EMBEDDING_INVALID`: no retryable, pasa a `failed`.
+- `BUDGET_EXCEEDED`: recuperable externamente, pasa a `blocked`.
+- `API_KEY_MISSING`: recuperable externamente, pasa a `blocked`.
+- `PROVIDER_RATE_LIMIT`: retryable, vuelve a `queued` con backoff.
+- `PROVIDER_5XX`: retryable, vuelve a `queued` con backoff.
+- `PROVIDER_4XX_NON_RETRYABLE`: no retryable, pasa a `failed`.
+- `UNKNOWN_TRANSIENT`: retryable hasta `max_attempts`, luego `dead_letter`.
 
 ## Pipeline de ingestion
 
@@ -771,8 +815,7 @@ modelo de dominio.
 Parser v1:
 
 - `TrafilaturaHtmlExtractor`: extractor por defecto para URLs HTML públicas.
-- `LlamaIndexBasicParser`: parser por defecto de v1 para Markdown, TXT y texto
-  ya extraído desde HTML.
+- `LlamaIndexBasicParser`: parser por defecto de v1 para Markdown y TXT.
 
 Configuración por defecto:
 
@@ -781,6 +824,12 @@ parsing:
   url_html_extractor: trafilatura
   text_parser: llamaindex_basic
 ```
+
+Trafilatura produce texto limpio y metadata para URLs HTML. Ese resultado se
+convierte directamente en `document_versions.normalized_text` y bloques
+estructurales internos cuando sea posible; no vuelve a pasar por
+`LlamaIndexBasicParser` como si fuera Markdown, salvo que un parser futuro lo
+declare explícitamente como parte de su contrato.
 
 Unstructured no se instala ni se implementa en v1. Puede mejorar documentos
 complejos como PDFs, Office, HTML ruidoso, emails, tablas o documentos con OCR,
@@ -827,9 +876,38 @@ chunking:
   overlap_tokens: 80
 ```
 
+Tokenización y estimación:
+
+- El dominio usa una interfaz `TokenEstimator`.
+- La implementación v1 es `TiktokenTokenEstimator` con encoding `o200k_base`.
+- `tiktoken` se usa como estimador local determinístico, no como tokenizer exacto
+  de Qwen.
+- Para contenido de usuario o documentos se usa `disallowed_special=()` para que
+  strings similares a tokens especiales se cuenten como texto normal.
+- Los límites operativos aplican margen de seguridad y no deben consumir más del
+  80% del límite máximo documentado del provider.
+- `token_count` de chunks, `max_tokens_per_request`, batch sizing de embeddings
+  y presupuestos pre-call usan el mismo `TokenEstimator`.
+- El costo final usa usage real reportado por Qwen cuando esté disponible; si no,
+  queda marcado como estimado.
+
+Batching de embeddings:
+
+- `text-embedding-v4` se llama con batches acotados.
+- El batch no debe superar el máximo de items documentado por el provider.
+- Cada item debe estar bajo el límite por input.
+- La suma estimada del batch debe estar bajo `max_tokens_per_request` del
+  proyecto y bajo el margen de seguridad del provider.
+- Si un batch excede límites, se divide; si un item individual excede límites,
+  el job falla con error estable.
+
 Cada chunk guarda `char_start`, `char_end`, `token_count`, `prev_chunk_id`,
 `next_chunk_id`, `chunker_version` y `chunker_config_hash`. Los offsets se
 refieren al texto normalizado del documento, no al texto contextual generado.
+
+`prev_chunk_id` y `next_chunk_id` son redundantes con `ordinal` para reconstruir
+orden, pero se mantienen para expansión contextual de citas y navegación rápida
+por chunks vecinos sin recalcular ordinales.
 
 Invariantes:
 
@@ -977,6 +1055,10 @@ Implementación esperada:
 - citations deben incluir los filtros aplicados en el audit trail del
   `retrieval_run`.
 
+La constante inicial de reciprocal rank fusion es `RRF_K = 60`. Cambiarla se
+trata como cambio de estrategia y debe registrarse en `retrieval_run` y
+`eval_runs`.
+
 ## Chat y tool calling
 
 La experiencia de chat v1 es agentic pero con guardrails.
@@ -989,7 +1071,8 @@ El flujo de orquestación es:
    proyecto, disponibilidad de chunks indexados, tipo de pregunta y filtros
    explícitos.
 3. Si la regla exige retrieval, `ChatOrchestrator` ejecuta
-   `search_project_knowledge` antes de pedir la respuesta final al modelo.
+   `search_project_knowledge` antes de pedir la respuesta final al modelo e
+   inyecta el contexto recuperado en el prompt de respuesta.
 4. `ChatOrchestrator` construye un agente Pydantic AI con modelo Qwen
    OpenAI-compatible, dependencias del proyecto y tools disponibles.
 5. El modelo puede llamar a `search_project_knowledge` mediante tool calling de
@@ -1010,6 +1093,26 @@ proyecto.
 Esta regla se implementa en código y se prueba con fakes. El prompt
 `tool_selection_v1` puede guiar al modelo, pero no es el único mecanismo que
 protege contra respuestas factuales sin retrieval.
+
+Streaming v1:
+
+- `POST /projects/{project_id}/chat` retorna request/response JSON.
+- `POST /projects/{project_id}/chat/stream` retorna `text/event-stream`.
+- El streaming v1 usa SSE, no WebSockets.
+- WebSockets queda fuera de v1 porque el chat RAG inicial es principalmente
+  servidor a cliente: estado de retrieval, deltas del modelo, citations, usage y
+  cierre.
+
+Eventos SSE v1:
+
+- `retrieval.started`
+- `retrieval.chunk`
+- `rerank.started`
+- `model.delta`
+- `citation`
+- `usage`
+- `done`
+- `error`
 
 Tools futuras planificadas, pero fuera del alcance de implementación de v1:
 
@@ -1114,6 +1217,15 @@ latencia.
 
 El eval harness persiste suficientes datos para reproducir por qué una
 estrategia superó a otra.
+
+Reproducibilidad:
+
+- Cada eval run guarda `RRF_K`, modelo de judge, región/deployment, temperatura,
+  prompt versions y configuración de retrieval.
+- Los evals LLM-as-judge usan temperatura `0` por defecto.
+- Si el provider no ofrece seed estable, el run debe marcar la reproducibilidad
+  como dependiente del provider y conservar respuestas intermedias necesarias
+  para auditoría.
 
 ## Observabilidad y audit trail
 
@@ -1268,11 +1380,26 @@ Incluye:
 - Docker Compose con API, worker y Postgres/pgvector
 - README, demo script y reporte de evals para portafolio
 
+Hitos internos publicables:
+
+- `v0.1`: CLI-first, single-project lógico sobre el schema multi-project,
+  ingestion síncrona de Markdown/TXT, chunker propio `semantic_markdown_v1`,
+  Qwen dense embeddings, pgvector exact search, citations y evals
+  determinísticos.
+- `v0.2`: worker Postgres, ingestion de URLs HTML con `UrlFetchPolicy`,
+  Postgres full-text, metadata filtering y RRF.
+- `v0.3`: Contextual Retrieval con Qwen, Qwen rerank, chat retrieval-first con
+  Pydantic AI y SSE para chat streaming.
+- `v0.4`: modo experimental `dense_sparse`, storage
+  `chunk_sparse_embeddings`, sparse retrieval y matriz de evals comparativa.
+- `v1.0`: Docker Compose completo, usage/cost tracking consolidado, README,
+  demo script y reporte de evals/costo/latencia listo para portafolio.
+
 Quedan fuera de la primera release pública aunque existan huecos preparados en
 el diseño: frontend completo, auth multi-user, PDF/Office, Unstructured, Qdrant,
-HNSW, SPLADE, sparse retrievers externos, OpenTelemetry exporter, dashboards de
-costos avanzados, optimización avanzada de sparse scoring y reindex masivo de
-proyecto como flujo principal.
+HNSW, SPLADE, sparse retrievers externos, WebSockets, OpenTelemetry exporter,
+dashboards de costos avanzados, optimización avanzada de sparse scoring,
+servidor MCP y reindex masivo de proyecto como flujo principal.
 
 ## Superficie de API
 
@@ -1287,6 +1414,7 @@ Endpoints FastAPI iniciales:
 - `POST /projects/{project_id}/ingestion-jobs`
 - `GET /projects/{project_id}/ingestion-jobs/{job_id}`
 - `POST /projects/{project_id}/chat`
+- `POST /projects/{project_id}/chat/stream`
 - `GET /projects/{project_id}/chat-sessions/{session_id}`
 - `POST /projects/{project_id}/retrieval/search`
 - `POST /projects/{project_id}/eval-runs`
@@ -1338,7 +1466,10 @@ Servicios de Docker Compose:
 El stack local de v1 no requiere profiles adicionales para document parsing.
 
 El schema incluye `users` y `projects.owner_user_id` para auth multi-user
-futura, pero v1 no implementa registro, login, sesiones ni OAuth.
+futura, pero v1 no implementa registro, login, sesiones ni OAuth. En v1 las
+filas `users` pueden no existir y `projects.owner_user_id` puede quedar `NULL`.
+Un usuario por defecto solo se creará si una migración o comando `init` futuro
+lo necesita explícitamente.
 
 ## Estrategia de testing
 
@@ -1348,7 +1479,10 @@ La cobertura TDD empieza con comportamiento core:
 - creación de sources y content hashing
 - claim de jobs con `FOR UPDATE SKIP LOCKED`
 - leases, heartbeat y reencolado de jobs `running` expirados
+- modelo de worker de un job por proceso con pool interno acotado para provider
+  calls
 - retries con backoff, `blocked`, `failed` y `dead_letter`
+- mapping de `last_error_code` a retry, `failed`, `blocked` y `dead_letter`
 - enqueue idempotente por `idempotency_key`
 - `job_events` para transiciones relevantes
 - `UrlFetchPolicy` bloquea esquemas no permitidos, localhost, IPs privadas,
@@ -1358,6 +1492,9 @@ La cobertura TDD empieza con comportamiento core:
 - creación de chunks y preservación de metadata
 - chunking semántico de Markdown con headings, listas, tablas y code fences
 - fallback por frases/párrafos/tokens para bloques largos
+- `TiktokenTokenEstimator` con `o200k_base` y `disallowed_special=()`
+- batch sizing de embeddings con límites por item, por batch y por
+  `max_tokens_per_request`
 - reconstrucción de contenido normalizado desde chunks ordenados por `ordinal`
 - offsets `char_start`/`char_end` válidos para citations
 - comportamiento de storage para contextual chunks
@@ -1387,9 +1524,12 @@ La cobertura TDD empieza con comportamiento core:
   `embedding_mode = "dense_sparse"`
 - paridad de Contextual Retrieval entre dense retrieval y lexical retrieval
 - fusión RRF
+- `RRF_K = 60` queda persistido en runs relevantes
 - fusión RRF con rama sparse opcional
 - generación de citation payload
 - regla determinística `should_retrieve` para preguntas factuales de proyecto
+- endpoint SSE de chat streaming emite eventos esperados y persiste el resultado
+  final de la sesión
 - orquestación de tool calls con Pydantic AI usando modelos y tools fake
 - cálculo de métricas de eval
 
@@ -1417,6 +1557,10 @@ Candidatos para después de producción:
 - optimizar Qwen sparse embeddings solo si los evals v1 muestran aporte claro;
   candidatos posteriores incluyen SQL ranking más eficiente, storage comprimido
   o un inverted index dedicado
+- servidor MCP local posterior a v1, empezando por transporte `stdio` y tools
+  read-only como `list_projects`, `search_project_knowledge`, `get_source` y
+  `get_document_chunks`; tools de escritura como `add_knowledge` o
+  `add_to_memory` requieren diseño de permisos y quedan para después
 - evaluar Qdrant u otro vector database solo si pgvector limita latencia,
   filtros, costo operacional o calidad de retrieval
 - evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,
