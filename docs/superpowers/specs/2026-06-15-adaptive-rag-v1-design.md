@@ -60,8 +60,9 @@ retrieval ni parsers avanzados.
 - Toolkit RAG: LlamaIndex
 - Runtime de agente y tool calling: Pydantic AI slim con soporte
   OpenAI-compatible
-- Parsing de documentos v1: readers y node parsers de LlamaIndex para URLs,
-  Markdown y TXT
+- Extracción HTML para URLs: Trafilatura
+- Parsing de documentos v1: Trafilatura para URLs HTML; readers y node parsers
+  de LlamaIndex para Markdown, TXT y texto ya extraído
 - Framework de evals: Ragas más métricas determinísticas propias
 - Tests: pytest
 - Packaging y workflow local: uv
@@ -133,7 +134,7 @@ queda como posible evaluación post-producción, no como compromiso de roadmap.
 
 LlamaIndex es el toolkit principal para primitivas RAG:
 
-- readers y loaders para URLs, Markdown y TXT
+- readers y loaders para Markdown y TXT
 - abstracciones `Document` y `Node` cuando sean útiles
 - node parsing y chunking
 - manejo de metadata durante ingestion
@@ -156,6 +157,29 @@ Adaptive RAG es dueño de la capa de producto:
 
 Este límite mantiene a LlamaIndex valioso para aprendizaje y señal de CV sin
 convertir el proyecto en un wrapper opaco de framework.
+
+## Límite con Trafilatura
+
+Trafilatura se adopta en v1 como extractor HTML por defecto para fuentes URL.
+Su trabajo es convertir HTML público en texto principal y metadata útil antes
+del chunking. Esto mejora la calidad de ingestion al reducir navegación,
+footers, sidebars, banners y texto boilerplate que degradaría embeddings,
+Postgres full-text y citations.
+
+Uso esperado:
+
+- `httpx` descarga la URL con timeouts, headers, límites de tamaño y manejo de
+  errores propio de Adaptive RAG.
+- Trafilatura recibe el HTML descargado y extrae texto principal más metadata
+  como título, autor, fecha y URL canónica cuando estén disponibles.
+- El texto limpio se convierte a documentos internos para chunking semántico y
+  Contextual Retrieval.
+- Markdown y TXT no pasan por Trafilatura.
+
+Trafilatura no se usa en v1 como crawler general, scheduler de scraping,
+browser automation, renderer JavaScript ni fuente de verdad de URLs. La fuente
+de verdad sigue siendo Postgres y la orquestación de ingestion sigue viviendo en
+Adaptive RAG.
 
 ## Límite con Pydantic AI
 
@@ -299,9 +323,10 @@ de joins complejos en la ruta caliente.
 
 ## Pipeline de ingestion
 
-La ruta de producto por defecto de v1 soporta URLs públicas, archivos Markdown y
-archivos TXT. Parsers avanzados pueden soportar formatos adicionales como
-profiles opt-in, pero esos formatos no son requeridos para la línea base de v1.
+La ruta de producto por defecto de v1 soporta URLs públicas HTML, archivos
+Markdown y archivos TXT. Parsers avanzados pueden soportar formatos adicionales
+como profiles opt-in, pero esos formatos no son requeridos para la línea base de
+v1.
 
 El flujo de ingestion es:
 
@@ -309,7 +334,9 @@ El flujo de ingestion es:
 2. La API o CLI encola una fila en `ingestion_jobs`.
 3. Un worker respaldado por Postgres reclama jobs encolados con
    `SELECT ... FOR UPDATE SKIP LOCKED`.
-4. El worker carga el contenido de la fuente con readers de LlamaIndex.
+4. El worker carga el contenido de la fuente. Para URLs HTML descarga con
+   `httpx` y extrae texto principal con Trafilatura; para Markdown y TXT usa el
+   parser básico del proyecto apoyado en LlamaIndex cuando sea útil.
 5. El document parser seleccionado produce unidades de texto estructuradas.
 6. El paso de Contextual Retrieval agrega un contexto corto por chunk usando
    Qwen.
@@ -349,13 +376,16 @@ modelo de dominio.
 
 Parser v1:
 
-- `LlamaIndexBasicParser`: parser por defecto de v1 para URLs, Markdown y TXT.
+- `TrafilaturaHtmlExtractor`: extractor por defecto para URLs HTML públicas.
+- `LlamaIndexBasicParser`: parser por defecto de v1 para Markdown, TXT y texto
+  ya extraído desde HTML.
 
 Configuración por defecto:
 
 ```yaml
 parsing:
-  provider: llamaindex_basic
+  url_html_extractor: trafilatura
+  text_parser: llamaindex_basic
 ```
 
 Unstructured no se instala ni se implementa en v1. Puede mejorar documentos
@@ -781,6 +811,7 @@ La cobertura TDD empieza con comportamiento core:
 - aislamiento por proyecto
 - creación de sources y content hashing
 - claim de ingestion jobs con `FOR UPDATE SKIP LOCKED`
+- extracción de HTML con Trafilatura usando HTML descargado por el sistema
 - creación de chunks y preservación de metadata
 - chunking semántico de Markdown con headings, listas, tablas y code fences
 - fallback por frases/párrafos/tokens para bloques largos
