@@ -897,11 +897,15 @@ El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
 tablas SQLAlchemy, migración Alembic para projects/sources/documents/chunks/jobs
 /audit/evals, columnas tipadas para metadata filtering y tests de repository
 para aislamiento por proyecto más filtros por `source_id`, `document_id`,
-`source_type`, `tags` y fechas. El schema de chunks debe incluir campos de
-chunking semántico (`section_path`, `heading`, `char_start`, `char_end`,
-`token_count`, `prev_chunk_id`, `next_chunk_id`, `chunker_version`,
-`chunker_config_hash`) y campos de Contextual Retrieval (`contextual_text`,
-`embedding_input_text`, `lexical_input_text`, metadata del contextualizer e
+`source_type`, `tags` y fechas. La migración debe crear la columna
+`chunks.embedding vector(1024)` sin índice HNSW inicial; dense retrieval exacto
+queda como baseline de correctness. HNSW solo debe aparecer en un plan posterior
+si hay evals de recall/latencia y pruebas de metadata filtering que lo
+justifiquen. El schema de chunks debe incluir campos de chunking semántico
+(`section_path`, `heading`, `char_start`, `char_end`, `token_count`,
+`prev_chunk_id`, `next_chunk_id`, `chunker_version`, `chunker_config_hash`) y
+campos de Contextual Retrieval (`contextual_text`, `embedding_input_text`,
+`lexical_input_text`, metadata del contextualizer e
 `contextualizer_prompt_version`, `index_fingerprint`), aunque la generación Qwen
 del contexto se implemente en un hito posterior. Los eval runs deben incluir
 `prompt_versions_json` para reproducibilidad. M2 también debe incluir fixtures

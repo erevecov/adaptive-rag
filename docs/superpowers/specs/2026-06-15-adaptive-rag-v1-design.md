@@ -134,6 +134,31 @@ El código de retrieval puede conservar una interfaz pequeña `VectorStore` para
 evitar acoplamiento innecesario, pero no se implementa Qdrant en v1. Qdrant
 queda como posible evaluación post-producción, no como compromiso de roadmap.
 
+## Estrategia de índices pgvector
+
+La v1 usa pgvector con búsqueda exacta como baseline inicial de correctness. Las
+consultas ordenan por distancia vectorial sobre `chunks.embedding vector(1024)`
+después de aplicar filtros tipados como `project_id`, `source_id`, `document_id`,
+`source_type`, `tags` y rangos de fecha.
+
+No se crea índice HNSW por defecto en las primeras migraciones. Exact search es
+más simple de razonar, facilita tests determinísticos y evita confundir errores
+de calidad del RAG con recall aproximado del índice mientras el volumen es bajo.
+
+HNSW queda preparado como optimización posterior dentro de pgvector, no como
+cambio de arquitectura ni migración a otro vector database. Solo se habilita si
+hay evidencia de volumen o latencia:
+
+- latencia de dense retrieval inaceptable con datos reales
+- evals que comparen recall@k exacto versus HNSW
+- pruebas de metadata filtering que demuestren que `project_id` y filtros
+  opcionales siguen devolviendo suficientes candidatos
+- configuración explícita de parámetros como `m`, `ef_construction`,
+  `ef_search` e `iterative_scan` cuando aplique
+
+El baseline de evals y contract tests siempre debe poder correr con exact
+search, incluso si un deployment productivo activa HNSW.
+
 ## Límite con LlamaIndex
 
 LlamaIndex es el toolkit principal para primitivas RAG:
@@ -909,6 +934,8 @@ La cobertura TDD empieza con comportamiento core:
 - comportamiento del document parser registry con fakes
 - resolución y tracking de versiones de prompts
 - contract tests del adapter pgvector
+- dense retrieval exacto como baseline de correctness
+- pruebas comparativas para HNSW solo si se habilita como optimización
 - filtros de retrieval por proyecto
 - metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
   rango de fechas
