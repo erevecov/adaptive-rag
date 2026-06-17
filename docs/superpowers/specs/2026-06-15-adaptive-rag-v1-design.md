@@ -27,14 +27,13 @@ términos técnicos que sean más precisos o reconocibles, como `retrieval`,
 La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
 hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
 productiva como ruta por defecto, modo agente con LangGraph, Okapi BM25 real,
-SPLADE ni learned sparse retrieval. Esas son decisiones deliberadas para llegar
-a producción con menos piezas móviles.
+SPLADE, learned sparse retrieval ni Unstructured como parser integrado. Esas son
+decisiones deliberadas para llegar a producción con menos piezas móviles.
 
 El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
 OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
-datos más allá de Postgres con pgvector. Los profiles opcionales de Docker
-Compose pueden agregar servicios self-hosted como Unstructured para
-experimentos explícitos de parsing, pero el retrieval v1 vive en Postgres.
+datos más allá de Postgres con pgvector. Docker Compose v1 no agrega motores de
+retrieval ni parsers avanzados.
 
 ## Principios principales
 
@@ -57,13 +56,12 @@ experimentos explícitos de parsing, pero el retrieval v1 vive en Postgres.
 - Vector store v1: pgvector
 - ORM y migraciones: SQLAlchemy 2 y Alembic
 - Toolkit RAG: LlamaIndex
-- Parsing avanzado opcional de documentos: Unstructured OSS/local, con API
-  hosted de Unstructured disponible solo cuando se configure explícitamente
+- Parsing de documentos v1: readers y node parsers de LlamaIndex para URLs,
+  Markdown y TXT
 - Framework de evals: Ragas más métricas determinísticas propias
 - Tests: pytest
 - Packaging y workflow local: uv
-- Deployment: Docker Compose con API, worker y Postgres/pgvector por defecto;
-  profiles opcionales pueden agregar Unstructured
+- Deployment: Docker Compose con API, worker y Postgres/pgvector
 
 ## Provider de IA
 
@@ -126,8 +124,6 @@ queda como posible evaluación post-producción, no como compromiso de roadmap.
 LlamaIndex es el toolkit principal para primitivas RAG:
 
 - readers y loaders para URLs, Markdown y TXT
-- conversión de elementos opcionales de Unstructured a documentos/nodes de
-  LlamaIndex
 - abstracciones `Document` y `Node` cuando sean útiles
 - node parsing y chunking
 - manejo de metadata durante ingestion
@@ -276,11 +272,11 @@ parser, configuración de chunker, configuración de contextualizer, modelo de
 embedding y hash del texto del chunk. Estos inputs se combinan en un
 `index_fingerprint`.
 
-Los cambios de parser son forward-only por defecto. Cambiar un proyecto de
-`LlamaIndexBasicParser` a `UnstructuredLocalParser` afecta solo nuevas
-ingestions, salvo que el usuario inicie explícitamente un reindex job. Los
-chunks existentes siguen siendo válidos y buscables porque cada documento y
-chunk guarda la metadata de parser y el `index_fingerprint` que lo produjo.
+Los cambios de parser son forward-only por defecto. Cambiar un proyecto desde
+`LlamaIndexBasicParser` a un parser futuro afecta solo nuevas ingestions, salvo
+que el usuario inicie explícitamente un reindex job. Los chunks existentes
+siguen siendo válidos y buscables porque cada documento y chunk guarda la
+metadata de parser y el `index_fingerprint` que lo produjo.
 
 Modos de reindex soportados:
 
@@ -294,19 +290,15 @@ dentro del mismo proyecto. Backfills completos de proyecto son opt-in y deben
 usarse solo para homogeneidad, comparaciones de evals o upgrades importantes de
 indexing.
 
-## Providers de document parsing
+## Document parsing
 
 El document parsing está detrás de una pequeña interfaz `DocumentParser`, para
 que el pipeline de ingestion soporte parsers simples y avanzados sin cambiar el
 modelo de dominio.
 
-Providers iniciales de parser:
+Parser v1:
 
 - `LlamaIndexBasicParser`: parser por defecto de v1 para URLs, Markdown y TXT.
-- `UnstructuredLocalParser`: parser opcional usando la librería open-source
-  `unstructured` o una API de Unstructured alojada localmente.
-- `UnstructuredApiParser`: adaptador opcional de API hosted, deshabilitado
-  salvo que el usuario configure credenciales explícitamente.
 
 Configuración por defecto:
 
@@ -315,25 +307,14 @@ parsing:
   provider: llamaindex_basic
 ```
 
-Configuración avanzada opcional:
+Unstructured no se instala ni se implementa en v1. Puede mejorar documentos
+complejos como PDFs, Office, HTML ruidoso, emails, tablas o documentos con OCR,
+pero agrega dependencias pesadas, modos de parsing, latencia, edge cases de
+Docker y decisiones de calidad que no son necesarias para el alcance inicial.
 
-```yaml
-parsing:
-  provider: unstructured_local
-  strategy: fast
-```
-
-Unstructured es útil para HTML complejo, PDFs, documentos Office, emails y
-documentos con muchas imágenes porque particiona archivos crudos en elementos
-estructurados como títulos, narrative text y list items con metadata. En v1 es
-una capability opcional para aprendizaje y experimentación. Se convierte en
-default de producto solo si evals futuras muestran mejor calidad de retrieval y
-el costo operacional se justifica.
-
-Cuando se usa Unstructured, Adaptive RAG sigue siendo dueño del ciclo de vida de
-fuentes, aislamiento por proyecto, content hashing, citations, contextual
-chunking, embeddings y persistencia. Unstructured solo entrega elementos
-parseados.
+El schema mantiene `parser_provider`, `parser_version`, `parser_config_hash` e
+`index_fingerprint` para que un parser futuro pueda convivir con datos ya
+indexados sin exigir backfill obligatorio.
 
 ## Contextual Retrieval
 
@@ -685,11 +666,7 @@ Servicios de Docker Compose:
 - `worker`
 - `postgres` con pgvector
 
-Profiles opcionales de Docker Compose pueden agregar:
-
-- un servicio de Unstructured API para document parsing avanzado.
-
-El stack local por defecto debe correr sin Unstructured.
+El stack local de v1 no requiere profiles adicionales para document parsing.
 
 El schema incluye `users` y `projects.owner_user_id` para auth multi-user
 futura, pero v1 no implementa registro, login, sesiones ni OAuth.
@@ -707,7 +684,6 @@ La cobertura TDD empieza con comportamiento core:
 - tracking de metadata de embeddings
 - comportamiento del provider registry con fakes
 - comportamiento del document parser registry con fakes
-- contract tests de Unstructured parser con archivos fixture representativos
 - contract tests del adapter pgvector
 - filtros de retrieval por proyecto
 - metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
@@ -731,6 +707,10 @@ Candidatos para después de producción:
   muestran que Postgres full-text limita el recall o la calidad final
 - evaluar Qdrant u otro vector database solo si pgvector limita latencia,
   filtros, costo operacional o calidad de retrieval
+- evaluar Unstructured solo si el producto necesita PDF, Office, HTML complejo,
+  emails, tablas u OCR; la promoción debe justificarse con parse_success_rate,
+  text_coverage, retrieval recall@k, citation_coverage y costo/latencia de
+  ingestion
 - modo agente experimental con LangGraph
 - ingestion de PDF
 - frontend construido con un agente contra contratos de API estables

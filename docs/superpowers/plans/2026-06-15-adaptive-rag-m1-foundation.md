@@ -22,9 +22,10 @@ SQLAlchemy 2, Alembic, psycopg, pytest, httpx, ruff y mypy.
 ## Alcance
 
 Este plan cubre solo Milestone 1. Intencionalmente no implementa tablas de
-dominio, ingestion jobs, LlamaIndex, Unstructured, integración Qwen, modelos
-pgvector, retrieval, orquestación de chat ni evals. Eso pertenece a planes
-posteriores.
+dominio, ingestion jobs, LlamaIndex, integración Qwen, modelos pgvector,
+retrieval, orquestación de chat ni evals. Eso pertenece a planes posteriores.
+Unstructured queda fuera de v1 y solo debe reaparecer como experimento
+post-producción si los evals de parsing/retrieval lo justifican.
 
 ## Estructura objetivo de archivos
 
