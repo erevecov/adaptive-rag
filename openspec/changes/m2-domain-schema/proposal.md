@@ -1,10 +1,10 @@
-# M2 Domain Schema Proposal
+# Propuesta M2 de schema de dominio
 
-## Why
+## Por que
 
 M1 dejo la base de proyecto lista, pero Adaptive RAG todavia no tiene un modelo persistente para proyectos, fuentes, documentos, versiones normalizadas, chunks ni embeddings. M2 necesita fijar ese contrato antes de implementar ingestion, retrieval o chat.
 
-## What Changes
+## Que cambia
 
 - Agregar el contrato de schema para entidades core de RAG.
 - Definir la persistencia de texto normalizado, huellas, metadatos de parsing y offsets de citas.
@@ -14,20 +14,19 @@ M1 dejo la base de proyecto lista, pero Adaptive RAG todavia no tiene un modelo 
 
 No se implementan todavia repositories, ingestion workers, URL fetch policy, jobs ni chat. Esos quedan como changes separados de M2 para reducir conflictos.
 
-## Capabilities
+## Capacidades
 
-### New Capabilities
+### Capacidades nuevas
 
 - `domain-schema`
 
-### Modified Capabilities
+### Capacidades modificadas
 
 - Ninguna. No habia specs canonicas de OpenSpec antes de este change.
 
-## Impact
+## Impacto
 
 - Afectara modelos SQLAlchemy bajo `src/adaptive_rag/db`.
 - Afectara migraciones Alembic bajo `alembic/versions`.
 - Agregara tests de schema/migracion.
 - Bloquea trabajos posteriores de repositories, ingestion y retrieval hasta que el schema base este mergeado.
-

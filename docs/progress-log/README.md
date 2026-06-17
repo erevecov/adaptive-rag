@@ -1,17 +1,16 @@
-# Progress log
+# Registro de progreso
 
-This directory is append-only.
+Este directorio es append-only.
 
-Use one file per meaningful event:
+Usar un archivo por evento relevante:
 
 ```text
 YYYY-MM-DD-short-description.md
 ```
 
-Rules:
+Reglas:
 
-- Create a new file for new progress.
-- Do not edit older entries except to correct a factual mistake in the same session.
-- Keep entries concise: context, commands/evidence, decision, next recommended step.
-- This directory exists to reduce merge conflicts between worktrees.
-
+- Crear un archivo nuevo para progreso nuevo.
+- No editar entradas antiguas salvo para corregir un error factual en la misma sesion.
+- Mantener entradas concisas: contexto, comandos/evidencia, decision y siguiente paso recomendado.
+- Este directorio existe para reducir conflictos de merge entre worktrees.

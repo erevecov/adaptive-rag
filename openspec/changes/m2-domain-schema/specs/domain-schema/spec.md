@@ -1,76 +1,76 @@
-# Domain Schema Delta Spec
+# Delta spec de schema de dominio
 
 ## ADDED Requirements
 
-### Requirement: Project records define isolation and retrieval mode
+### Requirement: Registros de proyecto definen aislamiento y modo de retrieval
 
-The system SHALL persist project records that isolate all RAG data by `project_id` and define retrieval configuration.
+El sistema DEBE persistir registros de proyecto que aislen todos los datos RAG por `project_id` y definan configuracion de retrieval.
 
-#### Scenario: Project defaults to dense retrieval
+#### Scenario: Proyecto usa dense retrieval por defecto
 
-- **WHEN** a project is created without an explicit embedding mode
-- **THEN** the stored `embedding_mode` is `dense`
-- **AND** `retrieval_contextualization_enabled` is `true`
+- **WHEN** se crea un proyecto sin modo de embedding explicito
+- **THEN** el `embedding_mode` guardado es `dense`
+- **AND** `retrieval_contextualization_enabled` es `true`
 
-#### Scenario: Project budget settings are persisted
+#### Scenario: Configuracion de presupuesto del proyecto queda persistida
 
-- **WHEN** a project includes budget settings
-- **THEN** the settings are stored in `budget_config_json`
+- **WHEN** un proyecto incluye configuracion de presupuesto
+- **THEN** esa configuracion se guarda en `budget_config_json`
 
-### Requirement: Sources and documents preserve ingestion identity
+### Requirement: Sources y documents preservan identidad de ingestion
 
-The system SHALL persist sources and documents with stable identifiers, source type, external identifiers, metadata and project ownership.
+El sistema DEBE persistir sources y documents con identificadores estables, source type, identificadores externos, metadata y pertenencia a proyecto.
 
-#### Scenario: Documents belong to a project and source
+#### Scenario: Documents pertenecen a un proyecto y source
 
-- **WHEN** a document is created from a source
-- **THEN** the document stores `project_id` and `source_id`
-- **AND** repository queries can filter by either field
+- **WHEN** se crea un document desde un source
+- **THEN** el document guarda `project_id` y `source_id`
+- **AND** las queries de repository pueden filtrar por cualquiera de esos campos
 
-#### Scenario: Source metadata supports filtering
+#### Scenario: Metadata de source soporta filtering
 
-- **WHEN** a source has tags, source type or date metadata
-- **THEN** those values are stored in typed columns or indexed metadata fields suitable for filtering
+- **WHEN** un source tiene tags, source type o metadata de fecha
+- **THEN** esos valores se guardan en columnas tipadas o campos de metadata indexados aptos para filtering
 
-### Requirement: Document versions anchor normalized text and citations
+### Requirement: Document versions anclan texto normalizado y citas
 
-The system SHALL store each parsed document version with normalized text, parser metadata, extraction metadata, content hash and index fingerprint.
+El sistema DEBE guardar cada document version parseada con texto normalizado, parser metadata, extraction metadata, content hash e index fingerprint.
 
-#### Scenario: Chunk offsets refer to normalized text
+#### Scenario: Offsets de chunk refieren a texto normalizado
 
-- **WHEN** a chunk is created for a document version
-- **THEN** `char_start` and `char_end` refer to offsets in `document_versions.normalized_text`
+- **WHEN** se crea un chunk para una document version
+- **THEN** `char_start` y `char_end` refieren a offsets en `document_versions.normalized_text`
 
-#### Scenario: Re-indexing preserves prior document versions
+#### Scenario: Re-indexing preserva document versions anteriores
 
-- **WHEN** a document is re-parsed with different normalized text or parser metadata
-- **THEN** a new `document_versions` row is created
-- **AND** existing chunks keep pointing to their original version
+- **WHEN** un document se re-parsea con texto normalizado o parser metadata distinta
+- **THEN** se crea una fila nueva en `document_versions`
+- **AND** los chunks existentes siguen apuntando a su version original
 
-### Requirement: Chunks store dense embedding inputs and semantic boundaries
+### Requirement: Chunks guardan inputs de embedding denso y limites semanticos
 
-The system SHALL persist chunks with section metadata, token counts, neighbor links, chunker metadata, contextual retrieval reserved fields and dense embeddings.
+El sistema DEBE persistir chunks con section metadata, conteo de tokens, enlaces vecinos, chunker metadata, campos reservados para contextual retrieval y embeddings densos.
 
-#### Scenario: Dense embedding column has Qwen-compatible dimensions
+#### Scenario: Columna de embedding denso tiene dimensiones compatibles con Qwen
 
-- **WHEN** the schema is migrated
-- **THEN** `chunks.embedding` is a pgvector column with 1024 dimensions
+- **WHEN** se migra el schema
+- **THEN** `chunks.embedding` es una columna pgvector con 1024 dimensiones
 
-#### Scenario: Chunk lineage can be reconstructed
+#### Scenario: Lineage de chunks se puede reconstruir
 
-- **WHEN** chunks are retrieved for a document version
-- **THEN** `ordinal`, `prev_chunk_id` and `next_chunk_id` allow the system to reconstruct local chunk order
+- **WHEN** se recuperan chunks de una document version
+- **THEN** `ordinal`, `prev_chunk_id` y `next_chunk_id` permiten reconstruir el orden local de chunks
 
-### Requirement: Sparse embeddings are optional and isolated
+### Requirement: Sparse embeddings son opcionales y aislados
 
-The system SHALL store sparse embedding data in `chunk_sparse_embeddings` only when a project uses `dense_sparse` mode.
+El sistema DEBE guardar datos de sparse embeddings en `chunk_sparse_embeddings` solo cuando un proyecto usa modo `dense_sparse`.
 
-#### Scenario: Dense-only projects do not need sparse rows
+#### Scenario: Proyectos dense-only no necesitan filas sparse
 
-- **WHEN** a project uses `embedding_mode = dense`
-- **THEN** retrieval can operate without rows in `chunk_sparse_embeddings`
+- **WHEN** un proyecto usa `embedding_mode = dense`
+- **THEN** retrieval puede operar sin filas en `chunk_sparse_embeddings`
 
-#### Scenario: Sparse rows preserve reproducibility metadata
+#### Scenario: Filas sparse preservan metadata de reproducibilidad
 
-- **WHEN** sparse embeddings are stored
-- **THEN** each row includes sparse indices, sparse values, optional sparse tokens, sparse size, input hash and index fingerprint
+- **WHEN** se guardan sparse embeddings
+- **THEN** cada fila incluye sparse indices, sparse values, sparse tokens opcionales, sparse size, input hash e index fingerprint

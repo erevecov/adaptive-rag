@@ -1,36 +1,35 @@
-# M2 Domain Schema Tasks
+# Tareas M2 de schema de dominio
 
-## 1. Planning and setup
+## 1. Planificacion y setup
 
-- [ ] 1.1 Confirm this OpenSpec change is approved for implementation.
-- [ ] 1.2 Create an implementation branch from current `origin/main`.
-- [ ] 1.3 Run `uv sync --extra dev` and `uv run pytest` to confirm baseline.
+- [ ] 1.1 Confirmar que este change OpenSpec esta aprobado para implementacion.
+- [ ] 1.2 Crear una branch de implementacion desde el `origin/main` actual.
+- [ ] 1.3 Ejecutar `uv sync --extra dev` y `uv run pytest` para confirmar el baseline.
 
-## 2. SQLAlchemy models
+## 2. Modelos SQLAlchemy
 
-- [ ] 2.1 Add failing tests for project defaults and embedding mode constraints.
-- [ ] 2.2 Add SQLAlchemy models for `projects`, `sources`, `documents` and `document_versions`.
-- [ ] 2.3 Add failing tests for chunk citation offsets and dense embedding dimensions.
-- [ ] 2.4 Add SQLAlchemy models for `chunks` and `chunk_sparse_embeddings`.
+- [ ] 2.1 Agregar tests que fallen para defaults de proyecto y constraints de `embedding_mode`.
+- [ ] 2.2 Agregar modelos SQLAlchemy para `projects`, `sources`, `documents` y `document_versions`.
+- [ ] 2.3 Agregar tests que fallen para offsets de citas de chunks y dimensiones de embeddings densos.
+- [ ] 2.4 Agregar modelos SQLAlchemy para `chunks` y `chunk_sparse_embeddings`.
 
-## 3. Alembic migration
+## 3. Migracion Alembic
 
-- [ ] 3.1 Add a migration that enables `vector` extension when needed.
-- [ ] 3.2 Add tables, foreign keys, uniqueness constraints and check constraints.
-- [ ] 3.3 Add indexes for project isolation and metadata filtering.
-- [ ] 3.4 Keep dense retrieval exact; do not add HNSW in this change.
+- [ ] 3.1 Agregar una migracion que habilite la extension `vector` cuando sea necesario.
+- [ ] 3.2 Agregar tablas, foreign keys, uniqueness constraints y check constraints.
+- [ ] 3.3 Agregar indices para aislamiento por proyecto y metadata filtering.
+- [ ] 3.4 Mantener dense retrieval exacto; no agregar HNSW en este change.
 
-## 4. Integration validation
+## 4. Validacion de integracion
 
-- [ ] 4.1 Add Postgres/pgvector integration tests for migration apply.
-- [ ] 4.2 Verify `chunks.embedding vector(1024)` with a real Postgres container.
-- [ ] 4.3 Verify project/source/document filters have indexed columns.
+- [ ] 4.1 Agregar tests de integracion Postgres/pgvector para aplicar la migracion.
+- [ ] 4.2 Verificar `chunks.embedding vector(1024)` con un container Postgres real.
+- [ ] 4.3 Verificar que filtros por project/source/document tengan columnas indexadas.
 
-## 5. Quality gate and handoff
+## 5. Quality gate y handoff
 
-- [ ] 5.1 Run `uv run pytest`.
-- [ ] 5.2 Run `uv run ruff check .`.
-- [ ] 5.3 Run `uv run mypy src`.
-- [ ] 5.4 Update `docs/progress-log/` with a new completion entry.
-- [ ] 5.5 Open a PR and do not start repository-layer work until this schema PR is merged.
-
+- [ ] 5.1 Ejecutar `uv run pytest`.
+- [ ] 5.2 Ejecutar `uv run ruff check .`.
+- [ ] 5.3 Ejecutar `uv run mypy src`.
+- [ ] 5.4 Actualizar `docs/progress-log/` con una entrada nueva de cierre.
+- [ ] 5.5 Abrir un PR y no empezar trabajo de repository layer hasta que el PR de schema este mergeado.

@@ -1,41 +1,40 @@
-# Adaptive RAG Roadmap
+# Roadmap de Adaptive RAG
 
-## Current status
+## Estado actual
 
-- M1 Foundation: complete.
-- M2 Domain and persistence: planned.
+- M1 Foundation: completo.
+- M2 Dominio y persistencia: planificado.
 
 ## M1 Foundation
 
-Status: complete.
+Estado: completo.
 
-Delivered:
+Entregado:
 
-- Python package scaffold.
-- Settings and logging.
-- SQLAlchemy base, DB session helpers and Alembic foundation.
-- FastAPI app factory and `/health`.
-- Typer CLI shell with `version` and `health`.
-- Final quality gate passed on 2026-06-17.
+- Scaffold del paquete Python.
+- Settings y logging.
+- Base SQLAlchemy, helpers de sesion DB y foundation de Alembic.
+- App factory de FastAPI y `/health`.
+- Shell CLI de Typer con `version` y `health`.
+- Quality gate final aprobado el 2026-06-17.
 
-## M2 Domain and persistence
+## M2 Dominio y persistencia
 
-Status: next.
+Estado: siguiente.
 
-Recommended sequence:
+Secuencia recomendada:
 
-1. `m2-domain-schema`: SQLAlchemy models and Alembic migration for project/document/chunk schema.
-2. `m2-repositories`: repository layer with project isolation and metadata filters.
-3. `m2-job-queue`: jobs, job events, retries, blocked/dead-letter states and worker leasing.
-4. `m2-url-fetch-policy`: SSRF, DNS rebinding, redirects, content type and response size protection.
-5. `m2-quality-gate`: milestone-level validation and OpenSpec archive/sync.
+1. `m2-domain-schema`: modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
+2. `m2-repositories`: capa de repositories con aislamiento por proyecto y filtros de metadata.
+3. `m2-job-queue`: jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
+4. `m2-url-fetch-policy`: proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
+5. `m2-quality-gate`: validacion del milestone y sync/archive de OpenSpec.
 
-Recommended next task: implement `m2-domain-schema` first, because every repository, ingestion and retrieval path depends on stable table names, keys and citation anchors.
+Siguiente tarea recomendada: implementar `m2-domain-schema` primero, porque todo repository, ingestion y retrieval depende de nombres de tablas, llaves y anclas de citas estables.
 
-## Merge conflict policy
+## Politica para reducir conflictos de merge
 
-- Only one active PR should touch Alembic migrations and SQLAlchemy models at a time.
-- Start repository or worker branches only after the schema PR merges.
-- Keep roadmap edits in planning or milestone-close PRs.
-- Record daily progress in new files under `docs/progress-log/` instead of editing old entries.
-
+- Solo un PR activo debe tocar migraciones Alembic y modelos SQLAlchemy a la vez.
+- Abrir branches de repositories o workers solo despues de mergear el PR de schema.
+- Mantener ediciones del roadmap en PRs de planificacion o cierre de milestone.
+- Registrar progreso diario en archivos nuevos bajo `docs/progress-log/`, en vez de editar entradas antiguas.

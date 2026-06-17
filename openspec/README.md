@@ -1,4 +1,4 @@
-# OpenSpec workflow
+# Flujo OpenSpec
 
 Adaptive RAG usa OpenSpec para cambios de comportamiento y arquitectura.
 
@@ -7,6 +7,11 @@ Adaptive RAG usa OpenSpec para cambios de comportamiento y arquitectura.
 - `openspec/specs/`: specs canonicas ya aceptadas.
 - `openspec/changes/<change-id>/`: cambios activos con `proposal.md`, `design.md`, `tasks.md` y delta specs.
 - `openspec/changes/archive/`: cambios completados despues de sincronizar specs.
+
+Las palabras reservadas del formato OpenSpec se mantienen en ingles cuando
+pueden afectar herramientas futuras, por ejemplo `ADDED Requirements`,
+`Requirement`, `Scenario`, `WHEN`, `THEN` y `AND`. El contenido explicativo se
+escribe en espanol.
 
 ## Flujo recomendado
 
@@ -24,4 +29,3 @@ Adaptive RAG usa OpenSpec para cambios de comportamiento y arquitectura.
 - `docs/roadmap.md` y `docs/progress.md` se modifican solo en PRs de planificacion o cierre.
 - El progreso diario se agrega como archivo nuevo en `docs/progress-log/`; no se edita una entrada antigua salvo correccion factual inmediata.
 - Cada PR debe salir de `origin/main` actualizado y pasar `uv run pytest`, `uv run ruff check .` y `uv run mypy src` antes de abrirse.
-

@@ -1,14 +1,14 @@
-# Adaptive RAG Progress
+# Progreso de Adaptive RAG
 
-## Active milestone
+## Milestone activo
 
-M2 Domain and persistence.
+M2 Dominio y persistencia.
 
-## Last completed milestone
+## Ultimo milestone completado
 
-M1 Foundation closed on 2026-06-17.
+M1 Foundation cerrado el 2026-06-17.
 
-Validated commands:
+Comandos validados:
 
 ```text
 uv sync --extra dev
@@ -20,16 +20,15 @@ uv run adaptive-rag health
 uv run adaptive-rag version
 ```
 
-## Active OpenSpec change
+## Change OpenSpec activo
 
 - `openspec/changes/m2-domain-schema/`
 
-## Coordination rules
+## Reglas de coordinacion
 
-- Use one branch/worktree per task slice.
-- Branch from current `origin/main`.
-- Do not run parallel implementation branches that touch the same files.
-- Prefer small PRs that merge sequentially.
-- Add progress entries as new files in `docs/progress-log/`.
-- At task completion, recommend the next task and state the recommended option with reasoning.
-
+- Usar una branch/worktree por slice de tarea.
+- Crear branches desde el `origin/main` actual.
+- No correr branches de implementacion paralelas que toquen los mismos archivos.
+- Preferir PRs pequenos que se mergeen secuencialmente.
+- Agregar entradas de progreso como archivos nuevos en `docs/progress-log/`.
+- Al completar una tarea, recomendar la siguiente y declarar la opcion recomendada con razonamiento.

@@ -1,12 +1,12 @@
-# 2026-06-17 M1 complete and M2 opened
+# 2026-06-17 M1 completo y M2 abierto
 
-## Context
+## Contexto
 
-M1 Foundation was completed and validated. PRs #1 through #5 are merged into `main`.
+M1 Foundation fue completado y validado. Los PRs #1 a #5 estan mergeados en `main`.
 
-## Evidence
+## Evidencia
 
-Final quality gate passed:
+El quality gate final paso:
 
 ```text
 uv sync --extra dev
@@ -18,7 +18,7 @@ uv run adaptive-rag health
 uv run adaptive-rag version
 ```
 
-Expected outputs were observed:
+Se observaron los outputs esperados:
 
 ```text
 7 passed
@@ -31,9 +31,8 @@ adaptive-rag 0.1.0
 
 ## Decision
 
-M2 starts with OpenSpec change `m2-domain-schema`.
+M2 empieza con el change OpenSpec `m2-domain-schema`.
 
-## Recommended next step
+## Siguiente paso recomendado
 
-Implement `m2-domain-schema` first. It is recommended because stable SQLAlchemy models and Alembic migrations are prerequisites for repositories, jobs, ingestion and retrieval.
-
+Implementar `m2-domain-schema` primero. Es la opcion recomendada porque modelos SQLAlchemy y migraciones Alembic estables son prerequisitos para repositories, jobs, ingestion y retrieval.
