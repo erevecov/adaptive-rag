@@ -1,7 +1,7 @@
 [project]
 name = "adaptive-rag"
 version = "0.1.0"
-description = "Personal, project-scoped adaptive RAG system."
+description = "Sistema RAG adaptativo personal y aislado por proyecto."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
