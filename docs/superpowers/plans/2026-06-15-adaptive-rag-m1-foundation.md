@@ -878,4 +878,6 @@ Milestone 1 está completo cuando:
 
 El siguiente plan de implementación debe ser Milestone 2: modelos de dominio,
 tablas SQLAlchemy, migración Alembic para projects/sources/documents/chunks/jobs
-/audit/evals, y tests de repository para aislamiento por proyecto.
+/audit/evals, columnas tipadas para metadata filtering y tests de repository
+para aislamiento por proyecto más filtros por `source_id`, `document_id`,
+`source_type`, `tags` y fechas.

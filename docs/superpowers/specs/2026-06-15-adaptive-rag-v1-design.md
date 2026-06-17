@@ -76,10 +76,14 @@ producción si una necesidad medible lo justifica.
 Modelos Qwen configurados para v1:
 
 - Chat rápido y contextualización: Qwen, `qwen3.5-flash`
-- Chat de mayor calidad dentro de Qwen: `qwen3.5-plus`
-- Chat fuerte opcional dentro de Qwen: `qwen3-max`
+- Chat de mayor calidad dentro de Qwen: `qwen3.7-plus`
+- Chat fuerte opcional dentro de Qwen: `qwen3.7-max`
 - Embeddings: Qwen `text-embedding-v4`, 1024 dimensiones
 - Rerank: Qwen `qwen3-rerank`
+
+Después de salir a producción, evaluar la integración de modelos Multimodal
+Embeddings de Qwen para mejorar retrieval de documentos con imágenes, tablas u
+otros elementos no textuales.
 
 Los nombres exactos de modelos son configuración de deployment, no constantes
 de dominio. El código debe permitir cambiar snapshots Qwen sin migrar datos
@@ -171,6 +175,7 @@ El schema v1 incluye estas tablas principales.
 - `type`, uno de `url` o `file`
 - `uri`
 - `title`
+- `tags`, array de texto para filtros explícitos
 - `status`, uno de `pending`, `indexing`, `indexed`, `failed`
 - `content_hash`
 - `metadata_json`
@@ -183,6 +188,7 @@ El schema v1 incluye estas tablas principales.
 - `project_id`
 - `source_id`
 - `title`
+- `tags`, array de texto heredable desde la fuente o asignable al documento
 - `text_hash`
 - `parser_provider`
 - `parser_version`
@@ -197,6 +203,8 @@ El schema v1 incluye estas tablas principales.
 - `project_id`
 - `source_id`
 - `document_id`
+- `source_type`
+- `tags`, array de texto denormalizado para filtros de retrieval
 - `ordinal`
 - `text`
 - `text_hash`
@@ -233,7 +241,9 @@ El schema v1 incluye estas tablas principales.
 El aislamiento por proyecto debe aplicarse con filtros directos de `project_id`
 en todas las lecturas y escrituras scoped a proyecto. `chunks.project_id` está
 desnormalizado intencionalmente para que los filtros de retrieval sean simples
-y seguros.
+y seguros. `chunks.source_type` y `chunks.tags` también se desnormalizan para
+que dense retrieval y lexical retrieval apliquen los mismos filtros sin depender
+de joins complejos en la ruta caliente.
 
 ## Pipeline de ingestion
 
@@ -374,6 +384,46 @@ La interfaz de retrieval v1 debe soportar:
 
 Estas variantes existen para evals y debugging, no para prometer múltiples
 motores de search.
+
+## Metadata filtering
+
+Metadata filtering es parte de v1 porque el sistema es multi-project y el
+usuario necesita controlar sobre qué subconjunto de conocimiento pregunta. Los
+filtros se aplican antes de rankear candidatos y deben comportarse igual en
+dense retrieval y lexical retrieval.
+
+El filtro obligatorio de toda operación scoped a proyecto es:
+
+- `project_id`
+
+Filtros opcionales v1:
+
+- `source_ids`
+- `document_ids`
+- `source_types`, por ejemplo `url` o `file`
+- `tags`
+- `created_from`
+- `created_to`
+
+La API expone estos filtros como un objeto `metadata_filter` en retrieval y
+chat. El CLI los expone como flags simples, por ejemplo `--source-id`,
+`--document-id`, `--source-type`, `--tag`, `--created-from` y `--created-to`.
+
+En v1 no se implementa un lenguaje arbitrario de filtros sobre `metadata_json`.
+`metadata_json` existe para conservar información original de parsers, fuentes y
+documentos, pero solo los campos promovidos a columnas tipadas participan en el
+filtro de retrieval. Esto mantiene los índices, tests y contratos de API
+simples.
+
+Implementación esperada:
+
+- dense retrieval usa `WHERE project_id = :project_id` más los filtros
+  opcionales antes de ordenar por distancia vectorial.
+- lexical retrieval usa los mismos filtros antes de ordenar por `ts_rank_cd`.
+- RRF fusiona listas que ya respetan el mismo filtro.
+- Qwen rerank solo recibe candidatos ya filtrados.
+- citations deben incluir los filtros aplicados en el audit trail del
+  `retrieval_run`.
 
 ## Chat y tool calling
 
@@ -574,6 +624,11 @@ Endpoints FastAPI iniciales:
 - `POST /projects/{project_id}/eval-runs`
 - `GET /projects/{project_id}/eval-runs/{run_id}`
 
+`POST /projects/{project_id}/chat` y
+`POST /projects/{project_id}/retrieval/search` aceptan `metadata_filter` con los
+campos tipados de v1. El backend rechaza filtros con campos desconocidos en vez
+de ignorarlos silenciosamente.
+
 ## Superficie de CLI
 
 Comandos Typer iniciales:
@@ -588,6 +643,10 @@ Comandos Typer iniciales:
 
 La CLI es una superficie de desarrollo y aprendizaje de primera clase mientras
 el frontend queda diferido.
+
+`adaptive-rag chat ask` y `adaptive-rag retrieval search` aceptan flags de
+filtro como `--source-id`, `--document-id`, `--source-type`, `--tag`,
+`--created-from` y `--created-to`.
 
 ## Auth y deployment
 
@@ -629,6 +688,9 @@ La cobertura TDD empieza con comportamiento core:
 - contract tests de Unstructured parser con archivos fixture representativos
 - contract tests del adapter pgvector
 - filtros de retrieval por proyecto
+- metadata filtering por `source_id`, `document_id`, `source_type`, `tags` y
+  rango de fechas
+- paridad de filtros entre dense retrieval y lexical retrieval
 - fusión RRF
 - generación de citation payload
 - orquestación de tool calls con providers fake
