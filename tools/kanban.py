@@ -23,11 +23,34 @@ def parse_state(repo_root: Path) -> dict:
     roadmap = (repo_root / "docs" / "roadmap.md").read_text(encoding="utf-8")
     milestones = _parse_milestones(roadmap)
     slices = _parse_slices(roadmap, milestones)
+    _enrich_from_changes(repo_root, slices)
     return {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "milestones": milestones,
         "slices": slices,
     }
+
+
+def _enrich_from_changes(repo_root: Path, slices: list[dict]) -> None:
+    for slice_ in slices:
+        tasks_path = repo_root / "openspec" / "changes" / slice_["id"] / "tasks.md"
+        slice_["has_spec"] = tasks_path.exists()
+        total, done = _count_checkboxes(tasks_path)
+        slice_["total"] = total
+        slice_["done"] = done
+
+
+_CHECKBOX_TOTAL_RE = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S", re.MULTILINE)
+_CHECKBOX_DONE_RE = re.compile(r"^\s*-\s*\[[xX]\]\s+\S", re.MULTILINE)
+
+
+def _count_checkboxes(tasks_path: Path) -> tuple[int, int]:
+    if not tasks_path.exists():
+        return 0, 0
+    text = tasks_path.read_text(encoding="utf-8")
+    total = len(_CHECKBOX_TOTAL_RE.findall(text))
+    done = len(_CHECKBOX_DONE_RE.findall(text))
+    return total, done
 
 
 _MILESTONE_RE = re.compile(r"^##\s+(M\d+)\s+(.+?)\s*$", re.MULTILINE)

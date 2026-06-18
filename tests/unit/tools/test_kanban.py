@@ -55,3 +55,63 @@ Secuencia recomendada:
     assert schema["milestone_title"] == "M2 Dominio y persistencia"
     assert schema["order"] == 1
     assert schema["title"] == "modelos SQLAlchemy y migracion Alembic para schema de proyectos"
+
+
+def test_parse_state_counts_checkboxes_from_tasks_md(tmp_path):
+    kanban, _ = _load_kanban()
+
+    _write(
+        tmp_path,
+        "docs/roadmap.md",
+        """# Roadmap
+
+## M2 Dominio y persistencia
+
+1. `m2-domain-schema`: modelos y migracion.
+""",
+    )
+    _write(
+        tmp_path,
+        "openspec/changes/m2-domain-schema/tasks.md",
+        """# Tareas
+
+## 1. Setup
+
+- [ ] 1.1 Confirmar baseline.
+- [x] 1.2 Crear branch.
+- [x] 1.3 Validar.
+
+## 2. Modelos
+
+- [ ] 2.1 Tests.
+""",
+    )
+
+    state = kanban.parse_state(tmp_path)
+
+    schema = state["slices"][0]
+    assert schema["has_spec"] is True
+    assert schema["total"] == 4
+    assert schema["done"] == 2
+
+
+def test_parse_state_handles_missing_tasks_md(tmp_path):
+    kanban, _ = _load_kanban()
+
+    _write(
+        tmp_path,
+        "docs/roadmap.md",
+        """# Roadmap
+
+## M2 Dominio y persistencia
+
+1. `m2-repositories`: capa de repositories.
+""",
+    )
+
+    state = kanban.parse_state(tmp_path)
+
+    repo = state["slices"][0]
+    assert repo["has_spec"] is False
+    assert repo["total"] == 0
+    assert repo["done"] == 0
