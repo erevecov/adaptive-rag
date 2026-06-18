@@ -27,7 +27,7 @@ uv run adaptive-rag version
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m3-ingestion-retrieval-plan`
 
 ## Spec canonica activa
 
@@ -38,8 +38,8 @@ uv run adaptive-rag version
 
 ## Siguiente tarea recomendada
 
-- `m3-ingestion-retrieval-plan`: crear el primer change OpenSpec de M3 para
-  definir el corte inicial de ingestion/retrieval antes de escribir codigo.
+- `m3-ingestion-pipeline`: despues de mergear el plan, conectar sources, jobs,
+  parsers y `document_versions` sin chunking, embeddings ni retrieval todavia.
 
 ## Reglas de coordinacion
 
