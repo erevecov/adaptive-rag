@@ -206,3 +206,40 @@ def test_classify_archived_wins_over_roadmap_duplicate(tmp_path):
     matches = [s for s in state["slices"] if s["id"] == "m1-foundation"]
     assert len(matches) == 1
     assert matches[0]["column"] == "done"
+
+
+def test_render_html_embeds_state_and_slices(tmp_path):
+    kanban, _ = _load_kanban()
+
+    state = {
+        "generated_at": "2026-06-17T12:00:00+00:00",
+        "milestones": [{"id": "m2", "title": "M2 Dominio y persistencia", "closed_at": None}],
+        "slices": [
+            {
+                "id": "m2-domain-schema",
+                "milestone_id": "m2",
+                "milestone_title": "M2 Dominio y persistencia",
+                "title": "modelos y migracion",
+                "column": "planned",
+                "total": 18,
+                "done": 0,
+                "has_spec": True,
+                "order": 1,
+            }
+        ],
+    }
+
+    out_path = tmp_path / "index.html"
+    kanban.render_html(state, out_path)
+
+    content = out_path.read_text(encoding="utf-8")
+    # State is embedded as JSON.
+    assert "window.__KANBAN_STATE__" in content
+    # Slice id and title appear.
+    assert "m2-domain-schema" in content
+    assert "modelos y migracion" in content
+    # All four column headers are present.
+    for header in ("Backlog", "Planificado", "En progreso", "Hecho"):
+        assert header in content
+    # It is a standalone HTML doc.
+    assert content.lstrip().startswith("<!DOCTYPE html>")
