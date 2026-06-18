@@ -10,7 +10,7 @@ M1 Foundation cerrado el 2026-06-17.
 
 ## Ultimo slice completado
 
-M2 `m2-repositories` implementado y archivado el 2026-06-18.
+M2 `m2-job-queue` implementado y archivado el 2026-06-18.
 
 Comandos validados:
 
@@ -29,11 +29,12 @@ openspec validate --specs --strict
 
 - `openspec/specs/domain-schema/spec.md`
 - `openspec/specs/repositories/spec.md`
+- `openspec/specs/job-queue/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m2-job-queue`: implementar jobs, eventos, retries, estados
-  `blocked`/`dead-letter` y leasing de workers sobre el dominio persistente.
+- `m2-url-fetch-policy`: implementar proteccion contra SSRF, DNS rebinding,
+  redirects inseguros, content type no permitido y tamano maximo de respuesta.
 
 ## Reglas de coordinacion
 
