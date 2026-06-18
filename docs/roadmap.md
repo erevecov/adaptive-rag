@@ -27,10 +27,10 @@ Secuencia recomendada:
 1. `m2-domain-schema`: completo. Modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
 2. `m2-repositories`: completo. Capa de repositories con aislamiento por proyecto y filtros de metadata.
 3. `m2-job-queue`: completo. Jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
-4. `m2-url-fetch-policy`: siguiente. Proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
-5. `m2-quality-gate`: validacion del milestone y sync/archive de OpenSpec.
+4. `m2-url-fetch-policy`: completo. Proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
+5. `m2-quality-gate`: siguiente. Validacion del milestone y sync/archive de OpenSpec.
 
-Siguiente tarea recomendada: implementar `m2-url-fetch-policy`, porque la cola persistente ya puede coordinar ingestion y el proximo riesgo antes de fetch real es impedir SSRF, redirects inseguros y respuestas fuera de politica.
+Siguiente tarea recomendada: ejecutar `m2-quality-gate`, porque los slices core de M2 ya estan implementados y falta validar el milestone completo antes de pasar a ingestion/retrieval.
 
 ## Politica para reducir conflictos de merge
 
