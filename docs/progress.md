@@ -2,15 +2,15 @@
 
 ## Milestone activo
 
-M2 Dominio y persistencia.
+M3 Ingestion y retrieval.
 
 ## Ultimo milestone completado
 
-M1 Foundation cerrado el 2026-06-17.
+M2 Dominio y persistencia cerrado el 2026-06-18.
 
 ## Ultimo slice completado
 
-M2 `m2-url-fetch-policy` implementado y archivado el 2026-06-18.
+M2 `m2-quality-gate` completado el 2026-06-18.
 
 Comandos validados:
 
@@ -19,6 +19,10 @@ uv run pytest
 uv run ruff check .
 uv run mypy src
 openspec validate --specs --strict
+openspec list
+openspec list --specs
+uv run adaptive-rag health
+uv run adaptive-rag version
 ```
 
 ## Change OpenSpec activo
@@ -34,8 +38,8 @@ openspec validate --specs --strict
 
 ## Siguiente tarea recomendada
 
-- `m2-quality-gate`: validar el milestone M2 completo, reconciliar docs y
-  preparar el handoff hacia ingestion/retrieval.
+- `m3-ingestion-retrieval-plan`: crear el primer change OpenSpec de M3 para
+  definir el corte inicial de ingestion/retrieval antes de escribir codigo.
 
 ## Reglas de coordinacion
 

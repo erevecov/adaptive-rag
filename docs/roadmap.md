@@ -3,7 +3,8 @@
 ## Estado actual
 
 - M1 Foundation: completo.
-- M2 Dominio y persistencia: en progreso.
+- M2 Dominio y persistencia: completo.
+- M3 Ingestion y retrieval: siguiente.
 
 ## M1 Foundation
 
@@ -20,7 +21,7 @@ Entregado:
 
 ## M2 Dominio y persistencia
 
-Estado: en progreso.
+Estado: completo.
 
 Secuencia recomendada:
 
@@ -28,9 +29,20 @@ Secuencia recomendada:
 2. `m2-repositories`: completo. Capa de repositories con aislamiento por proyecto y filtros de metadata.
 3. `m2-job-queue`: completo. Jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
 4. `m2-url-fetch-policy`: completo. Proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
-5. `m2-quality-gate`: siguiente. Validacion del milestone y sync/archive de OpenSpec.
+5. `m2-quality-gate`: completo. Validacion del milestone, reconciliacion de docs y handoff hacia M3.
 
-Siguiente tarea recomendada: ejecutar `m2-quality-gate`, porque los slices core de M2 ya estan implementados y falta validar el milestone completo antes de pasar a ingestion/retrieval.
+## M3 Ingestion y retrieval
+
+Estado: siguiente.
+
+Secuencia inicial propuesta:
+
+1. `m3-ingestion-retrieval-plan`: crear el change OpenSpec que delimite los primeros slices de ingestion/retrieval sobre los contratos ya cerrados de M2.
+2. `m3-ingestion-pipeline`: conectar sources, documents, document versions, jobs y `URLFetchPolicy` en un flujo de ingestion verificable con fakes.
+3. `m3-chunking-baseline`: implementar chunking semantico inicial con offsets reproducibles para citations.
+4. `m3-retrieval-baseline`: implementar retrieval exacto inicial con filtros por proyecto y metadata.
+
+Siguiente tarea recomendada: empezar `m3-ingestion-retrieval-plan`, porque M2 ya cerro los contratos persistentes y conviene fijar el corte de M3 en OpenSpec antes de mezclar ingestion, chunking, embeddings y retrieval.
 
 ## Politica para reducir conflictos de merge
 

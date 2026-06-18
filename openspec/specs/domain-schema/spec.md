@@ -1,7 +1,12 @@
 # domain-schema Specification
 
 ## Purpose
-TBD - created by archiving change m2-domain-schema. Update Purpose after archive.
+
+Definir el schema persistente multi-project de Adaptive RAG para proyectos,
+fuentes, documentos, versiones normalizadas, chunks y sparse embeddings,
+incluyendo aislamiento por `project_id`, metadata filtering y compatibilidad
+con pgvector/Qwen.
+
 ## Requirements
 ### Requirement: Registros de proyecto definen aislamiento y modo de retrieval
 
