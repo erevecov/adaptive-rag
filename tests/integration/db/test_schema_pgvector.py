@@ -67,6 +67,8 @@ def test_alembic_upgrade_applies_cleanly(pg_url: str, pg_engine: Engine) -> None
         "document_versions",
         "chunks",
         "chunk_sparse_embeddings",
+        "jobs",
+        "job_events",
     ):
         assert expected in table_names, expected
 
@@ -198,6 +200,13 @@ def test_isolation_and_filtering_columns_are_indexed(
     assert "document_version_id" in indexed_columns("chunks")
     assert "chunk_id" in indexed_columns("chunk_sparse_embeddings")
     assert "sparse_indices" in indexed_columns("chunk_sparse_embeddings")
+    assert "project_id" in indexed_columns("jobs")
+    assert "status" in indexed_columns("jobs")
+    assert "run_after" in indexed_columns("jobs")
+    assert "priority" in indexed_columns("jobs")
+    assert "locked_until" in indexed_columns("jobs")
+    assert "job_id" in indexed_columns("job_events")
+    assert "event_type" in indexed_columns("job_events")
 
 
 def test_identity_and_range_constraints_are_enforced(
