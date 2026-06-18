@@ -25,12 +25,12 @@ Estado: en progreso.
 Secuencia recomendada:
 
 1. `m2-domain-schema`: completo. Modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
-2. `m2-repositories`: siguiente. Capa de repositories con aislamiento por proyecto y filtros de metadata.
-3. `m2-job-queue`: jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
+2. `m2-repositories`: completo. Capa de repositories con aislamiento por proyecto y filtros de metadata.
+3. `m2-job-queue`: siguiente. Jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
 4. `m2-url-fetch-policy`: proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
 5. `m2-quality-gate`: validacion del milestone y sync/archive de OpenSpec.
 
-Siguiente tarea recomendada: implementar `m2-repositories`, porque el schema base ya esta mergeado y archivado; repositories debe fijar el acceso seguro por proyecto antes de ingestion, retrieval o chat.
+Siguiente tarea recomendada: implementar `m2-job-queue`, porque repositories ya fija el acceso seguro por proyecto y la ingestion necesita persistir trabajo asincronico, eventos, retries y leasing antes de conectar fetch/chunking.
 
 ## Politica para reducir conflictos de merge
 
