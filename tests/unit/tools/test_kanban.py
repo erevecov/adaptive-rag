@@ -115,3 +115,94 @@ def test_parse_state_handles_missing_tasks_md(tmp_path):
     assert repo["has_spec"] is False
     assert repo["total"] == 0
     assert repo["done"] == 0
+
+
+def _roadmap_with(slice_id: str) -> str:
+    return (
+        "# Roadmap\n\n"
+        "## M2 Dominio y persistencia\n\n"
+        f"1. `{slice_id}`: descripcion.\n"
+    )
+
+
+def test_classify_backlog_when_no_spec(tmp_path):
+    kanban, _ = _load_kanban()
+    _write(tmp_path, "docs/roadmap.md", _roadmap_with("m2-no-spec"))
+    state = kanban.parse_state(tmp_path)
+    assert state["slices"][0]["column"] == "backlog"
+
+
+def test_classify_planned_when_spec_with_zero_done(tmp_path):
+    kanban, _ = _load_kanban()
+    _write(tmp_path, "docs/roadmap.md", _roadmap_with("m2-domain-schema"))
+    _write(
+        tmp_path,
+        "openspec/changes/m2-domain-schema/tasks.md",
+        "# Tareas\n\n- [ ] 1.1 Pendiente.\n- [ ] 1.2 Pendiente.\n",
+    )
+    state = kanban.parse_state(tmp_path)
+    assert state["slices"][0]["column"] == "planned"
+
+
+def test_classify_in_progress_when_partial_done(tmp_path):
+    kanban, _ = _load_kanban()
+    _write(tmp_path, "docs/roadmap.md", _roadmap_with("m2-domain-schema"))
+    _write(
+        tmp_path,
+        "openspec/changes/m2-domain-schema/tasks.md",
+        "# Tareas\n\n- [ ] 1.1 Pendiente.\n- [x] 1.2 Hecho.\n",
+    )
+    state = kanban.parse_state(tmp_path)
+    assert state["slices"][0]["column"] == "in_progress"
+
+
+def test_classify_done_when_all_checked(tmp_path):
+    kanban, _ = _load_kanban()
+    _write(tmp_path, "docs/roadmap.md", _roadmap_with("m2-domain-schema"))
+    _write(
+        tmp_path,
+        "openspec/changes/m2-domain-schema/tasks.md",
+        "# Tareas\n\n- [x] 1.1 Hecho.\n- [x] 1.2 Hecho.\n",
+    )
+    state = kanban.parse_state(tmp_path)
+    assert state["slices"][0]["column"] == "done"
+
+
+def test_classify_done_when_archived_even_without_roadmap(tmp_path):
+    kanban, _ = _load_kanban()
+    _write(
+        tmp_path,
+        "docs/roadmap.md",
+        "# Roadmap\n\n## M2 Dominio y persistencia\n\n1. `m2-next`: siguiente.\n",
+    )
+    _write(
+        tmp_path,
+        "openspec/changes/archive/2026-06-17-m1-foundation/tasks.md",
+        "# Tareas\n\n- [x] 1.1 Hecho.\n",
+    )
+    state = kanban.parse_state(tmp_path)
+
+    archived = [s for s in state["slices"] if s["id"] == "m1-foundation"]
+    assert len(archived) == 1
+    assert archived[0]["column"] == "done"
+    assert archived[0]["milestone_id"] == "m1"
+
+
+def test_classify_archived_wins_over_roadmap_duplicate(tmp_path):
+    """A slice listed in roadmap AND archived appears once, as done."""
+    kanban, _ = _load_kanban()
+    _write(
+        tmp_path,
+        "docs/roadmap.md",
+        "# Roadmap\n\n## M2 Dominio y persistencia\n\n1. `m1-foundation`: base.\n",
+    )
+    _write(
+        tmp_path,
+        "openspec/changes/archive/2026-06-17-m1-foundation/tasks.md",
+        "# Tareas\n\n- [x] 1.1 Hecho.\n",
+    )
+    state = kanban.parse_state(tmp_path)
+
+    matches = [s for s in state["slices"] if s["id"] == "m1-foundation"]
+    assert len(matches) == 1
+    assert matches[0]["column"] == "done"
