@@ -8,6 +8,7 @@ integracion contra pgvector.
 """
 
 from sqlalchemy import inspect, select
+from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
@@ -165,3 +166,69 @@ def test_chunk_has_foreign_key_to_document_versions():
     fk_targets = {fk.column.table.name for fk in table.foreign_keys}
 
     assert "document_versions" in fk_targets
+
+
+def test_chunk_ordinal_is_unique_per_document_version():
+    session = _make_session()
+    version = _make_version(session)
+    c0 = Chunk(
+        document_version_id=version.id, ordinal=0, char_start=0, char_end=5
+    )
+    duplicate = Chunk(
+        document_version_id=version.id, ordinal=0, char_start=5, char_end=10
+    )
+
+    session.add(c0)
+    session.commit()
+    session.add(duplicate)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for duplicate chunk ordinal")
+
+
+def test_chunk_offsets_must_be_non_empty_forward_ranges():
+    session = _make_session()
+    version = _make_version(session)
+    chunk = Chunk(
+        document_version_id=version.id, ordinal=0, char_start=5, char_end=5
+    )
+
+    session.add(chunk)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for empty chunk range")
+
+
+def test_chunk_token_count_cannot_be_negative():
+    session = _make_session()
+    version = _make_version(session)
+    chunk = Chunk(
+        document_version_id=version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=5,
+        token_count=-1,
+    )
+
+    session.add(chunk)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for negative token count")

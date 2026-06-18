@@ -8,10 +8,12 @@ from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Integer,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -33,6 +35,22 @@ class Chunk(Base):
     """
 
     __tablename__ = "chunks"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_version_id",
+            "ordinal",
+            name="uq_chunks_document_version_ordinal",
+        ),
+        CheckConstraint("ordinal >= 0", name="chunks_ordinal_non_negative_check"),
+        CheckConstraint(
+            "char_start >= 0", name="chunks_char_start_non_negative_check"
+        ),
+        CheckConstraint("char_end > char_start", name="chunks_char_range_check"),
+        CheckConstraint(
+            "token_count IS NULL OR token_count >= 0",
+            name="chunks_token_count_non_negative_check",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     document_version_id: Mapped[UUID] = mapped_column(

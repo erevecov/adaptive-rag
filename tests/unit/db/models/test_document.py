@@ -6,6 +6,7 @@ ambas columnas deben existir, ser NOT NULL y tener FK.
 """
 
 from sqlalchemy import inspect, select
+from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import Document, Project, Source
@@ -63,6 +64,30 @@ def test_document_stable_identifier_persists():
     ).scalar_one()
 
     assert fetched.project_id == project.id
+
+
+def test_document_stable_id_is_unique_within_source():
+    session = _make_session()
+    project, source = _make_project_and_source(session)
+    document = Document(
+        project_id=project.id, source_id=source.id, stable_id="doc-abc"
+    )
+    duplicate = Document(
+        project_id=project.id, source_id=source.id, stable_id="doc-abc"
+    )
+
+    session.add(document)
+    session.commit()
+    session.add(duplicate)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for duplicate document identity")
 
 
 def test_document_project_id_and_source_id_are_required():

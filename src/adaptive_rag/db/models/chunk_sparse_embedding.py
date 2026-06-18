@@ -6,7 +6,15 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
@@ -22,6 +30,22 @@ class ChunkSparseEmbedding(Base):
     """
 
     __tablename__ = "chunk_sparse_embeddings"
+    __table_args__ = (
+        UniqueConstraint(
+            "chunk_id",
+            "index_fingerprint",
+            name="uq_chunk_sparse_embeddings_chunk_fingerprint",
+        ),
+        CheckConstraint(
+            "sparse_size >= 0",
+            name="chunk_sparse_embeddings_sparse_size_non_negative_check",
+        ),
+        Index(
+            "ix_chunk_sparse_embeddings_sparse_indices",
+            "sparse_indices",
+            postgresql_using="gin",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     chunk_id: Mapped[UUID] = mapped_column(

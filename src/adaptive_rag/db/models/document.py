@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
@@ -15,6 +15,13 @@ class Document(Base):
     """Documento ingerido, anclado a un proyecto y a un source."""
 
     __tablename__ = "documents"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_id",
+            "stable_id",
+            name="uq_documents_source_stable_id",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     project_id: Mapped[UUID] = mapped_column(

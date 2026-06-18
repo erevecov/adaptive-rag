@@ -7,6 +7,7 @@ apuntando a sus chunks originales.
 """
 
 from sqlalchemy import inspect, select
+from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import Document, DocumentVersion, Project, Source
@@ -112,6 +113,61 @@ def test_document_version_has_foreign_key_to_documents():
     fk_targets = {fk.column.table.name for fk in table.foreign_keys}
 
     assert "documents" in fk_targets
+
+
+def test_document_version_number_is_unique_per_document():
+    session = _make_session()
+    document = _make_document(session)
+    v1 = DocumentVersion(
+        document_id=document.id,
+        version_number=1,
+        normalized_text="texto v1",
+        content_hash="sha256:v1",
+        index_fingerprint="fp-v1",
+    )
+    duplicate = DocumentVersion(
+        document_id=document.id,
+        version_number=1,
+        normalized_text="texto duplicado",
+        content_hash="sha256:v1-duplicate",
+        index_fingerprint="fp-v1-duplicate",
+    )
+
+    session.add(v1)
+    session.commit()
+    session.add(duplicate)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for duplicate version number")
+
+
+def test_document_version_number_must_be_positive():
+    session = _make_session()
+    document = _make_document(session)
+    version = DocumentVersion(
+        document_id=document.id,
+        version_number=0,
+        normalized_text="texto",
+        content_hash="sha256:zero",
+        index_fingerprint="fp-zero",
+    )
+
+    session.add(version)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for non-positive version")
 
 
 def test_re_indexing_creates_new_version_preserving_old():

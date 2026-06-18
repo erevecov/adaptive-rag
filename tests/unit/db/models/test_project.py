@@ -41,7 +41,7 @@ def test_project_contextualization_enabled_defaults_to_true():
 def test_project_budget_config_persists_json():
     session = _make_session()
     config = {"max_tokens": 4096, "top_k": 8}
-    project = Project(name="demo", budget_config=config)
+    project = Project(name="demo", budget_config_json=config)
     session.add(project)
     session.commit()
     session.expunge_all()
@@ -50,7 +50,14 @@ def test_project_budget_config_persists_json():
         select(Project).where(Project.name == "demo")
     ).scalar_one()
 
-    assert fetched.budget_config == config
+    assert fetched.budget_config_json == config
+
+
+def test_project_budget_config_column_matches_spec_name():
+    columns = {c.name for c in inspect(Project).columns}
+
+    assert "budget_config_json" in columns
+    assert "budget_config" not in columns
 
 
 def test_project_embedding_mode_check_rejects_invalid_value():

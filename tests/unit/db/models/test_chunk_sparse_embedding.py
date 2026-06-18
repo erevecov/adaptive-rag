@@ -6,6 +6,7 @@ filas aca. Cada fila preserva metadata de reproducibilidad.
 """
 
 from sqlalchemy import inspect, select
+from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
@@ -147,3 +148,61 @@ def test_sparse_embedding_has_foreign_key_to_chunks():
     fk_targets = {fk.column.table.name for fk in table.foreign_keys}
 
     assert "chunks" in fk_targets
+
+
+def test_sparse_embedding_index_fingerprint_is_unique_per_chunk():
+    session = _make_session()
+    chunk = _make_chunk(session)
+    row = ChunkSparseEmbedding(
+        chunk_id=chunk.id,
+        sparse_indices=[0],
+        sparse_values=[1.0],
+        sparse_size=1,
+        input_hash="sha256:input",
+        index_fingerprint="fp-sparse",
+    )
+    duplicate = ChunkSparseEmbedding(
+        chunk_id=chunk.id,
+        sparse_indices=[1],
+        sparse_values=[0.5],
+        sparse_size=1,
+        input_hash="sha256:input-2",
+        index_fingerprint="fp-sparse",
+    )
+
+    session.add(row)
+    session.commit()
+    session.add(duplicate)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for duplicate sparse fingerprint")
+
+
+def test_sparse_size_cannot_be_negative():
+    session = _make_session()
+    chunk = _make_chunk(session)
+    row = ChunkSparseEmbedding(
+        chunk_id=chunk.id,
+        sparse_indices=[],
+        sparse_values=[],
+        sparse_size=-1,
+        input_hash="sha256:input",
+        index_fingerprint="fp-negative",
+    )
+
+    session.add(row)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for negative sparse size")

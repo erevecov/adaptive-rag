@@ -47,7 +47,7 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("true"),
         ),
-        sa.Column("budget_config", postgresql.JSONB(), nullable=True),
+        sa.Column("budget_config_json", postgresql.JSONB(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -91,8 +91,30 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.UniqueConstraint(
+            "project_id",
+            "source_type",
+            "external_id",
+            name="uq_sources_project_type_external_id",
+        ),
     )
     op.create_index("ix_sources_project_id", "sources", ["project_id"])
+    op.create_index(
+        "ix_sources_project_type",
+        "sources",
+        ["project_id", "source_type"],
+    )
+    op.create_index(
+        "ix_sources_project_created_at",
+        "sources",
+        ["project_id", "created_at"],
+    )
+    op.create_index(
+        "ix_sources_tags",
+        "sources",
+        ["tags"],
+        postgresql_using="gin",
+    )
 
     op.create_table(
         "documents",
@@ -122,6 +144,11 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.UniqueConstraint(
+            "source_id",
+            "stable_id",
+            name="uq_documents_source_stable_id",
+        ),
     )
     op.create_index("ix_documents_project_id", "documents", ["project_id"])
     op.create_index("ix_documents_source_id", "documents", ["source_id"])
@@ -146,6 +173,15 @@ def upgrade() -> None:
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
+        ),
+        sa.UniqueConstraint(
+            "document_id",
+            "version_number",
+            name="uq_document_versions_document_version_number",
+        ),
+        sa.CheckConstraint(
+            "version_number > 0",
+            name="document_versions_version_number_positive_check",
         ),
     )
     op.create_index(
@@ -188,6 +224,27 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.UniqueConstraint(
+            "document_version_id",
+            "ordinal",
+            name="uq_chunks_document_version_ordinal",
+        ),
+        sa.CheckConstraint(
+            "ordinal >= 0",
+            name="chunks_ordinal_non_negative_check",
+        ),
+        sa.CheckConstraint(
+            "char_start >= 0",
+            name="chunks_char_start_non_negative_check",
+        ),
+        sa.CheckConstraint(
+            "char_end > char_start",
+            name="chunks_char_range_check",
+        ),
+        sa.CheckConstraint(
+            "token_count IS NULL OR token_count >= 0",
+            name="chunks_token_count_non_negative_check",
+        ),
     )
     op.create_index(
         "ix_chunks_document_version_id", "chunks", ["document_version_id"]
@@ -215,15 +272,34 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.UniqueConstraint(
+            "chunk_id",
+            "index_fingerprint",
+            name="uq_chunk_sparse_embeddings_chunk_fingerprint",
+        ),
+        sa.CheckConstraint(
+            "sparse_size >= 0",
+            name="chunk_sparse_embeddings_sparse_size_non_negative_check",
+        ),
     )
     op.create_index(
         "ix_chunk_sparse_embeddings_chunk_id",
         "chunk_sparse_embeddings",
         ["chunk_id"],
     )
+    op.create_index(
+        "ix_chunk_sparse_embeddings_sparse_indices",
+        "chunk_sparse_embeddings",
+        ["sparse_indices"],
+        postgresql_using="gin",
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(
+        "ix_chunk_sparse_embeddings_sparse_indices",
+        table_name="chunk_sparse_embeddings",
+    )
     op.drop_index(
         "ix_chunk_sparse_embeddings_chunk_id",
         table_name="chunk_sparse_embeddings",
@@ -240,6 +316,9 @@ def downgrade() -> None:
     op.drop_index("ix_documents_project_id", table_name="documents")
     op.drop_table("documents")
 
+    op.drop_index("ix_sources_tags", table_name="sources")
+    op.drop_index("ix_sources_project_created_at", table_name="sources")
+    op.drop_index("ix_sources_project_type", table_name="sources")
     op.drop_index("ix_sources_project_id", table_name="sources")
     op.drop_table("sources")
 

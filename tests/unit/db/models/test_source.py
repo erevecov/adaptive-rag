@@ -7,6 +7,7 @@ validamos el contrato de columna y la existencia de FKs via introspeccion.
 """
 
 from sqlalchemy import inspect, select
+from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import Project, Source
@@ -57,6 +58,28 @@ def test_source_external_id_persists():
     ).scalar_one()
 
     assert fetched.source_type == "web"
+
+
+def test_source_identity_is_unique_within_project():
+    session = _make_session()
+    project = _make_project(session)
+    source = Source(project_id=project.id, source_type="web", external_id="id-1")
+    duplicate = Source(
+        project_id=project.id, source_type="web", external_id="id-1"
+    )
+
+    session.add(source)
+    session.commit()
+    session.add(duplicate)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for duplicate source identity")
 
 
 def test_source_tags_persist_as_json():
@@ -128,3 +151,14 @@ def test_source_has_timestamps_for_date_filtering():
 
     assert "created_at" in columns
     assert "updated_at" in columns
+
+
+def test_source_filtering_columns_are_indexed():
+    table = inspect(Source).local_table
+    indexed_columns: set[tuple[str, ...]] = {
+        tuple(col.name for col in index.columns) for index in table.indexes
+    }
+
+    assert ("project_id", "source_type") in indexed_columns
+    assert ("project_id", "created_at") in indexed_columns
+    assert ("tags",) in indexed_columns

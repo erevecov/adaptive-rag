@@ -70,6 +70,10 @@ def test_alembic_upgrade_applies_cleanly(pg_url: str, pg_engine: Engine) -> None
     ):
         assert expected in table_names, expected
 
+    project_columns = {c["name"] for c in inspector.get_columns("projects")}
+    assert "budget_config_json" in project_columns
+    assert "budget_config" not in project_columns
+
 
 def test_chunks_embedding_is_vector_type(pg_url: str, pg_engine: Engine) -> None:
     run_alembic_upgrade(pg_url)
@@ -185,8 +189,101 @@ def test_isolation_and_filtering_columns_are_indexed(
         return cols
 
     assert "project_id" in indexed_columns("sources")
+    assert "source_type" in indexed_columns("sources")
+    assert "created_at" in indexed_columns("sources")
+    assert "tags" in indexed_columns("sources")
     assert "project_id" in indexed_columns("documents")
     assert "source_id" in indexed_columns("documents")
     assert "document_id" in indexed_columns("document_versions")
     assert "document_version_id" in indexed_columns("chunks")
     assert "chunk_id" in indexed_columns("chunk_sparse_embeddings")
+    assert "sparse_indices" in indexed_columns("chunk_sparse_embeddings")
+
+
+def test_identity_and_range_constraints_are_enforced(
+    pg_url: str, pg_engine: Engine
+) -> None:
+    run_alembic_upgrade(pg_url)
+
+    project_id = "00000000-0000-0000-0000-000000000102"
+    source_id = "00000000-0000-0000-0000-000000000103"
+    document_id = "00000000-0000-0000-0000-000000000104"
+    version_id = "00000000-0000-0000-0000-000000000105"
+    chunk_id = "00000000-0000-0000-0000-000000000106"
+
+    with pg_engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO projects (id, name) VALUES (:id, 'constraint-test')"),
+            {"id": project_id},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO sources (id, project_id, source_type, external_id) "
+                "VALUES (:id, :pid, 'web', 'ext')"
+            ),
+            {"id": source_id, "pid": project_id},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO documents (id, project_id, source_id, stable_id) "
+                "VALUES (:id, :pid, :sid, 'stable')"
+            ),
+            {"id": document_id, "pid": project_id, "sid": source_id},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO document_versions "
+                "(id, document_id, version_number, normalized_text, "
+                "content_hash, index_fingerprint) "
+                "VALUES (:id, :did, 1, 'x', 'h', 'fp')"
+            ),
+            {"id": version_id, "did": document_id},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO chunks (id, document_version_id, ordinal, "
+                "char_start, char_end) VALUES (:id, :vid, 0, 0, 1)"
+            ),
+            {"id": chunk_id, "vid": version_id},
+        )
+
+    invalid_statements = [
+        (
+            "INSERT INTO sources (id, project_id, source_type, external_id) "
+            "VALUES ('00000000-0000-0000-0000-000000000107', :pid, 'web', 'ext')",
+            {"pid": project_id},
+        ),
+        (
+            "INSERT INTO documents (id, project_id, source_id, stable_id) "
+            "VALUES ('00000000-0000-0000-0000-000000000108', :pid, :sid, "
+            "'stable')",
+            {"pid": project_id, "sid": source_id},
+        ),
+        (
+            "INSERT INTO document_versions "
+            "(id, document_id, version_number, normalized_text, content_hash, "
+            "index_fingerprint) VALUES "
+            "('00000000-0000-0000-0000-000000000109', :did, 0, 'x', 'h2', 'fp2')",
+            {"did": document_id},
+        ),
+        (
+            "INSERT INTO chunks (id, document_version_id, ordinal, char_start, "
+            "char_end) VALUES "
+            "('00000000-0000-0000-0000-000000000110', :vid, 1, 5, 5)",
+            {"vid": version_id},
+        ),
+        (
+            "INSERT INTO chunk_sparse_embeddings "
+            "(id, chunk_id, sparse_indices, sparse_values, sparse_size, "
+            "input_hash, index_fingerprint) VALUES "
+            "('00000000-0000-0000-0000-000000000111', :cid, "
+            "CAST('[0]' AS jsonb), CAST('[1.0]' AS jsonb), -1, 'ih', "
+            "'fp-sparse')",
+            {"cid": chunk_id},
+        ),
+    ]
+
+    for statement, params in invalid_statements:
+        with pytest.raises(DB_ERROR):
+            with pg_engine.begin() as conn:
+                conn.execute(text(statement), params)

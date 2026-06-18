@@ -47,7 +47,7 @@ class Project(Base):
     retrieval_contextualization_enabled: Mapped[bool] = mapped_column(
         nullable=False, default=True, server_default="true"
     )
-    budget_config: Mapped[dict[str, Any] | None] = mapped_column(
+    budget_config_json: Mapped[dict[str, Any] | None] = mapped_column(
         JSONWithJSONB(), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
