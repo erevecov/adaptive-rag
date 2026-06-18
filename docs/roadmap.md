@@ -37,4 +37,4 @@ Siguiente tarea recomendada: implementar `m2-repositories`, porque el schema bas
 - Solo un PR activo debe tocar migraciones Alembic y modelos SQLAlchemy a la vez.
 - Abrir branches de repositories o workers solo despues de mergear el PR de schema.
 - Mantener ediciones del roadmap en PRs de planificacion o cierre de milestone.
-- Registrar progreso diario en archivos nuevos bajo `docs/progress-log/`, en vez de editar entradas antiguas.
+- No duplicar progreso rutinario en `docs/progress-log/`; OpenSpec archive, PRs y git son suficientes para cierres normales.

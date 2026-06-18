@@ -43,5 +43,6 @@ uv run adaptive-rag version
 - Crear branches desde el `origin/main` actual.
 - No correr branches de implementacion paralelas que toquen los mismos archivos.
 - Preferir PRs pequenos que se mergeen secuencialmente.
-- Agregar entradas de progreso como archivos nuevos en `docs/progress-log/`.
+- Usar `docs/progress-log/` solo para blockers, auditorias, handoffs no
+  triviales o evidencia que no quede clara en OpenSpec, PR o git.
 - Al completar una tarea, recomendar la siguiente y declarar la opcion recomendada con razonamiento.

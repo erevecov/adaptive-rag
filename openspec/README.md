@@ -27,5 +27,6 @@ escribe en espanol.
 - Un PR de implementacion debe tocar un area principal: schema, repositories, jobs, fetch policy, API o CLI.
 - No abrir dos worktrees que modifiquen simultaneamente `alembic/versions`, los mismos modelos SQLAlchemy o el mismo spec delta.
 - `docs/roadmap.md` y `docs/progress.md` se modifican solo en PRs de planificacion o cierre.
-- El progreso diario se agrega como archivo nuevo en `docs/progress-log/`; no se edita una entrada antigua salvo correccion factual inmediata.
+- `docs/progress-log/` se usa solo para blockers, auditorias, handoffs no triviales o evidencia que no quede clara en OpenSpec, PR o git.
+- No crear planes/specs nuevos bajo `docs/superpowers/`; usar OpenSpec para cambios ejecutables y `docs/architecture/` para lineas base transversales.
 - Cada PR debe salir de `origin/main` actualizado y pasar `uv run pytest`, `uv run ruff check .` y `uv run mypy src` antes de abrirse.
