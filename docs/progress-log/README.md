@@ -1,8 +1,14 @@
-# Registro de progreso
+# Registro de progreso operativo
 
-Este directorio es append-only.
+Este directorio es append-only y no reemplaza OpenSpec, PRs ni git.
 
-Usar un archivo por evento relevante:
+Usar un archivo por evento relevante solo cuando aporte contexto que no queda
+claro en otra fuente de verdad:
+
+- blockers externos o validados
+- auditorias con evidencia concreta
+- handoffs no triviales entre sesiones
+- decisiones operativas que afectan el siguiente trabajo
 
 ```text
 YYYY-MM-DD-short-description.md
@@ -10,7 +16,8 @@ YYYY-MM-DD-short-description.md
 
 Reglas:
 
-- Crear un archivo nuevo para progreso nuevo.
-- No editar entradas antiguas salvo para corregir un error factual en la misma sesion.
-- Mantener entradas concisas: contexto, comandos/evidencia, decision y siguiente paso recomendado.
-- Este directorio existe para reducir conflictos de merge entre worktrees.
+- No registrar cierres rutinarios si el PR body y OpenSpec archive ya contienen
+  la evidencia.
+- No editar entradas antiguas salvo para corregir un error factual en la misma
+  sesion.
+- Mantener entradas concisas: contexto, evidencia, decision y siguiente paso.

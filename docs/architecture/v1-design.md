@@ -3,6 +3,12 @@
 Fecha: 2026-06-15
 Estado: línea base de diseño aprobada
 
+Nota de ownership: este documento es una línea base de arquitectura y producto.
+OpenSpec (`openspec/specs/` y `openspec/changes/`) manda para contratos
+implementados, cambios activos y requisitos verificables. Si este documento
+contradice una spec canónica o un change OpenSpec aceptado, se debe actualizar
+este documento o seguir OpenSpec.
+
 ## Propósito
 
 Adaptive RAG es un proyecto RAG personal, público y con calidad de portafolio.
