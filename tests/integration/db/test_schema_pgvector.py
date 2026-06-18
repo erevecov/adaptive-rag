@@ -249,6 +249,11 @@ def test_identity_and_range_constraints_are_enforced(
 
     invalid_statements = [
         (
+            "INSERT INTO projects (id, name, embedding_mode) VALUES "
+            "('00000000-0000-0000-0000-000000000112', 'bad-mode', 'bogus')",
+            {},
+        ),
+        (
             "INSERT INTO sources (id, project_id, source_type, external_id) "
             "VALUES ('00000000-0000-0000-0000-000000000107', :pid, 'web', 'ext')",
             {"pid": project_id},
@@ -270,6 +275,12 @@ def test_identity_and_range_constraints_are_enforced(
             "INSERT INTO chunks (id, document_version_id, ordinal, char_start, "
             "char_end) VALUES "
             "('00000000-0000-0000-0000-000000000110', :vid, 1, 5, 5)",
+            {"vid": version_id},
+        ),
+        (
+            "INSERT INTO chunks (id, document_version_id, ordinal, char_start, "
+            "char_end) VALUES "
+            "('00000000-0000-0000-0000-000000000113', :vid, -1, 0, 1)",
             {"vid": version_id},
         ),
         (
