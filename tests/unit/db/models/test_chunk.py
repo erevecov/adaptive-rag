@@ -232,3 +232,47 @@ def test_chunk_token_count_cannot_be_negative():
         session.rollback()
 
     raise AssertionError("Expected IntegrityError for negative token count")
+
+
+def test_chunk_ordinal_cannot_be_negative():
+    session = _make_session()
+    version = _make_version(session)
+    chunk = Chunk(
+        document_version_id=version.id,
+        ordinal=-1,
+        char_start=0,
+        char_end=5,
+    )
+
+    session.add(chunk)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for negative ordinal")
+
+
+def test_chunk_char_start_cannot_be_negative():
+    session = _make_session()
+    version = _make_version(session)
+    chunk = Chunk(
+        document_version_id=version.id,
+        ordinal=0,
+        char_start=-1,
+        char_end=5,
+    )
+
+    session.add(chunk)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        return
+    finally:
+        session.rollback()
+
+    raise AssertionError("Expected IntegrityError for negative char_start")

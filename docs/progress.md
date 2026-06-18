@@ -8,6 +8,10 @@ M2 Dominio y persistencia.
 
 M1 Foundation cerrado el 2026-06-17.
 
+## Ultimo slice completado
+
+M2 `m2-domain-schema` mergeado y archivado el 2026-06-18.
+
 Comandos validados:
 
 ```text
@@ -22,7 +26,16 @@ uv run adaptive-rag version
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m2-domain-schema/`
+- Ninguno.
+
+## Spec canonica activa
+
+- `openspec/specs/domain-schema/spec.md`
+
+## Siguiente tarea recomendada
+
+- `m2-repositories`: implementar repositories sobre el schema mergeado,
+  manteniendo aislamiento obligatorio por `project_id` y filtros tipados.
 
 ## Reglas de coordinacion
 

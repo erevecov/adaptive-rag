@@ -3,7 +3,7 @@
 ## Estado actual
 
 - M1 Foundation: completo.
-- M2 Dominio y persistencia: planificado.
+- M2 Dominio y persistencia: en progreso.
 
 ## M1 Foundation
 
@@ -20,17 +20,17 @@ Entregado:
 
 ## M2 Dominio y persistencia
 
-Estado: siguiente.
+Estado: en progreso.
 
 Secuencia recomendada:
 
-1. `m2-domain-schema`: modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
-2. `m2-repositories`: capa de repositories con aislamiento por proyecto y filtros de metadata.
+1. `m2-domain-schema`: completo. Modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
+2. `m2-repositories`: siguiente. Capa de repositories con aislamiento por proyecto y filtros de metadata.
 3. `m2-job-queue`: jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
 4. `m2-url-fetch-policy`: proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
 5. `m2-quality-gate`: validacion del milestone y sync/archive de OpenSpec.
 
-Siguiente tarea recomendada: implementar `m2-domain-schema` primero, porque todo repository, ingestion y retrieval depende de nombres de tablas, llaves y anclas de citas estables.
+Siguiente tarea recomendada: implementar `m2-repositories`, porque el schema base ya esta mergeado y archivado; repositories debe fijar el acceso seguro por proyecto antes de ingestion, retrieval o chat.
 
 ## Politica para reducir conflictos de merge
 

@@ -1,10 +1,10 @@
 # Propuesta M2 de schema de dominio
 
-## Por que
+## Why
 
 M1 dejo la base de proyecto lista, pero Adaptive RAG todavia no tiene un modelo persistente para proyectos, fuentes, documentos, versiones normalizadas, chunks ni embeddings. M2 necesita fijar ese contrato antes de implementar ingestion, retrieval o chat.
 
-## Que cambia
+## What Changes
 
 - Agregar el contrato de schema para entidades core de RAG.
 - Definir la persistencia de texto normalizado, huellas, metadatos de parsing y offsets de citas.

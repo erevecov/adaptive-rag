@@ -32,4 +32,4 @@
 - [x] 5.2 Ejecutar `uv run ruff check .`.
 - [x] 5.3 Ejecutar `uv run mypy src`.
 - [x] 5.4 Actualizar `docs/progress-log/` con una entrada nueva de cierre.
-- [ ] 5.5 Abrir un PR y no empezar trabajo de repository layer hasta que el PR de schema este mergeado.
+- [x] 5.5 Abrir un PR y no empezar trabajo de repository layer hasta que el PR de schema este mergeado.

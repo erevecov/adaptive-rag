@@ -1,10 +1,11 @@
-# Delta spec de schema de dominio
+# domain-schema Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change m2-domain-schema. Update Purpose after archive.
+## Requirements
 ### Requirement: Registros de proyecto definen aislamiento y modo de retrieval
 
-El sistema DEBE persistir registros de proyecto que aislen todos los datos RAG por `project_id` y definan configuracion de retrieval.
+El sistema MUST persistir registros de proyecto que aislen todos los datos RAG por `project_id` y definan configuracion de retrieval.
 
 #### Scenario: Proyecto usa dense retrieval por defecto
 
@@ -19,7 +20,7 @@ El sistema DEBE persistir registros de proyecto que aislen todos los datos RAG p
 
 ### Requirement: Sources y documents preservan identidad de ingestion
 
-El sistema DEBE persistir sources y documents con identificadores estables, source type, identificadores externos, metadata y pertenencia a proyecto.
+El sistema MUST persistir sources y documents con identificadores estables, source type, identificadores externos, metadata y pertenencia a proyecto.
 
 #### Scenario: Documents pertenecen a un proyecto y source
 
@@ -34,7 +35,7 @@ El sistema DEBE persistir sources y documents con identificadores estables, sour
 
 ### Requirement: Document versions anclan texto normalizado y citas
 
-El sistema DEBE guardar cada document version parseada con texto normalizado, parser metadata, extraction metadata, content hash e index fingerprint.
+El sistema MUST guardar cada document version parseada con texto normalizado, parser metadata, extraction metadata, content hash e index fingerprint.
 
 #### Scenario: Offsets de chunk refieren a texto normalizado
 
@@ -49,7 +50,7 @@ El sistema DEBE guardar cada document version parseada con texto normalizado, pa
 
 ### Requirement: Chunks guardan inputs de embedding denso y limites semanticos
 
-El sistema DEBE persistir chunks con section metadata, conteo de tokens, enlaces vecinos, chunker metadata, campos reservados para contextual retrieval y embeddings densos.
+El sistema MUST persistir chunks con section metadata, conteo de tokens, enlaces vecinos, chunker metadata, campos reservados para contextual retrieval y embeddings densos.
 
 #### Scenario: Columna de embedding denso tiene dimensiones compatibles con Qwen
 
@@ -63,7 +64,7 @@ El sistema DEBE persistir chunks con section metadata, conteo de tokens, enlaces
 
 ### Requirement: Sparse embeddings son opcionales y aislados
 
-El sistema DEBE guardar datos de sparse embeddings en `chunk_sparse_embeddings` solo cuando un proyecto usa modo `dense_sparse`.
+El sistema MUST guardar datos de sparse embeddings en `chunk_sparse_embeddings` solo cuando un proyecto usa modo `dense_sparse`.
 
 #### Scenario: Proyectos dense-only no necesitan filas sparse
 
@@ -74,3 +75,4 @@ El sistema DEBE guardar datos de sparse embeddings en `chunk_sparse_embeddings` 
 
 - **WHEN** se guardan sparse embeddings
 - **THEN** cada fila incluye sparse indices, sparse values, sparse tokens opcionales, sparse size, input hash e index fingerprint
+
