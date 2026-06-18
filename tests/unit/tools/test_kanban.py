@@ -54,7 +54,10 @@ Secuencia recomendada:
     assert schema["milestone_id"] == "m2"
     assert schema["milestone_title"] == "M2 Dominio y persistencia"
     assert schema["order"] == 1
-    assert schema["title"] == "modelos SQLAlchemy y migracion Alembic para schema de proyectos"
+    expected_title = (
+        "modelos SQLAlchemy y migracion Alembic para schema de proyectos"
+    )
+    assert schema["title"] == expected_title
 
 
 def test_parse_state_counts_checkboxes_from_tasks_md(tmp_path):
@@ -213,7 +216,9 @@ def test_render_html_embeds_state_and_slices(tmp_path):
 
     state = {
         "generated_at": "2026-06-17T12:00:00+00:00",
-        "milestones": [{"id": "m2", "title": "M2 Dominio y persistencia", "closed_at": None}],
+        "milestones": [
+            {"id": "m2", "title": "M2 Dominio y persistencia", "closed_at": None}
+        ],
         "slices": [
             {
                 "id": "m2-domain-schema",

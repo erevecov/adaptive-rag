@@ -18,9 +18,13 @@ import sys
 import webbrowser
 from datetime import datetime
 from pathlib import Path
+from typing import Any
+
+# A slice/milestone is a JSON-shaped dict; values are str|int|bool|None.
+JSONDict = dict[str, Any]
 
 
-def parse_state(repo_root: Path) -> dict:
+def parse_state(repo_root: Path) -> JSONDict:
     roadmap = (repo_root / "docs" / "roadmap.md").read_text(encoding="utf-8")
     milestones = _parse_milestones(roadmap)
     slices = _parse_slices(roadmap, milestones)
@@ -34,7 +38,7 @@ def parse_state(repo_root: Path) -> dict:
     }
 
 
-def _enrich_from_changes(repo_root: Path, slices: list[dict]) -> None:
+def _enrich_from_changes(repo_root: Path, slices: list[JSONDict]) -> None:
     for slice_ in slices:
         tasks_path = repo_root / "openspec" / "changes" / slice_["id"] / "tasks.md"
         slice_["has_spec"] = tasks_path.exists()
@@ -46,7 +50,9 @@ def _enrich_from_changes(repo_root: Path, slices: list[dict]) -> None:
 _ARCHIVE_MILESTONE_RE = re.compile(r"^(m\d+)")
 
 
-def _add_archived(repo_root: Path, slices: list[dict], milestones: list[dict]) -> None:
+def _add_archived(
+    repo_root: Path, slices: list[JSONDict], milestones: list[JSONDict]
+) -> None:
     archive_dir = repo_root / "openspec" / "changes" / "archive"
     if not archive_dir.is_dir():
         return
@@ -93,14 +99,14 @@ def _strip_date_prefix(name: str) -> str:
     return match.group(1) if match else name
 
 
-def _classify_all(slices: list[dict]) -> None:
+def _classify_all(slices: list[JSONDict]) -> None:
     for slice_ in slices:
         if slice_["column"] == "done":
             continue  # archive entries are already done
         slice_["column"] = _classify(slice_)
 
 
-def _classify(slice_: dict) -> str:
+def _classify(slice_: JSONDict) -> str:
     total = slice_["total"]
     done = slice_["done"]
     if total > 0 and done == total:
@@ -128,7 +134,7 @@ def _count_checkboxes(tasks_path: Path) -> tuple[int, int]:
 _MILESTONE_RE = re.compile(r"^##\s+(M\d+)\s+(.+?)\s*$", re.MULTILINE)
 
 
-def _parse_milestones(roadmap_text: str) -> list[dict]:
+def _parse_milestones(roadmap_text: str) -> list[JSONDict]:
     milestones = []
     for match in _MILESTONE_RE.finditer(roadmap_text):
         milestones.append(
@@ -144,10 +150,10 @@ def _parse_milestones(roadmap_text: str) -> list[dict]:
 _SLICE_RE = re.compile(r"^\d+\.\s+`([^`]+)`:\s*(.+?)\s*$", re.MULTILINE)
 
 
-def _parse_slices(roadmap_text: str, milestones: list[dict]) -> list[dict]:
+def _parse_slices(roadmap_text: str, milestones: list[JSONDict]) -> list[JSONDict]:
     title_by_id = {m["id"]: m["title"] for m in milestones}
     current_milestone_id: str | None = None
-    slices: list[dict] = []
+    slices: list[JSONDict] = []
     order_per_milestone: dict[str, int] = {}
 
     lines = roadmap_text.splitlines()
@@ -208,7 +214,8 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
            padding: 10px; margin-bottom: 8px; }}
   .card .title {{ font-weight: 600; font-size: 13px; }}
   .card .sub {{ color: #888; font-size: 11px; margin-top: 2px; }}
-  .bar {{ height: 5px; background: #eee; border-radius: 3px; margin-top: 8px; overflow: hidden; }}
+  .bar {{ height: 5px; background: #eee; border-radius: 3px;
+          margin-top: 8px; overflow: hidden; }}
   .bar > span {{ display: block; height: 100%; border-radius: 3px; }}
   .card .progress-text {{ font-size: 11px; margin-top: 4px; }}
   .card.done {{ opacity: 0.75; }}
@@ -256,7 +263,8 @@ window.__KANBAN_STATE__ = {state_json};
         var bar = document.createElement("div");
         bar.className = "bar";
         var fill = document.createElement("span");
-        fill.style.width = (s.total === 0 ? 0 : Math.round(s.done / s.total * 100)) + "%";
+        var pct = s.total === 0 ? 0 : Math.round(s.done / s.total * 100);
+        fill.style.width = pct + "%";
         fill.style.background = col.color;
         bar.appendChild(fill);
         card.appendChild(bar);
@@ -277,8 +285,11 @@ window.__KANBAN_STATE__ = {state_json};
 """
 
 
-def render_html(state: dict, out_path: Path) -> None:
-    columns = [{"id": cid, "label": label, "color": color} for cid, label, color in _COLUMNS]
+def render_html(state: JSONDict, out_path: Path) -> None:
+    columns = [
+        {"id": cid, "label": label, "color": color}
+        for cid, label, color in _COLUMNS
+    ]
     html_doc = _HTML_TEMPLATE.format(
         generated_at=html.escape(state["generated_at"]),
         state_json=json.dumps(state, ensure_ascii=False),
