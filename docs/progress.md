@@ -10,7 +10,7 @@ M1 Foundation cerrado el 2026-06-17.
 
 ## Ultimo slice completado
 
-M2 `m2-job-queue` implementado y archivado el 2026-06-18.
+M2 `m2-url-fetch-policy` implementado y archivado el 2026-06-18.
 
 Comandos validados:
 
@@ -30,11 +30,12 @@ openspec validate --specs --strict
 - `openspec/specs/domain-schema/spec.md`
 - `openspec/specs/repositories/spec.md`
 - `openspec/specs/job-queue/spec.md`
+- `openspec/specs/url-fetch-policy/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m2-url-fetch-policy`: implementar proteccion contra SSRF, DNS rebinding,
-  redirects inseguros, content type no permitido y tamano maximo de respuesta.
+- `m2-quality-gate`: validar el milestone M2 completo, reconciliar docs y
+  preparar el handoff hacia ingestion/retrieval.
 
 ## Reglas de coordinacion
 
