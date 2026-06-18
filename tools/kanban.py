@@ -14,6 +14,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import sys
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -288,7 +289,17 @@ def render_html(state: dict, out_path: Path) -> None:
 
 
 def main() -> int:
-    raise NotImplementedError
+    repo_root = Path(__file__).resolve().parents[1]
+    try:
+        state = parse_state(repo_root)
+    except FileNotFoundError as exc:
+        sys.stderr.write(f"kanban: no se pudo parsear el estado: {exc}\n")
+        return 1
+    out_path = repo_root / "tools" / "kanban" / "index.html"
+    render_html(state, out_path)
+    webbrowser.open(out_path.as_uri())
+    print(f"Kanban generado: {out_path}")
+    return 0
 
 
 if __name__ == "__main__":
