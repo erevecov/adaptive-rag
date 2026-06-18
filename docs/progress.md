@@ -10,18 +10,15 @@ M1 Foundation cerrado el 2026-06-17.
 
 ## Ultimo slice completado
 
-M2 `m2-domain-schema` mergeado y archivado el 2026-06-18.
+M2 `m2-repositories` implementado y archivado el 2026-06-18.
 
 Comandos validados:
 
 ```text
-uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-uv run python -c "from adaptive_rag.api.app import app; print(app.title)"
-uv run adaptive-rag health
-uv run adaptive-rag version
+openspec validate --specs --strict
 ```
 
 ## Change OpenSpec activo
@@ -31,11 +28,12 @@ uv run adaptive-rag version
 ## Spec canonica activa
 
 - `openspec/specs/domain-schema/spec.md`
+- `openspec/specs/repositories/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m2-repositories`: implementar repositories sobre el schema mergeado,
-  manteniendo aislamiento obligatorio por `project_id` y filtros tipados.
+- `m2-job-queue`: implementar jobs, eventos, retries, estados
+  `blocked`/`dead-letter` y leasing de workers sobre el dominio persistente.
 
 ## Reglas de coordinacion
 
