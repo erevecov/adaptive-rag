@@ -134,10 +134,10 @@ Secuencia inicial propuesta:
 1. `m6-evals-plan`: completo en branch de planificacion. Crea el change
    OpenSpec que delimita evals offline antes de providers live, streaming o
    persistencia de conversaciones.
-2. `m6-evals-fixtures-contract`: siguiente. Crear el paquete
+2. `m6-evals-fixtures-contract`: completo. Crea el paquete
    `adaptive_rag.evals` inicial, modelos de casos/resultados y loader de
    fixtures versionados con validacion estricta.
-3. `m6-retrieval-eval-runner`: pendiente. Ejecutar casos de retrieval contra
+3. `m6-retrieval-eval-runner`: siguiente. Ejecutar casos de retrieval contra
    `RetrievalService` con provider fake y metricas top-k/expected chunk.
 4. `m6-chat-eval-runner`: pendiente. Ejecutar casos de chat contra
    `ChatService` con runner fake y checks de citations/tool calls.
@@ -146,9 +146,9 @@ Secuencia inicial propuesta:
 6. `m6-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals
    hosted, dashboards o tuning automatico.
 
-Siguiente tarea recomendada: implementar `m6-evals-fixtures-contract`, porque
-los runners, metricas y reportes necesitan primero una forma estable de
-declarar cases, expected evidence y thresholds.
+Siguiente tarea recomendada: implementar `m6-retrieval-eval-runner`, porque el
+contrato de fixtures ya puede declarar cases, expected evidence y thresholds, y
+el primer uso debe medir retrieval antes de sumar chat o CLI.
 
 ## Politica para reducir conflictos de merge
 
