@@ -6,7 +6,7 @@
 - M2 Dominio y persistencia: completo.
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
-- M5 Chat/tool calling: planificacion en curso.
+- M5 Chat/tool calling: validacion/cierre pendiente.
 
 ## M1 Foundation
 
@@ -87,7 +87,7 @@ antes de agregar comportamiento agentico o providers live.
 
 ## M5 Chat/tool calling
 
-Estado: planificacion en curso.
+Estado: validacion/cierre pendiente.
 
 Change activo:
 
@@ -105,14 +105,15 @@ Secuencia inicial propuesta:
 3. `m5-chat-api-endpoint`: completo. Agrega `POST /projects/{project_id}/chat`
    como adaptador delgado sobre el servicio conversacional, con schemas HTTP,
    dependency overrides y tests deterministas.
-4. `m5-chat-cli-command`: siguiente. Agregar `adaptive-rag chat ask` usando el
-   mismo servicio y payloads que la API.
-5. `m5-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals,
+4. `m5-chat-cli-command`: completo. Agrega `adaptive-rag chat ask` como
+   adaptador delgado sobre el servicio conversacional, reutilizando
+   `RetrievalService`, payloads compartidos y filtros CLI.
+5. `m5-quality-gate`: siguiente. Validar y cerrar el milestone antes de evals,
    streaming, persistencia de conversaciones o providers live obligatorios.
 
-Siguiente tarea recomendada: implementar `m5-chat-cli-command`, porque el
-endpoint HTTP ya valido el contrato externo y la CLI debe reutilizar la misma
-logica sin duplicar chat ni retrieval.
+Siguiente tarea recomendada: ejecutar `m5-quality-gate`, porque las superficies
+compartidas, API y CLI de M5 ya estan implementadas y corresponde archivar el
+change antes de abrir trabajo nuevo.
 
 ## Politica para reducir conflictos de merge
 
