@@ -6,7 +6,8 @@
 - M2 Dominio y persistencia: completo.
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
-- M5 Chat/tool calling: validacion/cierre pendiente.
+- M5 Chat/tool calling: completo.
+- M6 Evals: recomendado.
 
 ## M1 Foundation
 
@@ -87,15 +88,17 @@ antes de agregar comportamiento agentico o providers live.
 
 ## M5 Chat/tool calling
 
-Estado: validacion/cierre pendiente.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `m5-chat-tool-calling-plan`: define el contrato conversacional sobre la
-  superficie estable de M4, con retrieval como tool tipada, respuesta
-  estructurada con citations y adaptadores API/CLI delgados.
+- `openspec/changes/archive/2026-06-19-m5-chat-tool-calling-plan/`
 
-Secuencia inicial propuesta:
+Spec canonica:
+
+- `openspec/specs/chat-tool-calling/spec.md`
+
+Secuencia entregada:
 
 1. `m5-chat-tool-calling-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita chat/tool calling sobre `RetrievalService`.
@@ -108,12 +111,23 @@ Secuencia inicial propuesta:
 4. `m5-chat-cli-command`: completo. Agrega `adaptive-rag chat ask` como
    adaptador delgado sobre el servicio conversacional, reutilizando
    `RetrievalService`, payloads compartidos y filtros CLI.
-5. `m5-quality-gate`: siguiente. Validar y cerrar el milestone antes de evals,
-   streaming, persistencia de conversaciones o providers live obligatorios.
+5. `m5-quality-gate`: completo. Valida tests, lint, types, smokes CLI,
+   OpenSpec, archiva el change M5 y publica la spec canonica de
+   chat/tool calling.
 
-Siguiente tarea recomendada: ejecutar `m5-quality-gate`, porque las superficies
-compartidas, API y CLI de M5 ya estan implementadas y corresponde archivar el
-change antes de abrir trabajo nuevo.
+Continuacion: M5 quedo completado sobre la superficie estable de retrieval de
+M4. La siguiente decision debe abrir un change OpenSpec nuevo para M6 antes de
+agregar streaming, persistencia de conversaciones o providers live obligatorios.
+
+## M6 Evals
+
+Estado: recomendado.
+
+Siguiente tarea recomendada: abrir `m6-evals-plan` para definir evaluaciones
+offline de retrieval/chat. La opcion recomendada es empezar por datasets y
+metricas reproducibles de calidad, groundedness y regresiones, porque el sistema
+ya puede responder con citations pero todavia no tiene una forma canonica de
+medir si esas respuestas mejoran o empeoran.
 
 ## Politica para reducir conflictos de merge
 

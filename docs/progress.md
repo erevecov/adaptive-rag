@@ -2,18 +2,17 @@
 
 ## Milestone activo
 
-M5 Chat/tool calling.
+Ninguno. El siguiente milestone recomendado es M6 Evals.
 
 ## Ultimo milestone completado
 
-M4 Superficie de retrieval cerrado el 2026-06-19.
+M5 Chat/tool calling cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M5 `m5-chat-cli-command`: agrega `adaptive-rag chat ask` como adaptador
-delgado sobre `ChatService`, reutilizando `RetrievalService`,
-`serialize_chat_response` y la construccion compartida de filtros CLI con
-`retrieval search`.
+M5 `m5-quality-gate`: valida el milestone completo, archiva
+`m5-chat-tool-calling-plan` y publica
+`openspec/specs/chat-tool-calling/spec.md` como spec canonica.
 
 Comandos validados:
 
@@ -24,12 +23,16 @@ uv run mypy src
 openspec validate m5-chat-tool-calling-plan --strict
 openspec list
 openspec validate --specs --strict
+uv run adaptive-rag version
+uv run adaptive-rag health
+uv run adaptive-rag retrieval search --help
+uv run adaptive-rag chat ask --help
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `m5-chat-tool-calling-plan`
+- Ninguno.
 
 ## Spec canonica activa
 
@@ -43,13 +46,15 @@ git diff --check
 - `openspec/specs/embedding-baseline/spec.md`
 - `openspec/specs/retrieval-baseline/spec.md`
 - `openspec/specs/retrieval-surface/spec.md`
+- `openspec/specs/chat-tool-calling/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m5-quality-gate`: validar el milestone completo y archivar
-  `m5-chat-tool-calling-plan`. Es la opcion recomendada porque ya estan
-  implementadas las superficies compartidas, API y CLI; queda cerrar M5 antes
-  de abrir evals, streaming, persistencia de conversaciones o providers live.
+- `m6-evals-plan`: abrir un change OpenSpec para definir evaluaciones offline
+  de retrieval/chat antes de streaming, persistencia de conversaciones o
+  providers live. Es la opcion recomendada porque el sistema ya puede responder
+  con citations, pero todavia no tiene una forma canonica de medir calidad,
+  groundedness y regresiones.
 
 ## Reglas de coordinacion
 
