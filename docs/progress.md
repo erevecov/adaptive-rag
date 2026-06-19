@@ -2,16 +2,17 @@
 
 ## Milestone activo
 
-M3 Ingestion y retrieval.
+Ninguno. M3 queda cerrado y archivado.
 
 ## Ultimo milestone completado
 
-M2 Dominio y persistencia cerrado el 2026-06-18.
+M3 Ingestion y retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M3 `m3-retrieval-baseline` implementado dentro del change activo
-`m3-ingestion-retrieval-plan`.
+M3 `m3-quality-gate` valido el milestone completo y archivo el change
+`m3-ingestion-retrieval-plan` como
+`openspec/changes/archive/2026-06-19-m3-ingestion-retrieval-plan/`.
 
 Comandos validados:
 
@@ -20,14 +21,18 @@ uv run pytest
 uv run ruff check .
 uv run mypy src
 openspec validate m3-ingestion-retrieval-plan --strict
+openspec archive m3-ingestion-retrieval-plan --yes
 openspec validate --specs --strict
 openspec list
+openspec list --specs
+uv run adaptive-rag health
+uv run adaptive-rag version
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `m3-ingestion-retrieval-plan`
+- Ninguno.
 
 ## Spec canonica activa
 
@@ -35,11 +40,18 @@ git diff --check
 - `openspec/specs/repositories/spec.md`
 - `openspec/specs/job-queue/spec.md`
 - `openspec/specs/url-fetch-policy/spec.md`
+- `openspec/specs/ingestion-retrieval-plan/spec.md`
+- `openspec/specs/ingestion-pipeline/spec.md`
+- `openspec/specs/chunking-baseline/spec.md`
+- `openspec/specs/embedding-baseline/spec.md`
+- `openspec/specs/retrieval-baseline/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m3-quality-gate`: validar tests, lint, types, specs y reconciliar el cierre
-  del milestone M3 antes de archivar el change activo.
+- Crear un nuevo change OpenSpec para M4 antes de implementar chat/tool calling,
+  API/CLI de retrieval, evals o providers live. La opcion recomendada es
+  planificar primero el siguiente vertical slice sobre el baseline M3 ya
+  archivado.
 
 ## Reglas de coordinacion
 

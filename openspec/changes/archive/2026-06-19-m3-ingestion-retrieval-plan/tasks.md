@@ -23,5 +23,5 @@
 - [x] 3.2 Implementar `m3-chunking-baseline`.
 - [x] 3.3 Implementar `m3-embedding-baseline`.
 - [x] 3.4 Implementar `m3-retrieval-baseline`.
-- [ ] 3.5 Ejecutar `m3-quality-gate` y archivar el change cuando M3 quede
+- [x] 3.5 Ejecutar `m3-quality-gate` y archivar el change cuando M3 quede
   cerrado.
