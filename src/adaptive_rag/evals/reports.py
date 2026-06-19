@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from adaptive_rag.evals.models import EvalCaseResult, EvalRunReport
+from adaptive_rag.evals.models import (
+    EvalCaseResult,
+    EvalObservedCitation,
+    EvalRunReport,
+)
 
 
 def serialize_eval_report(report: EvalRunReport) -> dict[str, Any]:
@@ -18,12 +22,33 @@ def serialize_eval_report(report: EvalRunReport) -> dict[str, Any]:
 
 
 def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "id": result.id,
         "kind": result.kind,
         "status": result.status,
         "metrics": _sorted_metrics(result.metrics),
         "errors": list(result.errors),
+    }
+    if result.observed_evidence_ids:
+        payload["observed_evidence_ids"] = list(result.observed_evidence_ids)
+    if result.observed_citations:
+        payload["observed_citations"] = [
+            serialize_eval_observed_citation(citation)
+            for citation in result.observed_citations
+        ]
+    return payload
+
+
+def serialize_eval_observed_citation(
+    citation: EvalObservedCitation,
+) -> dict[str, Any]:
+    return {
+        "evidence_id": citation.evidence_id,
+        "chunk_id": citation.chunk_id,
+        "rank": citation.rank,
+        "score": citation.score,
+        "source_external_id": citation.source_external_id,
+        "snippet": citation.snippet,
     }
 
 

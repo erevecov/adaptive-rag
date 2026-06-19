@@ -137,18 +137,18 @@ Secuencia inicial propuesta:
 2. `m6-evals-fixtures-contract`: completo. Crea el paquete
    `adaptive_rag.evals` inicial, modelos de casos/resultados y loader de
    fixtures versionados con validacion estricta.
-3. `m6-retrieval-eval-runner`: siguiente. Ejecutar casos de retrieval contra
+3. `m6-retrieval-eval-runner`: completo. Ejecuta casos de retrieval contra
    `RetrievalService` con provider fake y metricas top-k/expected chunk.
-4. `m6-chat-eval-runner`: pendiente. Ejecutar casos de chat contra
+4. `m6-chat-eval-runner`: siguiente. Ejecutar casos de chat contra
    `ChatService` con runner fake y checks de citations/tool calls.
 5. `m6-evals-cli-reporting`: pendiente. Agregar `adaptive-rag evals run` con
    salida JSON, thresholds y exit code estable para CI.
 6. `m6-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals
    hosted, dashboards o tuning automatico.
 
-Siguiente tarea recomendada: implementar `m6-retrieval-eval-runner`, porque el
-contrato de fixtures ya puede declarar cases, expected evidence y thresholds, y
-el primer uso debe medir retrieval antes de sumar chat o CLI.
+Siguiente tarea recomendada: implementar `m6-chat-eval-runner`, porque retrieval
+ya tiene un harness offline reutilizable y el siguiente riesgo es validar
+citations, tool calls y ausencia de evidence inventada antes de publicar CLI.
 
 ## Politica para reducir conflictos de merge
 
