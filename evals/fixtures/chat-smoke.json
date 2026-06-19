@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "suite_id": "chat-smoke",
+  "description": "Small offline chat eval fixture.",
+  "thresholds": {
+    "chat_citation_coverage": 1.0
+  },
+  "evidence": [
+    {
+      "id": "alpha",
+      "text": "Alpha original evidence",
+      "source_type": "markdown",
+      "source_external_id": "alpha.md",
+      "tags": ["docs", "v1"],
+      "metadata": {
+        "title": "Alpha"
+      }
+    },
+    {
+      "id": "far",
+      "text": "Far unrelated evidence",
+      "source_type": "markdown",
+      "source_external_id": "far.md",
+      "tags": ["docs", "v1"],
+      "metadata": {
+        "title": "Far"
+      }
+    }
+  ],
+  "retrieval_cases": [],
+  "chat_cases": [
+    {
+      "id": "chat-alpha",
+      "message": "Alpha original evidence",
+      "retrieval_limit": 2,
+      "metadata_filter": {
+        "source_type": "markdown",
+        "tags": ["docs", "v1"]
+      },
+      "expected_evidence_ids": ["alpha"],
+      "expected_tool_queries": ["Alpha original evidence"]
+    }
+  ]
+}

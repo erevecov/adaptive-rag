@@ -99,6 +99,7 @@ class EvalCaseResult:
     errors: tuple[str, ...] = ()
     observed_evidence_ids: tuple[str, ...] = ()
     observed_citations: tuple[EvalObservedCitation, ...] = ()
+    observed_tool_queries: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

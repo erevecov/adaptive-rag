@@ -36,6 +36,8 @@ def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:
             serialize_eval_observed_citation(citation)
             for citation in result.observed_citations
         ]
+    if result.observed_tool_queries:
+        payload["observed_tool_queries"] = list(result.observed_tool_queries)
     return payload
 
 
