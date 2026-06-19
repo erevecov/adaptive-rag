@@ -2,18 +2,17 @@
 
 ## Milestone activo
 
-M6 Evals.
+Ninguno. Siguiente propuesto: M7 Provider runtime.
 
 ## Ultimo milestone completado
 
-M5 Chat/tool calling cerrado el 2026-06-19.
+M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M6 `m6-evals-cli-reporting`: agrega `adaptive-rag evals run` como superficie
-no interactiva para cargar suites locales, ejecutar retrieval y chat offline,
-emitir reportes JSON por stdout o `--output`, y devolver exit code 1 cuando el
-reporte final falla.
+M6 `m6-quality-gate`: valida el milestone completo, archiva
+`m6-evals-plan`, publica `openspec/specs/evals-baseline/spec.md` como spec
+canonica y deja `openspec list` sin changes activos.
 
 Comandos validados:
 
@@ -22,14 +21,17 @@ uv run pytest
 uv run ruff check .
 uv run mypy src
 openspec validate m6-evals-plan --strict
-openspec list
 openspec validate --specs --strict
+uv run adaptive-rag version
+uv run adaptive-rag health
+openspec archive m6-evals-plan --yes
+openspec list
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `m6-evals-plan`
+- Ninguno.
 
 ## Spec canonica activa
 
@@ -44,13 +46,15 @@ git diff --check
 - `openspec/specs/retrieval-baseline/spec.md`
 - `openspec/specs/retrieval-surface/spec.md`
 - `openspec/specs/chat-tool-calling/spec.md`
+- `openspec/specs/evals-baseline/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m6-quality-gate`: validar el milestone completo, archivar `m6-evals-plan` y
-  publicar la spec canonica de evals. Es la opcion recomendada porque fixtures,
-  runners y CLI ya existen; ahora falta cerrar M6 con evidencia fresca antes de
-  avanzar a evals hosted, dashboards o tuning automatico.
+- Abrir un nuevo change OpenSpec para el siguiente milestone. La opcion
+  recomendada es `m7-provider-runtime-plan`, porque M6 dejo evals offline listos
+  y la siguiente frontera de riesgo de la v1 es integrar providers live con
+  limites de usage/costo antes de agregar evals hosted, dashboards, streaming o
+  tuning automatico.
 
 ## Reglas de coordinacion
 
