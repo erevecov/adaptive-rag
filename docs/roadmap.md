@@ -99,19 +99,19 @@ Secuencia inicial propuesta:
 
 1. `m5-chat-tool-calling-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita chat/tool calling sobre `RetrievalService`.
-2. `m5-chat-service-contract`: siguiente. Implementar `adaptive_rag.chat` con
+2. `m5-chat-service-contract`: completo. Implementa `adaptive_rag.chat` con
    servicio compartido, runner/modelo inyectado, tool de retrieval tipada,
    payloads reutilizables y fakes deterministas.
-3. `m5-chat-api-endpoint`: pendiente. Agregar `POST /projects/{project_id}/chat`
+3. `m5-chat-api-endpoint`: siguiente. Agregar `POST /projects/{project_id}/chat`
    como adaptador delgado sobre el servicio conversacional.
 4. `m5-chat-cli-command`: pendiente. Agregar `adaptive-rag chat ask` usando el
    mismo servicio y payloads que la API.
 5. `m5-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals,
    streaming, persistencia de conversaciones o providers live obligatorios.
 
-Siguiente tarea recomendada: implementar `m5-chat-service-contract`, porque API
-y CLI deben reutilizar una abstraccion comun para evitar archivos gigantes,
-duplicacion de filtros y acoplamiento directo a Pydantic AI.
+Siguiente tarea recomendada: implementar `m5-chat-api-endpoint`, porque el
+contrato compartido ya existe y la API debe reutilizarlo antes de duplicar
+superficies en CLI.
 
 ## Politica para reducir conflictos de merge
 
