@@ -8,7 +8,7 @@
 - M4 Superficie de retrieval: completo.
 - M5 Chat/tool calling: completo.
 - M6 Evals: completo.
-- M7 Provider runtime: activo.
+- M7 Provider runtime: completo.
 
 ## M1 Foundation
 
@@ -155,38 +155,34 @@ Secuencia entregada:
    evals.
 
 Continuacion: M6 quedo completado sobre retrieval/chat estables y evals offline.
-La siguiente decision debe abrir un change OpenSpec nuevo antes de agregar evals
-hosted, dashboards, streaming o tuning automatico. La opcion recomendada es
-`m7-provider-runtime-plan`, porque la siguiente frontera de riesgo de la v1 es
-integrar providers live con limites de usage/costo y fakes/contract tests antes
-de depender de red o credenciales.
+La siguiente decision fue `m7-provider-runtime-plan`, para integrar providers
+live con limites de usage/costo y fakes/contract tests antes de depender de red
+o credenciales.
 
 ## M7 Provider runtime
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m7-provider-runtime-plan/`: define el runtime opt-in para
-  providers live de embeddings y chat, con fake default, settings/factories
-  configurables, limites de usage/costo, metadata estructurada y smokes live
-  separados de tests/evals offline.
+- `openspec/changes/archive/2026-06-19-m7-provider-runtime-plan/`: define el
+  runtime opt-in para providers live de embeddings y chat, con fake default,
+  settings/factories configurables, limites de usage/costo, metadata
+  estructurada y smokes live separados de tests/evals offline.
 
 Spec canonica:
 
-- Pendiente. Se publicara `openspec/specs/provider-runtime/spec.md` al cerrar
-  M7 con `m7-quality-gate`.
+- `openspec/specs/provider-runtime/spec.md`
 
-Secuencia recomendada:
+Secuencia entregada:
 
 1. `m7-provider-runtime-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita providers live antes de streaming, dashboards,
    hosted evals o tuning automatico.
-2. `m7-provider-settings-contract`: siguiente slice recomendado. Define
-   settings, factories API/CLI, fake default y errores estables de configuracion
-   antes de tocar SDKs live. Completo: modela Qwen como provider live opt-in con
-   `ADAPTIVE_RAG_QWEN_API_KEY` y `ADAPTIVE_RAG_QWEN_BASE_URL`, mantiene fake por
-   defecto y propaga errores de configuracion desde API/CLI.
+2. `m7-provider-settings-contract`: completo. Define settings, factories
+   API/CLI, fake default y errores estables de configuracion antes de tocar
+   SDKs live; modela Qwen como provider live opt-in con
+   `ADAPTIVE_RAG_QWEN_API_KEY` y `ADAPTIVE_RAG_QWEN_BASE_URL`.
 3. `m7-live-embedding-provider`: agrega el adapter live de embeddings bajo
    `DenseEmbeddingProvider`, manteniendo dimension 1024, tests sin red y smoke
    live opt-in. Completo: agrega `QwenDenseEmbeddingProvider`, cliente HTTP para
@@ -202,11 +198,14 @@ Secuencia recomendada:
    agrega records estructurados, tracker in-memory, price catalog configurable,
    budget guard y manejo estable de errores de presupuesto en smokes CLI.
 6. `m7-quality-gate`: valida el milestone completo, archiva el change M7 y
-   publica la spec canonica `provider-runtime`. Siguiente slice recomendado.
+   publica la spec canonica `provider-runtime`.
 
-Continuacion: M7 debe cerrar la frontera operativa de providers live antes de
-habilitar streaming, hosted evals, dashboards, rerank live o persistencia de
-conversaciones.
+Continuacion: M7 cerro la frontera operativa minima de providers live. La
+siguiente decision debe abrir un change OpenSpec M8 antes de implementar mas
+runtime. La opcion recomendada es `m8-live-provider-evals-plan`, porque Qwen ya
+tiene smokes live acotados y la siguiente validacion de riesgo es medir
+calidad/costo en evals hosted antes de streaming, dashboards, rerank live o
+persistencia de conversaciones.
 
 ## Politica para reducir conflictos de merge
 
