@@ -44,11 +44,11 @@ Secuencia inicial propuesta:
 1. `m3-ingestion-retrieval-plan`: en curso. Crear el change OpenSpec que delimita los primeros slices de ingestion/retrieval sobre los contratos ya cerrados de M2.
 2. `m3-ingestion-pipeline`: completo en branch de implementacion. Conecta sources, documents, document versions, jobs y `URLFetchPolicy` en un flujo de ingestion verificable con fakes, sin chunking ni embeddings.
 3. `m3-chunking-baseline`: completo en branch de implementacion. Implementa chunking semantico inicial con offsets reproducibles para citations.
-4. `m3-embedding-baseline`: siguiente. Construir inputs de embedding/contexto y persistir embeddings densos usando provider fakes antes de Qwen live.
-5. `m3-retrieval-baseline`: implementar retrieval exacto inicial con filtros por proyecto y metadata, basado en datos persistidos por los slices anteriores.
+4. `m3-embedding-baseline`: completo en branch de implementacion. Construye inputs de embedding/contexto y persiste embeddings densos usando provider fakes antes de Qwen live.
+5. `m3-retrieval-baseline`: siguiente. Implementar retrieval exacto inicial con filtros por proyecto y metadata, basado en datos persistidos por los slices anteriores.
 6. `m3-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
 
-Siguiente tarea recomendada: despues de mergear `m3-chunking-baseline`, empezar `m3-embedding-baseline`, porque chunking ya produce offsets y lineage; el proximo riesgo es fijar el contrato de inputs de embedding y validar dimensiones con fakes antes de Qwen live.
+Siguiente tarea recomendada: despues de mergear `m3-embedding-baseline`, empezar `m3-retrieval-baseline`, porque ya existen chunks con embeddings densos persistidos; el proximo riesgo es filtrar por proyecto antes de rankear y devolver citations ancladas al texto original.
 
 ## Politica para reducir conflictos de merge
 

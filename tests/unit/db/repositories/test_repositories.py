@@ -290,3 +290,41 @@ def test_chunk_repository_rejects_version_from_different_project():
             char_start=0,
             char_end=3,
         )
+
+
+def test_chunk_repository_updates_dense_embedding_project_scoped():
+    session = _make_session()
+    project = _create_project(session)
+    other_project = _create_project(session, "other")
+    version = _create_document_version(session, project)
+    chunk_repo = ChunkRepository(session)
+    chunk = chunk_repo.create(
+        project_id=project.id,
+        document_version_id=version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=3,
+    )
+    metadata = {
+        "embedding_dimensions": 1024,
+        "embedding_model": "fake-embedding-v1",
+    }
+    session.commit()
+
+    updated = chunk_repo.update_dense_embedding(
+        project_id=project.id,
+        chunk_id=chunk.id,
+        embedding=[0.1, 0.2, 0.3],
+        embedding_metadata=metadata,
+    )
+
+    assert updated.embedding == [0.1, 0.2, 0.3]
+    assert updated.embedding_metadata == metadata
+
+    with pytest.raises(ValueError, match="chunk does not belong to project"):
+        chunk_repo.update_dense_embedding(
+            project_id=other_project.id,
+            chunk_id=chunk.id,
+            embedding=[0.0],
+            embedding_metadata=metadata,
+        )

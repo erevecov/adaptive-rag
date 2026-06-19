@@ -152,6 +152,34 @@ def test_chunk_embedding_column_exists():
     # La columna de embedding denso debe existir; su tipo y dimension
     # exactos (vector(1024)) se validan en integracion contra pgvector.
     assert "embedding" in columns
+    assert "embedding_metadata" in columns
+
+
+def test_chunk_embedding_metadata_persists():
+    session = _make_session()
+    version = _make_version(session)
+
+    metadata = {
+        "embedding_dimensions": 1024,
+        "embedding_model": "fake-embedding-v1",
+        "embedding_provider": "fake",
+    }
+    chunk = Chunk(
+        document_version_id=version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=5,
+        embedding=[0.1, 0.2],
+        embedding_metadata=metadata,
+    )
+    session.add(chunk)
+    session.commit()
+    session.expunge_all()
+
+    fetched = session.execute(select(Chunk).where(Chunk.ordinal == 0)).scalar_one()
+
+    assert fetched.embedding == [0.1, 0.2]
+    assert fetched.embedding_metadata == metadata
 
 
 def test_chunk_required_fields_are_not_null():

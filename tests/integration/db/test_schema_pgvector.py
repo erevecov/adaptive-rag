@@ -93,6 +93,9 @@ def test_chunks_embedding_is_vector_type(pg_url: str, pg_engine: Engine) -> None
     assert row.data_type == "USER-DEFINED"
     assert row.udt_name == "vector"
 
+    chunk_columns = {c["name"] for c in inspect(pg_engine).get_columns("chunks")}
+    assert "embedding_metadata" in chunk_columns
+
 
 def test_vector_1024_dimensions_accepted(pg_url: str, pg_engine: Engine) -> None:
     run_alembic_upgrade(pg_url)

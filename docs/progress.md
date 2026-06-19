@@ -10,7 +10,7 @@ M2 Dominio y persistencia cerrado el 2026-06-18.
 
 ## Ultimo slice completado
 
-M3 `m3-chunking-baseline` implementado dentro del change activo
+M3 `m3-embedding-baseline` implementado dentro del change activo
 `m3-ingestion-retrieval-plan`.
 
 Comandos validados:
@@ -39,9 +39,8 @@ uv run adaptive-rag version
 
 ## Siguiente tarea recomendada
 
-- `m3-embedding-baseline`: construir inputs de embedding/contexto desde chunks
-  persistidos y guardar embeddings densos con provider fake determinista antes
-  de integrar Qwen live.
+- `m3-retrieval-baseline`: implementar retrieval exacto inicial sobre embeddings
+  densos persistidos, con filtro obligatorio por `project_id` antes de rankear.
 
 ## Reglas de coordinacion
 

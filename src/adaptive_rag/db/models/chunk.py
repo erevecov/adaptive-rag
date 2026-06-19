@@ -17,7 +17,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import BLOB
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.project import JSONWithJSONB
@@ -74,13 +73,16 @@ class Chunk(Base):
     chunker_metadata: Mapped[dict[str, Any] | None] = mapped_column(
         JSONWithJSONB(), nullable=True
     )
+    embedding_metadata: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONWithJSONB(), nullable=True
+    )
     # Campo reservado para contextual retrieval (no implementado en v1).
     contextual_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Embedding denso baseline: vector(1024) en Postgres/pgvector.
-    # El variant a BLOB permite que los tests unitarios en SQLite creen la
-    # tabla; la dimension exacta se valida en integracion.
+    # El variant JSON permite que los tests unitarios en SQLite persistan listas;
+    # la dimension exacta se valida en integracion contra pgvector.
     embedding: Mapped[list[float] | None] = mapped_column(
-        Vector(EMBEDDING_DIMENSIONS).with_variant(BLOB(), "sqlite"),
+        Vector(EMBEDDING_DIMENSIONS).with_variant(JSONWithJSONB(), "sqlite"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
