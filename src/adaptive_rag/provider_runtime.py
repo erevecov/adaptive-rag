@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from adaptive_rag.chat import ChatRunner, RetrievalGroundedChatRunner
 from adaptive_rag.config.settings import Settings, get_settings
-from adaptive_rag.embeddings import DenseEmbeddingProvider, FakeDenseEmbeddingProvider
+from adaptive_rag.embeddings import (
+    DenseEmbeddingProvider,
+    FakeDenseEmbeddingProvider,
+    QwenDenseEmbeddingProvider,
+    QwenHTTPEmbeddingClient,
+)
 
 
 class ProviderConfigurationError(ValueError):
@@ -15,8 +20,7 @@ def get_dense_embedding_provider(
     settings: Settings | None = None,
 ) -> DenseEmbeddingProvider:
     runtime_settings = settings or get_settings()
-    _validate_embedding_provider(runtime_settings)
-    return FakeDenseEmbeddingProvider()
+    return _build_embedding_provider(runtime_settings)
 
 
 def get_chat_runner(settings: Settings | None = None) -> ChatRunner:
@@ -25,22 +29,34 @@ def get_chat_runner(settings: Settings | None = None) -> ChatRunner:
     return RetrievalGroundedChatRunner()
 
 
-def _validate_embedding_provider(settings: Settings) -> None:
+def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
     if settings.provider_runtime_mode == "fake":
         if settings.embedding_provider != "fake":
             raise ProviderConfigurationError(
                 f"embedding provider '{settings.embedding_provider}' requires "
                 "live provider runtime mode"
             )
-        return
+        return FakeDenseEmbeddingProvider()
 
     if settings.embedding_provider != "qwen":
         raise ProviderConfigurationError(
             f"unsupported embedding provider: {settings.embedding_provider}"
         )
     _require_qwen_credentials(settings)
-    raise ProviderConfigurationError(
-        "qwen embedding provider is not implemented yet"
+    if not settings.embedding_model or settings.embedding_model == "fake-embedding-v1":
+        raise ProviderConfigurationError(
+            "ADAPTIVE_RAG_EMBEDDING_MODEL must be set for qwen"
+        )
+    if settings.qwen_api_key is None or settings.qwen_base_url is None:
+        raise ProviderConfigurationError("qwen credentials were not validated")
+    return QwenDenseEmbeddingProvider(
+        model_name=settings.embedding_model,
+        client=QwenHTTPEmbeddingClient(
+            api_key=settings.qwen_api_key.get_secret_value(),
+            base_url=settings.qwen_base_url,
+            timeout_seconds=settings.provider_timeout_seconds,
+            max_retries=settings.provider_max_retries,
+        ),
     )
 
 

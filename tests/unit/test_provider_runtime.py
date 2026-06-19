@@ -5,7 +5,10 @@ from adaptive_rag.api import dependencies as api_dependencies
 from adaptive_rag.chat import RetrievalGroundedChatRunner
 from adaptive_rag.cli import dependencies as cli_dependencies
 from adaptive_rag.config.settings import Settings
-from adaptive_rag.embeddings import FakeDenseEmbeddingProvider
+from adaptive_rag.embeddings import (
+    FakeDenseEmbeddingProvider,
+    QwenDenseEmbeddingProvider,
+)
 from adaptive_rag.provider_runtime import (
     ProviderConfigurationError,
     get_chat_runner,
@@ -77,6 +80,41 @@ def test_live_provider_requires_credentials_before_network_clients():
         match="ADAPTIVE_RAG_QWEN_API_KEY is required for live provider runtime",
     ):
         get_dense_embedding_provider(settings)
+
+
+def test_live_qwen_embedding_provider_requires_live_model():
+    settings = _settings(
+        provider_runtime_mode="live",
+        embedding_provider="qwen",
+        embedding_model="fake-embedding-v1",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_EMBEDDING_MODEL must be set for qwen",
+    ):
+        get_dense_embedding_provider(settings)
+
+
+def test_live_qwen_embedding_provider_is_configured_without_network_call():
+    settings = _settings(
+        provider_runtime_mode="live",
+        embedding_provider="qwen",
+        embedding_model="text-embedding-v4",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_timeout_seconds=7.5,
+        provider_max_retries=3,
+    )
+
+    provider = get_dense_embedding_provider(settings)
+
+    assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert provider.provider_name == "qwen"
+    assert provider.model_name == "text-embedding-v4"
+    assert provider.dimensions == 1024
 
 
 def test_live_provider_requires_base_url_before_network_clients():

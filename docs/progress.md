@@ -10,11 +10,10 @@ M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M7 `m7-provider-settings-contract`: agrega settings y factories compartidas de
-provider runtime, mantiene fake providers/runners como default, modela Qwen como
-provider live opt-in con `ADAPTIVE_RAG_QWEN_API_KEY` y
-`ADAPTIVE_RAG_QWEN_BASE_URL`, y devuelve errores estables antes de instanciar
-clientes live.
+M7 `m7-live-embedding-provider`: agrega `QwenDenseEmbeddingProvider`, cliente
+HTTP de embeddings compatible con endpoints OpenAI-style y DashScope
+TextEmbedding, factory live opt-in para `embedding_provider=qwen`, validacion
+de dimension 1024 y smoke CLI `adaptive-rag providers embedding-smoke`.
 
 Comandos validados:
 
@@ -50,10 +49,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m7-live-embedding-provider`. Es el siguiente slice recomendado
-  porque el contrato de settings ya permite seleccionar Qwen de forma opt-in; el
-  paso siguiente es agregar el adapter de embeddings con cliente fake en tests y
-  un smoke live separado.
+- Implementar `m7-live-chat-runner`. Es el siguiente slice recomendado porque
+  Qwen embeddings ya queda testeable por smoke opt-in; falta conectar chat live
+  con la tool de retrieval y validacion de citations antes de pasar a limites de
+  usage/costo.
 
 ## Reglas de coordinacion
 
