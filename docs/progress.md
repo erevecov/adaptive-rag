@@ -10,9 +10,10 @@ M4 Superficie de retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M5 `m5-chat-api-endpoint`: agrego `POST /projects/{project_id}/chat` como
-adaptador delgado sobre `ChatService`, con schemas HTTP, dependency overrides y
-tests deterministas sin red.
+M5 `m5-chat-cli-command`: agrega `adaptive-rag chat ask` como adaptador
+delgado sobre `ChatService`, reutilizando `RetrievalService`,
+`serialize_chat_response` y la construccion compartida de filtros CLI con
+`retrieval search`.
 
 Comandos validados:
 
@@ -45,10 +46,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m5-chat-cli-command`: agregar `adaptive-rag chat ask` usando el mismo
-  `ChatService` y payloads que la API. Es la opcion recomendada porque el
-  endpoint HTTP ya valido el contrato externo y la CLI debe reutilizar la misma
-  logica sin duplicar chat ni retrieval.
+- `m5-quality-gate`: validar el milestone completo y archivar
+  `m5-chat-tool-calling-plan`. Es la opcion recomendada porque ya estan
+  implementadas las superficies compartidas, API y CLI; queda cerrar M5 antes
+  de abrir evals, streaming, persistencia de conversaciones o providers live.
 
 ## Reglas de coordinacion
 

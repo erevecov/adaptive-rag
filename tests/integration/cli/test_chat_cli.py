@@ -1,0 +1,331 @@
+"""Tests del comando CLI de chat/tool calling."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+from contextlib import contextmanager
+from uuid import UUID
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
+from typer.testing import CliRunner
+
+from adaptive_rag.chat import ChatRunnerOutput, ChatRunnerRequest
+from adaptive_rag.chat.tools import ChatTools
+from adaptive_rag.cli.app import app
+from adaptive_rag.db.base import Base
+from adaptive_rag.db.models import (
+    EMBEDDING_DIMENSIONS,
+    Chunk,
+    Document,
+    DocumentVersion,
+    Project,
+    Source,
+)
+from adaptive_rag.db.repositories import (
+    ChunkRepository,
+    DocumentRepository,
+    ProjectRepository,
+    SourceRepository,
+)
+from adaptive_rag.db.session import create_session_factory
+
+
+class StaticQueryEmbeddingProvider:
+    provider_name = "fake"
+    model_name = "static-query-v1"
+    dimensions = EMBEDDING_DIMENSIONS
+
+    def __init__(self, embedding: list[float]) -> None:
+        self.embedding = embedding
+        self.inputs: list[str] = []
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        self.inputs.extend(texts)
+        return [list(self.embedding) for _text in texts]
+
+
+class ToolCallingChatRunner:
+    def __init__(self, *, retrieval_query: str) -> None:
+        self.retrieval_query = retrieval_query
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        result = tools.retrieval.search(
+            query=self.retrieval_query,
+            limit=request.retrieval_limit,
+        )
+        return ChatRunnerOutput(
+            answer="Alpha is backed by retrieved evidence.",
+            cited_chunk_ids=tuple(
+                UUID(item["chunk_id"]) for item in result.results
+            ),
+        )
+
+
+class RecordingNoToolChatRunner:
+    def __init__(self) -> None:
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        return ChatRunnerOutput(answer="No retrieval was needed.")
+
+
+def _make_session() -> Session:
+    engine = create_engine(
+        "sqlite+pysqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(
+        engine,
+        tables=[
+            Project.__table__,
+            Source.__table__,
+            Document.__table__,
+            DocumentVersion.__table__,
+            Chunk.__table__,
+        ],
+    )
+    return create_session_factory(engine)()
+
+
+def _vector(first: float, second: float = 0.0) -> list[float]:
+    values = [0.0] * EMBEDDING_DIMENSIONS
+    values[0] = first
+    values[1] = second
+    return values
+
+
+def _create_project(session: Session, name: str = "demo") -> Project:
+    return ProjectRepository(session).create(name=name)
+
+
+def _create_embedded_chunk(
+    session: Session,
+    *,
+    project: Project,
+    source_type: str = "markdown",
+    external_id: str,
+    tags: tuple[str, ...] = (),
+    stable_id: str,
+    text: str,
+    snippet: str,
+    embedding: list[float] | None,
+) -> tuple[Source, Document, DocumentVersion, Chunk]:
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type=source_type,
+        external_id=external_id,
+        tags=tags,
+        extra_metadata={"title": external_id},
+    )
+    document = DocumentRepository(session).create_document(
+        project_id=project.id,
+        source_id=source.id,
+        stable_id=stable_id,
+    )
+    version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text=text,
+        content_hash=f"sha256:{stable_id}",
+        index_fingerprint=f"fp:{stable_id}",
+    )
+    char_start = text.index(snippet)
+    chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=version.id,
+        ordinal=0,
+        char_start=char_start,
+        char_end=char_start + len(snippet),
+        token_count=3,
+        section_metadata={"heading": stable_id, "section_path": [stable_id]},
+        chunker_metadata={"chunker_version": "semantic_markdown_v1"},
+        embedding=embedding,
+    )
+    session.flush()
+    return source, document, version, chunk
+
+
+def _patch_chat_dependencies(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    session: Session,
+    provider: StaticQueryEmbeddingProvider,
+    runner: ToolCallingChatRunner | RecordingNoToolChatRunner,
+) -> None:
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_dense_embedding_provider",
+        lambda: provider,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_chat_runner",
+        lambda: runner,
+    )
+
+
+def test_chat_ask_command_outputs_api_compatible_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        tags=("docs", "v1"),
+        stable_id="far-doc",
+        text="Far original evidence",
+        snippet="Far original evidence",
+        embedding=_vector(0.9),
+    )
+    source, document, version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        tags=("docs", "v1"),
+        stable_id="near-doc",
+        text="Header\n\nAlpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    _wrong_type_source, _wrong_type_document, _wrong_type_version, _wrong_type = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            source_type="text",
+            external_id="wrong-type.txt",
+            tags=("docs", "v1"),
+            stable_id="wrong-type-doc",
+            text="Wrong type evidence",
+            snippet="Wrong type evidence",
+            embedding=_vector(0.0),
+        )
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        runner=runner,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "What supports alpha?",
+            "--retrieval-limit",
+            "2",
+            "--source-type",
+            "markdown",
+            "--tag",
+            "docs",
+            "--tag",
+            "v1",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert provider.inputs == ["alpha evidence"]
+    assert len(runner.requests) == 1
+    assert runner.requests[0].message == "What supports alpha?"
+    assert runner.requests[0].retrieval_limit == 2
+    assert runner.requests[0].metadata_filter is not None
+    assert runner.requests[0].metadata_filter.source_type == "markdown"
+    assert runner.requests[0].metadata_filter.tags == ("docs", "v1")
+    data = json.loads(result.stdout)
+    assert data["answer"] == "Alpha is backed by retrieved evidence."
+    assert [citation["chunk_id"] for citation in data["citations"]] == [
+        str(near.id),
+        str(far.id),
+    ]
+    assert data["citations"][0]["citation"] == {
+        "source_id": str(source.id),
+        "source_type": "markdown",
+        "source_external_id": "near.md",
+        "source_tags": ["docs", "v1"],
+        "source_extra_metadata": {"title": "near.md"},
+        "document_id": str(document.id),
+        "document_stable_id": "near-doc",
+        "document_version_id": str(version.id),
+        "document_version_number": 1,
+        "chunk_id": str(near.id),
+        "char_start": 8,
+        "char_end": 31,
+        "snippet": "Alpha original evidence",
+        "section_metadata": {
+            "heading": "near-doc",
+            "section_path": ["near-doc"],
+        },
+    }
+    assert data["tool_calls"] == [
+        {
+            "name": "retrieval.search",
+            "query": "alpha evidence",
+            "limit": 2,
+            "result_count": 2,
+        }
+    ]
+
+
+def test_chat_ask_command_reports_service_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        runner=runner,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            " ",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "message must not be empty" in result.output
+    assert provider.inputs == []
+    assert runner.requests == []

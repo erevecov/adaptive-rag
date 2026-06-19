@@ -23,6 +23,6 @@
 
 - [x] 3.1 Implementar `m5-chat-service-contract`.
 - [x] 3.2 Implementar `m5-chat-api-endpoint`.
-- [ ] 3.3 Implementar `m5-chat-cli-command`.
+- [x] 3.3 Implementar `m5-chat-cli-command`.
 - [ ] 3.4 Ejecutar `m5-quality-gate` y archivar el change cuando M5 quede
   cerrado.
