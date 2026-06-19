@@ -9,6 +9,12 @@ from adaptive_rag.embeddings import (
     QwenEmbeddingProviderError,
     QwenHTTPEmbeddingClient,
 )
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderBudgetExceededError,
+    ProviderBudgetGuard,
+    ProviderPriceCatalog,
+)
 
 
 class RecordingQwenEmbeddingClient:
@@ -188,3 +194,83 @@ def test_qwen_http_client_reports_http_errors_without_secret() -> None:
     message = str(exc_info.value)
     assert "qwen embedding request failed with status 401" in message
     assert "sk-secret-value" not in message
+
+
+def test_qwen_http_embedding_client_records_usage_and_estimated_cost() -> None:
+    tracker = InMemoryProviderUsageTracker()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"x-request-id": "req_embed"},
+            json={
+                "data": [{"index": 0, "embedding": _vector(0.8)}],
+                "usage": {"prompt_tokens": 100, "total_tokens": 100},
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://example.test/compatible-mode/v1",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+        usage_tracker=tracker,
+        price_catalog=ProviderPriceCatalog(
+            embedding_input_price_per_million_tokens_usd=0.13,
+        ),
+    )
+
+    client.embed_texts(
+        model="text-embedding-v4",
+        texts=["alpha"],
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert len(tracker.records) == 1
+    record = tracker.records[0]
+    assert record.provider == "qwen"
+    assert record.model == "text-embedding-v4"
+    assert record.operation == "embedding"
+    assert record.outcome == "succeeded"
+    assert record.usage.input_tokens == 100
+    assert record.usage_source == "provider_reported"
+    assert record.estimated_cost_usd == 0.000013
+    assert record.request_id == "req_embed"
+
+
+def test_qwen_http_embedding_client_blocks_when_budget_is_exceeded() -> None:
+    tracker = InMemoryProviderUsageTracker()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "data": [{"index": 0, "embedding": _vector(0.8)}],
+                "usage": {"prompt_tokens": 100, "total_tokens": 100},
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://example.test/compatible-mode/v1",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+        usage_tracker=tracker,
+        price_catalog=ProviderPriceCatalog(
+            embedding_input_price_per_million_tokens_usd=0.13,
+        ),
+        budget_guard=ProviderBudgetGuard(max_cost_usd=0.000001),
+    )
+
+    with pytest.raises(ProviderBudgetExceededError):
+        client.embed_texts(
+            model="text-embedding-v4",
+            texts=["alpha"],
+            dimensions=EMBEDDING_DIMENSIONS,
+        )
+
+    assert len(tracker.records) == 1
+    assert tracker.records[0].outcome == "blocked"
+    assert tracker.records[0].estimated_cost_usd == 0.000013

@@ -14,6 +14,11 @@ from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_dense_embedding_provider,
 )
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderBudgetGuard,
+    ProviderPriceCatalog,
+)
 
 
 def _settings(**overrides):
@@ -117,6 +122,30 @@ def test_live_qwen_embedding_provider_is_configured_without_network_call():
     assert provider.dimensions == 1024
 
 
+def test_live_qwen_embedding_provider_receives_budget_and_price_config():
+    settings = _settings(
+        provider_runtime_mode="live",
+        embedding_provider="qwen",
+        embedding_model="text-embedding-v4",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_max_cost_usd=0.01,
+        provider_embedding_input_price_per_million_tokens_usd=0.13,
+    )
+
+    provider = get_dense_embedding_provider(settings)
+
+    assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert isinstance(provider.client.budget_guard, ProviderBudgetGuard)
+    assert provider.client.budget_guard.max_cost_usd == 0.01
+    assert isinstance(provider.client.usage_tracker, InMemoryProviderUsageTracker)
+    assert isinstance(provider.client.price_catalog, ProviderPriceCatalog)
+    assert (
+        provider.client.price_catalog.embedding_input_price_per_million_tokens_usd
+        == 0.13
+    )
+
+
 def test_live_provider_requires_base_url_before_network_clients():
     settings = _settings(
         provider_runtime_mode="live",
@@ -165,6 +194,29 @@ def test_live_qwen_chat_runner_is_configured_without_network_call():
     assert isinstance(runner, QwenChatRunner)
     assert runner.provider_name == "qwen"
     assert runner.model_name == "qwen-plus"
+
+
+def test_live_qwen_chat_runner_receives_budget_and_price_config():
+    settings = _settings(
+        provider_runtime_mode="live",
+        chat_provider="qwen",
+        chat_model="qwen-plus",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_max_cost_usd=0.01,
+        provider_chat_input_price_per_million_tokens_usd=2.0,
+        provider_chat_output_price_per_million_tokens_usd=6.0,
+    )
+
+    runner = get_chat_runner(settings)
+
+    assert isinstance(runner, QwenChatRunner)
+    assert isinstance(runner.client.budget_guard, ProviderBudgetGuard)
+    assert runner.client.budget_guard.max_cost_usd == 0.01
+    assert isinstance(runner.client.usage_tracker, InMemoryProviderUsageTracker)
+    assert isinstance(runner.client.price_catalog, ProviderPriceCatalog)
+    assert runner.client.price_catalog.chat_input_price_per_million_tokens_usd == 2.0
+    assert runner.client.price_catalog.chat_output_price_per_million_tokens_usd == 6.0
 
 
 def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):

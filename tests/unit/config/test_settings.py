@@ -30,6 +30,18 @@ def test_provider_runtime_settings_use_env_prefix(monkeypatch):
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_TIMEOUT_SECONDS", "12.5")
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_MAX_RETRIES", "4")
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_MAX_COST_USD", "0.25")
+    monkeypatch.setenv(
+        "ADAPTIVE_RAG_PROVIDER_CHAT_INPUT_PRICE_PER_MILLION_TOKENS_USD",
+        "2.0",
+    )
+    monkeypatch.setenv(
+        "ADAPTIVE_RAG_PROVIDER_CHAT_OUTPUT_PRICE_PER_MILLION_TOKENS_USD",
+        "6.0",
+    )
+    monkeypatch.setenv(
+        "ADAPTIVE_RAG_PROVIDER_EMBEDDING_INPUT_PRICE_PER_MILLION_TOKENS_USD",
+        "0.13",
+    )
     monkeypatch.setenv("ADAPTIVE_RAG_QWEN_API_KEY", "sk-test-secret")
     monkeypatch.setenv("ADAPTIVE_RAG_QWEN_BASE_URL", "https://example.test/v1")
 
@@ -43,6 +55,9 @@ def test_provider_runtime_settings_use_env_prefix(monkeypatch):
     assert settings.provider_timeout_seconds == 12.5
     assert settings.provider_max_retries == 4
     assert settings.provider_max_cost_usd == 0.25
+    assert settings.provider_chat_input_price_per_million_tokens_usd == 2.0
+    assert settings.provider_chat_output_price_per_million_tokens_usd == 6.0
+    assert settings.provider_embedding_input_price_per_million_tokens_usd == 0.13
     assert settings.qwen_api_key is not None
     assert settings.qwen_api_key.get_secret_value() == "sk-test-secret"
     assert settings.qwen_base_url == "https://example.test/v1"
@@ -55,6 +70,9 @@ def test_empty_optional_env_values_are_ignored(tmp_path):
         "\n".join(
             [
                 "ADAPTIVE_RAG_PROVIDER_MAX_COST_USD=",
+                "ADAPTIVE_RAG_PROVIDER_CHAT_INPUT_PRICE_PER_MILLION_TOKENS_USD=",
+                "ADAPTIVE_RAG_PROVIDER_CHAT_OUTPUT_PRICE_PER_MILLION_TOKENS_USD=",
+                "ADAPTIVE_RAG_PROVIDER_EMBEDDING_INPUT_PRICE_PER_MILLION_TOKENS_USD=",
                 "ADAPTIVE_RAG_QWEN_API_KEY=",
                 "ADAPTIVE_RAG_QWEN_BASE_URL=",
             ]
@@ -65,5 +83,8 @@ def test_empty_optional_env_values_are_ignored(tmp_path):
     settings = Settings(_env_file=env_file)
 
     assert settings.provider_max_cost_usd is None
+    assert settings.provider_chat_input_price_per_million_tokens_usd is None
+    assert settings.provider_chat_output_price_per_million_tokens_usd is None
+    assert settings.provider_embedding_input_price_per_million_tokens_usd is None
     assert settings.qwen_api_key is None
     assert settings.qwen_base_url is None

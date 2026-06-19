@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Protocol
 
 import httpx
 
 from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
+from adaptive_rag.provider_usage import (
+    ProviderBudgetExceededError,
+    ProviderBudgetGuard,
+    ProviderPriceCatalog,
+    ProviderUsageTracker,
+    build_failure_record,
+    build_success_record,
+    record_with_budget,
+)
 
 
 class QwenEmbeddingProviderError(ValueError):
@@ -66,6 +76,9 @@ class QwenHTTPEmbeddingClient:
     timeout_seconds: float
     max_retries: int
     transport: httpx.BaseTransport | None = None
+    usage_tracker: ProviderUsageTracker | None = None
+    price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
+    budget_guard: ProviderBudgetGuard | None = None
 
     def embed_texts(
         self,
@@ -80,10 +93,42 @@ class QwenHTTPEmbeddingClient:
             texts=texts,
             dimensions=dimensions,
         )
-        response_data = self._post(endpoint=endpoint, payload=payload)
-        return _extract_embeddings(response_data)
+        started = perf_counter()
+        try:
+            response_data, request_id = self._post(endpoint=endpoint, payload=payload)
+            embeddings = _extract_embeddings(response_data)
+            record = build_success_record(
+                provider="qwen",
+                model=model,
+                operation="embedding",
+                duration_ms=_elapsed_ms(started),
+                response_data=response_data,
+                price_catalog=self.price_catalog,
+                request_id=request_id,
+                input_count=len(texts),
+            )
+            record_with_budget(
+                record=record,
+                tracker=self.usage_tracker,
+                budget_guard=self.budget_guard,
+            )
+            return embeddings
+        except Exception as exc:
+            if not _is_budget_error(exc):
+                self._record_failure(
+                    model=model,
+                    duration_ms=_elapsed_ms(started),
+                    error=exc,
+                    input_count=len(texts),
+                )
+            raise
 
-    def _post(self, *, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def _post(
+        self,
+        *,
+        endpoint: str,
+        payload: dict[str, Any],
+    ) -> tuple[dict[str, Any], str | None]:
         last_error: Exception | None = None
         attempts = max(0, self.max_retries) + 1
         for attempt in range(attempts):
@@ -112,7 +157,7 @@ class QwenHTTPEmbeddingClient:
                     raise QwenEmbeddingProviderError(
                         "qwen embedding response must be a JSON object"
                     )
-                return data
+                return data, _response_request_id(response)
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 last_error = exc
                 if attempt < attempts - 1:
@@ -122,6 +167,27 @@ class QwenHTTPEmbeddingClient:
         raise QwenEmbeddingProviderError(
             "qwen embedding request failed before receiving a response"
         ) from last_error
+
+    def _record_failure(
+        self,
+        *,
+        model: str,
+        duration_ms: int,
+        error: Exception,
+        input_count: int,
+    ) -> None:
+        if self.usage_tracker is None:
+            return
+        self.usage_tracker.record(
+            build_failure_record(
+                provider="qwen",
+                model=model,
+                operation="embedding",
+                duration_ms=duration_ms,
+                error=error,
+                input_count=input_count,
+            )
+        )
 
 
 def _embedding_request(
@@ -192,3 +258,19 @@ def _embedding_from_item(item: object) -> list[float]:
             "qwen embedding response item is missing embedding"
         )
     return [float(value) for value in item["embedding"]]
+
+
+def _response_request_id(response: httpx.Response) -> str | None:
+    for header_name in ("x-request-id", "x-acs-request-id", "request-id"):
+        value = response.headers.get(header_name)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _elapsed_ms(started: float) -> int:
+    return max(0, round((perf_counter() - started) * 1000))
+
+
+def _is_budget_error(exc: Exception) -> bool:
+    return isinstance(exc, ProviderBudgetExceededError)

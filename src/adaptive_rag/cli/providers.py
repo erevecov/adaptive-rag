@@ -16,6 +16,7 @@ from adaptive_rag.cli.dependencies import (
 )
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
 from adaptive_rag.provider_runtime import ProviderConfigurationError
+from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.retrieval import (
     DenseRetrievalCitation,
     RetrievalSearchRequest,
@@ -32,7 +33,11 @@ def embedding_smoke(
     provider = get_cli_dense_embedding_provider()
     try:
         embeddings = provider.embed_texts([text])
-    except (ProviderConfigurationError, QwenEmbeddingProviderError) as exc:
+    except (
+        ProviderBudgetExceededError,
+        ProviderConfigurationError,
+        QwenEmbeddingProviderError,
+    ) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
@@ -68,7 +73,12 @@ def chat_smoke(
                 retrieval_limit=retrieval_limit,
             )
         )
-    except (ProviderConfigurationError, QwenChatRunnerError, ChatServiceError) as exc:
+    except (
+        ProviderBudgetExceededError,
+        ProviderConfigurationError,
+        QwenChatRunnerError,
+        ChatServiceError,
+    ) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 

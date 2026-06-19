@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -11,6 +12,15 @@ import httpx
 
 from adaptive_rag.chat.models import ChatRunnerOutput, ChatRunnerRequest
 from adaptive_rag.chat.tools import ChatRetrievalToolResult, ChatTools
+from adaptive_rag.provider_usage import (
+    ProviderBudgetExceededError,
+    ProviderBudgetGuard,
+    ProviderPriceCatalog,
+    ProviderUsageTracker,
+    build_failure_record,
+    build_success_record,
+    record_with_budget,
+)
 
 ChatMessage = dict[str, Any]
 ChatToolDefinition = dict[str, Any]
@@ -84,6 +94,9 @@ class QwenHTTPChatClient:
     timeout_seconds: float
     max_retries: int
     transport: httpx.BaseTransport | None = None
+    usage_tracker: ProviderUsageTracker | None = None
+    price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
+    budget_guard: ProviderBudgetGuard | None = None
 
     def create_chat_completion(
         self,
@@ -100,9 +113,42 @@ class QwenHTTPChatClient:
         if tools is not None:
             payload["tools"] = tools
             payload["tool_choice"] = _required_tool_choice(tools)
-        return self._post(endpoint=_chat_endpoint(self.base_url), payload=payload)
+        started = perf_counter()
+        try:
+            response_data, request_id = self._post(
+                endpoint=_chat_endpoint(self.base_url),
+                payload=payload,
+            )
+            record = build_success_record(
+                provider="qwen",
+                model=model,
+                operation="chat",
+                duration_ms=_elapsed_ms(started),
+                response_data=response_data,
+                price_catalog=self.price_catalog,
+                request_id=request_id,
+            )
+            record_with_budget(
+                record=record,
+                tracker=self.usage_tracker,
+                budget_guard=self.budget_guard,
+            )
+            return response_data
+        except Exception as exc:
+            if not isinstance(exc, ProviderBudgetExceededError):
+                self._record_failure(
+                    model=model,
+                    duration_ms=_elapsed_ms(started),
+                    error=exc,
+                )
+            raise
 
-    def _post(self, *, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def _post(
+        self,
+        *,
+        endpoint: str,
+        payload: dict[str, Any],
+    ) -> tuple[dict[str, Any], str | None]:
         last_error: Exception | None = None
         attempts = max(0, self.max_retries) + 1
         for attempt in range(attempts):
@@ -130,7 +176,7 @@ class QwenHTTPChatClient:
                     raise QwenChatRunnerError(
                         "qwen chat response must be a JSON object"
                     )
-                return data
+                return data, _response_request_id(response)
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 last_error = exc
                 if attempt < attempts - 1:
@@ -140,6 +186,25 @@ class QwenHTTPChatClient:
         raise QwenChatRunnerError(
             "qwen chat request failed before receiving a response"
         ) from last_error
+
+    def _record_failure(
+        self,
+        *,
+        model: str,
+        duration_ms: int,
+        error: Exception,
+    ) -> None:
+        if self.usage_tracker is None:
+            return
+        self.usage_tracker.record(
+            build_failure_record(
+                provider="qwen",
+                model=model,
+                operation="chat",
+                duration_ms=duration_ms,
+                error=error,
+            )
+        )
 
 
 def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
@@ -357,3 +422,15 @@ def _chat_endpoint(base_url: str) -> str:
     if value.endswith("/chat/completions"):
         return value
     return f"{value}/chat/completions"
+
+
+def _response_request_id(response: httpx.Response) -> str | None:
+    for header_name in ("x-request-id", "x-acs-request-id", "request-id"):
+        value = response.headers.get(header_name)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _elapsed_ms(started: float) -> int:
+    return max(0, round((perf_counter() - started) * 1000))
