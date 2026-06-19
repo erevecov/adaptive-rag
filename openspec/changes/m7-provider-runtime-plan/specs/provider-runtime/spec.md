@@ -27,6 +27,16 @@ configuracion explicita para habilitar llamadas live.
 - **THEN** el runtime devuelve un error estable de configuracion
 - **AND** no instancia clientes live
 
+#### Scenario: Qwen live requiere API key y base URL
+
+- **WHEN** la configuracion selecciona `qwen` como provider live para
+  embeddings o chat
+- **THEN** la factory exige `ADAPTIVE_RAG_QWEN_API_KEY`
+- **AND** exige `ADAPTIVE_RAG_QWEN_BASE_URL` para apuntar a un endpoint
+  OpenAI-compatible de Qwen
+- **AND** si falta cualquiera de esos valores devuelve un error estable antes
+  de instanciar clientes live
+
 ### Requirement: Embeddings live cumplen el contrato dense existente
 
 El sistema MUST exponer adapters live de embeddings mediante
