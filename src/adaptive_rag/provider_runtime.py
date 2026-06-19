@@ -11,6 +11,11 @@ from adaptive_rag.embeddings import (
     QwenDenseEmbeddingProvider,
     QwenHTTPEmbeddingClient,
 )
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderBudgetGuard,
+    ProviderPriceCatalog,
+)
 
 
 class ProviderConfigurationError(ValueError):
@@ -56,6 +61,9 @@ def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
             base_url=settings.qwen_base_url,
             timeout_seconds=settings.provider_timeout_seconds,
             max_retries=settings.provider_max_retries,
+            usage_tracker=InMemoryProviderUsageTracker(),
+            price_catalog=_provider_price_catalog(settings),
+            budget_guard=_provider_budget_guard(settings),
         ),
     )
 
@@ -85,6 +93,9 @@ def _build_chat_runner(settings: Settings) -> ChatRunner:
             base_url=settings.qwen_base_url,
             timeout_seconds=settings.provider_timeout_seconds,
             max_retries=settings.provider_max_retries,
+            usage_tracker=InMemoryProviderUsageTracker(),
+            price_catalog=_provider_price_catalog(settings),
+            budget_guard=_provider_budget_guard(settings),
         ),
     )
 
@@ -98,3 +109,23 @@ def _require_qwen_credentials(settings: Settings) -> None:
         raise ProviderConfigurationError(
             "ADAPTIVE_RAG_QWEN_BASE_URL is required for live provider runtime"
         )
+
+
+def _provider_budget_guard(settings: Settings) -> ProviderBudgetGuard | None:
+    if settings.provider_max_cost_usd is None:
+        return None
+    return ProviderBudgetGuard(max_cost_usd=settings.provider_max_cost_usd)
+
+
+def _provider_price_catalog(settings: Settings) -> ProviderPriceCatalog:
+    return ProviderPriceCatalog(
+        chat_input_price_per_million_tokens_usd=(
+            settings.provider_chat_input_price_per_million_tokens_usd
+        ),
+        chat_output_price_per_million_tokens_usd=(
+            settings.provider_chat_output_price_per_million_tokens_usd
+        ),
+        embedding_input_price_per_million_tokens_usd=(
+            settings.provider_embedding_input_price_per_million_tokens_usd
+        ),
+    )

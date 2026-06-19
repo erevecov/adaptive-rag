@@ -10,11 +10,10 @@ M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M7 `m7-live-chat-runner`: agrega `QwenChatRunner`, cliente HTTP
-OpenAI-compatible para chat completions, tool calling live contra la tool
-interna de retrieval, parsing JSON de `answer`/`cited_chunk_ids`, factory live
-opt-in para `chat_provider=qwen` y smoke CLI
-`adaptive-rag providers chat-smoke`.
+M7 `m7-usage-cost-limits`: agrega `provider_usage` con records estructurados,
+tracker in-memory, price catalog configurable, budget guard por request/corrida
+y wiring en clientes Qwen HTTP de embeddings/chat. Los smokes CLI ahora
+devuelven errores estables si el budget bloquea una llamada.
 
 Comandos validados:
 
@@ -51,10 +50,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m7-usage-cost-limits`. Es el siguiente slice recomendado porque
-  embeddings y chat live ya quedan conectados detras del runtime opt-in; falta
-  agregar metadata estructurada, budget guard y errores estables de costo antes
-  del quality gate de M7.
+- Ejecutar `m7-quality-gate` y archivar el change. Es el siguiente slice
+  recomendado porque settings, embeddings live, chat live y usage/cost limits
+  ya quedan implementados; falta reconciliar specs/docs y publicar
+  `provider-runtime` como spec canonica.
 
 ## Reglas de coordinacion
 

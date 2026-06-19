@@ -198,10 +198,11 @@ Secuencia recomendada:
    live para `chat_provider=qwen` y smoke CLI
    `adaptive-rag providers chat-smoke`.
 5. `m7-usage-cost-limits`: agrega metadata de usage/cost, budget guard,
-   timeouts/retries acotados y logging estructurado sin secretos. Siguiente
-   slice recomendado.
+   timeouts/retries acotados y logging estructurado sin secretos. Completo:
+   agrega records estructurados, tracker in-memory, price catalog configurable,
+   budget guard y manejo estable de errores de presupuesto en smokes CLI.
 6. `m7-quality-gate`: valida el milestone completo, archiva el change M7 y
-   publica la spec canonica `provider-runtime`.
+   publica la spec canonica `provider-runtime`. Siguiente slice recomendado.
 
 Continuacion: M7 debe cerrar la frontera operativa de providers live antes de
 habilitar streaming, hosted evals, dashboards, rerank live o persistencia de
