@@ -10,7 +10,7 @@ M2 Dominio y persistencia cerrado el 2026-06-18.
 
 ## Ultimo slice completado
 
-M3 `m3-embedding-baseline` implementado dentro del change activo
+M3 `m3-retrieval-baseline` implementado dentro del change activo
 `m3-ingestion-retrieval-plan`.
 
 Comandos validados:
@@ -19,11 +19,10 @@ Comandos validados:
 uv run pytest
 uv run ruff check .
 uv run mypy src
+openspec validate m3-ingestion-retrieval-plan --strict
 openspec validate --specs --strict
 openspec list
-openspec list --specs
-uv run adaptive-rag health
-uv run adaptive-rag version
+git diff --check
 ```
 
 ## Change OpenSpec activo
@@ -39,8 +38,8 @@ uv run adaptive-rag version
 
 ## Siguiente tarea recomendada
 
-- `m3-retrieval-baseline`: implementar retrieval exacto inicial sobre embeddings
-  densos persistidos, con filtro obligatorio por `project_id` antes de rankear.
+- `m3-quality-gate`: validar tests, lint, types, specs y reconciliar el cierre
+  del milestone M3 antes de archivar el change activo.
 
 ## Reglas de coordinacion
 
