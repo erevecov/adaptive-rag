@@ -10,9 +10,9 @@ M7 Provider runtime cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M8 `m8-live-provider-evals-plan`: crea el change OpenSpec para hosted evals
-opt-in sobre `evals-baseline` y `provider-runtime`, definiendo una secuencia
-para medir calidad/costo de Qwen live sin cambiar el gate offline por defecto.
+M8 `m8-hosted-eval-contract`: agrega el contrato inicial para hosted evals con
+modo `offline`/`hosted`, validacion de presupuesto/credenciales, errores
+estables y resumen serializable de provider usage/cost sin secretos.
 
 Comandos validados:
 
@@ -21,13 +21,15 @@ uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
+uv run pytest tests/unit/evals tests/integration/cli/test_evals_cli.py -q
 npx --yes @fission-ai/openspec validate m8-live-provider-evals-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-Este slice es de planificacion y no requiere credenciales live.
+Este slice no ejecuta llamadas live; prepara el contrato para que los siguientes
+runners hosted puedan compartir validacion y reporte de costo.
 
 ## Change OpenSpec activo
 
@@ -51,9 +53,10 @@ Este slice es de planificacion y no requiere credenciales live.
 
 ## Siguiente tarea recomendada
 
-- Implementar `m8-hosted-eval-contract`. Es el siguiente slice recomendado
-  porque define modo hosted, modelos de reporte usage/cost, presupuesto maximo
-  de corrida y errores estables antes de conectar runners live o cambiar la CLI.
+- Implementar `m8-live-retrieval-eval-runner`. Es el siguiente slice recomendado
+  porque el contrato hosted ya existe y la primera medicion live debe reusar
+  los fixtures de M6 materializando evidence y query embeddings con el mismo
+  provider/modelo antes de sumar chat hosted.
 
 ## Reglas de coordinacion
 

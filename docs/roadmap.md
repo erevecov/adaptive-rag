@@ -228,12 +228,14 @@ Secuencia recomendada:
 1. `m8-live-provider-evals-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita hosted evals antes de dashboards, streaming,
    rerank live o tuning automatico.
-2. `m8-hosted-eval-contract`: siguiente slice recomendado. Define modo
-   `offline`/`hosted`, modelos de reporte provider usage/cost, presupuesto
-   maximo de corrida y errores estables antes de conectar runners live.
-3. `m8-live-retrieval-eval-runner`: ejecuta retrieval evals con Qwen embeddings,
-   materializando evidence y queries con el mismo provider/modelo para medir
-   hit rate y costo sin mezclar embeddings fake/live.
+2. `m8-hosted-eval-contract`: completo. Define modo `offline`/`hosted`,
+   modelos de reporte provider usage/cost, presupuesto maximo de corrida,
+   validacion de credenciales Qwen y errores estables antes de conectar
+   runners live.
+3. `m8-live-retrieval-eval-runner`: siguiente slice recomendado. Ejecuta
+   retrieval evals con Qwen embeddings, materializando evidence y queries con
+   el mismo provider/modelo para medir hit rate y costo sin mezclar embeddings
+   fake/live.
 4. `m8-live-chat-eval-runner`: ejecuta chat evals con Qwen chat runner,
    reutilizando `ChatService`, retrieval tool y validacion de citations.
 5. `m8-evals-cli-hosted-mode`: agrega `adaptive-rag evals run <suite>

@@ -7,18 +7,27 @@ from typing import Any
 from adaptive_rag.evals.models import (
     EvalCaseResult,
     EvalObservedCitation,
+    EvalProviderUsageOperationSummary,
+    EvalProviderUsageSummary,
     EvalRunReport,
 )
 
 
 def serialize_eval_report(report: EvalRunReport) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "suite_id": report.suite_id,
         "status": report.status,
         "metrics": _sorted_metrics(report.metrics),
         "thresholds": _sorted_metrics(report.thresholds),
         "cases": [serialize_eval_case_result(case) for case in report.cases],
     }
+    if report.mode == "hosted":
+        payload["mode"] = report.mode
+    if report.provider_usage is not None:
+        payload["provider_usage"] = serialize_eval_provider_usage(
+            report.provider_usage
+        )
+    return payload
 
 
 def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:
@@ -51,6 +60,39 @@ def serialize_eval_observed_citation(
         "score": citation.score,
         "source_external_id": citation.source_external_id,
         "snippet": citation.snippet,
+    }
+
+
+def serialize_eval_provider_usage(
+    usage: EvalProviderUsageSummary,
+) -> dict[str, Any]:
+    return {
+        "total_call_count": usage.total_call_count,
+        "total_estimated_cost_usd": usage.total_estimated_cost_usd,
+        "operations": [
+            serialize_eval_provider_usage_operation(operation)
+            for operation in usage.operations
+        ],
+    }
+
+
+def serialize_eval_provider_usage_operation(
+    operation: EvalProviderUsageOperationSummary,
+) -> dict[str, Any]:
+    return {
+        "operation": operation.operation,
+        "provider": operation.provider,
+        "model": operation.model,
+        "call_count": operation.call_count,
+        "succeeded_count": operation.succeeded_count,
+        "failed_count": operation.failed_count,
+        "blocked_count": operation.blocked_count,
+        "input_tokens": operation.input_tokens,
+        "output_tokens": operation.output_tokens,
+        "total_tokens": operation.total_tokens,
+        "input_count": operation.input_count,
+        "estimated_cost_usd": operation.estimated_cost_usd,
+        "usage_unavailable_count": operation.usage_unavailable_count,
     }
 
 
