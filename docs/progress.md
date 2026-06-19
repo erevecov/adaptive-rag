@@ -10,15 +10,17 @@ M3 Ingestion y retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M4 `m4-retrieval-surface-plan` creado dentro del change activo
+M4 `m4-retrieval-service-contract` implementado dentro del change activo
 `m4-retrieval-surface-plan`.
 
 Comandos validados:
 
 ```text
+uv run pytest
+uv run ruff check .
+uv run mypy src
 openspec validate m4-retrieval-surface-plan --strict
 openspec validate --specs --strict
-openspec list
 git diff --check
 ```
 
@@ -40,10 +42,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m4-retrieval-service-contract`: implementar el servicio compartido que
-  convierte query text en query embedding con provider fake/inyectado y llama a
-  `DenseRetriever`. Es la opcion recomendada porque API y CLI deben consumir el
-  mismo contrato antes de exponer superficies separadas.
+- `m4-retrieval-api-endpoint`: agregar
+  `POST /projects/{project_id}/retrieval/search` sobre el servicio compartido.
+  Es la opcion recomendada porque el contrato comun ya existe y la API debe
+  fijar request/response JSON antes de exponer la CLI equivalente.
 
 ## Reglas de coordinacion
 

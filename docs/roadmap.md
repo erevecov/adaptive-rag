@@ -53,7 +53,7 @@ Siguiente tarea recomendada: abrir un nuevo change OpenSpec para M4 antes de imp
 
 ## M4 Superficie de retrieval
 
-Estado: planificacion en curso.
+Estado: implementacion en curso.
 
 Change activo:
 
@@ -65,18 +65,21 @@ Secuencia inicial propuesta:
 
 1. `m4-retrieval-surface-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita API/CLI de retrieval sobre `DenseRetriever`.
-2. `m4-retrieval-service-contract`: siguiente. Implementar un servicio
-   compartido que recibe query text, genera query embedding con provider
-   inyectado/fake y llama a `DenseRetriever`.
-3. `m4-retrieval-api-endpoint`: agregar `POST /projects/{project_id}/retrieval/search`
-   con request/response JSON, metadata filters y tests con fakes.
+2. `m4-retrieval-service-contract`: completo en branch de implementacion.
+   Implementa un servicio compartido que recibe query text, genera query
+   embedding con provider inyectado/fake, valida filtros y llama a
+   `DenseRetriever`.
+3. `m4-retrieval-api-endpoint`: siguiente. Agregar
+   `POST /projects/{project_id}/retrieval/search` con request/response JSON,
+   metadata filters y tests con fakes.
 4. `m4-retrieval-cli-command`: agregar `adaptive-rag retrieval search` usando el
    mismo servicio y filtros que la API.
 5. `m4-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
 
-Siguiente tarea recomendada: despues de mergear `m4-retrieval-surface-plan`,
-implementar `m4-retrieval-service-contract`, porque fija el contrato comun que
-evita duplicar logica entre API y CLI.
+Siguiente tarea recomendada: despues de mergear
+`m4-retrieval-service-contract`, implementar `m4-retrieval-api-endpoint`,
+porque el contrato comun ya existe y la API debe fijar request/response JSON
+antes de exponer la CLI equivalente.
 
 ## Politica para reducir conflictos de merge
 
