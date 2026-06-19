@@ -69,17 +69,19 @@ Secuencia inicial propuesta:
    Implementa un servicio compartido que recibe query text, genera query
    embedding con provider inyectado/fake, valida filtros y llama a
    `DenseRetriever`.
-3. `m4-retrieval-api-endpoint`: siguiente. Agregar
+3. `m4-retrieval-api-endpoint`: completo en branch de implementacion. Agrega
    `POST /projects/{project_id}/retrieval/search` con request/response JSON,
-   metadata filters y tests con fakes.
-4. `m4-retrieval-cli-command`: agregar `adaptive-rag retrieval search` usando el
-   mismo servicio y filtros que la API.
+   metadata filters, dependency overrides en tests y payloads reutilizables por
+   la CLI.
+4. `m4-retrieval-cli-command`: siguiente. Agregar
+   `adaptive-rag retrieval search` usando el mismo servicio, filtros y payloads
+   serializables que la API.
 5. `m4-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
 
 Siguiente tarea recomendada: despues de mergear
-`m4-retrieval-service-contract`, implementar `m4-retrieval-api-endpoint`,
-porque el contrato comun ya existe y la API debe fijar request/response JSON
-antes de exponer la CLI equivalente.
+`m4-retrieval-api-endpoint`, implementar `m4-retrieval-cli-command`, porque la
+API ya fijo el contrato JSON y la CLI debe reutilizar esa semantica antes del
+quality gate de M4.
 
 ## Politica para reducir conflictos de merge
 

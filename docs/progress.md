@@ -10,7 +10,7 @@ M3 Ingestion y retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M4 `m4-retrieval-service-contract` implementado dentro del change activo
+M4 `m4-retrieval-api-endpoint` implementado dentro del change activo
 `m4-retrieval-surface-plan`.
 
 Comandos validados:
@@ -42,10 +42,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m4-retrieval-api-endpoint`: agregar
-  `POST /projects/{project_id}/retrieval/search` sobre el servicio compartido.
-  Es la opcion recomendada porque el contrato comun ya existe y la API debe
-  fijar request/response JSON antes de exponer la CLI equivalente.
+- `m4-retrieval-cli-command`: agregar `adaptive-rag retrieval search` usando el
+  mismo `RetrievalService` y los payloads serializables ya usados por la API.
+  Es la opcion recomendada porque la API ya fijo el contrato JSON y la CLI debe
+  reutilizar esa semantica antes del quality gate de M4.
 
 ## Reglas de coordinacion
 
