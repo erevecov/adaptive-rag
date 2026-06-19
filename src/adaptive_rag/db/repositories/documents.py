@@ -114,6 +114,22 @@ class DocumentRepository:
         )
         return builtins.list(self._session.scalars(statement))
 
+    def get_version(
+        self,
+        *,
+        project_id: UUID,
+        document_version_id: UUID,
+    ) -> DocumentVersion | None:
+        statement = (
+            select(DocumentVersion)
+            .join(Document, DocumentVersion.document_id == Document.id)
+            .where(
+                DocumentVersion.id == document_version_id,
+                Document.project_id == project_id,
+            )
+        )
+        return self._session.scalars(statement).one_or_none()
+
     def _source_belongs_to_project(self, *, project_id: UUID, source_id: UUID) -> bool:
         statement = select(Source.id).where(
             Source.id == source_id,
