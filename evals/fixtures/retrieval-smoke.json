@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "suite_id": "retrieval-smoke",
+  "description": "Small offline retrieval eval fixture.",
+  "thresholds": {
+    "retrieval_hit_rate": 1.0
+  },
+  "evidence": [
+    {
+      "id": "alpha",
+      "text": "Alpha original evidence",
+      "source_type": "markdown",
+      "source_external_id": "alpha.md",
+      "tags": ["docs", "v1"],
+      "metadata": {
+        "title": "Alpha"
+      }
+    },
+    {
+      "id": "far",
+      "text": "Far unrelated evidence",
+      "source_type": "markdown",
+      "source_external_id": "far.md",
+      "tags": ["docs", "v1"],
+      "metadata": {
+        "title": "Far"
+      }
+    }
+  ],
+  "retrieval_cases": [
+    {
+      "id": "retrieve-alpha",
+      "query": "Alpha original evidence",
+      "limit": 2,
+      "metadata_filter": {
+        "source_type": "markdown",
+        "tags": ["docs", "v1"]
+      },
+      "expected_evidence_ids": ["alpha"]
+    }
+  ],
+  "chat_cases": []
+}

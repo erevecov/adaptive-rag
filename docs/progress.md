@@ -10,9 +10,10 @@ M5 Chat/tool calling cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M6 `m6-evals-fixtures-contract`: agrega el paquete `adaptive_rag.evals` con
-modelos internos, errores estables, loader estricto de suites JSON locales y
-serializacion determinista de reportes, sin runners ni CLI todavia.
+M6 `m6-retrieval-eval-runner`: agrega un runner offline que construye un
+proyecto fixture-backed desde suites locales, ejecuta `RetrievalService` con
+provider fake/determinista y reporta metricas top-k/expected evidence con
+citations observadas, sin chat ni CLI todavia.
 
 Comandos validados:
 
@@ -46,11 +47,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m6-retrieval-eval-runner`: ejecutar los casos de retrieval contra
-  `RetrievalService` usando suites locales y provider fake. Es la opcion
-  recomendada porque el contrato de fixtures ya puede declarar casos, expected
-  evidence y thresholds; ahora falta medir top-k/expected chunk antes de sumar
-  chat o CLI.
+- `m6-chat-eval-runner`: ejecutar los casos de chat contra `ChatService` con
+  runner fake y retrieval fixture-backed. Es la opcion recomendada porque
+  retrieval ya tiene un harness offline reutilizable; ahora falta verificar
+  citations, tool calls y ausencia de evidence inventada antes de publicar CLI.
 
 ## Reglas de coordinacion
 

@@ -77,6 +77,18 @@ class EvalSuite:
 
 
 @dataclass(frozen=True, slots=True)
+class EvalObservedCitation:
+    """Citation observada por un runner de evals."""
+
+    evidence_id: str
+    chunk_id: str
+    rank: int
+    score: float
+    source_external_id: str
+    snippet: str
+
+
+@dataclass(frozen=True, slots=True)
 class EvalCaseResult:
     """Resultado serializable de un caso individual."""
 
@@ -85,6 +97,8 @@ class EvalCaseResult:
     status: EvalStatus
     metrics: dict[str, float]
     errors: tuple[str, ...] = ()
+    observed_evidence_ids: tuple[str, ...] = ()
+    observed_citations: tuple[EvalObservedCitation, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
