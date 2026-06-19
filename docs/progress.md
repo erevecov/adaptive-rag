@@ -10,8 +10,9 @@ M4 Superficie de retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M5 `m5-chat-tool-calling-plan`: abrio el change OpenSpec que define el
-contrato conversacional sobre la superficie estable de retrieval M4.
+M5 `m5-chat-service-contract`: implemento `adaptive_rag.chat` con contrato
+compartido, runner inyectado, tool de retrieval tipada, payloads reutilizables
+y tests deterministas sin red.
 
 Comandos validados:
 
@@ -44,10 +45,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m5-chat-service-contract`: implementar el servicio conversacional
-  compartido, la tool de retrieval tipada y los fakes deterministas. Es la
-  opcion recomendada porque fija la abstraccion reutilizable que despues deben
-  consumir API y CLI sin duplicar logica.
+- `m5-chat-api-endpoint`: agregar `POST /projects/{project_id}/chat` como
+  adaptador delgado sobre `ChatService`. Es la opcion recomendada porque el
+  contrato compartido ya existe y la API debe validarlo antes de exponer el
+  mismo flujo por CLI.
 
 ## Reglas de coordinacion
 
