@@ -142,15 +142,15 @@ Secuencia inicial propuesta:
 4. `m6-chat-eval-runner`: completo. Ejecuta casos de chat contra
    `ChatService` con runner fake/determinista, retrieval fixture-backed,
    coverage de citations y checks de tool calls esperadas.
-5. `m6-evals-cli-reporting`: siguiente. Agregar `adaptive-rag evals run` con
-   salida JSON, thresholds y exit code estable para CI.
-6. `m6-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals
+5. `m6-evals-cli-reporting`: completo. Agrega `adaptive-rag evals run` con
+   salida JSON por stdout o `--output`, thresholds y exit code estable para CI.
+6. `m6-quality-gate`: siguiente. Validar y cerrar el milestone antes de evals
    hosted, dashboards o tuning automatico.
 
-Siguiente tarea recomendada: implementar `m6-evals-cli-reporting`, porque los
-runners offline de retrieval y chat ya estan disponibles y el siguiente riesgo
-es exponer una CLI reproducible con JSON, thresholds y exit code estable para
-CI antes del quality gate.
+Siguiente tarea recomendada: ejecutar `m6-quality-gate`, porque fixtures,
+runners y CLI ya estan disponibles y el siguiente riesgo es cerrar M6 con
+validacion fresca, archive OpenSpec y spec canonica antes de avanzar a evals
+hosted, dashboards o tuning automatico.
 
 ## Politica para reducir conflictos de merge
 
