@@ -5,6 +5,7 @@
 - M1 Foundation: completo.
 - M2 Dominio y persistencia: completo.
 - M3 Ingestion y retrieval: completo.
+- M4 Superficie de retrieval: en curso.
 
 ## M1 Foundation
 
@@ -49,6 +50,33 @@ Secuencia entregada:
 6. `m3-quality-gate`: completo. Valida tests, lint, types, specs, CLI smoke y archiva M3.
 
 Siguiente tarea recomendada: abrir un nuevo change OpenSpec para M4 antes de implementar chat/tool calling, API/CLI de retrieval, evals o providers live. La opcion recomendada es planificar primero el siguiente vertical slice sobre el baseline M3 ya archivado.
+
+## M4 Superficie de retrieval
+
+Estado: planificacion en curso.
+
+Change activo:
+
+- `m4-retrieval-surface-plan`: en curso. Define la primera superficie API/CLI
+  de retrieval sobre el baseline M3, sin chat/tool calling ni providers live
+  obligatorios.
+
+Secuencia inicial propuesta:
+
+1. `m4-retrieval-surface-plan`: completo en branch de planificacion. Crea el
+   change OpenSpec que delimita API/CLI de retrieval sobre `DenseRetriever`.
+2. `m4-retrieval-service-contract`: siguiente. Implementar un servicio
+   compartido que recibe query text, genera query embedding con provider
+   inyectado/fake y llama a `DenseRetriever`.
+3. `m4-retrieval-api-endpoint`: agregar `POST /projects/{project_id}/retrieval/search`
+   con request/response JSON, metadata filters y tests con fakes.
+4. `m4-retrieval-cli-command`: agregar `adaptive-rag retrieval search` usando el
+   mismo servicio y filtros que la API.
+5. `m4-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
+
+Siguiente tarea recomendada: despues de mergear `m4-retrieval-surface-plan`,
+implementar `m4-retrieval-service-contract`, porque fija el contrato comun que
+evita duplicar logica entre API y CLI.
 
 ## Politica para reducir conflictos de merge
 
