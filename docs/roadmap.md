@@ -5,7 +5,8 @@
 - M1 Foundation: completo.
 - M2 Dominio y persistencia: completo.
 - M3 Ingestion y retrieval: completo.
-- M4 Superficie de retrieval: en curso.
+- M4 Superficie de retrieval: completo.
+- M5 Chat/tool calling: por planificar.
 
 ## M1 Foundation
 
@@ -49,19 +50,19 @@ Secuencia entregada:
 5. `m3-retrieval-baseline`: completo en branch de implementacion. Implementa retrieval dense exacto con filtros antes de ranking y citations ancladas a texto normalizado.
 6. `m3-quality-gate`: completo. Valida tests, lint, types, specs, CLI smoke y archiva M3.
 
-Siguiente tarea recomendada: abrir un nuevo change OpenSpec para M4 antes de implementar chat/tool calling, API/CLI de retrieval, evals o providers live. La opcion recomendada es planificar primero el siguiente vertical slice sobre el baseline M3 ya archivado.
+Continuacion: M4 quedo completado sobre el baseline M3 archivado. La siguiente
+decision debe abrir un change OpenSpec nuevo para M5 antes de implementar
+chat/tool calling, evals o providers live.
 
 ## M4 Superficie de retrieval
 
-Estado: implementacion en curso.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `m4-retrieval-surface-plan`: en curso. Define la primera superficie API/CLI
-  de retrieval sobre el baseline M3, sin chat/tool calling ni providers live
-  obligatorios.
+- `openspec/changes/archive/2026-06-19-m4-retrieval-surface-plan/`
 
-Secuencia inicial propuesta:
+Secuencia entregada:
 
 1. `m4-retrieval-surface-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita API/CLI de retrieval sobre `DenseRetriever`.
@@ -76,13 +77,22 @@ Secuencia inicial propuesta:
 4. `m4-retrieval-cli-command`: completo en branch de implementacion. Agrega
    `adaptive-rag retrieval search` usando el mismo servicio, filtros y payloads
    serializables que la API.
-5. `m4-quality-gate`: siguiente. Validar y cerrar el milestone antes de
-   chat/tool calling.
+5. `m4-quality-gate`: completo. Valida tests, lint, types y specs; archiva el
+   change M4 y publica `openspec/specs/retrieval-surface/spec.md`.
 
-Siguiente tarea recomendada: despues de mergear
-`m4-retrieval-cli-command`, ejecutar `m4-quality-gate`, porque los slices de
-servicio, API y CLI ya quedan completos y M4 debe cerrarse antes de planificar
-chat/tool calling.
+Siguiente tarea recomendada: abrir un nuevo change OpenSpec para M5 chat/tool
+calling sobre la superficie estable de M4. La opcion recomendada es definir
+primero el contrato conversacional y su reutilizacion del servicio compartido,
+antes de agregar comportamiento agentico o providers live.
+
+## M5 Chat/tool calling
+
+Estado: por planificar.
+
+Siguiente tarea recomendada: abrir un nuevo change OpenSpec para definir el
+contrato de chat/tool calling sobre la superficie estable de M4. El alcance
+debe mantener la logica de retrieval reutilizable y evitar duplicar la API/CLI
+ya cerrada.
 
 ## Politica para reducir conflictos de merge
 

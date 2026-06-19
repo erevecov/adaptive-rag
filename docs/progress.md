@@ -2,16 +2,17 @@
 
 ## Milestone activo
 
-M4 Superficie de retrieval.
+M5 por planificar: chat/tool calling sobre la superficie de retrieval cerrada.
 
 ## Ultimo milestone completado
 
-M3 Ingestion y retrieval cerrado el 2026-06-19.
+M4 Superficie de retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M4 `m4-retrieval-cli-command` implementado dentro del change activo
-`m4-retrieval-surface-plan`.
+M4 `m4-quality-gate`: valido tests, lint, types y specs; archivo
+`m4-retrieval-surface-plan` y publico la spec canonica
+`openspec/specs/retrieval-surface/spec.md`.
 
 Comandos validados:
 
@@ -19,14 +20,15 @@ Comandos validados:
 uv run pytest
 uv run ruff check .
 uv run mypy src
-openspec validate m4-retrieval-surface-plan --strict
+openspec archive m4-retrieval-surface-plan --yes
+openspec list
 openspec validate --specs --strict
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `m4-retrieval-surface-plan`
+- Ninguno.
 
 ## Spec canonica activa
 
@@ -39,13 +41,14 @@ git diff --check
 - `openspec/specs/chunking-baseline/spec.md`
 - `openspec/specs/embedding-baseline/spec.md`
 - `openspec/specs/retrieval-baseline/spec.md`
+- `openspec/specs/retrieval-surface/spec.md`
 
 ## Siguiente tarea recomendada
 
-- `m4-quality-gate`: validar tests, lint, types, specs y docs finales, luego
-  archivar `m4-retrieval-surface-plan`. Es la opcion recomendada porque los
-  slices de servicio, API y CLI ya quedan completos y M4 debe cerrarse antes de
-  planificar chat/tool calling.
+- Abrir un nuevo change OpenSpec para M5 chat/tool calling. Es la opcion
+  recomendada porque M4 ya dejo una superficie API/CLI estable y el siguiente
+  milestone debe definir como la capa conversacional reutiliza esa logica sin
+  duplicar retrieval.
 
 ## Reglas de coordinacion
 

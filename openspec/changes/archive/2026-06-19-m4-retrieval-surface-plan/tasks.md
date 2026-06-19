@@ -20,5 +20,5 @@
 - [x] 3.1 Implementar `m4-retrieval-service-contract`.
 - [x] 3.2 Implementar `m4-retrieval-api-endpoint`.
 - [x] 3.3 Implementar `m4-retrieval-cli-command`.
-- [ ] 3.4 Ejecutar `m4-quality-gate` y archivar el change cuando M4 quede
+- [x] 3.4 Ejecutar `m4-quality-gate` y archivar el change cuando M4 quede
   cerrado.
