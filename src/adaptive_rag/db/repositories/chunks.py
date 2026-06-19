@@ -74,6 +74,37 @@ class ChunkRepository:
         )
         return list(self._session.scalars(statement))
 
+    def update_dense_embedding(
+        self,
+        *,
+        project_id: UUID,
+        chunk_id: UUID,
+        embedding: Sequence[float],
+        embedding_metadata: Mapping[str, Any],
+    ) -> Chunk:
+        chunk = self._get_chunk_for_project(project_id=project_id, chunk_id=chunk_id)
+        if chunk is None:
+            raise ValueError("chunk does not belong to project")
+
+        chunk.embedding = list(embedding)
+        chunk.embedding_metadata = dict(embedding_metadata)
+        self._session.flush()
+        return chunk
+
+    def _get_chunk_for_project(
+        self,
+        *,
+        project_id: UUID,
+        chunk_id: UUID,
+    ) -> Chunk | None:
+        statement = (
+            select(Chunk)
+            .join(DocumentVersion, Chunk.document_version_id == DocumentVersion.id)
+            .join(Document, DocumentVersion.document_id == Document.id)
+            .where(Chunk.id == chunk_id, Document.project_id == project_id)
+        )
+        return self._session.scalars(statement).one_or_none()
+
     def _version_belongs_to_project(
         self, *, project_id: UUID, document_version_id: UUID
     ) -> bool:
@@ -86,4 +117,3 @@ class ChunkRepository:
             )
         )
         return self._session.scalar(statement) is not None
-
