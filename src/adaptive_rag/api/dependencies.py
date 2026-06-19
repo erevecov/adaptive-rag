@@ -9,9 +9,9 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner, ChatService
-from adaptive_rag.chat.runners import RetrievalGroundedChatRunner
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.retrieval import RetrievalService
 from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
 
@@ -36,7 +36,7 @@ def get_retrieval_service(
 
 
 def get_chat_runner() -> ChatRunner:
-    return RetrievalGroundedChatRunner()
+    return get_runtime_chat_runner()
 
 
 def get_chat_service(

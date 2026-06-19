@@ -184,10 +184,12 @@ Secuencia recomendada:
    hosted evals o tuning automatico.
 2. `m7-provider-settings-contract`: siguiente slice recomendado. Define
    settings, factories API/CLI, fake default y errores estables de configuracion
-   antes de tocar SDKs live.
+   antes de tocar SDKs live. Completo: modela Qwen como provider live opt-in con
+   `ADAPTIVE_RAG_QWEN_API_KEY` y `ADAPTIVE_RAG_QWEN_BASE_URL`, mantiene fake por
+   defecto y propaga errores de configuracion desde API/CLI.
 3. `m7-live-embedding-provider`: agrega el adapter live de embeddings bajo
    `DenseEmbeddingProvider`, manteniendo dimension 1024, tests sin red y smoke
-   live opt-in.
+   live opt-in. Siguiente slice recomendado.
 4. `m7-live-chat-runner`: agrega el runner live de chat/tool calling bajo
    `ChatRunner`, reutilizando la tool de retrieval y la validacion de citations.
 5. `m7-usage-cost-limits`: agrega metadata de usage/cost, budget guard,

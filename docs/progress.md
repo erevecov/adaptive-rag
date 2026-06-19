@@ -10,9 +10,11 @@ M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M7 `m7-provider-runtime-plan`: crea el change OpenSpec para integrar providers
-live de forma opt-in, manteniendo fake providers/runners como default,
-definiendo limites de usage/costo y separando smokes live de tests/evals offline.
+M7 `m7-provider-settings-contract`: agrega settings y factories compartidas de
+provider runtime, mantiene fake providers/runners como default, modela Qwen como
+provider live opt-in con `ADAPTIVE_RAG_QWEN_API_KEY` y
+`ADAPTIVE_RAG_QWEN_BASE_URL`, y devuelve errores estables antes de instanciar
+clientes live.
 
 Comandos validados:
 
@@ -48,9 +50,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m7-provider-settings-contract`. Es el primer slice recomendado
-  porque las factories y settings de runtime deben quedar estables antes de
-  agregar adapters live de embeddings/chat o limites de costo.
+- Implementar `m7-live-embedding-provider`. Es el siguiente slice recomendado
+  porque el contrato de settings ya permite seleccionar Qwen de forma opt-in; el
+  paso siguiente es agregar el adapter de embeddings con cliente fake en tests y
+  un smoke live separado.
 
 ## Reglas de coordinacion
 

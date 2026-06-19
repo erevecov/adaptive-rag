@@ -1,10 +1,11 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VectorStoreName = Literal["pgvector"]
+ProviderRuntimeMode = Literal["fake", "live"]
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,16 @@ class Settings(BaseSettings):
     )
     api_key: str | None = Field(default=None)
     vector_store: VectorStoreName = "pgvector"
+    provider_runtime_mode: ProviderRuntimeMode = "fake"
+    embedding_provider: str = "fake"
+    embedding_model: str = "fake-embedding-v1"
+    chat_provider: str = "fake"
+    chat_model: str = "retrieval-grounded-local-v1"
+    provider_timeout_seconds: float = 30.0
+    provider_max_retries: int = 2
+    provider_max_cost_usd: float | None = None
+    qwen_api_key: SecretStr | None = Field(default=None)
+    qwen_base_url: str | None = Field(default=None)
 
 
 @lru_cache(maxsize=1)

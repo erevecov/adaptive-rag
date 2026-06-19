@@ -21,7 +21,7 @@
 
 ## 3. Slices futuros de M7
 
-- [ ] 3.1 Implementar `m7-provider-settings-contract`.
+- [x] 3.1 Implementar `m7-provider-settings-contract`.
 - [ ] 3.2 Implementar `m7-live-embedding-provider`.
 - [ ] 3.3 Implementar `m7-live-chat-runner`.
 - [ ] 3.4 Implementar `m7-usage-cost-limits`.
