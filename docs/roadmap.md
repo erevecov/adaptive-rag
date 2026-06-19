@@ -6,7 +6,7 @@
 - M2 Dominio y persistencia: completo.
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
-- M5 Chat/tool calling: por planificar.
+- M5 Chat/tool calling: planificacion en curso.
 
 ## M1 Foundation
 
@@ -87,12 +87,31 @@ antes de agregar comportamiento agentico o providers live.
 
 ## M5 Chat/tool calling
 
-Estado: por planificar.
+Estado: planificacion en curso.
 
-Siguiente tarea recomendada: abrir un nuevo change OpenSpec para definir el
-contrato de chat/tool calling sobre la superficie estable de M4. El alcance
-debe mantener la logica de retrieval reutilizable y evitar duplicar la API/CLI
-ya cerrada.
+Change activo:
+
+- `m5-chat-tool-calling-plan`: define el contrato conversacional sobre la
+  superficie estable de M4, con retrieval como tool tipada, respuesta
+  estructurada con citations y adaptadores API/CLI delgados.
+
+Secuencia inicial propuesta:
+
+1. `m5-chat-tool-calling-plan`: completo en branch de planificacion. Crea el
+   change OpenSpec que delimita chat/tool calling sobre `RetrievalService`.
+2. `m5-chat-service-contract`: siguiente. Implementar `adaptive_rag.chat` con
+   servicio compartido, runner/modelo inyectado, tool de retrieval tipada,
+   payloads reutilizables y fakes deterministas.
+3. `m5-chat-api-endpoint`: pendiente. Agregar `POST /projects/{project_id}/chat`
+   como adaptador delgado sobre el servicio conversacional.
+4. `m5-chat-cli-command`: pendiente. Agregar `adaptive-rag chat ask` usando el
+   mismo servicio y payloads que la API.
+5. `m5-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals,
+   streaming, persistencia de conversaciones o providers live obligatorios.
+
+Siguiente tarea recomendada: implementar `m5-chat-service-contract`, porque API
+y CLI deben reutilizar una abstraccion comun para evitar archivos gigantes,
+duplicacion de filtros y acoplamiento directo a Pydantic AI.
 
 ## Politica para reducir conflictos de merge
 

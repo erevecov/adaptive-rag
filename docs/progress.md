@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-M5 por planificar: chat/tool calling sobre la superficie de retrieval cerrada.
+M5 Chat/tool calling.
 
 ## Ultimo milestone completado
 
@@ -10,9 +10,8 @@ M4 Superficie de retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M4 `m4-quality-gate`: valido tests, lint, types y specs; archivo
-`m4-retrieval-surface-plan` y publico la spec canonica
-`openspec/specs/retrieval-surface/spec.md`.
+M5 `m5-chat-tool-calling-plan`: abrio el change OpenSpec que define el
+contrato conversacional sobre la superficie estable de retrieval M4.
 
 Comandos validados:
 
@@ -20,7 +19,7 @@ Comandos validados:
 uv run pytest
 uv run ruff check .
 uv run mypy src
-openspec archive m4-retrieval-surface-plan --yes
+openspec validate m5-chat-tool-calling-plan --strict
 openspec list
 openspec validate --specs --strict
 git diff --check
@@ -28,7 +27,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m5-chat-tool-calling-plan`
 
 ## Spec canonica activa
 
@@ -45,10 +44,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec para M5 chat/tool calling. Es la opcion
-  recomendada porque M4 ya dejo una superficie API/CLI estable y el siguiente
-  milestone debe definir como la capa conversacional reutiliza esa logica sin
-  duplicar retrieval.
+- `m5-chat-service-contract`: implementar el servicio conversacional
+  compartido, la tool de retrieval tipada y los fakes deterministas. Es la
+  opcion recomendada porque fija la abstraccion reutilizable que despues deben
+  consumir API y CLI sin duplicar logica.
 
 ## Reglas de coordinacion
 
