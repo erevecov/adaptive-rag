@@ -194,9 +194,12 @@ Secuencia recomendada:
    `adaptive-rag providers embedding-smoke`.
 4. `m7-live-chat-runner`: agrega el runner live de chat/tool calling bajo
    `ChatRunner`, reutilizando la tool de retrieval y la validacion de citations.
-   Siguiente slice recomendado.
+   Completo: agrega `QwenChatRunner`, cliente HTTP OpenAI-compatible, factory
+   live para `chat_provider=qwen` y smoke CLI
+   `adaptive-rag providers chat-smoke`.
 5. `m7-usage-cost-limits`: agrega metadata de usage/cost, budget guard,
-   timeouts/retries acotados y logging estructurado sin secretos.
+   timeouts/retries acotados y logging estructurado sin secretos. Siguiente
+   slice recomendado.
 6. `m7-quality-gate`: valida el milestone completo, archiva el change M7 y
    publica la spec canonica `provider-runtime`.
 

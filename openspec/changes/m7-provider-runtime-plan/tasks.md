@@ -23,7 +23,7 @@
 
 - [x] 3.1 Implementar `m7-provider-settings-contract`.
 - [x] 3.2 Implementar `m7-live-embedding-provider`.
-- [ ] 3.3 Implementar `m7-live-chat-runner`.
+- [x] 3.3 Implementar `m7-live-chat-runner`.
 - [ ] 3.4 Implementar `m7-usage-cost-limits`.
 - [ ] 3.5 Ejecutar `m7-quality-gate` y archivar el change cuando M7 quede
   cerrado.

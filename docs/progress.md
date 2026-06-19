@@ -10,10 +10,11 @@ M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M7 `m7-live-embedding-provider`: agrega `QwenDenseEmbeddingProvider`, cliente
-HTTP de embeddings compatible con endpoints OpenAI-style y DashScope
-TextEmbedding, factory live opt-in para `embedding_provider=qwen`, validacion
-de dimension 1024 y smoke CLI `adaptive-rag providers embedding-smoke`.
+M7 `m7-live-chat-runner`: agrega `QwenChatRunner`, cliente HTTP
+OpenAI-compatible para chat completions, tool calling live contra la tool
+interna de retrieval, parsing JSON de `answer`/`cited_chunk_ids`, factory live
+opt-in para `chat_provider=qwen` y smoke CLI
+`adaptive-rag providers chat-smoke`.
 
 Comandos validados:
 
@@ -22,6 +23,7 @@ uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
+uv run adaptive-rag providers chat-smoke --message "What supports alpha?"
 openspec validate m7-provider-runtime-plan --strict
 openspec validate --specs --strict
 openspec list
@@ -49,10 +51,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m7-live-chat-runner`. Es el siguiente slice recomendado porque
-  Qwen embeddings ya queda testeable por smoke opt-in; falta conectar chat live
-  con la tool de retrieval y validacion de citations antes de pasar a limites de
-  usage/costo.
+- Implementar `m7-usage-cost-limits`. Es el siguiente slice recomendado porque
+  embeddings y chat live ya quedan conectados detras del runtime opt-in; falta
+  agregar metadata estructurada, budget guard y errores estables de costo antes
+  del quality gate de M7.
 
 ## Reglas de coordinacion
 
