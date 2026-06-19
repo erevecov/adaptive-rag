@@ -15,6 +15,7 @@ from adaptive_rag.evals.models import (
 )
 from adaptive_rag.evals.reports import serialize_eval_report
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.evals.runner import run_eval_suite
 
 __all__ = [
     "ChatEvalCase",
@@ -28,6 +29,7 @@ __all__ = [
     "RetrievalEvalCase",
     "load_eval_suite",
     "run_chat_eval_suite",
+    "run_eval_suite",
     "run_retrieval_eval_suite",
     "serialize_eval_report",
 ]
