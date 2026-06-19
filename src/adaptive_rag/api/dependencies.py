@@ -9,8 +9,9 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.embeddings import DenseEmbeddingProvider, FakeDenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.retrieval import RetrievalService
+from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
 
 
 def get_session() -> Iterator[Session]:
@@ -19,7 +20,7 @@ def get_session() -> Iterator[Session]:
 
 
 def get_dense_embedding_provider() -> DenseEmbeddingProvider:
-    return FakeDenseEmbeddingProvider()
+    return get_default_dense_embedding_provider()
 
 
 def get_retrieval_service(
