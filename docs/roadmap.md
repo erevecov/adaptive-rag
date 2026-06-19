@@ -7,7 +7,7 @@
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
 - M5 Chat/tool calling: completo.
-- M6 Evals: recomendado.
+- M6 Evals: planificacion en curso.
 
 ## M1 Foundation
 
@@ -121,13 +121,34 @@ agregar streaming, persistencia de conversaciones o providers live obligatorios.
 
 ## M6 Evals
 
-Estado: recomendado.
+Estado: planificacion en curso.
 
-Siguiente tarea recomendada: abrir `m6-evals-plan` para definir evaluaciones
-offline de retrieval/chat. La opcion recomendada es empezar por datasets y
-metricas reproducibles de calidad, groundedness y regresiones, porque el sistema
-ya puede responder con citations pero todavia no tiene una forma canonica de
-medir si esas respuestas mejoran o empeoran.
+Change activo:
+
+- `m6-evals-plan`: define evaluaciones offline de retrieval/chat sobre las
+  superficies estables de M4/M5, con datasets versionados, runners
+  deterministas, metricas objetivas, reportes JSON y CLI no interactiva.
+
+Secuencia inicial propuesta:
+
+1. `m6-evals-plan`: completo en branch de planificacion. Crea el change
+   OpenSpec que delimita evals offline antes de providers live, streaming o
+   persistencia de conversaciones.
+2. `m6-evals-fixtures-contract`: siguiente. Crear el paquete
+   `adaptive_rag.evals` inicial, modelos de casos/resultados y loader de
+   fixtures versionados con validacion estricta.
+3. `m6-retrieval-eval-runner`: pendiente. Ejecutar casos de retrieval contra
+   `RetrievalService` con provider fake y metricas top-k/expected chunk.
+4. `m6-chat-eval-runner`: pendiente. Ejecutar casos de chat contra
+   `ChatService` con runner fake y checks de citations/tool calls.
+5. `m6-evals-cli-reporting`: pendiente. Agregar `adaptive-rag evals run` con
+   salida JSON, thresholds y exit code estable para CI.
+6. `m6-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals
+   hosted, dashboards o tuning automatico.
+
+Siguiente tarea recomendada: implementar `m6-evals-fixtures-contract`, porque
+los runners, metricas y reportes necesitan primero una forma estable de
+declarar cases, expected evidence y thresholds.
 
 ## Politica para reducir conflictos de merge
 

@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. El siguiente milestone recomendado es M6 Evals.
+M6 Evals.
 
 ## Ultimo milestone completado
 
@@ -10,9 +10,10 @@ M5 Chat/tool calling cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M5 `m5-quality-gate`: valida el milestone completo, archiva
-`m5-chat-tool-calling-plan` y publica
-`openspec/specs/chat-tool-calling/spec.md` como spec canonica.
+M6 `m6-evals-plan`: abre el change OpenSpec para definir evaluaciones offline
+de retrieval/chat con datasets versionados, runners deterministas, metricas
+objetivas y reportes JSON antes de providers live, streaming o persistencia de
+conversaciones.
 
 Comandos validados:
 
@@ -20,19 +21,15 @@ Comandos validados:
 uv run pytest
 uv run ruff check .
 uv run mypy src
-openspec validate m5-chat-tool-calling-plan --strict
+openspec validate m6-evals-plan --strict
 openspec list
 openspec validate --specs --strict
-uv run adaptive-rag version
-uv run adaptive-rag health
-uv run adaptive-rag retrieval search --help
-uv run adaptive-rag chat ask --help
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m6-evals-plan`
 
 ## Spec canonica activa
 
@@ -50,11 +47,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- `m6-evals-plan`: abrir un change OpenSpec para definir evaluaciones offline
-  de retrieval/chat antes de streaming, persistencia de conversaciones o
-  providers live. Es la opcion recomendada porque el sistema ya puede responder
-  con citations, pero todavia no tiene una forma canonica de medir calidad,
-  groundedness y regresiones.
+- `m6-evals-fixtures-contract`: crear el contrato de datasets/versionado y los
+  modelos de resultado antes de runners y CLI. Es la opcion recomendada porque
+  las metricas y reportes dependen de una forma estable de declarar casos,
+  expected evidence, thresholds y errores de dataset.
 
 ## Reglas de coordinacion
 
