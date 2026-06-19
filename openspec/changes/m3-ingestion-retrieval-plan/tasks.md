@@ -19,7 +19,7 @@
 
 ## 3. Slices futuros de M3
 
-- [ ] 3.1 Implementar `m3-ingestion-pipeline`.
+- [x] 3.1 Implementar `m3-ingestion-pipeline`.
 - [ ] 3.2 Implementar `m3-chunking-baseline`.
 - [ ] 3.3 Implementar `m3-embedding-baseline`.
 - [ ] 3.4 Implementar `m3-retrieval-baseline`.

@@ -10,7 +10,8 @@ M2 Dominio y persistencia cerrado el 2026-06-18.
 
 ## Ultimo slice completado
 
-M2 `m2-quality-gate` completado el 2026-06-18.
+M3 `m3-ingestion-pipeline` implementado dentro del change activo
+`m3-ingestion-retrieval-plan`.
 
 Comandos validados:
 
@@ -38,8 +39,9 @@ uv run adaptive-rag version
 
 ## Siguiente tarea recomendada
 
-- `m3-ingestion-pipeline`: despues de mergear el plan, conectar sources, jobs,
-  parsers y `document_versions` sin chunking, embeddings ni retrieval todavia.
+- `m3-chunking-baseline`: implementar chunking semantico inicial sobre
+  `document_versions.normalized_text`, con offsets reproducibles para
+  citations.
 
 ## Reglas de coordinacion
 
