@@ -7,7 +7,7 @@
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
 - M5 Chat/tool calling: completo.
-- M6 Evals: planificacion en curso.
+- M6 Evals: implementacion en curso.
 
 ## M1 Foundation
 
@@ -121,7 +121,7 @@ agregar streaming, persistencia de conversaciones o providers live obligatorios.
 
 ## M6 Evals
 
-Estado: planificacion en curso.
+Estado: implementacion en curso.
 
 Change activo:
 
@@ -139,16 +139,18 @@ Secuencia inicial propuesta:
    fixtures versionados con validacion estricta.
 3. `m6-retrieval-eval-runner`: completo. Ejecuta casos de retrieval contra
    `RetrievalService` con provider fake y metricas top-k/expected chunk.
-4. `m6-chat-eval-runner`: siguiente. Ejecutar casos de chat contra
-   `ChatService` con runner fake y checks de citations/tool calls.
-5. `m6-evals-cli-reporting`: pendiente. Agregar `adaptive-rag evals run` con
+4. `m6-chat-eval-runner`: completo. Ejecuta casos de chat contra
+   `ChatService` con runner fake/determinista, retrieval fixture-backed,
+   coverage de citations y checks de tool calls esperadas.
+5. `m6-evals-cli-reporting`: siguiente. Agregar `adaptive-rag evals run` con
    salida JSON, thresholds y exit code estable para CI.
 6. `m6-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals
    hosted, dashboards o tuning automatico.
 
-Siguiente tarea recomendada: implementar `m6-chat-eval-runner`, porque retrieval
-ya tiene un harness offline reutilizable y el siguiente riesgo es validar
-citations, tool calls y ausencia de evidence inventada antes de publicar CLI.
+Siguiente tarea recomendada: implementar `m6-evals-cli-reporting`, porque los
+runners offline de retrieval y chat ya estan disponibles y el siguiente riesgo
+es exponer una CLI reproducible con JSON, thresholds y exit code estable para
+CI antes del quality gate.
 
 ## Politica para reducir conflictos de merge
 
