@@ -8,6 +8,7 @@
 - M4 Superficie de retrieval: completo.
 - M5 Chat/tool calling: completo.
 - M6 Evals: completo.
+- M7 Provider runtime: activo.
 
 ## M1 Foundation
 
@@ -159,6 +160,44 @@ hosted, dashboards, streaming o tuning automatico. La opcion recomendada es
 `m7-provider-runtime-plan`, porque la siguiente frontera de riesgo de la v1 es
 integrar providers live con limites de usage/costo y fakes/contract tests antes
 de depender de red o credenciales.
+
+## M7 Provider runtime
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m7-provider-runtime-plan/`: define el runtime opt-in para
+  providers live de embeddings y chat, con fake default, settings/factories
+  configurables, limites de usage/costo, metadata estructurada y smokes live
+  separados de tests/evals offline.
+
+Spec canonica:
+
+- Pendiente. Se publicara `openspec/specs/provider-runtime/spec.md` al cerrar
+  M7 con `m7-quality-gate`.
+
+Secuencia recomendada:
+
+1. `m7-provider-runtime-plan`: completo en branch de planificacion. Crea el
+   change OpenSpec que delimita providers live antes de streaming, dashboards,
+   hosted evals o tuning automatico.
+2. `m7-provider-settings-contract`: siguiente slice recomendado. Define
+   settings, factories API/CLI, fake default y errores estables de configuracion
+   antes de tocar SDKs live.
+3. `m7-live-embedding-provider`: agrega el adapter live de embeddings bajo
+   `DenseEmbeddingProvider`, manteniendo dimension 1024, tests sin red y smoke
+   live opt-in.
+4. `m7-live-chat-runner`: agrega el runner live de chat/tool calling bajo
+   `ChatRunner`, reutilizando la tool de retrieval y la validacion de citations.
+5. `m7-usage-cost-limits`: agrega metadata de usage/cost, budget guard,
+   timeouts/retries acotados y logging estructurado sin secretos.
+6. `m7-quality-gate`: valida el milestone completo, archiva el change M7 y
+   publica la spec canonica `provider-runtime`.
+
+Continuacion: M7 debe cerrar la frontera operativa de providers live antes de
+habilitar streaming, hosted evals, dashboards, rerank live o persistencia de
+conversaciones.
 
 ## Politica para reducir conflictos de merge
 

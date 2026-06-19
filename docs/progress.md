@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. Siguiente propuesto: M7 Provider runtime.
+M7 Provider runtime.
 
 ## Ultimo milestone completado
 
@@ -10,28 +10,26 @@ M6 Evals cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M6 `m6-quality-gate`: valida el milestone completo, archiva
-`m6-evals-plan`, publica `openspec/specs/evals-baseline/spec.md` como spec
-canonica y deja `openspec list` sin changes activos.
+M7 `m7-provider-runtime-plan`: crea el change OpenSpec para integrar providers
+live de forma opt-in, manteniendo fake providers/runners como default,
+definiendo limites de usage/costo y separando smokes live de tests/evals offline.
 
 Comandos validados:
 
 ```text
+uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-openspec validate m6-evals-plan --strict
+openspec validate m7-provider-runtime-plan --strict
 openspec validate --specs --strict
-uv run adaptive-rag version
-uv run adaptive-rag health
-openspec archive m6-evals-plan --yes
 openspec list
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m7-provider-runtime-plan/`
 
 ## Spec canonica activa
 
@@ -50,11 +48,9 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec para el siguiente milestone. La opcion
-  recomendada es `m7-provider-runtime-plan`, porque M6 dejo evals offline listos
-  y la siguiente frontera de riesgo de la v1 es integrar providers live con
-  limites de usage/costo antes de agregar evals hosted, dashboards, streaming o
-  tuning automatico.
+- Implementar `m7-provider-settings-contract`. Es el primer slice recomendado
+  porque las factories y settings de runtime deben quedar estables antes de
+  agregar adapters live de embeddings/chat o limites de costo.
 
 ## Reglas de coordinacion
 
