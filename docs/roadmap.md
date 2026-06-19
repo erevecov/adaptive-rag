@@ -9,6 +9,7 @@
 - M5 Chat/tool calling: completo.
 - M6 Evals: completo.
 - M7 Provider runtime: completo.
+- M8 Hosted evals: activo.
 
 ## M1 Foundation
 
@@ -201,11 +202,50 @@ Secuencia entregada:
    publica la spec canonica `provider-runtime`.
 
 Continuacion: M7 cerro la frontera operativa minima de providers live. La
-siguiente decision debe abrir un change OpenSpec M8 antes de implementar mas
-runtime. La opcion recomendada es `m8-live-provider-evals-plan`, porque Qwen ya
-tiene smokes live acotados y la siguiente validacion de riesgo es medir
-calidad/costo en evals hosted antes de streaming, dashboards, rerank live o
-persistencia de conversaciones.
+siguiente decision fue `m8-live-provider-evals-plan`, porque Qwen ya tiene
+smokes live acotados y la siguiente validacion de riesgo es medir calidad/costo
+en evals hosted antes de streaming, dashboards, rerank live o persistencia de
+conversaciones.
+
+## M8 Hosted evals
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m8-live-provider-evals-plan/`: define evals hosted opt-in
+  sobre las suites versionadas de M6 y el runtime de providers de M7, con
+  presupuesto maximo de corrida, reportes JSON de calidad/usage/costo y Qwen
+  live separado del gate offline obligatorio.
+
+Spec canonica:
+
+- Pendiente. Se publicara `openspec/specs/hosted-evals/spec.md` al cerrar M8
+  con `m8-quality-gate`.
+
+Secuencia recomendada:
+
+1. `m8-live-provider-evals-plan`: completo en branch de planificacion. Crea el
+   change OpenSpec que delimita hosted evals antes de dashboards, streaming,
+   rerank live o tuning automatico.
+2. `m8-hosted-eval-contract`: siguiente slice recomendado. Define modo
+   `offline`/`hosted`, modelos de reporte provider usage/cost, presupuesto
+   maximo de corrida y errores estables antes de conectar runners live.
+3. `m8-live-retrieval-eval-runner`: ejecuta retrieval evals con Qwen embeddings,
+   materializando evidence y queries con el mismo provider/modelo para medir
+   hit rate y costo sin mezclar embeddings fake/live.
+4. `m8-live-chat-eval-runner`: ejecuta chat evals con Qwen chat runner,
+   reutilizando `ChatService`, retrieval tool y validacion de citations.
+5. `m8-evals-cli-hosted-mode`: agrega `adaptive-rag evals run <suite>
+   --mode hosted --max-cost-usd <value>` con JSON extendido y smoke live
+   opt-in.
+6. `m8-quality-gate`: valida tests, lint, types, specs, evals offline y smoke
+   hosted opcional si `.env` local esta disponible; archiva el change M8 y
+   publica la spec canonica `hosted-evals`.
+
+Continuacion: M8 debe medir calidad/costo de providers live antes de agregar
+dashboards, LLM-as-judge, rerank hosted, streaming, persistencia de
+conversaciones o tuning automatico.
 
 ## Politica para reducir conflictos de merge
 
