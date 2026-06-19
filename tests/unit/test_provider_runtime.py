@@ -2,7 +2,7 @@ import pytest
 
 from adaptive_rag import provider_runtime
 from adaptive_rag.api import dependencies as api_dependencies
-from adaptive_rag.chat import RetrievalGroundedChatRunner
+from adaptive_rag.chat import QwenChatRunner, RetrievalGroundedChatRunner
 from adaptive_rag.cli import dependencies as cli_dependencies
 from adaptive_rag.config.settings import Settings
 from adaptive_rag.embeddings import (
@@ -131,6 +131,40 @@ def test_live_provider_requires_base_url_before_network_clients():
         match="ADAPTIVE_RAG_QWEN_BASE_URL is required for live provider runtime",
     ):
         get_chat_runner(settings)
+
+
+def test_live_qwen_chat_runner_requires_live_model():
+    settings = _settings(
+        provider_runtime_mode="live",
+        chat_provider="qwen",
+        chat_model="retrieval-grounded-local-v1",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_CHAT_MODEL must be set for qwen",
+    ):
+        get_chat_runner(settings)
+
+
+def test_live_qwen_chat_runner_is_configured_without_network_call():
+    settings = _settings(
+        provider_runtime_mode="live",
+        chat_provider="qwen",
+        chat_model="qwen-plus",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_timeout_seconds=7.5,
+        provider_max_retries=3,
+    )
+
+    runner = get_chat_runner(settings)
+
+    assert isinstance(runner, QwenChatRunner)
+    assert runner.provider_name == "qwen"
+    assert runner.model_name == "qwen-plus"
 
 
 def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):

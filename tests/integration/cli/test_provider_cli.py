@@ -27,3 +27,25 @@ def test_provider_embedding_smoke_outputs_json_for_fake_provider() -> None:
         "input_count": 1,
         "embedding_count": 1,
     }
+
+
+def test_provider_chat_smoke_outputs_json_for_fake_runner() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "providers",
+            "chat-smoke",
+            "--message",
+            "What supports alpha?",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data == {
+        "provider": "fake",
+        "model": "retrieval-grounded-local-v1",
+        "answer": "Alpha smoke evidence",
+        "citation_count": 1,
+        "tool_call_count": 1,
+    }

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from adaptive_rag.chat import ChatRunner, RetrievalGroundedChatRunner
+from adaptive_rag.chat import ChatRunner, QwenChatRunner, RetrievalGroundedChatRunner
+from adaptive_rag.chat.qwen import QwenHTTPChatClient
 from adaptive_rag.config.settings import Settings, get_settings
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
@@ -25,8 +26,7 @@ def get_dense_embedding_provider(
 
 def get_chat_runner(settings: Settings | None = None) -> ChatRunner:
     runtime_settings = settings or get_settings()
-    _validate_chat_provider(runtime_settings)
-    return RetrievalGroundedChatRunner()
+    return _build_chat_runner(runtime_settings)
 
 
 def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
@@ -60,21 +60,33 @@ def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
     )
 
 
-def _validate_chat_provider(settings: Settings) -> None:
+def _build_chat_runner(settings: Settings) -> ChatRunner:
     if settings.provider_runtime_mode == "fake":
         if settings.chat_provider != "fake":
             raise ProviderConfigurationError(
                 f"chat provider '{settings.chat_provider}' requires "
                 "live provider runtime mode"
             )
-        return
+        return RetrievalGroundedChatRunner()
 
     if settings.chat_provider != "qwen":
         raise ProviderConfigurationError(
             f"unsupported chat provider: {settings.chat_provider}"
         )
     _require_qwen_credentials(settings)
-    raise ProviderConfigurationError("qwen chat runner is not implemented yet")
+    if not settings.chat_model or settings.chat_model == "retrieval-grounded-local-v1":
+        raise ProviderConfigurationError("ADAPTIVE_RAG_CHAT_MODEL must be set for qwen")
+    if settings.qwen_api_key is None or settings.qwen_base_url is None:
+        raise ProviderConfigurationError("qwen credentials were not validated")
+    return QwenChatRunner(
+        model_name=settings.chat_model,
+        client=QwenHTTPChatClient(
+            api_key=settings.qwen_api_key.get_secret_value(),
+            base_url=settings.qwen_base_url,
+            timeout_seconds=settings.provider_timeout_seconds,
+            max_retries=settings.provider_max_retries,
+        ),
+    )
 
 
 def _require_qwen_credentials(settings: Settings) -> None:
