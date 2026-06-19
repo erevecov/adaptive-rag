@@ -102,16 +102,17 @@ Secuencia inicial propuesta:
 2. `m5-chat-service-contract`: completo. Implementa `adaptive_rag.chat` con
    servicio compartido, runner/modelo inyectado, tool de retrieval tipada,
    payloads reutilizables y fakes deterministas.
-3. `m5-chat-api-endpoint`: siguiente. Agregar `POST /projects/{project_id}/chat`
-   como adaptador delgado sobre el servicio conversacional.
-4. `m5-chat-cli-command`: pendiente. Agregar `adaptive-rag chat ask` usando el
+3. `m5-chat-api-endpoint`: completo. Agrega `POST /projects/{project_id}/chat`
+   como adaptador delgado sobre el servicio conversacional, con schemas HTTP,
+   dependency overrides y tests deterministas.
+4. `m5-chat-cli-command`: siguiente. Agregar `adaptive-rag chat ask` usando el
    mismo servicio y payloads que la API.
 5. `m5-quality-gate`: pendiente. Validar y cerrar el milestone antes de evals,
    streaming, persistencia de conversaciones o providers live obligatorios.
 
-Siguiente tarea recomendada: implementar `m5-chat-api-endpoint`, porque el
-contrato compartido ya existe y la API debe reutilizarlo antes de duplicar
-superficies en CLI.
+Siguiente tarea recomendada: implementar `m5-chat-cli-command`, porque el
+endpoint HTTP ya valido el contrato externo y la CLI debe reutilizar la misma
+logica sin duplicar chat ni retrieval.
 
 ## Politica para reducir conflictos de merge
 

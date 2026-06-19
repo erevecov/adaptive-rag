@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from adaptive_rag.chat import ChatRunner, ChatService
+from adaptive_rag.chat.runners import RetrievalGroundedChatRunner
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.retrieval import RetrievalService
@@ -31,4 +33,24 @@ def get_retrieval_service(
     ],
 ) -> RetrievalService:
     return RetrievalService(session, provider=provider)
+
+
+def get_chat_runner() -> ChatRunner:
+    return RetrievalGroundedChatRunner()
+
+
+def get_chat_service(
+    retrieval_service: Annotated[
+        RetrievalService,
+        Depends(get_retrieval_service),
+    ],
+    runner: Annotated[
+        ChatRunner,
+        Depends(get_chat_runner),
+    ],
+) -> ChatService:
+    return ChatService(
+        runner=runner,
+        retrieval_service=retrieval_service,
+    )
 
