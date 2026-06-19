@@ -7,7 +7,7 @@
 - M3 Ingestion y retrieval: completo.
 - M4 Superficie de retrieval: completo.
 - M5 Chat/tool calling: completo.
-- M6 Evals: implementacion en curso.
+- M6 Evals: completo.
 
 ## M1 Foundation
 
@@ -121,15 +121,20 @@ agregar streaming, persistencia de conversaciones o providers live obligatorios.
 
 ## M6 Evals
 
-Estado: implementacion en curso.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `m6-evals-plan`: define evaluaciones offline de retrieval/chat sobre las
-  superficies estables de M4/M5, con datasets versionados, runners
-  deterministas, metricas objetivas, reportes JSON y CLI no interactiva.
+- `openspec/changes/archive/2026-06-19-m6-evals-plan/`: define evaluaciones
+  offline de retrieval/chat sobre las superficies estables de M4/M5, con
+  datasets versionados, runners deterministas, metricas objetivas, reportes
+  JSON y CLI no interactiva.
 
-Secuencia inicial propuesta:
+Spec canonica:
+
+- `openspec/specs/evals-baseline/spec.md`
+
+Secuencia entregada:
 
 1. `m6-evals-plan`: completo en branch de planificacion. Crea el change
    OpenSpec que delimita evals offline antes de providers live, streaming o
@@ -144,13 +149,16 @@ Secuencia inicial propuesta:
    coverage de citations y checks de tool calls esperadas.
 5. `m6-evals-cli-reporting`: completo. Agrega `adaptive-rag evals run` con
    salida JSON por stdout o `--output`, thresholds y exit code estable para CI.
-6. `m6-quality-gate`: siguiente. Validar y cerrar el milestone antes de evals
-   hosted, dashboards o tuning automatico.
+6. `m6-quality-gate`: completo. Valida tests, lint, types, CLI smokes
+   basicos, OpenSpec, archiva el change M6 y publica la spec canonica de
+   evals.
 
-Siguiente tarea recomendada: ejecutar `m6-quality-gate`, porque fixtures,
-runners y CLI ya estan disponibles y el siguiente riesgo es cerrar M6 con
-validacion fresca, archive OpenSpec y spec canonica antes de avanzar a evals
-hosted, dashboards o tuning automatico.
+Continuacion: M6 quedo completado sobre retrieval/chat estables y evals offline.
+La siguiente decision debe abrir un change OpenSpec nuevo antes de agregar evals
+hosted, dashboards, streaming o tuning automatico. La opcion recomendada es
+`m7-provider-runtime-plan`, porque la siguiente frontera de riesgo de la v1 es
+integrar providers live con limites de usage/costo y fakes/contract tests antes
+de depender de red o credenciales.
 
 ## Politica para reducir conflictos de merge
 
