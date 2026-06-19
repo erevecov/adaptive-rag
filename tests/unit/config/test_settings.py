@@ -47,3 +47,23 @@ def test_provider_runtime_settings_use_env_prefix(monkeypatch):
     assert settings.qwen_api_key.get_secret_value() == "sk-test-secret"
     assert settings.qwen_base_url == "https://example.test/v1"
     assert "sk-test-secret" not in repr(settings)
+
+
+def test_empty_optional_env_values_are_ignored(tmp_path):
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "ADAPTIVE_RAG_PROVIDER_MAX_COST_USD=",
+                "ADAPTIVE_RAG_QWEN_API_KEY=",
+                "ADAPTIVE_RAG_QWEN_BASE_URL=",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.provider_max_cost_usd is None
+    assert settings.qwen_api_key is None
+    assert settings.qwen_base_url is None
