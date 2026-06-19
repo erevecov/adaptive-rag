@@ -77,6 +77,13 @@ class SourceRepository:
             if source.tags is not None and active_filters.tag in source.tags
         ]
 
+    def get(self, *, project_id: UUID, source_id: UUID) -> Source | None:
+        statement = select(Source).where(
+            Source.id == source_id,
+            Source.project_id == project_id,
+        )
+        return self._session.scalars(statement).one_or_none()
+
     def get_by_identity(
         self,
         *,

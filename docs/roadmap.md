@@ -42,13 +42,13 @@ Change activo:
 Secuencia inicial propuesta:
 
 1. `m3-ingestion-retrieval-plan`: en curso. Crear el change OpenSpec que delimita los primeros slices de ingestion/retrieval sobre los contratos ya cerrados de M2.
-2. `m3-ingestion-pipeline`: conectar sources, documents, document versions, jobs y `URLFetchPolicy` en un flujo de ingestion verificable con fakes, sin chunking ni embeddings.
-3. `m3-chunking-baseline`: implementar chunking semantico inicial con offsets reproducibles para citations.
+2. `m3-ingestion-pipeline`: completo en branch de implementacion. Conecta sources, documents, document versions, jobs y `URLFetchPolicy` en un flujo de ingestion verificable con fakes, sin chunking ni embeddings.
+3. `m3-chunking-baseline`: siguiente. Implementar chunking semantico inicial con offsets reproducibles para citations.
 4. `m3-embedding-baseline`: construir inputs de embedding/contexto y persistir embeddings densos usando provider fakes antes de Qwen live.
 5. `m3-retrieval-baseline`: implementar retrieval exacto inicial con filtros por proyecto y metadata, basado en datos persistidos por los slices anteriores.
 6. `m3-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
 
-Siguiente tarea recomendada: despues de mergear `m3-ingestion-retrieval-plan`, empezar `m3-ingestion-pipeline`, porque M2 ya cerro jobs/repositories/fetch policy y el primer riesgo de M3 es convertir sources en `document_versions` de forma idempotente y auditable.
+Siguiente tarea recomendada: despues de mergear `m3-ingestion-pipeline`, empezar `m3-chunking-baseline`, porque ingestion ya produce `document_versions` y el proximo riesgo es crear chunks con offsets reproducibles antes de embeddings o retrieval.
 
 ## Politica para reducir conflictos de merge
 
