@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. M3 queda cerrado y archivado.
+M4 Superficie de retrieval.
 
 ## Ultimo milestone completado
 
@@ -10,29 +10,21 @@ M3 Ingestion y retrieval cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M3 `m3-quality-gate` valido el milestone completo y archivo el change
-`m3-ingestion-retrieval-plan` como
-`openspec/changes/archive/2026-06-19-m3-ingestion-retrieval-plan/`.
+M4 `m4-retrieval-surface-plan` creado dentro del change activo
+`m4-retrieval-surface-plan`.
 
 Comandos validados:
 
 ```text
-uv run pytest
-uv run ruff check .
-uv run mypy src
-openspec validate m3-ingestion-retrieval-plan --strict
-openspec archive m3-ingestion-retrieval-plan --yes
+openspec validate m4-retrieval-surface-plan --strict
 openspec validate --specs --strict
 openspec list
-openspec list --specs
-uv run adaptive-rag health
-uv run adaptive-rag version
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m4-retrieval-surface-plan`
 
 ## Spec canonica activa
 
@@ -48,10 +40,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Crear un nuevo change OpenSpec para M4 antes de implementar chat/tool calling,
-  API/CLI de retrieval, evals o providers live. La opcion recomendada es
-  planificar primero el siguiente vertical slice sobre el baseline M3 ya
-  archivado.
+- `m4-retrieval-service-contract`: implementar el servicio compartido que
+  convierte query text en query embedding con provider fake/inyectado y llama a
+  `DenseRetriever`. Es la opcion recomendada porque API y CLI deben consumir el
+  mismo contrato antes de exponer superficies separadas.
 
 ## Reglas de coordinacion
 
