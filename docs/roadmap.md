@@ -4,7 +4,7 @@
 
 - M1 Foundation: completo.
 - M2 Dominio y persistencia: completo.
-- M3 Ingestion y retrieval: en curso.
+- M3 Ingestion y retrieval: completo.
 
 ## M1 Foundation
 
@@ -33,22 +33,22 @@ Secuencia recomendada:
 
 ## M3 Ingestion y retrieval
 
-Estado: implementacion en curso.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `m3-ingestion-retrieval-plan`: en curso. Define el corte inicial de M3 antes de escribir codigo productivo.
+- `openspec/changes/archive/2026-06-19-m3-ingestion-retrieval-plan/`
 
-Secuencia inicial propuesta:
+Secuencia entregada:
 
-1. `m3-ingestion-retrieval-plan`: en curso. Crear el change OpenSpec que delimita los primeros slices de ingestion/retrieval sobre los contratos ya cerrados de M2.
+1. `m3-ingestion-retrieval-plan`: completo. Creo y archivo el change OpenSpec que delimito los slices de ingestion/retrieval sobre los contratos cerrados de M2.
 2. `m3-ingestion-pipeline`: completo en branch de implementacion. Conecta sources, documents, document versions, jobs y `URLFetchPolicy` en un flujo de ingestion verificable con fakes, sin chunking ni embeddings.
 3. `m3-chunking-baseline`: completo en branch de implementacion. Implementa chunking semantico inicial con offsets reproducibles para citations.
 4. `m3-embedding-baseline`: completo en branch de implementacion. Construye inputs de embedding/contexto y persiste embeddings densos usando provider fakes antes de Qwen live.
 5. `m3-retrieval-baseline`: completo en branch de implementacion. Implementa retrieval dense exacto con filtros antes de ranking y citations ancladas a texto normalizado.
-6. `m3-quality-gate`: siguiente. Validar y cerrar el milestone antes de chat/tool calling.
+6. `m3-quality-gate`: completo. Valida tests, lint, types, specs, CLI smoke y archiva M3.
 
-Siguiente tarea recomendada: despues de mergear `m3-retrieval-baseline`, ejecutar `m3-quality-gate`, porque los vertical slices de ingestion, chunking, embeddings y retrieval ya quedan implementados y falta cerrar el milestone con validacion completa y archivo OpenSpec.
+Siguiente tarea recomendada: abrir un nuevo change OpenSpec para M4 antes de implementar chat/tool calling, API/CLI de retrieval, evals o providers live. La opcion recomendada es planificar primero el siguiente vertical slice sobre el baseline M3 ya archivado.
 
 ## Politica para reducir conflictos de merge
 
