@@ -73,15 +73,16 @@ Secuencia inicial propuesta:
    `POST /projects/{project_id}/retrieval/search` con request/response JSON,
    metadata filters, dependency overrides en tests y payloads reutilizables por
    la CLI.
-4. `m4-retrieval-cli-command`: siguiente. Agregar
+4. `m4-retrieval-cli-command`: completo en branch de implementacion. Agrega
    `adaptive-rag retrieval search` usando el mismo servicio, filtros y payloads
    serializables que la API.
-5. `m4-quality-gate`: validar y cerrar el milestone antes de chat/tool calling.
+5. `m4-quality-gate`: siguiente. Validar y cerrar el milestone antes de
+   chat/tool calling.
 
 Siguiente tarea recomendada: despues de mergear
-`m4-retrieval-api-endpoint`, implementar `m4-retrieval-cli-command`, porque la
-API ya fijo el contrato JSON y la CLI debe reutilizar esa semantica antes del
-quality gate de M4.
+`m4-retrieval-cli-command`, ejecutar `m4-quality-gate`, porque los slices de
+servicio, API y CLI ya quedan completos y M4 debe cerrarse antes de planificar
+chat/tool calling.
 
 ## Politica para reducir conflictos de merge
 
