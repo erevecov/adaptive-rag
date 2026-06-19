@@ -10,6 +10,11 @@ from adaptive_rag.embeddings.dense import (
     EmbeddingInputBuilder,
     FakeDenseEmbeddingProvider,
 )
+from adaptive_rag.embeddings.qwen import (
+    QwenDenseEmbeddingProvider,
+    QwenEmbeddingProviderError,
+    QwenHTTPEmbeddingClient,
+)
 
 __all__ = [
     "DENSE_EMBEDDING_METADATA_VERSION",
@@ -20,4 +25,7 @@ __all__ = [
     "DenseEmbeddingRunResult",
     "EmbeddingInputBuilder",
     "FakeDenseEmbeddingProvider",
+    "QwenDenseEmbeddingProvider",
+    "QwenEmbeddingProviderError",
+    "QwenHTTPEmbeddingClient",
 ]

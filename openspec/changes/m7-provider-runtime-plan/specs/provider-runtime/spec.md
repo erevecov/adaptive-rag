@@ -33,7 +33,7 @@ configuracion explicita para habilitar llamadas live.
   embeddings o chat
 - **THEN** la factory exige `ADAPTIVE_RAG_QWEN_API_KEY`
 - **AND** exige `ADAPTIVE_RAG_QWEN_BASE_URL` para apuntar a un endpoint
-  OpenAI-compatible de Qwen
+  OpenAI-compatible de Qwen o a un endpoint DashScope TextEmbedding
 - **AND** si falta cualquiera de esos valores devuelve un error estable antes
   de instanciar clientes live
 
@@ -62,6 +62,15 @@ El sistema MUST exponer adapters live de embeddings mediante
 - **WHEN** `RetrievalService.search()` corre en live mode
 - **THEN** genera el query embedding mediante la factory configurada
 - **AND** valida dimension antes de llamar a `DenseRetriever`
+
+#### Scenario: Smoke de embeddings live es un comando separado
+
+- **WHEN** un usuario ejecuta `adaptive-rag providers embedding-smoke` con
+  Qwen configurado
+- **THEN** el comando llama al provider de embeddings configurado con un input
+  pequeno
+- **AND** emite JSON con provider, modelo, dimension y conteos
+- **AND** no requiere base de datos ni ejecuta retrieval
 
 ### Requirement: Chat live usa tool calling verificable
 
