@@ -8,6 +8,7 @@ from adaptive_rag.chat.models import (
     ChatRunnerRequest,
     ChatToolCall,
 )
+from adaptive_rag.chat.runners import RetrievalGroundedChatRunner
 from adaptive_rag.chat.service import ChatRunner, ChatService
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "ChatService",
     "ChatServiceError",
     "ChatToolCall",
+    "RetrievalGroundedChatRunner",
 ]
