@@ -23,7 +23,7 @@
 
 ## 3. Slices futuros de M11
 
-- [ ] 3.1 Implementar `m11-candidate-limit-eval-matrix`.
+- [x] 3.1 Implementar `m11-candidate-limit-eval-matrix`.
 - [ ] 3.2 Implementar `m11-candidate-limit-ab-runner`.
 - [ ] 3.3 Implementar `m11-candidate-limit-api-cli-surface` si la evidencia lo
   justifica.

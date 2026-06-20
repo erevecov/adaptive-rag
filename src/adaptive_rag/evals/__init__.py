@@ -1,5 +1,11 @@
 """Contrato de datasets y reportes para evals offline."""
 
+from adaptive_rag.evals.candidate_limit_matrix import (
+    CandidateLimitEvalMatrix,
+    CandidateLimitEvalMatrixRow,
+    build_candidate_limit_eval_matrix,
+    serialize_candidate_limit_eval_matrix,
+)
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.datasets import load_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError, EvalDatasetError
@@ -34,6 +40,8 @@ from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
 from adaptive_rag.evals.runner import run_eval_suite
 
 __all__ = [
+    "CandidateLimitEvalMatrix",
+    "CandidateLimitEvalMatrixRow",
     "ChatEvalCase",
     "EvalCaseComparison",
     "EvalCaseComparisonOutcome",
@@ -51,6 +59,7 @@ __all__ = [
     "EvalSuite",
     "EvalThresholds",
     "RetrievalEvalCase",
+    "build_candidate_limit_eval_matrix",
     "load_eval_suite",
     "run_chat_eval_suite",
     "run_eval_suite",
@@ -59,6 +68,7 @@ __all__ = [
     "run_hosted_retrieval_eval_suite",
     "run_retrieval_eval_suite",
     "serialize_eval_report",
+    "serialize_candidate_limit_eval_matrix",
     "summarize_provider_usage",
     "validate_hosted_eval_credentials",
     "validate_hosted_eval_options",

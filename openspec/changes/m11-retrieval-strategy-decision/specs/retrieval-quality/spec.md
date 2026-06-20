@@ -70,6 +70,17 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
 - **AND** debe mantener dense retrieval como default hasta un quality gate
   posterior
 
+#### Scenario: Candidate limit matrix agrupa casos por metadata
+
+- **WHEN** se prepara un experimento de candidate limit sobre una suite
+  versionada
+- **THEN** el sistema puede construir una matriz de limites acotados que
+  declara el `candidate_limit`, `case_count` y `max_case_limit`
+- **AND** agrupa los casos por `intent` y `difficulty` cuando esa metadata
+  existe
+- **AND** rechaza limites duplicados, no positivos o menores al mayor `limit`
+  declarado por la suite
+
 #### Scenario: Lexical o RRF requieren fallo lexical medido
 
 - **WHEN** un change propone lexical retrieval o RRF
