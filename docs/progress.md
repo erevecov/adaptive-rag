@@ -6,36 +6,33 @@ Pendiente de abrir el siguiente change OpenSpec.
 
 ## Ultimo milestone completado
 
-M11 Retrieval strategy decision cerrado el 2026-06-20.
+M12 Retrieval evidence expansion cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M11 `m11-quality-gate`: valida el milestone completo, ejecuta smokes live Qwen
-opt-in con `.env` local, archiva `m11-retrieval-strategy-decision` y publica la
-spec canonica actualizada de `retrieval-quality`.
+M12 `m12-quality-gate`: valida el milestone completo, archiva
+`m12-retrieval-evidence-expansion` y publica la spec canonica actualizada de
+`retrieval-quality`.
 
 Comandos validados:
 
 ```text
-uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-npx --yes @fission-ai/openspec validate m11-retrieval-strategy-decision --strict
+npx --yes @fission-ai/openspec validate m12-retrieval-evidence-expansion --strict
 npx --yes @fission-ai/openspec validate --specs --strict
-npx --yes @fission-ai/openspec archive m11-retrieval-strategy-decision --yes
+npx --yes @fission-ai/openspec archive m12-retrieval-evidence-expansion --yes
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-Smokes hosted Qwen opt-in validados con `.env` local:
+Evidencia offline validada:
 
 ```text
-adaptive-rag providers embedding-smoke
-adaptive-rag providers chat-smoke
-adaptive-rag providers rerank-smoke
-hosted retrieval eval reranked con `retrieval-dataset-pack`, SQLite temporal,
-`candidate_limit=8` y `max_cost_usd=0.20`
+run_candidate_limit_ab_retrieval_eval_suite sobre `retrieval-dataset-pack`
+con embeddings deterministas, `FakeRerankProvider`, SQLite in-memory y
+`candidate_limits=(3, 5, 8)`
 ```
 
 ## Change OpenSpec activo
@@ -44,7 +41,7 @@ Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-20-m11-retrieval-strategy-decision/`
+- `openspec/changes/archive/2026-06-20-m12-retrieval-evidence-expansion/`
 
 ## Spec canonica activa
 
@@ -67,9 +64,10 @@ Ninguno.
 ## Siguiente tarea recomendada
 
 - Abrir el siguiente change OpenSpec solo despues de elegir una prioridad nueva.
-  La opcion recomendada es atacar evidencia adicional de retrieval en vez de
-  agregar algoritmos: ampliar casos de distractors/lexical misses y decidir si
-  lexical/RRF merece `proceed`, manteniendo dense retrieval como default.
+  La opcion recomendada es no agregar algoritmos de retrieval todavia: M12 no
+  justifico candidate presets, lexical/RRF ni sparse retrieval. Si aparece una
+  prioridad nueva, debe partir de evidencia concreta o de una necesidad fuera de
+  ranking.
 
 ## Reglas de coordinacion
 

@@ -105,6 +105,66 @@
       "metadata": {
         "title": "Rerank stability policy"
       }
+    },
+    {
+      "id": "qwen-rerank-model",
+      "text": "Qwen rerank smoke must call model qwen3-rerank for rerank scoring.",
+      "source_type": "markdown",
+      "source_external_id": "qwen-rerank.md",
+      "tags": ["docs", "provider", "qwen"],
+      "metadata": {
+        "title": "Qwen rerank model"
+      }
+    },
+    {
+      "id": "qwen-embedding-model",
+      "text": "Qwen embedding smoke must call model text-embedding-v4 for dense vectors.",
+      "source_type": "markdown",
+      "source_external_id": "qwen-embedding.md",
+      "tags": ["docs", "provider", "qwen"],
+      "metadata": {
+        "title": "Qwen embedding model"
+      }
+    },
+    {
+      "id": "admin-export-route",
+      "text": "Admin export API route is /v1/admin/exports/{export_id} for downloading exports.",
+      "source_type": "markdown",
+      "source_external_id": "admin-export-api.md",
+      "tags": ["docs", "api", "admin"],
+      "metadata": {
+        "title": "Admin export API route"
+      }
+    },
+    {
+      "id": "admin-export-ui",
+      "text": "Admin export UI links users to the /exports page without an export_id path.",
+      "source_type": "markdown",
+      "source_external_id": "admin-export-ui.md",
+      "tags": ["docs", "admin"],
+      "metadata": {
+        "title": "Admin export UI"
+      }
+    },
+    {
+      "id": "realtime-quota-close-code",
+      "text": "Realtime quota failures close with code 1013 insufficient_quota.insufficient_quota before session.update.",
+      "source_type": "markdown",
+      "source_external_id": "realtime-quota.md",
+      "tags": ["docs", "realtime", "quota"],
+      "metadata": {
+        "title": "Realtime quota close code"
+      }
+    },
+    {
+      "id": "realtime-model-visibility",
+      "text": "Realtime model visibility confirms retrieve success but does not prove quota is available.",
+      "source_type": "markdown",
+      "source_external_id": "realtime-model-visibility.md",
+      "tags": ["docs", "realtime"],
+      "metadata": {
+        "title": "Realtime model visibility"
+      }
     }
   ],
   "retrieval_cases": [
@@ -115,6 +175,7 @@
       "case_metadata": {
         "intent": "exact_match",
         "difficulty": "easy",
+        "risk_family": "identifier_exact",
         "coverage_notes": ["baseline exact terminology should stay trivial"]
       },
       "expected_evidence_ids": ["api-error-fields"]
@@ -126,6 +187,7 @@
       "case_metadata": {
         "intent": "paraphrase",
         "difficulty": "medium",
+        "risk_family": "semantic_distractor",
         "coverage_notes": ["query uses download/settled while evidence uses exported/settlement"]
       },
       "expected_evidence_ids": ["billing-invoice-export"]
@@ -137,6 +199,7 @@
       "case_metadata": {
         "intent": "distractor",
         "difficulty": "medium",
+        "risk_family": "semantic_distractor",
         "coverage_notes": ["distractor shares Alpha API terms without the error contract"]
       },
       "expected_evidence_ids": ["api-error-fields"]
@@ -148,6 +211,7 @@
       "case_metadata": {
         "intent": "metadata_filter",
         "difficulty": "medium",
+        "risk_family": "metadata_guard",
         "coverage_notes": ["blog-like evidence is closer but excluded by source_type and tags"]
       },
       "metadata_filter": {
@@ -163,6 +227,7 @@
       "case_metadata": {
         "intent": "multi_evidence",
         "difficulty": "hard",
+        "risk_family": "multi_evidence",
         "coverage_notes": ["requires both latency and cost evidence before changing retrieval"]
       },
       "expected_evidence_ids": ["latency-metric", "cost-metric"]
@@ -174,6 +239,7 @@
       "case_metadata": {
         "intent": "rerank_helpful",
         "difficulty": "medium",
+        "risk_family": "semantic_distractor",
         "coverage_notes": ["future A/B reporting should show this case as rerank-helpful when dense rank is weak"]
       },
       "expected_evidence_ids": ["rerank-citation-policy"]
@@ -185,9 +251,46 @@
       "case_metadata": {
         "intent": "rerank_stable",
         "difficulty": "easy",
+        "risk_family": "rerank_regression",
         "coverage_notes": ["future A/B reporting should not count rerank as a regression here"]
       },
       "expected_evidence_ids": ["rerank-stable-policy"]
+    },
+    {
+      "id": "lexical-qwen-rerank-model",
+      "query": "Which exact Qwen rerank model id should provider smoke use?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "lexical_miss",
+        "difficulty": "hard",
+        "risk_family": "identifier_exact",
+        "coverage_notes": ["query must distinguish qwen3-rerank from embedding model ids"]
+      },
+      "expected_evidence_ids": ["qwen-rerank-model"]
+    },
+    {
+      "id": "lexical-admin-export-route",
+      "query": "Which exact admin export API route includes export_id?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "lexical_miss",
+        "difficulty": "hard",
+        "risk_family": "identifier_exact",
+        "coverage_notes": ["query depends on exact route tokens and path parameter"]
+      },
+      "expected_evidence_ids": ["admin-export-route"]
+    },
+    {
+      "id": "distractor-realtime-quota-code",
+      "query": "Which realtime note names the exact quota close code, not just model visibility?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "distractor",
+        "difficulty": "medium",
+        "risk_family": "semantic_distractor",
+        "coverage_notes": ["distractor discusses model visibility but not the close code"]
+      },
+      "expected_evidence_ids": ["realtime-quota-close-code"]
     }
   ],
   "chat_cases": []

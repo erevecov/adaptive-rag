@@ -16,6 +16,7 @@ class CandidateLimitEvalMatrixRow:
     case_count: int
     case_ids_by_intent: dict[str, tuple[str, ...]]
     case_ids_by_difficulty: dict[str, tuple[str, ...]]
+    case_ids_by_risk_family: dict[str, tuple[str, ...]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +28,7 @@ class CandidateLimitEvalMatrix:
     max_case_limit: int
     intent_counts: dict[str, int]
     difficulty_counts: dict[str, int]
+    risk_family_counts: dict[str, int]
     rows: tuple[CandidateLimitEvalMatrixRow, ...]
 
 
@@ -49,12 +51,18 @@ def build_candidate_limit_eval_matrix(
         field="difficulty",
         fallback="unknown",
     )
+    case_ids_by_risk_family = _case_ids_by_metadata(
+        cases,
+        field="risk_family",
+        fallback="uncategorized",
+    )
     rows = tuple(
         CandidateLimitEvalMatrixRow(
             candidate_limit=limit,
             case_count=len(cases),
             case_ids_by_intent=case_ids_by_intent,
             case_ids_by_difficulty=case_ids_by_difficulty,
+            case_ids_by_risk_family=case_ids_by_risk_family,
         )
         for limit in active_limits
     )
@@ -64,6 +72,7 @@ def build_candidate_limit_eval_matrix(
         max_case_limit=_max_case_limit(suite),
         intent_counts=_counts(case_ids_by_intent),
         difficulty_counts=_counts(case_ids_by_difficulty),
+        risk_family_counts=_counts(case_ids_by_risk_family),
         rows=rows,
     )
 
@@ -79,6 +88,7 @@ def serialize_candidate_limit_eval_matrix(
         "max_case_limit": matrix.max_case_limit,
         "intent_counts": dict(sorted(matrix.intent_counts.items())),
         "difficulty_counts": dict(sorted(matrix.difficulty_counts.items())),
+        "risk_family_counts": dict(sorted(matrix.risk_family_counts.items())),
         "rows": [_serialize_row(row) for row in matrix.rows],
     }
 
@@ -129,6 +139,9 @@ def _serialize_row(row: CandidateLimitEvalMatrixRow) -> dict[str, object]:
         "case_count": row.case_count,
         "case_ids_by_intent": _serialize_groups(row.case_ids_by_intent),
         "case_ids_by_difficulty": _serialize_groups(row.case_ids_by_difficulty),
+        "case_ids_by_risk_family": _serialize_groups(
+            row.case_ids_by_risk_family
+        ),
     }
 
 

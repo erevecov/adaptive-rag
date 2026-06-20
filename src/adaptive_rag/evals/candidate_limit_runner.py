@@ -46,8 +46,8 @@ from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import RetrievalRerankOptions
 
 _OUTCOME_ORDER: tuple[EvalCaseComparisonOutcome, ...] = (
-    "improvement",
     "regression",
+    "improvement",
     "tie",
 )
 
@@ -63,6 +63,7 @@ class CandidateLimitABRunRow:
     comparison_cases: tuple[EvalCaseComparison, ...]
     outcome_counts_by_intent: dict[str, dict[str, int]]
     outcome_counts_by_difficulty: dict[str, dict[str, int]]
+    outcome_counts_by_risk_family: dict[str, dict[str, int]]
     provider_usage: EvalProviderUsageSummary | None = None
 
 
@@ -190,6 +191,7 @@ def _run_candidate_limit_row(
         dense_report=dense_report,
         reranked_report=reranked_report,
     )
+    ordered_comparison_cases = _order_gap_cases(comparison_cases)
     return CandidateLimitABRunRow(
         candidate_limit=candidate_limit,
         status=reranked_report.status,
@@ -199,7 +201,7 @@ def _run_candidate_limit_row(
             reranked_report=reranked_report,
             comparison_cases=comparison_cases,
         ),
-        comparison_cases=comparison_cases,
+        comparison_cases=ordered_comparison_cases,
         outcome_counts_by_intent=_outcome_counts_by_metadata(
             suite,
             comparison_cases,
@@ -211,6 +213,12 @@ def _run_candidate_limit_row(
             comparison_cases,
             field="difficulty",
             fallback="unknown",
+        ),
+        outcome_counts_by_risk_family=_outcome_counts_by_metadata(
+            suite,
+            comparison_cases,
+            field="risk_family",
+            fallback="uncategorized",
         ),
         provider_usage=(
             summarize_provider_usage(usage_tracker.records[usage_start:])
@@ -259,6 +267,9 @@ def _serialize_row(row: CandidateLimitABRunRow) -> dict[str, object]:
         "outcome_counts_by_difficulty": _serialize_outcome_counts(
             row.outcome_counts_by_difficulty
         ),
+        "outcome_counts_by_risk_family": _serialize_outcome_counts(
+            row.outcome_counts_by_risk_family
+        ),
         "comparison_cases": [
             serialize_eval_case_comparison(comparison)
             for comparison in row.comparison_cases
@@ -282,3 +293,16 @@ def _serialize_outcome_counts(
 
 def _sorted_metrics(metrics: dict[str, float]) -> dict[str, float]:
     return {key: metrics[key] for key in sorted(metrics)}
+
+
+def _order_gap_cases(
+    comparison_cases: tuple[EvalCaseComparison, ...],
+) -> tuple[EvalCaseComparison, ...]:
+    outcome_rank = {outcome: index for index, outcome in enumerate(_OUTCOME_ORDER)}
+    return tuple(
+        comparison
+        for _, comparison in sorted(
+            enumerate(comparison_cases),
+            key=lambda item: (outcome_rank[item[1].outcome], item[0]),
+        )
+    )

@@ -11,6 +11,7 @@ from adaptive_rag.evals.models import (
     ChatEvalCase,
     EvalCaseMetadata,
     EvalEvidence,
+    EvalRiskFamily,
     EvalSuite,
     EvalThresholds,
     RetrievalEvalCase,
@@ -30,6 +31,14 @@ from adaptive_rag.evals.validation import (
     required,
 )
 from adaptive_rag.retrieval import RetrievalMetadataFilter
+
+_RISK_FAMILIES: tuple[EvalRiskFamily, ...] = (
+    "identifier_exact",
+    "metadata_guard",
+    "multi_evidence",
+    "rerank_regression",
+    "semantic_distractor",
+)
 
 _SUITE_FIELDS = frozenset(
     {
@@ -74,7 +83,9 @@ _CHAT_CASE_FIELDS = frozenset(
     }
 )
 _FILTER_FIELDS = frozenset({"source_type", "tags"})
-_CASE_METADATA_FIELDS = frozenset({"intent", "difficulty", "coverage_notes"})
+_CASE_METADATA_FIELDS = frozenset(
+    {"intent", "difficulty", "risk_family", "coverage_notes"}
+)
 _THRESHOLD_FIELDS = frozenset(
     {"retrieval_hit_rate", "chat_citation_coverage"}
 )
@@ -337,11 +348,30 @@ def _parse_case_metadata(
             payload.get("difficulty"),
             field_name=f"{field_name}.difficulty",
         ),
+        risk_family=_parse_risk_family(
+            payload.get("risk_family"),
+            field_name=f"{field_name}.risk_family",
+        ),
         coverage_notes=parse_str_tuple(
             payload.get("coverage_notes", []),
             field_name=f"{field_name}.coverage_notes",
         ),
     )
+
+
+def _parse_risk_family(
+    value: object,
+    *,
+    field_name: str,
+) -> EvalRiskFamily | None:
+    risk_family = optional_nonempty_str(value, field_name=field_name)
+    if risk_family is None:
+        return None
+    if risk_family not in _RISK_FAMILIES:
+        raise EvalDatasetError(
+            f"{field_name} must be one of: {', '.join(_RISK_FAMILIES)}"
+        )
+    return risk_family
 
 
 def _parse_metadata(value: object, *, field_name: str) -> dict[str, object] | None:

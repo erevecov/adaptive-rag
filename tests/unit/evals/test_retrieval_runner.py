@@ -108,9 +108,9 @@ def test_run_retrieval_eval_suite_passes_repo_dataset_pack_fixture() -> None:
 
     assert report.status == "passed"
     assert report.metrics == {
-        "retrieval_case_count": 7.0,
+        "retrieval_case_count": 10.0,
         "retrieval_hit_rate": 1.0,
-        "retrieval_passed_count": 7.0,
+        "retrieval_passed_count": 10.0,
     }
     assert tuple(case.id for case in report.cases) == (
         "exact-api-error-fields",
@@ -120,6 +120,9 @@ def test_run_retrieval_eval_suite_passes_repo_dataset_pack_fixture() -> None:
         "multi-evidence-quality-gate",
         "rerank-helpful-candidate",
         "rerank-stable-exact",
+        "lexical-qwen-rerank-model",
+        "lexical-admin-export-route",
+        "distractor-realtime-quota-code",
     )
     assert all(case.metrics["missing_count"] == 0.0 for case in report.cases)
 
@@ -139,6 +142,14 @@ def test_run_retrieval_eval_suite_passes_repo_dataset_pack_fixture() -> None:
     )
     assert by_case["rerank-stable-exact"].case_metadata is not None
     assert by_case["rerank-stable-exact"].case_metadata.intent == "rerank_stable"
+    assert by_case["lexical-qwen-rerank-model"].case_metadata is not None
+    assert by_case["lexical-qwen-rerank-model"].case_metadata.risk_family == (
+        "identifier_exact"
+    )
+    assert by_case["distractor-realtime-quota-code"].case_metadata is not None
+    assert by_case["distractor-realtime-quota-code"].case_metadata.risk_family == (
+        "semantic_distractor"
+    )
 
 
 def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
@@ -173,6 +184,7 @@ def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
                         "case_metadata": {
                             "intent": "paraphrase",
                             "difficulty": "medium",
+                            "risk_family": "semantic_distractor",
                             "coverage_notes": [
                                 "dense should not lose alpha to a distractor"
                             ],
@@ -205,6 +217,7 @@ def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
         "coverage_notes": ["dense should not lose alpha to a distractor"],
         "difficulty": "medium",
         "intent": "paraphrase",
+        "risk_family": "semantic_distractor",
     }
 
 
@@ -336,6 +349,27 @@ def _dataset_pack_embeddings() -> dict[str, list[float]]:
             "Rerank should keep exact policy evidence first when dense rank "
             "is already correct."
         ): _axis_vector(8),
+        "Qwen rerank smoke must call model qwen3-rerank for rerank scoring.": (
+            _axis_vector(9)
+        ),
+        "Qwen embedding smoke must call model text-embedding-v4 for dense vectors.": (
+            _axis_vector(10)
+        ),
+        (
+            "Admin export API route is /v1/admin/exports/{export_id} for "
+            "downloading exports."
+        ): _axis_vector(11),
+        "Admin export UI links users to the /exports page without an export_id path.": (
+            _axis_vector(12)
+        ),
+        (
+            "Realtime quota failures close with code 1013 "
+            "insufficient_quota.insufficient_quota before session.update."
+        ): _axis_vector(13),
+        (
+            "Realtime model visibility confirms retrieve success but does not "
+            "prove quota is available."
+        ): _axis_vector(14),
         "What fields must Alpha API errors include?": _axis_vector(0),
         "Can users download invoices once a payment has settled?": _axis_vector(2),
         "Which Alpha item describes error response fields, not release note timing?": (
@@ -352,4 +386,12 @@ def _dataset_pack_embeddings() -> dict[str, list[float]]:
             "Which evidence should stay first when dense ranking already found "
             "the exact policy?"
         ): _axis_vector(8),
+        "Which exact Qwen rerank model id should provider smoke use?": (
+            _axis_vector(9)
+        ),
+        "Which exact admin export API route includes export_id?": _axis_vector(11),
+        (
+            "Which realtime note names the exact quota close code, not just model "
+            "visibility?"
+        ): _axis_vector(13),
     }

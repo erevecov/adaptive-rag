@@ -49,6 +49,7 @@ def test_load_eval_suite_parses_versioned_retrieval_and_chat_cases(
                     "case_metadata": {
                         "intent": "exact_match",
                         "difficulty": "easy",
+                        "risk_family": "identifier_exact",
                         "coverage_notes": ["baseline smoke"],
                     },
                     "metadata_filter": {
@@ -97,6 +98,7 @@ def test_load_eval_suite_parses_versioned_retrieval_and_chat_cases(
     assert retrieval_case.case_metadata is not None
     assert retrieval_case.case_metadata.intent == "exact_match"
     assert retrieval_case.case_metadata.difficulty == "easy"
+    assert retrieval_case.case_metadata.risk_family == "identifier_exact"
     assert retrieval_case.case_metadata.coverage_notes == ("baseline smoke",)
     assert retrieval_case.metadata_filter == RetrievalMetadataFilter(
         source_type="markdown",
@@ -209,6 +211,49 @@ def test_load_eval_suite_rejects_unknown_case_metadata_fields(
         load_eval_suite(suite_path)
 
 
+def test_load_eval_suite_rejects_unknown_case_metadata_risk_family(
+    tmp_path: Path,
+) -> None:
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "broken",
+            "thresholds": {},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                }
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "What supports alpha?",
+                    "case_metadata": {
+                        "intent": "exact_match",
+                        "risk_family": "unclear_bucket",
+                    },
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+
+    with pytest.raises(
+        EvalDatasetError,
+        match=(
+            "retrieval_cases\\[0\\]\\.case_metadata\\.risk_family must be one of: "
+            "identifier_exact, metadata_guard, multi_evidence, "
+            "rerank_regression, semantic_distractor"
+        ),
+    ):
+        load_eval_suite(suite_path)
+
+
 def test_load_eval_suite_rejects_missing_required_case_field(
     tmp_path: Path,
 ) -> None:
@@ -281,7 +326,7 @@ def test_load_eval_suite_parses_repo_retrieval_dataset_pack() -> None:
     assert suite.suite_id == "retrieval-dataset-pack"
     assert suite.description == "Representative offline retrieval eval dataset pack."
     assert suite.thresholds.retrieval_hit_rate == 1.0
-    assert len(suite.evidence) == 10
+    assert len(suite.evidence) == 16
     assert tuple(case.id for case in suite.retrieval_cases) == (
         "exact-api-error-fields",
         "paraphrase-invoice-export",
@@ -290,6 +335,9 @@ def test_load_eval_suite_parses_repo_retrieval_dataset_pack() -> None:
         "multi-evidence-quality-gate",
         "rerank-helpful-candidate",
         "rerank-stable-exact",
+        "lexical-qwen-rerank-model",
+        "lexical-admin-export-route",
+        "distractor-realtime-quota-code",
     )
     assert suite.chat_cases == ()
 
@@ -307,6 +355,24 @@ def test_load_eval_suite_parses_repo_retrieval_dataset_pack() -> None:
         "multi-evidence-quality-gate": "multi_evidence",
         "rerank-helpful-candidate": "rerank_helpful",
         "rerank-stable-exact": "rerank_stable",
+        "lexical-qwen-rerank-model": "lexical_miss",
+        "lexical-admin-export-route": "lexical_miss",
+        "distractor-realtime-quota-code": "distractor",
+    }
+    assert {
+        case_id: metadata.risk_family if metadata is not None else None
+        for case_id, metadata in metadata_by_case.items()
+    } == {
+        "exact-api-error-fields": "identifier_exact",
+        "paraphrase-invoice-export": "semantic_distractor",
+        "distractor-alpha-release-notes": "semantic_distractor",
+        "metadata-filter-docs-only": "metadata_guard",
+        "multi-evidence-quality-gate": "multi_evidence",
+        "rerank-helpful-candidate": "semantic_distractor",
+        "rerank-stable-exact": "rerank_regression",
+        "lexical-qwen-rerank-model": "identifier_exact",
+        "lexical-admin-export-route": "identifier_exact",
+        "distractor-realtime-quota-code": "semantic_distractor",
     }
     assert metadata_by_case["multi-evidence-quality-gate"] is not None
     assert metadata_by_case[
