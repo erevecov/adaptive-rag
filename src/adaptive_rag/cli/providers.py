@@ -13,10 +13,18 @@ from adaptive_rag.chat.qwen import QwenChatRunnerError
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
+    get_cli_rerank_provider,
 )
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
+from adaptive_rag.rerank import (
+    QwenRerankProviderError,
+    RerankCandidate,
+    RerankProviderError,
+    RerankRequest,
+    RerankScore,
+)
 from adaptive_rag.retrieval import (
     DenseRetrievalCitation,
     RetrievalSearchRequest,
@@ -93,6 +101,63 @@ def chat_smoke(
             }
         )
     )
+
+
+@app.command("rerank-smoke")
+def rerank_smoke(
+    query: Annotated[str, typer.Option("--query")] = "What supports alpha?",
+    documents: Annotated[list[str] | None, typer.Option("--document")] = None,
+    top_k: Annotated[int, typer.Option("--top-k")] = 1,
+) -> None:
+    provider = get_cli_rerank_provider()
+    active_documents = documents or [
+        "Beta only",
+        "Alpha evidence supports smoke retrieval.",
+    ]
+    try:
+        result = provider.rerank(
+            RerankRequest(
+                query=query,
+                candidates=tuple(
+                    RerankCandidate(
+                        candidate_id=f"candidate-{index}",
+                        text=document,
+                    )
+                    for index, document in enumerate(active_documents, start=1)
+                ),
+                top_k=top_k,
+            )
+        )
+    except (
+        ProviderBudgetExceededError,
+        ProviderConfigurationError,
+        QwenRerankProviderError,
+        RerankProviderError,
+    ) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(
+        json.dumps(
+            {
+                "provider": result.provider_name,
+                "model": result.model_name,
+                "query": query,
+                "candidate_count": len(active_documents),
+                "result_count": len(result.scores),
+                "results": [_serialize_rerank_score(score) for score in result.scores],
+            }
+        )
+    )
+
+
+def _serialize_rerank_score(score: RerankScore) -> dict[str, object]:
+    return {
+        "candidate_id": score.candidate_id,
+        "score": round(score.score, 6),
+        "original_rank": score.original_rank,
+        "rerank_rank": score.rerank_rank,
+    }
 
 
 class _StaticSmokeRetrievalService:

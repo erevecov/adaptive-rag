@@ -10,10 +10,10 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M9 `m9-rerank-provider-contract`: agrega contratos provider-neutral de rerank,
-fake deterministic default, settings/factory runtime para seleccionar fake o
-Qwen sin llamadas live, errores estables de configuracion/request y wiring de
-budget/price catalog para el siguiente adapter live.
+M9 `m9-live-qwen-rerank-provider`: conecta el contrato de rerank con el HTTP
+client Qwen `qwen3-rerank`, parsea `output.results`, registra usage/cost bajo
+operacion `rerank`, respeta budget guard y agrega el smoke CLI
+`adaptive-rag providers rerank-smoke`.
 
 Comandos validados:
 
@@ -28,8 +28,11 @@ npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-No se ejecutaron smokes hosted: este slice no agrega el adapter HTTP live de
-Qwen rerank ni requiere credenciales.
+Smoke hosted Qwen rerank ejecutado con `.env` local, sin imprimir secretos:
+
+```text
+rerank-smoke hosted: passed con rerank_model=qwen3-rerank
+```
 
 ## Change OpenSpec activo
 
@@ -54,10 +57,10 @@ Qwen rerank ni requiere credenciales.
 
 ## Siguiente tarea recomendada
 
-- Implementar `m9-live-qwen-rerank-provider`. Es la opcion recomendada porque
-  el contrato/factory ya esta fijado con fake default; el siguiente riesgo es
-  conectar Qwen rerank con cliente HTTP, usage/cost, budget guard, timeouts y
-  smoke live opt-in antes de integrarlo en `RetrievalService`.
+- Implementar `m9-retrieval-rerank-service`. Es la opcion recomendada porque
+  el provider live ya esta disponible; el siguiente riesgo es integrarlo de
+  forma opt-in despues del dense candidate set, preservando filtros, citations
+  y default dense.
 
 ## Reglas de coordinacion
 

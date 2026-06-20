@@ -14,8 +14,10 @@ from adaptive_rag.evals import (
 from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_dense_embedding_provider,
+    get_rerank_provider,
 )
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
+from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
 
 
@@ -33,6 +35,10 @@ def get_cli_dense_embedding_provider() -> DenseEmbeddingProvider:
 
 def get_cli_chat_runner() -> ChatRunner:
     return get_chat_runner()
+
+
+def get_cli_rerank_provider() -> RerankProvider:
+    return get_rerank_provider()
 
 
 def get_cli_hosted_eval_runtime(

@@ -24,7 +24,7 @@
 ## 3. Slices futuros de M9
 
 - [x] 3.1 Implementar `m9-rerank-provider-contract`.
-- [ ] 3.2 Implementar `m9-live-qwen-rerank-provider`.
+- [x] 3.2 Implementar `m9-live-qwen-rerank-provider`.
 - [ ] 3.3 Implementar `m9-retrieval-rerank-service`.
 - [ ] 3.4 Implementar `m9-rerank-api-cli-surface`.
 - [ ] 3.5 Implementar `m9-rerank-hosted-evals`.

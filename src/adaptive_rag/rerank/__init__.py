@@ -10,6 +10,7 @@ from adaptive_rag.rerank.providers import (
     RerankScore,
 )
 from adaptive_rag.rerank.qwen import (
+    QwenHTTPRerankClient,
     QwenRerankClient,
     QwenRerankProvider,
     QwenRerankProviderError,
@@ -17,6 +18,7 @@ from adaptive_rag.rerank.qwen import (
 
 __all__ = [
     "FakeRerankProvider",
+    "QwenHTTPRerankClient",
     "QwenRerankClient",
     "QwenRerankProvider",
     "QwenRerankProviderError",
