@@ -353,11 +353,11 @@ Secuencia recomendada:
 
 1. `m11-retrieval-strategy-decision`: activo. Crea el change OpenSpec, registra
    decision matrix y actualiza docs de arquitectura/progreso/roadmap.
-2. `m11-candidate-limit-eval-matrix`: siguiente tarea recomendada. Definir
-   comparacion de candidate limits sobre suites versionadas, con metricas por
-   caso, intent y difficulty.
-3. `m11-candidate-limit-ab-runner`: ejecutar y serializar comparaciones de
-   quality/cost/regressions entre limites acotados.
+2. `m11-candidate-limit-eval-matrix`: completo. Define una matriz interna de
+   candidate limits sobre suites versionadas, con coverage por `intent` y
+   `difficulty` y validacion de limites.
+3. `m11-candidate-limit-ab-runner`: siguiente tarea recomendada. Ejecutar y
+   serializar comparaciones de quality/cost/regressions entre limites acotados.
 4. `m11-candidate-limit-api-cli-surface`: solo si la evidencia lo justifica,
    exponer parametros o presets acotados sin cambiar dense default.
 5. `m11-quality-gate`: validar el milestone, ejecutar smokes opt-in si hay
