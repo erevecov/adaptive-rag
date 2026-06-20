@@ -32,6 +32,7 @@ from adaptive_rag.provider_usage import (
     ProviderCallRecord,
     ProviderTokenUsage,
 )
+from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
 class UsageRecordingEmbeddingProvider:
@@ -110,6 +111,60 @@ class UsageRecordingChatRunner:
             answer="Alpha answer",
             cited_chunk_ids=tuple(
                 UUID(result["chunk_id"]) for result in retrieval.results
+            ),
+        )
+
+
+class UsageRecordingRerankProvider:
+    provider_name = "qwen"
+    model_name = "qwen3-rerank"
+
+    def __init__(self, *, tracker: InMemoryProviderUsageTracker) -> None:
+        self._tracker = tracker
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        token_count = len(request.query.split()) + sum(
+            len(candidate.text.split()) for candidate in request.candidates
+        )
+        self._tracker.record(
+            ProviderCallRecord(
+                provider=self.provider_name,
+                model=self.model_name,
+                operation="rerank",
+                outcome="succeeded",
+                duration_ms=8,
+                usage=ProviderTokenUsage(
+                    input_tokens=token_count,
+                    total_tokens=token_count,
+                    input_count=len(request.candidates),
+                ),
+                usage_source="provider_reported",
+                estimated_cost_usd=0.0002,
+            )
+        )
+        scored = sorted(
+            enumerate(request.candidates, start=1),
+            key=lambda item: (
+                0 if item[1].text == "Alpha original evidence" else 1,
+                item[0],
+            ),
+        )
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 if candidate.text == "Alpha original evidence" else 0.1,
+                    original_rank=original_rank,
+                    rerank_rank=rerank_rank,
+                )
+                for rerank_rank, (original_rank, candidate) in enumerate(
+                    scored[: request.top_k],
+                    start=1,
+                )
             ),
         )
 
@@ -267,12 +322,15 @@ def test_evals_run_command_hosted_mode_outputs_provider_usage(
         *,
         provider_name: str,
         max_cost_usd: float | None,
+        include_reranker: bool = False,
     ) -> SimpleNamespace:
         captured["provider_name"] = provider_name
         captured["max_cost_usd"] = max_cost_usd
+        captured["include_reranker"] = include_reranker
         return SimpleNamespace(
             provider=provider,
             chat_runner=runner,
+            reranker=None,
             usage_tracker=tracker,
             options=EvalRunOptions(
                 mode="hosted",
@@ -301,7 +359,11 @@ def test_evals_run_command_hosted_mode_outputs_provider_usage(
     )
 
     assert result.exit_code == 0
-    assert captured == {"provider_name": "qwen", "max_cost_usd": 0.05}
+    assert captured == {
+        "provider_name": "qwen",
+        "max_cost_usd": 0.05,
+        "include_reranker": False,
+    }
     assert provider.inputs == [
         "Alpha original evidence",
         "Far unrelated evidence",
@@ -352,6 +414,180 @@ def test_evals_run_command_hosted_mode_outputs_provider_usage(
             "usage_unavailable_count": 0,
         },
     ]
+
+
+def test_evals_run_command_hosted_mode_compares_reranked_retrieval(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-hosted-rerank",
+            "thresholds": {"retrieval_hit_rate": 1.0},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                },
+                {
+                    "id": "distractor",
+                    "text": "Beta distractor evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "beta.md",
+                },
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "Which text answers alpha?",
+                    "limit": 1,
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+    tracker = InMemoryProviderUsageTracker()
+    provider = UsageRecordingEmbeddingProvider(
+        {
+            "Alpha original evidence": _vector(0.2),
+            "Beta distractor evidence": _vector(0.1),
+            "Which text answers alpha?": _vector(0.0),
+        },
+        tracker=tracker,
+    )
+    runner = UsageRecordingChatRunner(tracker=tracker)
+    reranker = UsageRecordingRerankProvider(tracker=tracker)
+    captured: dict[str, object] = {}
+
+    def hosted_runtime(
+        *,
+        provider_name: str,
+        max_cost_usd: float | None,
+        include_reranker: bool = False,
+    ) -> SimpleNamespace:
+        captured["provider_name"] = provider_name
+        captured["max_cost_usd"] = max_cost_usd
+        captured["include_reranker"] = include_reranker
+        return SimpleNamespace(
+            provider=provider,
+            chat_runner=runner,
+            reranker=reranker if include_reranker else None,
+            usage_tracker=tracker,
+            options=EvalRunOptions(
+                mode="hosted",
+                provider=provider_name,
+                max_cost_usd=max_cost_usd,
+            ),
+        )
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_hosted_eval_runtime",
+        hosted_runtime,
+        raising=False,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--mode",
+            "hosted",
+            "--max-cost-usd",
+            "0.05",
+            "--rerank-candidate-limit",
+            "2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured == {
+        "provider_name": "qwen",
+        "max_cost_usd": 0.05,
+        "include_reranker": True,
+    }
+    assert len(reranker.requests) == 1
+    data = json.loads(result.stdout)
+    assert data["mode"] == "hosted"
+    assert data["status"] == "passed"
+    assert data["metrics"]["retrieval_hit_rate"] == 1.0
+    assert data["comparison_metrics"] == {
+        "dense_retrieval_hit_rate": 0.0,
+        "dense_retrieval_passed_count": 0.0,
+        "rerank_retrieval_hit_rate_delta": 1.0,
+        "reranked_retrieval_hit_rate": 1.0,
+        "reranked_retrieval_passed_count": 1.0,
+    }
+    assert data["provider_usage"]["operations"][1]["operation"] == "rerank"
+
+
+def test_evals_run_command_hosted_mode_rejects_invalid_rerank_limit_before_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-hosted-invalid-rerank",
+            "thresholds": {"retrieval_hit_rate": 1.0},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                }
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "alpha",
+                    "limit": 2,
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+
+    def hosted_runtime(**_kwargs: object) -> SimpleNamespace:
+        raise AssertionError("hosted runtime should not be built")
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_hosted_eval_runtime",
+        hosted_runtime,
+        raising=False,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--mode",
+            "hosted",
+            "--max-cost-usd",
+            "0.05",
+            "--rerank-candidate-limit",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert (
+        "rerank candidate_limit must be greater than or equal to every "
+        "retrieval case limit"
+    ) in result.output
 
 
 def test_evals_run_command_hosted_mode_requires_budget(

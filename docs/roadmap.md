@@ -281,11 +281,13 @@ Secuencia recomendada:
 5. `m9-rerank-api-cli-surface`: completo. Expone knobs acotados de rerank en
    API/CLI sin cambiar el default dense ni construir providers de rerank cuando
    no se habilita.
-6. `m9-rerank-hosted-evals`: siguiente tarea recomendada. Comparar dense
-   baseline vs reranked retrieval en reportes hosted con calidad, usage y
-   costo.
-7. `m9-quality-gate`: validar el milestone completo, archivar el change y
-   publicar `openspec/specs/retrieval-quality/spec.md`.
+6. `m9-rerank-hosted-evals`: completo. Compara dense baseline vs reranked
+   retrieval en reportes hosted con calidad, `comparison_metrics`, usage y
+   costo, y agrega fixture smoke manual.
+7. `m9-quality-gate`: siguiente tarea recomendada. Validar el milestone
+   completo, ejecutar smokes hosted Qwen opt-in si `.env` local esta
+   disponible, archivar el change y publicar
+   `openspec/specs/retrieval-quality/spec.md`.
 
 Decision: rerank va antes de lexical/RRF porque reutiliza el pipeline dense y el
 runtime de providers existente con menor blast radius. Lexical/RRF debe quedar

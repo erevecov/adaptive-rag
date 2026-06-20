@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from adaptive_rag.provider_usage import ProviderOperation
@@ -155,3 +155,4 @@ class EvalRunReport:
     cases: tuple[EvalCaseResult, ...]
     mode: EvalRunMode = "offline"
     provider_usage: EvalProviderUsageSummary | None = None
+    comparison_metrics: dict[str, float] = field(default_factory=dict)
