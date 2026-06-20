@@ -235,12 +235,12 @@ Secuencia recomendada:
 3. `m8-live-retrieval-eval-runner`: completo. Ejecuta retrieval evals hosted
    con el provider de embeddings inyectado, materializando evidence y queries
    con el mismo provider/modelo y adjuntando provider usage/cost al reporte.
-4. `m8-live-chat-eval-runner`: siguiente slice recomendado. Ejecuta chat evals
-   con Qwen chat runner, reutilizando `ChatService`, retrieval tool y
-   validacion de citations.
-5. `m8-evals-cli-hosted-mode`: agrega `adaptive-rag evals run <suite>
-   --mode hosted --max-cost-usd <value>` con JSON extendido y smoke live
-   opt-in.
+4. `m8-live-chat-eval-runner`: completo. Ejecuta chat evals hosted con runner
+   y provider de embeddings inyectados, reutilizando `ChatService`, retrieval
+   tool y validacion de citations, y adjuntando provider usage/cost al reporte.
+5. `m8-evals-cli-hosted-mode`: siguiente slice recomendado. Agrega
+   `adaptive-rag evals run <suite> --mode hosted --max-cost-usd <value>` con
+   JSON extendido y smoke live opt-in.
 6. `m8-quality-gate`: valida tests, lint, types, specs, evals offline y smoke
    hosted opcional si `.env` local esta disponible; archiva el change M8 y
    publica la spec canonica `hosted-evals`.

@@ -8,7 +8,9 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy.orm import Session
 
+from adaptive_rag.chat import ChatRunner
 from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError
 from adaptive_rag.evals.models import (
     EvalProviderUsageOperationSummary,
@@ -87,6 +89,34 @@ def run_hosted_retrieval_eval_suite(
         session,
         suite,
         provider=provider,
+    )
+    return replace(
+        report,
+        mode="hosted",
+        provider_usage=summarize_provider_usage(usage_tracker.records),
+    )
+
+
+def run_hosted_chat_eval_suite(
+    session: Session,
+    suite: EvalSuite,
+    *,
+    provider: DenseEmbeddingProvider,
+    runner: ChatRunner,
+    usage_tracker: InMemoryProviderUsageTracker,
+    options: EvalRunOptions,
+) -> EvalRunReport:
+    """Ejecuta chat hosted y agrega usage/cost al reporte."""
+
+    validate_hosted_eval_options(options)
+    if not options.is_hosted():
+        raise EvalConfigurationError("hosted chat evals require hosted mode")
+
+    report = run_chat_eval_suite(
+        session,
+        suite,
+        provider=provider,
+        runner=runner,
     )
     return replace(
         report,
