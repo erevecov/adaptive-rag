@@ -10,9 +10,10 @@ M9 Retrieval quality/rerank cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M10 `m10-eval-case-metrics`: agrega `case_metadata` acotada a casos de
-retrieval, serializa esa metadata en reportes y expone `missing_count` por caso
-para distinguir evidencia esperada no recuperada.
+M10 `m10-retrieval-dataset-pack`: agrega una suite offline representativa con
+casos de exact match, paraphrase, distractors, metadata filters, multi-evidence
+y cobertura marcada para escenarios donde rerank deberia ayudar o mantenerse
+estable.
 
 Comandos validados:
 
@@ -51,10 +52,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m10-retrieval-dataset-pack`. Es la opcion recomendada porque el
-  contrato de metadata/metrics por caso ya esta disponible; ahora conviene
-  ampliar fixtures representativos antes de mejorar A/B reporting o abrir nuevos
-  algoritmos.
+- Implementar `m10-rerank-ab-reporting`. Es la opcion recomendada porque el
+  dataset pack ya cubre los riesgos representativos; ahora conviene convertir
+  dense vs rerank en un reporte por caso de mejoras, empates y regresiones antes
+  de documentar decision gates.
 
 ## Reglas de coordinacion
 

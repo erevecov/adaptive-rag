@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "suite_id": "retrieval-dataset-pack",
+  "description": "Representative offline retrieval eval dataset pack.",
+  "thresholds": {
+    "retrieval_hit_rate": 1.0
+  },
+  "evidence": [
+    {
+      "id": "api-error-fields",
+      "text": "Alpha API errors must include a stable code, message, and request id.",
+      "source_type": "markdown",
+      "source_external_id": "api-errors.md",
+      "tags": ["docs", "api"],
+      "metadata": {
+        "title": "API error contract"
+      }
+    },
+    {
+      "id": "alpha-release-notes",
+      "text": "Alpha API release notes list dashboard color and navigation changes.",
+      "source_type": "markdown",
+      "source_external_id": "alpha-release.md",
+      "tags": ["docs", "release-notes"],
+      "metadata": {
+        "title": "Alpha release notes"
+      }
+    },
+    {
+      "id": "billing-invoice-export",
+      "text": "Billing policy allows invoices to be exported after payment settlement.",
+      "source_type": "markdown",
+      "source_external_id": "billing-policy.md",
+      "tags": ["docs", "billing"],
+      "metadata": {
+        "title": "Billing policy"
+      }
+    },
+    {
+      "id": "payment-blog",
+      "text": "Marketing blog discusses payment themes without export requirements.",
+      "source_type": "blog",
+      "source_external_id": "payment-blog.md",
+      "tags": ["blog", "billing"],
+      "metadata": {
+        "title": "Payment themes blog"
+      }
+    },
+    {
+      "id": "metadata-docs",
+      "text": "Metadata filters should keep public docs separate from blog posts.",
+      "source_type": "markdown",
+      "source_external_id": "metadata-filters.md",
+      "tags": ["docs", "metadata"],
+      "metadata": {
+        "title": "Metadata filter guidance"
+      }
+    },
+    {
+      "id": "metadata-blog",
+      "text": "A blog draft repeats metadata filter terms but is not authoritative.",
+      "source_type": "blog",
+      "source_external_id": "metadata-blog.md",
+      "tags": ["blog", "metadata"],
+      "metadata": {
+        "title": "Metadata filter blog draft"
+      }
+    },
+    {
+      "id": "latency-metric",
+      "text": "Retrieval latency analysis requires p50 and p95 measurements.",
+      "source_type": "markdown",
+      "source_external_id": "latency-metrics.md",
+      "tags": ["docs", "quality"],
+      "metadata": {
+        "title": "Retrieval latency metrics"
+      }
+    },
+    {
+      "id": "cost-metric",
+      "text": "Retrieval cost analysis requires provider token and rerank usage totals.",
+      "source_type": "markdown",
+      "source_external_id": "cost-metrics.md",
+      "tags": ["docs", "quality"],
+      "metadata": {
+        "title": "Retrieval cost metrics"
+      }
+    },
+    {
+      "id": "rerank-citation-policy",
+      "text": "Rerank can promote citation policy answers when dense recall returns a close candidate.",
+      "source_type": "markdown",
+      "source_external_id": "rerank-citation-policy.md",
+      "tags": ["docs", "rerank"],
+      "metadata": {
+        "title": "Rerank citation policy"
+      }
+    },
+    {
+      "id": "rerank-stable-policy",
+      "text": "Rerank should keep exact policy evidence first when dense rank is already correct.",
+      "source_type": "markdown",
+      "source_external_id": "rerank-stable-policy.md",
+      "tags": ["docs", "rerank"],
+      "metadata": {
+        "title": "Rerank stability policy"
+      }
+    }
+  ],
+  "retrieval_cases": [
+    {
+      "id": "exact-api-error-fields",
+      "query": "What fields must Alpha API errors include?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "exact_match",
+        "difficulty": "easy",
+        "coverage_notes": ["baseline exact terminology should stay trivial"]
+      },
+      "expected_evidence_ids": ["api-error-fields"]
+    },
+    {
+      "id": "paraphrase-invoice-export",
+      "query": "Can users download invoices once a payment has settled?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "paraphrase",
+        "difficulty": "medium",
+        "coverage_notes": ["query uses download/settled while evidence uses exported/settlement"]
+      },
+      "expected_evidence_ids": ["billing-invoice-export"]
+    },
+    {
+      "id": "distractor-alpha-release-notes",
+      "query": "Which Alpha item describes error response fields, not release note timing?",
+      "limit": 1,
+      "case_metadata": {
+        "intent": "distractor",
+        "difficulty": "medium",
+        "coverage_notes": ["distractor shares Alpha API terms without the error contract"]
+      },
+      "expected_evidence_ids": ["api-error-fields"]
+    },
+    {
+      "id": "metadata-filter-docs-only",
+      "query": "Which public metadata filter guidance should be used?",
+      "limit": 1,
+      "case_metadata": {
+        "intent": "metadata_filter",
+        "difficulty": "medium",
+        "coverage_notes": ["blog-like evidence is closer but excluded by source_type and tags"]
+      },
+      "metadata_filter": {
+        "source_type": "markdown",
+        "tags": ["docs", "metadata"]
+      },
+      "expected_evidence_ids": ["metadata-docs"]
+    },
+    {
+      "id": "multi-evidence-quality-gate",
+      "query": "What measurements are required to evaluate retrieval latency and cost?",
+      "limit": 3,
+      "case_metadata": {
+        "intent": "multi_evidence",
+        "difficulty": "hard",
+        "coverage_notes": ["requires both latency and cost evidence before changing retrieval"]
+      },
+      "expected_evidence_ids": ["latency-metric", "cost-metric"]
+    },
+    {
+      "id": "rerank-helpful-candidate",
+      "query": "Which candidate should rerank promote for citation policy answers?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "rerank_helpful",
+        "difficulty": "medium",
+        "coverage_notes": ["future A/B reporting should show this case as rerank-helpful when dense rank is weak"]
+      },
+      "expected_evidence_ids": ["rerank-citation-policy"]
+    },
+    {
+      "id": "rerank-stable-exact",
+      "query": "Which evidence should stay first when dense ranking already found the exact policy?",
+      "limit": 2,
+      "case_metadata": {
+        "intent": "rerank_stable",
+        "difficulty": "easy",
+        "coverage_notes": ["future A/B reporting should not count rerank as a regression here"]
+      },
+      "expected_evidence_ids": ["rerank-stable-policy"]
+    }
+  ],
+  "chat_cases": []
+}
