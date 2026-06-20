@@ -6,7 +6,6 @@ Define la frontera canonica de mejoras de calidad de retrieval que mantienen
 dense retrieval como default, agregan rerank opt-in sobre candidatos ya
 filtrados y permiten comparar calidad, usage y costo sin convertir providers
 hosted en requisito de CI.
-
 ## Requirements
 ### Requirement: Retrieval quality improvements son opt-in y medibles
 
@@ -133,3 +132,61 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
   con filtros y citations antes de tocar retrieval productivo
 - **AND** debe citar los decision gates de retrieval vigentes y declarar si la
   decision es proceed, hold, no-go o needs-more-data
+
+#### Scenario: Decision matrix precede estrategia nueva
+
+- **WHEN** se abre un milestone para elegir entre candidate tuning, lexical/RRF
+  o sparse retrieval
+- **THEN** el change declara una decision matrix con opcion recomendada, estado
+  proceed/hold/no-go y razon de cada opcion
+- **AND** no implementa nuevos algoritmos, indexes o providers en el PR de
+  decision
+
+#### Scenario: Candidate limit tuning puede preceder nuevos providers
+
+- **WHEN** la evidencia disponible ya mide dense vs rerank pero no demuestra un
+  fallo que requiera indexes o providers nuevos
+- **THEN** el primer experimento debe preferir parametros acotados de
+  `candidate_limit`, top-k o rerank antes de lexical/RRF o sparse retrieval
+- **AND** debe mantener dense retrieval como default hasta un quality gate
+  posterior
+
+#### Scenario: Candidate limit matrix agrupa casos por metadata
+
+- **WHEN** se prepara un experimento de candidate limit sobre una suite
+  versionada
+- **THEN** el sistema puede construir una matriz de limites acotados que
+  declara el `candidate_limit`, `case_count` y `max_case_limit`
+- **AND** agrupa los casos por `intent` y `difficulty` cuando esa metadata
+  existe
+- **AND** rechaza limites duplicados, no positivos o menores al mayor `limit`
+  declarado por la suite
+
+#### Scenario: Candidate limit A/B runner serializa quality y costo
+
+- **WHEN** una suite de retrieval se ejecuta para varios `candidate_limit`
+  acotados
+- **THEN** el runner ejecuta el baseline dense una vez y compara cada limite
+  reranked contra ese baseline
+- **AND** serializa una fila estable por limite con status, metricas de
+  retrieval, `comparison_metrics` y `comparison_cases`
+- **AND** agrega conteos de improvement, regression y tie por `intent` y
+  `difficulty`
+- **AND** incluye usage/cost por fila y total de corrida cuando el modo hosted
+  provee tracker de usage
+
+#### Scenario: Lexical o RRF requieren fallo lexical medido
+
+- **WHEN** un change propone lexical retrieval o RRF
+- **THEN** debe citar casos versionados donde dense/rerank no recuperan terminos,
+  codigos, nombres o identificadores necesarios
+- **AND** debe declarar como preserva `metadata_filter`, ordering estable y
+  citations originales
+
+#### Scenario: Sparse retrieval requiere docs provider actuales
+
+- **WHEN** un change propone Qwen sparse retrieval o embeddings sparse
+- **THEN** debe citar documentacion provider actual verificada antes de definir
+  payloads, storage, reindex o costos
+- **AND** debe mantener sparse retrieval opt-in hasta demostrar mejoras sin
+  regresiones criticas
