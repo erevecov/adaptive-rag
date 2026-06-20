@@ -4,6 +4,7 @@ from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.datasets import load_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError, EvalDatasetError
 from adaptive_rag.evals.hosted import (
+    run_hosted_retrieval_eval_suite,
     summarize_provider_usage,
     validate_hosted_eval_credentials,
     validate_hosted_eval_options,
@@ -44,6 +45,7 @@ __all__ = [
     "load_eval_suite",
     "run_chat_eval_suite",
     "run_eval_suite",
+    "run_hosted_retrieval_eval_suite",
     "run_retrieval_eval_suite",
     "serialize_eval_report",
     "summarize_provider_usage",

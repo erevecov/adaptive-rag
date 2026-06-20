@@ -232,12 +232,12 @@ Secuencia recomendada:
    modelos de reporte provider usage/cost, presupuesto maximo de corrida,
    validacion de credenciales Qwen y errores estables antes de conectar
    runners live.
-3. `m8-live-retrieval-eval-runner`: siguiente slice recomendado. Ejecuta
-   retrieval evals con Qwen embeddings, materializando evidence y queries con
-   el mismo provider/modelo para medir hit rate y costo sin mezclar embeddings
-   fake/live.
-4. `m8-live-chat-eval-runner`: ejecuta chat evals con Qwen chat runner,
-   reutilizando `ChatService`, retrieval tool y validacion de citations.
+3. `m8-live-retrieval-eval-runner`: completo. Ejecuta retrieval evals hosted
+   con el provider de embeddings inyectado, materializando evidence y queries
+   con el mismo provider/modelo y adjuntando provider usage/cost al reporte.
+4. `m8-live-chat-eval-runner`: siguiente slice recomendado. Ejecuta chat evals
+   con Qwen chat runner, reutilizando `ChatService`, retrieval tool y
+   validacion de citations.
 5. `m8-evals-cli-hosted-mode`: agrega `adaptive-rag evals run <suite>
    --mode hosted --max-cost-usd <value>` con JSON extendido y smoke live
    opt-in.

@@ -10,9 +10,9 @@ M7 Provider runtime cerrado el 2026-06-19.
 
 ## Ultimo slice completado
 
-M8 `m8-hosted-eval-contract`: agrega el contrato inicial para hosted evals con
-modo `offline`/`hosted`, validacion de presupuesto/credenciales, errores
-estables y resumen serializable de provider usage/cost sin secretos.
+M8 `m8-live-retrieval-eval-runner`: agrega el runner hosted de retrieval sobre
+las suites M6, reutilizando `RetrievalService` con el provider live inyectado y
+adjuntando `provider_usage` al reporte hosted.
 
 Comandos validados:
 
@@ -22,14 +22,15 @@ uv run pytest
 uv run ruff check .
 uv run mypy src
 uv run pytest tests/unit/evals tests/integration/cli/test_evals_cli.py -q
+uv run pytest tests/unit/evals/test_hosted_retrieval_runner.py -q
 npx --yes @fission-ai/openspec validate m8-live-provider-evals-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-Este slice no ejecuta llamadas live; prepara el contrato para que los siguientes
-runners hosted puedan compartir validacion y reporte de costo.
+Este slice usa provider fake con tracker de usage/cost en tests; no ejecuta
+llamadas live ni requiere credenciales.
 
 ## Change OpenSpec activo
 
@@ -53,10 +54,10 @@ runners hosted puedan compartir validacion y reporte de costo.
 
 ## Siguiente tarea recomendada
 
-- Implementar `m8-live-retrieval-eval-runner`. Es el siguiente slice recomendado
-  porque el contrato hosted ya existe y la primera medicion live debe reusar
-  los fixtures de M6 materializando evidence y query embeddings con el mismo
-  provider/modelo antes de sumar chat hosted.
+- Implementar `m8-live-chat-eval-runner`. Es el siguiente slice recomendado
+  porque retrieval hosted ya produce reportes de calidad/costo; falta sumar
+  chat hosted reutilizando `ChatService`, la tool de retrieval y la validacion
+  de citations antes de exponer el modo hosted en la CLI.
 
 ## Reglas de coordinacion
 

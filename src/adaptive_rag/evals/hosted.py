@@ -4,15 +4,25 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from sqlalchemy.orm import Session
+
+from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.evals.errors import EvalConfigurationError
 from adaptive_rag.evals.models import (
     EvalProviderUsageOperationSummary,
     EvalProviderUsageSummary,
     EvalRunOptions,
+    EvalRunReport,
+    EvalSuite,
 )
-from adaptive_rag.provider_usage import ProviderCallRecord, ProviderOperation
+from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderCallRecord,
+    ProviderOperation,
+)
 
 SUPPORTED_HOSTED_EVAL_PROVIDERS = ("qwen",)
 
@@ -57,6 +67,32 @@ def validate_hosted_eval_credentials(
             "hosted eval provider qwen requires ADAPTIVE_RAG_QWEN_BASE_URL"
         )
     return options
+
+
+def run_hosted_retrieval_eval_suite(
+    session: Session,
+    suite: EvalSuite,
+    *,
+    provider: DenseEmbeddingProvider,
+    usage_tracker: InMemoryProviderUsageTracker,
+    options: EvalRunOptions,
+) -> EvalRunReport:
+    """Ejecuta retrieval hosted y agrega usage/cost al reporte."""
+
+    validate_hosted_eval_options(options)
+    if not options.is_hosted():
+        raise EvalConfigurationError("hosted retrieval evals require hosted mode")
+
+    report = run_retrieval_eval_suite(
+        session,
+        suite,
+        provider=provider,
+    )
+    return replace(
+        report,
+        mode="hosted",
+        provider_usage=summarize_provider_usage(usage_tracker.records),
+    )
 
 
 def summarize_provider_usage(
