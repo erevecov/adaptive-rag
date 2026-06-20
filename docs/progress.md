@@ -10,9 +10,10 @@ M9 Retrieval quality/rerank cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M10 `m10-rerank-ab-reporting`: agrega `comparison_cases` serializados para
-dense vs rerank, clasifica cada caso como improvement, tie o regression y
-expone conteos agregados mas delta promedio de best-rank.
+M10 `m10-decision-gate-docs`: documenta decision gates para abrir o rechazar
+lexical/RRF, sparse retrieval y tuning de candidate limits usando
+`comparison_metrics`, `comparison_cases`, regresiones, costo/latencia, filtros
+y citations.
 
 Comandos validados:
 
@@ -51,10 +52,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m10-decision-gate-docs`. Es la opcion recomendada porque el
-  reporte A/B ya muestra mejoras, empates y regresiones por caso; ahora conviene
-  convertir esa evidencia en criterios escritos antes de abrir lexical/RRF,
-  sparse retrieval o tuning de candidate limits.
+- Ejecutar `m10-quality-gate`. Es la opcion recomendada porque M10 ya tiene
+  metadata por caso, dataset pack, reporte A/B y decision gates; ahora toca
+  validar el milestone completo, archivar el change y sincronizar la spec
+  canonica `retrieval-quality`.
 
 ## Reglas de coordinacion
 

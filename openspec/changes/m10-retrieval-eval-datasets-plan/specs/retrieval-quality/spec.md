@@ -49,4 +49,6 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
   el incremento
 - **AND** debe documentar regresiones criticas, costo/latencia y comportamiento
   con filtros y citations antes de tocar retrieval productivo
+- **AND** debe citar los decision gates de retrieval vigentes y declarar si la
+  decision es proceed, hold, no-go o needs-more-data
 
