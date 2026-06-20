@@ -14,6 +14,8 @@ from adaptive_rag.evals.hosted import (
 )
 from adaptive_rag.evals.models import (
     ChatEvalCase,
+    EvalCaseComparison,
+    EvalCaseComparisonOutcome,
     EvalCaseMetadata,
     EvalCaseResult,
     EvalEvidence,
@@ -33,6 +35,8 @@ from adaptive_rag.evals.runner import run_eval_suite
 
 __all__ = [
     "ChatEvalCase",
+    "EvalCaseComparison",
+    "EvalCaseComparisonOutcome",
     "EvalCaseMetadata",
     "EvalCaseResult",
     "EvalConfigurationError",

@@ -118,6 +118,54 @@ class UsageRecordingRerankProvider:
         )
 
 
+class ScenarioRerankProvider:
+    provider_name = "qwen"
+    model_name = "qwen3-rerank"
+
+    def __init__(self, *, tracker: InMemoryProviderUsageTracker) -> None:
+        self._tracker = tracker
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        self._tracker.record(
+            ProviderCallRecord(
+                provider=self.provider_name,
+                model=self.model_name,
+                operation="rerank",
+                outcome="succeeded",
+                duration_ms=8,
+                usage=ProviderTokenUsage(
+                    input_tokens=1,
+                    total_tokens=1,
+                    input_count=len(request.candidates),
+                ),
+                usage_source="provider_reported",
+                estimated_cost_usd=0.0002,
+            )
+        )
+        ranked = sorted(
+            enumerate(request.candidates, start=1),
+            key=lambda item: (_scenario_priority(request.query, item[1].text), item[0]),
+        )
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 if rerank_rank == 1 else 0.1,
+                    original_rank=original_rank,
+                    rerank_rank=rerank_rank,
+                )
+                for rerank_rank, (original_rank, candidate) in enumerate(
+                    ranked[: request.top_k],
+                    start=1,
+                )
+            ),
+        )
+
+
 def test_run_hosted_retrieval_eval_suite_reports_usage_and_quality(
     tmp_path: Path,
 ) -> None:
@@ -280,6 +328,10 @@ def test_run_hosted_retrieval_eval_suite_compares_dense_and_reranked_quality(
     assert report.comparison_metrics == {
         "dense_retrieval_hit_rate": 0.0,
         "dense_retrieval_passed_count": 0.0,
+        "rerank_best_rank_delta_avg": 1.0,
+        "rerank_case_improvement_count": 1.0,
+        "rerank_case_regression_count": 0.0,
+        "rerank_case_tie_count": 0.0,
         "rerank_retrieval_hit_rate_delta": 1.0,
         "reranked_retrieval_hit_rate": 1.0,
         "reranked_retrieval_passed_count": 1.0,
@@ -290,6 +342,10 @@ def test_run_hosted_retrieval_eval_suite_compares_dense_and_reranked_quality(
     assert payload["comparison_metrics"] == {
         "dense_retrieval_hit_rate": 0.0,
         "dense_retrieval_passed_count": 0.0,
+        "rerank_best_rank_delta_avg": 1.0,
+        "rerank_case_improvement_count": 1.0,
+        "rerank_case_regression_count": 0.0,
+        "rerank_case_tie_count": 0.0,
         "rerank_retrieval_hit_rate_delta": 1.0,
         "reranked_retrieval_hit_rate": 1.0,
         "reranked_retrieval_passed_count": 1.0,
@@ -328,6 +384,161 @@ def test_run_hosted_retrieval_eval_suite_compares_dense_and_reranked_quality(
     ]
 
 
+def test_run_hosted_retrieval_eval_suite_reports_rerank_ab_cases(
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "hosted-rerank-ab",
+                "thresholds": {"retrieval_hit_rate": 0.5},
+                "evidence": [
+                    {
+                        "id": "alpha",
+                        "text": "Alpha original evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha.md",
+                    },
+                    {
+                        "id": "alpha-distractor",
+                        "text": "Alpha distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha-distractor.md",
+                    },
+                    {
+                        "id": "stable",
+                        "text": "Stable policy evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "stable.md",
+                    },
+                    {
+                        "id": "stable-distractor",
+                        "text": "Stable distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "stable-distractor.md",
+                    },
+                    {
+                        "id": "regression",
+                        "text": "Regression target evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "regression.md",
+                    },
+                    {
+                        "id": "regression-distractor",
+                        "text": "Regression distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "regression-distractor.md",
+                    },
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "rerank-improves-alpha",
+                        "query": "alpha scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["alpha"],
+                    },
+                    {
+                        "id": "rerank-keeps-stable",
+                        "query": "stable scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["stable"],
+                    },
+                    {
+                        "id": "rerank-regresses-target",
+                        "query": "regression scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["regression"],
+                    },
+                ],
+                "chat_cases": [],
+            },
+        )
+    )
+    tracker = InMemoryProviderUsageTracker()
+    provider = UsageRecordingEmbeddingProvider(
+        {
+            "Alpha original evidence": _scenario_vector(0, 0.8),
+            "Alpha distractor evidence": _scenario_vector(0, 0.9),
+            "Stable policy evidence": _scenario_vector(1, 1.0),
+            "Stable distractor evidence": _scenario_vector(1, 0.5),
+            "Regression target evidence": _scenario_vector(2, 1.0),
+            "Regression distractor evidence": _scenario_vector(2, 0.5),
+            "alpha scenario query": _scenario_vector(0, 1.0),
+            "stable scenario query": _scenario_vector(1, 1.0),
+            "regression scenario query": _scenario_vector(2, 1.0),
+        },
+        tracker=tracker,
+    )
+    reranker = ScenarioRerankProvider(tracker=tracker)
+
+    report = run_hosted_retrieval_eval_suite(
+        _make_session(),
+        suite,
+        provider=provider,
+        reranker=reranker,
+        rerank_candidate_limit=2,
+        usage_tracker=tracker,
+        options=EvalRunOptions(mode="hosted", provider="qwen", max_cost_usd=0.05),
+    )
+
+    assert report.comparison_metrics == {
+        "dense_retrieval_hit_rate": 2 / 3,
+        "dense_retrieval_passed_count": 2.0,
+        "rerank_best_rank_delta_avg": 0.0,
+        "rerank_case_improvement_count": 1.0,
+        "rerank_case_regression_count": 1.0,
+        "rerank_case_tie_count": 1.0,
+        "rerank_retrieval_hit_rate_delta": 0.0,
+        "reranked_retrieval_hit_rate": 2 / 3,
+        "reranked_retrieval_passed_count": 2.0,
+    }
+
+    payload = serialize_eval_report(report)
+    assert payload["comparison_cases"] == [
+        {
+            "id": "rerank-improves-alpha",
+            "outcome": "improvement",
+            "dense_status": "failed",
+            "reranked_status": "passed",
+            "dense_best_rank": 0.0,
+            "reranked_best_rank": 1.0,
+            "best_rank_delta": 1.0,
+            "dense_observed_evidence_ids": ["alpha-distractor"],
+            "reranked_observed_evidence_ids": ["alpha"],
+            "gained_evidence_ids": ["alpha"],
+            "lost_evidence_ids": [],
+        },
+        {
+            "id": "rerank-keeps-stable",
+            "outcome": "tie",
+            "dense_status": "passed",
+            "reranked_status": "passed",
+            "dense_best_rank": 1.0,
+            "reranked_best_rank": 1.0,
+            "best_rank_delta": 0.0,
+            "dense_observed_evidence_ids": ["stable"],
+            "reranked_observed_evidence_ids": ["stable"],
+            "gained_evidence_ids": [],
+            "lost_evidence_ids": [],
+        },
+        {
+            "id": "rerank-regresses-target",
+            "outcome": "regression",
+            "dense_status": "passed",
+            "reranked_status": "failed",
+            "dense_best_rank": 1.0,
+            "reranked_best_rank": 0.0,
+            "best_rank_delta": -1.0,
+            "dense_observed_evidence_ids": ["regression"],
+            "reranked_observed_evidence_ids": ["regression-distractor"],
+            "gained_evidence_ids": [],
+            "lost_evidence_ids": ["regression"],
+        },
+    ]
+
+
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
@@ -353,4 +564,20 @@ def _vector(first: float) -> list[float]:
     values = [0.0] * EMBEDDING_DIMENSIONS
     values[0] = first
     return values
+
+
+def _scenario_vector(axis: int, value: float) -> list[float]:
+    values = [0.0] * EMBEDDING_DIMENSIONS
+    values[axis] = value
+    return values
+
+
+def _scenario_priority(query: str, text: str) -> int:
+    if "alpha" in query:
+        return 0 if text == "Alpha original evidence" else 1
+    if "stable" in query:
+        return 0 if text == "Stable policy evidence" else 1
+    if "regression" in query:
+        return 0 if text == "Regression distractor evidence" else 1
+    return 1
 

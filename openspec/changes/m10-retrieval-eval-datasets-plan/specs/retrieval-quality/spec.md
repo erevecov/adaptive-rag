@@ -39,6 +39,8 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
 - **WHEN** dense y reranked retrieval se ejecutan sobre el mismo caso
 - **THEN** el reporte indica si el caso mejoro, empato o degrado frente a dense
 - **AND** expone best-rank delta y evidence perdida o ganada cuando aplique
+- **AND** agrega conteos de mejoras, empates, regresiones y delta promedio de
+  best-rank
 
 #### Scenario: Decision gate precede algoritmos nuevos
 
