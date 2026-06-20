@@ -315,10 +315,11 @@ Secuencia recomendada:
 3. `m10-retrieval-dataset-pack`: completo. Agrega una fixture offline
    representativa para exact match, paraphrase, distractors, metadata filters,
    multi-evidence y casos donde rerank ayuda o no debe cambiar el resultado.
-4. `m10-rerank-ab-reporting`: siguiente tarea recomendada. Mejorar comparacion
-   dense vs rerank con improvement/regression counts y best-rank deltas.
-5. `m10-decision-gate-docs`: documentar criterios para abrir lexical/RRF,
-   sparse retrieval o tuning de candidate limits.
+4. `m10-rerank-ab-reporting`: completo. Agrega `comparison_cases` por caso,
+   improvement/tie/regression counts y delta promedio de best-rank para
+   comparar dense vs rerank.
+5. `m10-decision-gate-docs`: siguiente tarea recomendada. Documentar criterios
+   para abrir lexical/RRF, sparse retrieval o tuning de candidate limits.
 6. `m10-quality-gate`: validar el milestone completo, ejecutar smokes hosted
    Qwen opt-in si `.env` local esta disponible, archivar el change y sincronizar
    `openspec/specs/retrieval-quality/spec.md`.

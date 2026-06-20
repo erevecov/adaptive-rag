@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from adaptive_rag.evals.models import (
+    EvalCaseComparison,
     EvalCaseMetadata,
     EvalCaseResult,
     EvalObservedCitation,
@@ -26,11 +27,36 @@ def serialize_eval_report(report: EvalRunReport) -> dict[str, Any]:
         payload["mode"] = report.mode
     if report.comparison_metrics:
         payload["comparison_metrics"] = _sorted_metrics(report.comparison_metrics)
+    if report.comparison_cases:
+        payload["comparison_cases"] = [
+            serialize_eval_case_comparison(comparison)
+            for comparison in report.comparison_cases
+        ]
     if report.provider_usage is not None:
         payload["provider_usage"] = serialize_eval_provider_usage(
             report.provider_usage
         )
     return payload
+
+
+def serialize_eval_case_comparison(
+    comparison: EvalCaseComparison,
+) -> dict[str, Any]:
+    return {
+        "id": comparison.id,
+        "outcome": comparison.outcome,
+        "dense_status": comparison.dense_status,
+        "reranked_status": comparison.reranked_status,
+        "dense_best_rank": comparison.dense_best_rank,
+        "reranked_best_rank": comparison.reranked_best_rank,
+        "best_rank_delta": comparison.best_rank_delta,
+        "dense_observed_evidence_ids": list(comparison.dense_observed_evidence_ids),
+        "reranked_observed_evidence_ids": list(
+            comparison.reranked_observed_evidence_ids
+        ),
+        "gained_evidence_ids": list(comparison.gained_evidence_ids),
+        "lost_evidence_ids": list(comparison.lost_evidence_ids),
+    }
 
 
 def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:

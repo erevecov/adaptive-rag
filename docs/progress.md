@@ -10,10 +10,9 @@ M9 Retrieval quality/rerank cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M10 `m10-retrieval-dataset-pack`: agrega una suite offline representativa con
-casos de exact match, paraphrase, distractors, metadata filters, multi-evidence
-y cobertura marcada para escenarios donde rerank deberia ayudar o mantenerse
-estable.
+M10 `m10-rerank-ab-reporting`: agrega `comparison_cases` serializados para
+dense vs rerank, clasifica cada caso como improvement, tie o regression y
+expone conteos agregados mas delta promedio de best-rank.
 
 Comandos validados:
 
@@ -52,10 +51,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m10-rerank-ab-reporting`. Es la opcion recomendada porque el
-  dataset pack ya cubre los riesgos representativos; ahora conviene convertir
-  dense vs rerank en un reporte por caso de mejoras, empates y regresiones antes
-  de documentar decision gates.
+- Implementar `m10-decision-gate-docs`. Es la opcion recomendada porque el
+  reporte A/B ya muestra mejoras, empates y regresiones por caso; ahora conviene
+  convertir esa evidencia en criterios escritos antes de abrir lexical/RRF,
+  sparse retrieval o tuning de candidate limits.
 
 ## Reglas de coordinacion
 

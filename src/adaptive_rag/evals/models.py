@@ -9,6 +9,7 @@ from adaptive_rag.provider_usage import ProviderOperation
 from adaptive_rag.retrieval import RetrievalMetadataFilter
 
 EvalCaseKind = Literal["retrieval", "chat"]
+EvalCaseComparisonOutcome = Literal["improvement", "tie", "regression"]
 EvalRunMode = Literal["offline", "hosted"]
 EvalStatus = Literal["passed", "failed"]
 
@@ -116,6 +117,23 @@ class EvalCaseResult:
 
 
 @dataclass(frozen=True, slots=True)
+class EvalCaseComparison:
+    """Comparacion por caso entre dense baseline y reranked retrieval."""
+
+    id: str
+    outcome: EvalCaseComparisonOutcome
+    dense_status: EvalStatus
+    reranked_status: EvalStatus
+    dense_best_rank: float
+    reranked_best_rank: float
+    best_rank_delta: float
+    dense_observed_evidence_ids: tuple[str, ...] = ()
+    reranked_observed_evidence_ids: tuple[str, ...] = ()
+    gained_evidence_ids: tuple[str, ...] = ()
+    lost_evidence_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class EvalProviderUsageOperationSummary:
     """Usage/costo agregado por provider, modelo y operacion."""
 
@@ -167,3 +185,4 @@ class EvalRunReport:
     mode: EvalRunMode = "offline"
     provider_usage: EvalProviderUsageSummary | None = None
     comparison_metrics: dict[str, float] = field(default_factory=dict)
+    comparison_cases: tuple[EvalCaseComparison, ...] = ()

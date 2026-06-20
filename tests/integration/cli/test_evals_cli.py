@@ -522,6 +522,10 @@ def test_evals_run_command_hosted_mode_compares_reranked_retrieval(
     assert data["comparison_metrics"] == {
         "dense_retrieval_hit_rate": 0.0,
         "dense_retrieval_passed_count": 0.0,
+        "rerank_best_rank_delta_avg": 1.0,
+        "rerank_case_improvement_count": 1.0,
+        "rerank_case_regression_count": 0.0,
+        "rerank_case_tie_count": 0.0,
         "rerank_retrieval_hit_rate_delta": 1.0,
         "reranked_retrieval_hit_rate": 1.0,
         "reranked_retrieval_passed_count": 1.0,
