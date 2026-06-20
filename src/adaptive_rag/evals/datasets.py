@@ -9,6 +9,7 @@ from pathlib import Path
 from adaptive_rag.evals.errors import EvalDatasetError
 from adaptive_rag.evals.models import (
     ChatEvalCase,
+    EvalCaseMetadata,
     EvalEvidence,
     EvalSuite,
     EvalThresholds,
@@ -57,6 +58,7 @@ _RETRIEVAL_CASE_FIELDS = frozenset(
         "id",
         "query",
         "limit",
+        "case_metadata",
         "metadata_filter",
         "expected_evidence_ids",
     }
@@ -72,6 +74,7 @@ _CHAT_CASE_FIELDS = frozenset(
     }
 )
 _FILTER_FIELDS = frozenset({"source_type", "tags"})
+_CASE_METADATA_FIELDS = frozenset({"intent", "difficulty", "coverage_notes"})
 _THRESHOLD_FIELDS = frozenset(
     {"retrieval_hit_rate", "chat_citation_coverage"}
 )
@@ -228,6 +231,10 @@ def _parse_retrieval_case(value: object, *, index: int) -> RetrievalEvalCase:
             payload.get("metadata_filter"),
             field_name=f"{field_name}.metadata_filter",
         ),
+        case_metadata=_parse_case_metadata(
+            payload.get("case_metadata"),
+            field_name=f"{field_name}.case_metadata",
+        ),
         expected_evidence_ids=parse_required_str_tuple(
             required(payload, "expected_evidence_ids", field_name=field_name),
             field_name=f"{field_name}.expected_evidence_ids",
@@ -304,6 +311,35 @@ def _parse_metadata_filter(
         tags=parse_str_tuple(
             payload.get("tags", []),
             field_name=f"{field_name}.tags",
+        ),
+    )
+
+
+def _parse_case_metadata(
+    value: object,
+    *,
+    field_name: str,
+) -> EvalCaseMetadata | None:
+    if value is None:
+        return None
+    payload = expect_mapping(value, field_name=field_name)
+    reject_unknown_fields(
+        payload,
+        allowed=_CASE_METADATA_FIELDS,
+        field_name=field_name,
+    )
+    return EvalCaseMetadata(
+        intent=optional_nonempty_str(
+            payload.get("intent"),
+            field_name=f"{field_name}.intent",
+        ),
+        difficulty=optional_nonempty_str(
+            payload.get("difficulty"),
+            field_name=f"{field_name}.difficulty",
+        ),
+        coverage_notes=parse_str_tuple(
+            payload.get("coverage_notes", []),
+            field_name=f"{field_name}.coverage_notes",
         ),
     )
 

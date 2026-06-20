@@ -32,6 +32,11 @@
       "id": "retrieve-alpha",
       "query": "Alpha original evidence",
       "limit": 2,
+      "case_metadata": {
+        "intent": "exact_match",
+        "difficulty": "easy",
+        "coverage_notes": ["baseline dense smoke"]
+      },
       "metadata_filter": {
         "source_type": "markdown",
         "tags": ["docs", "v1"]

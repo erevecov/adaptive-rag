@@ -109,8 +109,10 @@ def _run_retrieval_case(
                 "expected_count": float(len(retrieval_case.expected_evidence_ids)),
                 "hit": 0.0,
                 "matched_count": 0.0,
+                "missing_count": float(len(retrieval_case.expected_evidence_ids)),
                 "retrieved_count": 0.0,
             },
+            case_metadata=retrieval_case.case_metadata,
             errors=(f"retrieval failed: {exc}",),
         )
 
@@ -147,8 +149,10 @@ def _run_retrieval_case(
             "expected_count": float(len(retrieval_case.expected_evidence_ids)),
             "hit": 1.0 if not missing else 0.0,
             "matched_count": float(matched_count),
+            "missing_count": float(len(missing)),
             "retrieved_count": float(len(results)),
         },
+        case_metadata=retrieval_case.case_metadata,
         errors=_missing_errors(missing),
         observed_evidence_ids=observed_evidence_ids,
         observed_citations=observed_citations,

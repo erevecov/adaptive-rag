@@ -67,11 +67,16 @@ def test_run_retrieval_eval_suite_passes_repo_smoke_fixture() -> None:
     assert case.id == "retrieve-alpha"
     assert case.kind == "retrieval"
     assert case.status == "passed"
+    assert case.case_metadata is not None
+    assert case.case_metadata.intent == "exact_match"
+    assert case.case_metadata.difficulty == "easy"
+    assert case.case_metadata.coverage_notes == ("baseline dense smoke",)
     assert case.metrics == {
         "best_rank": 1.0,
         "expected_count": 1.0,
         "hit": 1.0,
         "matched_count": 1.0,
+        "missing_count": 0.0,
         "retrieved_count": 2.0,
     }
     assert case.errors == ()
@@ -121,6 +126,13 @@ def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
                         "id": "retrieve-wrong",
                         "query": "Far unrelated evidence",
                         "limit": 1,
+                        "case_metadata": {
+                            "intent": "paraphrase",
+                            "difficulty": "medium",
+                            "coverage_notes": [
+                                "dense should not lose alpha to a distractor"
+                            ],
+                        },
                         "expected_evidence_ids": ["alpha"],
                     }
                 ],
@@ -142,8 +154,14 @@ def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
     assert report.metrics["retrieval_hit_rate"] == 0.0
     assert report.cases[0].status == "failed"
     assert report.cases[0].metrics["hit"] == 0.0
+    assert report.cases[0].metrics["missing_count"] == 1.0
     assert report.cases[0].observed_evidence_ids == ("far",)
     assert report.cases[0].errors == ("missing expected evidence: alpha",)
+    assert serialize_eval_report(report)["cases"][0]["case_metadata"] == {
+        "coverage_notes": ["dense should not lose alpha to a distractor"],
+        "difficulty": "medium",
+        "intent": "paraphrase",
+    }
 
 
 def test_run_retrieval_eval_suite_uses_declared_metadata_filters(
