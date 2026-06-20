@@ -10,6 +10,7 @@
 - M6 Evals: completo.
 - M7 Provider runtime: completo.
 - M8 Hosted evals: completo.
+- M9 Retrieval quality/rerank: activo.
 
 ## M1 Foundation
 
@@ -250,6 +251,41 @@ live. La siguiente decision recomendada es abrir un change OpenSpec para M9 de
 calidad de retrieval/rerank, usando hosted evals para comparar mejoras antes de
 dashboards, LLM-as-judge, streaming, persistencia de conversaciones o tuning
 automatico.
+
+## M9 Retrieval quality/rerank
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m9-retrieval-quality-rerank-plan/`: define mejoras de
+  calidad de retrieval con rerank opt-in sobre candidatos dense ya filtrados,
+  preservando dense como default y usando hosted evals para comparar calidad,
+  usage y costo.
+
+Secuencia recomendada:
+
+1. `m9-retrieval-quality-rerank-plan`: completo en branch de planificacion.
+   Crea el change OpenSpec que delimita rerank antes de lexical/RRF,
+   dashboards, LLM-as-judge, streaming o tuning automatico.
+2. `m9-rerank-provider-contract`: siguiente tarea recomendada. Define contrato
+   provider-neutral, fake default, settings/factory y errores estables antes de
+   tocar Qwen live.
+3. `m9-live-qwen-rerank-provider`: implementar adaptador Qwen rerank opt-in con
+   usage/cost, budget guard, timeouts y smoke live separado.
+4. `m9-retrieval-rerank-service`: integrar rerank opcional en
+   `RetrievalService` despues de dense candidate generation y filtros.
+5. `m9-rerank-api-cli-surface`: exponer knobs acotados de rerank en API/CLI sin
+   cambiar el default dense.
+6. `m9-rerank-hosted-evals`: comparar dense baseline vs reranked retrieval en
+   reportes hosted con calidad, usage y costo.
+7. `m9-quality-gate`: validar el milestone completo, archivar el change y
+   publicar `openspec/specs/retrieval-quality/spec.md`.
+
+Decision: rerank va antes de lexical/RRF porque reutiliza el pipeline dense y el
+runtime de providers existente con menor blast radius. Lexical/RRF debe quedar
+para M10 si las evals de M9 muestran que dense + rerank no alcanza recall o
+cobertura.
 
 ## Politica para reducir conflictos de merge
 
