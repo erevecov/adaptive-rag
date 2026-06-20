@@ -2,17 +2,17 @@
 
 ## Milestone activo
 
-M8 Hosted evals.
+Ninguno. M8 Hosted evals quedo cerrado.
 
 ## Ultimo milestone completado
 
-M7 Provider runtime cerrado el 2026-06-19.
+M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M8 `m8-evals-cli-hosted-mode`: expone `adaptive-rag evals run --mode hosted`
-con `--max-cost-usd`, construye runtime live Qwen opt-in con tracker compartido
-para embeddings/chat y serializa reportes hosted con `provider_usage`.
+M8 `m8-quality-gate`: valida el milestone completo, ejecuta smoke hosted Qwen
+opcional con `.env` local, archiva `m8-live-provider-evals-plan` y publica la
+spec canonica `hosted-evals`.
 
 Comandos validados:
 
@@ -21,22 +21,24 @@ uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-uv run pytest tests/integration/cli/test_evals_cli.py tests/unit/test_provider_runtime.py tests/unit/evals -q
-uv run pytest tests/integration/cli/test_evals_cli.py::test_evals_run_command_hosted_mode_outputs_provider_usage tests/integration/cli/test_evals_cli.py::test_evals_run_command_hosted_mode_requires_budget -q
-uv run pytest tests/unit/test_provider_runtime.py::test_live_qwen_runtime_can_share_usage_tracker -q
 npx --yes @fission-ai/openspec validate m8-live-provider-evals-plan --strict
+npx --yes @fission-ai/openspec archive m8-live-provider-evals-plan --yes
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-Este slice usa provider y runner fake inyectados con tracker de usage/cost en
-tests; no ejecuta llamadas live ni requiere credenciales. La CLI hosted real
-sigue siendo opt-in y exige `.env` con Qwen antes de instanciar clientes live.
+Smokes hosted Qwen ejecutados contra SQLite in-memory y `.env` local, sin
+imprimir secretos:
+
+```text
+retrieval-smoke hosted: passed
+chat-smoke hosted: passed con chat_model=qwen-plus como override de proceso
+```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m8-live-provider-evals-plan/`
+- Ninguno.
 
 ## Spec canonica activa
 
@@ -53,13 +55,14 @@ sigue siendo opt-in y exige `.env` con Qwen antes de instanciar clientes live.
 - `openspec/specs/chat-tool-calling/spec.md`
 - `openspec/specs/evals-baseline/spec.md`
 - `openspec/specs/provider-runtime/spec.md`
+- `openspec/specs/hosted-evals/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Ejecutar `m8-quality-gate`. Es el siguiente slice recomendado porque el
-  contrato hosted, runners de retrieval/chat y modo CLI ya estan implementados;
-  falta validar el milestone completo, decidir si corre smoke hosted opcional
-  con `.env` local y archivar el change `m8-live-provider-evals-plan`.
+- Abrir un nuevo change OpenSpec para M9 de calidad de retrieval/rerank. Es la
+  opcion recomendada porque M8 ya permite medir calidad/costo hosted con Qwen;
+  el siguiente avance deberia usar ese harness para comparar mejoras de ranking
+  antes de dashboards, streaming, LLM-as-judge o tuning automatico.
 
 ## Reglas de coordinacion
 
