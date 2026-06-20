@@ -11,7 +11,8 @@
 - M7 Provider runtime: completo.
 - M8 Hosted evals: completo.
 - M9 Retrieval quality/rerank: completo.
-- M10 Retrieval eval datasets y decision gates: activo.
+- M10 Retrieval eval datasets y decision gates: completo.
+- M11 Retrieval strategy decision: recomendado, sin change activo.
 
 ## M1 Foundation
 
@@ -297,15 +298,16 @@ o tuning adicional justifican el siguiente incremento.
 
 ## M10 Retrieval eval datasets y decision gates
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m10-retrieval-eval-datasets-plan/`: define ampliacion de
+- `openspec/changes/archive/2026-06-20-m10-retrieval-eval-datasets-plan/`:
+  define ampliacion de
   suites de retrieval, metricas por caso y decision gates antes de agregar
   lexical/RRF, sparse retrieval o tuning automatico.
 
-Secuencia recomendada:
+Secuencia entregada:
 
 1. `m10-retrieval-eval-datasets-plan`: completo en branch de planificacion.
    Crea el change OpenSpec que delimita M10 como medicion y decision gates
@@ -321,13 +323,20 @@ Secuencia recomendada:
 5. `m10-decision-gate-docs`: completo. Documenta criterios para abrir o
    rechazar lexical/RRF, sparse retrieval y tuning de candidate limits con
    evidencia de evals, regresiones, costo/latencia, filtros y citations.
-6. `m10-quality-gate`: siguiente tarea recomendada. Validar el milestone
-   completo, ejecutar smokes hosted Qwen opt-in si `.env` local esta disponible,
-   archivar el change y sincronizar `openspec/specs/retrieval-quality/spec.md`.
+6. `m10-quality-gate`: completo. Valida tests, lint, types, specs, smokes CLI
+   offline, smoke live `providers rerank-smoke`, hosted eval Qwen reranked con
+   SQLite temporal, archiva el change y sincroniza
+   `openspec/specs/retrieval-quality/spec.md`.
 
 Decision: M10 mide antes de construir otro algoritmo. La prioridad es evitar
 que lexical/RRF o sparse retrieval entren por intuicion cuando todavia falta
 evidencia de regresiones, costo, latencia y comportamiento con filtros/citas.
+
+Continuacion: la siguiente decision recomendada es abrir un change OpenSpec
+para elegir el primer experimento medible de retrieval: tuning de candidate
+limits, lexical/RRF o Qwen sparse retrieval. La opcion recomendada es decidir
+con evidencia primero y solo implementar despues de declarar thresholds,
+regresiones aceptables, costo/latencia y comportamiento con filtros/citations.
 
 ## Politica para reducir conflictos de merge
 
