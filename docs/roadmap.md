@@ -9,7 +9,7 @@
 - M5 Chat/tool calling: completo.
 - M6 Evals: completo.
 - M7 Provider runtime: completo.
-- M8 Hosted evals: activo.
+- M8 Hosted evals: completo.
 
 ## M1 Foundation
 
@@ -209,21 +209,20 @@ conversaciones.
 
 ## M8 Hosted evals
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m8-live-provider-evals-plan/`: define evals hosted opt-in
-  sobre las suites versionadas de M6 y el runtime de providers de M7, con
-  presupuesto maximo de corrida, reportes JSON de calidad/usage/costo y Qwen
-  live separado del gate offline obligatorio.
+- `openspec/changes/archive/2026-06-20-m8-live-provider-evals-plan/`: define
+  evals hosted opt-in sobre las suites versionadas de M6 y el runtime de
+  providers de M7, con presupuesto maximo de corrida, reportes JSON de
+  calidad/usage/costo y Qwen live separado del gate offline obligatorio.
 
 Spec canonica:
 
-- Pendiente. Se publicara `openspec/specs/hosted-evals/spec.md` al cerrar M8
-  con `m8-quality-gate`.
+- `openspec/specs/hosted-evals/spec.md`
 
-Secuencia recomendada:
+Secuencia entregada:
 
 1. `m8-live-provider-evals-plan`: completo en branch de planificacion. Crea el
    change OpenSpec que delimita hosted evals antes de dashboards, streaming,
@@ -242,13 +241,15 @@ Secuencia recomendada:
    `adaptive-rag evals run <suite> --mode hosted --max-cost-usd <value>` con
    JSON extendido, validacion de credenciales Qwen y tracker compartido entre
    embeddings/chat para reportar usage/cost de la corrida.
-6. `m8-quality-gate`: siguiente slice recomendado. Valida tests, lint, types,
-   specs, evals offline y smoke hosted opcional si `.env` local esta
-   disponible; archiva el change M8 y publica la spec canonica `hosted-evals`.
+6. `m8-quality-gate`: completo. Valida tests, lint, types, specs, evals
+   offline y smokes hosted Qwen opcionales con `.env` local; archiva el change
+   M8 y publica la spec canonica `hosted-evals`.
 
-Continuacion: M8 debe medir calidad/costo de providers live antes de agregar
-dashboards, LLM-as-judge, rerank hosted, streaming, persistencia de
-conversaciones o tuning automatico.
+Continuacion: M8 deja listo el harness para medir calidad/costo de providers
+live. La siguiente decision recomendada es abrir un change OpenSpec para M9 de
+calidad de retrieval/rerank, usando hosted evals para comparar mejoras antes de
+dashboards, LLM-as-judge, streaming, persistencia de conversaciones o tuning
+automatico.
 
 ## Politica para reducir conflictos de merge
 

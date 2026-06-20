@@ -25,5 +25,5 @@
 - [x] 3.2 Implementar `m8-live-retrieval-eval-runner`.
 - [x] 3.3 Implementar `m8-live-chat-eval-runner`.
 - [x] 3.4 Implementar `m8-evals-cli-hosted-mode`.
-- [ ] 3.5 Ejecutar `m8-quality-gate` y archivar el change cuando M8 quede
+- [x] 3.5 Ejecutar `m8-quality-gate` y archivar el change cuando M8 quede
   cerrado.
