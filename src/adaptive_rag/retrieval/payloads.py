@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from adaptive_rag.retrieval.service import RetrievalSearchResult
 
@@ -30,6 +30,7 @@ class RetrievalResultPayload(TypedDict):
     score: float
     citation: RetrievalCitationPayload
     embedding_metadata: dict[str, Any] | None
+    rerank_metadata: NotRequired[dict[str, Any]]
 
 
 def serialize_retrieval_results(
@@ -40,7 +41,7 @@ def serialize_retrieval_results(
 
 def serialize_retrieval_result(result: RetrievalSearchResult) -> RetrievalResultPayload:
     citation = result.citation
-    return {
+    payload: RetrievalResultPayload = {
         "chunk_id": str(result.chunk_id),
         "distance": result.distance,
         "score": result.score,
@@ -62,6 +63,9 @@ def serialize_retrieval_result(result: RetrievalSearchResult) -> RetrievalResult
         },
         "embedding_metadata": _copy_dict(result.embedding_metadata),
     }
+    if result.rerank_metadata is not None:
+        payload["rerank_metadata"] = _copy_dict(result.rerank_metadata) or {}
+    return payload
 
 
 def _copy_dict(value: dict[str, Any] | None) -> dict[str, Any] | None:

@@ -29,6 +29,7 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
 class StaticQueryEmbeddingProvider:
@@ -43,6 +44,23 @@ class StaticQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [list(self.embedding) for _text in texts]
+
+
+class RecordingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "cli-rerank-v1"
+
+    def __init__(self, scores: tuple[RerankScore, ...]) -> None:
+        self.scores = scores
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=self.scores,
+        )
 
 
 def _make_session() -> Session:
@@ -128,6 +146,7 @@ def _patch_retrieval_dependencies(
     *,
     session: Session,
     provider: StaticQueryEmbeddingProvider,
+    reranker: RecordingRerankProvider | None = None,
 ) -> None:
     @contextmanager
     def override_session_scope() -> Iterator[Session]:
@@ -141,6 +160,11 @@ def _patch_retrieval_dependencies(
         "adaptive_rag.cli.retrieval.get_cli_dense_embedding_provider",
         lambda: provider,
     )
+    if reranker is not None:
+        monkeypatch.setattr(
+            "adaptive_rag.cli.retrieval.get_cli_rerank_provider",
+            lambda: reranker,
+        )
 
 
 def test_retrieval_search_command_outputs_json_results(
@@ -215,6 +239,7 @@ def test_retrieval_search_command_outputs_json_results(
     first = data["results"][0]
     assert first["distance"] == pytest.approx(0.1)
     assert first["score"] == pytest.approx(1 / 1.1)
+    assert "rerank_metadata" not in first
     assert first["citation"] == {
         "source_id": str(source.id),
         "source_type": "markdown",
@@ -234,6 +259,136 @@ def test_retrieval_search_command_outputs_json_results(
             "section_path": ["near-doc"],
         },
     }
+
+
+def test_retrieval_search_command_reranks_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Far original evidence",
+        snippet="Far original evidence",
+        embedding=_vector(0.9),
+    )
+    _mid_source, _mid_document, _mid_version, mid = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="mid.md",
+        stable_id="mid-doc",
+        text="Header\n\nBeta rerank evidence",
+        snippet="Beta rerank evidence",
+        embedding=_vector(0.2),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Header\n\nAlpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    reranker = RecordingRerankProvider(
+        scores=(
+            RerankScore(
+                candidate_id=str(mid.id),
+                score=0.98,
+                original_rank=2,
+                rerank_rank=1,
+            ),
+        )
+    )
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        reranker=reranker,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "retrieval",
+            "search",
+            "--project-id",
+            str(project.id),
+            "--query",
+            "beta question",
+            "--limit",
+            "1",
+            "--rerank-candidate-limit",
+            "2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert provider.inputs == ["beta question"]
+    assert len(reranker.requests) == 1
+    candidate_ids = [
+        candidate.candidate_id for candidate in reranker.requests[0].candidates
+    ]
+    assert candidate_ids == [str(near.id), str(mid.id)]
+    assert str(far.id) not in {
+        candidate.candidate_id for candidate in reranker.requests[0].candidates
+    }
+    data = json.loads(result.stdout)
+    assert [item["chunk_id"] for item in data["results"]] == [str(mid.id)]
+    assert data["results"][0]["rerank_metadata"] == {
+        "candidate_limit": 2,
+        "dense_rank": 2,
+        "rerank_model": "cli-rerank-v1",
+        "rerank_provider": "fake-rerank",
+        "rerank_rank": 1,
+        "rerank_score": 0.98,
+        "score_metadata": {},
+        "used_rerank": True,
+    }
+
+
+def test_retrieval_search_command_rejects_invalid_rerank_limit_before_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    reranker = RecordingRerankProvider(scores=())
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        reranker=reranker,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "retrieval",
+            "search",
+            "--project-id",
+            str(project.id),
+            "--query",
+            "alpha question",
+            "--limit",
+            "2",
+            "--rerank-candidate-limit",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "rerank candidate_limit must be greater than or equal to limit" in (
+        result.output
+    )
+    assert provider.inputs == []
+    assert reranker.requests == []
 
 
 def test_retrieval_search_command_reports_service_errors(

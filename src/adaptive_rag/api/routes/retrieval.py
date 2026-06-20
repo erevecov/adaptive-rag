@@ -6,12 +6,19 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from adaptive_rag.api.dependencies import get_retrieval_service
+from adaptive_rag.api.dependencies import (
+    RerankProviderFactory,
+    get_dense_embedding_provider,
+    get_rerank_provider_factory,
+    get_session,
+)
 from adaptive_rag.api.schemas.retrieval import (
     RetrievalSearchRequestBody,
     RetrievalSearchResponse,
 )
+from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.retrieval import RetrievalService, RetrievalServiceError
 
 router = APIRouter(
@@ -20,15 +27,32 @@ router = APIRouter(
 )
 
 
-@router.post("/search", response_model=RetrievalSearchResponse)
+@router.post(
+    "/search",
+    response_model=RetrievalSearchResponse,
+)
 def search_retrieval(
     project_id: UUID,
     body: RetrievalSearchRequestBody,
-    service: Annotated[RetrievalService, Depends(get_retrieval_service)],
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[DenseEmbeddingProvider, Depends(get_dense_embedding_provider)],
+    rerank_provider_factory: Annotated[
+        RerankProviderFactory,
+        Depends(get_rerank_provider_factory),
+    ],
 ) -> RetrievalSearchResponse:
     try:
-        results = service.search(body.to_service_request(project_id))
-    except RetrievalServiceError as exc:
+        body.validate_rerank_options()
+        request = body.to_service_request(project_id)
+        service = RetrievalService(
+            session,
+            provider=provider,
+            reranker=(
+                rerank_provider_factory() if request.rerank is not None else None
+            ),
+        )
+        results = service.search(request)
+    except (RetrievalServiceError, ValueError) as exc:
         raise HTTPException(
             status_code=422,
             detail=str(exc),
