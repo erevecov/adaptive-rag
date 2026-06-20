@@ -2,18 +2,17 @@
 
 ## Milestone activo
 
-M10 Retrieval eval datasets y decision gates.
+Sin milestone activo.
 
 ## Ultimo milestone completado
 
-M9 Retrieval quality/rerank cerrado el 2026-06-20.
+M10 Retrieval eval datasets y decision gates cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M10 `m10-decision-gate-docs`: documenta decision gates para abrir o rechazar
-lexical/RRF, sparse retrieval y tuning de candidate limits usando
-`comparison_metrics`, `comparison_cases`, regresiones, costo/latencia, filtros
-y citations.
+M10 `m10-quality-gate`: valida el milestone completo, ejecuta smokes offline y
+hosted Qwen opt-in, archiva `m10-retrieval-eval-datasets-plan` y sincroniza la
+spec canonica `retrieval-quality`.
 
 Comandos validados:
 
@@ -22,7 +21,11 @@ uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-npx --yes @fission-ai/openspec validate m10-retrieval-eval-datasets-plan --strict
+uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json --mode offline
+uv run adaptive-rag evals run evals/fixtures/chat-smoke.json --mode offline
+uv run adaptive-rag providers rerank-smoke
+uv run adaptive-rag evals run evals/fixtures/retrieval-rerank-smoke.json --mode hosted --max-cost-usd 0.05 --rerank-candidate-limit 2
+npx --yes @fission-ai/openspec archive m10-retrieval-eval-datasets-plan --yes
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -30,7 +33,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m10-retrieval-eval-datasets-plan/`
+Ninguno.
 
 ## Spec canonica activa
 
@@ -52,10 +55,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Ejecutar `m10-quality-gate`. Es la opcion recomendada porque M10 ya tiene
-  metadata por caso, dataset pack, reporte A/B y decision gates; ahora toca
-  validar el milestone completo, archivar el change y sincronizar la spec
-  canonica `retrieval-quality`.
+- Abrir un change OpenSpec para la siguiente decision de retrieval: elegir el
+  primer experimento medible entre tuning de candidate limits, lexical/RRF o
+  Qwen sparse retrieval. Es la opcion recomendada porque M10 ya exige evidencia
+  por caso, regresiones, costo/latencia, filtros y citations antes de tocar el
+  retrieval productivo.
 
 ## Reglas de coordinacion
 

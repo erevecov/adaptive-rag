@@ -27,5 +27,5 @@
 - [x] 3.2 Implementar `m10-retrieval-dataset-pack`.
 - [x] 3.3 Implementar `m10-rerank-ab-reporting`.
 - [x] 3.4 Implementar `m10-decision-gate-docs`.
-- [ ] 3.5 Ejecutar `m10-quality-gate` y archivar el change cuando M10 quede
+- [x] 3.5 Ejecutar `m10-quality-gate` y archivar el change cuando M10 quede
   cerrado.
