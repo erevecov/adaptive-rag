@@ -356,8 +356,9 @@ Secuencia recomendada:
 2. `m11-candidate-limit-eval-matrix`: completo. Define una matriz interna de
    candidate limits sobre suites versionadas, con coverage por `intent` y
    `difficulty` y validacion de limites.
-3. `m11-candidate-limit-ab-runner`: siguiente tarea recomendada. Ejecutar y
-   serializar comparaciones de quality/cost/regressions entre limites acotados.
+3. `m11-candidate-limit-ab-runner`: completo. Ejecuta dense baseline una vez,
+   compara varios `candidate_limit` reranked contra ese baseline y serializa
+   filas estables de quality/cost/regressions con conteos por metadata.
 4. `m11-candidate-limit-api-cli-surface`: solo si la evidencia lo justifica,
    exponer parametros o presets acotados sin cambiar dense default.
 5. `m11-quality-gate`: validar el milestone, ejecutar smokes opt-in si hay

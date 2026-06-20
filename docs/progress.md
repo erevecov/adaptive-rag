@@ -10,9 +10,10 @@ M10 Retrieval eval datasets y decision gates cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M11 `m11-candidate-limit-eval-matrix`: agrega una matriz interna para comparar
-candidate limits sobre suites versionadas, agrupando casos por `intent` y
-`difficulty` y rechazando limites invalidos antes de cualquier runner A/B.
+M11 `m11-candidate-limit-ab-runner`: agrega un runner interno que reutiliza la
+matriz de candidate limits, ejecuta dense baseline una vez y serializa filas
+A/B de quality/cost/regressions por limite, incluyendo conteos por `intent` y
+`difficulty`.
 
 Comandos validados:
 
@@ -51,10 +52,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Despues de mergear `m11-candidate-limit-eval-matrix`, implementar
-  `m11-candidate-limit-ab-runner`. Es la opcion recomendada porque la matriz ya
-  define limites y coverage por metadata; ahora falta ejecutar comparaciones de
-  quality/cost/regressions sin cambiar defaults productivos.
+- Despues de mergear `m11-candidate-limit-ab-runner`, decidir si la evidencia
+  del reporte A/B justifica `m11-candidate-limit-api-cli-surface`; si no,
+  avanzar directo a `m11-quality-gate`. La opcion recomendada es no cambiar
+  defaults productivos hasta que una corrida compare mejoras, regresiones y
+  costo por limite.
 
 ## Reglas de coordinacion
 

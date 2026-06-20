@@ -81,6 +81,19 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
 - **AND** rechaza limites duplicados, no positivos o menores al mayor `limit`
   declarado por la suite
 
+#### Scenario: Candidate limit A/B runner serializa quality y costo
+
+- **WHEN** una suite de retrieval se ejecuta para varios `candidate_limit`
+  acotados
+- **THEN** el runner ejecuta el baseline dense una vez y compara cada limite
+  reranked contra ese baseline
+- **AND** serializa una fila estable por limite con status, metricas de
+  retrieval, `comparison_metrics` y `comparison_cases`
+- **AND** agrega conteos de improvement, regression y tie por `intent` y
+  `difficulty`
+- **AND** incluye usage/cost por fila y total de corrida cuando el modo hosted
+  provee tracker de usage
+
 #### Scenario: Lexical o RRF requieren fallo lexical medido
 
 - **WHEN** un change propone lexical retrieval o RRF
