@@ -8,6 +8,8 @@ Documentos:
 - `v1-design.md`: linea base de arquitectura y alcance v1.
 - `retrieval-decision-gates.md`: criterios para abrir o rechazar futuros
   experimentos de lexical/RRF, sparse retrieval o tuning de retrieval.
+- `retrieval-strategy-decision.md`: decision M11 para ejecutar primero tuning
+  de `candidate_limit` y mantener lexical/RRF y Qwen sparse en hold.
 
 Reglas:
 

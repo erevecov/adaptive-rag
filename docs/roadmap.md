@@ -12,7 +12,7 @@
 - M8 Hosted evals: completo.
 - M9 Retrieval quality/rerank: completo.
 - M10 Retrieval eval datasets y decision gates: completo.
-- M11 Retrieval strategy decision: recomendado, sin change activo.
+- M11 Retrieval strategy decision: activo.
 
 ## M1 Foundation
 
@@ -337,6 +337,36 @@ para elegir el primer experimento medible de retrieval: tuning de candidate
 limits, lexical/RRF o Qwen sparse retrieval. La opcion recomendada es decidir
 con evidencia primero y solo implementar despues de declarar thresholds,
 regresiones aceptables, costo/latencia y comportamiento con filtros/citations.
+
+## M11 Retrieval strategy decision
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m11-retrieval-strategy-decision/`: decide el primer
+  experimento medible despues de M10. La recomendacion inicial es proceed con
+  tuning de `candidate_limit`; lexical/RRF y Qwen sparse retrieval quedan en
+  hold hasta tener evidencia o documentacion provider suficiente.
+
+Secuencia recomendada:
+
+1. `m11-retrieval-strategy-decision`: activo. Crea el change OpenSpec, registra
+   decision matrix y actualiza docs de arquitectura/progreso/roadmap.
+2. `m11-candidate-limit-eval-matrix`: siguiente tarea recomendada. Definir
+   comparacion de candidate limits sobre suites versionadas, con metricas por
+   caso, intent y difficulty.
+3. `m11-candidate-limit-ab-runner`: ejecutar y serializar comparaciones de
+   quality/cost/regressions entre limites acotados.
+4. `m11-candidate-limit-api-cli-surface`: solo si la evidencia lo justifica,
+   exponer parametros o presets acotados sin cambiar dense default.
+5. `m11-quality-gate`: validar el milestone, ejecutar smokes opt-in si hay
+   `.env` local y archivar el change.
+
+Decision: candidate tuning va primero porque tiene menor blast radius y mide si
+el problema real es candidate reach/costo antes de agregar indexes o providers.
+Lexical/RRF requiere fallos lexicales medidos. Qwen sparse requiere verificar
+docs actuales de DashScope/Qwen, storage, reindex y costo antes de codificar.
 
 ## Politica para reducir conflictos de merge
 
