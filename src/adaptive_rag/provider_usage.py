@@ -51,6 +51,7 @@ class ProviderPriceCatalog:
     chat_input_price_per_million_tokens_usd: float | None = None
     chat_output_price_per_million_tokens_usd: float | None = None
     embedding_input_price_per_million_tokens_usd: float | None = None
+    rerank_input_price_per_million_tokens_usd: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,6 +143,8 @@ def estimate_cost_usd(
         return _chat_cost_usd(usage=usage, price_catalog=price_catalog)
     if operation == "embedding":
         return _embedding_cost_usd(usage=usage, price_catalog=price_catalog)
+    if operation == "rerank":
+        return _rerank_cost_usd(usage=usage, price_catalog=price_catalog)
     return None
 
 
@@ -283,6 +286,19 @@ def _embedding_cost_usd(
             price_per_million=(
                 price_catalog.embedding_input_price_per_million_tokens_usd
             ),
+        ),
+    )
+
+
+def _rerank_cost_usd(
+    *,
+    usage: ProviderTokenUsage,
+    price_catalog: ProviderPriceCatalog,
+) -> float | None:
+    return _sum_costs(
+        _token_cost(
+            token_count=usage.input_tokens,
+            price_per_million=price_catalog.rerank_input_price_per_million_tokens_usd,
         ),
     )
 

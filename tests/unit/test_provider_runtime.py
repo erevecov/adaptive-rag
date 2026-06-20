@@ -13,12 +13,14 @@ from adaptive_rag.provider_runtime import (
     ProviderConfigurationError,
     get_chat_runner,
     get_dense_embedding_provider,
+    get_rerank_provider,
 )
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderBudgetGuard,
     ProviderPriceCatalog,
 )
+from adaptive_rag.rerank import FakeRerankProvider, QwenRerankProvider
 
 
 def _settings(**overrides):
@@ -30,10 +32,12 @@ def test_provider_runtime_defaults_to_fake_without_credentials():
 
     provider = get_dense_embedding_provider(settings)
     runner = get_chat_runner(settings)
+    reranker = get_rerank_provider(settings)
 
     assert settings.provider_runtime_mode == "fake"
     assert isinstance(provider, FakeDenseEmbeddingProvider)
     assert isinstance(runner, RetrievalGroundedChatRunner)
+    assert isinstance(reranker, FakeRerankProvider)
 
 
 def test_fake_runtime_rejects_non_fake_embedding_provider():
@@ -56,6 +60,16 @@ def test_fake_runtime_rejects_non_fake_chat_provider():
         get_chat_runner(settings)
 
 
+def test_fake_runtime_rejects_non_fake_rerank_provider():
+    settings = _settings(rerank_provider="qwen")
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="rerank provider 'qwen' requires live provider runtime mode",
+    ):
+        get_rerank_provider(settings)
+
+
 def test_unknown_live_provider_fails_before_client_creation():
     settings = _settings(
         provider_runtime_mode="live",
@@ -69,6 +83,21 @@ def test_unknown_live_provider_fails_before_client_creation():
         match="unsupported embedding provider: unknown",
     ):
         get_dense_embedding_provider(settings)
+
+
+def test_unknown_live_rerank_provider_fails_before_client_creation():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="unknown",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="unsupported rerank provider: unknown",
+    ):
+        get_rerank_provider(settings)
 
 
 def test_live_provider_requires_credentials_before_network_clients():
@@ -87,6 +116,22 @@ def test_live_provider_requires_credentials_before_network_clients():
         get_dense_embedding_provider(settings)
 
 
+def test_live_qwen_rerank_provider_requires_credentials_before_network_clients():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="qwen",
+        rerank_model="qwen3-rerank",
+        qwen_api_key=None,
+        qwen_base_url="https://example.test/v1",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_QWEN_API_KEY is required for live provider runtime",
+    ):
+        get_rerank_provider(settings)
+
+
 def test_live_qwen_embedding_provider_requires_live_model():
     settings = _settings(
         provider_runtime_mode="live",
@@ -101,6 +146,22 @@ def test_live_qwen_embedding_provider_requires_live_model():
         match="ADAPTIVE_RAG_EMBEDDING_MODEL must be set for qwen",
     ):
         get_dense_embedding_provider(settings)
+
+
+def test_live_qwen_rerank_provider_requires_live_model():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="qwen",
+        rerank_model="fake-rerank-v1",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_RERANK_MODEL must be set for qwen",
+    ):
+        get_rerank_provider(settings)
 
 
 def test_live_qwen_embedding_provider_is_configured_without_network_call():
@@ -120,6 +181,24 @@ def test_live_qwen_embedding_provider_is_configured_without_network_call():
     assert provider.provider_name == "qwen"
     assert provider.model_name == "text-embedding-v4"
     assert provider.dimensions == 1024
+
+
+def test_live_qwen_rerank_provider_is_configured_without_network_call():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="qwen",
+        rerank_model="qwen3-rerank",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_timeout_seconds=7.5,
+        provider_max_retries=3,
+    )
+
+    reranker = get_rerank_provider(settings)
+
+    assert isinstance(reranker, QwenRerankProvider)
+    assert reranker.provider_name == "qwen"
+    assert reranker.model_name == "qwen3-rerank"
 
 
 def test_live_qwen_embedding_provider_receives_budget_and_price_config():
@@ -146,6 +225,30 @@ def test_live_qwen_embedding_provider_receives_budget_and_price_config():
     )
 
 
+def test_live_qwen_rerank_provider_receives_budget_and_price_config():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="qwen",
+        rerank_model="qwen3-rerank",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+        provider_max_cost_usd=0.01,
+        provider_rerank_input_price_per_million_tokens_usd=0.08,
+    )
+
+    reranker = get_rerank_provider(settings)
+
+    assert isinstance(reranker, QwenRerankProvider)
+    assert isinstance(reranker.client.budget_guard, ProviderBudgetGuard)
+    assert reranker.client.budget_guard.max_cost_usd == 0.01
+    assert isinstance(reranker.client.usage_tracker, InMemoryProviderUsageTracker)
+    assert isinstance(reranker.client.price_catalog, ProviderPriceCatalog)
+    assert (
+        reranker.client.price_catalog.rerank_input_price_per_million_tokens_usd
+        == 0.08
+    )
+
+
 def test_live_provider_requires_base_url_before_network_clients():
     settings = _settings(
         provider_runtime_mode="live",
@@ -160,6 +263,22 @@ def test_live_provider_requires_base_url_before_network_clients():
         match="ADAPTIVE_RAG_QWEN_BASE_URL is required for live provider runtime",
     ):
         get_chat_runner(settings)
+
+
+def test_live_rerank_provider_requires_base_url_before_network_clients():
+    settings = _settings(
+        provider_runtime_mode="live",
+        rerank_provider="qwen",
+        rerank_model="qwen3-rerank",
+        qwen_api_key="sk-test",
+        qwen_base_url=None,
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_QWEN_BASE_URL is required for live provider runtime",
+    ):
+        get_rerank_provider(settings)
 
 
 def test_live_qwen_chat_runner_requires_live_model():
@@ -233,11 +352,22 @@ def test_live_qwen_runtime_can_share_usage_tracker():
 
     provider = get_dense_embedding_provider(settings, usage_tracker=tracker)
     runner = get_chat_runner(settings, usage_tracker=tracker)
+    reranker = get_rerank_provider(
+        settings.model_copy(
+            update={
+                "rerank_provider": "qwen",
+                "rerank_model": "qwen3-rerank",
+            }
+        ),
+        usage_tracker=tracker,
+    )
 
     assert isinstance(provider, QwenDenseEmbeddingProvider)
     assert isinstance(runner, QwenChatRunner)
+    assert isinstance(reranker, QwenRerankProvider)
     assert provider.client.usage_tracker is tracker
     assert runner.client.usage_tracker is tracker
+    assert reranker.client.usage_tracker is tracker
 
 
 def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):

@@ -30,12 +30,15 @@ class Settings(BaseSettings):
     embedding_model: str = "fake-embedding-v1"
     chat_provider: str = "fake"
     chat_model: str = "retrieval-grounded-local-v1"
+    rerank_provider: str = "fake"
+    rerank_model: str = "fake-rerank-v1"
     provider_timeout_seconds: float = 30.0
     provider_max_retries: int = 2
     provider_max_cost_usd: float | None = None
     provider_chat_input_price_per_million_tokens_usd: float | None = None
     provider_chat_output_price_per_million_tokens_usd: float | None = None
     provider_embedding_input_price_per_million_tokens_usd: float | None = None
+    provider_rerank_input_price_per_million_tokens_usd: float | None = None
     qwen_api_key: SecretStr | None = Field(default=None)
     qwen_base_url: str | None = Field(default=None)
 

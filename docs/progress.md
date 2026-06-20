@@ -10,9 +10,10 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M9 `m9-retrieval-quality-rerank-plan`: abre el change OpenSpec de calidad de
-retrieval/rerank y define una secuencia incremental para agregar rerank opt-in,
-budgeted y medible antes de lexical/RRF, dashboards o tuning automatico.
+M9 `m9-rerank-provider-contract`: agrega contratos provider-neutral de rerank,
+fake deterministic default, settings/factory runtime para seleccionar fake o
+Qwen sin llamadas live, errores estables de configuracion/request y wiring de
+budget/price catalog para el siguiente adapter live.
 
 Comandos validados:
 
@@ -21,20 +22,14 @@ uv sync --extra dev
 uv run pytest
 uv run ruff check .
 uv run mypy src
-npx --yes @fission-ai/openspec validate m8-live-provider-evals-plan --strict
-npx --yes @fission-ai/openspec archive m8-live-provider-evals-plan --yes
+npx --yes @fission-ai/openspec validate m9-retrieval-quality-rerank-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
-Smokes hosted Qwen ejecutados contra SQLite in-memory y `.env` local, sin
-imprimir secretos:
-
-```text
-retrieval-smoke hosted: passed
-chat-smoke hosted: passed con chat_model=qwen-plus como override de proceso
-```
+No se ejecutaron smokes hosted: este slice no agrega el adapter HTTP live de
+Qwen rerank ni requiere credenciales.
 
 ## Change OpenSpec activo
 
@@ -59,9 +54,10 @@ chat-smoke hosted: passed con chat_model=qwen-plus como override de proceso
 
 ## Siguiente tarea recomendada
 
-- Implementar `m9-rerank-provider-contract`. Es la opcion recomendada porque
-  fija el contrato provider-neutral, fake default, settings y errores estables
-  antes de tocar Qwen live o integrar rerank en `RetrievalService`.
+- Implementar `m9-live-qwen-rerank-provider`. Es la opcion recomendada porque
+  el contrato/factory ya esta fijado con fake default; el siguiente riesgo es
+  conectar Qwen rerank con cliente HTTP, usage/cost, budget guard, timeouts y
+  smoke live opt-in antes de integrarlo en `RetrievalService`.
 
 ## Reglas de coordinacion
 
