@@ -275,11 +275,11 @@ Secuencia recomendada:
 3. `m9-live-qwen-rerank-provider`: completo. Implementa el HTTP client Qwen
    `qwen3-rerank`, parsing de `output.results`, usage/cost, budget guard,
    timeouts/retries y smoke CLI separado.
-4. `m9-retrieval-rerank-service`: siguiente tarea recomendada. Integrar rerank
-   opcional en `RetrievalService` despues de dense candidate generation y
-   filtros, preservando default dense.
-5. `m9-rerank-api-cli-surface`: exponer knobs acotados de rerank en API/CLI sin
-   cambiar el default dense.
+4. `m9-retrieval-rerank-service`: completo. Integra rerank opcional en
+   `RetrievalService` despues de dense candidate generation y filtros,
+   preservando default dense y citations.
+5. `m9-rerank-api-cli-surface`: siguiente tarea recomendada. Exponer knobs
+   acotados de rerank en API/CLI sin cambiar el default dense.
 6. `m9-rerank-hosted-evals`: comparar dense baseline vs reranked retrieval en
    reportes hosted con calidad, usage y costo.
 7. `m9-quality-gate`: validar el milestone completo, archivar el change y

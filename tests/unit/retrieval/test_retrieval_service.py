@@ -24,8 +24,16 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.provider_usage import ProviderBudgetExceededError
+from adaptive_rag.rerank import (
+    RerankProviderError,
+    RerankRequest,
+    RerankResult,
+    RerankScore,
+)
 from adaptive_rag.retrieval import (
     RetrievalMetadataFilter,
+    RetrievalRerankOptions,
     RetrievalSearchRequest,
     RetrievalService,
     RetrievalServiceError,
@@ -59,6 +67,39 @@ class WrongDimensionQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [[0.1, 0.2, 0.3] for _text in texts]
+
+
+class RecordingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "recording-rerank-v1"
+
+    def __init__(self, scores: tuple[RerankScore, ...]) -> None:
+        self.scores = scores
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=self.scores,
+        )
+
+
+class FailingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "failing-rerank-v1"
+
+    def rerank(self, _request: RerankRequest) -> RerankResult:
+        raise RerankProviderError("provider unavailable")
+
+
+class BudgetBlockedRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "budget-blocked-rerank-v1"
+
+    def rerank(self, _request: RerankRequest) -> RerankResult:
+        raise ProviderBudgetExceededError("provider budget exceeded")
 
 
 def _make_session() -> Session:
@@ -174,6 +215,7 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     assert results[0].distance == pytest.approx(0.1)
     assert results[0].score == pytest.approx(1 / 1.1)
     assert results[0].citation.snippet == "Alpha original evidence"
+    assert results[0].rerank_metadata is None
 
 
 def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
@@ -258,6 +300,15 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
             RetrievalSearchRequest(
                 project_id=PROJECT_ID,
                 query="x",
+                limit=2,
+                rerank=RetrievalRerankOptions(candidate_limit=1),
+            ),
+            "rerank candidate_limit must be greater than or equal to limit",
+        ),
+        (
+            RetrievalSearchRequest(
+                project_id=PROJECT_ID,
+                query="x",
                 metadata_filter=RetrievalMetadataFilter(source_type=" "),
             ),
             "source_type must not be empty",
@@ -294,6 +345,179 @@ def test_retrieval_service_rejects_invalid_requests_without_provider_call(
         RetrievalService(session, provider=provider).search(search_request)
 
     assert provider.inputs == []
+
+
+def test_retrieval_service_requires_rerank_provider_when_enabled() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    with pytest.raises(
+        RetrievalServiceError,
+        match="rerank provider is required when rerank is enabled",
+    ):
+        RetrievalService(session, provider=provider).search(
+            RetrievalSearchRequest(
+                project_id=project.id,
+                query="alpha question",
+                limit=3,
+                rerank=RetrievalRerankOptions(candidate_limit=3),
+            )
+        )
+
+    assert provider.inputs == []
+
+
+def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far",
+        text="Far original text",
+        snippet="Far original text",
+        embedding=_vector(0.9),
+    )
+    _mid_source, _mid_document, _mid_version, mid = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="mid.md",
+        stable_id="mid",
+        text="Header\n\nBeta rerank evidence",
+        snippet="Beta rerank evidence",
+        embedding=_vector(0.2),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Header\n\nAlpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    reranker = RecordingRerankProvider(
+        scores=(
+            RerankScore(
+                candidate_id=str(mid.id),
+                score=0.99,
+                original_rank=2,
+                rerank_rank=1,
+                metadata={"reason": "lexical match"},
+            ),
+        )
+    )
+    session.commit()
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        reranker=reranker,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="beta question",
+            limit=1,
+            rerank=RetrievalRerankOptions(candidate_limit=2),
+        )
+    )
+
+    assert provider.inputs == ["beta question"]
+    assert len(reranker.requests) == 1
+    rerank_request = reranker.requests[0]
+    assert rerank_request.query == "beta question"
+    assert rerank_request.top_k == 1
+    assert [candidate.candidate_id for candidate in rerank_request.candidates] == [
+        str(near.id),
+        str(mid.id),
+    ]
+    assert str(far.id) not in {
+        candidate.candidate_id for candidate in rerank_request.candidates
+    }
+    assert [result.chunk_id for result in results] == [mid.id]
+    assert results[0].distance == pytest.approx(0.2)
+    assert results[0].score == pytest.approx(1 / 1.2)
+    assert results[0].citation.snippet == "Beta rerank evidence"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 2,
+        "dense_rank": 2,
+        "rerank_model": "recording-rerank-v1",
+        "rerank_provider": "fake-rerank",
+        "rerank_rank": 1,
+        "rerank_score": 0.99,
+        "score_metadata": {"reason": "lexical match"},
+        "used_rerank": True,
+    }
+
+
+def test_retrieval_service_maps_rerank_provider_errors() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _source, _document, _version, _chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    with pytest.raises(
+        RetrievalServiceError,
+        match="rerank failed: provider unavailable",
+    ):
+        RetrievalService(
+            session,
+            provider=provider,
+            reranker=FailingRerankProvider(),
+        ).search(
+            RetrievalSearchRequest(
+                project_id=project.id,
+                query="alpha question",
+                limit=1,
+                rerank=RetrievalRerankOptions(candidate_limit=1),
+            )
+        )
+
+
+def test_retrieval_service_maps_rerank_budget_errors() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _source, _document, _version, _chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    with pytest.raises(
+        RetrievalServiceError,
+        match="rerank failed: provider budget exceeded",
+    ):
+        RetrievalService(
+            session,
+            provider=provider,
+            reranker=BudgetBlockedRerankProvider(),
+        ).search(
+            RetrievalSearchRequest(
+                project_id=project.id,
+                query="alpha question",
+                limit=1,
+                rerank=RetrievalRerankOptions(candidate_limit=1),
+            )
+        )
 
 
 def test_retrieval_service_rejects_wrong_query_embedding_dimension() -> None:

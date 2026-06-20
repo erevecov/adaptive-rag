@@ -10,10 +10,10 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M9 `m9-live-qwen-rerank-provider`: conecta el contrato de rerank con el HTTP
-client Qwen `qwen3-rerank`, parsea `output.results`, registra usage/cost bajo
-operacion `rerank`, respeta budget guard y agrega el smoke CLI
-`adaptive-rag providers rerank-smoke`.
+M9 `m9-retrieval-rerank-service`: integra rerank opt-in dentro de
+`RetrievalService` despues del dense candidate set ya filtrado, preserva el
+default dense sin provider de rerank y adjunta metadata interna de rerank sin
+cambiar aun las superficies API/CLI.
 
 Comandos validados:
 
@@ -26,12 +26,6 @@ npx --yes @fission-ai/openspec validate m9-retrieval-quality-rerank-plan --stric
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
-```
-
-Smoke hosted Qwen rerank ejecutado con `.env` local, sin imprimir secretos:
-
-```text
-rerank-smoke hosted: passed con rerank_model=qwen3-rerank
 ```
 
 ## Change OpenSpec activo
@@ -57,10 +51,9 @@ rerank-smoke hosted: passed con rerank_model=qwen3-rerank
 
 ## Siguiente tarea recomendada
 
-- Implementar `m9-retrieval-rerank-service`. Es la opcion recomendada porque
-  el provider live ya esta disponible; el siguiente riesgo es integrarlo de
-  forma opt-in despues del dense candidate set, preservando filtros, citations
-  y default dense.
+- Implementar `m9-rerank-api-cli-surface`. Es la opcion recomendada porque el
+  servicio compartido ya puede reordenar candidatos; el siguiente riesgo es
+  exponer knobs acotados en API/CLI sin cambiar el default dense.
 
 ## Reglas de coordinacion
 
