@@ -174,7 +174,7 @@ def extract_usage(
         usage_data.get("completion_tokens", usage_data.get("output_tokens"))
     )
     total_tokens = _optional_int(usage_data.get("total_tokens"))
-    if operation == "embedding" and prompt_tokens is None:
+    if operation in ("embedding", "rerank") and prompt_tokens is None:
         prompt_tokens = total_tokens
 
     usage = ProviderTokenUsage(

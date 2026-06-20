@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 from adaptive_rag.chat import ChatRunner, QwenChatRunner, RetrievalGroundedChatRunner
 from adaptive_rag.chat.qwen import QwenHTTPChatClient
 from adaptive_rag.config.settings import Settings, get_settings
@@ -21,10 +19,9 @@ from adaptive_rag.provider_usage import (
 )
 from adaptive_rag.rerank import (
     FakeRerankProvider,
+    QwenHTTPRerankClient,
     QwenRerankProvider,
     RerankProvider,
-    RerankRequest,
-    RerankResult,
 )
 
 
@@ -167,7 +164,7 @@ def _build_rerank_provider(
         raise ProviderConfigurationError("qwen credentials were not validated")
     return QwenRerankProvider(
         model_name=settings.rerank_model,
-        client=_UnavailableQwenRerankClient(
+        client=QwenHTTPRerankClient(
             api_key=settings.qwen_api_key.get_secret_value(),
             base_url=settings.qwen_base_url,
             timeout_seconds=settings.provider_timeout_seconds,
@@ -215,26 +212,3 @@ def _provider_price_catalog(settings: Settings) -> ProviderPriceCatalog:
             settings.provider_rerank_input_price_per_million_tokens_usd
         ),
     )
-
-
-@dataclass(frozen=True, slots=True)
-class _UnavailableQwenRerankClient:
-    """Placeholder client until the live Qwen rerank adapter slice lands."""
-
-    api_key: str = field(repr=False)
-    base_url: str
-    timeout_seconds: float
-    max_retries: int
-    usage_tracker: ProviderUsageTracker | None
-    price_catalog: ProviderPriceCatalog
-    budget_guard: ProviderBudgetGuard | None
-
-    def rerank(
-        self,
-        *,
-        model: str,
-        request: RerankRequest,
-    ) -> RerankResult:
-        raise ProviderConfigurationError(
-            "qwen rerank live client is not implemented yet"
-        )

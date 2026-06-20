@@ -20,7 +20,11 @@ from adaptive_rag.provider_usage import (
     ProviderBudgetGuard,
     ProviderPriceCatalog,
 )
-from adaptive_rag.rerank import FakeRerankProvider, QwenRerankProvider
+from adaptive_rag.rerank import (
+    FakeRerankProvider,
+    QwenHTTPRerankClient,
+    QwenRerankProvider,
+)
 
 
 def _settings(**overrides):
@@ -199,6 +203,7 @@ def test_live_qwen_rerank_provider_is_configured_without_network_call():
     assert isinstance(reranker, QwenRerankProvider)
     assert reranker.provider_name == "qwen"
     assert reranker.model_name == "qwen3-rerank"
+    assert isinstance(reranker.client, QwenHTTPRerankClient)
 
 
 def test_live_qwen_embedding_provider_receives_budget_and_price_config():
@@ -239,6 +244,7 @@ def test_live_qwen_rerank_provider_receives_budget_and_price_config():
     reranker = get_rerank_provider(settings)
 
     assert isinstance(reranker, QwenRerankProvider)
+    assert isinstance(reranker.client, QwenHTTPRerankClient)
     assert isinstance(reranker.client.budget_guard, ProviderBudgetGuard)
     assert reranker.client.budget_guard.max_cost_usd == 0.01
     assert isinstance(reranker.client.usage_tracker, InMemoryProviderUsageTracker)
