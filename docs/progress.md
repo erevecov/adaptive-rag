@@ -10,10 +10,11 @@ M10 Retrieval eval datasets y decision gates cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M11 `m11-candidate-limit-ab-runner`: agrega un runner interno que reutiliza la
-matriz de candidate limits, ejecuta dense baseline una vez y serializa filas
-A/B de quality/cost/regressions por limite, incluyendo conteos por `intent` y
-`difficulty`.
+M11 `m11-candidate-limit-evidence-decision`: ejecuta el runner A/B offline
+sobre `retrieval-dataset-pack` con `candidate_limit` 3, 5 y 8. La evidencia no
+justifica una nueva superficie API/CLI ni presets publicos porque todos los
+limites mantienen una regresion en `distractor-alpha-release-notes`; M11 debe
+avanzar a quality gate.
 
 Comandos validados:
 
@@ -52,11 +53,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Despues de mergear `m11-candidate-limit-ab-runner`, decidir si la evidencia
-  del reporte A/B justifica `m11-candidate-limit-api-cli-surface`; si no,
-  avanzar directo a `m11-quality-gate`. La opcion recomendada es no cambiar
-  defaults productivos hasta que una corrida compare mejoras, regresiones y
-  costo por limite.
+- Despues de mergear `m11-candidate-limit-evidence-decision`, ejecutar
+  `m11-quality-gate`: validar tests, lint, types y OpenSpec, correr smokes
+  hosted Qwen opt-in si `.env` local esta disponible, archivar el change M11 y
+  mantener dense retrieval como default.
 
 ## Reglas de coordinacion
 

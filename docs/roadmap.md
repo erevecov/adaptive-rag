@@ -359,9 +359,12 @@ Secuencia recomendada:
 3. `m11-candidate-limit-ab-runner`: completo. Ejecuta dense baseline una vez,
    compara varios `candidate_limit` reranked contra ese baseline y serializa
    filas estables de quality/cost/regressions con conteos por metadata.
-4. `m11-candidate-limit-api-cli-surface`: solo si la evidencia lo justifica,
-   exponer parametros o presets acotados sin cambiar dense default.
-5. `m11-quality-gate`: validar el milestone, ejecutar smokes opt-in si hay
+4. `m11-candidate-limit-api-cli-surface`: evaluado y mantenido en hold. La
+   evidencia A/B offline mejora el hit rate agregado con `candidate_limit=8`,
+   pero mantiene una regresion en `distractor-alpha-release-notes`, por lo que
+   no justifica presets ni superficie nueva en M11.
+5. `m11-quality-gate`: siguiente tarea recomendada. Validar el milestone,
+   ejecutar smokes opt-in si hay
    `.env` local y archivar el change.
 
 Decision: candidate tuning va primero porque tiene menor blast radius y mide si

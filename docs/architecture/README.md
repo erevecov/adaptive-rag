@@ -10,6 +10,8 @@ Documentos:
   experimentos de lexical/RRF, sparse retrieval o tuning de retrieval.
 - `retrieval-strategy-decision.md`: decision M11 para ejecutar primero tuning
   de `candidate_limit` y mantener lexical/RRF y Qwen sparse en hold.
+- `candidate-limit-ab-evidence.md`: evidencia M11 del runner A/B offline y
+  decision de mantener la superficie API/CLI de candidate tuning en hold.
 
 Reglas:
 

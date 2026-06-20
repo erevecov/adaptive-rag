@@ -106,6 +106,8 @@ Alcance:
 - Si el A/B runner justifica ajustes, exponer parametros o presets acotados sin
   cambiar el default dense.
 - Validar limites antes de construir providers live.
+- Si la evidencia muestra regresiones criticas o falta costo hosted, documentar
+  la decision `hold` y no agregar superficie nueva.
 
 Fuera de alcance:
 
