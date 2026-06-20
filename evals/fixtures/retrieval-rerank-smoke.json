@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "suite_id": "retrieval-rerank-smoke",
+  "description": "Small hosted retrieval eval fixture for dense vs reranked retrieval.",
+  "thresholds": {
+    "retrieval_hit_rate": 1.0
+  },
+  "evidence": [
+    {
+      "id": "alpha",
+      "text": "Alpha policy requires source citations before publishing an answer.",
+      "source_type": "markdown",
+      "source_external_id": "alpha-policy.md",
+      "tags": ["docs", "rerank"],
+      "metadata": {
+        "title": "Alpha citation policy"
+      }
+    },
+    {
+      "id": "distractor",
+      "text": "Beta release notes describe unrelated deployment timing details.",
+      "source_type": "markdown",
+      "source_external_id": "beta-release.md",
+      "tags": ["docs", "rerank"],
+      "metadata": {
+        "title": "Beta release notes"
+      }
+    }
+  ],
+  "retrieval_cases": [
+    {
+      "id": "retrieve-alpha-citations",
+      "query": "What does the alpha policy require before publishing an answer?",
+      "limit": 1,
+      "metadata_filter": {
+        "source_type": "markdown",
+        "tags": ["docs", "rerank"]
+      },
+      "expected_evidence_ids": ["alpha"]
+    }
+  ],
+  "chat_cases": []
+}

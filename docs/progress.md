@@ -10,11 +10,10 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M9 `m9-rerank-api-cli-surface`: expone rerank opt-in en
-`POST /projects/{project_id}/retrieval/search` mediante
-`rerank.candidate_limit` y en `adaptive-rag retrieval search` mediante
-`--rerank-candidate-limit`, validando limites antes de construir el provider y
-manteniendo el payload dense existente cuando rerank no se usa.
+M9 `m9-rerank-hosted-evals`: compara dense baseline vs reranked retrieval en
+hosted evals con `--rerank-candidate-limit`, reutiliza el mismo fixture,
+reporta `comparison_metrics`, usage/cost de `rerank` y agrega
+`evals/fixtures/retrieval-rerank-smoke.json` para smoke hosted manual.
 
 Comandos validados:
 
@@ -52,9 +51,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m9-rerank-hosted-evals`. Es la opcion recomendada porque el
-  rerank ya esta disponible en provider, servicio y superficies; el siguiente
-  riesgo es medir calidad/costo frente al baseline dense en evals hosted.
+- Implementar `m9-quality-gate`. Es la opcion recomendada porque provider,
+  servicio, API/CLI y evals hosted ya estan completos; queda validar el
+  milestone, ejecutar smokes hosted Qwen opt-in si `.env` local esta
+  disponible, archivar el change y publicar la spec canonica.
 
 ## Reglas de coordinacion
 

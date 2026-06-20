@@ -18,7 +18,9 @@ from adaptive_rag.evals.models import (
     EvalSuite,
     RetrievalEvalCase,
 )
+from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import (
+    RetrievalRerankOptions,
     RetrievalSearchRequest,
     RetrievalSearchResult,
     RetrievalService,
@@ -31,21 +33,29 @@ def run_retrieval_eval_suite(
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider | None = None,
+    reranker: RerankProvider | None = None,
+    rerank_options: RetrievalRerankOptions | None = None,
+    fixture_project: EvalRetrievalFixtureProject | None = None,
 ) -> EvalRunReport:
     """Ejecuta los casos de retrieval de una suite sin llamar providers hosted."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
-    fixture_project = build_retrieval_fixture_project(
+    active_fixture_project = fixture_project or build_retrieval_fixture_project(
         session,
         suite,
         provider=active_provider,
     )
-    service = RetrievalService(session, provider=active_provider)
+    service = RetrievalService(
+        session,
+        provider=active_provider,
+        reranker=reranker,
+    )
     cases = tuple(
         _run_retrieval_case(
             service,
-            fixture_project=fixture_project,
+            fixture_project=active_fixture_project,
             retrieval_case=retrieval_case,
+            rerank_options=rerank_options,
         )
         for retrieval_case in suite.retrieval_cases
     )
@@ -77,6 +87,7 @@ def _run_retrieval_case(
     *,
     fixture_project: EvalRetrievalFixtureProject,
     retrieval_case: RetrievalEvalCase,
+    rerank_options: RetrievalRerankOptions | None,
 ) -> EvalCaseResult:
     try:
         results = service.search(
@@ -85,6 +96,7 @@ def _run_retrieval_case(
                 query=retrieval_case.query,
                 limit=retrieval_case.limit,
                 metadata_filter=retrieval_case.metadata_filter,
+                rerank=rerank_options,
             )
         )
     except RetrievalServiceError as exc:

@@ -12,11 +12,13 @@ from adaptive_rag.chat import ChatRunner
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError
+from adaptive_rag.evals.fixtures import build_retrieval_fixture_project
 from adaptive_rag.evals.models import (
     EvalProviderUsageOperationSummary,
     EvalProviderUsageSummary,
     EvalRunOptions,
     EvalRunReport,
+    EvalStatus,
     EvalSuite,
 )
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
@@ -26,6 +28,8 @@ from adaptive_rag.provider_usage import (
     ProviderCallRecord,
     ProviderOperation,
 )
+from adaptive_rag.rerank import RerankProvider
+from adaptive_rag.retrieval import RetrievalRerankOptions
 
 SUPPORTED_HOSTED_EVAL_PROVIDERS = ("qwen",)
 
@@ -72,11 +76,30 @@ def validate_hosted_eval_credentials(
     return options
 
 
+def validate_hosted_rerank_eval_options(
+    suite: EvalSuite,
+    *,
+    rerank_candidate_limit: int | None,
+) -> None:
+    if rerank_candidate_limit is None:
+        return
+    if rerank_candidate_limit <= 0:
+        raise EvalConfigurationError("rerank candidate_limit must be positive")
+    max_limit = max((case.limit for case in suite.retrieval_cases), default=0)
+    if rerank_candidate_limit < max_limit:
+        raise EvalConfigurationError(
+            "rerank candidate_limit must be greater than or equal to every "
+            "retrieval case limit"
+        )
+
+
 def run_hosted_retrieval_eval_suite(
     session: Session,
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider,
+    reranker: RerankProvider | None = None,
+    rerank_candidate_limit: int | None = None,
     usage_tracker: InMemoryProviderUsageTracker,
     options: EvalRunOptions,
 ) -> EvalRunReport:
@@ -85,15 +108,47 @@ def run_hosted_retrieval_eval_suite(
     validate_hosted_eval_options(options)
     if not options.is_hosted():
         raise EvalConfigurationError("hosted retrieval evals require hosted mode")
+    _validate_rerank_candidate_limit(
+        suite,
+        reranker=reranker,
+        rerank_candidate_limit=rerank_candidate_limit,
+    )
 
-    report = run_retrieval_eval_suite(
+    fixture_project = build_retrieval_fixture_project(
         session,
         suite,
         provider=provider,
     )
+    dense_report = run_retrieval_eval_suite(
+        session,
+        suite,
+        provider=provider,
+        fixture_project=fixture_project,
+    )
+    if rerank_candidate_limit is None:
+        return replace(
+            dense_report,
+            mode="hosted",
+            provider_usage=summarize_provider_usage(usage_tracker.records),
+        )
+
+    reranked_report = run_retrieval_eval_suite(
+        session,
+        suite,
+        provider=provider,
+        reranker=reranker,
+        rerank_options=RetrievalRerankOptions(
+            candidate_limit=rerank_candidate_limit
+        ),
+        fixture_project=fixture_project,
+    )
     return replace(
-        report,
+        reranked_report,
         mode="hosted",
+        comparison_metrics=_rerank_comparison_metrics(
+            dense_report=dense_report,
+            reranked_report=reranked_report,
+        ),
         provider_usage=summarize_provider_usage(usage_tracker.records),
     )
 
@@ -104,6 +159,8 @@ def run_hosted_eval_suite(
     *,
     provider: DenseEmbeddingProvider,
     runner: ChatRunner,
+    reranker: RerankProvider | None = None,
+    rerank_candidate_limit: int | None = None,
     usage_tracker: InMemoryProviderUsageTracker,
     options: EvalRunOptions,
 ) -> EvalRunReport:
@@ -112,16 +169,53 @@ def run_hosted_eval_suite(
     validate_hosted_eval_options(options)
     if not options.is_hosted():
         raise EvalConfigurationError("hosted evals require hosted mode")
+    if rerank_candidate_limit is None:
+        report = run_eval_suite(
+            session,
+            suite,
+            provider=provider,
+            chat_runner=runner,
+        )
+        return replace(
+            report,
+            mode="hosted",
+            provider_usage=summarize_provider_usage(usage_tracker.records),
+        )
 
-    report = run_eval_suite(
+    retrieval_report = run_hosted_retrieval_eval_suite(
         session,
         suite,
         provider=provider,
-        chat_runner=runner,
+        reranker=reranker,
+        rerank_candidate_limit=rerank_candidate_limit,
+        usage_tracker=usage_tracker,
+        options=options,
     )
-    return replace(
-        report,
+    chat_report = run_chat_eval_suite(
+        session,
+        suite,
+        provider=provider,
+        runner=runner,
+    )
+    status: EvalStatus = (
+        "passed"
+        if retrieval_report.status == "passed" and chat_report.status == "passed"
+        else "failed"
+    )
+    return EvalRunReport(
+        suite_id=suite.suite_id,
+        status=status,
+        metrics={
+            **retrieval_report.metrics,
+            **chat_report.metrics,
+        },
+        thresholds={
+            **retrieval_report.thresholds,
+            **chat_report.thresholds,
+        },
+        cases=(*retrieval_report.cases, *chat_report.cases),
         mode="hosted",
+        comparison_metrics=retrieval_report.comparison_metrics,
         provider_usage=summarize_provider_usage(usage_tracker.records),
     )
 
@@ -187,6 +281,44 @@ def summarize_provider_usage(
         total_estimated_cost_usd=round(sum(costs), 12) if costs else None,
         operations=operations,
     )
+
+
+def _validate_rerank_candidate_limit(
+    suite: EvalSuite,
+    *,
+    reranker: RerankProvider | None,
+    rerank_candidate_limit: int | None,
+) -> None:
+    validate_hosted_rerank_eval_options(
+        suite,
+        rerank_candidate_limit=rerank_candidate_limit,
+    )
+    if rerank_candidate_limit is None:
+        return
+    if reranker is None:
+        raise EvalConfigurationError(
+            "rerank provider is required when rerank_candidate_limit is set"
+        )
+
+
+def _rerank_comparison_metrics(
+    *,
+    dense_report: EvalRunReport,
+    reranked_report: EvalRunReport,
+) -> dict[str, float]:
+    dense_hit_rate = dense_report.metrics["retrieval_hit_rate"]
+    reranked_hit_rate = reranked_report.metrics["retrieval_hit_rate"]
+    return {
+        "dense_retrieval_hit_rate": dense_hit_rate,
+        "dense_retrieval_passed_count": dense_report.metrics[
+            "retrieval_passed_count"
+        ],
+        "rerank_retrieval_hit_rate_delta": reranked_hit_rate - dense_hit_rate,
+        "reranked_retrieval_hit_rate": reranked_hit_rate,
+        "reranked_retrieval_passed_count": reranked_report.metrics[
+            "retrieval_passed_count"
+        ],
+    }
 
 
 @dataclass(frozen=True, slots=True)

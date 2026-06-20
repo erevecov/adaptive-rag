@@ -23,6 +23,8 @@ def serialize_eval_report(report: EvalRunReport) -> dict[str, Any]:
     }
     if report.mode == "hosted":
         payload["mode"] = report.mode
+    if report.comparison_metrics:
+        payload["comparison_metrics"] = _sorted_metrics(report.comparison_metrics)
     if report.provider_usage is not None:
         payload["provider_usage"] = serialize_eval_provider_usage(
             report.provider_usage

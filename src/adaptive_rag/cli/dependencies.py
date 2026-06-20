@@ -25,6 +25,7 @@ from adaptive_rag.retrieval.providers import get_default_dense_embedding_provide
 class CliHostedEvalRuntime:
     provider: DenseEmbeddingProvider
     chat_runner: ChatRunner
+    reranker: RerankProvider | None
     usage_tracker: InMemoryProviderUsageTracker
     options: EvalRunOptions
 
@@ -45,12 +46,14 @@ def get_cli_hosted_eval_runtime(
     *,
     provider_name: str,
     max_cost_usd: float | None,
+    include_reranker: bool = False,
 ) -> CliHostedEvalRuntime:
     settings = get_settings().model_copy(
         update={
             "provider_runtime_mode": "live",
             "embedding_provider": provider_name,
             "chat_provider": provider_name,
+            **({"rerank_provider": provider_name} if include_reranker else {}),
             "provider_max_cost_usd": max_cost_usd,
         }
     )
@@ -73,6 +76,11 @@ def get_cli_hosted_eval_runtime(
         chat_runner=get_chat_runner(
             settings,
             usage_tracker=usage_tracker,
+        ),
+        reranker=(
+            get_rerank_provider(settings, usage_tracker=usage_tracker)
+            if include_reranker
+            else None
         ),
         usage_tracker=usage_tracker,
         options=options,

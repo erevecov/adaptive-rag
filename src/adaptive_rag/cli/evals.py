@@ -24,6 +24,7 @@ from adaptive_rag.evals import (
     run_eval_suite,
     run_hosted_eval_suite,
     serialize_eval_report,
+    validate_hosted_rerank_eval_options,
 )
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
@@ -38,6 +39,10 @@ def run(
     mode: Annotated[str, typer.Option("--mode")] = "offline",
     provider: Annotated[str, typer.Option("--provider")] = "qwen",
     max_cost_usd: Annotated[float | None, typer.Option("--max-cost-usd")] = None,
+    rerank_candidate_limit: Annotated[
+        int | None,
+        typer.Option("--rerank-candidate-limit"),
+    ] = None,
 ) -> None:
     try:
         suite = load_eval_suite(suite_path)
@@ -48,9 +53,14 @@ def run(
     active_mode = _parse_mode(mode)
     try:
         if active_mode == "hosted":
+            validate_hosted_rerank_eval_options(
+                suite,
+                rerank_candidate_limit=rerank_candidate_limit,
+            )
             runtime = get_cli_hosted_eval_runtime(
                 provider_name=provider,
                 max_cost_usd=max_cost_usd,
+                include_reranker=rerank_candidate_limit is not None,
             )
             with session_scope() as session:
                 report = run_hosted_eval_suite(
@@ -58,6 +68,8 @@ def run(
                     suite,
                     provider=runtime.provider,
                     runner=runtime.chat_runner,
+                    reranker=runtime.reranker,
+                    rerank_candidate_limit=rerank_candidate_limit,
                     usage_tracker=runtime.usage_tracker,
                     options=runtime.options,
                 )

@@ -10,6 +10,7 @@ from adaptive_rag.evals.hosted import (
     summarize_provider_usage,
     validate_hosted_eval_credentials,
     validate_hosted_eval_options,
+    validate_hosted_rerank_eval_options,
 )
 from adaptive_rag.evals.models import (
     ChatEvalCase,
@@ -55,4 +56,5 @@ __all__ = [
     "summarize_provider_usage",
     "validate_hosted_eval_credentials",
     "validate_hosted_eval_options",
+    "validate_hosted_rerank_eval_options",
 ]
