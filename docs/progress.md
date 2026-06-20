@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. M8 Hosted evals quedo cerrado.
+M9 Retrieval quality/rerank.
 
 ## Ultimo milestone completado
 
@@ -10,9 +10,9 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M8 `m8-quality-gate`: valida el milestone completo, ejecuta smoke hosted Qwen
-opcional con `.env` local, archiva `m8-live-provider-evals-plan` y publica la
-spec canonica `hosted-evals`.
+M9 `m9-retrieval-quality-rerank-plan`: abre el change OpenSpec de calidad de
+retrieval/rerank y define una secuencia incremental para agregar rerank opt-in,
+budgeted y medible antes de lexical/RRF, dashboards o tuning automatico.
 
 Comandos validados:
 
@@ -38,7 +38,7 @@ chat-smoke hosted: passed con chat_model=qwen-plus como override de proceso
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m9-retrieval-quality-rerank-plan/`
 
 ## Spec canonica activa
 
@@ -59,10 +59,9 @@ chat-smoke hosted: passed con chat_model=qwen-plus como override de proceso
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec para M9 de calidad de retrieval/rerank. Es la
-  opcion recomendada porque M8 ya permite medir calidad/costo hosted con Qwen;
-  el siguiente avance deberia usar ese harness para comparar mejoras de ranking
-  antes de dashboards, streaming, LLM-as-judge o tuning automatico.
+- Implementar `m9-rerank-provider-contract`. Es la opcion recomendada porque
+  fija el contrato provider-neutral, fake default, settings y errores estables
+  antes de tocar Qwen live o integrar rerank en `RetrievalService`.
 
 ## Reglas de coordinacion
 
