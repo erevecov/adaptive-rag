@@ -14,6 +14,15 @@ EvalStatus = Literal["passed", "failed"]
 
 
 @dataclass(frozen=True, slots=True)
+class EvalCaseMetadata:
+    """Metadata acotada que explica la intencion de un caso de eval."""
+
+    intent: str | None = None
+    difficulty: str | None = None
+    coverage_notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class EvalEvidence:
     """Evidence versionada declarada por una suite offline."""
 
@@ -51,6 +60,7 @@ class RetrievalEvalCase:
     expected_evidence_ids: tuple[str, ...]
     limit: int = 10
     metadata_filter: RetrievalMetadataFilter | None = None
+    case_metadata: EvalCaseMetadata | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +112,7 @@ class EvalCaseResult:
     observed_evidence_ids: tuple[str, ...] = ()
     observed_citations: tuple[EvalObservedCitation, ...] = ()
     observed_tool_queries: tuple[str, ...] = ()
+    case_metadata: EvalCaseMetadata | None = None
 
 
 @dataclass(frozen=True, slots=True)

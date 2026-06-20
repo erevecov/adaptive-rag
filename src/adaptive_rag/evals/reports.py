@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from adaptive_rag.evals.models import (
+    EvalCaseMetadata,
     EvalCaseResult,
     EvalObservedCitation,
     EvalProviderUsageOperationSummary,
@@ -40,6 +41,10 @@ def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:
         "metrics": _sorted_metrics(result.metrics),
         "errors": list(result.errors),
     }
+    if result.case_metadata is not None:
+        case_metadata = serialize_eval_case_metadata(result.case_metadata)
+        if case_metadata:
+            payload["case_metadata"] = case_metadata
     if result.observed_evidence_ids:
         payload["observed_evidence_ids"] = list(result.observed_evidence_ids)
     if result.observed_citations:
@@ -49,6 +54,17 @@ def serialize_eval_case_result(result: EvalCaseResult) -> dict[str, Any]:
         ]
     if result.observed_tool_queries:
         payload["observed_tool_queries"] = list(result.observed_tool_queries)
+    return payload
+
+
+def serialize_eval_case_metadata(metadata: EvalCaseMetadata) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    if metadata.coverage_notes:
+        payload["coverage_notes"] = list(metadata.coverage_notes)
+    if metadata.difficulty is not None:
+        payload["difficulty"] = metadata.difficulty
+    if metadata.intent is not None:
+        payload["intent"] = metadata.intent
     return payload
 
 

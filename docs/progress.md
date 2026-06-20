@@ -10,9 +10,9 @@ M9 Retrieval quality/rerank cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M10 `m10-retrieval-eval-datasets-plan`: abre el change OpenSpec para ampliar
-datasets, metricas por caso y decision gates de retrieval antes de implementar
-lexical/RRF, sparse retrieval o tuning automatico.
+M10 `m10-eval-case-metrics`: agrega `case_metadata` acotada a casos de
+retrieval, serializa esa metadata en reportes y expone `missing_count` por caso
+para distinguir evidencia esperada no recuperada.
 
 Comandos validados:
 
@@ -51,9 +51,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m10-eval-case-metrics`. Es la opcion recomendada porque M10
-  depende de reportar mejoras, empates y regresiones por caso antes de ampliar
-  datasets o proponer nuevos algoritmos de retrieval.
+- Implementar `m10-retrieval-dataset-pack`. Es la opcion recomendada porque el
+  contrato de metadata/metrics por caso ya esta disponible; ahora conviene
+  ampliar fixtures representativos antes de mejorar A/B reporting o abrir nuevos
+  algoritmos.
 
 ## Reglas de coordinacion
 

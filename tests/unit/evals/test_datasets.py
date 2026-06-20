@@ -46,6 +46,11 @@ def test_load_eval_suite_parses_versioned_retrieval_and_chat_cases(
                     "id": "retrieve-alpha",
                     "query": "What supports alpha?",
                     "limit": 2,
+                    "case_metadata": {
+                        "intent": "exact_match",
+                        "difficulty": "easy",
+                        "coverage_notes": ["baseline smoke"],
+                    },
                     "metadata_filter": {
                         "source_type": "markdown",
                         "tags": ["docs", "v1"],
@@ -89,6 +94,10 @@ def test_load_eval_suite_parses_versioned_retrieval_and_chat_cases(
     assert retrieval_case.id == "retrieve-alpha"
     assert retrieval_case.query == "What supports alpha?"
     assert retrieval_case.limit == 2
+    assert retrieval_case.case_metadata is not None
+    assert retrieval_case.case_metadata.intent == "exact_match"
+    assert retrieval_case.case_metadata.difficulty == "easy"
+    assert retrieval_case.case_metadata.coverage_notes == ("baseline smoke",)
     assert retrieval_case.metadata_filter == RetrievalMetadataFilter(
         source_type="markdown",
         tags=("docs", "v1"),
@@ -158,6 +167,45 @@ def test_load_eval_suite_rejects_unknown_fields_before_services(
     )
 
     with pytest.raises(EvalDatasetError, match="suite has unknown fields: unexpected"):
+        load_eval_suite(suite_path)
+
+
+def test_load_eval_suite_rejects_unknown_case_metadata_fields(
+    tmp_path: Path,
+) -> None:
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "broken",
+            "thresholds": {},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                }
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "What supports alpha?",
+                    "case_metadata": {
+                        "intent": "exact_match",
+                        "unsupported": "value",
+                    },
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+
+    with pytest.raises(
+        EvalDatasetError,
+        match=r"retrieval_cases\[0\]\.case_metadata has unknown fields: unsupported",
+    ):
         load_eval_suite(suite_path)
 
 
