@@ -49,3 +49,19 @@ El experimento debe volver a diseno si:
 - necesita un provider o index nuevo para explicar el resultado;
 - cambia dense default sin otro quality gate.
 
+## Resultado posterior del A/B runner
+
+La evidencia offline del runner A/B quedo documentada en
+`docs/architecture/candidate-limit-ab-evidence.md`.
+
+Resumen:
+
+- `candidate_limit=8` mejora el hit rate agregado frente a dense, pero mantiene
+  una regresion en `distractor-alpha-release-notes`.
+- `candidate_limit=3` y `5` empeoran el hit rate agregado frente a dense.
+- La evidencia no justifica una nueva superficie API/CLI ni presets publicos
+  de candidate tuning en M11.
+
+Decision posterior: mantener `m11-candidate-limit-api-cli-surface` en `hold` y
+avanzar a `m11-quality-gate`.
+

@@ -25,7 +25,7 @@
 
 - [x] 3.1 Implementar `m11-candidate-limit-eval-matrix`.
 - [x] 3.2 Implementar `m11-candidate-limit-ab-runner`.
-- [ ] 3.3 Implementar `m11-candidate-limit-api-cli-surface` si la evidencia lo
-  justifica.
+- [x] 3.3 Evaluar `m11-candidate-limit-api-cli-surface`: la evidencia A/B
+  offline no justifica una superficie o preset nuevo; mantener en hold.
 - [ ] 3.4 Ejecutar `m11-quality-gate` y archivar el change cuando M11 quede
   cerrado.
