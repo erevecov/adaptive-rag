@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Sin milestone activo.
+M11 Retrieval strategy decision.
 
 ## Ultimo milestone completado
 
@@ -33,7 +33,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-Ninguno.
+- `openspec/changes/m11-retrieval-strategy-decision/`
 
 ## Spec canonica activa
 
@@ -55,11 +55,11 @@ Ninguno.
 
 ## Siguiente tarea recomendada
 
-- Abrir un change OpenSpec para la siguiente decision de retrieval: elegir el
-  primer experimento medible entre tuning de candidate limits, lexical/RRF o
-  Qwen sparse retrieval. Es la opcion recomendada porque M10 ya exige evidencia
-  por caso, regresiones, costo/latencia, filtros y citations antes de tocar el
-  retrieval productivo.
+- Despues de mergear `m11-retrieval-strategy-decision`, implementar
+  `m11-candidate-limit-eval-matrix`. Es la opcion recomendada porque candidate
+  tuning reutiliza dense/rerank y el harness M10 sin agregar indexes, storage ni
+  providers nuevos; lexical/RRF y Qwen sparse quedan en hold hasta tener
+  evidencia/docs especificas.
 
 ## Reglas de coordinacion
 
