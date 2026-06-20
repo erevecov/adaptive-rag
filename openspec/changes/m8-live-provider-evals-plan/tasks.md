@@ -21,7 +21,7 @@
 
 ## 3. Slices futuros de M8
 
-- [ ] 3.1 Implementar `m8-hosted-eval-contract`.
+- [x] 3.1 Implementar `m8-hosted-eval-contract`.
 - [ ] 3.2 Implementar `m8-live-retrieval-eval-runner`.
 - [ ] 3.3 Implementar `m8-live-chat-eval-runner`.
 - [ ] 3.4 Implementar `m8-evals-cli-hosted-mode`.

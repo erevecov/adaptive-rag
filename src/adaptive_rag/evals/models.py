@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from adaptive_rag.provider_usage import ProviderOperation
 from adaptive_rag.retrieval import RetrievalMetadataFilter
 
 EvalCaseKind = Literal["retrieval", "chat"]
+EvalRunMode = Literal["offline", "hosted"]
 EvalStatus = Literal["passed", "failed"]
 
 
@@ -103,6 +105,46 @@ class EvalCaseResult:
 
 
 @dataclass(frozen=True, slots=True)
+class EvalProviderUsageOperationSummary:
+    """Usage/costo agregado por provider, modelo y operacion."""
+
+    operation: ProviderOperation
+    provider: str
+    model: str
+    call_count: int
+    succeeded_count: int
+    failed_count: int
+    blocked_count: int
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+    input_count: int | None = None
+    estimated_cost_usd: float | None = None
+    usage_unavailable_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class EvalProviderUsageSummary:
+    """Usage/costo agregado para una corrida hosted de evals."""
+
+    total_call_count: int
+    total_estimated_cost_usd: float | None
+    operations: tuple[EvalProviderUsageOperationSummary, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EvalRunOptions:
+    """Opciones de ejecucion comunes para evals offline y hosted."""
+
+    mode: EvalRunMode = "offline"
+    provider: str = "qwen"
+    max_cost_usd: float | None = None
+
+    def is_hosted(self) -> bool:
+        return self.mode == "hosted"
+
+
+@dataclass(frozen=True, slots=True)
 class EvalRunReport:
     """Reporte agregado de una corrida de evals."""
 
@@ -111,3 +153,5 @@ class EvalRunReport:
     metrics: dict[str, float]
     thresholds: dict[str, float]
     cases: tuple[EvalCaseResult, ...]
+    mode: EvalRunMode = "offline"
+    provider_usage: EvalProviderUsageSummary | None = None
