@@ -318,11 +318,12 @@ Secuencia recomendada:
 4. `m10-rerank-ab-reporting`: completo. Agrega `comparison_cases` por caso,
    improvement/tie/regression counts y delta promedio de best-rank para
    comparar dense vs rerank.
-5. `m10-decision-gate-docs`: siguiente tarea recomendada. Documentar criterios
-   para abrir lexical/RRF, sparse retrieval o tuning de candidate limits.
-6. `m10-quality-gate`: validar el milestone completo, ejecutar smokes hosted
-   Qwen opt-in si `.env` local esta disponible, archivar el change y sincronizar
-   `openspec/specs/retrieval-quality/spec.md`.
+5. `m10-decision-gate-docs`: completo. Documenta criterios para abrir o
+   rechazar lexical/RRF, sparse retrieval y tuning de candidate limits con
+   evidencia de evals, regresiones, costo/latencia, filtros y citations.
+6. `m10-quality-gate`: siguiente tarea recomendada. Validar el milestone
+   completo, ejecutar smokes hosted Qwen opt-in si `.env` local esta disponible,
+   archivar el change y sincronizar `openspec/specs/retrieval-quality/spec.md`.
 
 Decision: M10 mide antes de construir otro algoritmo. La prioridad es evitar
 que lexical/RRF o sparse retrieval entren por intuicion cuando todavia falta

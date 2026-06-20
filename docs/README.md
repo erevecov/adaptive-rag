@@ -12,7 +12,8 @@ planes, specs, PRs y bitacoras.
 - `openspec/changes/archive/`: historial formal de changes cerrados despues de
   sincronizar specs canonicas.
 - `docs/architecture/`: lineas base de arquitectura y decisiones de producto de
-  largo plazo. No se usa para tracking de tareas.
+  largo plazo, incluyendo decision gates de retrieval. No se usa para tracking
+  de tareas.
 - `docs/roadmap.md`: orden macro de milestones y slices.
 - `docs/progress.md`: handoff corto del estado actual y siguiente paso.
 - `docs/progress-log/`: entradas append-only solo para blockers, auditorias,
