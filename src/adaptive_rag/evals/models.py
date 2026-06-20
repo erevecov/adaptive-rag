@@ -11,6 +11,13 @@ from adaptive_rag.retrieval import RetrievalMetadataFilter
 EvalCaseKind = Literal["retrieval", "chat"]
 EvalCaseComparisonOutcome = Literal["improvement", "tie", "regression"]
 EvalRunMode = Literal["offline", "hosted"]
+EvalRiskFamily = Literal[
+    "identifier_exact",
+    "metadata_guard",
+    "multi_evidence",
+    "rerank_regression",
+    "semantic_distractor",
+]
 EvalStatus = Literal["passed", "failed"]
 
 
@@ -20,6 +27,7 @@ class EvalCaseMetadata:
 
     intent: str | None = None
     difficulty: str | None = None
+    risk_family: EvalRiskFamily | None = None
     coverage_notes: tuple[str, ...] = ()
 
 

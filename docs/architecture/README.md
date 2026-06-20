@@ -12,6 +12,10 @@ Documentos:
   de `candidate_limit` y mantener lexical/RRF y Qwen sparse en hold.
 - `candidate-limit-ab-evidence.md`: evidencia M11 del runner A/B offline y
   decision de mantener la superficie API/CLI de candidate tuning en hold.
+- `retrieval-evidence-expansion.md`: decision M12 para ampliar evidencia sobre
+  distractors y lexical misses antes de abrir nuevas estrategias de retrieval.
+- `retrieval-strategy-refresh-m12.md`: evidencia M12 actualizada y decision de
+  mantener dense default sin promover candidate tuning, lexical/RRF ni sparse.
 
 Reglas:
 

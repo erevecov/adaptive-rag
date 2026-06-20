@@ -116,6 +116,52 @@ class TargetFirstRerankProvider:
         )
 
 
+class ScenarioRerankProvider:
+    provider_name = "qwen"
+    model_name = "qwen3-rerank"
+
+    def __init__(self, *, tracker: InMemoryProviderUsageTracker) -> None:
+        self._tracker = tracker
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self._tracker.record(
+            ProviderCallRecord(
+                provider=self.provider_name,
+                model=self.model_name,
+                operation="rerank",
+                outcome="succeeded",
+                duration_ms=5,
+                usage=ProviderTokenUsage(
+                    input_tokens=len(request.candidates),
+                    total_tokens=len(request.candidates),
+                    input_count=len(request.candidates),
+                ),
+                usage_source="provider_reported",
+                estimated_cost_usd=0.0002,
+            )
+        )
+        ranked = sorted(
+            enumerate(request.candidates, start=1),
+            key=lambda item: (_scenario_priority(request.query, item[1].text), item[0]),
+        )
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 if rerank_rank == 1 else 0.1,
+                    original_rank=original_rank,
+                    rerank_rank=rerank_rank,
+                )
+                for rerank_rank, (original_rank, candidate) in enumerate(
+                    ranked[: request.top_k],
+                    start=1,
+                )
+            ),
+        )
+
+
 def test_candidate_limit_ab_runner_serializes_quality_cost_and_regressions(
     tmp_path: Path,
 ) -> None:
@@ -155,6 +201,7 @@ def test_candidate_limit_ab_runner_serializes_quality_cost_and_regressions(
                         "case_metadata": {
                             "intent": "rerank_helpful",
                             "difficulty": "medium",
+                            "risk_family": "semantic_distractor",
                         },
                     }
                 ],
@@ -204,6 +251,9 @@ def test_candidate_limit_ab_runner_serializes_quality_cost_and_regressions(
     }
     assert report.rows[1].outcome_counts_by_difficulty == {
         "medium": {"improvement": 1, "regression": 0, "tie": 0}
+    }
+    assert report.rows[1].outcome_counts_by_risk_family == {
+        "semantic_distractor": {"regression": 0, "improvement": 1, "tie": 0}
     }
 
     payload = serialize_candidate_limit_ab_run_report(report)
@@ -263,6 +313,142 @@ def test_candidate_limit_ab_runner_serializes_quality_cost_and_regressions(
     assert payload["provider_usage"]["total_call_count"] == 6
 
 
+def test_candidate_limit_ab_runner_reports_gap_groups_and_regressions_first(
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "candidate-limit-gaps",
+                "thresholds": {"retrieval_hit_rate": 0.5},
+                "evidence": [
+                    {
+                        "id": "alpha",
+                        "text": "Alpha target evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha.md",
+                    },
+                    {
+                        "id": "alpha-distractor",
+                        "text": "Alpha distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha-distractor.md",
+                    },
+                    {
+                        "id": "stable",
+                        "text": "Stable target evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "stable.md",
+                    },
+                    {
+                        "id": "stable-distractor",
+                        "text": "Stable distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "stable-distractor.md",
+                    },
+                    {
+                        "id": "regression",
+                        "text": "Regression target evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "regression.md",
+                    },
+                    {
+                        "id": "regression-distractor",
+                        "text": "Regression distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "regression-distractor.md",
+                    },
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "rerank-improves-alpha",
+                        "query": "alpha scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["alpha"],
+                        "case_metadata": {
+                            "intent": "rerank_helpful",
+                            "difficulty": "medium",
+                            "risk_family": "semantic_distractor",
+                        },
+                    },
+                    {
+                        "id": "rerank-keeps-stable",
+                        "query": "stable scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["stable"],
+                        "case_metadata": {
+                            "intent": "rerank_stable",
+                            "difficulty": "easy",
+                            "risk_family": "rerank_regression",
+                        },
+                    },
+                    {
+                        "id": "rerank-regresses-target",
+                        "query": "regression scenario query",
+                        "limit": 1,
+                        "expected_evidence_ids": ["regression"],
+                        "case_metadata": {
+                            "intent": "rerank_stable",
+                            "difficulty": "hard",
+                            "risk_family": "rerank_regression",
+                        },
+                    },
+                ],
+                "chat_cases": [],
+            },
+        )
+    )
+    tracker = InMemoryProviderUsageTracker()
+    provider = UsageRecordingEmbeddingProvider(
+        {
+            "Alpha target evidence": _scenario_vector(0, 0.8),
+            "Alpha distractor evidence": _scenario_vector(0, 0.9),
+            "Stable target evidence": _scenario_vector(1, 1.0),
+            "Stable distractor evidence": _scenario_vector(1, 0.5),
+            "Regression target evidence": _scenario_vector(2, 1.0),
+            "Regression distractor evidence": _scenario_vector(2, 0.5),
+            "alpha scenario query": _scenario_vector(0, 1.0),
+            "stable scenario query": _scenario_vector(1, 1.0),
+            "regression scenario query": _scenario_vector(2, 1.0),
+        },
+        tracker=tracker,
+    )
+
+    report = run_candidate_limit_ab_retrieval_eval_suite(
+        _make_session(),
+        suite,
+        provider=provider,
+        reranker=ScenarioRerankProvider(tracker=tracker),
+        candidate_limits=(2,),
+        usage_tracker=tracker,
+        options=EvalRunOptions(mode="hosted", provider="qwen", max_cost_usd=0.05),
+    )
+
+    row = report.rows[0]
+    assert row.outcome_counts_by_risk_family == {
+        "rerank_regression": {"regression": 1, "improvement": 0, "tie": 1},
+        "semantic_distractor": {"regression": 0, "improvement": 1, "tie": 0},
+    }
+
+    payload = serialize_candidate_limit_ab_run_report(report)
+    assert payload["rows"][0]["outcome_counts_by_risk_family"] == {
+        "rerank_regression": {"regression": 1, "improvement": 0, "tie": 1},
+        "semantic_distractor": {"regression": 0, "improvement": 1, "tie": 0},
+    }
+    assert [
+        comparison["id"] for comparison in payload["rows"][0]["comparison_cases"]
+    ] == [
+        "rerank-regresses-target",
+        "rerank-improves-alpha",
+        "rerank-keeps-stable",
+    ]
+    assert payload["rows"][0]["comparison_cases"][0]["lost_evidence_ids"] == [
+        "regression"
+    ]
+
+
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
@@ -288,3 +474,19 @@ def _vector(first: float) -> list[float]:
     values = [0.0] * EMBEDDING_DIMENSIONS
     values[0] = first
     return values
+
+
+def _scenario_vector(axis: int, value: float) -> list[float]:
+    values = [0.0] * EMBEDDING_DIMENSIONS
+    values[axis] = value
+    return values
+
+
+def _scenario_priority(query: str, text: str) -> int:
+    if "alpha" in query:
+        return 0 if text == "Alpha target evidence" else 1
+    if "stable" in query:
+        return 0 if text == "Stable target evidence" else 1
+    if "regression" in query:
+        return 0 if text == "Regression distractor evidence" else 1
+    return 1

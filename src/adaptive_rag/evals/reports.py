@@ -91,6 +91,8 @@ def serialize_eval_case_metadata(metadata: EvalCaseMetadata) -> dict[str, object
         payload["difficulty"] = metadata.difficulty
     if metadata.intent is not None:
         payload["intent"] = metadata.intent
+    if metadata.risk_family is not None:
+        payload["risk_family"] = metadata.risk_family
     return payload
 
 

@@ -13,6 +13,7 @@
 - M9 Retrieval quality/rerank: completo.
 - M10 Retrieval eval datasets y decision gates: completo.
 - M11 Retrieval strategy decision: completo.
+- M12 Retrieval evidence expansion: completo.
 
 ## M1 Foundation
 
@@ -374,9 +375,48 @@ Lexical/RRF requiere fallos lexicales medidos. Qwen sparse requiere verificar
 docs actuales de DashScope/Qwen, storage, reindex y costo antes de codificar.
 
 Continuacion: M11 cierra candidate tuning sin promover presets ni defaults
-nuevos. La siguiente decision debe abrir un change OpenSpec nuevo. La opcion
-recomendada es ampliar evidencia de retrieval sobre distractors y lexical
-misses antes de proponer lexical/RRF, sparse retrieval o nuevos providers.
+nuevos. La siguiente decision abierta es M12, enfocada en ampliar evidencia de
+retrieval sobre distractors y lexical misses antes de proponer lexical/RRF,
+sparse retrieval o nuevos providers.
+
+## M12 Retrieval evidence expansion
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-20-m12-retrieval-evidence-expansion/`
+
+Secuencia recomendada:
+
+1. `m12-retrieval-evidence-expansion`: activo en branch de planificacion. Crea
+   el change OpenSpec que delimita M12 como expansion de evidencia, sin tocar
+   ranking productivo, providers, storage ni defaults.
+2. `m12-evidence-case-taxonomy`: completo. Agrega `risk_family` opcional y
+   estricto en `case_metadata`, lo serializa en reportes y permite agrupar la
+   matrix de candidate limits por familia de riesgo con fallback
+   `uncategorized`.
+3. `m12-distractor-lexical-dataset-pack`: completo. Amplia
+   `retrieval-dataset-pack` a 16 evidencias y 10 casos con lexical misses,
+   identifiers exactos, distractors semanticos y `risk_family` versionada.
+4. `m12-evidence-gap-reporting`: completo. Extiende el reporte A/B de
+   candidate limits con conteos por `risk_family` y serializa
+   `comparison_cases` con regresiones primero.
+5. `m12-strategy-decision-refresh`: completo. Ejecuta la suite ampliada con el
+   runner A/B offline y documenta la decision matrix: dense default `proceed`,
+   candidate tuning presets/defaults `no-go`, lexical/RRF `hold` y Qwen sparse
+   retrieval `hold`.
+6. `m12-quality-gate`: completo. Valida tests, lint, types, specs, evals
+   relevantes, archiva el change y publica la spec canonica actualizada de
+   `retrieval-quality`.
+
+Decision: M12 midio antes de construir. Dense retrieval sigue como default.
+Candidate tuning presets/defaults quedaron en `no-go`; lexical/RRF y Qwen
+sparse retrieval quedaron en `hold`.
+
+Continuacion: no agregar algoritmos de retrieval todavia. El siguiente change
+OpenSpec debe abrirse solo despues de elegir una prioridad nueva con evidencia
+concreta o una necesidad fuera de ranking.
 
 ## Politica para reducir conflictos de merge
 
