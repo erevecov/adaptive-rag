@@ -9,6 +9,7 @@ from adaptive_rag.retrieval.dense import (
 )
 from adaptive_rag.retrieval.service import (
     RetrievalMetadataFilter,
+    RetrievalRerankOptions,
     RetrievalSearchRequest,
     RetrievalSearchResult,
     RetrievalService,
@@ -22,6 +23,7 @@ __all__ = [
     "DenseRetrievalFilters",
     "DenseRetrievalResult",
     "RetrievalMetadataFilter",
+    "RetrievalRerankOptions",
     "RetrievalSearchRequest",
     "RetrievalSearchResult",
     "RetrievalService",
