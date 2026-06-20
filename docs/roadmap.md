@@ -11,6 +11,7 @@
 - M7 Provider runtime: completo.
 - M8 Hosted evals: completo.
 - M9 Retrieval quality/rerank: completo.
+- M10 Retrieval eval datasets y decision gates: activo.
 
 ## M1 Foundation
 
@@ -293,6 +294,39 @@ el runtime de providers existente con menor blast radius. La siguiente decision
 recomendada es abrir un change OpenSpec para M10 que defina objetivos de
 calidad, datasets de eval mas amplios y criterios para decidir si lexical/RRF
 o tuning adicional justifican el siguiente incremento.
+
+## M10 Retrieval eval datasets y decision gates
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m10-retrieval-eval-datasets-plan/`: define ampliacion de
+  suites de retrieval, metricas por caso y decision gates antes de agregar
+  lexical/RRF, sparse retrieval o tuning automatico.
+
+Secuencia recomendada:
+
+1. `m10-retrieval-eval-datasets-plan`: completo en branch de planificacion.
+   Crea el change OpenSpec que delimita M10 como medicion y decision gates
+   antes de nuevos algoritmos de ranking.
+2. `m10-eval-case-metrics`: siguiente tarea recomendada. Agregar metadata
+   acotada por caso y reportes que expongan mejoras, empates y regresiones por
+   caso.
+3. `m10-retrieval-dataset-pack`: agregar fixtures representativos para exact
+   match, paraphrase, distractors, metadata filters, multi-evidence y casos
+   donde rerank ayuda o no debe cambiar el resultado.
+4. `m10-rerank-ab-reporting`: mejorar comparacion dense vs rerank con
+   improvement/regression counts y best-rank deltas.
+5. `m10-decision-gate-docs`: documentar criterios para abrir lexical/RRF,
+   sparse retrieval o tuning de candidate limits.
+6. `m10-quality-gate`: validar el milestone completo, ejecutar smokes hosted
+   Qwen opt-in si `.env` local esta disponible, archivar el change y sincronizar
+   `openspec/specs/retrieval-quality/spec.md`.
+
+Decision: M10 mide antes de construir otro algoritmo. La prioridad es evitar
+que lexical/RRF o sparse retrieval entren por intuicion cuando todavia falta
+evidencia de regresiones, costo, latencia y comportamiento con filtros/citas.
 
 ## Politica para reducir conflictos de merge
 
