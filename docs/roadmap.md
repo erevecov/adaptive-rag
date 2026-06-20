@@ -312,11 +312,11 @@ Secuencia recomendada:
    antes de nuevos algoritmos de ranking.
 2. `m10-eval-case-metrics`: completo. Agrega `case_metadata` acotada por caso,
    la serializa en reportes y expone `missing_count` en retrieval evals.
-3. `m10-retrieval-dataset-pack`: siguiente tarea recomendada. Agregar fixtures
-   representativos para exact match, paraphrase, distractors, metadata filters,
+3. `m10-retrieval-dataset-pack`: completo. Agrega una fixture offline
+   representativa para exact match, paraphrase, distractors, metadata filters,
    multi-evidence y casos donde rerank ayuda o no debe cambiar el resultado.
-4. `m10-rerank-ab-reporting`: mejorar comparacion dense vs rerank con
-   improvement/regression counts y best-rank deltas.
+4. `m10-rerank-ab-reporting`: siguiente tarea recomendada. Mejorar comparacion
+   dense vs rerank con improvement/regression counts y best-rank deltas.
 5. `m10-decision-gate-docs`: documentar criterios para abrir lexical/RRF,
    sparse retrieval o tuning de candidate limits.
 6. `m10-quality-gate`: validar el milestone completo, ejecutar smokes hosted

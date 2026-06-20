@@ -27,6 +27,13 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
 - **THEN** cada caso puede declarar metadata acotada de intencion y dificultad
 - **AND** el loader rechaza campos desconocidos o ambiguos
 
+#### Scenario: Dataset pack cubre riesgos representativos
+
+- **WHEN** se usa el dataset offline para decidir cambios de retrieval
+- **THEN** incluye casos de exact match, paraphrase, distractors, metadata
+  filters y multi-evidence
+- **AND** marca casos donde rerank deberia ayudar o mantenerse estable
+
 #### Scenario: Comparacion reporta regresiones por caso
 
 - **WHEN** dense y reranked retrieval se ejecutan sobre el mismo caso

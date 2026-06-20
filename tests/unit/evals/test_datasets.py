@@ -273,6 +273,67 @@ def test_load_eval_suite_rejects_duplicate_evidence_ids(tmp_path: Path) -> None:
         load_eval_suite(suite_path)
 
 
+def test_load_eval_suite_parses_repo_retrieval_dataset_pack() -> None:
+    suite = load_eval_suite(
+        _repo_root() / "evals" / "fixtures" / "retrieval-dataset-pack.json"
+    )
+
+    assert suite.suite_id == "retrieval-dataset-pack"
+    assert suite.description == "Representative offline retrieval eval dataset pack."
+    assert suite.thresholds.retrieval_hit_rate == 1.0
+    assert len(suite.evidence) == 10
+    assert tuple(case.id for case in suite.retrieval_cases) == (
+        "exact-api-error-fields",
+        "paraphrase-invoice-export",
+        "distractor-alpha-release-notes",
+        "metadata-filter-docs-only",
+        "multi-evidence-quality-gate",
+        "rerank-helpful-candidate",
+        "rerank-stable-exact",
+    )
+    assert suite.chat_cases == ()
+
+    metadata_by_case = {
+        case.id: case.case_metadata for case in suite.retrieval_cases
+    }
+    assert {
+        case_id: metadata.intent if metadata is not None else None
+        for case_id, metadata in metadata_by_case.items()
+    } == {
+        "exact-api-error-fields": "exact_match",
+        "paraphrase-invoice-export": "paraphrase",
+        "distractor-alpha-release-notes": "distractor",
+        "metadata-filter-docs-only": "metadata_filter",
+        "multi-evidence-quality-gate": "multi_evidence",
+        "rerank-helpful-candidate": "rerank_helpful",
+        "rerank-stable-exact": "rerank_stable",
+    }
+    assert metadata_by_case["multi-evidence-quality-gate"] is not None
+    assert metadata_by_case[
+        "multi-evidence-quality-gate"
+    ].coverage_notes == (
+        "requires both latency and cost evidence before changing retrieval",
+    )
+
+    filtered_case = next(
+        case
+        for case in suite.retrieval_cases
+        if case.id == "metadata-filter-docs-only"
+    )
+    assert filtered_case.metadata_filter == RetrievalMetadataFilter(
+        source_type="markdown",
+        tags=("docs", "metadata"),
+    )
+    assert filtered_case.expected_evidence_ids == ("metadata-docs",)
+
+    multi_case = next(
+        case
+        for case in suite.retrieval_cases
+        if case.id == "multi-evidence-quality-gate"
+    )
+    assert multi_case.expected_evidence_ids == ("latency-metric", "cost-metric")
+
+
 def test_serialize_eval_report_outputs_stable_json_payload() -> None:
     report = EvalRunReport(
         suite_id="smoke",
@@ -330,3 +391,7 @@ def _write_suite(tmp_path: Path, payload: object) -> Path:
     suite_path = tmp_path / "suite.json"
     suite_path.write_text(json.dumps(payload), encoding="utf-8")
     return suite_path
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]

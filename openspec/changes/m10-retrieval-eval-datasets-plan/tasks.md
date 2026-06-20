@@ -24,7 +24,7 @@
 ## 3. Slices futuros de M10
 
 - [x] 3.1 Implementar `m10-eval-case-metrics`.
-- [ ] 3.2 Implementar `m10-retrieval-dataset-pack`.
+- [x] 3.2 Implementar `m10-retrieval-dataset-pack`.
 - [ ] 3.3 Implementar `m10-rerank-ab-reporting`.
 - [ ] 3.4 Implementar `m10-decision-gate-docs`.
 - [ ] 3.5 Ejecutar `m10-quality-gate` y archivar el change cuando M10 quede
