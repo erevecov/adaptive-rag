@@ -2,19 +2,17 @@
 
 ## Milestone activo
 
-M11 Retrieval strategy decision.
+Pendiente de abrir el siguiente change OpenSpec.
 
 ## Ultimo milestone completado
 
-M10 Retrieval eval datasets y decision gates cerrado el 2026-06-20.
+M11 Retrieval strategy decision cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M11 `m11-candidate-limit-evidence-decision`: ejecuta el runner A/B offline
-sobre `retrieval-dataset-pack` con `candidate_limit` 3, 5 y 8. La evidencia no
-justifica una nueva superficie API/CLI ni presets publicos porque todos los
-limites mantienen una regresion en `distractor-alpha-release-notes`; M11 debe
-avanzar a quality gate.
+M11 `m11-quality-gate`: valida el milestone completo, ejecuta smokes live Qwen
+opt-in con `.env` local, archiva `m11-retrieval-strategy-decision` y publica la
+spec canonica actualizada de `retrieval-quality`.
 
 Comandos validados:
 
@@ -25,13 +23,28 @@ uv run ruff check .
 uv run mypy src
 npx --yes @fission-ai/openspec validate m11-retrieval-strategy-decision --strict
 npx --yes @fission-ai/openspec validate --specs --strict
+npx --yes @fission-ai/openspec archive m11-retrieval-strategy-decision --yes
 npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
+Smokes hosted Qwen opt-in validados con `.env` local:
+
+```text
+adaptive-rag providers embedding-smoke
+adaptive-rag providers chat-smoke
+adaptive-rag providers rerank-smoke
+hosted retrieval eval reranked con `retrieval-dataset-pack`, SQLite temporal,
+`candidate_limit=8` y `max_cost_usd=0.20`
+```
+
 ## Change OpenSpec activo
 
-- `openspec/changes/m11-retrieval-strategy-decision/`
+Ninguno.
+
+## Ultimo change archivado
+
+- `openspec/changes/archive/2026-06-20-m11-retrieval-strategy-decision/`
 
 ## Spec canonica activa
 
@@ -53,10 +66,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Despues de mergear `m11-candidate-limit-evidence-decision`, ejecutar
-  `m11-quality-gate`: validar tests, lint, types y OpenSpec, correr smokes
-  hosted Qwen opt-in si `.env` local esta disponible, archivar el change M11 y
-  mantener dense retrieval como default.
+- Abrir el siguiente change OpenSpec solo despues de elegir una prioridad nueva.
+  La opcion recomendada es atacar evidencia adicional de retrieval en vez de
+  agregar algoritmos: ampliar casos de distractors/lexical misses y decidir si
+  lexical/RRF merece `proceed`, manteniendo dense retrieval como default.
 
 ## Reglas de coordinacion
 

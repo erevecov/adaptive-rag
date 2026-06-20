@@ -12,7 +12,7 @@
 - M8 Hosted evals: completo.
 - M9 Retrieval quality/rerank: completo.
 - M10 Retrieval eval datasets y decision gates: completo.
-- M11 Retrieval strategy decision: activo.
+- M11 Retrieval strategy decision: completo.
 
 ## M1 Foundation
 
@@ -340,18 +340,19 @@ regresiones aceptables, costo/latencia y comportamiento con filtros/citations.
 
 ## M11 Retrieval strategy decision
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m11-retrieval-strategy-decision/`: decide el primer
-  experimento medible despues de M10. La recomendacion inicial es proceed con
-  tuning de `candidate_limit`; lexical/RRF y Qwen sparse retrieval quedan en
-  hold hasta tener evidencia o documentacion provider suficiente.
+- `openspec/changes/archive/2026-06-20-m11-retrieval-strategy-decision/`:
+  decide el primer experimento medible despues de M10. La recomendacion inicial
+  fue proceed con tuning de `candidate_limit`; lexical/RRF y Qwen sparse
+  retrieval quedaron en hold hasta tener evidencia o documentacion provider
+  suficiente.
 
 Secuencia recomendada:
 
-1. `m11-retrieval-strategy-decision`: activo. Crea el change OpenSpec, registra
+1. `m11-retrieval-strategy-decision`: completo. Crea el change OpenSpec, registra
    decision matrix y actualiza docs de arquitectura/progreso/roadmap.
 2. `m11-candidate-limit-eval-matrix`: completo. Define una matriz interna de
    candidate limits sobre suites versionadas, con coverage por `intent` y
@@ -363,14 +364,19 @@ Secuencia recomendada:
    evidencia A/B offline mejora el hit rate agregado con `candidate_limit=8`,
    pero mantiene una regresion en `distractor-alpha-release-notes`, por lo que
    no justifica presets ni superficie nueva en M11.
-5. `m11-quality-gate`: siguiente tarea recomendada. Validar el milestone,
-   ejecutar smokes opt-in si hay
-   `.env` local y archivar el change.
+5. `m11-quality-gate`: completo. Valida tests, lint, types y OpenSpec; ejecuta
+   smokes hosted Qwen opt-in con `.env` local; archiva el change y publica
+   `openspec/specs/retrieval-quality/spec.md`.
 
 Decision: candidate tuning va primero porque tiene menor blast radius y mide si
 el problema real es candidate reach/costo antes de agregar indexes o providers.
 Lexical/RRF requiere fallos lexicales medidos. Qwen sparse requiere verificar
 docs actuales de DashScope/Qwen, storage, reindex y costo antes de codificar.
+
+Continuacion: M11 cierra candidate tuning sin promover presets ni defaults
+nuevos. La siguiente decision debe abrir un change OpenSpec nuevo. La opcion
+recomendada es ampliar evidencia de retrieval sobre distractors y lexical
+misses antes de proponer lexical/RRF, sparse retrieval o nuevos providers.
 
 ## Politica para reducir conflictos de merge
 

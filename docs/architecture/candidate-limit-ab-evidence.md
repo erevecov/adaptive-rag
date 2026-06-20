@@ -61,11 +61,15 @@ La razon es:
 - La superficie opt-in de rerank ya existe desde M9; no hace falta duplicarla
   sin evidencia mas fuerte.
 
-## Siguiente paso
+## Cierre
 
-Ejecutar `m11-quality-gate`:
+`m11-quality-gate` se ejecuto y archivo
+`m11-retrieval-strategy-decision` como:
 
-- validar tests, lint, types y OpenSpec;
-- ejecutar smokes hosted Qwen opt-in si `.env` local esta disponible;
-- archivar `m11-retrieval-strategy-decision`;
-- mantener dense retrieval como default.
+- `openspec/changes/archive/2026-06-20-m11-retrieval-strategy-decision/`
+
+Durante el quality gate, el hosted eval Qwen reranked con `candidate_limit=8`
+paso los 7 casos de `retrieval-dataset-pack` sin regresiones live. Esa evidencia
+valida el provider/rerank opt-in, pero no cambia la decision de no publicar
+presets nuevos en M11: dense retrieval sigue siendo el default y cualquier
+experimento posterior debe abrir otro change OpenSpec.

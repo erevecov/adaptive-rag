@@ -1,7 +1,7 @@
 # Decision de estrategia de retrieval M11
 
 Fecha: 2026-06-20
-Estado: decision inicial para abrir M11
+Estado: M11 cerrado y archivado
 
 ## Decision
 
@@ -62,6 +62,8 @@ Resumen:
 - La evidencia no justifica una nueva superficie API/CLI ni presets publicos
   de candidate tuning en M11.
 
-Decision posterior: mantener `m11-candidate-limit-api-cli-surface` en `hold` y
-avanzar a `m11-quality-gate`.
+Decision posterior: mantener `m11-candidate-limit-api-cli-surface` en `hold`.
+`m11-quality-gate` valido tests, lint, types, OpenSpec, smokes hosted Qwen y
+archivo el change como
+`openspec/changes/archive/2026-06-20-m11-retrieval-strategy-decision/`.
 
