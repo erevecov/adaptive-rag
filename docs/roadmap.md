@@ -238,12 +238,13 @@ Secuencia recomendada:
 4. `m8-live-chat-eval-runner`: completo. Ejecuta chat evals hosted con runner
    y provider de embeddings inyectados, reutilizando `ChatService`, retrieval
    tool y validacion de citations, y adjuntando provider usage/cost al reporte.
-5. `m8-evals-cli-hosted-mode`: siguiente slice recomendado. Agrega
+5. `m8-evals-cli-hosted-mode`: completo. Agrega
    `adaptive-rag evals run <suite> --mode hosted --max-cost-usd <value>` con
-   JSON extendido y smoke live opt-in.
-6. `m8-quality-gate`: valida tests, lint, types, specs, evals offline y smoke
-   hosted opcional si `.env` local esta disponible; archiva el change M8 y
-   publica la spec canonica `hosted-evals`.
+   JSON extendido, validacion de credenciales Qwen y tracker compartido entre
+   embeddings/chat para reportar usage/cost de la corrida.
+6. `m8-quality-gate`: siguiente slice recomendado. Valida tests, lint, types,
+   specs, evals offline y smoke hosted opcional si `.env` local esta
+   disponible; archiva el change M8 y publica la spec canonica `hosted-evals`.
 
 Continuacion: M8 debe medir calidad/costo de providers live antes de agregar
 dashboards, LLM-as-judge, rerank hosted, streaming, persistencia de

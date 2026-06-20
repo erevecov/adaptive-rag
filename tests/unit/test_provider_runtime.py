@@ -219,6 +219,27 @@ def test_live_qwen_chat_runner_receives_budget_and_price_config():
     assert runner.client.price_catalog.chat_output_price_per_million_tokens_usd == 6.0
 
 
+def test_live_qwen_runtime_can_share_usage_tracker():
+    settings = _settings(
+        provider_runtime_mode="live",
+        embedding_provider="qwen",
+        embedding_model="text-embedding-v4",
+        chat_provider="qwen",
+        chat_model="qwen-plus",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/v1",
+    )
+    tracker = InMemoryProviderUsageTracker()
+
+    provider = get_dense_embedding_provider(settings, usage_tracker=tracker)
+    runner = get_chat_runner(settings, usage_tracker=tracker)
+
+    assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert isinstance(runner, QwenChatRunner)
+    assert provider.client.usage_tracker is tracker
+    assert runner.client.usage_tracker is tracker
+
+
 def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):
     settings = _settings()
     monkeypatch.setattr(provider_runtime, "get_settings", lambda: settings)
