@@ -268,11 +268,13 @@ Secuencia recomendada:
 1. `m9-retrieval-quality-rerank-plan`: completo en branch de planificacion.
    Crea el change OpenSpec que delimita rerank antes de lexical/RRF,
    dashboards, LLM-as-judge, streaming o tuning automatico.
-2. `m9-rerank-provider-contract`: siguiente tarea recomendada. Define contrato
-   provider-neutral, fake default, settings/factory y errores estables antes de
-   tocar Qwen live.
-3. `m9-live-qwen-rerank-provider`: implementar adaptador Qwen rerank opt-in con
-   usage/cost, budget guard, timeouts y smoke live separado.
+2. `m9-rerank-provider-contract`: completo. Define contratos
+   provider-neutral, fake deterministic default, settings/factory runtime para
+   fake o Qwen sin llamadas live, errores estables y wiring de budget/price
+   catalog antes de tocar HTTP live.
+3. `m9-live-qwen-rerank-provider`: siguiente tarea recomendada. Implementar
+   adaptador Qwen rerank opt-in con usage/cost, budget guard, timeouts y smoke
+   live separado.
 4. `m9-retrieval-rerank-service`: integrar rerank opcional en
    `RetrievalService` despues de dense candidate generation y filtros.
 5. `m9-rerank-api-cli-surface`: exponer knobs acotados de rerank en API/CLI sin

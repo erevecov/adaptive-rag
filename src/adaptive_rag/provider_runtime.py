@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 from adaptive_rag.chat import ChatRunner, QwenChatRunner, RetrievalGroundedChatRunner
 from adaptive_rag.chat.qwen import QwenHTTPChatClient
 from adaptive_rag.config.settings import Settings, get_settings
@@ -16,6 +18,13 @@ from adaptive_rag.provider_usage import (
     ProviderBudgetGuard,
     ProviderPriceCatalog,
     ProviderUsageTracker,
+)
+from adaptive_rag.rerank import (
+    FakeRerankProvider,
+    QwenRerankProvider,
+    RerankProvider,
+    RerankRequest,
+    RerankResult,
 )
 
 
@@ -39,6 +48,15 @@ def get_chat_runner(
 ) -> ChatRunner:
     runtime_settings = settings or get_settings()
     return _build_chat_runner(runtime_settings, usage_tracker=usage_tracker)
+
+
+def get_rerank_provider(
+    settings: Settings | None = None,
+    *,
+    usage_tracker: ProviderUsageTracker | None = None,
+) -> RerankProvider:
+    runtime_settings = settings or get_settings()
+    return _build_rerank_provider(runtime_settings, usage_tracker=usage_tracker)
 
 
 def _build_embedding_provider(
@@ -123,6 +141,48 @@ def _build_chat_runner(
     )
 
 
+def _build_rerank_provider(
+    settings: Settings,
+    *,
+    usage_tracker: ProviderUsageTracker | None,
+) -> RerankProvider:
+    if settings.provider_runtime_mode == "fake":
+        if settings.rerank_provider != "fake":
+            raise ProviderConfigurationError(
+                f"rerank provider '{settings.rerank_provider}' requires "
+                "live provider runtime mode"
+            )
+        return FakeRerankProvider()
+
+    if settings.rerank_provider != "qwen":
+        raise ProviderConfigurationError(
+            f"unsupported rerank provider: {settings.rerank_provider}"
+        )
+    _require_qwen_credentials(settings)
+    if not settings.rerank_model or settings.rerank_model == "fake-rerank-v1":
+        raise ProviderConfigurationError(
+            "ADAPTIVE_RAG_RERANK_MODEL must be set for qwen"
+        )
+    if settings.qwen_api_key is None or settings.qwen_base_url is None:
+        raise ProviderConfigurationError("qwen credentials were not validated")
+    return QwenRerankProvider(
+        model_name=settings.rerank_model,
+        client=_UnavailableQwenRerankClient(
+            api_key=settings.qwen_api_key.get_secret_value(),
+            base_url=settings.qwen_base_url,
+            timeout_seconds=settings.provider_timeout_seconds,
+            max_retries=settings.provider_max_retries,
+            usage_tracker=(
+                usage_tracker
+                if usage_tracker is not None
+                else InMemoryProviderUsageTracker()
+            ),
+            price_catalog=_provider_price_catalog(settings),
+            budget_guard=_provider_budget_guard(settings),
+        ),
+    )
+
+
 def _require_qwen_credentials(settings: Settings) -> None:
     if settings.qwen_api_key is None:
         raise ProviderConfigurationError(
@@ -151,4 +211,30 @@ def _provider_price_catalog(settings: Settings) -> ProviderPriceCatalog:
         embedding_input_price_per_million_tokens_usd=(
             settings.provider_embedding_input_price_per_million_tokens_usd
         ),
+        rerank_input_price_per_million_tokens_usd=(
+            settings.provider_rerank_input_price_per_million_tokens_usd
+        ),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class _UnavailableQwenRerankClient:
+    """Placeholder client until the live Qwen rerank adapter slice lands."""
+
+    api_key: str = field(repr=False)
+    base_url: str
+    timeout_seconds: float
+    max_retries: int
+    usage_tracker: ProviderUsageTracker | None
+    price_catalog: ProviderPriceCatalog
+    budget_guard: ProviderBudgetGuard | None
+
+    def rerank(
+        self,
+        *,
+        model: str,
+        request: RerankRequest,
+    ) -> RerankResult:
+        raise ProviderConfigurationError(
+            "qwen rerank live client is not implemented yet"
+        )
