@@ -15,6 +15,7 @@ from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderBudgetGuard,
     ProviderPriceCatalog,
+    ProviderUsageTracker,
 )
 
 
@@ -24,17 +25,27 @@ class ProviderConfigurationError(ValueError):
 
 def get_dense_embedding_provider(
     settings: Settings | None = None,
+    *,
+    usage_tracker: ProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
     runtime_settings = settings or get_settings()
-    return _build_embedding_provider(runtime_settings)
+    return _build_embedding_provider(runtime_settings, usage_tracker=usage_tracker)
 
 
-def get_chat_runner(settings: Settings | None = None) -> ChatRunner:
+def get_chat_runner(
+    settings: Settings | None = None,
+    *,
+    usage_tracker: ProviderUsageTracker | None = None,
+) -> ChatRunner:
     runtime_settings = settings or get_settings()
-    return _build_chat_runner(runtime_settings)
+    return _build_chat_runner(runtime_settings, usage_tracker=usage_tracker)
 
 
-def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
+def _build_embedding_provider(
+    settings: Settings,
+    *,
+    usage_tracker: ProviderUsageTracker | None,
+) -> DenseEmbeddingProvider:
     if settings.provider_runtime_mode == "fake":
         if settings.embedding_provider != "fake":
             raise ProviderConfigurationError(
@@ -61,14 +72,22 @@ def _build_embedding_provider(settings: Settings) -> DenseEmbeddingProvider:
             base_url=settings.qwen_base_url,
             timeout_seconds=settings.provider_timeout_seconds,
             max_retries=settings.provider_max_retries,
-            usage_tracker=InMemoryProviderUsageTracker(),
+            usage_tracker=(
+                usage_tracker
+                if usage_tracker is not None
+                else InMemoryProviderUsageTracker()
+            ),
             price_catalog=_provider_price_catalog(settings),
             budget_guard=_provider_budget_guard(settings),
         ),
     )
 
 
-def _build_chat_runner(settings: Settings) -> ChatRunner:
+def _build_chat_runner(
+    settings: Settings,
+    *,
+    usage_tracker: ProviderUsageTracker | None,
+) -> ChatRunner:
     if settings.provider_runtime_mode == "fake":
         if settings.chat_provider != "fake":
             raise ProviderConfigurationError(
@@ -93,7 +112,11 @@ def _build_chat_runner(settings: Settings) -> ChatRunner:
             base_url=settings.qwen_base_url,
             timeout_seconds=settings.provider_timeout_seconds,
             max_retries=settings.provider_max_retries,
-            usage_tracker=InMemoryProviderUsageTracker(),
+            usage_tracker=(
+                usage_tracker
+                if usage_tracker is not None
+                else InMemoryProviderUsageTracker()
+            ),
             price_catalog=_provider_price_catalog(settings),
             budget_guard=_provider_budget_guard(settings),
         ),

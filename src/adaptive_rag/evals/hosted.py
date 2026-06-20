@@ -20,6 +20,7 @@ from adaptive_rag.evals.models import (
     EvalSuite,
 )
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.evals.runner import run_eval_suite
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderCallRecord,
@@ -89,6 +90,34 @@ def run_hosted_retrieval_eval_suite(
         session,
         suite,
         provider=provider,
+    )
+    return replace(
+        report,
+        mode="hosted",
+        provider_usage=summarize_provider_usage(usage_tracker.records),
+    )
+
+
+def run_hosted_eval_suite(
+    session: Session,
+    suite: EvalSuite,
+    *,
+    provider: DenseEmbeddingProvider,
+    runner: ChatRunner,
+    usage_tracker: InMemoryProviderUsageTracker,
+    options: EvalRunOptions,
+) -> EvalRunReport:
+    """Ejecuta retrieval+chat hosted y agrega usage/cost al reporte."""
+
+    validate_hosted_eval_options(options)
+    if not options.is_hosted():
+        raise EvalConfigurationError("hosted evals require hosted mode")
+
+    report = run_eval_suite(
+        session,
+        suite,
+        provider=provider,
+        chat_runner=runner,
     )
     return replace(
         report,
