@@ -10,7 +10,7 @@
 - M6 Evals: completo.
 - M7 Provider runtime: completo.
 - M8 Hosted evals: completo.
-- M9 Retrieval quality/rerank: activo.
+- M9 Retrieval quality/rerank: completo.
 
 ## M1 Foundation
 
@@ -254,16 +254,16 @@ automatico.
 
 ## M9 Retrieval quality/rerank
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m9-retrieval-quality-rerank-plan/`: define mejoras de
-  calidad de retrieval con rerank opt-in sobre candidatos dense ya filtrados,
-  preservando dense como default y usando hosted evals para comparar calidad,
-  usage y costo.
+- `openspec/changes/archive/2026-06-20-m9-retrieval-quality-rerank-plan/`:
+  define mejoras de calidad de retrieval con rerank opt-in sobre candidatos
+  dense ya filtrados, preservando dense como default y usando hosted evals
+  para comparar calidad, usage y costo.
 
-Secuencia recomendada:
+Secuencia entregada:
 
 1. `m9-retrieval-quality-rerank-plan`: completo en branch de planificacion.
    Crea el change OpenSpec que delimita rerank antes de lexical/RRF,
@@ -284,15 +284,15 @@ Secuencia recomendada:
 6. `m9-rerank-hosted-evals`: completo. Compara dense baseline vs reranked
    retrieval en reportes hosted con calidad, `comparison_metrics`, usage y
    costo, y agrega fixture smoke manual.
-7. `m9-quality-gate`: siguiente tarea recomendada. Validar el milestone
-   completo, ejecutar smokes hosted Qwen opt-in si `.env` local esta
-   disponible, archivar el change y publicar
-   `openspec/specs/retrieval-quality/spec.md`.
+7. `m9-quality-gate`: completo. Valida tests, lint, types, specs, smoke live
+   `providers rerank-smoke`, hosted eval Qwen reranked con SQLite temporal,
+   archiva el change y publica `openspec/specs/retrieval-quality/spec.md`.
 
-Decision: rerank va antes de lexical/RRF porque reutiliza el pipeline dense y el
-runtime de providers existente con menor blast radius. Lexical/RRF debe quedar
-para M10 si las evals de M9 muestran que dense + rerank no alcanza recall o
-cobertura.
+Decision: rerank fue antes de lexical/RRF porque reutiliza el pipeline dense y
+el runtime de providers existente con menor blast radius. La siguiente decision
+recomendada es abrir un change OpenSpec para M10 que defina objetivos de
+calidad, datasets de eval mas amplios y criterios para decidir si lexical/RRF
+o tuning adicional justifican el siguiente incremento.
 
 ## Politica para reducir conflictos de merge
 

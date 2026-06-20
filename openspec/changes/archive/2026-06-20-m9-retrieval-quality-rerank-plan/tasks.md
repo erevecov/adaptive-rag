@@ -28,6 +28,6 @@
 - [x] 3.3 Implementar `m9-retrieval-rerank-service`.
 - [x] 3.4 Implementar `m9-rerank-api-cli-surface`.
 - [x] 3.5 Implementar `m9-rerank-hosted-evals`.
-- [ ] 3.6 Ejecutar `m9-quality-gate` y archivar el change cuando M9 quede
+- [x] 3.6 Ejecutar `m9-quality-gate` y archivar el change cuando M9 quede
   cerrado.
 
