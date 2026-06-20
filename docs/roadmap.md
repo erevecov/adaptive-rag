@@ -278,10 +278,12 @@ Secuencia recomendada:
 4. `m9-retrieval-rerank-service`: completo. Integra rerank opcional en
    `RetrievalService` despues de dense candidate generation y filtros,
    preservando default dense y citations.
-5. `m9-rerank-api-cli-surface`: siguiente tarea recomendada. Exponer knobs
-   acotados de rerank en API/CLI sin cambiar el default dense.
-6. `m9-rerank-hosted-evals`: comparar dense baseline vs reranked retrieval en
-   reportes hosted con calidad, usage y costo.
+5. `m9-rerank-api-cli-surface`: completo. Expone knobs acotados de rerank en
+   API/CLI sin cambiar el default dense ni construir providers de rerank cuando
+   no se habilita.
+6. `m9-rerank-hosted-evals`: siguiente tarea recomendada. Comparar dense
+   baseline vs reranked retrieval en reportes hosted con calidad, usage y
+   costo.
 7. `m9-quality-gate`: validar el milestone completo, archivar el change y
    publicar `openspec/specs/retrieval-quality/spec.md`.
 

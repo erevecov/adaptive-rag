@@ -26,7 +26,7 @@
 - [x] 3.1 Implementar `m9-rerank-provider-contract`.
 - [x] 3.2 Implementar `m9-live-qwen-rerank-provider`.
 - [x] 3.3 Implementar `m9-retrieval-rerank-service`.
-- [ ] 3.4 Implementar `m9-rerank-api-cli-surface`.
+- [x] 3.4 Implementar `m9-rerank-api-cli-surface`.
 - [ ] 3.5 Implementar `m9-rerank-hosted-evals`.
 - [ ] 3.6 Ejecutar `m9-quality-gate` y archivar el change cuando M9 quede
   cerrado.

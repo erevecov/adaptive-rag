@@ -10,10 +10,11 @@ M8 Hosted evals cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M9 `m9-retrieval-rerank-service`: integra rerank opt-in dentro de
-`RetrievalService` despues del dense candidate set ya filtrado, preserva el
-default dense sin provider de rerank y adjunta metadata interna de rerank sin
-cambiar aun las superficies API/CLI.
+M9 `m9-rerank-api-cli-surface`: expone rerank opt-in en
+`POST /projects/{project_id}/retrieval/search` mediante
+`rerank.candidate_limit` y en `adaptive-rag retrieval search` mediante
+`--rerank-candidate-limit`, validando limites antes de construir el provider y
+manteniendo el payload dense existente cuando rerank no se usa.
 
 Comandos validados:
 
@@ -51,9 +52,9 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m9-rerank-api-cli-surface`. Es la opcion recomendada porque el
-  servicio compartido ya puede reordenar candidatos; el siguiente riesgo es
-  exponer knobs acotados en API/CLI sin cambiar el default dense.
+- Implementar `m9-rerank-hosted-evals`. Es la opcion recomendada porque el
+  rerank ya esta disponible en provider, servicio y superficies; el siguiente
+  riesgo es medir calidad/costo frente al baseline dense en evals hosted.
 
 ## Reglas de coordinacion
 

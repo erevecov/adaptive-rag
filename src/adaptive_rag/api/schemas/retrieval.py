@@ -6,9 +6,14 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
 
-from adaptive_rag.retrieval import RetrievalMetadataFilter
+from adaptive_rag.retrieval import RetrievalMetadataFilter, RetrievalRerankOptions
 from adaptive_rag.retrieval import RetrievalSearchRequest as ServiceSearchRequest
 from adaptive_rag.retrieval.payloads import serialize_retrieval_results
 from adaptive_rag.retrieval.service import RetrievalSearchResult as ServiceSearchResult
@@ -39,12 +44,32 @@ class RetrievalMetadataFilterRequest(BaseModel):
         )
 
 
+class RetrievalRerankRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    candidate_limit: int
+
+    def to_service_options(self) -> RetrievalRerankOptions:
+        return RetrievalRerankOptions(candidate_limit=self.candidate_limit)
+
+
 class RetrievalSearchRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str
     limit: int = 10
     metadata_filter: RetrievalMetadataFilterRequest | None = None
+    rerank: RetrievalRerankRequest | None = None
+
+    def validate_rerank_options(self) -> None:
+        if self.rerank is None:
+            return
+        if self.rerank.candidate_limit <= 0:
+            raise ValueError("rerank candidate_limit must be positive")
+        if self.rerank.candidate_limit < self.limit:
+            raise ValueError(
+                "rerank candidate_limit must be greater than or equal to limit"
+            )
 
     def to_service_request(self, project_id: UUID) -> ServiceSearchRequest:
         return ServiceSearchRequest(
@@ -55,6 +80,9 @@ class RetrievalSearchRequestBody(BaseModel):
                 self.metadata_filter.to_service_filter()
                 if self.metadata_filter is not None
                 else None
+            ),
+            rerank=(
+                self.rerank.to_service_options() if self.rerank is not None else None
             ),
         )
 
@@ -82,6 +110,16 @@ class RetrievalResultResponse(BaseModel):
     score: float
     citation: RetrievalCitationResponse
     embedding_metadata: dict[str, Any] | None
+    rerank_metadata: dict[str, Any] | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        payload = handler(self)
+        if not isinstance(payload, dict):
+            raise TypeError("retrieval result serializer expected a dict")
+        if self.rerank_metadata is None:
+            payload.pop("rerank_metadata", None)
+        return payload
 
 
 class RetrievalSearchResponse(BaseModel):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Annotated
 
 from fastapi import Depends
@@ -12,8 +12,14 @@ from adaptive_rag.chat import ChatRunner, ChatService
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
+from adaptive_rag.provider_runtime import (
+    get_rerank_provider as get_runtime_rerank_provider,
+)
+from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import RetrievalService
 from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
+
+RerankProviderFactory = Callable[[], RerankProvider]
 
 
 def get_session() -> Iterator[Session]:
@@ -23,6 +29,10 @@ def get_session() -> Iterator[Session]:
 
 def get_dense_embedding_provider() -> DenseEmbeddingProvider:
     return get_default_dense_embedding_provider()
+
+
+def get_rerank_provider_factory() -> RerankProviderFactory:
+    return get_runtime_rerank_provider
 
 
 def get_retrieval_service(
