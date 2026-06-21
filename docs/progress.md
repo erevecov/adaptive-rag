@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Pendiente de abrir el siguiente change OpenSpec.
+M14 Chat history/read surface.
 
 ## Ultimo milestone completado
 
@@ -10,17 +10,14 @@ M13 Chat audit trail cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M13 `m13-closeout`: archiva `m13-chat-audit-trail`, publica la spec canonica
-`chat-audit-trail` y reconcilia el estado de progreso/roadmap despues del merge
-de PR #69.
+M14 `m14-chat-history-read-surface`: abre el change OpenSpec para exponer
+lectura/historial read-only de sesiones de chat sobre el audit trail durable de
+M13, sin frontend, streaming, dashboards, replay ni cambios de ranking.
 
 Comandos validados:
 
 ```text
-uv run pytest
-npx --yes @fission-ai/openspec archive m13-chat-audit-trail --yes
-uv run ruff check .
-uv run mypy src
+npx --yes @fission-ai/openspec validate m14-chat-history-read-surface --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -28,7 +25,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-Ninguno.
+- `openspec/changes/m14-chat-history-read-surface/`
 
 ## Ultimo change archivado
 
@@ -55,12 +52,10 @@ Ninguno.
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec solo despues de elegir prioridad para M14.
-  La opcion recomendada es una superficie de lectura/historial de chat sobre el
-  audit trail durable, antes de streaming SSE o dashboards. La razon es que M13
-  ya deja sesiones, mensajes, tool calls, retrieval runs, citations y usage/cost
-  persistidos, pero todavia no hay contrato publico para consultarlos de forma
-  aislada por proyecto.
+- Implementar `m14-chat-history-repository-read-models`: read models y queries
+  de listado/detalle con aislamiento por proyecto, status filter, limite
+  acotado y orden deterministico. La razon es que API/CLI deben apoyarse en un
+  contrato de lectura compartido antes de exponer endpoints o comandos.
 
 ## Reglas de coordinacion
 

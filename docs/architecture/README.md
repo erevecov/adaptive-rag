@@ -19,6 +19,8 @@ Documentos:
 - `chat-audit-trail-m13.md`: decision M13 para persistir sesiones, mensajes,
   tool calls, retrieval runs, citations y usage/cost antes de streaming,
   dashboards o historial.
+- `chat-history-m14.md`: decision M14 para exponer listado/detalle read-only de
+  sesiones antes de frontend, streaming o dashboards.
 
 Reglas:
 
