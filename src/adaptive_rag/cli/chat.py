@@ -75,6 +75,7 @@ def ask(
     with session_scope() as session:
         usage_tracker = InMemoryProviderUsageTracker()
         audit_writer = SqlAlchemyChatAuditWriter(
+            session=session,
             chat_audit_repository=ChatAuditRepository(session),
             provider_usage_repository=ProviderUsageRepository(session),
         )
@@ -95,6 +96,9 @@ def ask(
             _commit_or_rollback_chat_error(session)
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
+        except Exception:
+            _commit_or_rollback_chat_error(session)
+            raise
 
     typer.echo(json.dumps(serialize_chat_response(response)))
 

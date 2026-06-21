@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -100,6 +101,19 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
+class ExplodingChatRunner:
+    def __init__(self) -> None:
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        raise RuntimeError("runner exploded")
+
+
 def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     engine = create_engine(
         URL.create(
@@ -131,7 +145,7 @@ def _client(
     *,
     session: Session,
     provider: StaticQueryEmbeddingProvider,
-    runner: ToolCallingChatRunner | RecordingNoToolChatRunner,
+    runner: ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> TestClient:
     app = create_app()
@@ -142,7 +156,9 @@ def _client(
     def override_provider() -> StaticQueryEmbeddingProvider:
         return provider
 
-    def override_runner() -> ToolCallingChatRunner | RecordingNoToolChatRunner:
+    def override_runner() -> (
+        ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner
+    ):
         return runner
 
     def override_usage_tracker() -> InMemoryProviderUsageTracker:
@@ -410,3 +426,34 @@ def test_chat_endpoint_provider_usage_failure_does_not_block_success(
         fresh_session.query(ProviderUsage).filter_by(session_id=session_id).count()
         == 0
     )
+
+
+def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ExplodingChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    with pytest.raises(RuntimeError, match="runner exploded"):
+        client.post(
+            f"/projects/{project.id}/chat",
+            json={"message": "Please answer."},
+        )
+
+    assert len(runner.requests) == 1
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.project_id == project.id
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == "runner exploded"
+    messages = fresh_session.query(ChatMessage).filter_by(
+        session_id=chat_session.id
+    )
+    assert [(message.role, message.content) for message in messages] == [
+        ("user", "Please answer.")
+    ]

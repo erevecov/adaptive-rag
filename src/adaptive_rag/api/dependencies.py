@@ -60,6 +60,7 @@ def get_chat_audit_writer(
     session: Annotated[Session, Depends(get_session)],
 ) -> SqlAlchemyChatAuditWriter:
     return SqlAlchemyChatAuditWriter(
+        session=session,
         chat_audit_repository=ChatAuditRepository(session),
         provider_usage_repository=ProviderUsageRepository(session),
     )

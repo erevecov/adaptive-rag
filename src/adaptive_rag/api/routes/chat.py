@@ -34,6 +34,9 @@ def chat(
             status_code=422,
             detail=str(exc),
         ) from exc
+    except Exception:
+        _commit_or_rollback_chat_error(session)
+        raise
     return ChatResponseBody.from_chat_response(response)
 
 

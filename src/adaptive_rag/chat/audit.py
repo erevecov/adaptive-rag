@@ -8,6 +8,8 @@ from time import monotonic
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
+from sqlalchemy.orm import Session
+
 from adaptive_rag.chat.models import ChatRequest
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.provider_usage import ProviderCallRecord
@@ -211,9 +213,11 @@ class SqlAlchemyChatAuditWriter:
     def __init__(
         self,
         *,
+        session: Session,
         chat_audit_repository: ChatAuditRepository,
         provider_usage_repository: ProviderUsageRepository,
     ) -> None:
+        self._session = session
         self._chat_audit_repository = chat_audit_repository
         self._provider_usage_repository = provider_usage_repository
 
@@ -328,7 +332,7 @@ class SqlAlchemyChatAuditWriter:
         first_error: Exception | None = None
         for record in records:
             try:
-                with self._provider_usage_repository._session.begin_nested():
+                with self._session.begin_nested():
                     self._provider_usage_repository.create_from_record(
                         project_id=project_id,
                         session_id=session_id,

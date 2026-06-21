@@ -90,6 +90,19 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
+class ExplodingChatRunner:
+    def __init__(self) -> None:
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        raise RuntimeError("runner exploded")
+
+
 def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     engine = create_engine(
         URL.create(
@@ -181,7 +194,7 @@ def _patch_chat_dependencies(
     *,
     session: Session,
     provider: StaticQueryEmbeddingProvider,
-    runner: ToolCallingChatRunner | RecordingNoToolChatRunner,
+    runner: ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner,
 ) -> None:
     @contextmanager
     def override_session_scope() -> Iterator[Session]:
@@ -366,3 +379,49 @@ def test_chat_ask_command_reports_service_errors(
     assert "message must not be empty" in result.output
     assert provider.inputs == []
     assert runner.requests == []
+
+
+def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ExplodingChatRunner()
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        runner=runner,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "Please answer.",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, RuntimeError)
+    assert str(result.exception) == "runner exploded"
+    assert len(runner.requests) == 1
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.project_id == project.id
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == "runner exploded"
+    messages = fresh_session.query(ChatMessage).filter_by(
+        session_id=chat_session.id
+    )
+    assert [(message.role, message.content) for message in messages] == [
+        ("user", "Please answer.")
+    ]
