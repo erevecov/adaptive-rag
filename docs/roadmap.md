@@ -686,9 +686,10 @@ Secuencia recomendada:
    `no-go` para el backend routeable de M18 y no-op como fallback de evals.
    Tambien fija que Postgres conserve la fuente canonica y readiness/backfill
    por proyecto para reconstruir Neo4j si estuvo disabled.
-3. `m18-graph-store-contract`: pendiente. Definir contrato `GraphStore`,
-   settings, readiness/backfill, errores estables, health checks y fakes
-   offline antes de tocar Neo4j live.
+3. `m18-graph-store-contract`: completo. Define `graph_store=disabled|neo4j`,
+   contrato `GraphStore`, health check, errores estables, fakes offline y
+   `graph_projections` en Postgres para readiness/backfill por proyecto, sin
+   adapter live ni cambios de retrieval.
 4. `m18-neo4j-adapter-and-health`: pendiente. Agregar adapter Neo4j opt-in y
    health checks solo despues de cerrar el contrato.
 5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
@@ -702,9 +703,9 @@ Secuencia recomendada:
    default y archivar M18 si corresponde.
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
-opcional, no como requisito del stack base. La prioridad inmediata es definir el
-contrato `GraphStore` y los fakes offline antes de implementar adapter live,
-indexer o retrieval graph.
+opcional, no como requisito del stack base. La prioridad inmediata es
+implementar `m18-neo4j-adapter-and-health` sobre el contrato cerrado, sin
+indexer, retrieval graph ni cambio de defaults.
 
 ## Politica para reducir conflictos de merge
 

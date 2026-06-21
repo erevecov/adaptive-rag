@@ -73,6 +73,38 @@ def test_provider_runtime_settings_use_env_prefix(monkeypatch):
     assert "sk-test-secret" not in repr(settings)
 
 
+def test_graph_store_settings_default_to_disabled_without_neo4j_credentials(
+    monkeypatch,
+):
+    monkeypatch.delenv("ADAPTIVE_RAG_GRAPH_STORE", raising=False)
+    monkeypatch.delenv("ADAPTIVE_RAG_NEO4J_URI", raising=False)
+    monkeypatch.delenv("ADAPTIVE_RAG_NEO4J_USERNAME", raising=False)
+    monkeypatch.delenv("ADAPTIVE_RAG_NEO4J_PASSWORD", raising=False)
+
+    settings = Settings()
+
+    assert settings.graph_store == "disabled"
+    assert settings.neo4j_uri is None
+    assert settings.neo4j_username is None
+    assert settings.neo4j_password is None
+
+
+def test_graph_store_settings_use_env_prefix_and_hide_password(monkeypatch):
+    monkeypatch.setenv("ADAPTIVE_RAG_GRAPH_STORE", "neo4j")
+    monkeypatch.setenv("ADAPTIVE_RAG_NEO4J_URI", "neo4j+s://graph.example.test")
+    monkeypatch.setenv("ADAPTIVE_RAG_NEO4J_USERNAME", "neo4j")
+    monkeypatch.setenv("ADAPTIVE_RAG_NEO4J_PASSWORD", "secret-password")
+
+    settings = Settings()
+
+    assert settings.graph_store == "neo4j"
+    assert settings.neo4j_uri == "neo4j+s://graph.example.test"
+    assert settings.neo4j_username == "neo4j"
+    assert settings.neo4j_password is not None
+    assert settings.neo4j_password.get_secret_value() == "secret-password"
+    assert "secret-password" not in repr(settings)
+
+
 def test_empty_optional_env_values_are_ignored(tmp_path):
     env_file = tmp_path / ".env"
     env_file.write_text(

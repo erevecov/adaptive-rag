@@ -10,12 +10,11 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M18 `m18-graph-db-decision-matrix`: completa la matriz de decision Neo4j vs
-Memgraph/FalkorDB/Kuzu/no-op, selecciona Neo4j como primer backend live opt-in
-y agrega la regla de proyeccion reconstruible: Postgres conserva la fuente
-canonica y readiness/backfill por proyecto para que Neo4j pueda habilitarse
-despues mediante backfill. Este slice no cambia codigo productivo, settings,
-dependencias, migrations, frontend ni infraestructura.
+M18 `m18-graph-store-contract`: define `graph_store=disabled|neo4j`, el
+contrato `GraphStore`, errores estables, health check, fakes offline y la tabla
+Postgres `graph_projections` para readiness/backfill por proyecto. Postgres
+mantiene la fuente canonica; Neo4j sigue sin adapter live, driver, Docker,
+indexer, retrieval graph ni cambio de default.
 
 Comandos validados en este slice:
 
@@ -23,6 +22,9 @@ Comandos validados en este slice:
 pnpm dlx @fission-ai/openspec validate m18-neo4j-graph-db-decision --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
+uv run pytest
+uv run ruff check src tests
+uv run mypy src/adaptive_rag
 git diff --check
 ```
 
@@ -59,10 +61,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-graph-store-contract`, porque la matriz ya selecciono
-  Neo4j como primer backend live opt-in y ahora conviene fijar la interfaz,
-  settings, estados de proyeccion/backfill, errores estables y fakes offline
-  antes de importar drivers o tocar conectividad real.
+- Continuar con `m18-neo4j-adapter-and-health`, porque el contrato y readiness
+  ya estan fijados con fakes offline. El siguiente riesgo es validar el adapter
+  Neo4j opt-in, URI/auth, `verify_connectivity()` y errores estables sin tocar
+  indexer, retrieval graph ni defaults.
 
 ## Reglas de coordinacion
 

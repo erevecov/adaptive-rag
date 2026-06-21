@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VectorStoreName = Literal["pgvector"]
 ProviderRuntimeMode = Literal["fake", "live"]
+GraphStoreName = Literal["disabled", "neo4j"]
 
 
 class Settings(BaseSettings):
@@ -25,6 +26,7 @@ class Settings(BaseSettings):
     )
     api_key: str | None = Field(default=None)
     vector_store: VectorStoreName = "pgvector"
+    graph_store: GraphStoreName = "disabled"
     provider_runtime_mode: ProviderRuntimeMode = "fake"
     embedding_provider: str = "fake"
     embedding_model: str = "fake-embedding-v1"
@@ -41,6 +43,9 @@ class Settings(BaseSettings):
     provider_rerank_input_price_per_million_tokens_usd: float | None = None
     qwen_api_key: SecretStr | None = Field(default=None)
     qwen_base_url: str | None = Field(default=None)
+    neo4j_uri: str | None = Field(default=None)
+    neo4j_username: str | None = Field(default=None)
+    neo4j_password: SecretStr | None = Field(default=None)
 
 
 @lru_cache(maxsize=1)
