@@ -16,7 +16,7 @@
 - M12 Retrieval evidence expansion: completo.
 - M13 Chat audit trail: completo.
 - M14 Chat history/read surface: completo.
-- M15 Chat frontend inicial: activo.
+- M15 Chat frontend inicial: completo.
 
 ## M1 Foundation
 
@@ -515,17 +515,21 @@ base este definida.
 
 ## M15 Chat frontend inicial
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m15-chat-frontend-plan/`
+- `openspec/changes/archive/2026-06-21-m15-chat-frontend-plan/`
+
+Spec canonica:
+
+- `openspec/specs/chat-frontend/spec.md`
 
 Secuencia recomendada:
 
-1. `m15-chat-frontend-plan`: activo. Crea el change OpenSpec que delimita M15
-   como primera UI de chat e historial sobre los contratos existentes de M5 y
-   M14.
+1. `m15-chat-frontend-plan`: completo. Crea el change OpenSpec que delimita
+   M15 como primera UI de chat e historial sobre los contratos existentes de M5
+   y M14.
 2. `m15-frontend-scaffold`: completo. Crea `frontend/` con
    React/TypeScript/Vite, `pnpm`, scripts de dev/build/lint/test/typecheck,
    `.env.example`, README local y lockfile.
@@ -538,8 +542,8 @@ Secuencia recomendada:
 5. `m15-chat-history-ui`: completo. Agrega refresh manual de sesiones por
    proyecto, seleccion de sesion y detalle read-only de mensajes, tool calls,
    retrieval runs, citations y provider usage.
-6. `m15-quality-gate`: validar frontend, Python cuando aplique, OpenSpec y
-   archivar el change.
+6. `m15-quality-gate`: completo. Valida frontend, Python y OpenSpec; archiva
+   el change M15 y publica la spec canonica `chat-frontend`.
 
 Decision: M15 va antes de streaming SSE, dashboards y replay porque primero
 necesitamos una app operativa que consuma los contratos cerrados sin ampliar la
@@ -547,8 +551,11 @@ superficie backend. M15 no cambia retrieval productivo, providers, rerank,
 CLI ni API backend salvo que un slice posterior descubra una brecha de contrato
 que deba pasar por OpenSpec.
 
-Continuacion: la siguiente tarea recomendada es `m15-quality-gate`, para
-validar el milestone completo y archivar `m15-chat-frontend-plan`.
+Continuacion: M15 deja una app frontend operativa para `POST /chat` e historial
+read-only. La siguiente decision recomendada es abrir un change M16 para
+streaming de chat por SSE, porque mejora la experiencia de respuestas largas
+sobre la UI existente y debe fijar contrato, fallback y persistencia antes de
+dashboards, replay o auth final.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
