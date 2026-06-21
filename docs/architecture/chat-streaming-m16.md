@@ -36,7 +36,7 @@ documentacion actual tambien respalda `StreamingResponse` con
 ## Secuencia
 
 1. `m16-chat-streaming-sse`: activo.
-2. `m16-streaming-event-contract`: tipos/eventos/serializer SSE.
+2. `m16-streaming-event-contract`: completo.
 3. `m16-chat-service-streaming`: servicio streaming con audit trail compartido.
 4. `m16-chat-streaming-api`: endpoint FastAPI SSE.
 5. `m16-chat-streaming-frontend-client`: cliente/parser streaming.
