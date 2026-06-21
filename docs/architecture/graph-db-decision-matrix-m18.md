@@ -23,6 +23,11 @@ La recomendacion concreta es que `m18-graph-store-contract` defina solo
 `graph_store=disabled` y `graph_store=neo4j`. No debe agregar settings para
 Memgraph, FalkorDB o Kuzu hasta que una decision posterior los promueva.
 
+El contrato tambien debe permitir que Neo4j haya estado apagado o deshabilitado:
+Postgres conserva la fuente canonica y el estado de readiness/backfill por
+proyecto; cuando se habilita `graph_store=neo4j`, un backfill reconstruye la
+proyeccion en Neo4j y retrieval graph espera hasta que el estado sea `ready`.
+
 ## Criterios
 
 - Local setup: debe existir una ruta local reproducible para desarrollo.
@@ -186,10 +191,24 @@ Condicion:
 
 - definir enum/config para `disabled` y `neo4j`;
 - definir interfaz `GraphStore` sin importar el driver Neo4j todavia;
+- definir estado de proyeccion por proyecto en Postgres: `disabled`,
+  `pending_backfill`, `indexing`, `ready`, `stale` y `failed`;
+- definir watermark/source version, schema/extractor version, `last_indexed_at`
+  y error code estable para backfill/reindex;
 - definir errores estables: misconfigured, unavailable y query failure;
 - definir `health_check()` como contrato, pero con fake offline primero;
+- definir `backfill_project_graph(...)` o un job equivalente que reconstruya
+  Neo4j desde Postgres de forma idempotente por `project_id`;
 - definir fakes deterministas que cubran tests sin Docker, Aura ni credenciales;
-- preservar fallback dense y no cambiar API/CLI productivos.
+- preservar fallback dense cuando graph store este disabled, unavailable,
+  `pending_backfill`, `indexing`, `stale` o `failed`;
+- no cambiar API/CLI productivos.
+
+No hace falta almacenar todos los nodos/aristas temporales en Postgres si se
+pueden derivar de tablas canonicas. Si luego agregamos extraccion costosa de
+entidades o relaciones, esos graph facts si deben persistirse en Postgres con
+version/hash para que el backfill hacia Neo4j no dependa de repetir trabajo
+externo o no determinista.
 
 ## Fuentes consultadas
 

@@ -12,9 +12,10 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 M18 `m18-graph-db-decision-matrix`: completa la matriz de decision Neo4j vs
 Memgraph/FalkorDB/Kuzu/no-op, selecciona Neo4j como primer backend live opt-in
-y mantiene el siguiente paso en contrato/fakes antes de adapter live. Este
-slice no cambia codigo productivo, settings, dependencias, migrations, frontend
-ni infraestructura.
+y agrega la regla de proyeccion reconstruible: Postgres conserva la fuente
+canonica y readiness/backfill por proyecto para que Neo4j pueda habilitarse
+despues mediante backfill. Este slice no cambia codigo productivo, settings,
+dependencias, migrations, frontend ni infraestructura.
 
 Comandos validados en este slice:
 
@@ -60,8 +61,8 @@ git diff --check
 
 - Continuar con `m18-graph-store-contract`, porque la matriz ya selecciono
   Neo4j como primer backend live opt-in y ahora conviene fijar la interfaz,
-  settings, errores estables y fakes offline antes de importar drivers o tocar
-  conectividad real.
+  settings, estados de proyeccion/backfill, errores estables y fakes offline
+  antes de importar drivers o tocar conectividad real.
 
 ## Reglas de coordinacion
 

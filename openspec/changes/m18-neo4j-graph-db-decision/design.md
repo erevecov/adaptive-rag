@@ -28,6 +28,9 @@ sin implementacion live inicial:
 - documentar una decision matrix Neo4j vs alternativas locales/managed;
 - mantener Postgres como fuente durable de verdad;
 - tratar cualquier graph DB como indice derivado y reconstruible;
+- permitir que graph store este deshabilitado durante ingestion o updates sin
+  perder la capacidad de reconstruir Neo4j mediante backfill posterior desde
+  Postgres;
 - mantener `graph_store=disabled` como default hasta que evals versionadas
   demuestren mejora;
 - definir primero contrato `GraphStore`, settings, errores, health checks y
@@ -54,6 +57,8 @@ evals posteriores no justifican graph retrieval. La matriz completa esta en
 - Definir `GraphStore` como contrato routeable, no como dependencia concreta.
 - Mantener `graph_store=disabled` por default.
 - Preservar Postgres como fuente durable y graph DB como indice derivado.
+- Registrar readiness/backfill de la proyeccion graph en Postgres para que un
+  proyecto pueda habilitar Neo4j despues de haber operado sin graph store.
 - Requerir fakes deterministas para tests sin Neo4j live.
 - Requerir gates de retrieval/evals antes de promover retrieval graph.
 
@@ -146,8 +151,12 @@ estables si faltan URI, usuario/password o conectividad.
 El contrato debe cubrir al menos:
 
 - `health_check()` o equivalente para conectividad.
+- estado de proyeccion por proyecto: `disabled`, `pending_backfill`,
+  `indexing`, `ready`, `stale` y `failed`.
 - `upsert_project_graph(...)` o materializacion idempotente.
 - `delete_project_graph(...)` o limpieza por proyecto.
+- `backfill_project_graph(...)` o job equivalente para reconstruir Neo4j desde
+  Postgres cuando se habilita despues de estar disabled.
 - consultas de retrieval graph en modo opt-in.
 - errores estables para unavailable, misconfigured y query failure.
 
@@ -156,6 +165,19 @@ El contrato debe cubrir al menos:
 Postgres sigue siendo fuente durable. Graph DB solo contiene nodos/relaciones
 derivados de proyectos, sources, documents, document versions, chunks y metadata.
 El indice graph debe poder reconstruirse desde Postgres.
+
+Postgres tambien debe conservar el estado operativo de la proyeccion graph por
+proyecto: backend, status, watermark/source version, schema/extractor version,
+`last_indexed_at` y error code estable. Mientras graph store este disabled, la
+ingestion no debe intentar escribir en Neo4j. Al habilitar `graph_store=neo4j`,
+el proyecto entra en `pending_backfill`/`indexing` hasta que un backfill
+idempotente materialice la proyeccion y la marque `ready`.
+
+No hace falta duplicar todos los nodos/aristas en Postgres si se derivan
+deterministicamente de tablas canonicas. Si un slice posterior agrega extraccion
+costosa de entidades o relaciones, esos graph facts deben persistirse en
+Postgres con version/hash para que Neo4j pueda reconstruirse sin repetir trabajo
+externo o no determinista.
 
 ### Retrieval contract
 
@@ -166,7 +188,7 @@ Retrieval graph debe preservar:
 - citations;
 - audit trail de retrieval;
 - fallback claro a dense retrieval cuando graph store este disabled o
-  unavailable;
+  unavailable, o cuando la proyeccion del proyecto no este `ready`;
 - no cambiar defaults hasta pasar evals versionadas.
 
 ## Secuencia recomendada de M18
@@ -212,6 +234,7 @@ Resultado:
 Alcance:
 
 - Definir contrato `GraphStore`, settings, errores estables y fakes offline.
+- Definir readiness/backfill por proyecto en Postgres antes del adapter live.
 - Mantener `graph_store=disabled` default.
 - Agregar tests unitarios sin servicio live.
 

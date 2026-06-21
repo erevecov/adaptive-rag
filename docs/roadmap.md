@@ -684,9 +684,11 @@ Secuencia recomendada:
 2. `m18-graph-db-decision-matrix`: completo. Selecciona Neo4j como primer
    backend live opt-in; mantiene Memgraph y FalkorDB en `hold`, Kuzu en
    `no-go` para el backend routeable de M18 y no-op como fallback de evals.
+   Tambien fija que Postgres conserve la fuente canonica y readiness/backfill
+   por proyecto para reconstruir Neo4j si estuvo disabled.
 3. `m18-graph-store-contract`: pendiente. Definir contrato `GraphStore`,
-   settings, errores estables, health checks y fakes offline antes de tocar
-   Neo4j live.
+   settings, readiness/backfill, errores estables, health checks y fakes
+   offline antes de tocar Neo4j live.
 4. `m18-neo4j-adapter-and-health`: pendiente. Agregar adapter Neo4j opt-in y
    health checks solo despues de cerrar el contrato.
 5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
