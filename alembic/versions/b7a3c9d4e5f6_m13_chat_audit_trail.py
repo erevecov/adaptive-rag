@@ -33,9 +33,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("status", sa.String(), nullable=False, server_default="running"),
-        sa.Column("model", sa.String(), nullable=True),
-        sa.Column("prompt_config_json", postgresql.JSONB(), nullable=True),
-        sa.Column("metadata_json", postgresql.JSONB(), nullable=True),
+        sa.Column("model_config_json", postgresql.JSONB(), nullable=True),
+        sa.Column("prompt_version", sa.String(), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
@@ -232,7 +231,7 @@ def upgrade() -> None:
         sa.Column("dense_score", sa.Float(), nullable=True),
         sa.Column("sparse_score", sa.Float(), nullable=True),
         sa.Column("rerank_score", sa.Float(), nullable=True),
-        sa.Column("citation_json", postgresql.JSONB(), nullable=True),
+        sa.Column("citation_json", postgresql.JSONB(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -350,9 +349,27 @@ def upgrade() -> None:
         "provider_usage",
         ["project_id", "operation", "created_at"],
     )
+    op.create_index(
+        "ix_provider_usage_project_job_created_at",
+        "provider_usage",
+        ["project_id", "job_id", "created_at"],
+    )
+    op.create_index(
+        "ix_provider_usage_project_eval_run_created_at",
+        "provider_usage",
+        ["project_id", "eval_run_id", "created_at"],
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(
+        "ix_provider_usage_project_eval_run_created_at",
+        table_name="provider_usage",
+    )
+    op.drop_index(
+        "ix_provider_usage_project_job_created_at",
+        table_name="provider_usage",
+    )
     op.drop_index(
         "ix_provider_usage_project_operation_created_at",
         table_name="provider_usage",

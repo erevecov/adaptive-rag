@@ -84,6 +84,18 @@ class ProviderUsage(Base):
             "operation",
             "created_at",
         ),
+        Index(
+            "ix_provider_usage_project_job_created_at",
+            "project_id",
+            "job_id",
+            "created_at",
+        ),
+        Index(
+            "ix_provider_usage_project_eval_run_created_at",
+            "project_id",
+            "eval_run_id",
+            "created_at",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

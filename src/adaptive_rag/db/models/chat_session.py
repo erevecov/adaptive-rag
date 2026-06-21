@@ -36,13 +36,10 @@ class ChatSession(Base):
     status: Mapped[str] = mapped_column(
         nullable=False, default="running", server_default="running"
     )
-    model: Mapped[str | None] = mapped_column(nullable=True)
-    prompt_config_json: Mapped[dict[str, Any] | None] = mapped_column(
+    model_config_json: Mapped[dict[str, Any] | None] = mapped_column(
         JSONWithJSONB(), nullable=True
     )
-    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONWithJSONB(), nullable=True
-    )
+    prompt_version: Mapped[str | None] = mapped_column(nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

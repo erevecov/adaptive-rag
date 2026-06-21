@@ -55,8 +55,8 @@ class RetrievedChunk(Base):
     dense_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     sparse_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rerank_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    citation_json: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONWithJSONB(), nullable=True
+    citation_json: Mapped[dict[str, Any]] = mapped_column(
+        JSONWithJSONB(none_as_null=True), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

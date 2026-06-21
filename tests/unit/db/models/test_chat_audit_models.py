@@ -86,6 +86,15 @@ def _make_chunk(session, *, project: Project) -> Chunk:
     )
 
 
+def _assert_integrity_error(session) -> None:
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+    else:
+        raise AssertionError("Expected IntegrityError")
+
+
 def test_chat_session_defaults_to_running() -> None:
     session = _make_session()
     project = _make_project(session)
@@ -97,6 +106,30 @@ def test_chat_session_defaults_to_running() -> None:
     assert chat_session.status == "running"
     assert chat_session.created_at is not None
     assert chat_session.updated_at is not None
+
+
+def test_chat_session_persists_model_config_and_prompt_version() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    chat_session = ChatSession(
+        project_id=project.id,
+        model_config_json={"provider": "qwen", "model": "qwen-plus"},
+        prompt_version="m13-chat-v1",
+    )
+
+    session.add(chat_session)
+    session.commit()
+    session.expunge_all()
+
+    fetched = session.execute(select(ChatSession)).scalar_one()
+    columns = {column.name for column in inspect(ChatSession).columns}
+    assert fetched.model_config_json == {"provider": "qwen", "model": "qwen-plus"}
+    assert fetched.prompt_version == "m13-chat-v1"
+    assert "model_config_json" in columns
+    assert "prompt_version" in columns
+    assert "model" not in columns
+    assert "prompt_config_json" not in columns
+    assert "metadata_json" not in columns
 
 
 def test_chat_message_persists_role_content_and_metadata() -> None:
@@ -207,6 +240,102 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     }
 
 
+def test_retrieved_chunk_requires_citation_payload() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    chunk = _make_chunk(session, project=project)
+    chat_session = ChatSession(project_id=project.id)
+    session.add(chat_session)
+    session.flush()
+    retrieval_run = RetrievalRun(
+        project_id=project.id,
+        session_id=chat_session.id,
+        query="alpha",
+        strategy="dense",
+        top_k=1,
+    )
+    session.add(retrieval_run)
+    session.flush()
+    retrieved = RetrievedChunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+    )
+    session.add(retrieved)
+
+    _assert_integrity_error(session)
+
+
+def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    chunk = _make_chunk(session, project=project)
+    chat_session = ChatSession(project_id=project.id)
+    session.add(chat_session)
+    session.commit()
+    session.add(
+        RetrievalRun(
+            project_id=project.id,
+            session_id=chat_session.id,
+            query="alpha",
+            strategy="dense",
+            top_k=0,
+        )
+    )
+    _assert_integrity_error(session)
+
+    retrieval_run = RetrievalRun(
+        project_id=project.id,
+        session_id=chat_session.id,
+        query="alpha",
+        strategy="dense",
+        top_k=1,
+    )
+    session.add(retrieval_run)
+    session.commit()
+    session.add(
+        RetrievedChunk(
+            project_id=project.id,
+            retrieval_run_id=retrieval_run.id,
+            chunk_id=chunk.id,
+            rank=0,
+            citation_json={"chunk_id": str(chunk.id)},
+        )
+    )
+    _assert_integrity_error(session)
+
+    first_rank = RetrievedChunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+        citation_json={"chunk_id": str(chunk.id), "rank": 1},
+    )
+    duplicate_rank = RetrievedChunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+        citation_json={"chunk_id": str(chunk.id), "rank": 1},
+    )
+    session.add_all([first_rank, duplicate_rank])
+    _assert_integrity_error(session)
+
+    session.add(
+        ProviderUsage(
+            project_id=project.id,
+            operation="chat",
+            provider="qwen",
+            model="qwen-plus",
+            status="succeeded",
+            usage_source="provider_reported",
+            input_tokens=-1,
+        )
+    )
+    _assert_integrity_error(session)
+
+
 def test_tool_call_and_retrieval_run_defaults_are_persisted() -> None:
     session = _make_session()
     project = _make_project(session)
@@ -310,5 +439,11 @@ def test_audit_tables_have_project_session_indexes() -> None:
         "provider_usage"
     ]
     assert ("project_id", "operation", "created_at") in indexed_columns[
+        "provider_usage"
+    ]
+    assert ("project_id", "job_id", "created_at") in indexed_columns[
+        "provider_usage"
+    ]
+    assert ("project_id", "eval_run_id", "created_at") in indexed_columns[
         "provider_usage"
     ]
