@@ -15,7 +15,7 @@
 - M11 Retrieval strategy decision: completo.
 - M12 Retrieval evidence expansion: completo.
 - M13 Chat audit trail: completo.
-- M14 Chat history/read surface: activo.
+- M14 Chat history/read surface: completo.
 
 ## M1 Foundation
 
@@ -472,11 +472,15 @@ superficies al fijar primero el contrato de consulta.
 
 ## M14 Chat history/read surface
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m14-chat-history-read-surface/`
+- `openspec/changes/archive/2026-06-21-m14-chat-history-read-surface/`
+
+Spec canonica:
+
+- `openspec/specs/chat-history/spec.md`
 
 Secuencia recomendada:
 
@@ -495,17 +499,18 @@ Secuencia recomendada:
    `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
    salida JSON estable equivalente a la API, con filtros/cursor de listado,
    detalle auditable y error estable para sesiones inexistentes o cross-project.
-5. `m14-quality-gate`: propuesto. Valida tests, lint, types, specs y smokes CLI
-   relevantes, y archiva M14 cuando quede completo.
+5. `m14-quality-gate`: completo. Valida tests, lint, types, specs y smokes CLI
+   relevantes; archiva M14 y publica la spec canonica `chat-history`.
 
 Decision: M14 va antes de frontend, streaming SSE y dashboards porque fija el
 contrato de lectura que esas superficies consumiran. M14 no re-ejecuta chat, no
 muta audit trail, no agrega UI y no cambia retrieval productivo.
 
-Continuacion: despues de M14, el proyecto queda mas cerca de frontend. La
-siguiente decision recomendada seria elegir entre una UI inicial de historial y
-chat sobre API existente, o streaming SSE si la experiencia conversacional
-necesita respuestas parciales antes de UI completa.
+Continuacion: M14 deja listo el contrato backend para una primera UI de chat e
+historial. La siguiente decision recomendada es abrir un change OpenSpec nuevo
+para frontend/UI inicial sobre `POST /chat` y `chat-history`, manteniendo
+streaming SSE, dashboards y replay fuera de alcance hasta que la experiencia
+base este definida.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
