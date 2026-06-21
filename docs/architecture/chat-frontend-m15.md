@@ -1,5 +1,9 @@
 # M15 Chat frontend inicial
 
+Estado: cerrado el 2026-06-21. Change archivado en
+`openspec/changes/archive/2026-06-21-m15-chat-frontend-plan/` y spec canonica
+publicada en `openspec/specs/chat-frontend/spec.md`.
+
 ## Decision
 
 M15 abre la primera superficie frontend de Adaptive RAG sobre contratos backend
@@ -31,12 +35,12 @@ citations y navegar sesiones persistidas sin tocar queries internas.
 
 ## Secuencia
 
-1. `m15-chat-frontend-plan`: activo.
+1. `m15-chat-frontend-plan`: completo.
 2. `m15-frontend-scaffold`: crear app React/TypeScript/Vite aislada.
 3. `m15-chat-api-client`: agregar tipos y cliente fetch testeable.
 4. `m15-chat-workspace-ui`: construir pregunta/respuesta con citations.
 5. `m15-chat-history-ui`: construir listado/detalle read-only.
-6. `m15-quality-gate`: validar y archivar el change.
+6. `m15-quality-gate`: completo.
 
 ## Criterio de cierre
 
