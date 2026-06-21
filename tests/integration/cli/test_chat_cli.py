@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -32,9 +33,11 @@ from adaptive_rag.db.models import (
     ToolCall,
 )
 from adaptive_rag.db.repositories import (
+    ChatAuditRepository,
     ChunkRepository,
     DocumentRepository,
     ProjectRepository,
+    ProviderUsageRepository,
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
@@ -255,6 +258,49 @@ def _create_embedded_chunk(
     )
     session.flush()
     return source, document, version, chunk
+
+
+def _make_provider_call_record() -> ProviderCallRecord:
+    return ProviderCallRecord(
+        provider="qwen",
+        model="qwen-plus",
+        operation="chat",
+        outcome="succeeded",
+        duration_ms=25,
+        usage=ProviderTokenUsage(
+            input_tokens=10,
+            output_tokens=5,
+            total_tokens=15,
+            input_count=1,
+        ),
+        usage_source="provider_reported",
+        estimated_cost_usd=0.0001,
+        request_id="cli-history-request-1",
+        error_type="RateLimitError",
+    )
+
+
+def _set_session_timestamp(
+    chat_session: ChatSession,
+    created_at: datetime,
+) -> None:
+    chat_session.created_at = created_at
+    chat_session.updated_at = created_at + timedelta(seconds=1)
+
+
+def _patch_chat_history_session_scope(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    session: Session,
+) -> None:
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
 
 
 def _patch_chat_dependencies(
@@ -647,3 +693,369 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
     assert [(message.role, message.content) for message in messages] == [
         ("user", "Please answer.")
     ]
+
+
+def test_chat_sessions_list_command_outputs_api_compatible_json(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session, "demo")
+    other_project = _create_project(session, "other")
+    _source, _document, _version, chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="history.md",
+        stable_id="history-doc",
+        text="Middle original evidence",
+        snippet="Middle original evidence",
+        embedding=_vector(0.1),
+    )
+    _other_source, _other_document, _other_version, other_chunk = (
+        _create_embedded_chunk(
+            session,
+            project=other_project,
+            external_id="other.md",
+            stable_id="other-doc",
+            text="Other original evidence",
+            snippet="Other original evidence",
+            embedding=_vector(0.2),
+        )
+    )
+    repo = ChatAuditRepository(session)
+    usage_repo = ProviderUsageRepository(session)
+    base_time = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
+
+    older = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "older"},
+        prompt_version="history-v1",
+    )
+    _set_session_timestamp(older, base_time)
+    repo.add_message(
+        project_id=project.id,
+        session_id=older.id,
+        role="user",
+        content="older question",
+    )
+    repo.succeed_session(project_id=project.id, session_id=older.id)
+
+    middle = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "middle"},
+        prompt_version="history-v1",
+    )
+    _set_session_timestamp(middle, base_time + timedelta(minutes=1))
+    middle_tool = repo.start_tool_call(
+        project_id=project.id,
+        session_id=middle.id,
+        tool_name="retrieval.search",
+        arguments_json={"query": "middle"},
+    )
+    middle_run = repo.create_retrieval_run(
+        project_id=project.id,
+        session_id=middle.id,
+        tool_call_id=middle_tool.id,
+        query="middle",
+        strategy="dense",
+        top_k=1,
+        used_rerank=False,
+    )
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=middle_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+        citation_json={"snippet": "middle evidence"},
+    )
+    usage_repo.create_from_record(
+        project_id=project.id,
+        session_id=middle.id,
+        job_id=None,
+        eval_run_id=None,
+        record=_make_provider_call_record(),
+    )
+    repo.fail_session(
+        project_id=project.id,
+        session_id=middle.id,
+        error_message="runner failed",
+    )
+
+    newest = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "newest"},
+    )
+    _set_session_timestamp(newest, base_time + timedelta(minutes=2))
+    repo.succeed_session(project_id=project.id, session_id=newest.id)
+
+    other_session = repo.create_session(project_id=other_project.id)
+    _set_session_timestamp(other_session, base_time + timedelta(minutes=3))
+    other_run = repo.create_retrieval_run(
+        project_id=other_project.id,
+        session_id=other_session.id,
+        tool_call_id=None,
+        query="other",
+        strategy="dense",
+        top_k=1,
+        used_rerank=False,
+    )
+    repo.add_retrieved_chunk(
+        project_id=other_project.id,
+        retrieval_run_id=other_run.id,
+        chunk_id=other_chunk.id,
+        rank=1,
+        citation_json={"snippet": "other evidence"},
+    )
+    session.commit()
+    _patch_chat_history_session_scope(monkeypatch, session=session)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "list",
+            "--project-id",
+            str(project.id),
+            "--limit",
+            "2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert [item["session_id"] for item in data["items"]] == [
+        str(newest.id),
+        str(middle.id),
+    ]
+    assert data["next_cursor"] is not None
+    middle_item = data["items"][1]
+    assert middle_item["status"] == "failed"
+    assert middle_item["model_config"] == {
+        "provider": "fake",
+        "model": "middle",
+    }
+    assert middle_item["prompt_version"] == "history-v1"
+    assert middle_item["message_count"] == 0
+    assert middle_item["tool_call_count"] == 1
+    assert middle_item["retrieval_run_count"] == 1
+    assert middle_item["provider_usage_count"] == 1
+    assert middle_item["total_estimated_cost_usd"] == pytest.approx(0.0001)
+    assert middle_item["error_message"] == "runner failed"
+
+    second_page = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "list",
+            "--project-id",
+            str(project.id),
+            "--limit",
+            "2",
+            "--cursor",
+            data["next_cursor"],
+        ],
+    )
+    assert second_page.exit_code == 0
+    assert [item["session_id"] for item in json.loads(second_page.stdout)["items"]] == [
+        str(older.id)
+    ]
+    assert json.loads(second_page.stdout)["next_cursor"] is None
+
+    failed_page = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "list",
+            "--project-id",
+            str(project.id),
+            "--status",
+            "failed",
+        ],
+    )
+    assert failed_page.exit_code == 0
+    assert [item["session_id"] for item in json.loads(failed_page.stdout)["items"]] == [
+        str(middle.id)
+    ]
+
+    invalid_limit = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "list",
+            "--project-id",
+            str(project.id),
+            "--limit",
+            "0",
+        ],
+    )
+    assert invalid_limit.exit_code == 1
+    assert "limit must be between 1 and 100" in invalid_limit.output
+
+
+def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session, "demo")
+    other_project = _create_project(session, "other")
+    _source, _document, _version, first_chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="first.md",
+        stable_id="first-doc",
+        text="Alpha first evidence",
+        snippet="Alpha first evidence",
+        embedding=_vector(0.1),
+    )
+    _second_source, _second_document, _second_version, second_chunk = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="second.md",
+            stable_id="second-doc",
+            text="Alpha second evidence",
+            snippet="Alpha second evidence",
+            embedding=_vector(0.2),
+        )
+    )
+    repo = ChatAuditRepository(session)
+    usage_repo = ProviderUsageRepository(session)
+    chat_session = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake"},
+        prompt_version="history-v1",
+    )
+    repo.add_message(
+        project_id=project.id,
+        session_id=chat_session.id,
+        role="user",
+        content="What supports alpha?",
+        metadata_json={"retrieval_limit": 2},
+    )
+    tool_call = repo.start_tool_call(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_name="retrieval.search",
+        arguments_json={"query": "alpha"},
+    )
+    repo.complete_tool_call(
+        project_id=project.id,
+        tool_call_id=tool_call.id,
+        result_summary_json={"result_count": 2},
+        latency_ms=5,
+    )
+    retrieval_run = repo.create_retrieval_run(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_call_id=tool_call.id,
+        query="alpha",
+        strategy="dense",
+        top_k=2,
+        used_rerank=True,
+        filters_json={"source_type": "markdown"},
+        latency_ms=5,
+    )
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=second_chunk.id,
+        rank=2,
+        citation_json={"snippet": "second"},
+        dense_score=0.2,
+    )
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=first_chunk.id,
+        rank=1,
+        citation_json={"snippet": "first"},
+        dense_score=0.1,
+    )
+    repo.add_message(
+        project_id=project.id,
+        session_id=chat_session.id,
+        role="assistant",
+        content="Alpha is supported.",
+    )
+    usage_repo.create_from_record(
+        project_id=project.id,
+        session_id=chat_session.id,
+        job_id=None,
+        eval_run_id=None,
+        record=_make_provider_call_record(),
+    )
+    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    session.commit()
+    _patch_chat_history_session_scope(monkeypatch, session=session)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "show",
+            "--project-id",
+            str(project.id),
+            "--session-id",
+            str(chat_session.id),
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["session"]["session_id"] == str(chat_session.id)
+    assert data["session"]["status"] == "succeeded"
+    assert data["session"]["model_config"] == {"provider": "fake"}
+    assert data["session"]["prompt_version"] == "history-v1"
+    assert [(item["role"], item["content"]) for item in data["messages"]] == [
+        ("user", "What supports alpha?"),
+        ("assistant", "Alpha is supported."),
+    ]
+    assert data["messages"][0]["metadata"] == {"retrieval_limit": 2}
+    assert data["tool_calls"][0]["tool_call_id"] == str(tool_call.id)
+    assert data["tool_calls"][0]["tool_name"] == "retrieval.search"
+    assert data["tool_calls"][0]["arguments"] == {"query": "alpha"}
+    assert data["tool_calls"][0]["result_summary"] == {"result_count": 2}
+    assert data["tool_calls"][0]["latency_ms"] == 5
+    retrieval_run_data = data["retrieval_runs"][0]
+    assert retrieval_run_data["retrieval_run_id"] == str(retrieval_run.id)
+    assert retrieval_run_data["tool_call_id"] == str(tool_call.id)
+    assert retrieval_run_data["query"] == "alpha"
+    assert retrieval_run_data["strategy"] == "dense"
+    assert retrieval_run_data["top_k"] == 2
+    assert retrieval_run_data["used_rerank"] is True
+    assert retrieval_run_data["filters"] == {"source_type": "markdown"}
+    assert [item["citation"] for item in retrieval_run_data["retrieved_chunks"]] == [
+        {"snippet": "first"},
+        {"snippet": "second"},
+    ]
+    assert [item["chunk_id"] for item in retrieval_run_data["retrieved_chunks"]] == [
+        str(first_chunk.id),
+        str(second_chunk.id),
+    ]
+    assert data["provider_usage"][0]["provider"] == "qwen"
+    assert data["provider_usage"][0]["model"] == "qwen-plus"
+    assert data["provider_usage"][0]["operation"] == "chat"
+    assert data["provider_usage"][0]["estimated_cost_usd"] == pytest.approx(0.0001)
+
+    cross_project = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "sessions",
+            "show",
+            "--project-id",
+            str(other_project.id),
+            "--session-id",
+            str(chat_session.id),
+        ],
+    )
+    assert cross_project.exit_code == 1
+    assert "chat session not found" in cross_project.output

@@ -10,18 +10,17 @@ M13 Chat audit trail cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M14 `m14-chat-history-api`: agrega schemas HTTP y endpoints read-only para
-listar sesiones de chat y consultar el detalle auditable de una sesion. El
-listado conserva aislamiento por proyecto, filtro de status, limite acotado,
-cursor deterministico, conteos y costo estimado; el detalle devuelve metadata
-de sesion, mensajes, tool calls, retrieval runs con retrieved chunks/citations
-anidadas y provider usage, sin re-ejecutar chat/retrieval ni mutar el audit
-trail.
+M14 `m14-chat-history-cli`: agrega comandos read-only
+`adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con JSON
+estable equivalente a la API de historial. Los comandos reutilizan los read
+models del audit trail, conservan aislamiento por proyecto, cursor/filtro de
+status en listados, detalle con retrieved chunks/citations y provider usage, y
+no re-ejecutan chat/retrieval ni mutan sesiones.
 
 Comandos validados:
 
 ```text
-uv run pytest tests/integration/api/test_chat.py -q
+uv run pytest tests/integration/cli/test_chat_cli.py -q
 uv run pytest
 uv run ruff check .
 uv run mypy src
@@ -60,11 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m14-chat-history-cli`: comandos
-  `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
-  salida JSON estable sobre los mismos read models. La razon es cerrar la
-  inspeccion local/QA de historial antes del quality gate y antes de iniciar
-  frontend, streaming o dashboards.
+- Ejecutar `m14-quality-gate` y archivar
+  `openspec/changes/m14-chat-history-read-surface/` despues del merge del CLI.
+  La razon es cerrar formalmente M14 antes de iniciar frontend, streaming o
+  dashboards sobre este contrato.
 
 ## Reglas de coordinacion
 
