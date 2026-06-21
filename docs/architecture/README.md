@@ -23,6 +23,9 @@ Documentos:
   sesiones antes de frontend, streaming o dashboards.
 - `chat-frontend-m15.md`: decision M15 para construir una UI inicial de chat e
   historial sobre `POST /chat` y `chat-history`.
+- `chat-streaming-m16.md`: decision M16 para exponer chat streaming por SSE
+  sobre `POST`, con frontend `fetch` streaming, cancelacion, fallback y audit
+  trail compatible.
 
 Reglas:
 

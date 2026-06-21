@@ -1,8 +1,10 @@
 # M16 Chat streaming SSE
 
+Estado: completo el 2026-06-21.
+
 ## Decision
 
-M16 abre una superficie de streaming para chat sobre los contratos ya cerrados:
+M16 cerro una superficie de streaming para chat sobre los contratos ya cerrados:
 `POST /chat` de M5, audit trail durable de M13, historial read-only de M14 y
 frontend operativo de M15.
 
@@ -13,7 +15,7 @@ con parametros en URL. FastAPI 0.137.1 en el repo expone `fastapi.sse`, y la
 documentacion actual tambien respalda `StreamingResponse` con
 `media_type="text/event-stream"` como fallback de implementacion.
 
-## Alcance recomendado
+## Alcance implementado
 
 - Agregar `POST /projects/{project_id}/chat/stream`.
 - Definir eventos SSE estables: `session_started`, `tool_call`, `answer_delta`,
@@ -23,6 +25,7 @@ documentacion actual tambien respalda `StreamingResponse` con
 - Persistir audit trail final de la misma forma que el flujo no streaming.
 - Consumir streaming en frontend con `fetch`, parser SSE y `AbortController`.
 - Refrescar historial despues de `final`.
+- No guardar deltas parciales como mensajes independientes.
 
 ## Fuera de alcance
 
@@ -35,17 +38,18 @@ documentacion actual tambien respalda `StreamingResponse` con
 
 ## Secuencia
 
-1. `m16-chat-streaming-sse`: activo.
+1. `m16-chat-streaming-sse`: completo.
 2. `m16-streaming-event-contract`: completo.
-3. `m16-chat-service-streaming`: servicio streaming con audit trail compartido.
-4. `m16-chat-streaming-api`: endpoint FastAPI SSE.
-5. `m16-chat-streaming-frontend-client`: cliente/parser streaming.
-6. `m16-chat-streaming-ui`: UI de deltas, cancelacion y fallback.
-7. `m16-quality-gate`: validar y archivar el change.
+3. `m16-chat-service-streaming`: completo.
+4. `m16-chat-streaming-api`: completo.
+5. `m16-chat-streaming-frontend-client`: completo.
+6. `m16-chat-streaming-ui`: completo.
+7. `m16-quality-gate`: completo.
 
 ## Criterio de cierre
 
-M16 debe cerrar cuando un usuario pueda enviar una pregunta desde el frontend,
-ver progreso y respuesta parcial por streaming, recibir un evento final
-compatible con `POST /chat`, refrescar historial desde la sesion persistida y
-volver al flujo no streaming cuando el stream no este disponible.
+M16 quedo cerrado cuando un usuario puede enviar una pregunta desde el frontend,
+ver respuesta parcial por streaming, recibir un evento final compatible con
+`POST /chat`, refrescar historial desde la sesion persistida, cancelar una
+corrida abierta y volver al flujo no streaming cuando el stream no esta
+disponible antes de abrirse.

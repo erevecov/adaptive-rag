@@ -25,6 +25,25 @@ function createFetchStub(response: Response): {
   }
 }
 
+function sseResponse(chunks: string[], init?: ResponseInit): Response {
+  const encoder = new TextEncoder()
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(encoder.encode(chunk))
+        }
+        controller.close()
+      },
+    }),
+    {
+      headers: { 'content-type': 'text/event-stream' },
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+    },
+  )
+}
+
 describe('createApiClient', () => {
   test('posts chat requests with stable JSON payloads', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
@@ -153,6 +172,77 @@ describe('createApiClient', () => {
       name: 'ApiClientError',
       status: 404,
       detail: 'chat session not found',
+      } satisfies Partial<ApiClientError>)
+  })
+
+  test('streams chat SSE events and resolves the final response', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const { fetch, calls } = createFetchStub(
+      sseResponse([
+        'event: session_started\ndata: {"session_id":"session-stream"}\n\n',
+        'event: tool_call\ndata: {"name":"retrieval.search","query":"alpha"',
+        ',"limit":3,"result_count":1}\n\n',
+        'event: answer_delta\ndata: {"text":"Partial answer"}\n\n',
+        'event: final\ndata: {"answer":"Final answer","citations":[],"tool_calls":[],"session_id":"session-stream"}\n\n',
+      ]),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+    const deltas: string[] = []
+    const toolCalls: string[] = []
+    const sessions: string[] = []
+
+    const response = await client.askChatStream(
+      projectId,
+      {
+        message: 'What changed?',
+        retrieval_limit: 3,
+      },
+      {
+        onAnswerDelta: (text) => deltas.push(text),
+        onSessionStarted: (sessionId) => sessions.push(sessionId),
+        onToolCall: (toolCall) => toolCalls.push(toolCall.query),
+      },
+    )
+
+    expect(response).toEqual({
+      answer: 'Final answer',
+      citations: [],
+      tool_calls: [],
+      session_id: 'session-stream',
+    })
+    expect(deltas).toEqual(['Partial answer'])
+    expect(toolCalls).toEqual(['alpha'])
+    expect(sessions).toEqual(['session-stream'])
+    expect(calls).toHaveLength(1)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/chat/stream`,
+    )
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.headers).toEqual({
+      accept: 'text/event-stream',
+      'content-type': 'application/json',
+    })
+  })
+
+  test('raises structured errors for chat stream error events', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const { fetch } = createFetchStub(
+      sseResponse(['event: error\ndata: {"detail":"runner failed"}\n\n']),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await expect(
+      client.askChatStream(projectId, { message: 'What changed?' }, {}),
+    ).rejects.toMatchObject({
+      name: 'ApiClientError',
+      status: 200,
+      detail: 'runner failed',
     } satisfies Partial<ApiClientError>)
   })
 })

@@ -2,26 +2,30 @@
 
 ## Milestone activo
 
-M16 Chat streaming SSE.
+Ninguno. M16 Chat streaming SSE quedo cerrado.
 
 ## Ultimo milestone completado
 
-M15 Chat frontend inicial cerrado el 2026-06-21.
+M16 Chat streaming SSE cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M16 `m16-streaming-event-contract`: agrega el contrato interno de eventos SSE
-para chat, con factories para `session_started`, `tool_call`, `answer_delta`,
-`heartbeat`, `final` y `error`, serializer determinista de framing SSE y tests
-unitarios que verifican que `final` reutiliza el shape de `POST /chat`.
+M16 `m16-quality-gate`: completa el resto del milestone en un PR. Agrega
+`ChatService.stream`, `POST /projects/{project_id}/chat/stream` con
+`text/event-stream`, parser SSE en el frontend, render incremental de
+`answer_delta`, cancelacion con `AbortController`, fallback a `POST /chat` si
+el stream falla antes de abrirse, persistencia durable del audit trail y archive
+OpenSpec de `chat-streaming`.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest tests/unit/chat/test_chat_streaming.py
 uv run pytest
 uv run ruff check .
 uv run mypy src
+pnpm --dir frontend test
+pnpm --dir frontend lint
+pnpm --dir frontend build
 pnpm dlx @fission-ai/openspec validate m16-chat-streaming-sse --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
@@ -30,11 +34,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `m16-chat-streaming-sse`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-21-m15-chat-frontend-plan/`
+- `openspec/changes/archive/2026-06-21-m16-chat-streaming-sse/`
 
 ## Spec canonica activa
 
@@ -56,13 +60,16 @@ git diff --check
 - `openspec/specs/chat-audit-trail/spec.md`
 - `openspec/specs/chat-history/spec.md`
 - `openspec/specs/chat-frontend/spec.md`
+- `openspec/specs/chat-streaming/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Implementar `m16-chat-service-streaming`: compartir validacion, audit trail,
-  retrieval tool, citations y provider usage con el flujo no streaming antes de
-  exponer el endpoint FastAPI. La razon es mantener un unico contrato de negocio
-  antes de conectar transporte SSE.
+- Abrir un change OpenSpec M17 para observability de chat/costo-latencia:
+  dashboard o superficie de resumen sobre el audit trail y `provider_usage`.
+  La razon es que M13-M16 ya dejan sesiones, historial, usage y streaming
+  persistidos; el siguiente riesgo operativo es poder ver costo, latencia,
+  errores y volumen antes de agregar replay, auth final o nuevas estrategias de
+  retrieval.
 
 ## Reglas de coordinacion
 

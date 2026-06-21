@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -14,6 +14,14 @@ from adaptive_rag.chat.models import (
     ChatResponse,
     ChatRunnerOutput,
     ChatRunnerRequest,
+)
+from adaptive_rag.chat.streaming import (
+    ChatStreamEvent,
+    chat_stream_answer_delta_event,
+    chat_stream_error_event,
+    chat_stream_final_event,
+    chat_stream_session_started_event,
+    chat_stream_tool_call_event,
 )
 from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
 from adaptive_rag.provider_usage import ProviderCallRecord
@@ -60,9 +68,7 @@ class ChatService:
         )
 
     def respond(self, request: ChatRequest) -> ChatResponse:
-        message = _validate_message(request.message)
-        if request.retrieval_limit <= 0:
-            raise ChatServiceError("retrieval_limit must be positive")
+        message = _validate_request(request)
 
         session_id = self._audit_writer.start_session(
             request,
@@ -135,6 +141,101 @@ class ChatService:
                 )
             raise
 
+    def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
+        message = _validate_request(request)
+        session_id = self._audit_writer.start_session(
+            request,
+            message,
+            model_config_json=_runner_model_config(self._runner),
+            prompt_version=_runner_prompt_version(self._runner),
+        )
+        runner_request = ChatRunnerRequest(
+            project_id=request.project_id,
+            message=message,
+            retrieval_limit=request.retrieval_limit,
+            metadata_filter=request.metadata_filter,
+        )
+        retrieval_tool = ChatRetrievalTool(
+            retrieval_service=self._retrieval_service,
+            project_id=request.project_id,
+            default_limit=request.retrieval_limit,
+            default_metadata_filter=request.metadata_filter,
+            audit_writer=self._audit_writer,
+            audit_session_id=session_id,
+        )
+        return self._stream_response(
+            request=request,
+            message=message,
+            session_id=session_id,
+            runner_request=runner_request,
+            retrieval_tool=retrieval_tool,
+        )
+
+    def _stream_response(
+        self,
+        *,
+        request: ChatRequest,
+        message: str,
+        session_id: UUID | None,
+        runner_request: ChatRunnerRequest,
+        retrieval_tool: ChatRetrievalTool,
+    ) -> Iterator[ChatStreamEvent]:
+        provider_usage_recorded = False
+        try:
+            if session_id is not None:
+                yield chat_stream_session_started_event(session_id)
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "user",
+                    message,
+                )
+            output = self._runner.run(
+                runner_request,
+                ChatTools(retrieval=retrieval_tool),
+            )
+            citations = _resolve_citations(
+                cited_chunk_ids=output.cited_chunk_ids,
+                retrieved_results=retrieval_tool.retrieved_results,
+            )
+            response = ChatResponse(
+                answer=output.answer,
+                citations=citations,
+                tool_calls=retrieval_tool.tool_calls,
+                session_id=session_id,
+            )
+            for tool_call in response.tool_calls:
+                yield chat_stream_tool_call_event(tool_call)
+            if response.answer:
+                yield chat_stream_answer_delta_event(response.answer)
+            if session_id is not None:
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "assistant",
+                    response.answer,
+                )
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
+                self._audit_writer.succeed_session(request.project_id, session_id)
+            yield chat_stream_final_event(response)
+        except Exception as exc:
+            if session_id is not None:
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
+                self._audit_writer.fail_session(
+                    request.project_id,
+                    session_id,
+                    str(exc),
+                )
+            yield chat_stream_error_event(str(exc))
+
     def _record_provider_usage_once(
         self,
         *,
@@ -178,6 +279,13 @@ def _string_attr(value: object, name: str) -> str | None:
         if stripped:
             return stripped
     return None
+
+
+def _validate_request(request: ChatRequest) -> str:
+    message = _validate_message(request.message)
+    if request.retrieval_limit <= 0:
+        raise ChatServiceError("retrieval_limit must be positive")
+    return message
 
 
 def _validate_message(message: str) -> str:

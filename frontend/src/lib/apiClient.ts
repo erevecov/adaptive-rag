@@ -57,6 +57,45 @@ export type ChatResponseBody = {
   session_id: string | null
 }
 
+export type ChatStreamEvent =
+  | {
+      event: 'session_started'
+      data: { session_id: string }
+    }
+  | {
+      event: 'tool_call'
+      data: ChatToolCall
+    }
+  | {
+      event: 'answer_delta'
+      data: { text: string }
+    }
+  | {
+      event: 'heartbeat'
+      data: { elapsed_ms: number }
+    }
+  | {
+      event: 'final'
+      data: ChatResponseBody
+    }
+  | {
+      event: 'error'
+      data: { detail: string }
+    }
+
+export type ChatStreamHandlers = {
+  onAnswerDelta?(text: string): void
+  onErrorEvent?(detail: string): void
+  onEvent?(event: ChatStreamEvent): void
+  onHeartbeat?(elapsedMs: number): void
+  onSessionStarted?(sessionId: string): void
+  onToolCall?(toolCall: ChatToolCall): void
+}
+
+export type ChatStreamOptions = {
+  signal?: AbortSignal
+}
+
 export type ChatSessionStatus = 'running' | 'succeeded' | 'failed' | string
 
 export type ChatSessionSummary = {
@@ -182,6 +221,12 @@ export class ApiClientError extends Error {
 
 export type ApiClient = {
   askChat(projectId: string, body: ChatRequestBody): Promise<ChatResponseBody>
+  askChatStream(
+    projectId: string,
+    body: ChatRequestBody,
+    handlers?: ChatStreamHandlers,
+    options?: ChatStreamOptions,
+  ): Promise<ChatResponseBody>
   listChatSessions(
     projectId: string,
     params?: ChatSessionListParams,
@@ -207,6 +252,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         body,
         method: 'POST',
         url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat`,
+      })
+    },
+    askChatStream(projectId, body, handlers = {}, requestOptions = {}) {
+      return requestChatStream(fetchImpl, {
+        body,
+        handlers,
+        signal: requestOptions.signal,
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat/stream`,
       })
     },
     getChatSession(projectId, sessionId) {
@@ -280,12 +333,251 @@ async function requestJson<T>(
   return payload as T
 }
 
+async function requestChatStream(
+  fetchImpl: typeof fetch,
+  options: {
+    body: ChatRequestBody
+    handlers: ChatStreamHandlers
+    signal?: AbortSignal
+    url: string
+  },
+): Promise<ChatResponseBody> {
+  const response = await fetchImpl(options.url, {
+    body: JSON.stringify(options.body),
+    headers: {
+      accept: 'text/event-stream',
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+    signal: options.signal,
+  })
+
+  if (!response.ok) {
+    const payload = await readJson(response)
+    const detail = getErrorDetail(payload)
+    throw new ApiClientError(
+      typeof detail === 'string'
+        ? detail
+        : `Request failed with status ${response.status}`,
+      {
+        detail,
+        status: response.status,
+      },
+    )
+  }
+
+  if (response.body === null) {
+    throw new ApiClientError('Chat stream response body is empty', {
+      detail: 'Chat stream response body is empty',
+      status: response.status,
+    })
+  }
+
+  return readChatStream(response.body, options.handlers, response.status)
+}
+
+async function readChatStream(
+  body: ReadableStream<Uint8Array>,
+  handlers: ChatStreamHandlers,
+  status: number,
+): Promise<ChatResponseBody> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let finalResponse: ChatResponseBody | null = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      buffer += decoder.decode()
+      break
+    }
+    buffer += decoder.decode(value, { stream: true })
+    const result = consumeSseBuffer(buffer, handlers, status, finalResponse)
+    buffer = result.buffer
+    finalResponse = result.finalResponse
+  }
+
+  if (buffer.trim().length > 0) {
+    const event = parseSseBlock(buffer)
+    if (event !== null) {
+      const handledResponse = handleChatStreamEvent(event, handlers, status)
+      if (handledResponse !== null) {
+        finalResponse = handledResponse
+      }
+    }
+  }
+
+  if (finalResponse === null) {
+    throw new ApiClientError('Chat stream ended before final event', {
+      detail: 'Chat stream ended before final event',
+      status,
+    })
+  }
+
+  return finalResponse
+}
+
+function consumeSseBuffer(
+  buffer: string,
+  handlers: ChatStreamHandlers,
+  status: number,
+  finalResponse: ChatResponseBody | null,
+): {
+  buffer: string
+  finalResponse: ChatResponseBody | null
+} {
+  let remaining = buffer
+  let nextFinalResponse = finalResponse
+
+  while (true) {
+    const separatorIndex = remaining.indexOf('\n\n')
+    if (separatorIndex === -1) {
+      break
+    }
+    const block = remaining.slice(0, separatorIndex)
+    remaining = remaining.slice(separatorIndex + 2)
+    const event = parseSseBlock(block)
+    if (event !== null) {
+      const handledResponse = handleChatStreamEvent(event, handlers, status)
+      if (handledResponse !== null) {
+        nextFinalResponse = handledResponse
+      }
+    }
+  }
+
+  return {
+    buffer: remaining,
+    finalResponse: nextFinalResponse,
+  }
+}
+
+function parseSseBlock(block: string): ChatStreamEvent | null {
+  let eventName = ''
+  const dataLines: string[] = []
+
+  for (const rawLine of block.split(/\r?\n/)) {
+    if (rawLine.length === 0 || rawLine.startsWith(':')) {
+      continue
+    }
+    const separatorIndex = rawLine.indexOf(':')
+    const field =
+      separatorIndex === -1 ? rawLine : rawLine.slice(0, separatorIndex)
+    let value = separatorIndex === -1 ? '' : rawLine.slice(separatorIndex + 1)
+    if (value.startsWith(' ')) {
+      value = value.slice(1)
+    }
+    if (field === 'event') {
+      eventName = value
+    }
+    if (field === 'data') {
+      dataLines.push(value)
+    }
+  }
+
+  if (eventName.length === 0 && dataLines.length === 0) {
+    return null
+  }
+
+  const data = parseJsonObject(dataLines.join('\n') || '{}')
+  return toChatStreamEvent(eventName, data)
+}
+
+function handleChatStreamEvent(
+  event: ChatStreamEvent,
+  handlers: ChatStreamHandlers,
+  status: number,
+): ChatResponseBody | null {
+  handlers.onEvent?.(event)
+
+  if (event.event === 'session_started') {
+    handlers.onSessionStarted?.(event.data.session_id)
+    return null
+  }
+  if (event.event === 'tool_call') {
+    handlers.onToolCall?.(event.data)
+    return null
+  }
+  if (event.event === 'answer_delta') {
+    handlers.onAnswerDelta?.(event.data.text)
+    return null
+  }
+  if (event.event === 'heartbeat') {
+    handlers.onHeartbeat?.(event.data.elapsed_ms)
+    return null
+  }
+  if (event.event === 'error') {
+    handlers.onErrorEvent?.(event.data.detail)
+    throw new ApiClientError(event.data.detail, {
+      detail: event.data.detail,
+      status,
+    })
+  }
+  return event.data
+}
+
+function toChatStreamEvent(
+  eventName: string,
+  data: JsonObject,
+): ChatStreamEvent {
+  if (eventName === 'session_started') {
+    return {
+      event: eventName,
+      data: { session_id: readString(data, 'session_id') },
+    }
+  }
+  if (eventName === 'tool_call') {
+    return {
+      event: eventName,
+      data: {
+        limit: readNumber(data, 'limit'),
+        name: readString(data, 'name'),
+        query: readString(data, 'query'),
+        result_count: readNumber(data, 'result_count'),
+      },
+    }
+  }
+  if (eventName === 'answer_delta') {
+    return {
+      event: eventName,
+      data: { text: readString(data, 'text') },
+    }
+  }
+  if (eventName === 'heartbeat') {
+    return {
+      event: eventName,
+      data: { elapsed_ms: readNumber(data, 'elapsed_ms') },
+    }
+  }
+  if (eventName === 'final') {
+    return {
+      event: eventName,
+      data: data as ChatResponseBody,
+    }
+  }
+  if (eventName === 'error') {
+    return {
+      event: eventName,
+      data: { detail: readString(data, 'detail') },
+    }
+  }
+  throw new Error(`Unknown chat stream event: ${eventName}`)
+}
+
 async function readJson(response: Response): Promise<unknown> {
   const text = await response.text()
   if (text.length === 0) {
     return null
   }
   return JSON.parse(text) as unknown
+}
+
+function parseJsonObject(text: string): JsonObject {
+  const value = JSON.parse(text) as unknown
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Chat stream event data must be a JSON object')
+  }
+  return value as JsonObject
 }
 
 function getErrorDetail(payload: unknown): unknown {
@@ -297,4 +589,20 @@ function getErrorDetail(payload: unknown): unknown {
     return (payload as { detail: unknown }).detail
   }
   return payload
+}
+
+function readNumber(value: JsonObject, key: string): number {
+  const field = value[key]
+  if (typeof field !== 'number') {
+    throw new Error(`Chat stream event field ${key} must be a number`)
+  }
+  return field
+}
+
+function readString(value: JsonObject, key: string): string {
+  const field = value[key]
+  if (typeof field !== 'string') {
+    throw new Error(`Chat stream event field ${key} must be a string`)
+  }
+  return field
 }

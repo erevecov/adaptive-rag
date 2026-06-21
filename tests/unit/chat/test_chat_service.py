@@ -14,7 +14,9 @@ from adaptive_rag.chat import (
     ChatServiceError,
     ChatToolCall,
 )
+from adaptive_rag.chat.audit import InMemoryChatAuditWriter
 from adaptive_rag.chat.payloads import serialize_chat_response
+from adaptive_rag.chat.streaming import chat_stream_error_event
 from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.retrieval import (
     DenseRetrievalCitation,
@@ -23,6 +25,7 @@ from adaptive_rag.retrieval import (
     RetrievalSearchResult,
     RetrievalServiceError,
 )
+from adaptive_rag.retrieval.payloads import serialize_retrieval_result
 
 
 class RecordingRetrievalService:
@@ -93,6 +96,20 @@ class NoToolRunner:
             answer="No retrieval was needed.",
             cited_chunk_ids=(),
         )
+
+
+class RaisingRunner:
+    def __init__(self, message: str = "runner failed") -> None:
+        self.message = message
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        raise ChatServiceError(self.message)
 
 
 def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
@@ -182,6 +199,108 @@ def test_chat_service_can_answer_without_retrieval_tool_call() -> None:
     assert response.answer == "No retrieval was needed."
     assert response.citations == ()
     assert response.tool_calls == ()
+
+
+def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    session_id = uuid4()
+    retrieval_result = _retrieval_result(
+        chunk_id=chunk_id,
+        snippet="Alpha original evidence",
+    )
+    retrieval = RecordingRetrievalService([retrieval_result])
+    runner = ToolCallingRunner(
+        retrieval_query="alpha evidence",
+        cited_chunk_ids=(chunk_id,),
+    )
+    audit = InMemoryChatAuditWriter(session_id=session_id)
+
+    events = list(
+        ChatService(
+            runner=runner,
+            retrieval_service=retrieval,
+            audit_writer=audit,
+        ).stream(
+            ChatRequest(
+                project_id=project_id,
+                message="What supports alpha?",
+                retrieval_limit=2,
+            )
+        )
+    )
+
+    assert [event.event for event in events] == [
+        "session_started",
+        "tool_call",
+        "answer_delta",
+        "final",
+    ]
+    assert events[0].data == {"session_id": str(session_id)}
+    assert events[1].data == {
+        "name": "retrieval.search",
+        "query": "alpha evidence",
+        "limit": 2,
+        "result_count": 1,
+    }
+    assert events[2].data == {"text": "Alpha is backed by retrieved evidence."}
+    assert events[3].data == {
+        "answer": "Alpha is backed by retrieved evidence.",
+        "citations": [serialize_retrieval_result(retrieval_result)],
+        "tool_calls": [
+            {
+                "name": "retrieval.search",
+                "query": "alpha evidence",
+                "limit": 2,
+                "result_count": 1,
+            }
+        ],
+        "session_id": str(session_id),
+    }
+    assert {
+        "event": "message",
+        "role": "assistant",
+        "content": "Alpha is backed by retrieved evidence.",
+    } in audit.events
+    assert audit.events[-1] == {"event": "succeed_session"}
+
+
+def test_chat_service_stream_rejects_invalid_requests_before_session_start() -> None:
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    runner = NoToolRunner()
+    retrieval = RecordingRetrievalService([])
+
+    with pytest.raises(ChatServiceError, match="message must not be empty"):
+        list(
+            ChatService(
+                runner=runner,
+                retrieval_service=retrieval,
+                audit_writer=audit,
+            ).stream(ChatRequest(project_id=uuid4(), message=" "))
+        )
+
+    assert runner.requests == []
+    assert retrieval.requests == []
+    assert audit.events == []
+
+
+def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+
+    events = list(
+        ChatService(
+            runner=RaisingRunner("runner failed"),
+            retrieval_service=RecordingRetrievalService([]),
+            audit_writer=audit,
+        ).stream(ChatRequest(project_id=uuid4(), message="alpha"))
+    )
+
+    assert [event.event for event in events] == ["session_started", "error"]
+    assert events[1] == chat_stream_error_event("runner failed")
+    assert audit.events[-1] == {
+        "event": "fail_session",
+        "error_message": "runner failed",
+    }
 
 
 @pytest.mark.parametrize(

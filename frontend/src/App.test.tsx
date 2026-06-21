@@ -22,11 +22,13 @@ afterEach(() => {
 
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
+  askChatStream?: ApiClient['askChatStream']
   getChatSession?: ApiClient['getChatSession']
   listChatSessions?: ApiClient['listChatSessions']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
+    askChatStream: options.askChatStream ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
     listChatSessions: options.listChatSessions ?? vi.fn(),
   }
@@ -196,6 +198,20 @@ const sessionDetailResponse: ChatSessionDetailResponse = {
   ],
 }
 
+function createDeferred<T>(): {
+  promise: Promise<T>
+  reject(reason?: unknown): void
+  resolve(value: T): void
+} {
+  let reject!: (reason?: unknown) => void
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    resolve = nextResolve
+    reject = nextReject
+  })
+  return { promise, reject, resolve }
+}
+
 describe('App chat workspace', () => {
   test('renders with the local API fallback when no API base URL is configured', () => {
     render(<App />)
@@ -207,7 +223,8 @@ describe('App chat workspace', () => {
   test('submits a chat question and renders response details', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
-      askChat: vi.fn(async () => chatResponse),
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
       listChatSessions: vi.fn(async () => sessionListResponse),
     })
 
@@ -217,10 +234,16 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
-    expect(client.askChat).toHaveBeenCalledWith(projectId, {
-      message: 'How do I retry?',
-      retrieval_limit: 5,
-    })
+    expect(client.askChatStream).toHaveBeenCalledWith(
+      projectId,
+      {
+        message: 'How do I retry?',
+        retrieval_limit: 5,
+      },
+      expect.any(Object),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(client.askChat).not.toHaveBeenCalled()
     expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
       limit: 5,
     })
@@ -231,6 +254,90 @@ describe('App chat workspace', () => {
     expect(screen.getAllByText('session-123')).toHaveLength(2)
   })
 
+  test('renders streaming deltas before the final response resolves', async () => {
+    const user = userEvent.setup()
+    const finalResponse = createDeferred<ChatResponseBody>()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async (_projectId, _body, handlers) => {
+        handlers.onSessionStarted?.('session-stream')
+        handlers.onToolCall?.({
+          limit: 2,
+          name: 'retrieval.search',
+          query: 'streaming evidence',
+          result_count: 1,
+        })
+        handlers.onAnswerDelta?.('Partial streaming answer')
+        return finalResponse.promise
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How does streaming work?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
+    expect(screen.getByText('streaming evidence')).toBeTruthy()
+
+    finalResponse.resolve(chatResponse)
+
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(client.askChat).not.toHaveBeenCalled()
+  })
+
+  test('falls back to the non-streaming chat request before stream events open', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(async () => chatResponse),
+      askChatStream: vi.fn(async () => {
+        throw new TypeError('stream unavailable')
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(client.askChatStream).toHaveBeenCalled()
+    expect(client.askChat).toHaveBeenCalledWith(projectId, {
+      message: 'How do I retry?',
+      retrieval_limit: 5,
+    })
+  })
+
+  test('cancels an open streaming request without rendering a final answer', async () => {
+    const user = userEvent.setup()
+    let capturedSignal: AbortSignal | undefined
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn((_projectId, _body, _handlers, options) => {
+        capturedSignal = options?.signal
+        return new Promise<ChatResponseBody>((_resolve, reject) => {
+          capturedSignal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'))
+          })
+        })
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'Cancel this request')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+    expect(capturedSignal?.aborted).toBe(true)
+    expect(await screen.findByText('Canceled')).toBeTruthy()
+    expect(screen.queryByText(chatResponse.answer)).toBeNull()
+    expect(client.askChat).not.toHaveBeenCalled()
+  })
+
   test('shows request errors without clearing the draft question', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -239,6 +346,9 @@ describe('App chat workspace', () => {
           detail: 'backend unavailable',
           status: 503,
         })
+      }),
+      askChatStream: vi.fn(async () => {
+        throw new TypeError('stream unavailable')
       }),
       listChatSessions: vi.fn(async () => sessionListResponse),
     })

@@ -358,6 +358,11 @@ button:disabled {
   width: 100%;
 }
 
+.form-actions .secondary-button {
+  margin-top: 0;
+  width: auto;
+}
+
 .session-button {
   align-items: center;
   background: #ffffff;
