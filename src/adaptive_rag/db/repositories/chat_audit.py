@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import (
+    CHAT_SESSION_STATUS_VALUES,
     ChatMessage,
     ChatSession,
     Chunk,
@@ -22,6 +28,47 @@ from adaptive_rag.db.models import (
     ToolCall,
 )
 from adaptive_rag.provider_usage import ProviderCallRecord
+
+DEFAULT_CHAT_SESSION_HISTORY_LIMIT = 20
+MAX_CHAT_SESSION_HISTORY_LIMIT = 100
+
+
+@dataclass(frozen=True)
+class ChatSessionSummary:
+    """Resumen read-only de una sesion de chat persistida."""
+
+    session_id: UUID
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    model_config: dict[str, Any] | None
+    prompt_version: str | None
+    message_count: int
+    tool_call_count: int
+    retrieval_run_count: int
+    provider_usage_count: int
+    total_estimated_cost_usd: float
+    error_message: str | None
+
+
+@dataclass(frozen=True)
+class ChatSessionSummaryPage:
+    """Pagina acotada de resumenes de sesiones de chat."""
+
+    items: tuple[ChatSessionSummary, ...]
+    next_cursor: str | None
+
+
+@dataclass(frozen=True)
+class ChatSessionDetail:
+    """Detalle read-only del audit trail de una sesion de chat."""
+
+    session: ChatSession
+    messages: tuple[ChatMessage, ...]
+    tool_calls: tuple[ToolCall, ...]
+    retrieval_runs: tuple[RetrievalRun, ...]
+    retrieved_chunks_by_run_id: Mapping[UUID, tuple[RetrievedChunk, ...]]
+    provider_usage: tuple[ProviderUsage, ...]
 
 
 class ChatAuditRepository:
@@ -306,6 +353,219 @@ class ChatAuditRepository:
         )
         return list(self._session.scalars(statement))
 
+    def list_session_summaries(
+        self,
+        *,
+        project_id: UUID,
+        status: str | None = None,
+        limit: int = DEFAULT_CHAT_SESSION_HISTORY_LIMIT,
+        cursor: str | None = None,
+    ) -> ChatSessionSummaryPage:
+        if limit < 1 or limit > MAX_CHAT_SESSION_HISTORY_LIMIT:
+            raise ValueError(
+                f"limit must be between 1 and {MAX_CHAT_SESSION_HISTORY_LIMIT}"
+            )
+        if status is not None and status not in CHAT_SESSION_STATUS_VALUES:
+            raise ValueError("invalid chat session status")
+
+        cursor_values = _decode_chat_session_cursor(cursor)
+        message_count = (
+            select(func.count(ChatMessage.id))
+            .where(
+                ChatMessage.project_id == project_id,
+                ChatMessage.session_id == ChatSession.id,
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        tool_call_count = (
+            select(func.count(ToolCall.id))
+            .where(
+                ToolCall.project_id == project_id,
+                ToolCall.session_id == ChatSession.id,
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        retrieval_run_count = (
+            select(func.count(RetrievalRun.id))
+            .where(
+                RetrievalRun.project_id == project_id,
+                RetrievalRun.session_id == ChatSession.id,
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        provider_usage_count = (
+            select(func.count(ProviderUsage.id))
+            .where(
+                ProviderUsage.project_id == project_id,
+                ProviderUsage.session_id == ChatSession.id,
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        total_estimated_cost = (
+            select(func.coalesce(func.sum(ProviderUsage.estimated_cost_usd), 0.0))
+            .where(
+                ProviderUsage.project_id == project_id,
+                ProviderUsage.session_id == ChatSession.id,
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+
+        statement = (
+            select(
+                ChatSession,
+                message_count,
+                tool_call_count,
+                retrieval_run_count,
+                provider_usage_count,
+                total_estimated_cost,
+            )
+            .where(ChatSession.project_id == project_id)
+            .order_by(ChatSession.created_at.desc(), ChatSession.id.desc())
+            .limit(limit + 1)
+        )
+        if status is not None:
+            statement = statement.where(ChatSession.status == status)
+        if cursor_values is not None:
+            cursor_created_at, cursor_session_id = cursor_values
+            statement = statement.where(
+                or_(
+                    ChatSession.created_at < cursor_created_at,
+                    and_(
+                        ChatSession.created_at == cursor_created_at,
+                        ChatSession.id < cursor_session_id,
+                    ),
+                )
+            )
+
+        rows = self._session.execute(statement).all()
+        items = tuple(
+            ChatSessionSummary(
+                session_id=chat_session.id,
+                status=chat_session.status,
+                created_at=chat_session.created_at,
+                updated_at=chat_session.updated_at,
+                model_config=(
+                    dict(chat_session.model_config_json)
+                    if chat_session.model_config_json is not None
+                    else None
+                ),
+                prompt_version=chat_session.prompt_version,
+                message_count=int(message_count_value),
+                tool_call_count=int(tool_call_count_value),
+                retrieval_run_count=int(retrieval_run_count_value),
+                provider_usage_count=int(provider_usage_count_value),
+                total_estimated_cost_usd=float(total_estimated_cost_value or 0.0),
+                error_message=chat_session.error_message,
+            )
+            for (
+                chat_session,
+                message_count_value,
+                tool_call_count_value,
+                retrieval_run_count_value,
+                provider_usage_count_value,
+                total_estimated_cost_value,
+            ) in rows[:limit]
+        )
+        next_cursor = (
+            _encode_chat_session_cursor(
+                created_at=items[-1].created_at,
+                session_id=items[-1].session_id,
+            )
+            if len(rows) > limit and items
+            else None
+        )
+        return ChatSessionSummaryPage(items=items, next_cursor=next_cursor)
+
+    def get_session_detail(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+    ) -> ChatSessionDetail | None:
+        chat_session = self.get_session(project_id=project_id, session_id=session_id)
+        if chat_session is None:
+            return None
+
+        messages = tuple(
+            self._session.scalars(
+                select(ChatMessage)
+                .where(
+                    ChatMessage.project_id == project_id,
+                    ChatMessage.session_id == session_id,
+                )
+                .order_by(ChatMessage.created_at, ChatMessage.id)
+            )
+        )
+        tool_calls = tuple(
+            self._session.scalars(
+                select(ToolCall)
+                .where(
+                    ToolCall.project_id == project_id,
+                    ToolCall.session_id == session_id,
+                )
+                .order_by(ToolCall.created_at, ToolCall.id)
+            )
+        )
+        retrieval_runs = tuple(
+            self._session.scalars(
+                select(RetrievalRun)
+                .where(
+                    RetrievalRun.project_id == project_id,
+                    RetrievalRun.session_id == session_id,
+                )
+                .order_by(RetrievalRun.created_at, RetrievalRun.id)
+            )
+        )
+        retrieved_chunks_by_run_id: dict[UUID, tuple[RetrievedChunk, ...]] = {
+            retrieval_run.id: ()
+            for retrieval_run in retrieval_runs
+        }
+        if retrieval_runs:
+            retrieval_run_ids = [retrieval_run.id for retrieval_run in retrieval_runs]
+            retrieved_chunks = self._session.scalars(
+                select(RetrievedChunk)
+                .where(
+                    RetrievedChunk.project_id == project_id,
+                    RetrievedChunk.retrieval_run_id.in_(retrieval_run_ids),
+                )
+                .order_by(RetrievedChunk.retrieval_run_id, RetrievedChunk.rank)
+            )
+            grouped_chunks: dict[UUID, list[RetrievedChunk]] = {
+                retrieval_run.id: [] for retrieval_run in retrieval_runs
+            }
+            for retrieved_chunk in retrieved_chunks:
+                grouped_chunks[retrieved_chunk.retrieval_run_id].append(
+                    retrieved_chunk
+                )
+            retrieved_chunks_by_run_id = {
+                retrieval_run_id: tuple(chunks)
+                for retrieval_run_id, chunks in grouped_chunks.items()
+            }
+
+        provider_usage = tuple(
+            self._session.scalars(
+                select(ProviderUsage)
+                .where(
+                    ProviderUsage.project_id == project_id,
+                    ProviderUsage.session_id == session_id,
+                )
+                .order_by(ProviderUsage.created_at, ProviderUsage.id)
+            )
+        )
+        return ChatSessionDetail(
+            session=chat_session,
+            messages=messages,
+            tool_calls=tool_calls,
+            retrieval_runs=retrieval_runs,
+            retrieved_chunks_by_run_id=retrieved_chunks_by_run_id,
+            provider_usage=provider_usage,
+        )
+
     def _require_session(
         self,
         *,
@@ -441,3 +701,37 @@ class ProviderUsageRepository:
         if job is None:
             raise ValueError("job does not belong to project")
         return job
+
+
+def _encode_chat_session_cursor(
+    *,
+    created_at: datetime,
+    session_id: UUID,
+) -> str:
+    payload = {
+        "created_at": created_at.isoformat(),
+        "session_id": str(session_id),
+    }
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_chat_session_cursor(cursor: str | None) -> tuple[datetime, UUID] | None:
+    if cursor is None:
+        return None
+    try:
+        padded_cursor = cursor + "=" * (-len(cursor) % 4)
+        raw = base64.urlsafe_b64decode(padded_cursor.encode("ascii"))
+        payload = json.loads(raw.decode("utf-8"))
+        created_at = datetime.fromisoformat(payload["created_at"])
+        session_id = UUID(payload["session_id"])
+    except (
+        binascii.Error,
+        KeyError,
+        TypeError,
+        UnicodeDecodeError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as exc:
+        raise ValueError("invalid chat session cursor") from exc
+    return created_at, session_id
