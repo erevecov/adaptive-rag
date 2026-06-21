@@ -2,29 +2,30 @@
 
 ## Milestone activo
 
-M14 Chat history/read surface.
+Pendiente de abrir. M14 quedo completo y archivado el 2026-06-21.
 
 ## Ultimo milestone completado
 
-M13 Chat audit trail cerrado el 2026-06-21.
+M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M14 `m14-chat-history-cli`: agrega comandos read-only
-`adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con JSON
-estable equivalente a la API de historial. Los comandos reutilizan los read
-models del audit trail, conservan aislamiento por proyecto, cursor/filtro de
-status en listados, detalle con retrieved chunks/citations y provider usage, y
-no re-ejecutan chat/retrieval ni mutan sesiones.
+M14 `m14-quality-gate`: valida API/CLI de historial de chat, archiva
+`m14-chat-history-read-surface` y publica la spec canonica `chat-history`.
+M14 queda como superficie read-only para listar sesiones y consultar detalle
+auditable sin re-ejecutar chat/retrieval ni mutar el audit trail.
 
 Comandos validados:
 
 ```text
 uv run pytest tests/integration/cli/test_chat_cli.py -q
+uv run pytest tests/integration/api/test_chat.py -q
 uv run pytest
 uv run ruff check .
 uv run mypy src
-npx --yes @fission-ai/openspec validate m14-chat-history-read-surface --strict
+uv run adaptive-rag chat sessions list --help
+uv run adaptive-rag chat sessions show --help
+npx --yes @fission-ai/openspec archive m14-chat-history-read-surface --yes
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -32,11 +33,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m14-chat-history-read-surface/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-21-m13-chat-audit-trail/`
+- `openspec/changes/archive/2026-06-21-m14-chat-history-read-surface/`
 
 ## Spec canonica activa
 
@@ -56,13 +57,15 @@ git diff --check
 - `openspec/specs/hosted-evals/spec.md`
 - `openspec/specs/retrieval-quality/spec.md`
 - `openspec/specs/chat-audit-trail/spec.md`
+- `openspec/specs/chat-history/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Ejecutar `m14-quality-gate` y archivar
-  `openspec/changes/m14-chat-history-read-surface/` despues del merge del CLI.
-  La razon es cerrar formalmente M14 antes de iniciar frontend, streaming o
-  dashboards sobre este contrato.
+- Abrir un change OpenSpec nuevo para la primera UI/frontend de chat e
+  historial sobre los contratos existentes (`POST /chat` y `chat-history`).
+  La razon es que M14 ya fijo el contrato backend de lectura; el siguiente
+  riesgo es disenar una experiencia usable sin mezclar todavia streaming SSE,
+  dashboards o replay.
 
 ## Reglas de coordinacion
 

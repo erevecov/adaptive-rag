@@ -2,13 +2,13 @@
 
 ## Decision
 
-M14 debe avanzar con una superficie read-only para consultar sesiones de chat
-persistidas antes de construir frontend, streaming SSE o dashboards.
+M14 cerro una superficie read-only para consultar sesiones de chat persistidas
+antes de construir frontend, streaming SSE o dashboards.
 
 La razon es que M13 ya dejo una fuente durable para sesiones, mensajes, tool
-calls, retrieval runs, citations y usage/cost, pero todavia no existe contrato
-publico para leer esos datos de forma aislada por proyecto. Un frontend estable
-necesita primero ese contrato de listado/detalle.
+calls, retrieval runs, citations y usage/cost. M14 fijo el contrato publico para
+leer esos datos de forma aislada por proyecto. Un frontend estable debe consumir
+ese contrato de listado/detalle.
 
 ## Alcance recomendado
 
@@ -30,14 +30,14 @@ necesita primero ese contrato de listado/detalle.
 
 ## Secuencia
 
-1. `m14-chat-history-read-surface`
-2. `m14-chat-history-repository-read-models`
-3. `m14-chat-history-api`
-4. `m14-chat-history-cli`
-5. `m14-quality-gate`
+1. `m14-chat-history-read-surface`: completo.
+2. `m14-chat-history-repository-read-models`: completo.
+3. `m14-chat-history-api`: completo.
+4. `m14-chat-history-cli`: completo.
+5. `m14-quality-gate`: completo y archivado.
 
 ## Criterio de cierre
 
-M14 queda listo cuando API y CLI pueden listar y mostrar sesiones de chat
+M14 queda cerrado porque API y CLI pueden listar y mostrar sesiones de chat
 persistidas con aislamiento por proyecto, orden estable, limites acotados y sin
 mutar el audit trail ni exponer secretos.
