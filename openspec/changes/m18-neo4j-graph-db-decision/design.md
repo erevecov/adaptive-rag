@@ -66,11 +66,11 @@ evals posteriores no justifican graph retrieval. La matriz completa esta en
 
 - No agregar dependencia `neo4j` ni `graphdatascience` en este PR.
 - No agregar Docker Compose, Neo4j Desktop config ni Aura secrets.
-- No agregar settings productivos, migrations ni tablas nuevas.
 - No agregar adapter Neo4j live, indexer ni reindex job.
 - No cambiar dense retrieval, rerank, chat, streaming, history ni observability.
 - No cambiar defaults de retrieval ni activar graph retrieval en v1 sin evals.
 - No guardar datos primarios solo en graph DB.
+- No agregar settings para Memgraph, FalkorDB ni Kuzu en M18.
 
 ## Alternativas a comparar
 
@@ -231,12 +231,24 @@ Resultado:
 
 ### 3. `m18-graph-store-contract`
 
+Estado: completo.
+
 Alcance:
 
 - Definir contrato `GraphStore`, settings, errores estables y fakes offline.
 - Definir readiness/backfill por proyecto en Postgres antes del adapter live.
 - Mantener `graph_store=disabled` default.
 - Agregar tests unitarios sin servicio live.
+
+Resultado:
+
+- Agrega `graph_store=disabled|neo4j` y credenciales Neo4j opcionales en
+  settings sin construir clientes live.
+- Agrega contrato `GraphStore`, `DisabledGraphStore`, `FakeGraphStore`, health
+  check, resultado de backfill, errores estables y helper de fallback dense.
+- Agrega tabla/modelo/repository `graph_projections` para readiness/backfill por
+  proyecto con estados `disabled`, `pending_backfill`, `indexing`, `ready`,
+  `stale` y `failed`.
 
 Fuera de alcance:
 

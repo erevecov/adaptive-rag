@@ -6,6 +6,11 @@ from adaptive_rag.db.models.chunk import EMBEDDING_DIMENSIONS, Chunk
 from adaptive_rag.db.models.chunk_sparse_embedding import ChunkSparseEmbedding
 from adaptive_rag.db.models.document import Document
 from adaptive_rag.db.models.document_version import DocumentVersion
+from adaptive_rag.db.models.graph_projection import (
+    GRAPH_PROJECTION_BACKEND_VALUES,
+    GRAPH_PROJECTION_STATUS_VALUES,
+    GraphProjection,
+)
 from adaptive_rag.db.models.job import JOB_STATUS_VALUES, Job
 from adaptive_rag.db.models.job_event import JOB_EVENT_TYPE_VALUES, JobEvent
 from adaptive_rag.db.models.project import JSONWithJSONB, Project
@@ -30,6 +35,9 @@ __all__ = [
     "ChatSession",
     "Document",
     "DocumentVersion",
+    "GRAPH_PROJECTION_BACKEND_VALUES",
+    "GRAPH_PROJECTION_STATUS_VALUES",
+    "GraphProjection",
     "JOB_EVENT_TYPE_VALUES",
     "JOB_STATUS_VALUES",
     "Job",

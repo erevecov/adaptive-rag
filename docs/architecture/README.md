@@ -34,6 +34,9 @@ Documentos:
   derivado opt-in.
 - `graph-db-decision-matrix-m18.md`: matriz M18 que selecciona Neo4j como
   primer backend live opt-in y mantiene Memgraph/FalkorDB/Kuzu en hold/no-go.
+- `graph-store-contract-m18.md`: contrato M18 de `GraphStore`, settings,
+  readiness/backfill en Postgres, errores estables y fakes offline antes de
+  Neo4j live.
 
 Reglas:
 

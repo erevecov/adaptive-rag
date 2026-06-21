@@ -49,11 +49,10 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 - Requerir rutas local y managed documentadas antes de adapter live.
 - Requerir evals versionadas antes de promover retrieval graph.
 
-## Fuera de alcance
+## Fuera de alcance restante
 
 - Agregar dependencia `neo4j` o `graphdatascience`.
 - Agregar Docker Compose, Neo4j Desktop config o Aura secrets.
-- Agregar migrations, tablas, settings productivos o infra.
 - Agregar adapter live, indexer, reindex jobs o route de retrieval graph.
 - Cambiar defaults de retrieval, rerank, chat, streaming o observability.
 
@@ -61,7 +60,7 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 
 1. `m18-neo4j-graph-db-decision`: completo.
 2. `m18-graph-db-decision-matrix`: completo.
-3. `m18-graph-store-contract`: pendiente.
+3. `m18-graph-store-contract`: completo.
 4. `m18-neo4j-adapter-and-health`: pendiente.
 5. `m18-neo4j-indexer`: pendiente.
 6. `m18-graph-retrieval-route`: pendiente.
