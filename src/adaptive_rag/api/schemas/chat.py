@@ -46,6 +46,7 @@ class ChatResponseBody(BaseModel):
     answer: str
     citations: list[RetrievalResultResponse]
     tool_calls: list[ChatToolCallResponse]
+    session_id: UUID | None = None
 
     @classmethod
     def from_chat_response(

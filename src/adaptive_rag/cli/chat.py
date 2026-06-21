@@ -3,19 +3,29 @@
 from __future__ import annotations
 
 import json
+from inspect import signature
 from typing import Annotated
 from uuid import UUID
 
 import typer
+from sqlalchemy.orm import Session
 
-from adaptive_rag.chat import ChatRequest, ChatService, ChatServiceError
+from adaptive_rag.chat import (
+    ChatRequest,
+    ChatService,
+    ChatServiceError,
+    SqlAlchemyChatAuditWriter,
+)
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
+from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
+from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.retrieval import RetrievalService
 
 app = typer.Typer(no_args_is_help=True)
@@ -65,18 +75,47 @@ def ask(
     )
 
     with session_scope() as session:
+        usage_tracker = InMemoryProviderUsageTracker()
+        audit_writer = SqlAlchemyChatAuditWriter(
+            session=session,
+            chat_audit_repository=ChatAuditRepository(session),
+            provider_usage_repository=ProviderUsageRepository(session),
+        )
         retrieval_service = RetrievalService(
             session,
-            provider=get_cli_dense_embedding_provider(),
+            provider=_get_chat_dense_embedding_provider(usage_tracker=usage_tracker),
         )
         service = ChatService(
-            runner=get_cli_chat_runner(),
+            runner=get_cli_chat_runner(usage_tracker=usage_tracker),
             retrieval_service=retrieval_service,
+            audit_writer=audit_writer,
+            provider_usage_records=lambda: usage_tracker.records,
         )
         try:
             response = service.respond(request)
+            session.commit()
         except ChatServiceError as exc:
+            _commit_or_rollback_chat_error(session)
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
+        except Exception:
+            _commit_or_rollback_chat_error(session)
+            raise
 
     typer.echo(json.dumps(serialize_chat_response(response)))
+
+
+def _commit_or_rollback_chat_error(session: Session) -> None:
+    try:
+        session.commit()
+    except Exception:
+        session.rollback()
+
+
+def _get_chat_dense_embedding_provider(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> DenseEmbeddingProvider:
+    if "usage_tracker" in signature(get_cli_dense_embedding_provider).parameters:
+        return get_cli_dense_embedding_provider(usage_tracker=usage_tracker)
+    return get_cli_dense_embedding_provider()

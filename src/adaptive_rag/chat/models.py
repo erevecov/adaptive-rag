@@ -54,3 +54,4 @@ class ChatResponse:
     answer: str
     citations: tuple[RetrievalResultPayload, ...]
     tool_calls: tuple[ChatToolCall, ...]
+    session_id: UUID | None = None

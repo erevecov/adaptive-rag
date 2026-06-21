@@ -1,5 +1,11 @@
 """Contrato conversacional compartido para M5."""
 
+from adaptive_rag.chat.audit import (
+    ChatAuditWriter,
+    InMemoryChatAuditWriter,
+    NullChatAuditWriter,
+    SqlAlchemyChatAuditWriter,
+)
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
     ChatRequest,
@@ -13,6 +19,7 @@ from adaptive_rag.chat.runners import RetrievalGroundedChatRunner
 from adaptive_rag.chat.service import ChatRunner, ChatService
 
 __all__ = [
+    "ChatAuditWriter",
     "ChatRequest",
     "ChatResponse",
     "ChatRunner",
@@ -21,7 +28,10 @@ __all__ = [
     "ChatService",
     "ChatServiceError",
     "ChatToolCall",
+    "InMemoryChatAuditWriter",
+    "NullChatAuditWriter",
     "QwenChatRunner",
     "QwenChatRunnerError",
     "RetrievalGroundedChatRunner",
+    "SqlAlchemyChatAuditWriter",
 ]

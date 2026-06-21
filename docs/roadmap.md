@@ -14,6 +14,7 @@
 - M10 Retrieval eval datasets y decision gates: completo.
 - M11 Retrieval strategy decision: completo.
 - M12 Retrieval evidence expansion: completo.
+- M13 Chat audit trail: activo.
 
 ## M1 Foundation
 
@@ -414,9 +415,47 @@ Decision: M12 midio antes de construir. Dense retrieval sigue como default.
 Candidate tuning presets/defaults quedaron en `no-go`; lexical/RRF y Qwen
 sparse retrieval quedaron en `hold`.
 
-Continuacion: no agregar algoritmos de retrieval todavia. El siguiente change
-OpenSpec debe abrirse solo despues de elegir una prioridad nueva con evidencia
-concreta o una necesidad fuera de ranking.
+Continuacion: no agregar algoritmos de retrieval todavia. La siguiente prioridad
+seleccionada es M13 Chat audit trail, una necesidad fuera de ranking para dejar
+sesiones, mensajes, tool calls, retrieval runs, citations y usage/cost en un
+registro durable antes de streaming, dashboards o historial.
+
+## M13 Chat audit trail
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m13-chat-audit-trail/`
+
+Secuencia recomendada:
+
+1. `m13-chat-audit-trail`: planificacion completa. Crea el change OpenSpec
+   que delimita M13 como persistencia durable de chat sin streaming, historial,
+   dashboards ni cambios de ranking; el change sigue activo/no archivado.
+2. `m13-audit-schema`: completo en branch de implementacion. Agrega migracion
+   Alembic y modelos SQLAlchemy para sesiones, mensajes, tool calls, retrieval
+   runs, retrieved chunks y provider usage.
+3. `m13-audit-repositories`: completo en branch de implementacion. Agrega
+   repositories con aislamiento por proyecto, transiciones de status y
+   saneamiento de metadata sin secretos.
+4. `m13-chat-service-audit-wiring`: completo en branch de implementacion.
+   Integra la escritura del audit trail en `ChatService`, preservando
+   validacion de citations y fakes deterministas.
+5. `m13-api-cli-audit-surface`: completo en branch de implementacion. Hace que
+   API/CLI persistan el audit trail por defecto y expongan solo metadata minima
+   como `session_id` si el contrato lo requiere.
+6. `m13-provider-usage-linking`: completo en branch de implementacion. Vincula
+   usage/cost de providers al contexto durable disponible sin romper runners
+   offline.
+7. `m13-quality-gate`: completo en branch de implementacion. Valida tests,
+   lint, types, specs y smoke CLI, dejando el change activo/no archivado hasta
+   que se solicite el archive explicito.
+
+Decision: M13 va antes de streaming SSE, dashboards e historial porque esas
+superficies necesitan una fuente durable para reproducir mensajes, tool calls,
+retrieval context, citations, errores y usage/cost. M13 no cambia retrieval
+productivo ni agrega algoritmos nuevos.
 
 ## Politica para reducir conflictos de merge
 

@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Pendiente de abrir el siguiente change OpenSpec.
+M13 Chat audit trail.
 
 ## Ultimo milestone completado
 
@@ -10,9 +10,10 @@ M12 Retrieval evidence expansion cerrado el 2026-06-20.
 
 ## Ultimo slice completado
 
-M12 `m12-quality-gate`: valida el milestone completo, archiva
-`m12-retrieval-evidence-expansion` y publica la spec canonica actualizada de
-`retrieval-quality`.
+M13 `m13-quality-gate`: valida la implementacion completa de los slices
+`3.1`-`3.5` en la branch `codex/m13-chat-audit-trail-impl`. El change OpenSpec
+`m13-chat-audit-trail` sigue activo/no archivado hasta que se solicite archive
+explicito.
 
 Comandos validados:
 
@@ -20,24 +21,15 @@ Comandos validados:
 uv run pytest
 uv run ruff check .
 uv run mypy src
-npx --yes @fission-ai/openspec validate m12-retrieval-evidence-expansion --strict
+npx --yes @fission-ai/openspec validate m13-chat-audit-trail --strict
 npx --yes @fission-ai/openspec validate --specs --strict
-npx --yes @fission-ai/openspec archive m12-retrieval-evidence-expansion --yes
-npx --yes @fission-ai/openspec list
+uv run pytest tests/integration/cli/test_chat_cli.py -q
 git diff --check
-```
-
-Evidencia offline validada:
-
-```text
-run_candidate_limit_ab_retrieval_eval_suite sobre `retrieval-dataset-pack`
-con embeddings deterministas, `FakeRerankProvider`, SQLite in-memory y
-`candidate_limits=(3, 5, 8)`
 ```
 
 ## Change OpenSpec activo
 
-Ninguno.
+- `openspec/changes/m13-chat-audit-trail/`
 
 ## Ultimo change archivado
 
@@ -63,11 +55,10 @@ Ninguno.
 
 ## Siguiente tarea recomendada
 
-- Abrir el siguiente change OpenSpec solo despues de elegir una prioridad nueva.
-  La opcion recomendada es no agregar algoritmos de retrieval todavia: M12 no
-  justifico candidate presets, lexical/RRF ni sparse retrieval. Si aparece una
-  prioridad nueva, debe partir de evidencia concreta o de una necesidad fuera de
-  ranking.
+- Revisar y mergear la branch de implementacion de M13 cuando corresponda,
+  manteniendo `m13-chat-audit-trail` activo/no archivado hasta que se solicite
+  el archive explicito. La razon es que el gate ya confirma tests, lint, types,
+  OpenSpec y smokes CLI, pero el archive no fue solicitado en esta tarea.
 
 ## Reglas de coordinacion
 

@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from uuid import UUID
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import URL, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from typer.testing import CliRunner
 
 from adaptive_rag.chat import ChatRunnerOutput, ChatRunnerRequest
@@ -19,11 +19,17 @@ from adaptive_rag.cli.app import app
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
+    ChatMessage,
+    ChatSession,
     Chunk,
     Document,
     DocumentVersion,
     Project,
+    ProviderUsage,
+    RetrievalRun,
+    RetrievedChunk,
     Source,
+    ToolCall,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
@@ -32,6 +38,11 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderCallRecord,
+    ProviderTokenUsage,
+)
 
 
 class StaticQueryEmbeddingProvider:
@@ -46,6 +57,33 @@ class StaticQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [list(self.embedding) for _text in texts]
+
+
+class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
+    def __init__(
+        self,
+        embedding: list[float],
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> None:
+        super().__init__(embedding)
+        self.usage_tracker = usage_tracker
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        embeddings = super().embed_texts(texts)
+        self.usage_tracker.record(
+            ProviderCallRecord(
+                provider="fake",
+                model="usage-recording-embedding-v1",
+                operation="embedding",
+                outcome="succeeded",
+                duration_ms=7,
+                usage=ProviderTokenUsage(input_count=len(texts)),
+                usage_source="unavailable",
+                request_id="cli-embedding-request-1",
+            )
+        )
+        return embeddings
 
 
 class ToolCallingChatRunner:
@@ -84,11 +122,62 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
-def _make_session() -> Session:
+class ProviderUsageRecordingChatRunner:
+    def __init__(
+        self,
+        *,
+        tracker: InMemoryProviderUsageTracker | None,
+    ) -> None:
+        self.tracker = tracker
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        if self.tracker is not None:
+            self.tracker.record(
+                ProviderCallRecord(
+                    provider="qwen",
+                    model="qwen-plus",
+                    operation="chat",
+                    outcome="succeeded",
+                    duration_ms=12,
+                    usage=ProviderTokenUsage(
+                        input_tokens=3,
+                        output_tokens=4,
+                        total_tokens=7,
+                    ),
+                    usage_source="provider_reported",
+                    estimated_cost_usd=0.0001,
+                    request_id="cli-chat-request-1",
+                )
+            )
+        return ChatRunnerOutput(answer="Live usage was recorded.")
+
+
+class ExplodingChatRunner:
+    def __init__(self) -> None:
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        raise RuntimeError("runner exploded")
+
+
+def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     engine = create_engine(
-        "sqlite+pysqlite://",
+        URL.create(
+            "sqlite+pysqlite",
+            database=str(tmp_path / "chat-cli.sqlite"),
+        ),
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
     )
     Base.metadata.create_all(
         engine,
@@ -98,9 +187,15 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChatSession.__table__,
+            ChatMessage.__table__,
+            ToolCall.__table__,
+            RetrievalRun.__table__,
+            RetrievedChunk.__table__,
+            ProviderUsage.__table__,
         ],
     )
-    return create_session_factory(engine)()
+    return create_session_factory(engine)
 
 
 def _vector(first: float, second: float = 0.0) -> list[float]:
@@ -167,7 +262,7 @@ def _patch_chat_dependencies(
     *,
     session: Session,
     provider: StaticQueryEmbeddingProvider,
-    runner: ToolCallingChatRunner | RecordingNoToolChatRunner,
+    runner: ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner,
 ) -> None:
     @contextmanager
     def override_session_scope() -> Iterator[Session]:
@@ -183,14 +278,16 @@ def _patch_chat_dependencies(
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
-        lambda: runner,
+        lambda usage_tracker=None: runner,
     )
 
 
 def test_chat_ask_command_outputs_api_compatible_json(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    session = _make_session()
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
@@ -296,12 +393,33 @@ def test_chat_ask_command_outputs_api_compatible_json(
             "result_count": 2,
         }
     ]
+    session_id = UUID(data["session_id"])
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.status == "succeeded"
+    assert (
+        fresh_session.query(ChatMessage).filter_by(session_id=session_id).count() == 2
+    )
+    assert fresh_session.query(ToolCall).filter_by(session_id=session_id).count() == 1
+    retrieval_run = (
+        fresh_session.query(RetrievalRun).filter_by(session_id=session_id).one()
+    )
+    retrieved_chunks = (
+        fresh_session.query(RetrievedChunk)
+        .filter_by(retrieval_run_id=retrieval_run.id)
+        .order_by(RetrievedChunk.rank)
+        .all()
+    )
+    assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
 def test_chat_ask_command_reports_service_errors(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    session = _make_session()
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -329,3 +447,203 @@ def test_chat_ask_command_reports_service_errors(
     assert "message must not be empty" in result.output
     assert provider.inputs == []
     assert runner.requests == []
+
+
+def test_chat_ask_command_persists_live_runner_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runners: list[ProviderUsageRecordingChatRunner] = []
+
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    def runner_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker | None = None,
+    ) -> ProviderUsageRecordingChatRunner:
+        runner = ProviderUsageRecordingChatRunner(tracker=usage_tracker)
+        runners.append(runner)
+        return runner
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_dense_embedding_provider",
+        lambda: provider,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_chat_runner",
+        runner_factory,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "Record live usage.",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    session_id = UUID(data["session_id"])
+    assert data["answer"] == "Live usage was recorded."
+    assert len(runners) == 1
+    assert len(runners[0].requests) == 1
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.provider == "qwen"
+    assert usage.model == "qwen-plus"
+    assert usage.operation == "chat"
+    assert usage.status == "succeeded"
+    assert usage.input_tokens == 3
+    assert usage.output_tokens == 4
+    assert usage.total_tokens == 7
+    assert usage.latency_ms == 12
+    assert usage.provider_request_id == "cli-chat-request-1"
+
+
+def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    _source, _document, _version, _chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Alpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    session.commit()
+    providers: list[UsageRecordingQueryEmbeddingProvider] = []
+    runners: list[ToolCallingChatRunner] = []
+
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    def default_provider_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> UsageRecordingQueryEmbeddingProvider:
+        provider = UsageRecordingQueryEmbeddingProvider(
+            _vector(0.0),
+            usage_tracker=usage_tracker,
+        )
+        providers.append(provider)
+        return provider
+
+    def runner_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker | None = None,
+    ) -> ToolCallingChatRunner:
+        runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+        runners.append(runner)
+        return runner
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.dependencies.get_default_dense_embedding_provider",
+        default_provider_factory,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_chat_runner",
+        runner_factory,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "What supports alpha?",
+            "--retrieval-limit",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    session_id = UUID(data["session_id"])
+    assert len(providers) == 1
+    assert providers[0].inputs == ["alpha evidence"]
+    assert len(runners) == 1
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.operation == "embedding"
+    assert usage.provider == "fake"
+    assert usage.model == "usage-recording-embedding-v1"
+    assert usage.input_count == 1
+    assert usage.provider_request_id == "cli-embedding-request-1"
+
+
+def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ExplodingChatRunner()
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        runner=runner,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "Please answer.",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, RuntimeError)
+    assert str(result.exception) == "runner exploded"
+    assert len(runner.requests) == 1
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.project_id == project.id
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == "runner exploded"
+    messages = fresh_session.query(ChatMessage).filter_by(
+        session_id=chat_session.id
+    )
+    assert [(message.role, message.content) for message in messages] == [
+        ("user", "Please answer.")
+    ]

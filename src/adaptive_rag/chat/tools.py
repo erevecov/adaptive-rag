@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import monotonic
 from typing import Protocol
 from uuid import UUID
 
+from adaptive_rag.chat.audit import (
+    ChatAuditWriter,
+    NullChatAuditWriter,
+    elapsed_ms,
+)
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import ChatToolCall
 from adaptive_rag.retrieval import (
@@ -56,11 +62,17 @@ class ChatRetrievalTool:
         project_id: UUID,
         default_limit: int,
         default_metadata_filter: RetrievalMetadataFilter | None,
+        audit_writer: ChatAuditWriter | None = None,
+        audit_session_id: UUID | None = None,
     ) -> None:
         self._retrieval_service = retrieval_service
         self._project_id = project_id
         self._default_limit = default_limit
         self._default_metadata_filter = default_metadata_filter
+        self._audit_writer = (
+            audit_writer if audit_writer is not None else NullChatAuditWriter()
+        )
+        self._audit_session_id = audit_session_id
         self._tool_calls: list[ChatToolCall] = []
         self._retrieved_results: dict[UUID, RetrievalResultPayload] = {}
 
@@ -85,6 +97,18 @@ class ChatRetrievalTool:
             if metadata_filter is None
             else metadata_filter
         )
+        start = monotonic()
+        audit_tool_call_id = (
+            self._audit_writer.start_retrieval_tool(
+                self._project_id,
+                self._audit_session_id,
+                query,
+                active_limit,
+                active_filter,
+            )
+            if self._audit_session_id is not None
+            else None
+        )
         try:
             results = self._retrieval_service.search(
                 RetrievalSearchRequest(
@@ -95,8 +119,27 @@ class ChatRetrievalTool:
                 )
             )
         except RetrievalServiceError as exc:
+            if self._audit_session_id is not None:
+                self._audit_writer.fail_retrieval_tool(
+                    self._project_id,
+                    self._audit_session_id,
+                    audit_tool_call_id,
+                    str(exc),
+                    elapsed_ms(start),
+                )
             raise ChatServiceError(str(exc)) from exc
+        except Exception as exc:
+            if self._audit_session_id is not None:
+                self._audit_writer.fail_retrieval_tool(
+                    self._project_id,
+                    self._audit_session_id,
+                    audit_tool_call_id,
+                    str(exc),
+                    elapsed_ms(start),
+                )
+            raise
 
+        latency_ms = elapsed_ms(start)
         payloads = tuple(serialize_retrieval_results(results))
         for result, payload in zip(results, payloads, strict=True):
             self._retrieved_results[result.chunk_id] = payload
@@ -108,4 +151,15 @@ class ChatRetrievalTool:
                 result_count=len(payloads),
             )
         )
+        if self._audit_session_id is not None:
+            self._audit_writer.complete_retrieval_tool(
+                self._project_id,
+                self._audit_session_id,
+                audit_tool_call_id,
+                query,
+                active_limit,
+                active_filter,
+                latency_ms,
+                payloads,
+            )
         return ChatRetrievalToolResult(results=payloads)

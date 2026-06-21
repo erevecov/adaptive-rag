@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+import logging
+from collections.abc import Callable
+from typing import Any, Protocol
 from uuid import UUID
 
+from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
     ChatRequest,
@@ -13,7 +16,10 @@ from adaptive_rag.chat.models import (
     ChatRunnerRequest,
 )
 from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
+from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
+
+logger = logging.getLogger(__name__)
 
 
 class ChatRunner(Protocol):
@@ -35,15 +41,36 @@ class ChatService:
         *,
         runner: ChatRunner,
         retrieval_service: RetrievalSearcher,
+        audit_writer: ChatAuditWriter | None = None,
+        provider_usage_records: Callable[
+            [],
+            tuple[ProviderCallRecord, ...],
+        ]
+        | None = None,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
+        self._audit_writer = (
+            audit_writer if audit_writer is not None else NullChatAuditWriter()
+        )
+        self._provider_usage_records = (
+            provider_usage_records
+            if provider_usage_records is not None
+            else _empty_provider_usage_records
+        )
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_message(request.message)
         if request.retrieval_limit <= 0:
             raise ChatServiceError("retrieval_limit must be positive")
 
+        session_id = self._audit_writer.start_session(
+            request,
+            message,
+            model_config_json=_runner_model_config(self._runner),
+            prompt_version=_runner_prompt_version(self._runner),
+        )
+        provider_usage_recorded = False
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
@@ -55,20 +82,102 @@ class ChatService:
             project_id=request.project_id,
             default_limit=request.retrieval_limit,
             default_metadata_filter=request.metadata_filter,
+            audit_writer=self._audit_writer,
+            audit_session_id=session_id,
         )
-        output = self._runner.run(
-            runner_request,
-            ChatTools(retrieval=retrieval_tool),
-        )
-        citations = _resolve_citations(
-            cited_chunk_ids=output.cited_chunk_ids,
-            retrieved_results=retrieval_tool.retrieved_results,
-        )
-        return ChatResponse(
-            answer=output.answer,
-            citations=citations,
-            tool_calls=retrieval_tool.tool_calls,
-        )
+        try:
+            if session_id is not None:
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "user",
+                    message,
+                )
+            output = self._runner.run(
+                runner_request,
+                ChatTools(retrieval=retrieval_tool),
+            )
+            citations = _resolve_citations(
+                cited_chunk_ids=output.cited_chunk_ids,
+                retrieved_results=retrieval_tool.retrieved_results,
+            )
+            response = ChatResponse(
+                answer=output.answer,
+                citations=citations,
+                tool_calls=retrieval_tool.tool_calls,
+                session_id=session_id,
+            )
+            if session_id is not None:
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "assistant",
+                    response.answer,
+                )
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
+                self._audit_writer.succeed_session(request.project_id, session_id)
+            return response
+        except Exception as exc:
+            if session_id is not None:
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
+                self._audit_writer.fail_session(
+                    request.project_id,
+                    session_id,
+                    str(exc),
+                )
+            raise
+
+    def _record_provider_usage_once(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        already_recorded: bool,
+    ) -> bool:
+        if already_recorded:
+            return True
+        try:
+            records = self._provider_usage_records()
+            self._audit_writer.record_provider_usage(project_id, session_id, records)
+        except Exception as exc:
+            logger.warning(
+                "chat_provider_usage_audit_failed",
+                extra={"error_type": type(exc).__name__},
+            )
+        return True
+
+
+def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
+    return ()
+
+
+def _runner_model_config(runner: ChatRunner) -> dict[str, str] | None:
+    provider = _string_attr(runner, "provider_name")
+    model = _string_attr(runner, "model_name")
+    if provider is None or model is None:
+        return None
+    return {"provider": provider, "model": model}
+
+
+def _runner_prompt_version(runner: ChatRunner) -> str | None:
+    return _string_attr(runner, "prompt_version")
+
+
+def _string_attr(value: object, name: str) -> str | None:
+    attr: Any = getattr(value, name, None)
+    if isinstance(attr, str):
+        stripped = attr.strip()
+        if stripped:
+            return stripped
+    return None
 
 
 def _validate_message(message: str) -> str:
