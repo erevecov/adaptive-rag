@@ -10,23 +10,22 @@ M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M15 `m15-chat-api-client`: agrega Vitest y un cliente `fetch` tipado para
-`POST /projects/{project_id}/chat`,
-`GET /projects/{project_id}/chat/sessions` y
-`GET /projects/{project_id}/chat/sessions/{session_id}`. El cliente serializa
-JSON estable, construye query params opcionales y expone errores HTTP
-estructurados sin integrar todavia componentes visuales.
+M15 `m15-chat-workspace-ui`: conecta el shell React con el cliente API para
+enviar preguntas por `POST /projects/{project_id}/chat`, mostrar answer,
+`session_id`, citations y tool calls minimas, y refrescar sesiones recientes
+despues de una respuesta exitosa. La UI cubre empty/loading/error states del
+workspace y preserva el borrador cuando falla una solicitud.
 
 Comandos validados en este slice:
 
 ```text
-pnpm dlx ctx7@latest library Vitest "Add Vitest tests for a TypeScript fetch API client in a Vite React app using pnpm"
-pnpm dlx ctx7@latest docs /vitest-dev/vitest "Add Vitest tests for a TypeScript fetch API client in a Vite React app using pnpm"
-cd frontend && pnpm add -D vitest
+cd frontend && pnpm add -D @testing-library/react @testing-library/user-event jsdom
+cd frontend && pnpm test -- App.test.tsx
 cd frontend && pnpm test
 cd frontend && pnpm run lint
 cd frontend && pnpm run typecheck
 cd frontend && pnpm run build
+Browser QA en http://localhost:5173/
 pnpm dlx @fission-ai/openspec validate m15-chat-frontend-plan --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
@@ -63,10 +62,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m15-chat-workspace-ui`: conectar el shell existente con el
-  cliente API para enviar preguntas, mostrar answer/citations/tool calls y
-  refrescar historial despues de una respuesta exitosa. La razon es que el
-  contrato TypeScript ya esta cubierto por tests antes de construir la UI.
+- Implementar `m15-chat-history-ui`: convertir el panel de sesiones recientes
+  en historial read-only completo con listado por proyecto, seleccion de sesion,
+  detalle de mensajes/tool calls/retrieval runs/provider usage y estados
+  loading/empty/error. La razon es que el workspace ya puede enviar preguntas y
+  refrescar el resumen minimo de sesiones.
 
 ## Reglas de coordinacion
 
