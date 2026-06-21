@@ -86,6 +86,26 @@ def _make_chunk(session, *, project: Project) -> Chunk:
     )
 
 
+def _make_provider_call_record() -> ProviderCallRecord:
+    return ProviderCallRecord(
+        provider="qwen",
+        model="qwen-plus",
+        operation="chat",
+        outcome="succeeded",
+        duration_ms=25,
+        usage=ProviderTokenUsage(
+            input_tokens=10,
+            output_tokens=5,
+            total_tokens=15,
+            input_count=1,
+        ),
+        usage_source="provider_reported",
+        estimated_cost_usd=0.0001,
+        request_id="req-123",
+        error_type="RateLimitError",
+    )
+
+
 def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
     session = _make_session()
     project = _make_project(session)
@@ -257,36 +277,44 @@ def test_repository_marks_failed_session_and_tool_call() -> None:
     assert failed_session.error_message == "query must not be empty"
 
 
+def test_repository_rejects_tool_call_from_different_session() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    repo = ChatAuditRepository(session)
+    first_session = repo.create_session(project_id=project.id)
+    second_session = repo.create_session(project_id=project.id)
+    tool_call = repo.start_tool_call(
+        project_id=project.id,
+        session_id=first_session.id,
+        tool_name="retrieval.search",
+        arguments_json={"query": "alpha"},
+    )
+
+    with pytest.raises(ValueError, match="tool call does not belong to session"):
+        repo.create_retrieval_run(
+            project_id=project.id,
+            session_id=second_session.id,
+            tool_call_id=tool_call.id,
+            query="alpha",
+            strategy="dense",
+            top_k=1,
+            used_rerank=False,
+        )
+
+
 def test_provider_usage_repository_persists_provider_call_record() -> None:
     session = _make_session()
     project = _make_project(session)
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
     chat_session = repo.create_session(project_id=project.id)
-    record = ProviderCallRecord(
-        provider="qwen",
-        model="qwen-plus",
-        operation="chat",
-        outcome="succeeded",
-        duration_ms=25,
-        usage=ProviderTokenUsage(
-            input_tokens=10,
-            output_tokens=5,
-            total_tokens=15,
-            input_count=1,
-        ),
-        usage_source="provider_reported",
-        estimated_cost_usd=0.0001,
-        request_id="req-123",
-        error_type="RateLimitError",
-    )
 
     usage = usage_repo.create_from_record(
         project_id=project.id,
         session_id=chat_session.id,
         job_id=None,
         eval_run_id=None,
-        record=record,
+        record=_make_provider_call_record(),
     )
 
     assert usage.provider == "qwen"
@@ -299,3 +327,61 @@ def test_provider_usage_repository_persists_provider_call_record() -> None:
     assert usage.input_count == 1
     assert usage.provider_request_id == "req-123"
     assert usage.error_message == "RateLimitError"
+
+
+def test_provider_usage_repository_rejects_wrong_project_session() -> None:
+    session = _make_session()
+    project = _make_project(session, "demo")
+    other_project = _make_project(session, "other")
+    repo = ChatAuditRepository(session)
+    usage_repo = ProviderUsageRepository(session)
+    other_session = repo.create_session(project_id=other_project.id)
+
+    with pytest.raises(ValueError, match="chat session does not belong to project"):
+        usage_repo.create_from_record(
+            project_id=project.id,
+            session_id=other_session.id,
+            job_id=None,
+            eval_run_id=None,
+            record=_make_provider_call_record(),
+        )
+
+
+def test_provider_usage_repository_rejects_wrong_project_job() -> None:
+    session = _make_session()
+    project = _make_project(session, "demo")
+    other_project = _make_project(session, "other")
+    usage_repo = ProviderUsageRepository(session)
+    other_job = Job(project_id=other_project.id, job_type="chat")
+    session.add(other_job)
+    session.flush()
+
+    with pytest.raises(ValueError, match="job does not belong to project"):
+        usage_repo.create_from_record(
+            project_id=project.id,
+            session_id=None,
+            job_id=other_job.id,
+            eval_run_id=None,
+            record=_make_provider_call_record(),
+        )
+
+
+def test_provider_usage_repository_persists_job_only_context() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    usage_repo = ProviderUsageRepository(session)
+    job = Job(project_id=project.id, job_type="chat")
+    session.add(job)
+    session.flush()
+
+    usage = usage_repo.create_from_record(
+        project_id=project.id,
+        session_id=None,
+        job_id=job.id,
+        eval_run_id=None,
+        record=_make_provider_call_record(),
+    )
+
+    assert usage.session_id is None
+    assert usage.job_id == job.id
+    assert usage.project_id == project.id

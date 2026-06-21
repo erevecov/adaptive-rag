@@ -215,7 +215,11 @@ class ChatAuditRepository:
     ) -> RetrievalRun:
         self._require_session(project_id=project_id, session_id=session_id)
         if tool_call_id is not None:
-            self._require_tool_call(project_id=project_id, tool_call_id=tool_call_id)
+            self._require_tool_call(
+                project_id=project_id,
+                tool_call_id=tool_call_id,
+                session_id=session_id,
+            )
 
         retrieval_run = RetrievalRun(
             project_id=project_id,
@@ -318,6 +322,7 @@ class ChatAuditRepository:
         *,
         project_id: UUID,
         tool_call_id: UUID,
+        session_id: UUID | None = None,
     ) -> ToolCall:
         statement = select(ToolCall).where(
             ToolCall.id == tool_call_id,
@@ -326,6 +331,8 @@ class ChatAuditRepository:
         tool_call = self._session.scalars(statement).one_or_none()
         if tool_call is None:
             raise ValueError("tool call does not belong to project")
+        if session_id is not None and tool_call.session_id != session_id:
+            raise ValueError("tool call does not belong to session")
         return tool_call
 
     def _require_retrieval_run(
