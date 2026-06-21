@@ -32,5 +32,6 @@ credentials must stay out of the browser.
 
 ## Scope
 
-This scaffold does not call the backend yet. The next M15 slices add the typed
-API client, the chat workspace, and the read-only history UI.
+The workspace screen can call the chat API, render answer details, and refresh a
+small recent-sessions summary. The next M15 slice expands the read-only history
+panel with session selection and detail views.
