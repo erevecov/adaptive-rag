@@ -21,7 +21,7 @@
 - [x] 2.4 Validar `openspec validate m13-chat-audit-trail --strict` y
   `openspec validate --specs --strict`.
 
-## 3. Slices futuros de M13
+## 3. Slices implementados de M13
 
 - [x] 3.1 Implementar `m13-audit-schema`.
 - [x] 3.2 Implementar `m13-audit-repositories`.

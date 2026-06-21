@@ -430,9 +430,9 @@ Change activo:
 
 Secuencia recomendada:
 
-1. `m13-chat-audit-trail`: activo en branch de planificacion. Crea el change
-   OpenSpec que delimita M13 como persistencia durable de chat sin streaming,
-   historial, dashboards ni cambios de ranking.
+1. `m13-chat-audit-trail`: planificacion completa. Crea el change OpenSpec
+   que delimita M13 como persistencia durable de chat sin streaming, historial,
+   dashboards ni cambios de ranking; el change sigue activo/no archivado.
 2. `m13-audit-schema`: completo en branch de implementacion. Agrega migracion
    Alembic y modelos SQLAlchemy para sesiones, mensajes, tool calls, retrieval
    runs, retrieved chunks y provider usage.
