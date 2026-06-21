@@ -18,6 +18,7 @@
 - M14 Chat history/read surface: completo.
 - M15 Chat frontend inicial: completo.
 - M16 Chat streaming SSE: completo.
+- M17 Chat observability y costo-latencia: activo.
 
 ## M1 Foundation
 
@@ -599,11 +600,46 @@ queda como fallback obligatorio. M16 no agrega WebSockets, dashboards, replay,
 auth final, ni cambios de retrieval/rerank/providers.
 
 Continuacion: M16 deja streaming SSE operativo en backend y frontend, con
-fallback no streaming y audit trail durable. La siguiente opcion recomendada es
-abrir un change M17 para observability de chat/costo-latencia sobre sesiones y
-`provider_usage`, antes de replay, auth final o nuevas estrategias de retrieval,
-porque el producto ya puede responder y persistir conversaciones y ahora
-necesita visibilidad operativa de costo, latencia, errores y volumen.
+fallback no streaming y audit trail durable. La siguiente opcion seleccionada es
+M17 para observability de chat/costo-latencia sobre sesiones y `provider_usage`,
+antes de replay, auth final o nuevas estrategias de retrieval, porque el
+producto ya puede responder y persistir conversaciones y ahora necesita
+visibilidad operativa de costo, latencia, errores y volumen.
+
+## M17 Chat observability y costo-latencia
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m17-chat-observability/`
+
+Secuencia recomendada:
+
+1. `m17-chat-observability`: activo. Crea el change OpenSpec que delimita M17
+   como observability local-first de chat, costo y latencia sobre audit trail
+   existente, con API/CLI read-only y sin dashboard avanzado.
+2. `m17-observability-read-models`: pendiente. Agrega read models y repository
+   methods para resumir sesiones, provider usage, latencias y errores por
+   proyecto, con filtros de status/fecha y calculos portables.
+3. `m17-observability-api`: pendiente. Agrega
+   `GET /projects/{project_id}/chat/observability/summary` con JSON estable,
+   validacion de filtros e aislamiento por proyecto.
+4. `m17-observability-cli`: pendiente. Agrega
+   `adaptive-rag chat observability summary` con salida JSON equivalente a la
+   API y filtros equivalentes.
+5. `m17-quality-gate`: pendiente. Valida Python, OpenSpec y docs; archiva M17
+   y publica la spec canonica `chat-observability`.
+
+Decision: M17 empieza por API/CLI porque fija el contrato de agregados antes de
+invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
+`retrieval_runs` y `provider_usage`) y no agrega nuevas tablas inicialmente.
+M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
+replay, auth final ni cambios de retrieval/rerank/providers.
+
+Continuacion: la siguiente tarea recomendada es
+`m17-observability-read-models`, para construir una fuente compartida y
+testeable de agregados antes de exponer endpoint o CLI.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
