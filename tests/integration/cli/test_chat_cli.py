@@ -19,11 +19,17 @@ from adaptive_rag.cli.app import app
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
+    ChatMessage,
+    ChatSession,
     Chunk,
     Document,
     DocumentVersion,
     Project,
+    ProviderUsage,
+    RetrievalRun,
+    RetrievedChunk,
     Source,
+    ToolCall,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
@@ -98,6 +104,12 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChatSession.__table__,
+            ChatMessage.__table__,
+            ToolCall.__table__,
+            RetrievalRun.__table__,
+            RetrievedChunk.__table__,
+            ProviderUsage.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -296,6 +308,20 @@ def test_chat_ask_command_outputs_api_compatible_json(
             "result_count": 2,
         }
     ]
+    session_id = UUID(data["session_id"])
+    chat_session = session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.status == "succeeded"
+    assert session.query(ChatMessage).filter_by(session_id=session_id).count() == 2
+    assert session.query(ToolCall).filter_by(session_id=session_id).count() == 1
+    retrieval_run = session.query(RetrievalRun).filter_by(session_id=session_id).one()
+    retrieved_chunks = (
+        session.query(RetrievedChunk)
+        .filter_by(retrieval_run_id=retrieval_run.id)
+        .order_by(RetrievedChunk.rank)
+        .all()
+    )
+    assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
 def test_chat_ask_command_reports_service_errors(

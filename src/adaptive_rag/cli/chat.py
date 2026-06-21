@@ -8,14 +8,21 @@ from uuid import UUID
 
 import typer
 
-from adaptive_rag.chat import ChatRequest, ChatService, ChatServiceError
+from adaptive_rag.chat import (
+    ChatRequest,
+    ChatService,
+    ChatServiceError,
+    SqlAlchemyChatAuditWriter,
+)
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
+from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
+from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.retrieval import RetrievalService
 
 app = typer.Typer(no_args_is_help=True)
@@ -65,6 +72,11 @@ def ask(
     )
 
     with session_scope() as session:
+        usage_tracker = InMemoryProviderUsageTracker()
+        audit_writer = SqlAlchemyChatAuditWriter(
+            chat_audit_repository=ChatAuditRepository(session),
+            provider_usage_repository=ProviderUsageRepository(session),
+        )
         retrieval_service = RetrievalService(
             session,
             provider=get_cli_dense_embedding_provider(),
@@ -72,6 +84,8 @@ def ask(
         service = ChatService(
             runner=get_cli_chat_runner(),
             retrieval_service=retrieval_service,
+            audit_writer=audit_writer,
+            provider_usage_records=lambda: usage_tracker.records,
         )
         try:
             response = service.respond(request)

@@ -21,11 +21,17 @@ from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
+    ChatMessage,
+    ChatSession,
     Chunk,
     Document,
     DocumentVersion,
     Project,
+    ProviderUsage,
+    RetrievalRun,
+    RetrievedChunk,
     Source,
+    ToolCall,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
@@ -100,6 +106,12 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChatSession.__table__,
+            ChatMessage.__table__,
+            ToolCall.__table__,
+            RetrievalRun.__table__,
+            RetrievedChunk.__table__,
+            ProviderUsage.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -267,6 +279,25 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations() -> None:
             "result_count": 2,
         }
     ]
+    session_id = UUID(data["session_id"])
+    chat_session = session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.project_id == project.id
+    assert chat_session.status == "succeeded"
+    messages = session.query(ChatMessage).filter_by(session_id=session_id).all()
+    assert [message.role for message in messages] == ["user", "assistant"]
+    tool_calls = session.query(ToolCall).filter_by(session_id=session_id).all()
+    assert len(tool_calls) == 1
+    assert tool_calls[0].tool_name == "retrieval.search"
+    retrieval_runs = session.query(RetrievalRun).filter_by(session_id=session_id).all()
+    assert len(retrieval_runs) == 1
+    retrieved_chunks = (
+        session.query(RetrievedChunk)
+        .filter_by(retrieval_run_id=retrieval_runs[0].id)
+        .order_by(RetrievedChunk.rank)
+        .all()
+    )
+    assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
 def test_chat_endpoint_rejects_unknown_filter_fields() -> None:

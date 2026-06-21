@@ -4,6 +4,7 @@ from adaptive_rag.chat.audit import (
     ChatAuditWriter,
     InMemoryChatAuditWriter,
     NullChatAuditWriter,
+    SqlAlchemyChatAuditWriter,
 )
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
@@ -32,4 +33,5 @@ __all__ = [
     "QwenChatRunner",
     "QwenChatRunnerError",
     "RetrievalGroundedChatRunner",
+    "SqlAlchemyChatAuditWriter",
 ]
