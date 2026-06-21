@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -121,8 +122,8 @@ class ProviderUsage(Base):
     estimated_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
     currency: Mapped[str | None] = mapped_column(nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    request_id: Mapped[str | None] = mapped_column(nullable=True)
-    error_type: Mapped[str | None] = mapped_column(nullable=True)
+    provider_request_id: Mapped[str | None] = mapped_column(nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,

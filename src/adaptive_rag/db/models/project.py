@@ -22,12 +22,12 @@ class JSONWithJSONB(TypeDecorator[Any]):
 
     def __init__(self, *, none_as_null: bool = False) -> None:
         super().__init__()
-        self._none_as_null = none_as_null
+        self.none_as_null = none_as_null
 
     def load_dialect_impl(self, dialect):  # type: ignore[no-untyped-def]
         if dialect.name == "postgresql":
-            return dialect.type_descriptor(JSONB(none_as_null=self._none_as_null))
-        return dialect.type_descriptor(JSON(none_as_null=self._none_as_null))
+            return dialect.type_descriptor(JSONB(none_as_null=self.none_as_null))
+        return dialect.type_descriptor(JSON(none_as_null=self.none_as_null))
 
 
 class Project(Base):

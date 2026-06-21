@@ -229,7 +229,8 @@ def upgrade() -> None:
         ),
         sa.Column("rank", sa.Integer(), nullable=False),
         sa.Column("dense_score", sa.Float(), nullable=True),
-        sa.Column("sparse_score", sa.Float(), nullable=True),
+        sa.Column("lexical_score", sa.Float(), nullable=True),
+        sa.Column("rrf_score", sa.Float(), nullable=True),
         sa.Column("rerank_score", sa.Float(), nullable=True),
         sa.Column("citation_json", postgresql.JSONB(), nullable=False),
         sa.Column(
@@ -293,8 +294,8 @@ def upgrade() -> None:
         sa.Column("estimated_cost_usd", sa.Float(), nullable=True),
         sa.Column("currency", sa.String(), nullable=True),
         sa.Column("latency_ms", sa.Integer(), nullable=True),
-        sa.Column("request_id", sa.String(), nullable=True),
-        sa.Column("error_type", sa.String(), nullable=True),
+        sa.Column("provider_request_id", sa.String(), nullable=True),
+        sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

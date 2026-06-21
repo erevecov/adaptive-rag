@@ -224,6 +224,9 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
         chunk_id=chunk.id,
         rank=1,
         dense_score=0.9,
+        lexical_score=0.4,
+        rrf_score=0.2,
+        rerank_score=0.95,
         citation_json={"chunk_id": str(chunk.id), "snippet": "Alpha evidence"},
     )
 
@@ -232,12 +235,19 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     session.expunge_all()
 
     fetched = session.execute(select(RetrievedChunk)).scalar_one()
+    columns = {column.name for column in inspect(RetrievedChunk).columns}
     assert fetched.rank == 1
     assert fetched.dense_score == 0.9
+    assert fetched.lexical_score == 0.4
+    assert fetched.rrf_score == 0.2
+    assert fetched.rerank_score == 0.95
     assert fetched.citation_json == {
         "chunk_id": str(chunk.id),
         "snippet": "Alpha evidence",
     }
+    assert "lexical_score" in columns
+    assert "rrf_score" in columns
+    assert "sparse_score" not in columns
 
 
 def test_retrieved_chunk_requires_citation_payload() -> None:
@@ -389,6 +399,8 @@ def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
         estimated_cost_usd=0.0001,
         currency="USD",
         latency_ms=123,
+        provider_request_id="req-123",
+        error_message="RateLimitError",
     )
 
     session.add(usage)
@@ -396,10 +408,17 @@ def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
     session.expunge_all()
 
     fetched = session.execute(select(ProviderUsage)).scalar_one()
+    columns = {column.name for column in inspect(ProviderUsage).columns}
     assert fetched.id is not None
     assert fetched.session_id == chat_session.id
     assert fetched.job_id == job.id
     assert fetched.eval_run_id == eval_run_id
+    assert fetched.provider_request_id == "req-123"
+    assert fetched.error_message == "RateLimitError"
+    assert "provider_request_id" in columns
+    assert "error_message" in columns
+    assert "request_id" not in columns
+    assert "error_type" not in columns
 
 
 def test_audit_tables_have_project_session_indexes() -> None:

@@ -24,18 +24,6 @@ from adaptive_rag.db.models import (
 from adaptive_rag.provider_usage import ProviderCallRecord
 
 
-def _provider_request_id(self: ProviderUsage) -> str | None:
-    return self.request_id
-
-
-if not hasattr(ProviderUsage, "provider_request_id"):
-    type.__setattr__(
-        ProviderUsage,
-        "provider_request_id",
-        property(_provider_request_id),
-    )
-
-
 class ChatAuditRepository:
     """Acceso a audit trail de chat con pertenencia de proyecto explicita."""
 
@@ -289,7 +277,8 @@ class ChatAuditRepository:
             chunk_id=chunk_id,
             rank=rank,
             dense_score=dense_score,
-            sparse_score=lexical_score,
+            lexical_score=lexical_score,
+            rrf_score=rrf_score,
             rerank_score=rerank_score,
             citation_json=dict(citation_json),
         )
@@ -409,8 +398,8 @@ class ProviderUsageRepository:
             estimated_cost_usd=record.estimated_cost_usd,
             currency="USD" if record.estimated_cost_usd is not None else None,
             latency_ms=record.duration_ms,
-            request_id=record.request_id,
-            error_type=record.error_type,
+            provider_request_id=record.request_id,
+            error_message=record.error_type,
         )
         self._session.add(usage)
         self._session.flush()

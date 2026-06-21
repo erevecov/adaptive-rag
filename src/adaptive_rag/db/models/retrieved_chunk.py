@@ -53,7 +53,8 @@ class RetrievedChunk(Base):
     chunk_id: Mapped[UUID] = mapped_column(ForeignKey("chunks.id"), nullable=False)
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
     dense_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    sparse_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lexical_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rrf_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rerank_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     citation_json: Mapped[dict[str, Any]] = mapped_column(
         JSONWithJSONB(none_as_null=True), nullable=False

@@ -133,6 +133,9 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         chunk_id=chunk.id,
         rank=1,
         dense_score=0.9,
+        lexical_score=0.4,
+        rrf_score=0.2,
+        rerank_score=0.95,
         citation_json={"chunk_id": str(chunk.id), "snippet": "Alpha evidence"},
     )
     repo.add_message(
@@ -161,6 +164,10 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
     assert [message.role for message in messages] == ["user", "assistant"]
     assert tool_calls[0].status == "succeeded"
     assert retrieval_runs[0].query == "alpha"
+    assert retrieved_chunks[0].dense_score == 0.9
+    assert retrieved_chunks[0].lexical_score == 0.4
+    assert retrieved_chunks[0].rrf_score == 0.2
+    assert retrieved_chunks[0].rerank_score == 0.95
     assert retrieved_chunks[0].citation_json == {
         "chunk_id": str(chunk.id),
         "snippet": "Alpha evidence",
@@ -271,6 +278,7 @@ def test_provider_usage_repository_persists_provider_call_record() -> None:
         usage_source="provider_reported",
         estimated_cost_usd=0.0001,
         request_id="req-123",
+        error_type="RateLimitError",
     )
 
     usage = usage_repo.create_from_record(
@@ -290,3 +298,4 @@ def test_provider_usage_repository_persists_provider_call_record() -> None:
     assert usage.total_tokens == 15
     assert usage.input_count == 1
     assert usage.provider_request_id == "req-123"
+    assert usage.error_message == "RateLimitError"
