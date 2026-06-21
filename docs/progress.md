@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. M15 Chat frontend inicial quedo cerrado el 2026-06-21.
+M16 Chat streaming SSE.
 
 ## Ultimo milestone completado
 
@@ -10,21 +10,18 @@ M15 Chat frontend inicial cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M15 `m15-quality-gate`: valida el frontend completo, mantiene el gate Python en
-verde, publica la spec canonica `chat-frontend` y archiva
-`m15-chat-frontend-plan`.
+M16 `m16-chat-streaming-sse`: abre el change OpenSpec para definir streaming de
+chat por SSE sobre la UI y el audit trail existentes, usando `POST` con
+`text/event-stream`, consumo frontend via `fetch` streaming, evento `final`
+compatible con `POST /chat` y fallback no streaming.
 
 Comandos validados en este slice:
 
 ```text
-cd frontend && pnpm test
-cd frontend && pnpm run lint
-cd frontend && pnpm run typecheck
-cd frontend && pnpm run build
-uv run pytest
-uv run ruff check .
-uv run mypy src
-pnpm dlx @fission-ai/openspec validate m15-chat-frontend-plan --strict
+pnpm dlx ctx7@latest library "FastAPI" "How to implement streaming HTTP responses for Server-Sent Events using FastAPI StreamingResponse with async generators and text/event-stream"
+pnpm dlx ctx7@latest docs /fastapi/fastapi "How to implement streaming HTTP responses for Server-Sent Events using FastAPI StreamingResponse with async generators and text/event-stream"
+uv run python -c "import fastapi; print(fastapi.__version__); import importlib.util; print(importlib.util.find_spec('fastapi.sse') is not None)"
+pnpm dlx @fission-ai/openspec validate m16-chat-streaming-sse --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
 git diff --check
@@ -32,7 +29,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m16-chat-streaming-sse`
 
 ## Ultimo change archivado
 
@@ -61,9 +58,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un change OpenSpec nuevo para M16 enfocado en streaming de chat por SSE.
-  La opcion recomendada es definir primero contrato, persistencia y fallback del
-  stream sobre la UI ya operativa, antes de dashboards, replay o auth final.
+- Implementar `m16-streaming-event-contract`: definir modelos/eventos y
+  serializer SSE determinista antes del endpoint FastAPI y la UI. La razon es
+  que backend y frontend deben compartir un contrato de eventos estable antes de
+  conectar streaming real.
 
 ## Reglas de coordinacion
 

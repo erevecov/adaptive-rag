@@ -17,6 +17,7 @@
 - M13 Chat audit trail: completo.
 - M14 Chat history/read surface: completo.
 - M15 Chat frontend inicial: completo.
+- M16 Chat streaming SSE: activo.
 
 ## M1 Foundation
 
@@ -556,6 +557,41 @@ read-only. La siguiente decision recomendada es abrir un change M16 para
 streaming de chat por SSE, porque mejora la experiencia de respuestas largas
 sobre la UI existente y debe fijar contrato, fallback y persistencia antes de
 dashboards, replay o auth final.
+
+## M16 Chat streaming SSE
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m16-chat-streaming-sse/`
+
+Secuencia recomendada:
+
+1. `m16-chat-streaming-sse`: activo. Crea el change OpenSpec que delimita M16
+   como streaming de chat por SSE sobre los contratos de M5, M13, M14 y M15.
+2. `m16-streaming-event-contract`: pendiente. Agrega tipos de eventos,
+   serializer SSE determinista y tests sin endpoint HTTP.
+3. `m16-chat-service-streaming`: pendiente. Agrega flujo streaming compartiendo
+   validacion, audit trail, retrieval tool, citations y provider usage con el
+   flujo no streaming.
+4. `m16-chat-streaming-api`: pendiente. Agrega
+   `POST /projects/{project_id}/chat/stream` con `text/event-stream`, manejo de
+   errores y cierre estable.
+5. `m16-chat-streaming-frontend-client`: pendiente. Agrega cliente `fetch`
+   streaming, parser SSE, cancelacion y fallback.
+6. `m16-chat-streaming-ui`: pendiente. Integra respuesta parcial, progreso,
+   cancelacion y refresh de historial al recibir `final`.
+7. `m16-quality-gate`: pendiente. Valida frontend, Python y OpenSpec; archiva
+   M16 y publica la spec canonica `chat-streaming`.
+
+Decision: M16 usa SSE por `POST` consumido con `fetch` streaming porque el
+contrato de chat necesita body JSON para mensaje, limite y filtros. `POST /chat`
+queda como fallback obligatorio. M16 no agrega WebSockets, dashboards, replay,
+auth final, ni cambios de retrieval/rerank/providers.
+
+Continuacion: la siguiente tarea recomendada es `m16-streaming-event-contract`,
+para fijar eventos y serializacion antes de implementar endpoint o UI.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
