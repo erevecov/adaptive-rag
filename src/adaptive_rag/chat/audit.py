@@ -325,14 +325,22 @@ class SqlAlchemyChatAuditWriter:
     ) -> None:
         if session_id is None:
             return
+        first_error: Exception | None = None
         for record in records:
-            self._provider_usage_repository.create_from_record(
-                project_id=project_id,
-                session_id=session_id,
-                job_id=None,
-                eval_run_id=None,
-                record=record,
-            )
+            try:
+                with self._provider_usage_repository._session.begin_nested():
+                    self._provider_usage_repository.create_from_record(
+                        project_id=project_id,
+                        session_id=session_id,
+                        job_id=None,
+                        eval_run_id=None,
+                        record=record,
+                    )
+            except Exception as exc:
+                if first_error is None:
+                    first_error = exc
+        if first_error is not None:
+            raise first_error
 
 
 def elapsed_ms(start: float) -> int:

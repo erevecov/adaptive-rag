@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
+from typing import Any, cast
 from uuid import UUID
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import URL, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import (
     get_chat_runner,
     get_dense_embedding_provider,
+    get_provider_usage_tracker,
     get_session,
 )
 from adaptive_rag.chat import ChatRunnerOutput, ChatRunnerRequest
@@ -40,6 +42,12 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderCallRecord,
+    ProviderOperation,
+    ProviderTokenUsage,
+)
 
 
 class StaticQueryEmbeddingProvider:
@@ -92,11 +100,13 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
-def _make_session() -> Session:
+def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     engine = create_engine(
-        "sqlite+pysqlite://",
+        URL.create(
+            "sqlite+pysqlite",
+            database=str(tmp_path / "chat-api.sqlite"),
+        ),
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
     )
     Base.metadata.create_all(
         engine,
@@ -114,7 +124,7 @@ def _make_session() -> Session:
             ProviderUsage.__table__,
         ],
     )
-    return create_session_factory(engine)()
+    return create_session_factory(engine)
 
 
 def _client(
@@ -122,6 +132,7 @@ def _client(
     session: Session,
     provider: StaticQueryEmbeddingProvider,
     runner: ToolCallingChatRunner | RecordingNoToolChatRunner,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> TestClient:
     app = create_app()
 
@@ -134,9 +145,15 @@ def _client(
     def override_runner() -> ToolCallingChatRunner | RecordingNoToolChatRunner:
         return runner
 
+    def override_usage_tracker() -> InMemoryProviderUsageTracker:
+        assert usage_tracker is not None
+        return usage_tracker
+
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
     app.dependency_overrides[get_chat_runner] = override_runner
+    if usage_tracker is not None:
+        app.dependency_overrides[get_provider_usage_tracker] = override_usage_tracker
     return TestClient(app)
 
 
@@ -199,8 +216,11 @@ def _create_embedded_chunk(
     return source, document, version, chunk
 
 
-def test_chat_endpoint_returns_answer_with_retrieval_citations() -> None:
-    session = _make_session()
+def test_chat_endpoint_returns_answer_with_retrieval_citations(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
@@ -280,19 +300,22 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations() -> None:
         }
     ]
     session_id = UUID(data["session_id"])
-    chat_session = session.get(ChatSession, session_id)
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
     assert chat_session is not None
     assert chat_session.project_id == project.id
     assert chat_session.status == "succeeded"
-    messages = session.query(ChatMessage).filter_by(session_id=session_id).all()
+    messages = fresh_session.query(ChatMessage).filter_by(session_id=session_id).all()
     assert [message.role for message in messages] == ["user", "assistant"]
-    tool_calls = session.query(ToolCall).filter_by(session_id=session_id).all()
+    tool_calls = fresh_session.query(ToolCall).filter_by(session_id=session_id).all()
     assert len(tool_calls) == 1
     assert tool_calls[0].tool_name == "retrieval.search"
-    retrieval_runs = session.query(RetrievalRun).filter_by(session_id=session_id).all()
+    retrieval_runs = (
+        fresh_session.query(RetrievalRun).filter_by(session_id=session_id).all()
+    )
     assert len(retrieval_runs) == 1
     retrieved_chunks = (
-        session.query(RetrievedChunk)
+        fresh_session.query(RetrievedChunk)
         .filter_by(retrieval_run_id=retrieval_runs[0].id)
         .order_by(RetrievedChunk.rank)
         .all()
@@ -300,8 +323,9 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations() -> None:
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
-def test_chat_endpoint_rejects_unknown_filter_fields() -> None:
-    session = _make_session()
+def test_chat_endpoint_rejects_unknown_filter_fields(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -321,8 +345,9 @@ def test_chat_endpoint_rejects_unknown_filter_fields() -> None:
     assert runner.requests == []
 
 
-def test_chat_endpoint_maps_service_errors_to_422() -> None:
-    session = _make_session()
+def test_chat_endpoint_maps_service_errors_to_422(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -338,3 +363,50 @@ def test_chat_endpoint_maps_service_errors_to_422() -> None:
     assert response.json() == {"detail": "message must not be empty"}
     assert provider.inputs == []
     assert runner.requests == []
+
+
+def test_chat_endpoint_provider_usage_failure_does_not_block_success(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    usage_tracker = InMemoryProviderUsageTracker(
+        _records=[
+            ProviderCallRecord(
+                provider="qwen",
+                model="qwen-plus",
+                operation=cast(ProviderOperation, cast(Any, "not_supported")),
+                outcome="succeeded",
+                duration_ms=1,
+                usage=ProviderTokenUsage(),
+                usage_source="unavailable",
+            )
+        ]
+    )
+    client = _client(
+        session=session,
+        provider=provider,
+        runner=runner,
+        usage_tracker=usage_tracker,
+    )
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "No retrieval needed."},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    session_id = UUID(data["session_id"])
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.status == "succeeded"
+    assert (
+        fresh_session.query(ProviderUsage).filter_by(session_id=session_id).count()
+        == 0
+    )

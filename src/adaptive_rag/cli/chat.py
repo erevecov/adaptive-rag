@@ -7,6 +7,7 @@ from typing import Annotated
 from uuid import UUID
 
 import typer
+from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import (
     ChatRequest,
@@ -89,8 +90,17 @@ def ask(
         )
         try:
             response = service.respond(request)
+            session.commit()
         except ChatServiceError as exc:
+            _commit_or_rollback_chat_error(session)
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
 
     typer.echo(json.dumps(serialize_chat_response(response)))
+
+
+def _commit_or_rollback_chat_error(session: Session) -> None:
+    try:
+        session.commit()
+    except Exception:
+        session.rollback()

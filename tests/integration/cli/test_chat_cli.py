@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from uuid import UUID
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import URL, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from typer.testing import CliRunner
 
 from adaptive_rag.chat import ChatRunnerOutput, ChatRunnerRequest
@@ -90,11 +90,13 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
-def _make_session() -> Session:
+def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     engine = create_engine(
-        "sqlite+pysqlite://",
+        URL.create(
+            "sqlite+pysqlite",
+            database=str(tmp_path / "chat-cli.sqlite"),
+        ),
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
     )
     Base.metadata.create_all(
         engine,
@@ -112,7 +114,7 @@ def _make_session() -> Session:
             ProviderUsage.__table__,
         ],
     )
-    return create_session_factory(engine)()
+    return create_session_factory(engine)
 
 
 def _vector(first: float, second: float = 0.0) -> list[float]:
@@ -201,8 +203,10 @@ def _patch_chat_dependencies(
 
 def test_chat_ask_command_outputs_api_compatible_json(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    session = _make_session()
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
@@ -309,14 +313,19 @@ def test_chat_ask_command_outputs_api_compatible_json(
         }
     ]
     session_id = UUID(data["session_id"])
-    chat_session = session.get(ChatSession, session_id)
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
     assert chat_session is not None
     assert chat_session.status == "succeeded"
-    assert session.query(ChatMessage).filter_by(session_id=session_id).count() == 2
-    assert session.query(ToolCall).filter_by(session_id=session_id).count() == 1
-    retrieval_run = session.query(RetrievalRun).filter_by(session_id=session_id).one()
+    assert (
+        fresh_session.query(ChatMessage).filter_by(session_id=session_id).count() == 2
+    )
+    assert fresh_session.query(ToolCall).filter_by(session_id=session_id).count() == 1
+    retrieval_run = (
+        fresh_session.query(RetrievalRun).filter_by(session_id=session_id).one()
+    )
     retrieved_chunks = (
-        session.query(RetrievedChunk)
+        fresh_session.query(RetrievedChunk)
         .filter_by(retrieval_run_id=retrieval_run.id)
         .order_by(RetrievedChunk.rank)
         .all()
@@ -326,8 +335,10 @@ def test_chat_ask_command_outputs_api_compatible_json(
 
 def test_chat_ask_command_reports_service_errors(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    session = _make_session()
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
     project = _create_project(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
