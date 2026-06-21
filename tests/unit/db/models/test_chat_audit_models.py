@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
@@ -205,6 +207,35 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     }
 
 
+def test_tool_call_and_retrieval_run_defaults_are_persisted() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    chat_session = ChatSession(project_id=project.id)
+    session.add(chat_session)
+    session.flush()
+    tool_call = ToolCall(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_name="retrieval.search",
+    )
+    session.add(tool_call)
+    session.flush()
+    retrieval_run = RetrievalRun(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_call_id=tool_call.id,
+        query="alpha",
+        strategy="dense",
+        top_k=1,
+    )
+
+    session.add(retrieval_run)
+    session.commit()
+
+    assert tool_call.status == "running"
+    assert retrieval_run.used_rerank is False
+
+
 def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
     session = _make_session()
     project = _make_project(session)
@@ -212,11 +243,12 @@ def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
     job = Job(project_id=project.id, job_type="ingest_url")
     session.add_all([chat_session, job])
     session.flush()
+    eval_run_id = uuid4()
     usage = ProviderUsage(
         project_id=project.id,
         session_id=chat_session.id,
         job_id=job.id,
-        eval_run_id=None,
+        eval_run_id=eval_run_id,
         operation="chat",
         provider="qwen",
         model="qwen-plus",
@@ -232,10 +264,13 @@ def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
 
     session.add(usage)
     session.commit()
+    session.expunge_all()
 
-    assert usage.id is not None
-    assert usage.session_id == chat_session.id
-    assert usage.job_id == job.id
+    fetched = session.execute(select(ProviderUsage)).scalar_one()
+    assert fetched.id is not None
+    assert fetched.session_id == chat_session.id
+    assert fetched.job_id == job.id
+    assert fetched.eval_run_id == eval_run_id
 
 
 def test_audit_tables_have_project_session_indexes() -> None:
@@ -256,6 +291,7 @@ def test_audit_tables_have_project_session_indexes() -> None:
     }
 
     assert ("project_id", "created_at") in indexed_columns["chat_sessions"]
+    assert ("project_id", "status") in indexed_columns["chat_sessions"]
     assert ("project_id", "session_id", "created_at") in indexed_columns[
         "chat_messages"
     ]
@@ -265,9 +301,14 @@ def test_audit_tables_have_project_session_indexes() -> None:
     assert ("project_id", "session_id", "created_at") in indexed_columns[
         "retrieval_runs"
     ]
+    assert ("project_id", "strategy") in indexed_columns["retrieval_runs"]
     assert ("project_id", "retrieval_run_id", "rank") in indexed_columns[
         "retrieved_chunks"
     ]
+    assert ("project_id", "chunk_id") in indexed_columns["retrieved_chunks"]
     assert ("project_id", "session_id", "created_at") in indexed_columns[
+        "provider_usage"
+    ]
+    assert ("project_id", "operation", "created_at") in indexed_columns[
         "provider_usage"
     ]
