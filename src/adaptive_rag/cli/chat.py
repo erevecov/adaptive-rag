@@ -10,6 +10,10 @@ from uuid import UUID
 import typer
 from sqlalchemy.orm import Session
 
+from adaptive_rag.api.schemas.chat import (
+    ChatSessionDetailResponse,
+    ChatSessionListResponse,
+)
 from adaptive_rag.chat import (
     ChatRequest,
     ChatService,
@@ -29,6 +33,8 @@ from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.retrieval import RetrievalService
 
 app = typer.Typer(no_args_is_help=True)
+sessions_app = typer.Typer(no_args_is_help=True)
+app.add_typer(sessions_app, name="sessions")
 
 
 @app.command("ask")
@@ -103,6 +109,47 @@ def ask(
             raise
 
     typer.echo(json.dumps(serialize_chat_response(response)))
+
+
+@sessions_app.command("list")
+def list_sessions(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+    status: Annotated[str | None, typer.Option("--status")] = None,
+    limit: Annotated[int, typer.Option("--limit")] = 20,
+    cursor: Annotated[str | None, typer.Option("--cursor")] = None,
+) -> None:
+    with session_scope() as session:
+        try:
+            page = ChatAuditRepository(session).list_session_summaries(
+                project_id=project_id,
+                status=status,
+                limit=limit,
+                cursor=cursor,
+            )
+        except ValueError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+    response = ChatSessionListResponse.from_summary_page(page)
+    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
+
+
+@sessions_app.command("show")
+def show_session(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+    session_id: Annotated[UUID, typer.Option("--session-id")],
+) -> None:
+    with session_scope() as session:
+        detail = ChatAuditRepository(session).get_session_detail(
+            project_id=project_id,
+            session_id=session_id,
+        )
+        if detail is None:
+            typer.echo("chat session not found", err=True)
+            raise typer.Exit(1)
+
+    response = ChatSessionDetailResponse.from_detail(detail)
+    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
 
 
 def _commit_or_rollback_chat_error(session: Session) -> None:

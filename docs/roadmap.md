@@ -491,9 +491,10 @@ Secuencia recomendada:
    `GET /projects/{project_id}/chat/sessions/{session_id}` con schemas HTTP
    estables, validacion de opciones invalidas y respuesta 404 para sesiones
    inexistentes o cross-project.
-4. `m14-chat-history-cli`: propuesto. Agrega
+4. `m14-chat-history-cli`: completo. Agrega
    `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
-   salida JSON estable.
+   salida JSON estable equivalente a la API, con filtros/cursor de listado,
+   detalle auditable y error estable para sesiones inexistentes o cross-project.
 5. `m14-quality-gate`: propuesto. Valida tests, lint, types, specs y smokes CLI
    relevantes, y archiva M14 cuando quede completo.
 
