@@ -11,6 +11,7 @@ import typer
 from sqlalchemy.orm import Session
 
 from adaptive_rag.api.schemas.chat import (
+    ChatObservabilitySummaryResponse,
     ChatSessionDetailResponse,
     ChatSessionListResponse,
 )
@@ -25,8 +26,12 @@ from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
 )
-from adaptive_rag.cli.filters import build_retrieval_metadata_filter
-from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
+from adaptive_rag.cli.filters import build_retrieval_metadata_filter, parse_cli_datetime
+from adaptive_rag.db.repositories import (
+    ChatAuditRepository,
+    ChatObservabilityRepository,
+    ProviderUsageRepository,
+)
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
@@ -34,7 +39,9 @@ from adaptive_rag.retrieval import RetrievalService
 
 app = typer.Typer(no_args_is_help=True)
 sessions_app = typer.Typer(no_args_is_help=True)
+observability_app = typer.Typer(no_args_is_help=True)
 app.add_typer(sessions_app, name="sessions")
+app.add_typer(observability_app, name="observability")
 
 
 @app.command("ask")
@@ -149,6 +156,41 @@ def show_session(
             raise typer.Exit(1)
 
     response = ChatSessionDetailResponse.from_detail(detail)
+    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
+
+
+@observability_app.command("summary")
+def observability_summary(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+    created_at_from: Annotated[
+        str | None,
+        typer.Option("--created-at-from"),
+    ] = None,
+    created_at_to: Annotated[
+        str | None,
+        typer.Option("--created-at-to"),
+    ] = None,
+    status: Annotated[str | None, typer.Option("--status")] = None,
+) -> None:
+    with session_scope() as session:
+        try:
+            summary = ChatObservabilityRepository(session).get_summary(
+                project_id=project_id,
+                created_at_from=parse_cli_datetime(
+                    created_at_from,
+                    field_name="created_at_from",
+                ),
+                created_at_to=parse_cli_datetime(
+                    created_at_to,
+                    field_name="created_at_to",
+                ),
+                status=status,
+            )
+        except ValueError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+    response = ChatObservabilitySummaryResponse.from_summary(summary)
     typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
 
 
