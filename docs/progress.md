@@ -10,18 +10,21 @@ M16 Chat streaming SSE cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M17 `m17-chat-observability`: crea el change OpenSpec para observability
-read-only de chat/costo-latencia sobre `chat_sessions`, `tool_calls`,
-`retrieval_runs` y `provider_usage`, con contrato API/CLI de resumen por
-proyecto, filtros acotados, agregados de costo/usage/latencia/errores y scope
-lock sin dashboard avanzado, frontend, OpenTelemetry ni nuevas tablas iniciales.
+M17 `m17-observability-read-models`: agrega read models y
+`ChatObservabilityRepository` para resumir sesiones, provider usage,
+costo/usage, latencias y errores por proyecto usando el audit trail existente.
+El resumen aplica filtros de fecha/status, mantiene aislamiento por proyecto y
+calcula percentiles de latencia en Python para que los tests locales sean
+portables.
 
 Comandos validados en este slice:
 
 ```text
+uv run pytest
+uv run ruff check src tests
+uv run mypy src/adaptive_rag
 pnpm dlx @fission-ai/openspec validate m17-chat-observability --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
-pnpm dlx @fission-ai/openspec list
 git diff --check
 ```
 
@@ -57,10 +60,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m17-observability-read-models`: read models y repository methods
-  para calcular el resumen de sesiones, provider usage, latencias y errores por
-  proyecto antes de exponer API o CLI. La razon es fijar una sola fuente de
-  agregacion compartida y testeable para las superficies posteriores.
+- Implementar `m17-observability-api`: exponer
+  `GET /projects/{project_id}/chat/observability/summary` reutilizando
+  `ChatObservabilityRepository`. La razon es fijar primero el contrato HTTP y
+  la validacion de filtros antes de agregar el comando CLI equivalente.
 
 ## Reglas de coordinacion
 

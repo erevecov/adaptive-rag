@@ -7,6 +7,17 @@ from adaptive_rag.db.repositories.chat_audit import (
     ChatSessionSummaryPage,
     ProviderUsageRepository,
 )
+from adaptive_rag.db.repositories.chat_observability import (
+    ChatObservabilityErrorMessage,
+    ChatObservabilityErrorSummary,
+    ChatObservabilityFilters,
+    ChatObservabilityLatencySummary,
+    ChatObservabilityProviderUsageGroup,
+    ChatObservabilityProviderUsageSummary,
+    ChatObservabilityRepository,
+    ChatObservabilitySessionSummary,
+    ChatObservabilitySummary,
+)
 from adaptive_rag.db.repositories.chunks import ChunkRepository
 from adaptive_rag.db.repositories.documents import DocumentRepository
 from adaptive_rag.db.repositories.filters import DocumentFilters, SourceFilters
@@ -16,6 +27,15 @@ from adaptive_rag.db.repositories.sources import SourceRepository
 
 __all__ = [
     "ChatAuditRepository",
+    "ChatObservabilityErrorMessage",
+    "ChatObservabilityErrorSummary",
+    "ChatObservabilityFilters",
+    "ChatObservabilityLatencySummary",
+    "ChatObservabilityProviderUsageGroup",
+    "ChatObservabilityProviderUsageSummary",
+    "ChatObservabilityRepository",
+    "ChatObservabilitySessionSummary",
+    "ChatObservabilitySummary",
     "ChatSessionDetail",
     "ChatSessionSummary",
     "ChatSessionSummaryPage",
