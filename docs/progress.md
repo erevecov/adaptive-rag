@@ -10,11 +10,11 @@ M16 Chat streaming SSE cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M17 `m17-observability-api`: expone
-`GET /projects/{project_id}/chat/observability/summary` reutilizando
-`ChatObservabilityRepository`. El endpoint devuelve JSON estable para filtros,
-sesiones, provider usage, costo/usage, latencias y errores, aplica filtros de
-fecha/status y mapea filtros invalidos a HTTP 422.
+M17 `m17-observability-cli`: agrega
+`adaptive-rag chat observability summary` reutilizando
+`ChatObservabilityRepository` y el mismo schema de respuesta del endpoint HTTP.
+El comando emite JSON equivalente para filtros, sesiones, provider usage,
+costo/usage, latencias y errores, y reporta filtros invalidos con exit code 1.
 
 Comandos validados en este slice:
 
@@ -59,10 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m17-observability-cli`: agregar
-  `adaptive-rag chat observability summary` reutilizando el mismo read model y
-  emitiendo JSON equivalente al endpoint HTTP. La razon es cerrar paridad
-  API/CLI antes del quality gate y archive de M17.
+- Ejecutar `m17-quality-gate`: validar Python/OpenSpec/docs, archivar
+  `m17-chat-observability` y publicar la spec canonica `chat-observability`.
+  La razon es cerrar M17 despues de que read model, API y CLI ya comparten el
+  mismo contrato JSON.
 
 ## Reglas de coordinacion
 

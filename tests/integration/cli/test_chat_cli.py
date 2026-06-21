@@ -288,6 +288,48 @@ def _set_session_timestamp(
     chat_session.updated_at = created_at + timedelta(seconds=1)
 
 
+def _add_provider_usage(
+    session: Session,
+    *,
+    project_id: UUID,
+    created_at: datetime,
+    session_id: UUID | None = None,
+    operation: str = "chat",
+    provider: str = "qwen",
+    model: str = "qwen-plus",
+    status: str = "succeeded",
+    usage_source: str = "provider_reported",
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    total_tokens: int | None = None,
+    input_count: int | None = None,
+    estimated_cost_usd: float | None = None,
+    latency_ms: int | None = None,
+    error_message: str | None = None,
+) -> ProviderUsage:
+    usage = ProviderUsage(
+        project_id=project_id,
+        session_id=session_id,
+        operation=operation,
+        provider=provider,
+        model=model,
+        status=status,
+        usage_source=usage_source,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        input_count=input_count,
+        estimated_cost_usd=estimated_cost_usd,
+        currency="USD" if estimated_cost_usd is not None else None,
+        latency_ms=latency_ms,
+        error_message=error_message,
+        created_at=created_at,
+    )
+    session.add(usage)
+    session.flush()
+    return usage
+
+
 def _patch_chat_history_session_scope(
     monkeypatch: pytest.MonkeyPatch,
     *,
@@ -895,6 +937,146 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
     )
     assert invalid_limit.exit_code == 1
     assert "limit must be between 1 and 100" in invalid_limit.output
+
+
+def test_chat_observability_summary_command_outputs_api_equivalent_json(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session, "demo")
+    other_project = _create_project(session, "other")
+    base_time = datetime(2026, 1, 1, tzinfo=UTC)
+
+    failed = ChatAuditRepository(session).create_session(project_id=project.id)
+    failed.status = "failed"
+    failed.error_message = "runner failed"
+    _set_session_timestamp(failed, base_time + timedelta(hours=1))
+    succeeded = ChatAuditRepository(session).create_session(project_id=project.id)
+    succeeded.status = "succeeded"
+    _set_session_timestamp(succeeded, base_time + timedelta(hours=2))
+    other_failed = ChatAuditRepository(session).create_session(
+        project_id=other_project.id
+    )
+    other_failed.status = "failed"
+    other_failed.error_message = "other failure"
+    _set_session_timestamp(other_failed, base_time + timedelta(hours=1))
+
+    _add_provider_usage(
+        session,
+        project_id=project.id,
+        session_id=failed.id,
+        created_at=base_time + timedelta(hours=1, seconds=1),
+        status="failed",
+        usage_source="unavailable",
+        estimated_cost_usd=None,
+        latency_ms=100,
+        error_message="runner failed",
+    )
+    _add_provider_usage(
+        session,
+        project_id=project.id,
+        session_id=failed.id,
+        created_at=base_time + timedelta(hours=1, seconds=2),
+        input_tokens=10,
+        output_tokens=4,
+        total_tokens=14,
+        input_count=1,
+        estimated_cost_usd=0.05,
+        latency_ms=300,
+    )
+    _add_provider_usage(
+        session,
+        project_id=project.id,
+        session_id=succeeded.id,
+        created_at=base_time + timedelta(hours=2, seconds=1),
+        estimated_cost_usd=0.40,
+        latency_ms=400,
+    )
+    _add_provider_usage(
+        session,
+        project_id=other_project.id,
+        created_at=base_time + timedelta(hours=1),
+        estimated_cost_usd=9.99,
+        latency_ms=999,
+    )
+    session.commit()
+    _patch_chat_history_session_scope(monkeypatch, session=session)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "observability",
+            "summary",
+            "--project-id",
+            str(project.id),
+            "--created-at-from",
+            base_time.isoformat(),
+            "--created-at-to",
+            (base_time + timedelta(hours=2)).isoformat(),
+            "--status",
+            "failed",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["project_id"] == str(project.id)
+    assert data["filters"] == {
+        "created_at_from": "2026-01-01T00:00:00Z",
+        "created_at_to": "2026-01-01T02:00:00Z",
+        "status": "failed",
+    }
+    assert data["sessions"] == {
+        "total": 1,
+        "by_status": {"running": 0, "succeeded": 0, "failed": 1},
+    }
+    assert data["provider_usage"]["total_records"] == 2
+    assert data["provider_usage"]["total_estimated_cost_usd"] == pytest.approx(0.05)
+    assert data["provider_usage"]["missing_cost_count"] == 1
+    assert data["provider_usage"]["groups"] == [
+        {
+            "operation": "chat",
+            "provider": "qwen",
+            "model": "qwen-plus",
+            "record_count": 2,
+            "estimated_cost_usd": 0.05,
+            "input_tokens": 10,
+            "output_tokens": 4,
+            "total_tokens": 14,
+            "input_count": 1,
+            "latency_ms": {
+                "count": 2,
+                "min": 100,
+                "avg": 200.0,
+                "p50": 100,
+                "p95": 300,
+                "max": 300,
+            },
+        }
+    ]
+    assert data["errors"] == {
+        "session_error_count": 1,
+        "provider_error_count": 1,
+        "top_messages": [{"message": "runner failed", "count": 2}],
+    }
+
+    invalid_status = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "observability",
+            "summary",
+            "--project-id",
+            str(project.id),
+            "--status",
+            "done",
+        ],
+    )
+    assert invalid_status.exit_code == 1
+    assert "invalid chat session status" in invalid_status.output
 
 
 def test_chat_sessions_show_command_outputs_detail_and_scopes_project(

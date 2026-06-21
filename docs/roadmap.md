@@ -625,7 +625,7 @@ Secuencia recomendada:
 3. `m17-observability-api`: completo. Agrega
    `GET /projects/{project_id}/chat/observability/summary` con JSON estable,
    validacion de filtros e aislamiento por proyecto.
-4. `m17-observability-cli`: pendiente. Agrega
+4. `m17-observability-cli`: completo. Agrega
    `adaptive-rag chat observability summary` con salida JSON equivalente a la
    API y filtros equivalentes.
 5. `m17-quality-gate`: pendiente. Valida Python, OpenSpec y docs; archiva M17
@@ -637,9 +637,9 @@ invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
 M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
 replay, auth final ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es `m17-observability-cli`, para
-emitir JSON equivalente al endpoint HTTP reutilizando el mismo read model antes
-del quality gate y archive de M17.
+Continuacion: la siguiente tarea recomendada es `m17-quality-gate`, para
+validar Python/OpenSpec/docs, archivar `m17-chat-observability` y publicar la
+spec canonica `chat-observability`.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
