@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. M16 Chat streaming SSE quedo cerrado.
+M17 Chat observability y costo-latencia.
 
 ## Ultimo milestone completado
 
@@ -10,23 +10,16 @@ M16 Chat streaming SSE cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M16 `m16-quality-gate`: completa el resto del milestone en un PR. Agrega
-`ChatService.stream`, `POST /projects/{project_id}/chat/stream` con
-`text/event-stream`, parser SSE en el frontend, render incremental de
-`answer_delta`, cancelacion con `AbortController`, fallback a `POST /chat` si
-el stream falla antes de abrirse, persistencia durable del audit trail y archive
-OpenSpec de `chat-streaming`.
+M17 `m17-chat-observability`: crea el change OpenSpec para observability
+read-only de chat/costo-latencia sobre `chat_sessions`, `tool_calls`,
+`retrieval_runs` y `provider_usage`, con contrato API/CLI de resumen por
+proyecto, filtros acotados, agregados de costo/usage/latencia/errores y scope
+lock sin dashboard avanzado, frontend, OpenTelemetry ni nuevas tablas iniciales.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest
-uv run ruff check .
-uv run mypy src
-pnpm --dir frontend test
-pnpm --dir frontend lint
-pnpm --dir frontend build
-pnpm dlx @fission-ai/openspec validate m16-chat-streaming-sse --strict
+pnpm dlx @fission-ai/openspec validate m17-chat-observability --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
 git diff --check
@@ -34,7 +27,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m17-chat-observability`
 
 ## Ultimo change archivado
 
@@ -64,12 +57,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un change OpenSpec M17 para observability de chat/costo-latencia:
-  dashboard o superficie de resumen sobre el audit trail y `provider_usage`.
-  La razon es que M13-M16 ya dejan sesiones, historial, usage y streaming
-  persistidos; el siguiente riesgo operativo es poder ver costo, latencia,
-  errores y volumen antes de agregar replay, auth final o nuevas estrategias de
-  retrieval.
+- Implementar `m17-observability-read-models`: read models y repository methods
+  para calcular el resumen de sesiones, provider usage, latencias y errores por
+  proyecto antes de exponer API o CLI. La razon es fijar una sola fuente de
+  agregacion compartida y testeable para las superficies posteriores.
 
 ## Reglas de coordinacion
 

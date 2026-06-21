@@ -26,6 +26,9 @@ Documentos:
 - `chat-streaming-m16.md`: decision M16 para exponer chat streaming por SSE
   sobre `POST`, con frontend `fetch` streaming, cancelacion, fallback y audit
   trail compatible.
+- `chat-observability-m17.md`: decision M17 para exponer observability
+  local-first de chat, costo y latencia via API/CLI read-only sobre audit trail
+  existente.
 
 Reglas:
 
