@@ -167,6 +167,8 @@ class InMemoryChatAuditWriter:
                 "limit": limit,
                 "result_count": len(results),
                 "chunk_ids": [str(result["chunk_id"]) for result in results],
+                "metadata_filter": _serialize_metadata_filter(metadata_filter),
+                "latency_ms": latency_ms,
             }
         )
 
@@ -206,3 +208,37 @@ def elapsed_ms(start: float) -> int:
     """Devuelve milisegundos transcurridos desde un monotonic start."""
 
     return max(0, int((monotonic() - start) * 1000))
+
+
+def _serialize_metadata_filter(
+    metadata_filter: RetrievalMetadataFilter | None,
+) -> dict[str, object] | None:
+    if metadata_filter is None:
+        return None
+
+    payload: dict[str, object] = {}
+    if metadata_filter.source_id is not None:
+        payload["source_id"] = str(metadata_filter.source_id)
+    if metadata_filter.document_id is not None:
+        payload["document_id"] = str(metadata_filter.document_id)
+    if metadata_filter.source_type is not None:
+        payload["source_type"] = metadata_filter.source_type
+    if metadata_filter.tags:
+        payload["tags"] = list(metadata_filter.tags)
+    if metadata_filter.source_created_at_from is not None:
+        payload["source_created_at_from"] = (
+            metadata_filter.source_created_at_from.isoformat()
+        )
+    if metadata_filter.source_created_at_to is not None:
+        payload["source_created_at_to"] = (
+            metadata_filter.source_created_at_to.isoformat()
+        )
+    if metadata_filter.document_created_at_from is not None:
+        payload["document_created_at_from"] = (
+            metadata_filter.document_created_at_from.isoformat()
+        )
+    if metadata_filter.document_created_at_to is not None:
+        payload["document_created_at_to"] = (
+            metadata_filter.document_created_at_to.isoformat()
+        )
+    return payload

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Protocol
 from uuid import UUID
@@ -17,6 +18,8 @@ from adaptive_rag.chat.models import (
 from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
 from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
+
+logger = logging.getLogger(__name__)
 
 
 class ChatRunner(Protocol):
@@ -62,6 +65,7 @@ class ChatService:
             raise ChatServiceError("retrieval_limit must be positive")
 
         session_id = self._audit_writer.start_session(request, message)
+        provider_usage_recorded = False
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
@@ -105,12 +109,20 @@ class ChatService:
                     "assistant",
                     response.answer,
                 )
-                self._record_provider_usage(request.project_id, session_id)
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
                 self._audit_writer.succeed_session(request.project_id, session_id)
             return response
-        except ChatServiceError as exc:
+        except Exception as exc:
             if session_id is not None:
-                self._record_provider_usage(request.project_id, session_id)
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
                 self._audit_writer.fail_session(
                     request.project_id,
                     session_id,
@@ -118,12 +130,24 @@ class ChatService:
                 )
             raise
 
-    def _record_provider_usage(self, project_id: UUID, session_id: UUID) -> None:
-        self._audit_writer.record_provider_usage(
-            project_id,
-            session_id,
-            self._provider_usage_records(),
-        )
+    def _record_provider_usage_once(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        already_recorded: bool,
+    ) -> bool:
+        if already_recorded:
+            return True
+        try:
+            records = self._provider_usage_records()
+            self._audit_writer.record_provider_usage(project_id, session_id, records)
+        except Exception as exc:
+            logger.warning(
+                "chat_provider_usage_audit_failed",
+                extra={"error_type": type(exc).__name__},
+            )
+        return True
 
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
