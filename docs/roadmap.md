@@ -16,6 +16,7 @@
 - M12 Retrieval evidence expansion: completo.
 - M13 Chat audit trail: completo.
 - M14 Chat history/read surface: completo.
+- M15 Chat frontend inicial: activo.
 
 ## M1 Foundation
 
@@ -511,6 +512,39 @@ historial. La siguiente decision recomendada es abrir un change OpenSpec nuevo
 para frontend/UI inicial sobre `POST /chat` y `chat-history`, manteniendo
 streaming SSE, dashboards y replay fuera de alcance hasta que la experiencia
 base este definida.
+
+## M15 Chat frontend inicial
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m15-chat-frontend-plan/`
+
+Secuencia recomendada:
+
+1. `m15-chat-frontend-plan`: activo. Crea el change OpenSpec que delimita M15
+   como primera UI de chat e historial sobre los contratos existentes de M5 y
+   M14.
+2. `m15-frontend-scaffold`: crear `frontend/` con React/TypeScript/Vite,
+   scripts de dev/build/lint/test y documentacion local.
+3. `m15-chat-api-client`: agregar tipos y cliente fetch para `POST /chat`,
+   listado de sesiones y detalle read-only, con errores testeables.
+4. `m15-chat-workspace-ui`: construir la vista de pregunta/respuesta con
+   citations y refresh de historial despues de respuestas exitosas.
+5. `m15-chat-history-ui`: construir listado/detalle read-only de sesiones, con
+   loading, empty y error states.
+6. `m15-quality-gate`: validar frontend, Python cuando aplique, OpenSpec y
+   archivar el change.
+
+Decision: M15 va antes de streaming SSE, dashboards y replay porque primero
+necesitamos una app operativa que consuma los contratos cerrados sin ampliar la
+superficie backend. M15 no cambia retrieval productivo, providers, rerank,
+CLI ni API backend salvo que un slice posterior descubra una brecha de contrato
+que deba pasar por OpenSpec.
+
+Continuacion: la siguiente tarea recomendada despues de mergear este plan es
+`m15-frontend-scaffold`.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 

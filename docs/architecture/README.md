@@ -21,6 +21,8 @@ Documentos:
   dashboards o historial.
 - `chat-history-m14.md`: decision M14 para exponer listado/detalle read-only de
   sesiones antes de frontend, streaming o dashboards.
+- `chat-frontend-m15.md`: decision M15 para construir una UI inicial de chat e
+  historial sobre `POST /chat` y `chat-history`.
 
 Reglas:
 

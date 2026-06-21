@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Pendiente de abrir. M14 quedo completo y archivado el 2026-06-21.
+M15 Chat frontend inicial.
 
 ## Ultimo milestone completado
 
@@ -10,22 +10,15 @@ M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M14 `m14-quality-gate`: valida API/CLI de historial de chat, archiva
-`m14-chat-history-read-surface` y publica la spec canonica `chat-history`.
-M14 queda como superficie read-only para listar sesiones y consultar detalle
-auditable sin re-ejecutar chat/retrieval ni mutar el audit trail.
+M15 `m15-chat-frontend-plan`: abre el change OpenSpec para una primera UI de
+chat e historial sobre los contratos existentes `POST /chat` y `chat-history`.
+El PR de planificacion no agrega dependencias Node ni codigo frontend
+productivo.
 
-Comandos validados:
+Comandos validados en este PR:
 
 ```text
-uv run pytest tests/integration/cli/test_chat_cli.py -q
-uv run pytest tests/integration/api/test_chat.py -q
-uv run pytest
-uv run ruff check .
-uv run mypy src
-uv run adaptive-rag chat sessions list --help
-uv run adaptive-rag chat sessions show --help
-npx --yes @fission-ai/openspec archive m14-chat-history-read-surface --yes
+npx --yes @fission-ai/openspec validate m15-chat-frontend-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -33,7 +26,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `m15-chat-frontend-plan`
 
 ## Ultimo change archivado
 
@@ -61,11 +54,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un change OpenSpec nuevo para la primera UI/frontend de chat e
-  historial sobre los contratos existentes (`POST /chat` y `chat-history`).
-  La razon es que M14 ya fijo el contrato backend de lectura; el siguiente
-  riesgo es disenar una experiencia usable sin mezclar todavia streaming SSE,
-  dashboards o replay.
+- Implementar `m15-frontend-scaffold`: crear `frontend/` con
+  React/TypeScript/Vite, scripts de dev/build/lint/test y documentacion local.
+  La razon es que el repo no tiene frontend ni lockfile Node, y conviene fijar
+  el scaffold antes de integrar el cliente API y la UI.
 
 ## Reglas de coordinacion
 
