@@ -2,6 +2,9 @@
 
 from adaptive_rag.db.repositories.chat_audit import (
     ChatAuditRepository,
+    ChatSessionDetail,
+    ChatSessionSummary,
+    ChatSessionSummaryPage,
     ProviderUsageRepository,
 )
 from adaptive_rag.db.repositories.chunks import ChunkRepository
@@ -13,6 +16,9 @@ from adaptive_rag.db.repositories.sources import SourceRepository
 
 __all__ = [
     "ChatAuditRepository",
+    "ChatSessionDetail",
+    "ChatSessionSummary",
+    "ChatSessionSummaryPage",
     "ChunkRepository",
     "DocumentFilters",
     "DocumentRepository",

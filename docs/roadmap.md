@@ -483,7 +483,7 @@ Secuencia recomendada:
 1. `m14-chat-history-read-surface`: activo en branch de planificacion. Crea el
    change OpenSpec que delimita M14 como superficie read-only de listado y
    detalle de sesiones de chat sobre el audit trail durable de M13.
-2. `m14-chat-history-repository-read-models`: propuesto. Agrega read models y
+2. `m14-chat-history-repository-read-models`: completo. Agrega read models y
    queries compartidas para resumen/detalle de sesiones, con aislamiento por
    proyecto, filtros de status, limite acotado y orden deterministico.
 3. `m14-chat-history-api`: propuesto. Agrega

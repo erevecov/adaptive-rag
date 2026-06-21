@@ -10,13 +10,18 @@ M13 Chat audit trail cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M14 `m14-chat-history-read-surface`: abre el change OpenSpec para exponer
-lectura/historial read-only de sesiones de chat sobre el audit trail durable de
-M13, sin frontend, streaming, dashboards, replay ni cambios de ranking.
+M14 `m14-chat-history-repository-read-models`: agrega read models y queries de
+repository para listado/detalle de sesiones de chat, con aislamiento por
+proyecto, filtro de status, limite acotado, cursor deterministico, conteos,
+provider usage y retrieved chunks agrupados por retrieval run.
 
 Comandos validados:
 
 ```text
+uv run pytest tests/unit/db/repositories/test_chat_audit_repository.py -q
+uv run pytest
+uv run ruff check .
+uv run mypy src
 npx --yes @fission-ai/openspec validate m14-chat-history-read-surface --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
@@ -52,10 +57,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m14-chat-history-repository-read-models`: read models y queries
-  de listado/detalle con aislamiento por proyecto, status filter, limite
-  acotado y orden deterministico. La razon es que API/CLI deben apoyarse en un
-  contrato de lectura compartido antes de exponer endpoints o comandos.
+- Implementar `m14-chat-history-api`: schemas HTTP y endpoints
+  `GET /projects/{project_id}/chat/sessions` y
+  `GET /projects/{project_id}/chat/sessions/{session_id}` sobre los read models
+  compartidos. La razon es que CLI y frontend deben consumir un contrato HTTP
+  estable antes de agregar experiencia visual o streaming.
 
 ## Reglas de coordinacion
 

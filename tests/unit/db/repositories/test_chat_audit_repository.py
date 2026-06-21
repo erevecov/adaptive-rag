@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from adaptive_rag.db.base import Base
@@ -57,24 +59,24 @@ def _make_project(session, name: str = "demo") -> Project:
     return ProjectRepository(session).create(name=name)
 
 
-def _make_chunk(session, *, project: Project) -> Chunk:
+def _make_chunk(session, *, project: Project, suffix: str = "") -> Chunk:
     source = SourceRepository(session).create(
         project_id=project.id,
         source_type="markdown",
-        external_id=f"{project.name}.md",
+        external_id=f"{project.name}{suffix}.md",
     )
     document = DocumentRepository(session).create_document(
         project_id=project.id,
         source_id=source.id,
-        stable_id=f"{project.name}-doc",
+        stable_id=f"{project.name}{suffix}-doc",
     )
     version = DocumentRepository(session).create_version(
         project_id=project.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Alpha evidence",
-        content_hash=f"sha256:{project.name}",
-        index_fingerprint=f"fp:{project.name}",
+        content_hash=f"sha256:{project.name}{suffix}",
+        index_fingerprint=f"fp:{project.name}{suffix}",
     )
     return ChunkRepository(session).create(
         project_id=project.id,
@@ -104,6 +106,14 @@ def _make_provider_call_record() -> ProviderCallRecord:
         request_id="req-123",
         error_type="RateLimitError",
     )
+
+
+def _set_session_timestamp(
+    chat_session: ChatSession,
+    created_at: datetime,
+) -> None:
+    chat_session.created_at = created_at
+    chat_session.updated_at = created_at + timedelta(seconds=1)
 
 
 def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
@@ -385,3 +395,242 @@ def test_provider_usage_repository_persists_job_only_context() -> None:
     assert usage.session_id is None
     assert usage.job_id == job.id
     assert usage.project_id == project.id
+
+
+def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> None:
+    session = _make_session()
+    project = _make_project(session, "demo")
+    other_project = _make_project(session, "other")
+    chunk = _make_chunk(session, project=project)
+    other_chunk = _make_chunk(session, project=other_project)
+    repo = ChatAuditRepository(session)
+    usage_repo = ProviderUsageRepository(session)
+    base_time = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
+
+    older = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "older"},
+        prompt_version="history-v1",
+    )
+    _set_session_timestamp(older, base_time)
+    repo.add_message(
+        project_id=project.id,
+        session_id=older.id,
+        role="user",
+        content="older question",
+    )
+    repo.succeed_session(project_id=project.id, session_id=older.id)
+
+    middle = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "middle"},
+        prompt_version="history-v1",
+    )
+    _set_session_timestamp(middle, base_time + timedelta(minutes=1))
+    middle_tool = repo.start_tool_call(
+        project_id=project.id,
+        session_id=middle.id,
+        tool_name="retrieval.search",
+        arguments_json={"query": "middle"},
+    )
+    middle_run = repo.create_retrieval_run(
+        project_id=project.id,
+        session_id=middle.id,
+        tool_call_id=middle_tool.id,
+        query="middle",
+        strategy="dense",
+        top_k=1,
+        used_rerank=False,
+    )
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=middle_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+        citation_json={"snippet": "middle evidence"},
+    )
+    usage_repo.create_from_record(
+        project_id=project.id,
+        session_id=middle.id,
+        job_id=None,
+        eval_run_id=None,
+        record=_make_provider_call_record(),
+    )
+    repo.fail_session(
+        project_id=project.id,
+        session_id=middle.id,
+        error_message="runner failed",
+    )
+
+    newest = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake", "model": "newest"},
+    )
+    _set_session_timestamp(newest, base_time + timedelta(minutes=2))
+    repo.succeed_session(project_id=project.id, session_id=newest.id)
+
+    other_session = repo.create_session(project_id=other_project.id)
+    _set_session_timestamp(other_session, base_time + timedelta(minutes=3))
+    other_run = repo.create_retrieval_run(
+        project_id=other_project.id,
+        session_id=other_session.id,
+        tool_call_id=None,
+        query="other",
+        strategy="dense",
+        top_k=1,
+        used_rerank=False,
+    )
+    repo.add_retrieved_chunk(
+        project_id=other_project.id,
+        retrieval_run_id=other_run.id,
+        chunk_id=other_chunk.id,
+        rank=1,
+        citation_json={"snippet": "other evidence"},
+    )
+
+    first_page = repo.list_session_summaries(project_id=project.id, limit=2)
+    assert [item.session_id for item in first_page.items] == [newest.id, middle.id]
+    assert first_page.next_cursor is not None
+    assert first_page.items[1].status == "failed"
+    assert first_page.items[1].model_config == {
+        "provider": "fake",
+        "model": "middle",
+    }
+    assert first_page.items[1].prompt_version == "history-v1"
+    assert first_page.items[1].message_count == 0
+    assert first_page.items[1].tool_call_count == 1
+    assert first_page.items[1].retrieval_run_count == 1
+    assert first_page.items[1].provider_usage_count == 1
+    assert first_page.items[1].total_estimated_cost_usd == pytest.approx(0.0001)
+    assert first_page.items[1].error_message == "runner failed"
+
+    second_page = repo.list_session_summaries(
+        project_id=project.id,
+        limit=2,
+        cursor=first_page.next_cursor,
+    )
+    assert [item.session_id for item in second_page.items] == [older.id]
+    assert second_page.next_cursor is None
+
+    failed_page = repo.list_session_summaries(
+        project_id=project.id,
+        status="failed",
+        limit=10,
+    )
+    assert [item.session_id for item in failed_page.items] == [middle.id]
+
+
+def test_repository_rejects_invalid_session_summary_options() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    repo = ChatAuditRepository(session)
+
+    with pytest.raises(ValueError, match="limit must be between 1 and 100"):
+        repo.list_session_summaries(project_id=project.id, limit=0)
+
+    with pytest.raises(ValueError, match="invalid chat session status"):
+        repo.list_session_summaries(project_id=project.id, status="archived")
+
+    with pytest.raises(ValueError, match="invalid chat session cursor"):
+        repo.list_session_summaries(project_id=project.id, cursor="not-a-cursor")
+
+
+def test_repository_gets_session_detail_with_audit_records_and_project_scope() -> None:
+    session = _make_session()
+    project = _make_project(session, "demo")
+    other_project = _make_project(session, "other")
+    chunk = _make_chunk(session, project=project)
+    repo = ChatAuditRepository(session)
+    usage_repo = ProviderUsageRepository(session)
+    chat_session = repo.create_session(
+        project_id=project.id,
+        model_config_json={"provider": "fake"},
+        prompt_version="history-v1",
+    )
+    repo.add_message(
+        project_id=project.id,
+        session_id=chat_session.id,
+        role="user",
+        content="What supports alpha?",
+        metadata_json={"retrieval_limit": 1},
+    )
+    tool_call = repo.start_tool_call(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_name="retrieval.search",
+        arguments_json={"query": "alpha"},
+    )
+    repo.complete_tool_call(
+        project_id=project.id,
+        tool_call_id=tool_call.id,
+        result_summary_json={"result_count": 2},
+        latency_ms=5,
+    )
+    retrieval_run = repo.create_retrieval_run(
+        project_id=project.id,
+        session_id=chat_session.id,
+        tool_call_id=tool_call.id,
+        query="alpha",
+        strategy="dense",
+        top_k=2,
+        used_rerank=True,
+        filters_json={"source_type": "markdown"},
+        latency_ms=5,
+    )
+    second_chunk = _make_chunk(session, project=project, suffix="-second")
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=second_chunk.id,
+        rank=2,
+        citation_json={"snippet": "second"},
+    )
+    repo.add_retrieved_chunk(
+        project_id=project.id,
+        retrieval_run_id=retrieval_run.id,
+        chunk_id=chunk.id,
+        rank=1,
+        citation_json={"snippet": "first"},
+    )
+    repo.add_message(
+        project_id=project.id,
+        session_id=chat_session.id,
+        role="assistant",
+        content="Alpha is supported.",
+    )
+    usage_repo.create_from_record(
+        project_id=project.id,
+        session_id=chat_session.id,
+        job_id=None,
+        eval_run_id=None,
+        record=_make_provider_call_record(),
+    )
+    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+
+    detail = repo.get_session_detail(
+        project_id=project.id,
+        session_id=chat_session.id,
+    )
+
+    assert detail is not None
+    assert detail.session.id == chat_session.id
+    assert [message.role for message in detail.messages] == ["user", "assistant"]
+    assert detail.messages[0].metadata_json == {"retrieval_limit": 1}
+    assert [item.id for item in detail.tool_calls] == [tool_call.id]
+    assert detail.tool_calls[0].result_summary_json == {"result_count": 2}
+    assert [item.id for item in detail.retrieval_runs] == [retrieval_run.id]
+    assert detail.retrieval_runs[0].filters_json == {"source_type": "markdown"}
+    assert [
+        item.citation_json
+        for item in detail.retrieved_chunks_by_run_id[retrieval_run.id]
+    ] == [{"snippet": "first"}, {"snippet": "second"}]
+    assert len(detail.provider_usage) == 1
+    assert detail.provider_usage[0].provider == "qwen"
+
+    assert (
+        repo.get_session_detail(
+            project_id=other_project.id,
+            session_id=chat_session.id,
+        )
+        is None
+    )
