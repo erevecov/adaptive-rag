@@ -14,7 +14,7 @@
 - M10 Retrieval eval datasets y decision gates: completo.
 - M11 Retrieval strategy decision: completo.
 - M12 Retrieval evidence expansion: completo.
-- M13 Chat audit trail: activo.
+- M13 Chat audit trail: completo.
 
 ## M1 Foundation
 
@@ -422,17 +422,21 @@ registro durable antes de streaming, dashboards o historial.
 
 ## M13 Chat audit trail
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m13-chat-audit-trail/`
+- `openspec/changes/archive/2026-06-21-m13-chat-audit-trail/`
+
+Spec canonica:
+
+- `openspec/specs/chat-audit-trail/spec.md`
 
 Secuencia recomendada:
 
-1. `m13-chat-audit-trail`: planificacion completa. Crea el change OpenSpec
+1. `m13-chat-audit-trail`: planificacion completa. Creo el change OpenSpec
    que delimita M13 como persistencia durable de chat sin streaming, historial,
-   dashboards ni cambios de ranking; el change sigue activo/no archivado.
+   dashboards ni cambios de ranking.
 2. `m13-audit-schema`: completo en branch de implementacion. Agrega migracion
    Alembic y modelos SQLAlchemy para sesiones, mensajes, tool calls, retrieval
    runs, retrieved chunks y provider usage.
@@ -449,13 +453,21 @@ Secuencia recomendada:
    usage/cost de providers al contexto durable disponible sin romper runners
    offline.
 7. `m13-quality-gate`: completo en branch de implementacion. Valida tests,
-   lint, types, specs y smoke CLI, dejando el change activo/no archivado hasta
-   que se solicite el archive explicito.
+   lint, types, specs y smoke CLI.
+8. `m13-closeout`: completo. Archiva el change OpenSpec, publica la spec
+   canonica `chat-audit-trail` y reconcilia `docs/progress.md` y este roadmap
+   despues del merge de PR #69.
 
 Decision: M13 va antes de streaming SSE, dashboards e historial porque esas
 superficies necesitan una fuente durable para reproducir mensajes, tool calls,
 retrieval context, citations, errores y usage/cost. M13 no cambia retrieval
 productivo ni agrega algoritmos nuevos.
+
+Continuacion: M13 deja audit trail durable pero todavia no expone una
+superficie publica para consultar sesiones o historial. La siguiente opcion
+recomendada es abrir un change M14 para lectura/historial de chat aislado por
+proyecto, antes de streaming SSE o dashboards, porque reduce el riesgo de esas
+superficies al fijar primero el contrato de consulta.
 
 ## Politica para reducir conflictos de merge
 
