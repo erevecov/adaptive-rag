@@ -32,6 +32,8 @@ Documentos:
 - `neo4j-graph-db-m18.md`: decision M18 para evaluar Neo4j como graph DB
   routeable, manteniendo Postgres como fuente durable y graph DB como indice
   derivado opt-in.
+- `graph-db-decision-matrix-m18.md`: matriz M18 que selecciona Neo4j como
+  primer backend live opt-in y mantiene Memgraph/FalkorDB/Kuzu en hold/no-go.
 
 Reglas:
 

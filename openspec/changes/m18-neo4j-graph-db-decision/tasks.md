@@ -24,8 +24,9 @@
 
 ## 3. Slices propuestos de M18
 
-- [ ] 3.1 Implementar `m18-graph-db-decision-matrix`.
-- [ ] 3.2 Implementar `m18-graph-store-contract`.
+- [x] 3.1 Implementar `m18-graph-db-decision-matrix`.
+- [ ] 3.2 Implementar `m18-graph-store-contract`, incluyendo
+  readiness/backfill por proyecto en Postgres antes del adapter live.
 - [ ] 3.3 Implementar `m18-neo4j-adapter-and-health`.
 - [ ] 3.4 Implementar `m18-neo4j-indexer`.
 - [ ] 3.5 Implementar `m18-graph-retrieval-route`.

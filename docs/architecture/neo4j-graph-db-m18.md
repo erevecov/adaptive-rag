@@ -14,6 +14,18 @@ La decision recomendada es empezar por decision matrix y contrato `GraphStore`.
 Postgres sigue siendo la fuente durable de verdad; cualquier graph DB es un
 indice derivado, reconstruible y deshabilitado por default.
 
+Esto permite que Neo4j este apagado o deshabilitado durante un periodo largo:
+ingestion, updates y deletes siguen persistiendo la fuente canonica en Postgres;
+cuando `graph_store=neo4j` se habilite, un backfill reconstruye la proyeccion en
+Neo4j desde Postgres y retrieval graph solo se usa cuando el proyecto queda
+`ready`.
+
+La decision matrix quedo completada en
+`docs/architecture/graph-db-decision-matrix-m18.md`: Neo4j queda en `proceed`
+como primer backend live opt-in; Memgraph y FalkorDB quedan en `hold`; Kuzu
+queda en `no-go` para el backend routeable de M18; no-op queda como fallback si
+evals futuras no justifican graph retrieval.
+
 ## Evidencia externa consultada
 
 Context7 resolvio docs oficiales de Neo4j y se consultaron:
@@ -31,6 +43,8 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
   futuro.
 - Definir contrato `GraphStore`, health checks, errores estables y fakes
   offline antes de Neo4j live.
+- Registrar readiness/backfill por proyecto en Postgres con estados como
+  `disabled`, `pending_backfill`, `indexing`, `ready`, `stale` y `failed`.
 - Mantener Postgres como fuente durable y graph DB como indice derivado.
 - Requerir rutas local y managed documentadas antes de adapter live.
 - Requerir evals versionadas antes de promover retrieval graph.
@@ -45,8 +59,8 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 
 ## Secuencia
 
-1. `m18-neo4j-graph-db-decision`: activo.
-2. `m18-graph-db-decision-matrix`: pendiente.
+1. `m18-neo4j-graph-db-decision`: completo.
+2. `m18-graph-db-decision-matrix`: completo.
 3. `m18-graph-store-contract`: pendiente.
 4. `m18-neo4j-adapter-and-health`: pendiente.
 5. `m18-neo4j-indexer`: pendiente.

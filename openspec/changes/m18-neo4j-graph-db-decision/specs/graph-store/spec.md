@@ -36,11 +36,54 @@ DB como indice derivado reconstruible.
 - **AND** el sistema puede reconstruir el grafo desde Postgres
 - **AND** graph DB no contiene la unica copia durable de datos primarios
 
+#### Scenario: Graph store puede estar deshabilitado sin perder rebuild
+
+- **WHEN** `graph_store=disabled` durante ingestion, actualizacion o borrado de
+  datos
+- **THEN** la operacion persiste la fuente canonica necesaria en Postgres
+- **AND** no requiere escribir en Neo4j ni en otro backend graph live
+- **AND** una habilitacion posterior de graph store puede reconstruir el grafo
+  mediante backfill desde Postgres
+
 #### Scenario: Operaciones preservan aislamiento por proyecto
 
 - **WHEN** se indexa, borra, reindexa o consulta graph DB
 - **THEN** la operacion queda acotada por `project_id`
 - **AND** no mezcla nodos, relaciones, filtros ni citations entre proyectos
+
+### Requirement: Graph projection mantiene readiness en Postgres
+
+El sistema MUST registrar en Postgres el estado de la proyeccion graph por
+proyecto antes de usar retrieval graph.
+
+#### Scenario: Habilitar graph store agenda backfill
+
+- **WHEN** un proyecto habilita un backend graph live despues de estar
+  deshabilitado
+- **THEN** el estado de la proyeccion graph queda en `pending_backfill` o
+  `indexing`
+- **AND** el backfill materializa nodos y relaciones desde datos canonicos en
+  Postgres
+- **AND** retrieval graph no se usa para ese proyecto hasta que el estado sea
+  `ready`
+
+#### Scenario: Readiness controla fallback
+
+- **WHEN** una consulta intenta usar retrieval graph y la proyeccion esta en
+  `disabled`, `pending_backfill`, `indexing`, `stale` o `failed`
+- **THEN** el sistema usa fallback a dense retrieval
+- **AND** registra una razon estable de fallback en audit trail cuando graph
+  retrieval fue solicitado
+- **AND** no bloquea chat ni retrieval baseline por falta de graph readiness
+
+#### Scenario: Watermark detecta stale projection
+
+- **WHEN** cambian documents, document versions, chunks, metadata, schema de
+  proyeccion o version de extractor despues del ultimo backfill
+- **THEN** el estado de la proyeccion queda `stale` o `pending_backfill`
+- **AND** Postgres conserva un watermark o version que permite decidir que debe
+  reindexarse
+- **AND** el backfill posterior es idempotente por `project_id`
 
 ### Requirement: Graph store expone contrato testeable
 

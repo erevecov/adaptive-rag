@@ -679,13 +679,16 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m18-neo4j-graph-db-decision`: activo. Documenta el plan, crea la capacidad
+1. `m18-neo4j-graph-db-decision`: completo. Documenta el plan, crea la capacidad
    `graph-store` y fija la secuencia de M18 sin tocar codigo productivo.
-2. `m18-graph-db-decision-matrix`: pendiente. Comparar Neo4j vs alternativas
-   locales/managed, incluyendo FalkorDB, Memgraph, Kuzu y no-op.
+2. `m18-graph-db-decision-matrix`: completo. Selecciona Neo4j como primer
+   backend live opt-in; mantiene Memgraph y FalkorDB en `hold`, Kuzu en
+   `no-go` para el backend routeable de M18 y no-op como fallback de evals.
+   Tambien fija que Postgres conserve la fuente canonica y readiness/backfill
+   por proyecto para reconstruir Neo4j si estuvo disabled.
 3. `m18-graph-store-contract`: pendiente. Definir contrato `GraphStore`,
-   settings, errores estables, health checks y fakes offline antes de tocar
-   Neo4j live.
+   settings, readiness/backfill, errores estables, health checks y fakes
+   offline antes de tocar Neo4j live.
 4. `m18-neo4j-adapter-and-health`: pendiente. Agregar adapter Neo4j opt-in y
    health checks solo despues de cerrar el contrato.
 5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
@@ -699,8 +702,9 @@ Secuencia recomendada:
    default y archivar M18 si corresponde.
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
-opcional, no como requisito del stack base. La prioridad inmediata es completar
-la decision matrix antes de implementar adapter live, indexer o retrieval graph.
+opcional, no como requisito del stack base. La prioridad inmediata es definir el
+contrato `GraphStore` y los fakes offline antes de implementar adapter live,
+indexer o retrieval graph.
 
 ## Politica para reducir conflictos de merge
 

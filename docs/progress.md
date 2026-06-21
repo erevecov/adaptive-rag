@@ -10,10 +10,12 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M18 `m18-neo4j-graph-db-decision`: crea el change OpenSpec M18, define la
-capacidad `graph-store`, documenta la decision Neo4j routeable y actualiza
-arquitectura/roadmap/progreso. Este slice no cambia codigo productivo,
-settings, dependencias, migrations, frontend ni infraestructura.
+M18 `m18-graph-db-decision-matrix`: completa la matriz de decision Neo4j vs
+Memgraph/FalkorDB/Kuzu/no-op, selecciona Neo4j como primer backend live opt-in
+y agrega la regla de proyeccion reconstruible: Postgres conserva la fuente
+canonica y readiness/backfill por proyecto para que Neo4j pueda habilitarse
+despues mediante backfill. Este slice no cambia codigo productivo, settings,
+dependencias, migrations, frontend ni infraestructura.
 
 Comandos validados en este slice:
 
@@ -57,10 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-graph-db-decision-matrix`, porque antes de agregar
-  dependencias o adapter live conviene comparar Neo4j contra FalkorDB,
-  Memgraph, Kuzu y no-op con evidencia verificable de setup local, managed,
-  drivers, costos, operaciones y testability.
+- Continuar con `m18-graph-store-contract`, porque la matriz ya selecciono
+  Neo4j como primer backend live opt-in y ahora conviene fijar la interfaz,
+  settings, estados de proyeccion/backfill, errores estables y fakes offline
+  antes de importar drivers o tocar conectividad real.
 
 ## Reglas de coordinacion
 
