@@ -505,6 +505,51 @@ siguiente decision recomendada seria elegir entre una UI inicial de historial y
 chat sobre API existente, o streaming SSE si la experiencia conversacional
 necesita respuestas parciales antes de UI completa.
 
+## Backlog futuro: Neo4j como graph DB routeable
+
+Estado: futuro.
+
+Objetivo:
+
+- Evaluar e integrar Neo4j como graph DB opcional para retrieval graph,
+  manteniendo `pgvector`/dense retrieval como baseline y Postgres como fuente
+  durable principal del dominio.
+
+Condiciones para abrir el change:
+
+- La integracion debe ser routeable desde settings, con `graph_store=disabled`
+  como default y una opcion explicita `graph_store=neo4j`.
+- Retrieval graph debe poder habilitarse/deshabilitarse sin migrar datos
+  primarios ni romper API/CLI existentes.
+- Neo4j debe tener una ruta local completamente viable, por ejemplo Docker o
+  Neo4j Desktop, y una ruta managed/externa equivalente, como Neo4j Aura.
+- El grafo debe tratarse como indice derivado y reconstruible desde Postgres,
+  no como unica fuente de verdad.
+- La primera version debe preservar aislamiento por proyecto, filtros de
+  metadata, citations y auditoria de retrieval.
+- La integracion no debe depender de providers hosted: debe funcionar con el
+  runtime Qwen/local ya definido o con fakes deterministas en tests.
+- El default productivo no cambia hasta que evals versionadas demuestren mejoras
+  sin regresiones criticas de calidad, costo, latencia, filtros o citations.
+
+Secuencia recomendada:
+
+1. `neo4j-graph-db-decision`: documentar decision matrix Neo4j vs alternativas
+   locales/managed, incluyendo FalkorDB, Memgraph y Kuzu.
+2. `neo4j-graph-store-contract`: definir contrato `GraphStore`, settings,
+   errores estables, health checks y fakes offline antes de tocar Neo4j live.
+3. `neo4j-indexer`: materializar nodos/relaciones derivados desde proyectos,
+   sources, documents, chunks y metadata con reindex idempotente.
+4. `neo4j-retrieval-route`: agregar retrieval graph opt-in y routeable, con
+   fallback claro a dense retrieval cuando este deshabilitado o no disponible.
+5. `neo4j-evals-quality-gate`: comparar dense baseline vs graph-enabled
+   retrieval en suites versionadas antes de promover cualquier default.
+
+Decision: Neo4j se mantiene como futura integracion opcional, no como requisito
+del stack base. La prioridad sigue siendo completar el milestone activo y abrir
+este bloque solo cuando exista un gap de retrieval medido que justifique graph
+retrieval frente a dense/rerank.
+
 ## Politica para reducir conflictos de merge
 
 - Solo un PR activo debe tocar migraciones Alembic y modelos SQLAlchemy a la vez.
