@@ -25,6 +25,14 @@ from adaptive_rag.db.models import (
     ToolCall,
 )
 from adaptive_rag.db.repositories import (
+    ChatObservabilityErrorMessage,
+    ChatObservabilityErrorSummary,
+    ChatObservabilityFilters,
+    ChatObservabilityLatencySummary,
+    ChatObservabilityProviderUsageGroup,
+    ChatObservabilityProviderUsageSummary,
+    ChatObservabilitySessionSummary,
+    ChatObservabilitySummary,
     ChatSessionDetail,
     ChatSessionSummary,
     ChatSessionSummaryPage,
@@ -126,6 +134,173 @@ class ChatSessionListResponse(BaseModel):
                 for summary in page.items
             ],
             next_cursor=page.next_cursor,
+        )
+
+
+class ChatObservabilityFiltersResponse(BaseModel):
+    created_at_from: datetime | None
+    created_at_to: datetime | None
+    status: str | None
+
+    @classmethod
+    def from_filters(
+        cls,
+        filters: ChatObservabilityFilters,
+    ) -> ChatObservabilityFiltersResponse:
+        return cls(
+            created_at_from=filters.created_at_from,
+            created_at_to=filters.created_at_to,
+            status=filters.status,
+        )
+
+
+class ChatObservabilitySessionSummaryResponse(BaseModel):
+    total: int
+    by_status: dict[str, int]
+
+    @classmethod
+    def from_summary(
+        cls,
+        summary: ChatObservabilitySessionSummary,
+    ) -> ChatObservabilitySessionSummaryResponse:
+        return cls(
+            total=summary.total,
+            by_status=dict(summary.by_status),
+        )
+
+
+class ChatObservabilityLatencySummaryResponse(BaseModel):
+    count: int
+    min: int | None
+    avg: float | None
+    p50: int | None
+    p95: int | None
+    max: int | None
+
+    @classmethod
+    def from_summary(
+        cls,
+        summary: ChatObservabilityLatencySummary,
+    ) -> ChatObservabilityLatencySummaryResponse:
+        return cls(
+            count=summary.count,
+            min=summary.min,
+            avg=summary.avg,
+            p50=summary.p50,
+            p95=summary.p95,
+            max=summary.max,
+        )
+
+
+class ChatObservabilityProviderUsageGroupResponse(BaseModel):
+    operation: str
+    provider: str
+    model: str
+    record_count: int
+    estimated_cost_usd: float | None
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+    input_count: int | None
+    latency_ms: ChatObservabilityLatencySummaryResponse
+
+    @classmethod
+    def from_group(
+        cls,
+        group: ChatObservabilityProviderUsageGroup,
+    ) -> ChatObservabilityProviderUsageGroupResponse:
+        return cls(
+            operation=group.operation,
+            provider=group.provider,
+            model=group.model,
+            record_count=group.record_count,
+            estimated_cost_usd=group.estimated_cost_usd,
+            input_tokens=group.input_tokens,
+            output_tokens=group.output_tokens,
+            total_tokens=group.total_tokens,
+            input_count=group.input_count,
+            latency_ms=ChatObservabilityLatencySummaryResponse.from_summary(
+                group.latency_ms
+            ),
+        )
+
+
+class ChatObservabilityProviderUsageSummaryResponse(BaseModel):
+    total_records: int
+    total_estimated_cost_usd: float
+    missing_cost_count: int
+    groups: list[ChatObservabilityProviderUsageGroupResponse]
+
+    @classmethod
+    def from_summary(
+        cls,
+        summary: ChatObservabilityProviderUsageSummary,
+    ) -> ChatObservabilityProviderUsageSummaryResponse:
+        return cls(
+            total_records=summary.total_records,
+            total_estimated_cost_usd=summary.total_estimated_cost_usd,
+            missing_cost_count=summary.missing_cost_count,
+            groups=[
+                ChatObservabilityProviderUsageGroupResponse.from_group(group)
+                for group in summary.groups
+            ],
+        )
+
+
+class ChatObservabilityErrorMessageResponse(BaseModel):
+    message: str
+    count: int
+
+    @classmethod
+    def from_message(
+        cls,
+        message: ChatObservabilityErrorMessage,
+    ) -> ChatObservabilityErrorMessageResponse:
+        return cls(message=message.message, count=message.count)
+
+
+class ChatObservabilityErrorSummaryResponse(BaseModel):
+    session_error_count: int
+    provider_error_count: int
+    top_messages: list[ChatObservabilityErrorMessageResponse]
+
+    @classmethod
+    def from_summary(
+        cls,
+        summary: ChatObservabilityErrorSummary,
+    ) -> ChatObservabilityErrorSummaryResponse:
+        return cls(
+            session_error_count=summary.session_error_count,
+            provider_error_count=summary.provider_error_count,
+            top_messages=[
+                ChatObservabilityErrorMessageResponse.from_message(message)
+                for message in summary.top_messages
+            ],
+        )
+
+
+class ChatObservabilitySummaryResponse(BaseModel):
+    project_id: UUID
+    filters: ChatObservabilityFiltersResponse
+    sessions: ChatObservabilitySessionSummaryResponse
+    provider_usage: ChatObservabilityProviderUsageSummaryResponse
+    errors: ChatObservabilityErrorSummaryResponse
+
+    @classmethod
+    def from_summary(
+        cls,
+        summary: ChatObservabilitySummary,
+    ) -> ChatObservabilitySummaryResponse:
+        return cls(
+            project_id=summary.project_id,
+            filters=ChatObservabilityFiltersResponse.from_filters(summary.filters),
+            sessions=ChatObservabilitySessionSummaryResponse.from_summary(
+                summary.sessions
+            ),
+            provider_usage=ChatObservabilityProviderUsageSummaryResponse.from_summary(
+                summary.provider_usage
+            ),
+            errors=ChatObservabilityErrorSummaryResponse.from_summary(summary.errors),
         )
 
 

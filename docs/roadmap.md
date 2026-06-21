@@ -622,7 +622,7 @@ Secuencia recomendada:
 2. `m17-observability-read-models`: completo. Agrega read models y repository
    methods para resumir sesiones, provider usage, latencias y errores por
    proyecto, con filtros de status/fecha y calculos portables.
-3. `m17-observability-api`: pendiente. Agrega
+3. `m17-observability-api`: completo. Agrega
    `GET /projects/{project_id}/chat/observability/summary` con JSON estable,
    validacion de filtros e aislamiento por proyecto.
 4. `m17-observability-cli`: pendiente. Agrega
@@ -637,9 +637,9 @@ invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
 M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
 replay, auth final ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es `m17-observability-api`, para
-exponer el resumen por HTTP reutilizando `ChatObservabilityRepository` y dejar
-la validacion de filtros lista antes del CLI equivalente.
+Continuacion: la siguiente tarea recomendada es `m17-observability-cli`, para
+emitir JSON equivalente al endpoint HTTP reutilizando el mismo read model antes
+del quality gate y archive de M17.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
