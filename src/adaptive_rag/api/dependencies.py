@@ -31,10 +31,6 @@ def get_session() -> Iterator[Session]:
         yield session
 
 
-def get_dense_embedding_provider() -> DenseEmbeddingProvider:
-    return get_default_dense_embedding_provider()
-
-
 def get_rerank_provider_factory() -> RerankProviderFactory:
     return get_runtime_rerank_provider
 
@@ -43,7 +39,23 @@ def get_provider_usage_tracker() -> InMemoryProviderUsageTracker:
     return InMemoryProviderUsageTracker()
 
 
+_DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
+
+
+def get_dense_embedding_provider(
+    usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
+        _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
+    ),
+) -> DenseEmbeddingProvider:
+    active_usage_tracker = (
+        get_provider_usage_tracker()
+        if isinstance(usage_tracker, DependsMarker)
+        else usage_tracker
+    )
+    if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
+        return get_default_dense_embedding_provider(usage_tracker=active_usage_tracker)
+    return get_default_dense_embedding_provider()
 
 
 def get_retrieval_service(

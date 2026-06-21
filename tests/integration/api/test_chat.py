@@ -65,6 +65,37 @@ class StaticQueryEmbeddingProvider:
         return [list(self.embedding) for _text in texts]
 
 
+class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
+    def __init__(
+        self,
+        embedding: list[float],
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> None:
+        super().__init__(embedding)
+        self.usage_tracker = usage_tracker
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        embeddings = super().embed_texts(texts)
+        self.usage_tracker.record(
+            ProviderCallRecord(
+                provider="fake",
+                model="usage-recording-embedding-v1",
+                operation="embedding",
+                outcome="succeeded",
+                duration_ms=7,
+                usage=ProviderTokenUsage(input_count=len(texts)),
+                usage_source="unavailable",
+                request_id="embedding-request-1",
+            )
+        )
+        return embeddings
+
+
+class FailingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
+    dimensions = EMBEDDING_DIMENSIONS + 1
+
+
 class ToolCallingChatRunner:
     def __init__(self, *, retrieval_query: str) -> None:
         self.retrieval_query = retrieval_query
@@ -143,6 +174,12 @@ class ExplodingChatRunner:
     ) -> ChatRunnerOutput:
         self.requests.append(request)
         raise RuntimeError("runner exploded")
+
+
+class MetadataChatRunner(RecordingNoToolChatRunner):
+    provider_name = "qwen"
+    model_name = "qwen-plus"
+    prompt_version = "m13-chat-v1"
 
 
 def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
@@ -517,6 +554,139 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
     assert usage.total_tokens == 7
     assert usage.latency_ms == 12
     assert usage.provider_request_id == "chat-request-1"
+
+
+def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    _source, _document, _version, _chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Alpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    session.commit()
+    providers: list[UsageRecordingQueryEmbeddingProvider] = []
+
+    def default_provider_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> UsageRecordingQueryEmbeddingProvider:
+        provider = UsageRecordingQueryEmbeddingProvider(
+            _vector(0.0),
+            usage_tracker=usage_tracker,
+        )
+        providers.append(provider)
+        return provider
+
+    monkeypatch.setattr(
+        "adaptive_rag.api.dependencies.get_default_dense_embedding_provider",
+        default_provider_factory,
+    )
+    app = create_app()
+
+    def override_session() -> Iterator[Session]:
+        yield session
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_chat_runner] = lambda: ToolCallingChatRunner(
+        retrieval_query="alpha evidence"
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "What supports alpha?", "retrieval_limit": 1},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    session_id = UUID(data["session_id"])
+    assert len(providers) == 1
+    assert providers[0].inputs == ["alpha evidence"]
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.operation == "embedding"
+    assert usage.provider == "fake"
+    assert usage.model == "usage-recording-embedding-v1"
+    assert usage.input_count == 1
+    assert usage.provider_request_id == "embedding-request-1"
+
+
+def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = FailingQueryEmbeddingProvider(_vector(0.0))
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "What supports alpha?", "retrieval_limit": 3},
+    )
+
+    expected_error = (
+        "query embedding dimension mismatch: "
+        f"expected {EMBEDDING_DIMENSIONS}, got {EMBEDDING_DIMENSIONS + 1}"
+    )
+    assert response.status_code == 422
+    assert response.json() == {"detail": expected_error}
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == expected_error
+    tool_call = fresh_session.query(ToolCall).filter_by(
+        session_id=chat_session.id
+    ).one()
+    assert tool_call.status == "failed"
+    assert tool_call.tool_name == "retrieval.search"
+    assert tool_call.arguments_json == {
+        "query": "alpha evidence",
+        "limit": 3,
+        "metadata_filter": None,
+    }
+    assert tool_call.error_message == expected_error
+    assert isinstance(tool_call.latency_ms, int)
+    assert tool_call.latency_ms >= 0
+    assert (
+        fresh_session.query(RetrievalRun).filter_by(session_id=chat_session.id).count()
+        == 0
+    )
+
+
+def test_chat_endpoint_persists_runner_model_metadata(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = MetadataChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "No retrieval needed."},
+    )
+
+    assert response.status_code == 200
+    session_id = UUID(response.json()["session_id"])
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.model_config_json == {"provider": "qwen", "model": "qwen-plus"}
+    assert chat_session.prompt_version == "m13-chat-v1"
 
 
 def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(

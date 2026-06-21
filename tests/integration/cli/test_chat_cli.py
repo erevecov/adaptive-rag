@@ -59,6 +59,33 @@ class StaticQueryEmbeddingProvider:
         return [list(self.embedding) for _text in texts]
 
 
+class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
+    def __init__(
+        self,
+        embedding: list[float],
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> None:
+        super().__init__(embedding)
+        self.usage_tracker = usage_tracker
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        embeddings = super().embed_texts(texts)
+        self.usage_tracker.record(
+            ProviderCallRecord(
+                provider="fake",
+                model="usage-recording-embedding-v1",
+                operation="embedding",
+                outcome="succeeded",
+                duration_ms=7,
+                usage=ProviderTokenUsage(input_count=len(texts)),
+                usage_source="unavailable",
+                request_id="cli-embedding-request-1",
+            )
+        )
+        return embeddings
+
+
 class ToolCallingChatRunner:
     def __init__(self, *, retrieval_query: str) -> None:
         self.retrieval_query = retrieval_query
@@ -488,6 +515,92 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
     assert usage.total_tokens == 7
     assert usage.latency_ms == 12
     assert usage.provider_request_id == "cli-chat-request-1"
+
+
+def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    _source, _document, _version, _chunk = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Alpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    session.commit()
+    providers: list[UsageRecordingQueryEmbeddingProvider] = []
+    runners: list[ToolCallingChatRunner] = []
+
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    def default_provider_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> UsageRecordingQueryEmbeddingProvider:
+        provider = UsageRecordingQueryEmbeddingProvider(
+            _vector(0.0),
+            usage_tracker=usage_tracker,
+        )
+        providers.append(provider)
+        return provider
+
+    def runner_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker | None = None,
+    ) -> ToolCallingChatRunner:
+        runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+        runners.append(runner)
+        return runner
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.dependencies.get_default_dense_embedding_provider",
+        default_provider_factory,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_chat_runner",
+        runner_factory,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "What supports alpha?",
+            "--retrieval-limit",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    session_id = UUID(data["session_id"])
+    assert len(providers) == 1
+    assert providers[0].inputs == ["alpha evidence"]
+    assert len(runners) == 1
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.operation == "embedding"
+    assert usage.provider == "fake"
+    assert usage.model == "usage-recording-embedding-v1"
+    assert usage.input_count == 1
+    assert usage.provider_request_id == "cli-embedding-request-1"
 
 
 def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(

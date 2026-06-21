@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from inspect import signature
 from typing import Annotated
 from uuid import UUID
 
@@ -23,6 +24,7 @@ from adaptive_rag.cli.dependencies import (
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
+from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.retrieval import RetrievalService
 
@@ -81,7 +83,7 @@ def ask(
         )
         retrieval_service = RetrievalService(
             session,
-            provider=get_cli_dense_embedding_provider(),
+            provider=_get_chat_dense_embedding_provider(usage_tracker=usage_tracker),
         )
         service = ChatService(
             runner=get_cli_chat_runner(usage_tracker=usage_tracker),
@@ -108,3 +110,12 @@ def _commit_or_rollback_chat_error(session: Session) -> None:
         session.commit()
     except Exception:
         session.rollback()
+
+
+def _get_chat_dense_embedding_provider(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> DenseEmbeddingProvider:
+    if "usage_tracker" in signature(get_cli_dense_embedding_provider).parameters:
+        return get_cli_dense_embedding_provider(usage_tracker=usage_tracker)
+    return get_cli_dense_embedding_provider()

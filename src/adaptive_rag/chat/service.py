@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter
@@ -64,7 +64,12 @@ class ChatService:
         if request.retrieval_limit <= 0:
             raise ChatServiceError("retrieval_limit must be positive")
 
-        session_id = self._audit_writer.start_session(request, message)
+        session_id = self._audit_writer.start_session(
+            request,
+            message,
+            model_config_json=_runner_model_config(self._runner),
+            prompt_version=_runner_prompt_version(self._runner),
+        )
         provider_usage_recorded = False
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
@@ -152,6 +157,27 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
+
+
+def _runner_model_config(runner: ChatRunner) -> dict[str, str] | None:
+    provider = _string_attr(runner, "provider_name")
+    model = _string_attr(runner, "model_name")
+    if provider is None or model is None:
+        return None
+    return {"provider": provider, "model": model}
+
+
+def _runner_prompt_version(runner: ChatRunner) -> str | None:
+    return _string_attr(runner, "prompt_version")
+
+
+def _string_attr(value: object, name: str) -> str | None:
+    attr: Any = getattr(value, name, None)
+    if isinstance(attr, str):
+        stripped = attr.strip()
+        if stripped:
+            return stripped
+    return None
 
 
 def _validate_message(message: str) -> str:

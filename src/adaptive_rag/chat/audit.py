@@ -20,7 +20,14 @@ from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 class ChatAuditWriter(Protocol):
     """Sink inyectable para audit trail de chat."""
 
-    def start_session(self, request: ChatRequest, message: str) -> UUID | None:
+    def start_session(
+        self,
+        request: ChatRequest,
+        message: str,
+        *,
+        model_config_json: Mapping[str, Any] | None = None,
+        prompt_version: str | None = None,
+    ) -> UUID | None:
         """Inicia una sesion auditable y devuelve su id cuando existe."""
         ...
 
@@ -46,6 +53,42 @@ class ChatAuditWriter(Protocol):
         results: Sequence[RetrievalResultPayload],
     ) -> None:
         """Registra una llamada exitosa a la tool de retrieval."""
+        ...
+
+    def start_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+    ) -> UUID | None:
+        """Registra el inicio de una llamada a la tool de retrieval."""
+        ...
+
+    def complete_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+        latency_ms: int,
+        results: Sequence[RetrievalResultPayload],
+    ) -> None:
+        """Completa una llamada exitosa a la tool de retrieval."""
+        ...
+
+    def fail_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        """Marca como fallida una llamada iniciada a la tool de retrieval."""
         ...
 
     def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
@@ -74,7 +117,14 @@ class ChatAuditWriter(Protocol):
 class NullChatAuditWriter:
     """Audit writer no-op para mantener el contrato existente por defecto."""
 
-    def start_session(self, request: ChatRequest, message: str) -> UUID | None:
+    def start_session(
+        self,
+        request: ChatRequest,
+        message: str,
+        *,
+        model_config_json: Mapping[str, Any] | None = None,
+        prompt_version: str | None = None,
+    ) -> UUID | None:
         return None
 
     def record_message(
@@ -96,6 +146,39 @@ class NullChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+    ) -> None:
+        return None
+
+    def start_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+    ) -> UUID | None:
+        return None
+
+    def complete_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+        latency_ms: int,
+        results: Sequence[RetrievalResultPayload],
+    ) -> None:
+        return None
+
+    def fail_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
     ) -> None:
         return None
 
@@ -126,15 +209,25 @@ class InMemoryChatAuditWriter:
     session_id: UUID = field(default_factory=uuid4)
     events: list[dict[str, object]] = field(default_factory=list)
 
-    def start_session(self, request: ChatRequest, message: str) -> UUID | None:
-        self.events.append(
-            {
-                "event": "start_session",
-                "project_id": str(request.project_id),
-                "message": message,
-                "retrieval_limit": request.retrieval_limit,
-            }
-        )
+    def start_session(
+        self,
+        request: ChatRequest,
+        message: str,
+        *,
+        model_config_json: Mapping[str, Any] | None = None,
+        prompt_version: str | None = None,
+    ) -> UUID | None:
+        event: dict[str, object] = {
+            "event": "start_session",
+            "project_id": str(request.project_id),
+            "message": message,
+            "retrieval_limit": request.retrieval_limit,
+        }
+        if model_config_json is not None:
+            event["model_config_json"] = dict(model_config_json)
+        if prompt_version is not None:
+            event["prompt_version"] = prompt_version
+        self.events.append(event)
         return self.session_id
 
     def record_message(
@@ -171,6 +264,53 @@ class InMemoryChatAuditWriter:
                 "result_count": len(results),
                 "chunk_ids": [str(result["chunk_id"]) for result in results],
                 "metadata_filter": serialize_metadata_filter(metadata_filter),
+                "latency_ms": latency_ms,
+            }
+        )
+
+    def start_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+    ) -> UUID | None:
+        return uuid4()
+
+    def complete_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+        latency_ms: int,
+        results: Sequence[RetrievalResultPayload],
+    ) -> None:
+        self.record_retrieval_tool(
+            project_id,
+            session_id,
+            query,
+            limit,
+            metadata_filter,
+            latency_ms,
+            results,
+        )
+
+    def fail_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        self.events.append(
+            {
+                "event": "retrieval_tool_failed",
+                "error_message": error_message,
                 "latency_ms": latency_ms,
             }
         )
@@ -221,9 +361,18 @@ class SqlAlchemyChatAuditWriter:
         self._chat_audit_repository = chat_audit_repository
         self._provider_usage_repository = provider_usage_repository
 
-    def start_session(self, request: ChatRequest, message: str) -> UUID | None:
+    def start_session(
+        self,
+        request: ChatRequest,
+        message: str,
+        *,
+        model_config_json: Mapping[str, Any] | None = None,
+        prompt_version: str | None = None,
+    ) -> UUID | None:
         chat_session = self._chat_audit_repository.create_session(
             project_id=request.project_id,
+            model_config_json=model_config_json,
+            prompt_version=prompt_version,
         )
         return chat_session.id
 
@@ -258,7 +407,35 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None:
             return
 
-        filters_json = serialize_metadata_filter(metadata_filter)
+        tool_call_id = self.start_retrieval_tool(
+            project_id,
+            session_id,
+            query,
+            limit,
+            metadata_filter,
+        )
+        self.complete_retrieval_tool(
+            project_id,
+            session_id,
+            tool_call_id,
+            query,
+            limit,
+            metadata_filter,
+            latency_ms,
+            results,
+        )
+
+    def start_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+    ) -> UUID | None:
+        if session_id is None:
+            return None
+
         tool_call = self._chat_audit_repository.start_tool_call(
             project_id=project_id,
             session_id=session_id,
@@ -266,19 +443,36 @@ class SqlAlchemyChatAuditWriter:
             arguments_json={
                 "query": query,
                 "limit": limit,
-                "metadata_filter": filters_json,
+                "metadata_filter": serialize_metadata_filter(metadata_filter),
             },
         )
+        return tool_call.id
+
+    def complete_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        query: str,
+        limit: int,
+        metadata_filter: RetrievalMetadataFilter | None,
+        latency_ms: int,
+        results: Sequence[RetrievalResultPayload],
+    ) -> None:
+        if session_id is None or tool_call_id is None:
+            return
+
+        filters_json = serialize_metadata_filter(metadata_filter)
         self._chat_audit_repository.complete_tool_call(
             project_id=project_id,
-            tool_call_id=tool_call.id,
+            tool_call_id=tool_call_id,
             result_summary_json={"result_count": len(results)},
             latency_ms=latency_ms,
         )
         retrieval_run = self._chat_audit_repository.create_retrieval_run(
             project_id=project_id,
             session_id=session_id,
-            tool_call_id=tool_call.id,
+            tool_call_id=tool_call_id,
             query=query,
             strategy="dense",
             top_k=limit,
@@ -298,6 +492,23 @@ class SqlAlchemyChatAuditWriter:
                 rerank_score=_rerank_score(result),
                 citation_json=result["citation"],
             )
+
+    def fail_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        if session_id is None or tool_call_id is None:
+            return
+        self._chat_audit_repository.fail_tool_call(
+            project_id=project_id,
+            tool_call_id=tool_call_id,
+            error_message=error_message,
+            latency_ms=latency_ms,
+        )
 
     def succeed_session(self, project_id: UUID, session_id: UUID | None) -> None:
         if session_id is None:

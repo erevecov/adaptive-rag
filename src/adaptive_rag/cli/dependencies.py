@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from inspect import signature
 
 from adaptive_rag.chat import ChatRunner
 from adaptive_rag.config.settings import get_settings
@@ -30,7 +31,12 @@ class CliHostedEvalRuntime:
     options: EvalRunOptions
 
 
-def get_cli_dense_embedding_provider() -> DenseEmbeddingProvider:
+def get_cli_dense_embedding_provider(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
+) -> DenseEmbeddingProvider:
+    if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
+        return get_default_dense_embedding_provider(usage_tracker=usage_tracker)
     return get_default_dense_embedding_provider()
 
 

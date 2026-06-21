@@ -98,6 +98,17 @@ class ChatRetrievalTool:
             else metadata_filter
         )
         start = monotonic()
+        audit_tool_call_id = (
+            self._audit_writer.start_retrieval_tool(
+                self._project_id,
+                self._audit_session_id,
+                query,
+                active_limit,
+                active_filter,
+            )
+            if self._audit_session_id is not None
+            else None
+        )
         try:
             results = self._retrieval_service.search(
                 RetrievalSearchRequest(
@@ -108,6 +119,14 @@ class ChatRetrievalTool:
                 )
             )
         except RetrievalServiceError as exc:
+            if self._audit_session_id is not None:
+                self._audit_writer.fail_retrieval_tool(
+                    self._project_id,
+                    self._audit_session_id,
+                    audit_tool_call_id,
+                    str(exc),
+                    elapsed_ms(start),
+                )
             raise ChatServiceError(str(exc)) from exc
 
         latency_ms = elapsed_ms(start)
@@ -123,9 +142,10 @@ class ChatRetrievalTool:
             )
         )
         if self._audit_session_id is not None:
-            self._audit_writer.record_retrieval_tool(
+            self._audit_writer.complete_retrieval_tool(
                 self._project_id,
                 self._audit_session_id,
+                audit_tool_call_id,
                 query,
                 active_limit,
                 active_filter,
