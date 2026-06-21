@@ -10,17 +10,18 @@ M15 Chat frontend inicial cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M16 `m16-chat-streaming-sse`: abre el change OpenSpec para definir streaming de
-chat por SSE sobre la UI y el audit trail existentes, usando `POST` con
-`text/event-stream`, consumo frontend via `fetch` streaming, evento `final`
-compatible con `POST /chat` y fallback no streaming.
+M16 `m16-streaming-event-contract`: agrega el contrato interno de eventos SSE
+para chat, con factories para `session_started`, `tool_call`, `answer_delta`,
+`heartbeat`, `final` y `error`, serializer determinista de framing SSE y tests
+unitarios que verifican que `final` reutiliza el shape de `POST /chat`.
 
 Comandos validados en este slice:
 
 ```text
-pnpm dlx ctx7@latest library "FastAPI" "How to implement streaming HTTP responses for Server-Sent Events using FastAPI StreamingResponse with async generators and text/event-stream"
-pnpm dlx ctx7@latest docs /fastapi/fastapi "How to implement streaming HTTP responses for Server-Sent Events using FastAPI StreamingResponse with async generators and text/event-stream"
-uv run python -c "import fastapi; print(fastapi.__version__); import importlib.util; print(importlib.util.find_spec('fastapi.sse') is not None)"
+uv run pytest tests/unit/chat/test_chat_streaming.py
+uv run pytest
+uv run ruff check .
+uv run mypy src
 pnpm dlx @fission-ai/openspec validate m16-chat-streaming-sse --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
@@ -58,10 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m16-streaming-event-contract`: definir modelos/eventos y
-  serializer SSE determinista antes del endpoint FastAPI y la UI. La razon es
-  que backend y frontend deben compartir un contrato de eventos estable antes de
-  conectar streaming real.
+- Implementar `m16-chat-service-streaming`: compartir validacion, audit trail,
+  retrieval tool, citations y provider usage con el flujo no streaming antes de
+  exponer el endpoint FastAPI. La razon es mantener un unico contrato de negocio
+  antes de conectar transporte SSE.
 
 ## Reglas de coordinacion
 

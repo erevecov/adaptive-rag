@@ -23,7 +23,7 @@
 
 ## 3. Slices propuestos de M16
 
-- [ ] 3.1 Implementar `m16-streaming-event-contract`.
+- [x] 3.1 Implementar `m16-streaming-event-contract`.
 - [ ] 3.2 Implementar `m16-chat-service-streaming`.
 - [ ] 3.3 Implementar `m16-chat-streaming-api`.
 - [ ] 3.4 Implementar `m16-chat-streaming-frontend-client`.

@@ -570,8 +570,8 @@ Secuencia recomendada:
 
 1. `m16-chat-streaming-sse`: activo. Crea el change OpenSpec que delimita M16
    como streaming de chat por SSE sobre los contratos de M5, M13, M14 y M15.
-2. `m16-streaming-event-contract`: pendiente. Agrega tipos de eventos,
-   serializer SSE determinista y tests sin endpoint HTTP.
+2. `m16-streaming-event-contract`: completo. Agrega tipos de eventos,
+   factories, serializer SSE determinista y tests sin endpoint HTTP.
 3. `m16-chat-service-streaming`: pendiente. Agrega flujo streaming compartiendo
    validacion, audit trail, retrieval tool, citations y provider usage con el
    flujo no streaming.
@@ -590,8 +590,9 @@ contrato de chat necesita body JSON para mensaje, limite y filtros. `POST /chat`
 queda como fallback obligatorio. M16 no agrega WebSockets, dashboards, replay,
 auth final, ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es `m16-streaming-event-contract`,
-para fijar eventos y serializacion antes de implementar endpoint o UI.
+Continuacion: la siguiente tarea recomendada es `m16-chat-service-streaming`,
+para compartir validacion, audit trail, retrieval tool, citations y provider
+usage con el flujo no streaming antes de implementar endpoint o UI.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
