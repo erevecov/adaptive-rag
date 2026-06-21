@@ -34,8 +34,11 @@ def get_cli_dense_embedding_provider() -> DenseEmbeddingProvider:
     return get_default_dense_embedding_provider()
 
 
-def get_cli_chat_runner() -> ChatRunner:
-    return get_chat_runner()
+def get_cli_chat_runner(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
+) -> ChatRunner:
+    return get_chat_runner(usage_tracker=usage_tracker)
 
 
 def get_cli_rerank_provider() -> RerankProvider:

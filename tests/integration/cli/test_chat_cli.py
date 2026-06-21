@@ -38,6 +38,11 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.provider_usage import (
+    InMemoryProviderUsageTracker,
+    ProviderCallRecord,
+    ProviderTokenUsage,
+)
 
 
 class StaticQueryEmbeddingProvider:
@@ -88,6 +93,42 @@ class RecordingNoToolChatRunner:
     ) -> ChatRunnerOutput:
         self.requests.append(request)
         return ChatRunnerOutput(answer="No retrieval was needed.")
+
+
+class ProviderUsageRecordingChatRunner:
+    def __init__(
+        self,
+        *,
+        tracker: InMemoryProviderUsageTracker | None,
+    ) -> None:
+        self.tracker = tracker
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        if self.tracker is not None:
+            self.tracker.record(
+                ProviderCallRecord(
+                    provider="qwen",
+                    model="qwen-plus",
+                    operation="chat",
+                    outcome="succeeded",
+                    duration_ms=12,
+                    usage=ProviderTokenUsage(
+                        input_tokens=3,
+                        output_tokens=4,
+                        total_tokens=7,
+                    ),
+                    usage_source="provider_reported",
+                    estimated_cost_usd=0.0001,
+                    request_id="cli-chat-request-1",
+                )
+            )
+        return ChatRunnerOutput(answer="Live usage was recorded.")
 
 
 class ExplodingChatRunner:
@@ -210,7 +251,7 @@ def _patch_chat_dependencies(
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
-        lambda: runner,
+        lambda usage_tracker=None: runner,
     )
 
 
@@ -379,6 +420,74 @@ def test_chat_ask_command_reports_service_errors(
     assert "message must not be empty" in result.output
     assert provider.inputs == []
     assert runner.requests == []
+
+
+def test_chat_ask_command_persists_live_runner_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runners: list[ProviderUsageRecordingChatRunner] = []
+
+    @contextmanager
+    def override_session_scope() -> Iterator[Session]:
+        yield session
+
+    def runner_factory(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker | None = None,
+    ) -> ProviderUsageRecordingChatRunner:
+        runner = ProviderUsageRecordingChatRunner(tracker=usage_tracker)
+        runners.append(runner)
+        return runner
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.session_scope",
+        override_session_scope,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_dense_embedding_provider",
+        lambda: provider,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_chat_runner",
+        runner_factory,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "Record live usage.",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    session_id = UUID(data["session_id"])
+    assert data["answer"] == "Live usage was recorded."
+    assert len(runners) == 1
+    assert len(runners[0].requests) == 1
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.provider == "qwen"
+    assert usage.model == "qwen-plus"
+    assert usage.operation == "chat"
+    assert usage.status == "succeeded"
+    assert usage.input_tokens == 3
+    assert usage.output_tokens == 4
+    assert usage.total_tokens == 7
+    assert usage.latency_ms == 12
+    assert usage.provider_request_id == "cli-chat-request-1"
 
 
 def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(

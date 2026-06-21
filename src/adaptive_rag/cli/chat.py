@@ -84,7 +84,7 @@ def ask(
             provider=get_cli_dense_embedding_provider(),
         )
         service = ChatService(
-            runner=get_cli_chat_runner(),
+            runner=get_cli_chat_runner(usage_tracker=usage_tracker),
             retrieval_service=retrieval_service,
             audit_writer=audit_writer,
             provider_usage_records=lambda: usage_tracker.records,

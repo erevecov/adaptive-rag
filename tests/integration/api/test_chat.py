@@ -101,6 +101,37 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
+class ProviderUsageRecordingChatRunner:
+    def __init__(self, *, tracker: InMemoryProviderUsageTracker) -> None:
+        self.tracker = tracker
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        self.tracker.record(
+            ProviderCallRecord(
+                provider="qwen",
+                model="qwen-plus",
+                operation="chat",
+                outcome="succeeded",
+                duration_ms=12,
+                usage=ProviderTokenUsage(
+                    input_tokens=3,
+                    output_tokens=4,
+                    total_tokens=7,
+                ),
+                usage_source="provider_reported",
+                estimated_cost_usd=0.0001,
+                request_id="chat-request-1",
+            )
+        )
+        return ChatRunnerOutput(answer="Live usage was recorded.")
+
+
 class ExplodingChatRunner:
     def __init__(self) -> None:
         self.requests: list[ChatRunnerRequest] = []
@@ -426,6 +457,66 @@ def test_chat_endpoint_provider_usage_failure_does_not_block_success(
         fresh_session.query(ProviderUsage).filter_by(session_id=session_id).count()
         == 0
     )
+
+
+def test_chat_endpoint_persists_live_runner_usage_with_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runners: list[ProviderUsageRecordingChatRunner] = []
+
+    def runtime_chat_runner(
+        *,
+        usage_tracker: InMemoryProviderUsageTracker,
+    ) -> ProviderUsageRecordingChatRunner:
+        runner = ProviderUsageRecordingChatRunner(tracker=usage_tracker)
+        runners.append(runner)
+        return runner
+
+    monkeypatch.setattr(
+        "adaptive_rag.api.dependencies.get_runtime_chat_runner",
+        runtime_chat_runner,
+    )
+    app = create_app()
+
+    def override_session() -> Iterator[Session]:
+        yield session
+
+    def override_provider() -> StaticQueryEmbeddingProvider:
+        return provider
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_dense_embedding_provider] = override_provider
+    client = TestClient(app)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "Record live usage."},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    session_id = UUID(data["session_id"])
+    assert data["answer"] == "Live usage was recorded."
+    assert len(runners) == 1
+    assert len(runners[0].requests) == 1
+    fresh_session = session_factory()
+    usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
+    assert usage.project_id == project.id
+    assert usage.provider == "qwen"
+    assert usage.model == "qwen-plus"
+    assert usage.operation == "chat"
+    assert usage.status == "succeeded"
+    assert usage.input_tokens == 3
+    assert usage.output_tokens == 4
+    assert usage.total_tokens == 7
+    assert usage.latency_ms == 12
+    assert usage.provider_request_id == "chat-request-1"
 
 
 def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
