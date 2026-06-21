@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from adaptive_rag.api.dependencies import get_chat_service, get_session
@@ -16,6 +18,7 @@ from adaptive_rag.api.schemas.chat import (
     ChatSessionListResponse,
 )
 from adaptive_rag.chat import ChatService, ChatServiceError
+from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
 from adaptive_rag.db.repositories import ChatAuditRepository
 
 router = APIRouter(
@@ -59,6 +62,27 @@ def get_chat_session(
     return ChatSessionDetailResponse.from_detail(detail)
 
 
+@router.post("/stream")
+def stream_chat(
+    project_id: UUID,
+    body: ChatRequestBody,
+    service: Annotated[ChatService, Depends(get_chat_service)],
+    session: Annotated[Session, Depends(get_session)],
+) -> StreamingResponse:
+    try:
+        events = service.stream(body.to_service_request(project_id))
+    except ChatServiceError as exc:
+        _commit_or_rollback_chat_error(session)
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+    return StreamingResponse(
+        _stream_chat_events(events, session),
+        media_type="text/event-stream",
+    )
+
+
 @router.post("", response_model=ChatResponseBody)
 def chat(
     project_id: UUID,
@@ -79,6 +103,19 @@ def chat(
         _commit_or_rollback_chat_error(session)
         raise
     return ChatResponseBody.from_chat_response(response)
+
+
+def _stream_chat_events(
+    events: Iterator[ChatStreamEvent],
+    session: Session,
+) -> Iterator[str]:
+    try:
+        for event in events:
+            yield serialize_chat_stream_event(event)
+        session.commit()
+    except Exception:
+        _commit_or_rollback_chat_error(session)
+        raise
 
 
 def _commit_or_rollback_chat_error(session: Session) -> None:

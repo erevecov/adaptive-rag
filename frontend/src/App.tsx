@@ -11,13 +11,14 @@ import {
   type ChatResponseBody,
   type ChatSessionDetailResponse,
   type ChatSessionSummary,
+  type ChatToolCall,
 } from './lib/apiClient'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
 
-type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
+type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 
 type AppProps = {
   apiClient?: ApiClient
@@ -47,6 +48,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [requestError, setRequestError] = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
+  const [activeRequestController, setActiveRequestController] =
+    useState<AbortController | null>(null)
 
   const isAsking = requestState === 'loading'
 
@@ -65,19 +68,72 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestState('loading')
     setRequestError(null)
     setHistoryError(null)
+    setResponse(null)
 
+    const requestBody = {
+      message: trimmedQuestion,
+      retrieval_limit: retrievalLimit,
+    }
+    const controller = new AbortController()
+    let streamOpened = false
+    const markStreamOpened = () => {
+      streamOpened = true
+    }
+    setActiveRequestController(controller)
     try {
-      const nextResponse = await client.askChat(trimmedProjectId, {
-        message: trimmedQuestion,
-        retrieval_limit: retrievalLimit,
-      })
+      const nextResponse = await client.askChatStream(
+        trimmedProjectId,
+        requestBody,
+        {
+          onAnswerDelta: (text) => {
+            markStreamOpened()
+            setResponse((current) => appendAnswerDelta(current, text))
+          },
+          onEvent: markStreamOpened,
+          onSessionStarted: (sessionId) => {
+            markStreamOpened()
+            setResponse((current) => setResponseSessionId(current, sessionId))
+          },
+          onToolCall: (toolCall) => {
+            markStreamOpened()
+            setResponse((current) => appendToolCall(current, toolCall))
+          },
+        },
+        { signal: controller.signal },
+      )
       setResponse(nextResponse)
       setRequestState('succeeded')
       await handleRefreshHistory(trimmedProjectId)
     } catch (error) {
+      if (isAbortError(error)) {
+        setRequestState('canceled')
+        setRequestError(null)
+        return
+      }
+      if (!streamOpened && shouldFallbackToJsonChat(error)) {
+        try {
+          const nextResponse = await client.askChat(trimmedProjectId, requestBody)
+          setResponse(nextResponse)
+          setRequestState('succeeded')
+          await handleRefreshHistory(trimmedProjectId)
+          return
+        } catch (fallbackError) {
+          setRequestState('failed')
+          setRequestError(getErrorMessage(fallbackError))
+          return
+        }
+      }
       setRequestState('failed')
       setRequestError(getErrorMessage(error))
+    } finally {
+      setActiveRequestController((current) =>
+        current === controller ? null : current,
+      )
     }
+  }
+
+  function handleCancelRequest() {
+    activeRequestController?.abort()
   }
 
   async function handleRefreshHistory(projectIdOverride?: string) {
@@ -185,6 +241,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 <button disabled={isAsking} type="submit">
                   {isAsking ? 'Asking...' : 'Ask'}
                 </button>
+                {isAsking ? (
+                  <button
+                    className="secondary-button"
+                    onClick={handleCancelRequest}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
               </div>
 
               {requestError ? (
@@ -222,6 +287,9 @@ function ResponsePanel({
   state: RequestState
 }) {
   if (state === 'loading') {
+    if (response !== null) {
+      return <ResponseContent response={response} />
+    }
     return (
       <div className="message-card message-card-muted" aria-live="polite">
         <span className="message-role">Assistant</span>
@@ -239,6 +307,12 @@ function ResponsePanel({
     )
   }
 
+  return (
+    <ResponseContent response={response} />
+  )
+}
+
+function ResponseContent({ response }: { response: ChatResponseBody }) {
   return (
     <div className="response-stack" aria-label="Chat response">
       <div className="message-card">
@@ -575,6 +649,59 @@ function getErrorMessage(error: unknown): string {
   return 'Request failed.'
 }
 
+function appendAnswerDelta(
+  response: ChatResponseBody | null,
+  text: string,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    answer: `${current.answer}${text}`,
+  }
+}
+
+function appendToolCall(
+  response: ChatResponseBody | null,
+  toolCall: ChatToolCall,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    tool_calls: [...current.tool_calls, toolCall],
+  }
+}
+
+function emptyChatResponse(): ChatResponseBody {
+  return {
+    answer: '',
+    citations: [],
+    session_id: null,
+    tool_calls: [],
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
+function setResponseSessionId(
+  response: ChatResponseBody | null,
+  sessionId: string,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    session_id: sessionId,
+  }
+}
+
+function shouldFallbackToJsonChat(error: unknown): boolean {
+  if (error instanceof ApiClientError) {
+    return error.status === 404 || error.status === 405 || error.status >= 500
+  }
+  return true
+}
+
 function normalizeLimit(value: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
@@ -615,6 +742,9 @@ function statusClassName(state: RequestState): string {
 function requestStatusLabel(state: RequestState): string {
   if (state === 'loading') {
     return 'Asking'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   if (state === 'failed') {
     return 'Error'

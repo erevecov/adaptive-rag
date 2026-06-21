@@ -17,7 +17,7 @@
 - M13 Chat audit trail: completo.
 - M14 Chat history/read surface: completo.
 - M15 Chat frontend inicial: completo.
-- M16 Chat streaming SSE: activo.
+- M16 Chat streaming SSE: completo.
 
 ## M1 Foundation
 
@@ -560,29 +560,37 @@ dashboards, replay o auth final.
 
 ## M16 Chat streaming SSE
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m16-chat-streaming-sse/`
+- `openspec/changes/archive/2026-06-21-m16-chat-streaming-sse/`
+
+Spec canonica:
+
+- `openspec/specs/chat-streaming/spec.md`
 
 Secuencia recomendada:
 
-1. `m16-chat-streaming-sse`: activo. Crea el change OpenSpec que delimita M16
-   como streaming de chat por SSE sobre los contratos de M5, M13, M14 y M15.
+1. `m16-chat-streaming-sse`: completo. Crea el change OpenSpec que delimita
+   M16 como streaming de chat por SSE sobre los contratos de M5, M13, M14 y
+   M15.
 2. `m16-streaming-event-contract`: completo. Agrega tipos de eventos,
    factories, serializer SSE determinista y tests sin endpoint HTTP.
-3. `m16-chat-service-streaming`: pendiente. Agrega flujo streaming compartiendo
-   validacion, audit trail, retrieval tool, citations y provider usage con el
-   flujo no streaming.
-4. `m16-chat-streaming-api`: pendiente. Agrega
-   `POST /projects/{project_id}/chat/stream` con `text/event-stream`, manejo de
-   errores y cierre estable.
-5. `m16-chat-streaming-frontend-client`: pendiente. Agrega cliente `fetch`
-   streaming, parser SSE, cancelacion y fallback.
-6. `m16-chat-streaming-ui`: pendiente. Integra respuesta parcial, progreso,
-   cancelacion y refresh de historial al recibir `final`.
-7. `m16-quality-gate`: pendiente. Valida frontend, Python y OpenSpec; archiva
+3. `m16-chat-service-streaming`: completo. Agrega `ChatService.stream`
+   compartiendo validacion, audit trail, retrieval tool, citations y provider
+   usage con el flujo no streaming.
+4. `m16-chat-streaming-api`: completo. Agrega
+   `POST /projects/{project_id}/chat/stream` con `text/event-stream`,
+   validacion 422 antes de abrir stream, eventos SSE serializados y cierre
+   estable con `final` o `error`.
+5. `m16-chat-streaming-frontend-client`: completo. Agrega cliente `fetch`
+   streaming, parser SSE para chunks partidos/agrupados, `AbortController`,
+   errores estructurados y fallback al flujo no streaming.
+6. `m16-chat-streaming-ui`: completo. Integra respuesta parcial,
+   `session_started`, tool calls, cancelacion, fallback y refresh de historial
+   despues de `final`.
+7. `m16-quality-gate`: completo. Valida frontend, Python y OpenSpec; archiva
    M16 y publica la spec canonica `chat-streaming`.
 
 Decision: M16 usa SSE por `POST` consumido con `fetch` streaming porque el
@@ -590,9 +598,12 @@ contrato de chat necesita body JSON para mensaje, limite y filtros. `POST /chat`
 queda como fallback obligatorio. M16 no agrega WebSockets, dashboards, replay,
 auth final, ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es `m16-chat-service-streaming`,
-para compartir validacion, audit trail, retrieval tool, citations y provider
-usage con el flujo no streaming antes de implementar endpoint o UI.
+Continuacion: M16 deja streaming SSE operativo en backend y frontend, con
+fallback no streaming y audit trail durable. La siguiente opcion recomendada es
+abrir un change M17 para observability de chat/costo-latencia sobre sesiones y
+`provider_usage`, antes de replay, auth final o nuevas estrategias de retrieval,
+porque el producto ya puede responder y persistir conversaciones y ahora
+necesita visibilidad operativa de costo, latencia, errores y volumen.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 

@@ -444,6 +444,87 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
+def test_chat_stream_endpoint_returns_sse_events_and_persists_session(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat/stream",
+        json={"message": "No retrieval needed."},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: session_started\n" in response.text
+    assert (
+        'event: answer_delta\ndata: {"text":"No retrieval was needed."}\n\n'
+        in response.text
+    )
+    assert "event: final\n" in response.text
+    assert len(runner.requests) == 1
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.project_id == project.id
+    assert chat_session.status == "succeeded"
+
+
+def test_chat_stream_endpoint_rejects_invalid_requests_before_stream_start(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat/stream",
+        json={"message": " "},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "message must not be empty"}
+    assert runner.requests == []
+    fresh_session = session_factory()
+    assert fresh_session.query(ChatSession).count() == 0
+
+
+def test_chat_stream_endpoint_yields_error_event_after_session_failure(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ExplodingChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat/stream",
+        json={"message": "Please answer."},
+    )
+
+    assert response.status_code == 200
+    assert (
+        'event: error\ndata: {"detail":"runner exploded"}\n\n'
+        in response.text
+    )
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == "runner exploded"
+
+
 def test_chat_endpoint_rejects_unknown_filter_fields(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
