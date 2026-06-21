@@ -10,17 +10,22 @@ M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M15 `m15-chat-frontend-plan`: abre el change OpenSpec para una primera UI de
-chat e historial sobre los contratos existentes `POST /chat` y `chat-history`.
-El PR de planificacion no agrega dependencias Node ni codigo frontend
-productivo.
+M15 `m15-frontend-scaffold`: crea `frontend/` con React/TypeScript/Vite usando
+`pnpm`, agrega scripts `dev`, `build`, `lint`, `test`, `typecheck`, lockfile
+`pnpm-lock.yaml`, `.env.example` y README local. El scaffold no integra todavia
+el backend ni el cliente API.
 
-Comandos validados en este PR:
+Comandos validados en este slice:
 
 ```text
-npx --yes @fission-ai/openspec validate m15-chat-frontend-plan --strict
-npx --yes @fission-ai/openspec validate --specs --strict
-npx --yes @fission-ai/openspec list
+pnpm create vite frontend --template react-ts
+pnpm install
+cd frontend && pnpm run lint
+cd frontend && pnpm run test
+cd frontend && pnpm run build
+pnpm dlx @fission-ai/openspec validate m15-chat-frontend-plan --strict
+pnpm dlx @fission-ai/openspec validate --specs --strict
+pnpm dlx @fission-ai/openspec list
 git diff --check
 ```
 
@@ -54,10 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m15-frontend-scaffold`: crear `frontend/` con
-  React/TypeScript/Vite, scripts de dev/build/lint/test y documentacion local.
-  La razon es que el repo no tiene frontend ni lockfile Node, y conviene fijar
-  el scaffold antes de integrar el cliente API y la UI.
+- Implementar `m15-chat-api-client`: agregar tipos y cliente `fetch` para
+  `POST /chat`, listado de sesiones y detalle read-only. La razon es que el
+  scaffold ya fija tooling y lockfile; el siguiente riesgo es alinear el
+  contrato TypeScript con los schemas HTTP existentes antes de construir UI.
 
 ## Reglas de coordinacion
 

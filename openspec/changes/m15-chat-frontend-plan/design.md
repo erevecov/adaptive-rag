@@ -187,9 +187,9 @@ Alcance:
 Planificacion:
 
 ```text
-npx --yes @fission-ai/openspec validate m15-chat-frontend-plan --strict
-npx --yes @fission-ai/openspec validate --specs --strict
-npx --yes @fission-ai/openspec list
+pnpm dlx @fission-ai/openspec validate m15-chat-frontend-plan --strict
+pnpm dlx @fission-ai/openspec validate --specs --strict
+pnpm dlx @fission-ai/openspec list
 git diff --check
 ```
 
@@ -199,7 +199,7 @@ Implementacion posterior:
 uv run pytest
 uv run ruff check .
 uv run mypy src
-cd frontend && <package-manager> run lint
-cd frontend && <package-manager> run test
-cd frontend && <package-manager> run build
+cd frontend && pnpm run lint
+cd frontend && pnpm run test
+cd frontend && pnpm run build
 ```

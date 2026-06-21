@@ -526,8 +526,9 @@ Secuencia recomendada:
 1. `m15-chat-frontend-plan`: activo. Crea el change OpenSpec que delimita M15
    como primera UI de chat e historial sobre los contratos existentes de M5 y
    M14.
-2. `m15-frontend-scaffold`: crear `frontend/` con React/TypeScript/Vite,
-   scripts de dev/build/lint/test y documentacion local.
+2. `m15-frontend-scaffold`: completo. Crea `frontend/` con
+   React/TypeScript/Vite, `pnpm`, scripts de dev/build/lint/test/typecheck,
+   `.env.example`, README local y lockfile.
 3. `m15-chat-api-client`: agregar tipos y cliente fetch para `POST /chat`,
    listado de sesiones y detalle read-only, con errores testeables.
 4. `m15-chat-workspace-ui`: construir la vista de pregunta/respuesta con
@@ -543,8 +544,9 @@ superficie backend. M15 no cambia retrieval productivo, providers, rerank,
 CLI ni API backend salvo que un slice posterior descubra una brecha de contrato
 que deba pasar por OpenSpec.
 
-Continuacion: la siguiente tarea recomendada despues de mergear este plan es
-`m15-frontend-scaffold`.
+Continuacion: la siguiente tarea recomendada es `m15-chat-api-client`, para
+agregar tipos y cliente `fetch` sobre los endpoints ya cerrados antes de
+construir componentes de chat e historial.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
