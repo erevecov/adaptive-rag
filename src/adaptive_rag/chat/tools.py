@@ -128,6 +128,16 @@ class ChatRetrievalTool:
                     elapsed_ms(start),
                 )
             raise ChatServiceError(str(exc)) from exc
+        except Exception as exc:
+            if self._audit_session_id is not None:
+                self._audit_writer.fail_retrieval_tool(
+                    self._project_id,
+                    self._audit_session_id,
+                    audit_tool_call_id,
+                    str(exc),
+                    elapsed_ms(start),
+                )
+            raise
 
         latency_ms = elapsed_ms(start)
         payloads = tuple(serialize_retrieval_results(results))

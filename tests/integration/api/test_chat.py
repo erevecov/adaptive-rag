@@ -96,6 +96,12 @@ class FailingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
     dimensions = EMBEDDING_DIMENSIONS + 1
 
 
+class UnexpectedFailingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        self.inputs.extend(texts)
+        raise RuntimeError("embedding transport unavailable")
+
+
 class ToolCallingChatRunner:
     def __init__(self, *, retrieval_query: str) -> None:
         self.retrieval_query = retrieval_query
@@ -658,6 +664,46 @@ def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
         "metadata_filter": None,
     }
     assert tool_call.error_message == expected_error
+    assert isinstance(tool_call.latency_ms, int)
+    assert tool_call.latency_ms >= 0
+    assert (
+        fresh_session.query(RetrievalRun).filter_by(session_id=chat_session.id).count()
+        == 0
+    )
+
+
+def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = UnexpectedFailingQueryEmbeddingProvider(_vector(0.0))
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    client = _client(session=session, provider=provider, runner=runner)
+
+    with pytest.raises(RuntimeError, match="embedding transport unavailable"):
+        client.post(
+            f"/projects/{project.id}/chat",
+            json={"message": "What supports alpha?", "retrieval_limit": 4},
+        )
+
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.status == "failed"
+    assert chat_session.error_message == "embedding transport unavailable"
+    tool_call = fresh_session.query(ToolCall).filter_by(
+        session_id=chat_session.id
+    ).one()
+    assert tool_call.status == "failed"
+    assert tool_call.tool_name == "retrieval.search"
+    assert tool_call.arguments_json == {
+        "query": "alpha evidence",
+        "limit": 4,
+        "metadata_filter": None,
+    }
+    assert tool_call.error_message == "embedding transport unavailable"
     assert isinstance(tool_call.latency_ms, int)
     assert tool_call.latency_ms >= 0
     assert (
