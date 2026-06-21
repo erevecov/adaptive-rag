@@ -2,19 +2,16 @@
 
 ## Milestone activo
 
-M17 Chat observability y costo-latencia.
+Ninguno. M17 quedo cerrado y archivado.
 
 ## Ultimo milestone completado
 
-M16 Chat streaming SSE cerrado el 2026-06-21.
+M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M17 `m17-observability-cli`: agrega
-`adaptive-rag chat observability summary` reutilizando
-`ChatObservabilityRepository` y el mismo schema de respuesta del endpoint HTTP.
-El comando emite JSON equivalente para filtros, sesiones, provider usage,
-costo/usage, latencias y errores, y reporta filtros invalidos con exit code 1.
+M17 `m17-quality-gate`: valida Python/OpenSpec/docs, archiva
+`m17-chat-observability` y publica la spec canonica `chat-observability`.
 
 Comandos validados en este slice:
 
@@ -24,16 +21,18 @@ uv run ruff check src tests
 uv run mypy src/adaptive_rag
 pnpm dlx @fission-ai/openspec validate m17-chat-observability --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
+pnpm dlx @fission-ai/openspec archive m17-chat-observability --yes
+pnpm dlx @fission-ai/openspec list
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `m17-chat-observability`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-21-m16-chat-streaming-sse/`
+- `openspec/changes/archive/2026-06-21-m17-chat-observability/`
 
 ## Spec canonica activa
 
@@ -56,13 +55,13 @@ git diff --check
 - `openspec/specs/chat-history/spec.md`
 - `openspec/specs/chat-frontend/spec.md`
 - `openspec/specs/chat-streaming/spec.md`
+- `openspec/specs/chat-observability/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Ejecutar `m17-quality-gate`: validar Python/OpenSpec/docs, archivar
-  `m17-chat-observability` y publicar la spec canonica `chat-observability`.
-  La razon es cerrar M17 despues de que read model, API y CLI ya comparten el
-  mismo contrato JSON.
+- Definir el siguiente milestone o abrir un nuevo change OpenSpec desde el
+  backlog futuro. El candidato documentado es evaluar Neo4j como graph DB
+  routeable, pero conviene confirmarlo antes de iniciar implementacion.
 
 ## Reglas de coordinacion
 
