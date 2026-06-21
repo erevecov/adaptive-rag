@@ -535,8 +535,9 @@ Secuencia recomendada:
 4. `m15-chat-workspace-ui`: completo. Conecta el shell React con el cliente API
    para enviar preguntas, mostrar answer, `session_id`, citations y tool calls
    minimas, y refrescar sesiones recientes despues de respuestas exitosas.
-5. `m15-chat-history-ui`: construir listado/detalle read-only de sesiones, con
-   loading, empty y error states.
+5. `m15-chat-history-ui`: completo. Agrega refresh manual de sesiones por
+   proyecto, seleccion de sesion y detalle read-only de mensajes, tool calls,
+   retrieval runs, citations y provider usage.
 6. `m15-quality-gate`: validar frontend, Python cuando aplique, OpenSpec y
    archivar el change.
 
@@ -546,9 +547,8 @@ superficie backend. M15 no cambia retrieval productivo, providers, rerank,
 CLI ni API backend salvo que un slice posterior descubra una brecha de contrato
 que deba pasar por OpenSpec.
 
-Continuacion: la siguiente tarea recomendada es `m15-chat-history-ui`, para
-convertir el resumen de sesiones en historial read-only completo antes del
-quality gate y archive de M15.
+Continuacion: la siguiente tarea recomendada es `m15-quality-gate`, para
+validar el milestone completo y archivar `m15-chat-frontend-plan`.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 

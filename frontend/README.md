@@ -32,6 +32,7 @@ credentials must stay out of the browser.
 
 ## Scope
 
-The workspace screen can call the chat API, render answer details, and refresh a
-small recent-sessions summary. The next M15 slice expands the read-only history
-panel with session selection and detail views.
+The workspace screen can call the chat API, render answer details, refresh
+recent sessions, and inspect a selected session read-only with messages, tool
+calls, retrieval runs, citations, and provider usage. Replay, edit, delete,
+streaming, dashboards, and browser-side secrets remain out of scope.

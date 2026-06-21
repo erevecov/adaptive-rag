@@ -1,10 +1,15 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type FormEvent, type ReactNode, useMemo, useState } from 'react'
 import './App.css'
 import {
   ApiClientError,
   createApiClient,
   type ApiClient,
+  type ChatHistoryProviderUsage,
+  type ChatHistoryRetrievedChunk,
+  type ChatHistoryRetrievalRun,
+  type ChatHistoryToolCall,
   type ChatResponseBody,
+  type ChatSessionDetailResponse,
   type ChatSessionSummary,
 } from './lib/apiClient'
 
@@ -33,10 +38,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [retrievalLimit, setRetrievalLimit] = useState(DEFAULT_RETRIEVAL_LIMIT)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([])
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [sessionDetail, setSessionDetail] =
+    useState<ChatSessionDetailResponse | null>(null)
   const [requestState, setRequestState] = useState<RequestState>('idle')
   const [historyState, setHistoryState] = useState<RequestState>('idle')
+  const [detailState, setDetailState] = useState<RequestState>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
 
   const isAsking = requestState === 'loading'
 
@@ -63,14 +73,50 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       })
       setResponse(nextResponse)
       setRequestState('succeeded')
-      await refreshHistory(client, trimmedProjectId, {
-        onError: setHistoryError,
-        onItems: setSessions,
-        onState: setHistoryState,
-      })
+      await handleRefreshHistory(trimmedProjectId)
     } catch (error) {
       setRequestState('failed')
       setRequestError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshHistory(projectIdOverride?: string) {
+    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to refresh history.')
+      return
+    }
+
+    setHistoryError(null)
+    await refreshHistory(client, trimmedProjectId, {
+      onError: setHistoryError,
+      onItems: setSessions,
+      onState: setHistoryState,
+    })
+  }
+
+  async function handleSelectSession(sessionId: string) {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setDetailState('failed')
+      setDetailError('Project ID is required to load session detail.')
+      return
+    }
+
+    setSelectedSessionId(sessionId)
+    setDetailState('loading')
+    setDetailError(null)
+
+    try {
+      const detail = await client.getChatSession(trimmedProjectId, sessionId)
+      setSessionDetail(detail)
+      setDetailState('succeeded')
+    } catch (error) {
+      setDetailState('failed')
+      setDetailError(getErrorMessage(error))
     }
   }
 
@@ -152,7 +198,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           </section>
 
           <HistoryPanel
+            detail={sessionDetail}
+            detailError={detailError}
+            detailState={detailState}
             error={historyError}
+            onRefresh={() => void handleRefreshHistory()}
+            onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+            selectedSessionId={selectedSessionId}
             sessions={sessions}
             state={historyState}
           />
@@ -241,11 +293,23 @@ function ResponsePanel({
 }
 
 function HistoryPanel({
+  detail,
+  detailError,
+  detailState,
   error,
+  onRefresh,
+  onSelectSession,
+  selectedSessionId,
   sessions,
   state,
 }: {
+  detail: ChatSessionDetailResponse | null
+  detailError: string | null
+  detailState: RequestState
   error: string | null
+  onRefresh(): void
+  onSelectSession(sessionId: string): void
+  selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   state: RequestState
 }) {
@@ -260,6 +324,15 @@ function HistoryPanel({
           {historyStatusLabel(state)}
         </span>
       </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Refresh history'}
+      </button>
 
       {error ? (
         <p className="history-error" role="status">
@@ -276,19 +349,190 @@ function HistoryPanel({
         ) : (
           sessions.map((session) => (
             <li key={session.session_id}>
-              <div>
+              <button
+                aria-label={session.session_id}
+                className={
+                  session.session_id === selectedSessionId
+                    ? 'session-button session-button-selected'
+                    : 'session-button'
+                }
+                onClick={() => onSelectSession(session.session_id)}
+                type="button"
+              >
                 <span>{session.session_id}</span>
                 <small>
                   {session.message_count} messages / {session.tool_call_count}{' '}
                   tool calls
                 </small>
-              </div>
-              <strong>{session.status}</strong>
+                <strong>{session.status}</strong>
+              </button>
             </li>
           ))
         )}
       </ul>
+
+      <SessionDetailPanel
+        detail={detail}
+        error={detailError}
+        state={detailState}
+      />
     </aside>
+  )
+}
+
+function SessionDetailPanel({
+  detail,
+  error,
+  state,
+}: {
+  detail: ChatSessionDetailResponse | null
+  error: string | null
+  state: RequestState
+}) {
+  if (state === 'loading') {
+    return (
+      <section className="detail-panel" aria-live="polite">
+        <h3>Session detail</h3>
+        <p className="empty-copy">Loading session detail...</p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="detail-panel">
+        <h3>Session detail</h3>
+        <p className="history-error" role="status">
+          {error}
+        </p>
+      </section>
+    )
+  }
+
+  if (detail === null) {
+    return (
+      <section className="detail-panel">
+        <h3>Session detail</h3>
+        <p className="empty-copy">Select a session to inspect stored history.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="detail-panel" aria-label="Selected session detail">
+      <div className="detail-heading">
+        <h3>Session detail</h3>
+        <span>{detail.session.status}</span>
+      </div>
+      <p className="detail-session-id">{detail.session.session_id}</p>
+
+      <section className="detail-section" aria-labelledby="messages-title">
+        <h4 id="messages-title">Messages</h4>
+        <ol className="detail-list">
+          {detail.messages.map((message) => (
+            <li key={message.message_id}>
+              <strong>{message.role}</strong>
+              <p>{message.content}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="detail-section" aria-labelledby="history-tools-title">
+        <h4 id="history-tools-title">Tool calls</h4>
+        <CompactStateList
+          emptyLabel="No stored tool calls."
+          items={detail.tool_calls}
+          renderItem={(call) => <ToolCallDetail call={call} />}
+        />
+      </section>
+
+      <section className="detail-section" aria-labelledby="retrieval-runs-title">
+        <h4 id="retrieval-runs-title">Retrieval runs</h4>
+        <CompactStateList
+          emptyLabel="No stored retrieval runs."
+          items={detail.retrieval_runs}
+          renderItem={(run) => <RetrievalRunDetail run={run} />}
+        />
+      </section>
+
+      <section className="detail-section" aria-labelledby="provider-usage-title">
+        <h4 id="provider-usage-title">Provider usage</h4>
+        <CompactStateList
+          emptyLabel="No provider usage stored."
+          items={detail.provider_usage}
+          renderItem={(usage) => <ProviderUsageDetail usage={usage} />}
+        />
+      </section>
+    </section>
+  )
+}
+
+function CompactStateList<T>({
+  emptyLabel,
+  items,
+  renderItem,
+}: {
+  emptyLabel: string
+  items: T[]
+  renderItem(item: T): ReactNode
+}) {
+  if (items.length === 0) {
+    return <p className="empty-copy">{emptyLabel}</p>
+  }
+
+  return <ul className="detail-list">{items.map(renderItem)}</ul>
+}
+
+function ToolCallDetail({ call }: { call: ChatHistoryToolCall }) {
+  return (
+    <li key={call.tool_call_id}>
+      <strong>{call.tool_name}</strong>
+      <p>{formatJsonValue(call.arguments)}</p>
+      <small>{call.status}</small>
+    </li>
+  )
+}
+
+function RetrievalRunDetail({ run }: { run: ChatHistoryRetrievalRun }) {
+  return (
+    <li key={run.retrieval_run_id}>
+      <strong>{run.query}</strong>
+      <p>
+        {run.strategy} / top {run.top_k}
+      </p>
+      <ul className="retrieved-chunk-list">
+        {run.retrieved_chunks.map((chunk) => (
+          <RetrievedChunkDetail chunk={chunk} key={chunk.retrieved_chunk_id} />
+        ))}
+      </ul>
+    </li>
+  )
+}
+
+function RetrievedChunkDetail({ chunk }: { chunk: ChatHistoryRetrievedChunk }) {
+  return (
+    <li>
+      <span>#{chunk.rank}</span>
+      <p>{getCitationText(chunk.citation, 'snippet')}</p>
+    </li>
+  )
+}
+
+function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
+  return (
+    <li key={usage.provider_usage_id}>
+      <strong>
+        {usage.provider} / {usage.model}
+      </strong>
+      <p>
+        {usage.total_tokens ?? 'unknown'} tokens
+        {usage.estimated_cost_usd === null
+          ? ''
+          : ` / $${usage.estimated_cost_usd.toFixed(4)}`}
+      </p>
+      <small>{usage.status}</small>
+    </li>
   )
 }
 
@@ -341,6 +585,27 @@ function normalizeLimit(value: string): number {
 
 function formatScore(score: number): string {
   return score.toFixed(2)
+}
+
+function formatJsonValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return 'None'
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  return JSON.stringify(value)
+}
+
+function getCitationText(value: unknown, key: string): string {
+  if (value === null || typeof value !== 'object' || !(key in value)) {
+    return 'No citation text stored.'
+  }
+
+  const nextValue = (value as Record<string, unknown>)[key]
+  return typeof nextValue === 'string' && nextValue.length > 0
+    ? nextValue
+    : 'No citation text stored.'
 }
 
 function statusClassName(state: RequestState): string {
