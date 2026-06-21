@@ -10,12 +10,11 @@ M16 Chat streaming SSE cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M17 `m17-observability-read-models`: agrega read models y
-`ChatObservabilityRepository` para resumir sesiones, provider usage,
-costo/usage, latencias y errores por proyecto usando el audit trail existente.
-El resumen aplica filtros de fecha/status, mantiene aislamiento por proyecto y
-calcula percentiles de latencia en Python para que los tests locales sean
-portables.
+M17 `m17-observability-api`: expone
+`GET /projects/{project_id}/chat/observability/summary` reutilizando
+`ChatObservabilityRepository`. El endpoint devuelve JSON estable para filtros,
+sesiones, provider usage, costo/usage, latencias y errores, aplica filtros de
+fecha/status y mapea filtros invalidos a HTTP 422.
 
 Comandos validados en este slice:
 
@@ -60,10 +59,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m17-observability-api`: exponer
-  `GET /projects/{project_id}/chat/observability/summary` reutilizando
-  `ChatObservabilityRepository`. La razon es fijar primero el contrato HTTP y
-  la validacion de filtros antes de agregar el comando CLI equivalente.
+- Implementar `m17-observability-cli`: agregar
+  `adaptive-rag chat observability summary` reutilizando el mismo read model y
+  emitiendo JSON equivalente al endpoint HTTP. La razon es cerrar paridad
+  API/CLI antes del quality gate y archive de M17.
 
 ## Reglas de coordinacion
 

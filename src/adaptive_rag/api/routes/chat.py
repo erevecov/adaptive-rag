@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.api.dependencies import get_chat_service, get_session
 from adaptive_rag.api.schemas.chat import (
+    ChatObservabilitySummaryResponse,
     ChatRequestBody,
     ChatResponseBody,
     ChatSessionDetailResponse,
@@ -19,12 +21,35 @@ from adaptive_rag.api.schemas.chat import (
 )
 from adaptive_rag.chat import ChatService, ChatServiceError
 from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
-from adaptive_rag.db.repositories import ChatAuditRepository
+from adaptive_rag.db.repositories import (
+    ChatAuditRepository,
+    ChatObservabilityRepository,
+)
 
 router = APIRouter(
     prefix="/projects/{project_id}/chat",
     tags=["chat"],
 )
+
+
+@router.get("/observability/summary", response_model=ChatObservabilitySummaryResponse)
+def get_chat_observability_summary(
+    project_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    created_at_from: Annotated[datetime | None, Query()] = None,
+    created_at_to: Annotated[datetime | None, Query()] = None,
+    status: Annotated[str | None, Query()] = None,
+) -> ChatObservabilitySummaryResponse:
+    try:
+        summary = ChatObservabilityRepository(session).get_summary(
+            project_id=project_id,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
+            status=status,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ChatObservabilitySummaryResponse.from_summary(summary)
 
 
 @router.get("/sessions", response_model=ChatSessionListResponse)
