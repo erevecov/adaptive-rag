@@ -19,6 +19,7 @@
 - M15 Chat frontend inicial: completo.
 - M16 Chat streaming SSE: completo.
 - M17 Chat observability y costo-latencia: completo.
+- M18 Neo4j graph DB decision: activo.
 
 ## M1 Foundation
 
@@ -641,13 +642,17 @@ invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
 M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
 replay, auth final ni cambios de retrieval/rerank/providers.
 
-Continuacion: elegir el siguiente milestone o abrir un nuevo change OpenSpec
-desde el backlog futuro. El candidato documentado es Neo4j como graph DB
-routeable, pero debe confirmarse antes de iniciar implementacion.
+Continuacion: el siguiente milestone seleccionado es M18 Neo4j graph DB
+decision. Debe empezar por decision matrix y contrato routeable antes de agregar
+dependencias, adapter live, indexer o retrieval graph.
 
-## Backlog futuro: Neo4j como graph DB routeable
+## M18 Neo4j graph DB decision
 
-Estado: futuro.
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m18-neo4j-graph-db-decision/`
 
 Objetivo:
 
@@ -655,7 +660,7 @@ Objetivo:
   manteniendo `pgvector`/dense retrieval como baseline y Postgres como fuente
   durable principal del dominio.
 
-Condiciones para abrir el change:
+Condiciones del milestone:
 
 - La integracion debe ser routeable desde settings, con `graph_store=disabled`
   como default y una opcion explicita `graph_store=neo4j`.
@@ -674,21 +679,28 @@ Condiciones para abrir el change:
 
 Secuencia recomendada:
 
-1. `neo4j-graph-db-decision`: documentar decision matrix Neo4j vs alternativas
-   locales/managed, incluyendo FalkorDB, Memgraph y Kuzu.
-2. `neo4j-graph-store-contract`: definir contrato `GraphStore`, settings,
-   errores estables, health checks y fakes offline antes de tocar Neo4j live.
-3. `neo4j-indexer`: materializar nodos/relaciones derivados desde proyectos,
-   sources, documents, chunks y metadata con reindex idempotente.
-4. `neo4j-retrieval-route`: agregar retrieval graph opt-in y routeable, con
-   fallback claro a dense retrieval cuando este deshabilitado o no disponible.
-5. `neo4j-evals-quality-gate`: comparar dense baseline vs graph-enabled
-   retrieval en suites versionadas antes de promover cualquier default.
+1. `m18-neo4j-graph-db-decision`: activo. Documenta el plan, crea la capacidad
+   `graph-store` y fija la secuencia de M18 sin tocar codigo productivo.
+2. `m18-graph-db-decision-matrix`: pendiente. Comparar Neo4j vs alternativas
+   locales/managed, incluyendo FalkorDB, Memgraph, Kuzu y no-op.
+3. `m18-graph-store-contract`: pendiente. Definir contrato `GraphStore`,
+   settings, errores estables, health checks y fakes offline antes de tocar
+   Neo4j live.
+4. `m18-neo4j-adapter-and-health`: pendiente. Agregar adapter Neo4j opt-in y
+   health checks solo despues de cerrar el contrato.
+5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
+   desde proyectos, sources, documents, chunks y metadata con reindex
+   idempotente.
+6. `m18-graph-retrieval-route`: pendiente. Agregar retrieval graph opt-in y
+   routeable, con fallback claro a dense retrieval cuando este deshabilitado o
+   no disponible.
+7. `m18-evals-quality-gate`: pendiente. Comparar dense baseline vs
+   graph-enabled retrieval en suites versionadas antes de promover cualquier
+   default y archivar M18 si corresponde.
 
-Decision: Neo4j se mantiene como futura integracion opcional, no como requisito
-del stack base. La prioridad es definir el siguiente milestone y abrir este
-bloque solo cuando exista un gap de retrieval medido que justifique graph
-retrieval frente a dense/rerank.
+Decision: Neo4j avanza como candidato principal para una integracion graph DB
+opcional, no como requisito del stack base. La prioridad inmediata es completar
+la decision matrix antes de implementar adapter live, indexer o retrieval graph.
 
 ## Politica para reducir conflictos de merge
 
