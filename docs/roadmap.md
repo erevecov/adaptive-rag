@@ -15,6 +15,7 @@
 - M11 Retrieval strategy decision: completo.
 - M12 Retrieval evidence expansion: completo.
 - M13 Chat audit trail: completo.
+- M14 Chat history/read surface: activo.
 
 ## M1 Foundation
 
@@ -468,6 +469,41 @@ superficie publica para consultar sesiones o historial. La siguiente opcion
 recomendada es abrir un change M14 para lectura/historial de chat aislado por
 proyecto, antes de streaming SSE o dashboards, porque reduce el riesgo de esas
 superficies al fijar primero el contrato de consulta.
+
+## M14 Chat history/read surface
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m14-chat-history-read-surface/`
+
+Secuencia recomendada:
+
+1. `m14-chat-history-read-surface`: activo en branch de planificacion. Crea el
+   change OpenSpec que delimita M14 como superficie read-only de listado y
+   detalle de sesiones de chat sobre el audit trail durable de M13.
+2. `m14-chat-history-repository-read-models`: propuesto. Agrega read models y
+   queries compartidas para resumen/detalle de sesiones, con aislamiento por
+   proyecto, filtros de status, limite acotado y orden deterministico.
+3. `m14-chat-history-api`: propuesto. Agrega
+   `GET /projects/{project_id}/chat/sessions` y
+   `GET /projects/{project_id}/chat/sessions/{session_id}` con schemas HTTP
+   estables.
+4. `m14-chat-history-cli`: propuesto. Agrega
+   `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
+   salida JSON estable.
+5. `m14-quality-gate`: propuesto. Valida tests, lint, types, specs y smokes CLI
+   relevantes, y archiva M14 cuando quede completo.
+
+Decision: M14 va antes de frontend, streaming SSE y dashboards porque fija el
+contrato de lectura que esas superficies consumiran. M14 no re-ejecuta chat, no
+muta audit trail, no agrega UI y no cambia retrieval productivo.
+
+Continuacion: despues de M14, el proyecto queda mas cerca de frontend. La
+siguiente decision recomendada seria elegir entre una UI inicial de historial y
+chat sobre API existente, o streaming SSE si la experiencia conversacional
+necesita respuestas parciales antes de UI completa.
 
 ## Politica para reducir conflictos de merge
 
