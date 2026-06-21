@@ -529,8 +529,9 @@ Secuencia recomendada:
 2. `m15-frontend-scaffold`: completo. Crea `frontend/` con
    React/TypeScript/Vite, `pnpm`, scripts de dev/build/lint/test/typecheck,
    `.env.example`, README local y lockfile.
-3. `m15-chat-api-client`: agregar tipos y cliente fetch para `POST /chat`,
-   listado de sesiones y detalle read-only, con errores testeables.
+3. `m15-chat-api-client`: completo. Agrega Vitest y cliente `fetch` tipado
+   para `POST /chat`, listado de sesiones y detalle read-only, con errores HTTP
+   estructurados y tests deterministas sin backend live.
 4. `m15-chat-workspace-ui`: construir la vista de pregunta/respuesta con
    citations y refresh de historial despues de respuestas exitosas.
 5. `m15-chat-history-ui`: construir listado/detalle read-only de sesiones, con
@@ -544,9 +545,9 @@ superficie backend. M15 no cambia retrieval productivo, providers, rerank,
 CLI ni API backend salvo que un slice posterior descubra una brecha de contrato
 que deba pasar por OpenSpec.
 
-Continuacion: la siguiente tarea recomendada es `m15-chat-api-client`, para
-agregar tipos y cliente `fetch` sobre los endpoints ya cerrados antes de
-construir componentes de chat e historial.
+Continuacion: la siguiente tarea recomendada es `m15-chat-workspace-ui`, para
+usar el cliente API desde el shell existente y construir el flujo
+pregunta/respuesta con citations antes de completar el historial visual.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 

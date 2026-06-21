@@ -10,18 +10,22 @@ M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M15 `m15-frontend-scaffold`: crea `frontend/` con React/TypeScript/Vite usando
-`pnpm`, agrega scripts `dev`, `build`, `lint`, `test`, `typecheck`, lockfile
-`pnpm-lock.yaml`, `.env.example` y README local. El scaffold no integra todavia
-el backend ni el cliente API.
+M15 `m15-chat-api-client`: agrega Vitest y un cliente `fetch` tipado para
+`POST /projects/{project_id}/chat`,
+`GET /projects/{project_id}/chat/sessions` y
+`GET /projects/{project_id}/chat/sessions/{session_id}`. El cliente serializa
+JSON estable, construye query params opcionales y expone errores HTTP
+estructurados sin integrar todavia componentes visuales.
 
 Comandos validados en este slice:
 
 ```text
-pnpm create vite frontend --template react-ts
-pnpm install
+pnpm dlx ctx7@latest library Vitest "Add Vitest tests for a TypeScript fetch API client in a Vite React app using pnpm"
+pnpm dlx ctx7@latest docs /vitest-dev/vitest "Add Vitest tests for a TypeScript fetch API client in a Vite React app using pnpm"
+cd frontend && pnpm add -D vitest
+cd frontend && pnpm test
 cd frontend && pnpm run lint
-cd frontend && pnpm run test
+cd frontend && pnpm run typecheck
 cd frontend && pnpm run build
 pnpm dlx @fission-ai/openspec validate m15-chat-frontend-plan --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
@@ -59,10 +63,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m15-chat-api-client`: agregar tipos y cliente `fetch` para
-  `POST /chat`, listado de sesiones y detalle read-only. La razon es que el
-  scaffold ya fija tooling y lockfile; el siguiente riesgo es alinear el
-  contrato TypeScript con los schemas HTTP existentes antes de construir UI.
+- Implementar `m15-chat-workspace-ui`: conectar el shell existente con el
+  cliente API para enviar preguntas, mostrar answer/citations/tool calls y
+  refrescar historial despues de una respuesta exitosa. La razon es que el
+  contrato TypeScript ya esta cubierto por tests antes de construir la UI.
 
 ## Reglas de coordinacion
 
