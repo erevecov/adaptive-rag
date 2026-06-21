@@ -18,7 +18,7 @@
 - M14 Chat history/read surface: completo.
 - M15 Chat frontend inicial: completo.
 - M16 Chat streaming SSE: completo.
-- M17 Chat observability y costo-latencia: activo.
+- M17 Chat observability y costo-latencia: completo.
 
 ## M1 Foundation
 
@@ -608,11 +608,15 @@ visibilidad operativa de costo, latencia, errores y volumen.
 
 ## M17 Chat observability y costo-latencia
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m17-chat-observability/`
+- `openspec/changes/archive/2026-06-21-m17-chat-observability/`
+
+Spec canonica:
+
+- `openspec/specs/chat-observability/spec.md`
 
 Secuencia recomendada:
 
@@ -628,7 +632,7 @@ Secuencia recomendada:
 4. `m17-observability-cli`: completo. Agrega
    `adaptive-rag chat observability summary` con salida JSON equivalente a la
    API y filtros equivalentes.
-5. `m17-quality-gate`: pendiente. Valida Python, OpenSpec y docs; archiva M17
+5. `m17-quality-gate`: completo. Valida Python, OpenSpec y docs; archiva M17
    y publica la spec canonica `chat-observability`.
 
 Decision: M17 empieza por API/CLI porque fija el contrato de agregados antes de
@@ -637,9 +641,9 @@ invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
 M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
 replay, auth final ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es `m17-quality-gate`, para
-validar Python/OpenSpec/docs, archivar `m17-chat-observability` y publicar la
-spec canonica `chat-observability`.
+Continuacion: elegir el siguiente milestone o abrir un nuevo change OpenSpec
+desde el backlog futuro. El candidato documentado es Neo4j como graph DB
+routeable, pero debe confirmarse antes de iniciar implementacion.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 
@@ -682,8 +686,8 @@ Secuencia recomendada:
    retrieval en suites versionadas antes de promover cualquier default.
 
 Decision: Neo4j se mantiene como futura integracion opcional, no como requisito
-del stack base. La prioridad sigue siendo completar el milestone activo y abrir
-este bloque solo cuando exista un gap de retrieval medido que justifique graph
+del stack base. La prioridad es definir el siguiente milestone y abrir este
+bloque solo cuando exista un gap de retrieval medido que justifique graph
 retrieval frente a dense/rerank.
 
 ## Politica para reducir conflictos de merge

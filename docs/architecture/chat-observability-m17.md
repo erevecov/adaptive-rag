@@ -1,6 +1,6 @@
 # M17 Chat observability y costo-latencia
 
-Estado: activo como plan de M17.
+Estado: completo y archivado.
 
 ## Decision
 
@@ -41,10 +41,18 @@ OpenTelemetry, exporters hosted ni nuevas tablas obligatorias.
 2. `m17-observability-read-models`: completo.
 3. `m17-observability-api`: completo.
 4. `m17-observability-cli`: completo.
-5. `m17-quality-gate`: pendiente.
+5. `m17-quality-gate`: completo.
 
 ## Criterio de cierre
 
-M17 debe cerrar cuando API y CLI puedan producir el mismo resumen JSON estable
-de sesiones, usage/costo, latencia y errores por proyecto, con filtros
-acotados y sin exponer contenido sensible.
+M17 cerro cuando API y CLI pudieron producir el mismo resumen JSON estable de
+sesiones, usage/costo, latencia y errores por proyecto, con filtros acotados y
+sin exponer contenido sensible.
+
+Archive:
+
+- `openspec/changes/archive/2026-06-21-m17-chat-observability/`
+
+Spec canonica:
+
+- `openspec/specs/chat-observability/spec.md`
