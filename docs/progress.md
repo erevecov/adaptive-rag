@@ -10,15 +10,18 @@ M13 Chat audit trail cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M14 `m14-chat-history-repository-read-models`: agrega read models y queries de
-repository para listado/detalle de sesiones de chat, con aislamiento por
-proyecto, filtro de status, limite acotado, cursor deterministico, conteos,
-provider usage y retrieved chunks agrupados por retrieval run.
+M14 `m14-chat-history-api`: agrega schemas HTTP y endpoints read-only para
+listar sesiones de chat y consultar el detalle auditable de una sesion. El
+listado conserva aislamiento por proyecto, filtro de status, limite acotado,
+cursor deterministico, conteos y costo estimado; el detalle devuelve metadata
+de sesion, mensajes, tool calls, retrieval runs con retrieved chunks/citations
+anidadas y provider usage, sin re-ejecutar chat/retrieval ni mutar el audit
+trail.
 
 Comandos validados:
 
 ```text
-uv run pytest tests/unit/db/repositories/test_chat_audit_repository.py -q
+uv run pytest tests/integration/api/test_chat.py -q
 uv run pytest
 uv run ruff check .
 uv run mypy src
@@ -57,11 +60,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m14-chat-history-api`: schemas HTTP y endpoints
-  `GET /projects/{project_id}/chat/sessions` y
-  `GET /projects/{project_id}/chat/sessions/{session_id}` sobre los read models
-  compartidos. La razon es que CLI y frontend deben consumir un contrato HTTP
-  estable antes de agregar experiencia visual o streaming.
+- Implementar `m14-chat-history-cli`: comandos
+  `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
+  salida JSON estable sobre los mismos read models. La razon es cerrar la
+  inspeccion local/QA de historial antes del quality gate y antes de iniciar
+  frontend, streaming o dashboards.
 
 ## Reglas de coordinacion
 
