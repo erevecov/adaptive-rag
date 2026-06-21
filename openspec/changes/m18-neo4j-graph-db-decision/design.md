@@ -39,6 +39,12 @@ sin implementacion live inicial:
 Esta decision mantiene la complejidad controlada y fuerza evidencia antes de
 sumar una base de datos operacional.
 
+Despues de completar `m18-graph-db-decision-matrix`, la decision concreta es:
+Neo4j `proceed` como primer backend live opt-in; Memgraph y FalkorDB `hold`;
+Kuzu `no-go` para el backend routeable de M18; no-op queda como fallback si las
+evals posteriores no justifican graph retrieval. La matriz completa esta en
+`docs/architecture/graph-db-decision-matrix-m18.md`.
+
 ## Objetivos
 
 - Decidir si Neo4j merece avanzar frente a FalkorDB, Memgraph, Kuzu y no-op.
@@ -180,6 +186,8 @@ Fuera de alcance:
 
 ### 2. `m18-graph-db-decision-matrix`
 
+Estado: completo.
+
 Alcance:
 
 - Completar decision matrix con evidencia verificable.
@@ -189,6 +197,15 @@ Alcance:
 Fuera de alcance:
 
 - Adapter live e indexer.
+
+Resultado:
+
+- Neo4j queda seleccionado como primer backend live opt-in.
+- `m18-graph-store-contract` debe definir solo `disabled` y `neo4j` como
+  backends iniciales.
+- Memgraph y FalkorDB quedan como alternativas de contingencia.
+- Kuzu queda fuera del backend routeable de M18 porque no cubre la ruta managed
+  equivalente.
 
 ### 3. `m18-graph-store-contract`
 

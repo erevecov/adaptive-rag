@@ -24,7 +24,7 @@
 
 ## 3. Slices propuestos de M18
 
-- [ ] 3.1 Implementar `m18-graph-db-decision-matrix`.
+- [x] 3.1 Implementar `m18-graph-db-decision-matrix`.
 - [ ] 3.2 Implementar `m18-graph-store-contract`.
 - [ ] 3.3 Implementar `m18-neo4j-adapter-and-health`.
 - [ ] 3.4 Implementar `m18-neo4j-indexer`.
