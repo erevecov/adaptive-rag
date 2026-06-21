@@ -616,10 +616,10 @@ Change activo:
 
 Secuencia recomendada:
 
-1. `m17-chat-observability`: activo. Crea el change OpenSpec que delimita M17
+1. `m17-chat-observability`: completo. Crea el change OpenSpec que delimita M17
    como observability local-first de chat, costo y latencia sobre audit trail
    existente, con API/CLI read-only y sin dashboard avanzado.
-2. `m17-observability-read-models`: pendiente. Agrega read models y repository
+2. `m17-observability-read-models`: completo. Agrega read models y repository
    methods para resumir sesiones, provider usage, latencias y errores por
    proyecto, con filtros de status/fecha y calculos portables.
 3. `m17-observability-api`: pendiente. Agrega
@@ -637,9 +637,9 @@ invertir en UI. Usa datos existentes (`chat_sessions`, `tool_calls`,
 M17 no agrega dashboard avanzado, frontend, OpenTelemetry, exporters hosted,
 replay, auth final ni cambios de retrieval/rerank/providers.
 
-Continuacion: la siguiente tarea recomendada es
-`m17-observability-read-models`, para construir una fuente compartida y
-testeable de agregados antes de exponer endpoint o CLI.
+Continuacion: la siguiente tarea recomendada es `m17-observability-api`, para
+exponer el resumen por HTTP reutilizando `ChatObservabilityRepository` y dejar
+la validacion de filtros lista antes del CLI equivalente.
 
 ## Backlog futuro: Neo4j como graph DB routeable
 

@@ -23,7 +23,7 @@
 
 ## 3. Slices propuestos de M17
 
-- [ ] 3.1 Implementar `m17-observability-read-models`.
+- [x] 3.1 Implementar `m17-observability-read-models`.
 - [ ] 3.2 Implementar `m17-observability-api`.
 - [ ] 3.3 Implementar `m17-observability-cli`.
 - [ ] 3.4 Ejecutar `m17-quality-gate` y archivar el change cuando se complete.

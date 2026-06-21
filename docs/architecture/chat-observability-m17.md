@@ -37,8 +37,8 @@ OpenTelemetry, exporters hosted ni nuevas tablas obligatorias.
 
 ## Secuencia
 
-1. `m17-chat-observability`: activo.
-2. `m17-observability-read-models`: pendiente.
+1. `m17-chat-observability`: completo.
+2. `m17-observability-read-models`: completo.
 3. `m17-observability-api`: pendiente.
 4. `m17-observability-cli`: pendiente.
 5. `m17-quality-gate`: pendiente.
