@@ -22,11 +22,12 @@ afterEach(() => {
 
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
+  getChatSession?: ApiClient['getChatSession']
   listChatSessions?: ApiClient['listChatSessions']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
-    getChatSession: vi.fn(async () => emptySessionDetail),
+    getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
     listChatSessions: options.listChatSessions ?? vi.fn(),
   }
 }
@@ -104,6 +105,97 @@ const emptySessionDetail: ChatSessionDetailResponse = {
   tool_calls: [],
 }
 
+const sessionDetailResponse: ChatSessionDetailResponse = {
+  messages: [
+    {
+      content: 'What failed during deployment?',
+      created_at: '2026-06-21T00:00:00Z',
+      message_id: 'message-user-1',
+      metadata: null,
+      role: 'user',
+    },
+    {
+      content: 'The import failed because the worker was not running.',
+      created_at: '2026-06-21T00:00:01Z',
+      message_id: 'message-assistant-1',
+      metadata: null,
+      role: 'assistant',
+    },
+  ],
+  provider_usage: [
+    {
+      created_at: '2026-06-21T00:00:02Z',
+      currency: 'USD',
+      error_message: null,
+      estimated_cost_usd: 0.0042,
+      input_count: null,
+      input_tokens: 120,
+      latency_ms: 230,
+      model: 'qwen-plus',
+      operation: 'chat',
+      output_tokens: 48,
+      provider: 'qwen',
+      provider_request_id: 'provider-request-1',
+      provider_usage_id: 'usage-1',
+      status: 'succeeded',
+      total_tokens: 168,
+      usage_source: 'response',
+    },
+  ],
+  retrieval_runs: [
+    {
+      created_at: '2026-06-21T00:00:01Z',
+      error_message: null,
+      filters: null,
+      latency_ms: 41,
+      query: 'deployment import failure',
+      retrieval_run_id: 'retrieval-run-1',
+      retrieved_chunks: [
+        {
+          chunk_id: 'chunk-1',
+          citation: {
+            snippet: 'Confirm the worker is running before retrying the import.',
+            source_external_id: 'https://docs.local/deploy',
+          },
+          created_at: '2026-06-21T00:00:01Z',
+          dense_score: 0.84,
+          lexical_score: null,
+          rerank_score: null,
+          retrieved_chunk_id: 'retrieved-chunk-1',
+          rrf_score: null,
+          rank: 1,
+        },
+      ],
+      strategy: 'dense',
+      tool_call_id: 'tool-call-1',
+      top_k: 5,
+      used_rerank: false,
+    },
+  ],
+  session: {
+    created_at: '2026-06-21T00:00:00Z',
+    error_message: null,
+    model_config: { chat_provider: 'qwen' },
+    prompt_version: 'default',
+    session_id: 'session-123',
+    status: 'succeeded',
+    updated_at: '2026-06-21T00:00:02Z',
+  },
+  tool_calls: [
+    {
+      arguments: { query: 'deployment import failure' },
+      created_at: '2026-06-21T00:00:01Z',
+      error_message: null,
+      latency_ms: 39,
+      result_summary: { result_count: 1 },
+      status: 'succeeded',
+      tool_call_id: 'tool-call-1',
+      tool_name: 'rag_search',
+      updated_at: '2026-06-21T00:00:01Z',
+    },
+  ],
+}
+
 describe('App chat workspace', () => {
   test('renders with the local API fallback when no API base URL is configured', () => {
     render(<App />)
@@ -162,5 +254,55 @@ describe('App chat workspace', () => {
       'Why did it fail?',
     )
     expect(client.listChatSessions).not.toHaveBeenCalled()
+  })
+
+  test('refreshes history and renders selected session detail read-only', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
+      limit: 5,
+    })
+    expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
+    expect(screen.getByText('The import failed because the worker was not running.')).toBeTruthy()
+    expect(screen.getByText('rag_search')).toBeTruthy()
+    expect(screen.getByText('deployment import failure')).toBeTruthy()
+    expect(
+      screen.getByText('Confirm the worker is running before retrying the import.'),
+    ).toBeTruthy()
+    expect(screen.getByText('qwen / qwen-plus')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
+
+  test('shows session detail errors without clearing the session list', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => {
+        throw new ApiClientError('chat session not found', {
+          detail: 'chat session not found',
+          status: 404,
+        })
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    expect((await screen.findByRole('status')).textContent).toContain(
+      'chat session not found',
+    )
+    expect(screen.getByRole('button', { name: 'session-123' })).toBeTruthy()
   })
 })

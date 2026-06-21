@@ -10,16 +10,15 @@ M14 Chat history/read surface cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M15 `m15-chat-workspace-ui`: conecta el shell React con el cliente API para
-enviar preguntas por `POST /projects/{project_id}/chat`, mostrar answer,
-`session_id`, citations y tool calls minimas, y refrescar sesiones recientes
-despues de una respuesta exitosa. La UI cubre empty/loading/error states del
-workspace y preserva el borrador cuando falla una solicitud.
+M15 `m15-chat-history-ui`: convierte el panel de sesiones recientes en
+historial read-only completo para listar sesiones por proyecto, seleccionar una
+sesion persistida y consultar mensajes, tool calls, retrieval runs, citations y
+provider usage sin re-ejecutar chat ni mutar historial. La UI mantiene estados
+loading, empty y error tanto para listado como para detalle.
 
 Comandos validados en este slice:
 
 ```text
-cd frontend && pnpm add -D @testing-library/react @testing-library/user-event jsdom
 cd frontend && pnpm test -- App.test.tsx
 cd frontend && pnpm test
 cd frontend && pnpm run lint
@@ -62,11 +61,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m15-chat-history-ui`: convertir el panel de sesiones recientes
-  en historial read-only completo con listado por proyecto, seleccion de sesion,
-  detalle de mensajes/tool calls/retrieval runs/provider usage y estados
-  loading/empty/error. La razon es que el workspace ya puede enviar preguntas y
-  refrescar el resumen minimo de sesiones.
+- Ejecutar `m15-quality-gate`: correr el gate completo frontend/Python/OpenSpec,
+  documentar el cierre de M15 y archivar `m15-chat-frontend-plan`. La razon es
+  que ya estan implementados scaffold, cliente API, workspace y historial
+  read-only.
 
 ## Reglas de coordinacion
 
