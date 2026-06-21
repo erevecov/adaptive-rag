@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Protocol
 from uuid import UUID
 
+from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
     ChatRequest,
@@ -13,6 +15,7 @@ from adaptive_rag.chat.models import (
     ChatRunnerRequest,
 )
 from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
+from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 
@@ -35,15 +38,30 @@ class ChatService:
         *,
         runner: ChatRunner,
         retrieval_service: RetrievalSearcher,
+        audit_writer: ChatAuditWriter | None = None,
+        provider_usage_records: Callable[
+            [],
+            tuple[ProviderCallRecord, ...],
+        ]
+        | None = None,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
+        self._audit_writer = (
+            audit_writer if audit_writer is not None else NullChatAuditWriter()
+        )
+        self._provider_usage_records = (
+            provider_usage_records
+            if provider_usage_records is not None
+            else _empty_provider_usage_records
+        )
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_message(request.message)
         if request.retrieval_limit <= 0:
             raise ChatServiceError("retrieval_limit must be positive")
 
+        session_id = self._audit_writer.start_session(request, message)
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
@@ -55,20 +73,61 @@ class ChatService:
             project_id=request.project_id,
             default_limit=request.retrieval_limit,
             default_metadata_filter=request.metadata_filter,
+            audit_writer=self._audit_writer,
+            audit_session_id=session_id,
         )
-        output = self._runner.run(
-            runner_request,
-            ChatTools(retrieval=retrieval_tool),
+        try:
+            if session_id is not None:
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "user",
+                    message,
+                )
+            output = self._runner.run(
+                runner_request,
+                ChatTools(retrieval=retrieval_tool),
+            )
+            citations = _resolve_citations(
+                cited_chunk_ids=output.cited_chunk_ids,
+                retrieved_results=retrieval_tool.retrieved_results,
+            )
+            response = ChatResponse(
+                answer=output.answer,
+                citations=citations,
+                tool_calls=retrieval_tool.tool_calls,
+                session_id=session_id,
+            )
+            if session_id is not None:
+                self._audit_writer.record_message(
+                    request.project_id,
+                    session_id,
+                    "assistant",
+                    response.answer,
+                )
+                self._record_provider_usage(request.project_id, session_id)
+                self._audit_writer.succeed_session(request.project_id, session_id)
+            return response
+        except ChatServiceError as exc:
+            if session_id is not None:
+                self._record_provider_usage(request.project_id, session_id)
+                self._audit_writer.fail_session(
+                    request.project_id,
+                    session_id,
+                    str(exc),
+                )
+            raise
+
+    def _record_provider_usage(self, project_id: UUID, session_id: UUID) -> None:
+        self._audit_writer.record_provider_usage(
+            project_id,
+            session_id,
+            self._provider_usage_records(),
         )
-        citations = _resolve_citations(
-            cited_chunk_ids=output.cited_chunk_ids,
-            retrieved_results=retrieval_tool.retrieved_results,
-        )
-        return ChatResponse(
-            answer=output.answer,
-            citations=citations,
-            tool_calls=retrieval_tool.tool_calls,
-        )
+
+
+def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
+    return ()
 
 
 def _validate_message(message: str) -> str:
