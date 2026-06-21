@@ -29,6 +29,9 @@ Documentos:
 - `chat-observability-m17.md`: decision M17 para exponer observability
   local-first de chat, costo y latencia via API/CLI read-only sobre audit trail
   existente.
+- `neo4j-graph-db-m18.md`: decision M18 para evaluar Neo4j como graph DB
+  routeable, manteniendo Postgres como fuente durable y graph DB como indice
+  derivado opt-in.
 
 Reglas:
 

@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Ninguno. M17 quedo cerrado y archivado.
+M18 Neo4j graph DB decision.
 
 ## Ultimo milestone completado
 
@@ -10,25 +10,23 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M17 `m17-quality-gate`: valida Python/OpenSpec/docs, archiva
-`m17-chat-observability` y publica la spec canonica `chat-observability`.
+M18 `m18-neo4j-graph-db-decision`: crea el change OpenSpec M18, define la
+capacidad `graph-store`, documenta la decision Neo4j routeable y actualiza
+arquitectura/roadmap/progreso. Este slice no cambia codigo productivo,
+settings, dependencias, migrations, frontend ni infraestructura.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest
-uv run ruff check src tests
-uv run mypy src/adaptive_rag
-pnpm dlx @fission-ai/openspec validate m17-chat-observability --strict
+pnpm dlx @fission-ai/openspec validate m18-neo4j-graph-db-decision --strict
 pnpm dlx @fission-ai/openspec validate --specs --strict
-pnpm dlx @fission-ai/openspec archive m17-chat-observability --yes
 pnpm dlx @fission-ai/openspec list
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m18-neo4j-graph-db-decision/`
 
 ## Ultimo change archivado
 
@@ -59,9 +57,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Definir el siguiente milestone o abrir un nuevo change OpenSpec desde el
-  backlog futuro. El candidato documentado es evaluar Neo4j como graph DB
-  routeable, pero conviene confirmarlo antes de iniciar implementacion.
+- Continuar con `m18-graph-db-decision-matrix`, porque antes de agregar
+  dependencias o adapter live conviene comparar Neo4j contra FalkorDB,
+  Memgraph, Kuzu y no-op con evidencia verificable de setup local, managed,
+  drivers, costos, operaciones y testability.
 
 ## Reglas de coordinacion
 
