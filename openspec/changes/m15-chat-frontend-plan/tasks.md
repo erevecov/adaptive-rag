@@ -25,7 +25,7 @@
 ## 3. Slices propuestos de M15
 
 - [x] 3.1 Implementar `m15-frontend-scaffold`.
-- [ ] 3.2 Implementar `m15-chat-api-client`.
+- [x] 3.2 Implementar `m15-chat-api-client`.
 - [ ] 3.3 Implementar `m15-chat-workspace-ui`.
 - [ ] 3.4 Implementar `m15-chat-history-ui`.
 - [ ] 3.5 Ejecutar `m15-quality-gate` y archivar el change cuando se complete.
