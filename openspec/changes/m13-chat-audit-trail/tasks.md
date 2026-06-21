@@ -23,10 +23,10 @@
 
 ## 3. Slices futuros de M13
 
-- [ ] 3.1 Implementar `m13-audit-schema`.
-- [ ] 3.2 Implementar `m13-audit-repositories`.
-- [ ] 3.3 Implementar `m13-chat-service-audit-wiring`.
-- [ ] 3.4 Implementar `m13-api-cli-audit-surface`.
-- [ ] 3.5 Implementar `m13-provider-usage-linking`.
-- [ ] 3.6 Ejecutar `m13-quality-gate` y archivar el change cuando M13 quede
-  cerrado.
+- [x] 3.1 Implementar `m13-audit-schema`.
+- [x] 3.2 Implementar `m13-audit-repositories`.
+- [x] 3.3 Implementar `m13-chat-service-audit-wiring`.
+- [x] 3.4 Implementar `m13-api-cli-audit-surface`.
+- [x] 3.5 Implementar `m13-provider-usage-linking`.
+- [x] 3.6 Ejecutar `m13-quality-gate` y dejar el change activo hasta que se
+  solicite archive explicito.
