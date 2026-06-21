@@ -14,6 +14,7 @@
 - M10 Retrieval eval datasets y decision gates: completo.
 - M11 Retrieval strategy decision: completo.
 - M12 Retrieval evidence expansion: completo.
+- M13 Chat audit trail: activo.
 
 ## M1 Foundation
 
@@ -414,9 +415,44 @@ Decision: M12 midio antes de construir. Dense retrieval sigue como default.
 Candidate tuning presets/defaults quedaron en `no-go`; lexical/RRF y Qwen
 sparse retrieval quedaron en `hold`.
 
-Continuacion: no agregar algoritmos de retrieval todavia. El siguiente change
-OpenSpec debe abrirse solo despues de elegir una prioridad nueva con evidencia
-concreta o una necesidad fuera de ranking.
+Continuacion: no agregar algoritmos de retrieval todavia. La siguiente prioridad
+seleccionada es M13 Chat audit trail, una necesidad fuera de ranking para dejar
+sesiones, mensajes, tool calls, retrieval runs, citations y usage/cost en un
+registro durable antes de streaming, dashboards o historial.
+
+## M13 Chat audit trail
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m13-chat-audit-trail/`
+
+Secuencia recomendada:
+
+1. `m13-chat-audit-trail`: activo en branch de planificacion. Crea el change
+   OpenSpec que delimita M13 como persistencia durable de chat sin streaming,
+   historial, dashboards ni cambios de ranking.
+2. `m13-audit-schema`: pendiente. Agrega migracion Alembic y modelos SQLAlchemy
+   para sesiones, mensajes, tool calls, retrieval runs, retrieved chunks y
+   provider usage.
+3. `m13-audit-repositories`: pendiente. Agrega repositories con aislamiento por
+   proyecto, transiciones de status y saneamiento de metadata sin secretos.
+4. `m13-chat-service-audit-wiring`: pendiente. Integra la escritura del audit
+   trail en `ChatService`, preservando validacion de citations y fakes
+   deterministas.
+5. `m13-api-cli-audit-surface`: pendiente. Hace que API/CLI persistan el audit
+   trail por defecto y expongan solo metadata minima como `session_id` si el
+   contrato lo requiere.
+6. `m13-provider-usage-linking`: pendiente. Vincula usage/cost de providers al
+   contexto durable disponible sin romper runners offline.
+7. `m13-quality-gate`: pendiente. Valida tests, lint, types, specs, smokes
+   relevantes y archiva M13.
+
+Decision: M13 va antes de streaming SSE, dashboards e historial porque esas
+superficies necesitan una fuente durable para reproducir mensajes, tool calls,
+retrieval context, citations, errores y usage/cost. M13 no cambia retrieval
+productivo ni agrega algoritmos nuevos.
 
 ## Politica para reducir conflictos de merge
 

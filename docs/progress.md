@@ -2,7 +2,7 @@
 
 ## Milestone activo
 
-Pendiente de abrir el siguiente change OpenSpec.
+M13 Chat audit trail.
 
 ## Ultimo milestone completado
 
@@ -37,7 +37,7 @@ con embeddings deterministas, `FakeRerankProvider`, SQLite in-memory y
 
 ## Change OpenSpec activo
 
-Ninguno.
+- `openspec/changes/m13-chat-audit-trail/`
 
 ## Ultimo change archivado
 
@@ -63,11 +63,10 @@ Ninguno.
 
 ## Siguiente tarea recomendada
 
-- Abrir el siguiente change OpenSpec solo despues de elegir una prioridad nueva.
-  La opcion recomendada es no agregar algoritmos de retrieval todavia: M12 no
-  justifico candidate presets, lexical/RRF ni sparse retrieval. Si aparece una
-  prioridad nueva, debe partir de evidencia concreta o de una necesidad fuera de
-  ranking.
+- Completar el PR de planificacion `m13-chat-audit-trail`, validarlo con
+  OpenSpec y luego implementar `m13-audit-schema` como primer slice. La razon es
+  que schema y relaciones durables deben quedar estables antes de integrar
+  repositories, `ChatService`, API/CLI o usage/cost linking.
 
 ## Reglas de coordinacion
 

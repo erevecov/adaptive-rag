@@ -16,6 +16,9 @@ Documentos:
   distractors y lexical misses antes de abrir nuevas estrategias de retrieval.
 - `retrieval-strategy-refresh-m12.md`: evidencia M12 actualizada y decision de
   mantener dense default sin promover candidate tuning, lexical/RRF ni sparse.
+- `chat-audit-trail-m13.md`: decision M13 para persistir sesiones, mensajes,
+  tool calls, retrieval runs, citations y usage/cost antes de streaming,
+  dashboards o historial.
 
 Reglas:
 
