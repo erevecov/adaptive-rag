@@ -45,9 +45,9 @@ orientada a debugging local-first, no marketing.
 1. `m20-chat-observability-dashboard-plan`: completo.
 2. `m20-observability-frontend-client`: completo.
 3. `m20-observability-dashboard-shell`: completo.
-4. `m20-observability-breakdowns`: construir breakdowns y tablas.
-5. `m20-observability-summary-shape`: opcional, solo si hace falta una
-   extension backward-compatible del summary.
+4. `m20-observability-breakdowns`: completo.
+5. `m20-observability-summary-shape`: no necesario; el summary M17 cubrio los
+   breakdowns sin extension backward-compatible.
 6. `m20-quality-gate`: validar y archivar M20.
 
 ## Criterio de cierre

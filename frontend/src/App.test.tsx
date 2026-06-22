@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -493,11 +493,12 @@ describe('App chat workspace', () => {
       created_at_to: '2026-06-22T00:00:00Z',
       status: 'failed',
     })
-    expect(await screen.findByText('12')).toBeTruthy()
-    expect(screen.getByText('18')).toBeTruthy()
-    expect(screen.getByText('$0.1234')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()
-    expect(screen.getByText('410 ms')).toBeTruthy()
+    const metrics = await screen.findByLabelText('Chat observability metrics')
+    expect(within(metrics).getByText('12')).toBeTruthy()
+    expect(within(metrics).getByText('18')).toBeTruthy()
+    expect(within(metrics).getByText('$0.1234')).toBeTruthy()
+    expect(within(metrics).getByText('3')).toBeTruthy()
+    expect(within(metrics).getByText('410 ms')).toBeTruthy()
   })
 
   test('refreshes observability without sending empty filters', async () => {
@@ -517,6 +518,74 @@ describe('App chat workspace', () => {
       status: null,
     })
     expect(await screen.findByText('12')).toBeTruthy()
+  })
+
+  test('renders observability breakdown sections from the summary', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    const statusSection = await screen.findByRole('region', {
+      name: 'Status breakdown',
+    })
+    expect(within(statusSection).getByText('succeeded')).toBeTruthy()
+    expect(within(statusSection).getByText('10 sessions')).toBeTruthy()
+    expect(within(statusSection).getByText('failed')).toBeTruthy()
+    expect(within(statusSection).getByText('2 sessions')).toBeTruthy()
+
+    const errorsSection = screen.getByRole('region', { name: 'Error messages' })
+    expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
+    expect(within(errorsSection).getByText('2 occurrences')).toBeTruthy()
+
+    const providerSection = screen.getByRole('region', { name: 'Provider usage' })
+    expect(within(providerSection).getByText('chat')).toBeTruthy()
+    expect(within(providerSection).getByText('qwen')).toBeTruthy()
+    expect(within(providerSection).getByText('qwen-plus')).toBeTruthy()
+    expect(within(providerSection).getByText('1,840')).toBeTruthy()
+
+    const healthSection = screen.getByRole('region', { name: 'Session health' })
+    expect(within(healthSection).getByText('83.3% success')).toBeTruthy()
+  })
+
+  test('renders empty breakdown states when summary groups are absent', async () => {
+    const user = userEvent.setup()
+    const emptyBreakdownSummary: ChatObservabilitySummary = {
+      ...observabilitySummary,
+      errors: {
+        provider_error_count: 0,
+        session_error_count: 0,
+        top_messages: [],
+      },
+      provider_usage: {
+        groups: [],
+        missing_cost_count: 0,
+        total_estimated_cost_usd: 0,
+        total_records: 0,
+      },
+      sessions: {
+        by_status: {},
+        total: 0,
+      },
+    }
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => emptyBreakdownSummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    expect(await screen.findByText('No status data yet.')).toBeTruthy()
+    expect(screen.getByText('No provider usage groups yet.')).toBeTruthy()
+    expect(screen.getByText('No error messages yet.')).toBeTruthy()
+    expect(screen.getByText('No sessions in this filter window.')).toBeTruthy()
   })
 
   test('shows observability errors without clearing filters', async () => {
