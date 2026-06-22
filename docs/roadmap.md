@@ -690,8 +690,10 @@ Secuencia recomendada:
    contrato `GraphStore`, health check, errores estables, fakes offline y
    `graph_projections` en Postgres para readiness/backfill por proyecto, sin
    adapter live ni cambios de retrieval.
-4. `m18-neo4j-adapter-and-health`: pendiente. Agregar adapter Neo4j opt-in y
-   health checks solo despues de cerrar el contrato.
+4. `m18-neo4j-adapter-and-health`: completo. Agrega dependencia `neo4j>=6.0`,
+   adapter `Neo4jGraphStore`, factory `get_graph_store(...)`, validacion de
+   URI/auth y health check con `verify_connectivity()` y errores estables sin
+   exponer secretos.
 5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
    desde proyectos, sources, documents, chunks y metadata con reindex
    idempotente.
@@ -704,8 +706,8 @@ Secuencia recomendada:
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
 opcional, no como requisito del stack base. La prioridad inmediata es
-implementar `m18-neo4j-adapter-and-health` sobre el contrato cerrado, sin
-indexer, retrieval graph ni cambio de defaults.
+implementar `m18-neo4j-indexer` sobre el adapter cerrado, sin retrieval graph ni
+cambio de defaults.
 
 ## Politica para reducir conflictos de merge
 

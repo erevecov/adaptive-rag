@@ -4,11 +4,10 @@ Estado: activo como plan de M18.
 
 ## Decision
 
-M18 debe avanzar como decision tecnica y plan routeable para graph DB, no como
-adapter live inicial. Neo4j es el candidato principal porque tiene ecosistema
-maduro, drivers oficiales, ruta local y ruta managed Aura, pero debe compararse
-contra FalkorDB, Memgraph, Kuzu y la opcion no-op antes de agregar dependencias
-o servicios.
+M18 avanza como decision tecnica y plan routeable para graph DB. Neo4j es el
+candidato principal porque tiene ecosistema maduro, drivers oficiales, ruta
+local y ruta managed Aura; el adapter live ya quedo opt-in y el trabajo restante
+debe mantener graph DB como indice derivado antes de retrieval graph.
 
 La decision recomendada es empezar por decision matrix y contrato `GraphStore`.
 Postgres sigue siendo la fuente durable de verdad; cualquier graph DB es un
@@ -51,9 +50,9 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 
 ## Fuera de alcance restante
 
-- Agregar dependencia `neo4j` o `graphdatascience`.
+- Agregar dependencia `graphdatascience`.
 - Agregar Docker Compose, Neo4j Desktop config o Aura secrets.
-- Agregar adapter live, indexer, reindex jobs o route de retrieval graph.
+- Agregar indexer, reindex jobs o route de retrieval graph.
 - Cambiar defaults de retrieval, rerank, chat, streaming o observability.
 
 ## Secuencia
@@ -61,7 +60,7 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 1. `m18-neo4j-graph-db-decision`: completo.
 2. `m18-graph-db-decision-matrix`: completo.
 3. `m18-graph-store-contract`: completo.
-4. `m18-neo4j-adapter-and-health`: pendiente.
+4. `m18-neo4j-adapter-and-health`: completo.
 5. `m18-neo4j-indexer`: pendiente.
 6. `m18-graph-retrieval-route`: pendiente.
 7. `m18-evals-quality-gate`: pendiente.
