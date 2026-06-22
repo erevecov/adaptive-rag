@@ -10,11 +10,12 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M18 `m18-graph-store-contract`: define `graph_store=disabled|neo4j`, el
-contrato `GraphStore`, errores estables, health check, fakes offline y la tabla
-Postgres `graph_projections` para readiness/backfill por proyecto. Postgres
-mantiene la fuente canonica; Neo4j sigue sin adapter live, driver, Docker,
-indexer, retrieval graph ni cambio de default.
+M18 `m18-neo4j-adapter-and-health`: agrega `neo4j>=6.0`, `Neo4jGraphStore` y
+factory `get_graph_store(...)` para crear el driver con URI/auth opt-in y
+ejecutar `verify_connectivity()` solo en `health_check()`. Los fallos de auth,
+servicio y driver se mapean a errores estables sin secretos. El slice no agrega
+indexer, reindex jobs, retrieval graph, Docker/Aura secrets ni cambios de
+default.
 
 Comandos validados en este slice:
 
@@ -61,10 +62,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-neo4j-adapter-and-health`, porque el contrato y readiness
-  ya estan fijados con fakes offline. El siguiente riesgo es validar el adapter
-  Neo4j opt-in, URI/auth, `verify_connectivity()` y errores estables sin tocar
-  indexer, retrieval graph ni defaults.
+- Continuar con `m18-neo4j-indexer`, porque el adapter Neo4j opt-in y health
+  checks ya estan cerrados. El siguiente riesgo es materializar nodos/relaciones
+  derivados desde Postgres de forma idempotente por `project_id`, sin activar
+  retrieval graph ni cambiar defaults.
 
 ## Reglas de coordinacion
 

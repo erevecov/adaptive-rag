@@ -64,9 +64,9 @@ evals posteriores no justifican graph retrieval. La matriz completa esta en
 
 ## No objetivos
 
-- No agregar dependencia `neo4j` ni `graphdatascience` en este PR.
+- No agregar dependencia `graphdatascience` en M18.
 - No agregar Docker Compose, Neo4j Desktop config ni Aura secrets.
-- No agregar adapter Neo4j live, indexer ni reindex job.
+- No agregar indexer ni reindex job antes de cerrar adapter/health.
 - No cambiar dense retrieval, rerank, chat, streaming, history ni observability.
 - No cambiar defaults de retrieval ni activar graph retrieval en v1 sin evals.
 - No guardar datos primarios solo en graph DB.
@@ -256,6 +256,8 @@ Fuera de alcance:
 
 ### 4. `m18-neo4j-adapter-and-health`
 
+Estado: completo.
+
 Alcance:
 
 - Agregar adapter Neo4j opt-in.
@@ -263,9 +265,25 @@ Alcance:
   checks.
 - Documentar local Docker/Desktop y Aura `neo4j+s://...`.
 
+Resultado:
+
+- Agrega dependencia runtime `neo4j>=6.0` resuelta en lockfile como
+  `neo4j==6.2.0`.
+- Agrega `Neo4jGraphStore` y factory `get_graph_store(...)` con
+  `graph_store=disabled` como default y `graph_store=neo4j` opt-in.
+- El factory valida URI, username y password desde settings, crea el driver con
+  `GraphDatabase.driver(uri, auth=(username, password))` y no ejecuta
+  conectividad hasta `health_check()`.
+- `health_check()` llama `verify_connectivity()` y mapea `AuthError`,
+  `ServiceUnavailable`, `DriverError`, `Neo4jError` y errores desconocidos a
+  `GraphStoreHealth` con error codes estables sin exponer secretos.
+- `backfill_project_graph(...)` y `delete_project_graph(...)` quedan
+  explicitamente fuera de alcance y fallan con `GraphStoreQueryError` hasta el
+  slice de indexer.
+
 Fuera de alcance:
 
-- Cambiar retrieval defaults.
+- Indexer, reindex jobs, route de retrieval graph y cambios de defaults.
 
 ### 5. `m18-neo4j-indexer`
 

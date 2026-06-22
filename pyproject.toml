@@ -8,6 +8,7 @@ dependencies = [
   "alembic>=1.14",
   "fastapi>=0.115",
   "httpx>=0.28",
+  "neo4j>=6.0",
   "pgvector>=0.3",
   "psycopg[binary]>=3.2",
   "pydantic-ai-slim[openai]>=1.107.0",

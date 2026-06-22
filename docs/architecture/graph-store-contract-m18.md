@@ -54,6 +54,7 @@ del dominio.
 
 ## Siguiente paso
 
-`m18-neo4j-adapter-and-health` debe implementar el adapter Neo4j opt-in sobre
-este contrato, validar URI/auth y mapear fallos de conectividad a errores
-estables. No debe agregar indexer ni route de retrieval graph todavia.
+`m18-neo4j-adapter-and-health` quedo completado sobre este contrato. El
+siguiente paso es `m18-neo4j-indexer`: materializar nodos y relaciones derivados
+desde Postgres de forma idempotente por `project_id`, sin route de retrieval
+graph ni cambios de default todavia.

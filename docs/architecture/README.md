@@ -37,6 +37,8 @@ Documentos:
 - `graph-store-contract-m18.md`: contrato M18 de `GraphStore`, settings,
   readiness/backfill en Postgres, errores estables y fakes offline antes de
   Neo4j live.
+- `neo4j-adapter-health-m18.md`: adapter Neo4j opt-in, dependencia driver,
+  health check con `verify_connectivity()` y mapeo de errores estables.
 
 Reglas:
 
