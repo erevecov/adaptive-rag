@@ -829,11 +829,11 @@ OpenSpec desde `main` para el proximo milestone antes de implementar.
 
 ## M21 V1 release readiness
 
-Estado: activo.
+Estado: cerrado el 2026-06-22.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m21-v1-release-readiness-plan/`
+- `openspec/changes/archive/2026-06-22-m21-v1-release-readiness-plan/`
 
 Objetivo:
 
@@ -854,22 +854,21 @@ Condiciones del milestone:
 - La evidencia final debe incluir README/demo y reporte reproducible de
   evals/costo/latencia.
 
-Secuencia recomendada:
+Resultado:
 
-1. `m21-v1-release-readiness-plan`: activo. Crea el change OpenSpec, declara
-   scope, no objetivos y secuencia de cierre v1.0.
-2. `m21-v1-scope-reconciliation`: actualizar `v1-design.md`, progress/roadmap y
-   docs de arquitectura para separar `in_v1`, `defer_post_v1` y `blocked`.
-3. `m21-release-package-local-stack`: preparar Docker Compose/runbook local con
-   API, worker y Postgres/pgvector, mas smoke local.
-4. `m21-portfolio-demo-and-report`: agregar demo script o runbook
-   automatizable, README final y reporte de evals/costo/latencia.
-5. `m21-release-quality-gate`: validar frontend/Python/OpenSpec, archivar M21 y
-   dejar v1.0 listo para tag/release manual.
+1. `m21-v1-scope-reconciliation`: completo. `v1-design.md` separa `in_v1` y
+   `defer_post_v1`, con OpenSpec como autoridad.
+2. `m21-release-package-local-stack`: completo. `Dockerfile`, `compose.yaml`,
+   `.env.example` y runbook local cubren API, worker project-scoped y
+   Postgres/pgvector.
+3. `m21-portfolio-demo-and-report`: completo. README y runbook documentan demo
+   offline reproducible con fixtures de evals y providers `fake`.
+4. `m21-release-quality-gate`: completo. Frontend/Python/OpenSpec/compose y
+   smokes CLI pasaron, y M21 quedo archivado.
 
-Decision: proceed con recorte conservador de v1.0. El producto core ya es
-demostrable; lo que falta para release no debe reabrir lexical/RRF, sparse,
-graph defaults ni nuevas superficies sin evidencia.
+Decision: M21 cierra con recorte conservador de v1.0. El producto core queda
+demostrable local-first; lexical/RRF, Qwen sparse, graph defaults y nuevas
+surfaces de authoring no se reabren sin evidencia/OpenSpec nuevo.
 
 ## Politica para reducir conflictos de merge
 

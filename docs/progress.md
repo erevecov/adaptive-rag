@@ -2,34 +2,28 @@
 
 ## Milestone activo
 
-M21 V1 release readiness.
-
-M21 convierte el estado post-M20 en una checklist de release v1.0. El objetivo
-es decidir que entra en v1.0, que se difiere a post-v1 y que trabajo final
-falta para un release local-first demostrable.
+Ninguno. No hay changes OpenSpec activos despues de M21.
 
 ## Ultimo milestone completado
 
-M20 Chat observability dashboard cerrado el 2026-06-22.
+M21 V1 release readiness cerrado el 2026-06-22.
 
-M20 convierte el resumen read-only de observability de M17 en una vista
-frontend operativa. El layout aprobado es hibrido: filtros superiores, metric
-cards, breakdowns, provider usage table y session health table.
+M21 reconcilia el alcance v1.0 contra OpenSpec y el codigo real, agrega el
+release package local-first, documenta el demo offline reproducible y archiva
+la spec `v1-release-readiness`.
 
-M20 no cambia retrieval, rerank, providers, streaming ni graph defaults. La
-decision M19 sigue vigente: Neo4j queda en `hold_default` hasta contar con
-evidencia live concluyente.
+El corte v1.0 mantiene dense retrieval como default, rerank como opt-in medible
+y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen sparse retrieval,
+Contextual Retrieval generado, auth multi-user, PDF/Office, voice y MCP server
+quedan diferidos post-v1 salvo nueva evidencia/OpenSpec.
 
 ## Ultimo slice completado
 
-M20 `m20-quality-gate`: valida frontend, Python, OpenSpec y smokes CLI;
-archiva el change M20 y publica los requisitos canonicos en
-`chat-frontend` y `chat-observability`.
+M21 `m21-release-quality-gate`: valida frontend, Python, OpenSpec, compose
+config y smokes CLI; archiva el change M21 y publica la spec canonica
+`v1-release-readiness`.
 
-Este cierre no agrega endpoints backend, no consulta tablas internas y no
-modifica defaults de retrieval, rerank, providers, streaming ni graph.
-
-Comandos validados en el gate M20:
+Comandos validados en el gate M21:
 
 ```text
 pnpm --dir frontend test
@@ -41,7 +35,8 @@ uv run ruff check .
 uv run mypy src
 uv run adaptive-rag version
 uv run adaptive-rag health
-npx --yes @fission-ai/openspec validate m20-chat-observability-dashboard-plan --strict
+docker compose config
+npx --yes @fission-ai/openspec validate m21-v1-release-readiness-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -49,11 +44,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m21-v1-release-readiness-plan/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-22-m20-chat-observability-dashboard-plan/`
+- `openspec/changes/archive/2026-06-22-m21-v1-release-readiness-plan/`
 
 ## Spec canonica activa
 
@@ -78,13 +73,13 @@ git diff --check
 - `openspec/specs/chat-streaming/spec.md`
 - `openspec/specs/chat-observability/spec.md`
 - `openspec/specs/graph-store/spec.md`
+- `openspec/specs/v1-release-readiness/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m21-v1-release-readiness-plan`. Despues, la opcion
-  recomendada es `m21-v1-scope-reconciliation` para actualizar
-  `docs/architecture/v1-design.md` con items `in_v1`, `defer_post_v1` y
-  `blocked` antes de tocar packaging, README o demo.
+- Crear el PR final de M21. Despues de mergearlo, sincronizar `main` y decidir
+  si se corta un tag/manual release v1.0 o si se abre el primer change post-v1
+  para authoring de projects/sources.
 
 ## Reglas de coordinacion
 

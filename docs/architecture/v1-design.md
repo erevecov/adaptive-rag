@@ -9,6 +9,34 @@ implementados, cambios activos y requisitos verificables. Si este documento
 contradice una spec canónica o un change OpenSpec aceptado, se debe actualizar
 este documento o seguir OpenSpec.
 
+## Reconciliación M21 para v1.0
+
+Fecha: 2026-06-22
+
+M21 recorta la primera release pública al alcance verificable en
+`openspec/specs/` y en el código actual. Las secciones históricas de este
+documento siguen siendo útiles como dirección de producto, pero esta tabla
+manda para v1.0:
+
+| Item original de v1 | Estado M21 | Decisión de release |
+| --- | --- | --- |
+| Multi-project single-user, schema, repositories y `project_id` obligatorio | `in_v1` | Cubierto por specs canónicas de domain schema, repositories y job queue. |
+| Ingestion Markdown/TXT/URL HTML a `document_versions` | `in_v1` | Cubierto por `ingestion-pipeline`; el worker CLI procesa `ingest_source` por `project_id`. |
+| `UrlFetchPolicy` para URL HTML | `in_v1` | Cubierto por spec canónica y tests offline. |
+| Chunking semántico baseline | `in_v1` | Cubierto por `chunking-baseline`; no promete contextualización generada. |
+| Dense embeddings y pgvector exact search | `in_v1` | Es el path estable y default de release. |
+| Metadata filtering tipado | `in_v1` | Cubierto en API/CLI de retrieval y chat. |
+| Chat retrieval-first, citations, streaming, history, audit trail y observability | `in_v1` | Cubierto por specs M10-M20; frontend incluido solo como app local de portfolio. |
+| Evals offline, provider runtime fake default y Qwen hosted opt-in | `in_v1` | El gate offline no requiere credenciales hosted. Qwen live queda opt-in y presupuestado. |
+| Rerank Qwen/fake sobre candidatos dense | `in_v1` | Opt-in, medible y sin cambiar el default dense. |
+| Docker Compose local con API, worker y Postgres/pgvector | `in_v1` | `api` y `postgres` son default; `worker` usa profile porque requiere `project_id`. |
+| Contextual Retrieval generado por Qwen | `defer_post_v1` | El schema/input builder reserva campos, pero la generación de summaries no es gate de v1.0. |
+| Postgres full-text, lexical retrieval y RRF | `defer_post_v1` | Requieren evidencia de fallos lexicales actuales y nuevo OpenSpec. |
+| Qwen sparse retrieval / `dense_sparse` runtime | `defer_post_v1` | El schema existe, pero scoring/retrieval sparse no entra sin evidencia nueva. |
+| Graph retrieval como default o dependencia del stack | `defer_post_v1` | Neo4j/graph sigue opt-in y `hold_default` por M19. |
+| API/CLI self-service para crear projects/sources | `defer_post_v1` | v1.0 publica retrieval/chat/evals/worker sobre contratos existentes; surfaces de authoring quedan para una iteración posterior. |
+| Auth multi-user, PDF/Office, voice, MCP server, hosted observability | `defer_post_v1` | Fuera del corte local-first. |
+
 ## Propósito
 
 Adaptive RAG es un proyecto RAG personal, público y con calidad de portafolio.
@@ -37,10 +65,10 @@ SPLADE, learned sparse retrievers externos ni Unstructured como parser
 integrado. Esas son decisiones deliberadas para llegar a producción con menos
 piezas móviles.
 
-Qwen sparse embeddings sí entra en v1 como modo experimental configurable por
-proyecto, no como default. El objetivo es aprender el endpoint nativo de
-DashScope y medir si aporta calidad sobre Postgres full-text, manteniendo el
-camino estable `dense` como configuración inicial.
+Qwen sparse embeddings queda diferido post-v1 como modo experimental. El schema
+reserva `embedding_mode = "dense_sparse"` y `chunk_sparse_embeddings`, pero M21
+no promueve sparse retrieval, lexical full-text ni RRF sin evidencia nueva. El
+camino estable de release es `dense`.
 
 El stack por defecto de v1 no dependerá de Redis, Celery, ARQ, Neo4j,
 OpenSearch, Langfuse, Qdrant ni ningún servicio externo obligatorio de base de
@@ -1360,98 +1388,90 @@ Reglas:
 
 ## Release v1.0 de portafolio
 
-La primera release pública debe priorizar un vertical slice completo y
-demostrable antes que profundidad de plataforma. Debe permitir crear proyectos,
-agregar fuentes Markdown, TXT y URL HTML pública, indexarlas, ejecutar retrieval
-híbrido, chatear con citations, correr evals y mostrar un reporte reproducible
-de calidad/costo/latencia.
+La primera release pública prioriza un vertical slice demostrable, local-first y
+conservador. Debe permitir validar el backend, el worker project-scoped, el chat
+RAG, retrieval dense, rerank opt-in, evals offline y un reporte reproducible de
+calidad/costo/latencia sin depender de servicios hosted.
 
 Incluye:
 
-- multi-project single-user
-- ingestion por worker Postgres
+- multi-project single-user en schema, repositories y filtros obligatorios
+- ingestion Markdown/TXT/URL HTML por job `ingest_source`
+- worker CLI project-scoped `adaptive-rag jobs run-worker`
 - `document_versions`
 - chunking semántico Markdown/texto
-- Contextual Retrieval con Qwen
-- embeddings dense Qwen `text-embedding-v4` de 1024 dimensiones
-- Qwen sparse embeddings como modo experimental configurable `dense_sparse`
-- pgvector exact search
-- Postgres full-text como rama lexical local
-- RRF y rerank Qwen
+- embeddings dense de 1024 dimensiones con provider fake default y Qwen opt-in
+- pgvector exact search como retrieval estable
+- rerank opt-in sobre candidatos dense
 - metadata filtering tipado
-- chat retrieval-first con Pydantic AI tool calling
+- chat retrieval-first con Pydantic AI tool calling, citations y SSE
+- chat history, audit trail, provider usage y observability summary
+- frontend local de portfolio para chat/observability
 - prompt versioning
 - usage/cost tracking básico por provider call
-- eval harness CLI/API con métricas determinísticas y Ragas opt-in
-- Docker Compose con API, worker y Postgres/pgvector
-- README, demo script y reporte de evals para portafolio
-
-Hitos internos publicables:
-
-- `v0.1`: CLI-first, single-project lógico sobre el schema multi-project,
-  ingestion síncrona de Markdown/TXT, chunker propio `semantic_markdown_v1`,
-  Qwen dense embeddings, pgvector exact search, citations y evals
-  determinísticos.
-- `v0.2`: worker Postgres, ingestion de URLs HTML con `UrlFetchPolicy`,
-  Postgres full-text, metadata filtering y RRF.
-- `v0.3`: Contextual Retrieval con Qwen, Qwen rerank, chat retrieval-first con
-  Pydantic AI y SSE para chat streaming.
-- `v0.4`: modo experimental `dense_sparse`, storage
-  `chunk_sparse_embeddings`, sparse retrieval y matriz de evals comparativa.
-- `v1.0`: Docker Compose completo, usage/cost tracking consolidado, README,
-  demo script y reporte de evals/costo/latencia listo para portafolio.
+- eval harness CLI con métricas determinísticas y hosted evals opt-in
+- graph/Neo4j opt-in en `hold_default`, no requerido por release
+- Docker Compose con API, Postgres/pgvector y worker profile
+- README, runbook de release package y reporte reproducible de evals
 
 Quedan fuera de la primera release pública aunque existan huecos preparados en
-el diseño: frontend completo, auth multi-user, PDF/Office, Unstructured, Qdrant,
-HNSW, SPLADE, sparse retrievers externos, WebSockets, OpenTelemetry exporter,
-dashboards de costos avanzados, optimización avanzada de sparse scoring,
-servidor MCP y reindex masivo de proyecto como flujo principal.
+el diseño: API/CLI self-service para crear projects/sources, Contextual
+Retrieval generado, Postgres full-text, lexical retrieval, RRF, Qwen sparse
+retrieval runtime, graph retrieval como default, auth multi-user, PDF/Office,
+Unstructured, Qdrant, HNSW, SPLADE, sparse retrievers externos, OpenTelemetry
+exporter, dashboards de costos avanzados, optimización avanzada de sparse
+scoring, voice, servidor MCP y reindex masivo de proyecto como flujo principal.
 
 ## Superficie de API
 
-Endpoints FastAPI iniciales:
+Endpoints FastAPI de v1.0:
 
-- `POST /projects`
-- `GET /projects`
-- `GET /projects/{project_id}`
-- `POST /projects/{project_id}/sources`
-- `GET /projects/{project_id}/sources`
-- `GET /projects/{project_id}/sources/{source_id}`
-- `POST /projects/{project_id}/ingestion-jobs`
-- `GET /projects/{project_id}/ingestion-jobs/{job_id}`
+- `GET /health`
+- `POST /projects/{project_id}/retrieval/search`
 - `POST /projects/{project_id}/chat`
 - `POST /projects/{project_id}/chat/stream`
-- `GET /projects/{project_id}/chat-sessions/{session_id}`
-- `POST /projects/{project_id}/retrieval/search`
-- `POST /projects/{project_id}/eval-runs`
-- `GET /projects/{project_id}/eval-runs/{run_id}`
+- `GET /projects/{project_id}/chat/sessions`
+- `GET /projects/{project_id}/chat/sessions/{session_id}`
+- `GET /projects/{project_id}/chat/observability/summary`
 
 `POST /projects/{project_id}/chat` y
 `POST /projects/{project_id}/retrieval/search` aceptan `metadata_filter` con los
 campos tipados de v1. El backend rechaza filtros con campos desconocidos en vez
 de ignorarlos silenciosamente.
 
-Los endpoints de `ingestion-jobs` son una superficie semántica de producto. En
-la base de datos crean y leen filas de `jobs` con `job_type = ingest_source`.
+Los endpoints de `projects`, `sources`, `ingestion-jobs` y `eval-runs` quedan
+diferidos post-v1. En v1.0 la creación de fixtures y evidencia de evals ocurre
+por CLI/repositorios y el worker consume filas `jobs` existentes con
+`job_type = ingest_source`.
 
 ## Superficie de CLI
 
-Comandos Typer iniciales:
+Comandos Typer de v1.0:
 
-- `adaptive-rag projects create`
-- `adaptive-rag sources add-url`
-- `adaptive-rag sources add-file`
+- `adaptive-rag version`
+- `adaptive-rag health`
 - `adaptive-rag jobs run-worker`
 - `adaptive-rag chat ask`
+- `adaptive-rag chat sessions list`
+- `adaptive-rag chat sessions show`
+- `adaptive-rag chat observability summary`
 - `adaptive-rag retrieval search`
-- `adaptive-rag eval run`
+- `adaptive-rag evals run`
+- `adaptive-rag providers embedding-smoke`
+- `adaptive-rag providers chat-smoke`
+- `adaptive-rag providers rerank-smoke`
+- `adaptive-rag graph neo4j-smoke`
+- `adaptive-rag graph backfill`
+- `adaptive-rag graph reindex`
+- `adaptive-rag graph retrieval-smoke`
 
 La CLI es una superficie de desarrollo y aprendizaje de primera clase mientras
-el frontend queda diferido.
+las surfaces de authoring quedan diferidas.
 
 `adaptive-rag chat ask` y `adaptive-rag retrieval search` aceptan flags de
 filtro como `--source-id`, `--document-id`, `--source-type`, `--tag`,
-`--created-from` y `--created-to`.
+`--source-created-at-from`, `--source-created-at-to`,
+`--document-created-at-from` y `--document-created-at-to`.
 
 ## Auth y deployment
 
@@ -1466,10 +1486,11 @@ Auth opcional con API key:
 Servicios de Docker Compose:
 
 - `api`
-- `worker`
+- `worker` bajo profile `worker` porque requiere `ADAPTIVE_RAG_WORKER_PROJECT_ID`
 - `postgres` con pgvector
 
-El stack local de v1 no requiere profiles adicionales para document parsing.
+El stack local de v1 no requiere profiles adicionales para document parsing ni
+servicios hosted.
 
 El schema incluye `users` y `projects.owner_user_id` para auth multi-user
 futura, pero v1 no implementa registro, login, sesiones ni OAuth. En v1 las
