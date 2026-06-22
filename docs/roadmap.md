@@ -747,9 +747,10 @@ Secuencia recomendada:
 2. `m19-neo4j-local-managed-harness`: completo. Documenta setup local/managed y
    agrega `adaptive-rag graph neo4j-smoke` como smoke opt-in de
    settings/connectivity con errores estables y salida JSON sin secretos.
-3. `m19-graph-backfill-reindex-ops`: agregar comandos operativos para
+3. `m19-graph-backfill-reindex-ops`: completo. Agrega comandos operativos para
    backfill/reindex por proyecto, con transiciones `pending_backfill`,
-   `indexing`, `ready`, `stale` y `failed`.
+   `indexing`, `ready` y `failed`, reporte JSON de duracion/error code y
+   conteos del payload materializado.
 4. `m19-graph-live-retrieval-smoke`: ejecutar retrieval graph con Neo4j real,
    proyeccion `ready`, filtros, citations y fallback.
 5. `m19-graph-live-evidence-report`: reportar calidad dense-vs-graph, latencia,
