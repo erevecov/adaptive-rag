@@ -13,7 +13,7 @@ from adaptive_rag.evals import (
     EvalRunOptions,
     validate_hosted_eval_credentials,
 )
-from adaptive_rag.graph import GraphRetriever, get_graph_store
+from adaptive_rag.graph import GraphRetriever, GraphStore, get_graph_store
 from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_dense_embedding_provider,
@@ -53,8 +53,12 @@ def get_cli_rerank_provider() -> RerankProvider:
     return get_rerank_provider()
 
 
+def get_cli_graph_store() -> GraphStore:
+    return get_graph_store()
+
+
 def get_cli_graph_retriever() -> GraphRetriever | None:
-    graph_store = get_graph_store()
+    graph_store = get_cli_graph_store()
     if hasattr(graph_store, "expand_project_chunks"):
         return cast(GraphRetriever, graph_store)
     return None

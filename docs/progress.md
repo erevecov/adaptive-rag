@@ -14,22 +14,22 @@ M18 Neo4j graph DB decision cerrado el 2026-06-22.
 
 ## Ultimo slice completado
 
-M18 `m18-evals-quality-gate`: agrega un gate dense-vs-graph para comparar
-`strategy=dense` contra `strategy=graph` en suites versionadas, con metricas de
-hit rate, best-rank delta, regresiones, metadata filters, citation coverage y
-costo provider incremental. La decision queda `hold_default`: graph retrieval
-sigue opt-in y dense sigue como default.
+M19 `m19-neo4j-local-managed-harness`: agrega `adaptive-rag graph
+neo4j-smoke` para validar settings y connectivity de Neo4j live con
+`verify_connectivity()`, documenta rutas local/managed y mantiene secretos fuera
+de la salida JSON. `graph_store=disabled` y `strategy=dense` siguen como
+defaults.
 
 Comandos validados en este slice:
 
 ```text
-pnpm dlx @fission-ai/openspec validate m18-neo4j-graph-db-decision --strict
-pnpm dlx @fission-ai/openspec archive m18-neo4j-graph-db-decision --yes
-pnpm dlx @fission-ai/openspec validate --specs --strict
-pnpm dlx @fission-ai/openspec list
-uv run pytest
+uv run pytest tests/integration/cli/test_graph_cli.py tests/unit/graph/test_neo4j_adapter.py -q
+uv run adaptive-rag graph neo4j-smoke  # exit 1 esperado con graph_store=disabled
 uv run ruff check src tests
 uv run mypy src/adaptive_rag
+pnpm dlx @fission-ai/openspec validate m19-graph-live-ops-plan --strict
+pnpm dlx @fission-ai/openspec validate --specs --strict
+uv run pytest
 git diff --check
 ```
 
@@ -67,11 +67,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m19-neo4j-local-managed-harness`: documentar setup local/managed
-  de Neo4j live y agregar un smoke opt-in de connectivity/settings antes de
-  construir backfill/reindex operativo. Es la opcion recomendada porque valida
-  el entorno real y errores estables antes de depender de Neo4j en operaciones
-  mas largas.
+- Implementar `m19-graph-backfill-reindex-ops`: agregar comandos operativos para
+  backfill/reindex por `project_id`, con transiciones de readiness y reporte de
+  duracion/error code. Es la opcion recomendada porque el entorno live ya tiene
+  un smoke acotado; ahora falta hacer operable la reconstruccion del indice
+  derivado antes de retrieval graph live.
 
 ## Reglas de coordinacion
 

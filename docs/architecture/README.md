@@ -50,6 +50,8 @@ Documentos:
 - `graph-live-ops-m19.md`: plan M19 para medir Neo4j live, backfill/reindex,
   latencia, fallback y costo operacional antes de cualquier promocion de
   defaults.
+- `neo4j-live-harness-m19.md`: smoke CLI opt-in para validar conectividad
+  Neo4j local/managed sin exponer secretos ni cambiar defaults.
 
 Reglas:
 

@@ -744,8 +744,9 @@ Secuencia recomendada:
 
 1. `m19-graph-live-ops-plan`: activo. Crea el change OpenSpec, documenta el
    scope de evidencia/operacion live y actualiza progress/roadmap/arquitectura.
-2. `m19-neo4j-local-managed-harness`: documentar setup local/managed y agregar
-   smoke opt-in de settings/connectivity con errores estables.
+2. `m19-neo4j-local-managed-harness`: completo. Documenta setup local/managed y
+   agrega `adaptive-rag graph neo4j-smoke` como smoke opt-in de
+   settings/connectivity con errores estables y salida JSON sin secretos.
 3. `m19-graph-backfill-reindex-ops`: agregar comandos operativos para
    backfill/reindex por proyecto, con transiciones `pending_backfill`,
    `indexing`, `ready`, `stale` y `failed`.

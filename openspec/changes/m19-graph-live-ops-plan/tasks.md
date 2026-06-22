@@ -23,7 +23,7 @@
 
 ## 3. Slices propuestos de M19
 
-- [ ] 3.1 Implementar `m19-neo4j-local-managed-harness`.
+- [x] 3.1 Implementar `m19-neo4j-local-managed-harness`.
 - [ ] 3.2 Implementar `m19-graph-backfill-reindex-ops`.
 - [ ] 3.3 Implementar `m19-graph-live-retrieval-smoke`.
 - [ ] 3.4 Implementar `m19-graph-live-evidence-report`.
