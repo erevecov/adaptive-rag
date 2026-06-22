@@ -18,6 +18,8 @@ Documentos:
   mantener dense default sin promover candidate tuning, lexical/RRF ni sparse.
 - `qwen-local-models.md`: snapshot 2026-06-22 sobre modelos Qwen levantables en
   local para chat, routing, embeddings, rerank, sparse y voz.
+- `v1-release-readiness-m21.md`: decision M21 para recortar v1.0 al core
+  demostrable post-M20, clasificar deferrals y preparar release package/demo.
 - `chat-audit-trail-m13.md`: decision M13 para persistir sesiones, mensajes,
   tool calls, retrieval runs, citations y usage/cost antes de streaming,
   dashboards o historial.
