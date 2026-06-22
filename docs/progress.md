@@ -2,7 +2,11 @@
 
 ## Milestone activo
 
-Ninguno. Siguiente paso: decidir M19.
+M19 Graph live ops evidence.
+
+Objetivo: medir y operar Neo4j live como indice derivado opt-in antes de
+considerar cualquier promocion de graph retrieval. `dense` sigue como default y
+`graph` sigue limitado a experimentos controlados.
 
 ## Ultimo milestone completado
 
@@ -31,7 +35,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m19-graph-live-ops-plan/`
 
 ## Ultimo change archivado
 
@@ -63,10 +67,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Decidir M19. La opcion recomendada es un milestone de evidencia/operacion
-  graph live si se quiere avanzar Neo4j: medir latencia/costo operacional con
-  Neo4j real y definir reindex/backfill operable antes de considerar cualquier
-  promocion de default.
+- Implementar `m19-neo4j-local-managed-harness`: documentar setup local/managed
+  de Neo4j live y agregar un smoke opt-in de connectivity/settings antes de
+  construir backfill/reindex operativo. Es la opcion recomendada porque valida
+  el entorno real y errores estables antes de depender de Neo4j en operaciones
+  mas largas.
 
 ## Reglas de coordinacion
 

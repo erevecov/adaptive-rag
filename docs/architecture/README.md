@@ -47,6 +47,9 @@ Documentos:
   Postgres.
 - `graph-quality-gate-m18.md`: gate M18 dense-vs-graph con reporte versionado,
   decision `hold_default` y cierre conservador sin cambiar defaults.
+- `graph-live-ops-m19.md`: plan M19 para medir Neo4j live, backfill/reindex,
+  latencia, fallback y costo operacional antes de cualquier promocion de
+  defaults.
 
 Reglas:
 

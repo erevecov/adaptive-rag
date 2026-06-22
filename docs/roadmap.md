@@ -20,6 +20,7 @@
 - M16 Chat streaming SSE: completo.
 - M17 Chat observability y costo-latencia: completo.
 - M18 Neo4j graph DB decision: completo.
+- M19 Graph live ops evidence: activo.
 
 ## M1 Foundation
 
@@ -709,6 +710,54 @@ Secuencia recomendada:
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
 opcional, no como requisito del stack base. M18 queda cerrado con Postgres como
 fuente durable, Neo4j como indice derivado opt-in y `dense` como default.
+
+## M19 Graph live ops evidence
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m19-graph-live-ops-plan/`
+
+Objetivo:
+
+- Medir y operar Neo4j live como indice derivado opt-in antes de cualquier
+  promocion de graph retrieval, manteniendo `strategy=dense` como default y
+  Postgres como fuente durable.
+
+Condiciones del milestone:
+
+- La ruta local debe ser verificable con Docker o Neo4j Desktop.
+- La ruta managed debe aceptar URI cifrada `neo4j+s://...` y secretos por
+  settings/env, sin imprimir credenciales.
+- Backfill/reindex debe ser idempotente, acotado por `project_id` y gobernado
+  por estados de readiness en Postgres.
+- Retrieval graph live solo puede correr con proyeccion `ready` y debe conservar
+  fallback dense con razon estable.
+- La evidencia debe separar calidad, latencia, fallback, duracion de
+  backfill/reindex, error codes y costo operacional graph declarado.
+- M19 no puede promover graph como default. Si la evidencia justifica avanzar,
+  debe cerrar como `limited_experiment` y abrir un milestone posterior de
+  rollout/defaults.
+
+Secuencia recomendada:
+
+1. `m19-graph-live-ops-plan`: activo. Crea el change OpenSpec, documenta el
+   scope de evidencia/operacion live y actualiza progress/roadmap/arquitectura.
+2. `m19-neo4j-local-managed-harness`: documentar setup local/managed y agregar
+   smoke opt-in de settings/connectivity con errores estables.
+3. `m19-graph-backfill-reindex-ops`: agregar comandos operativos para
+   backfill/reindex por proyecto, con transiciones `pending_backfill`,
+   `indexing`, `ready`, `stale` y `failed`.
+4. `m19-graph-live-retrieval-smoke`: ejecutar retrieval graph con Neo4j real,
+   proyeccion `ready`, filtros, citations y fallback.
+5. `m19-graph-live-evidence-report`: reportar calidad dense-vs-graph, latencia,
+   fallback, errores, duracion de backfill/reindex y costo operacional.
+6. `m19-quality-gate`: validar, decidir `hold_default`, `limited_experiment` o
+   `no_go_promotion`, archivar el change y publicar spec canonica actualizada.
+
+Decision provisional: avanzar solo con evidencia operacional. `dense` sigue
+como default; Neo4j live sigue opt-in.
 
 ## Politica para reducir conflictos de merge
 
