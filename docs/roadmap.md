@@ -20,7 +20,7 @@
 - M16 Chat streaming SSE: completo.
 - M17 Chat observability y costo-latencia: completo.
 - M18 Neo4j graph DB decision: completo.
-- M19 Graph live ops evidence: activo.
+- M19 Graph live ops evidence: completo.
 
 ## M1 Foundation
 
@@ -713,11 +713,11 @@ fuente durable, Neo4j como indice derivado opt-in y `dense` como default.
 
 ## M19 Graph live ops evidence
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m19-graph-live-ops-plan/`
+- `openspec/changes/archive/2026-06-22-m19-graph-live-ops-plan/`
 
 Objetivo:
 
@@ -742,7 +742,7 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m19-graph-live-ops-plan`: activo. Crea el change OpenSpec, documenta el
+1. `m19-graph-live-ops-plan`: completo. Crea el change OpenSpec, documenta el
    scope de evidencia/operacion live y actualiza progress/roadmap/arquitectura.
 2. `m19-neo4j-local-managed-harness`: completo. Documenta setup local/managed y
    agrega `adaptive-rag graph neo4j-smoke` como smoke opt-in de
@@ -759,11 +759,19 @@ Secuencia recomendada:
    `adaptive-rag evals graph-live-evidence` para reportar calidad
    dense-vs-graph, latencia, fallback, errores, duracion de backfill/reindex y
    costo operacional declarado desde artefactos JSON previos.
-6. `m19-quality-gate`: validar, decidir `hold_default`, `limited_experiment` o
-   `no_go_promotion`, archivar el change y publicar spec canonica actualizada.
+6. `m19-quality-gate`: completo. Valida Python/OpenSpec, archiva el change y
+   publica los requisitos de evidencia operacional en la spec canonica
+   `graph-store`.
 
-Decision provisional: avanzar solo con evidencia operacional. `dense` sigue
-como default; Neo4j live sigue opt-in.
+Decision: `hold_default`. El repo ya tiene harness, backfill/reindex, smoke de
+retrieval graph y reporte de evidencia, pero el gate local no tuvo entorno
+Neo4j live configurado para demostrar latencia/costo operacional concluyente.
+`dense` sigue como default; Neo4j live sigue opt-in.
+
+Continuacion: abrir `m20-graph-limited-experiment-plan` solo si se cuenta con
+Neo4j live y un proyecto/dataset controlado para producir evidencia real. Sin
+ese entorno, pausar graph rollout y elegir el siguiente bloque de producto
+desde roadmap.
 
 ## Politica para reducir conflictos de merge
 
