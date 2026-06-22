@@ -1,7 +1,12 @@
-# Delta for graph-store
+# graph-store Specification
 
-## ADDED Requirements
+## Purpose
+Define la frontera canonica para graph DB routeable: Postgres sigue como fuente
+durable, Neo4j queda como indice derivado opt-in, retrieval graph preserva
+filtros/citations/audit y cualquier promocion de default requiere evals
+comparativas contra dense baseline.
 
+## Requirements
 ### Requirement: Graph DB decision define alcance routeable
 
 El sistema MUST tratar la adopcion de graph DB como una decision explicita,
@@ -158,3 +163,12 @@ usa como ruta opt-in.
 - **THEN** debe existir comparacion contra dense baseline en suites versionadas
 - **AND** la comparacion cubre calidad, costo, latencia, filtros y citations
 - **AND** no puede haber regresiones criticas antes de cambiar defaults
+
+#### Scenario: Quality gate graph reporta decision conservadora
+
+- **WHEN** se ejecuta el quality gate de retrieval graph
+- **THEN** el reporte incluye dense baseline, resultados graph-enabled y
+  comparaciones por caso
+- **AND** reporta mejoras, empates, regresiones, delta de hit rate, filtros,
+  citation coverage y costo provider incremental
+- **AND** mantiene `dense` como default cuando la decision es `hold_default`

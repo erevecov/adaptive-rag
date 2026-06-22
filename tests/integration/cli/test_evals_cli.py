@@ -22,6 +22,7 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
+    GraphProjection,
     Project,
     Source,
 )
@@ -594,6 +595,68 @@ def test_evals_run_command_hosted_mode_rejects_invalid_rerank_limit_before_runti
     ) in result.output
 
 
+def test_evals_graph_quality_gate_command_outputs_comparison_report(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    tracker = InMemoryProviderUsageTracker()
+    provider = UsageRecordingEmbeddingProvider(
+        {"Alpha original evidence": _vector(0.0)},
+        tracker=tracker,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_dense_embedding_provider",
+        lambda: provider,
+    )
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-graph-quality",
+            "thresholds": {"retrieval_hit_rate": 1.0},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                    "embedding": _vector(0.0),
+                },
+                {
+                    "id": "far",
+                    "text": "Far unrelated evidence",
+                    "source_type": "markdown",
+                    "source_external_id": "far.md",
+                    "embedding": _vector(0.9),
+                },
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "Alpha original evidence",
+                    "limit": 2,
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+
+    result = CliRunner().invoke(app, ["evals", "graph-quality-gate", str(suite_path)])
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["suite_id"] == "cli-graph-quality"
+    assert data["status"] == "passed"
+    assert data["decision"] == "hold_default"
+    assert data["dense_baseline"]["metrics"]["retrieval_hit_rate"] == 1.0
+    assert data["graph"]["metrics"]["retrieval_hit_rate"] == 1.0
+    assert data["comparison_metrics"]["graph_retrieval_hit_rate_delta"] == 0.0
+    assert data["comparison_metrics"]["graph_citation_coverage"] == 1.0
+
+
 def test_evals_run_command_hosted_mode_requires_budget(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -655,6 +718,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            GraphProjection.__table__,
         ],
     )
     return create_session_factory(engine)()

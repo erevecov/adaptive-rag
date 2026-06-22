@@ -18,6 +18,7 @@ from adaptive_rag.evals.models import (
     EvalSuite,
     RetrievalEvalCase,
 )
+from adaptive_rag.graph import GraphRetriever
 from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import (
     RetrievalRerankOptions,
@@ -25,6 +26,7 @@ from adaptive_rag.retrieval import (
     RetrievalSearchResult,
     RetrievalService,
     RetrievalServiceError,
+    RetrievalStrategy,
 )
 
 
@@ -35,6 +37,8 @@ def run_retrieval_eval_suite(
     provider: DenseEmbeddingProvider | None = None,
     reranker: RerankProvider | None = None,
     rerank_options: RetrievalRerankOptions | None = None,
+    strategy: RetrievalStrategy = "dense",
+    graph_retriever: GraphRetriever | None = None,
     fixture_project: EvalRetrievalFixtureProject | None = None,
 ) -> EvalRunReport:
     """Ejecuta los casos de retrieval de una suite sin llamar providers hosted."""
@@ -49,6 +53,7 @@ def run_retrieval_eval_suite(
         session,
         provider=active_provider,
         reranker=reranker,
+        graph_retriever=graph_retriever,
     )
     cases = tuple(
         _run_retrieval_case(
@@ -56,6 +61,7 @@ def run_retrieval_eval_suite(
             fixture_project=active_fixture_project,
             retrieval_case=retrieval_case,
             rerank_options=rerank_options,
+            strategy=strategy,
         )
         for retrieval_case in suite.retrieval_cases
     )
@@ -88,6 +94,7 @@ def _run_retrieval_case(
     fixture_project: EvalRetrievalFixtureProject,
     retrieval_case: RetrievalEvalCase,
     rerank_options: RetrievalRerankOptions | None,
+    strategy: RetrievalStrategy,
 ) -> EvalCaseResult:
     try:
         results = service.search(
@@ -97,6 +104,7 @@ def _run_retrieval_case(
                 limit=retrieval_case.limit,
                 metadata_filter=retrieval_case.metadata_filter,
                 rerank=rerank_options,
+                strategy=strategy,
             )
         )
     except RetrievalServiceError as exc:

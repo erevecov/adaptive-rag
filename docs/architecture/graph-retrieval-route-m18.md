@@ -5,9 +5,8 @@ Fecha: 2026-06-22.
 ## Decision
 
 `m18-graph-retrieval-route` agrega retrieval graph solo como opt-in. El default
-sigue siendo `strategy=dense`; graph retrieval no se promueve hasta que
-`m18-evals-quality-gate` compare calidad, costo, latencia, filtros y citations
-contra el baseline dense.
+sigue siendo `strategy=dense`; `m18-evals-quality-gate` cerro con decision
+`hold_default`, por lo que graph retrieval no se promueve como default.
 
 ## Implementacion
 
@@ -48,5 +47,5 @@ contra el baseline dense.
 
 ## Siguiente paso
 
-`m18-evals-quality-gate` debe comparar dense baseline vs graph-enabled retrieval
-en suites versionadas y decidir si graph justifica promocion posterior.
+`m18-evals-quality-gate` quedo completado con decision `hold_default`: graph
+retrieval sigue opt-in y `dense` sigue siendo el default.

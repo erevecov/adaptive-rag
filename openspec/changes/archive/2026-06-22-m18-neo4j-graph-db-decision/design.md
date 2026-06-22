@@ -348,11 +348,27 @@ Fuera de alcance:
 
 ### 7. `m18-evals-quality-gate`
 
+Estado: completo.
+
 Alcance:
 
 - Comparar dense baseline vs graph-enabled retrieval en suites versionadas.
 - Evaluar calidad, costo, latencia, filtros y citations.
 - Archivar M18 si el milestone queda cerrado.
+
+Resultado:
+
+- Agrega `run_graph_quality_gate_eval_suite(...)` para ejecutar dense baseline
+  y `strategy=graph` sobre el mismo fixture versionado, sin requerir Neo4j live.
+- El gate marca la proyeccion fixture como `ready`, inyecta un graph retriever
+  determinista y compara hit rate, best-rank delta, mejoras, empates y
+  regresiones por caso.
+- El reporte incluye metricas de filtros (`graph_metadata_filter_*`), citation
+  coverage y costo provider incremental (`graph_provider_cost_delta_usd`, cero
+  en el gate offline porque graph no agrega llamadas hosted).
+- Agrega `adaptive-rag evals graph-quality-gate <suite>` como superficie CLI
+  para serializar el reporte.
+- Decision M18: mantener `dense` como default y graph retrieval solo opt-in.
 
 ## Riesgos y mitigaciones
 
