@@ -22,6 +22,7 @@
 - M18 Neo4j graph DB decision: completo.
 - M19 Graph live ops evidence: completo.
 - M20 Chat observability dashboard: completo.
+- M21 V1 release readiness: activo.
 
 ## M1 Foundation
 
@@ -825,6 +826,50 @@ hold hasta tener evidencia live concluyente.
 
 Continuacion: M20 queda cerrado. La siguiente tarea debe abrir un nuevo change
 OpenSpec desde `main` para el proximo milestone antes de implementar.
+
+## M21 V1 release readiness
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m21-v1-release-readiness-plan/`
+
+Objetivo:
+
+- Convertir M1-M20 en una v1.0 publicable de portafolio, con alcance explicito,
+  deferrals auditable, release package local-first, demo y reporte reproducible.
+
+Condiciones del milestone:
+
+- M21 no debe agregar runtime features en el PR de planificacion.
+- El alcance v1.0 debe reconciliar `docs/architecture/v1-design.md` contra
+  specs canonicas y decisiones M10-M20.
+- Cada item original de v1 debe quedar clasificado como `in_v1`,
+  `defer_post_v1` o `blocked`.
+- Dense retrieval sigue como default; rerank queda opt-in y medible.
+- Lexical/RRF, Qwen sparse, graph defaults, voz, MCP server, auth multi-user y
+  PDF/Office no entran por inercia.
+- El release package debe ser local-first: API, worker y Postgres/pgvector.
+- La evidencia final debe incluir README/demo y reporte reproducible de
+  evals/costo/latencia.
+
+Secuencia recomendada:
+
+1. `m21-v1-release-readiness-plan`: activo. Crea el change OpenSpec, declara
+   scope, no objetivos y secuencia de cierre v1.0.
+2. `m21-v1-scope-reconciliation`: actualizar `v1-design.md`, progress/roadmap y
+   docs de arquitectura para separar `in_v1`, `defer_post_v1` y `blocked`.
+3. `m21-release-package-local-stack`: preparar Docker Compose/runbook local con
+   API, worker y Postgres/pgvector, mas smoke local.
+4. `m21-portfolio-demo-and-report`: agregar demo script o runbook
+   automatizable, README final y reporte de evals/costo/latencia.
+5. `m21-release-quality-gate`: validar frontend/Python/OpenSpec, archivar M21 y
+   dejar v1.0 listo para tag/release manual.
+
+Decision: proceed con recorte conservador de v1.0. El producto core ya es
+demostrable; lo que falta para release no debe reabrir lexical/RRF, sparse,
+graph defaults ni nuevas superficies sin evidencia.
 
 ## Politica para reducir conflictos de merge
 

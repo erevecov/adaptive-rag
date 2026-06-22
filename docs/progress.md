@@ -2,9 +2,11 @@
 
 ## Milestone activo
 
-No hay milestone activo.
+M21 V1 release readiness.
 
-M20 Chat observability dashboard quedo completado y archivado el 2026-06-22.
+M21 convierte el estado post-M20 en una checklist de release v1.0. El objetivo
+es decidir que entra en v1.0, que se difiere a post-v1 y que trabajo final
+falta para un release local-first demostrable.
 
 ## Ultimo milestone completado
 
@@ -47,7 +49,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m21-v1-release-readiness-plan/`
 
 ## Ultimo change archivado
 
@@ -79,10 +81,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Despues de mergear el cierre M20, sincronizar `main` y abrir un nuevo
-  change OpenSpec para el siguiente milestone antes de implementar. No hace
-  falta abrir `m20-observability-summary-shape` porque el summary M17 cubrio
-  los breakdowns sin campos nuevos.
+- Completar y mergear `m21-v1-release-readiness-plan`. Despues, la opcion
+  recomendada es `m21-v1-scope-reconciliation` para actualizar
+  `docs/architecture/v1-design.md` con items `in_v1`, `defer_post_v1` y
+  `blocked` antes de tocar packaging, README o demo.
 
 ## Reglas de coordinacion
 
