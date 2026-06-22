@@ -42,5 +42,6 @@ ejecuta `verify_connectivity()` solo dentro de `health_check()`.
 ## Siguiente paso
 
 `m18-neo4j-indexer` ya usa este adapter para materializar el indice derivado
-desde Postgres de forma idempotente por `project_id`. El siguiente paso es
-`m18-graph-retrieval-route`, todavia sin cambiar defaults.
+desde Postgres de forma idempotente por `project_id`, y
+`m18-graph-retrieval-route` ya consume ese indice solo en modo opt-in. El
+siguiente paso es `m18-evals-quality-gate`, todavia sin cambiar defaults.

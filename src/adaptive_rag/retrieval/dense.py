@@ -114,6 +114,51 @@ class DenseRetriever:
             )
         return [self._to_result(candidate) for candidate in candidates]
 
+    def get_by_chunk_ids(
+        self,
+        *,
+        project_id: UUID,
+        chunk_ids: Sequence[UUID],
+        filters: DenseRetrievalFilters | None = None,
+    ) -> dict[UUID, DenseRetrievalResult]:
+        """Load citations for known chunks while preserving project isolation."""
+
+        if not chunk_ids:
+            return {}
+        active_filters = filters or DenseRetrievalFilters()
+        statement = (
+            select(Chunk, DocumentVersion, Document, Source)
+            .join(DocumentVersion, Chunk.document_version_id == DocumentVersion.id)
+            .join(Document, DocumentVersion.document_id == Document.id)
+            .join(Source, Document.source_id == Source.id)
+            .where(Chunk.id.in_(chunk_ids))
+        )
+        statement = self._apply_filters(
+            statement,
+            project_id=project_id,
+            filters=active_filters,
+            apply_tags_in_sql=False,
+            require_embedding=False,
+        )
+
+        results: dict[UUID, DenseRetrievalResult] = {}
+        for row in self._session.execute(statement).all():
+            chunk = cast(Chunk, row[0])
+            document_version = cast(DocumentVersion, row[1])
+            document = cast(Document, row[2])
+            source = cast(Source, row[3])
+            if not _source_has_tags(source, active_filters.tags):
+                continue
+            candidate = _CandidateRow(
+                chunk=chunk,
+                document_version=document_version,
+                document=document,
+                source=source,
+                distance=0.0,
+            )
+            results[chunk.id] = self._to_result(candidate)
+        return results
+
     def _search_postgres(
         self,
         *,
@@ -203,12 +248,14 @@ class DenseRetriever:
         project_id: UUID,
         filters: DenseRetrievalFilters,
         apply_tags_in_sql: bool,
+        require_embedding: bool = True,
     ) -> Any:
         statement = statement.where(
             Document.project_id == project_id,
             Source.project_id == project_id,
-            Chunk.embedding.is_not(None),
         )
+        if require_embedding:
+            statement = statement.where(Chunk.embedding.is_not(None))
 
         if filters.source_id is not None:
             statement = statement.where(Source.id == filters.source_id)

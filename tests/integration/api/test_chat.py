@@ -774,6 +774,7 @@ def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
         "query": "alpha evidence",
         "limit": 3,
         "metadata_filter": None,
+        "strategy": "dense",
     }
     assert tool_call.error_message == expected_error
     assert isinstance(tool_call.latency_ms, int)
@@ -814,6 +815,7 @@ def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
         "query": "alpha evidence",
         "limit": 4,
         "metadata_filter": None,
+        "strategy": "dense",
     }
     assert tool_call.error_message == "embedding transport unavailable"
     assert isinstance(tool_call.latency_ms, int)

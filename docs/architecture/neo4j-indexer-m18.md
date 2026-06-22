@@ -52,13 +52,12 @@ Relaciones iniciales:
 ## Fuera de alcance
 
 - Worker/job/CLI de reindex.
-- Route de retrieval graph.
-- Audit trail de estrategia graph.
 - Evals comparativas dense vs graph-enabled.
 - Cambios de defaults de retrieval.
 
 ## Siguiente paso
 
-`m18-graph-retrieval-route` debe consumir este indice solo en modo opt-in,
-mantener fallback dense cuando el graph store este disabled/unavailable o la
-proyeccion no este `ready`, y preservar citations/audit trail.
+`m18-graph-retrieval-route` ya consume este indice solo en modo opt-in, con
+fallback dense y audit de estrategia. El siguiente paso es
+`m18-evals-quality-gate`: comparar dense baseline vs graph-enabled retrieval
+antes de cambiar defaults o cerrar M18.

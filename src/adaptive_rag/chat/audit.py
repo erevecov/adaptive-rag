@@ -51,6 +51,7 @@ class ChatAuditWriter(Protocol):
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         """Registra una llamada exitosa a la tool de retrieval."""
         ...
@@ -62,6 +63,7 @@ class ChatAuditWriter(Protocol):
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
+        strategy: str = "dense",
     ) -> UUID | None:
         """Registra el inicio de una llamada a la tool de retrieval."""
         ...
@@ -76,6 +78,7 @@ class ChatAuditWriter(Protocol):
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         """Completa una llamada exitosa a la tool de retrieval."""
         ...
@@ -146,6 +149,7 @@ class NullChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         return None
 
@@ -156,6 +160,7 @@ class NullChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
+        strategy: str = "dense",
     ) -> UUID | None:
         return None
 
@@ -169,6 +174,7 @@ class NullChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         return None
 
@@ -255,12 +261,15 @@ class InMemoryChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         self.events.append(
             {
                 "event": "retrieval_tool",
                 "query": query,
                 "limit": limit,
+                "strategy": strategy,
+                "fallback_reason": _fallback_reason(results),
                 "result_count": len(results),
                 "chunk_ids": [str(result["chunk_id"]) for result in results],
                 "metadata_filter": serialize_metadata_filter(metadata_filter),
@@ -275,6 +284,7 @@ class InMemoryChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
+        strategy: str = "dense",
     ) -> UUID | None:
         return uuid4()
 
@@ -288,6 +298,7 @@ class InMemoryChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         self.record_retrieval_tool(
             project_id,
@@ -297,6 +308,7 @@ class InMemoryChatAuditWriter:
             metadata_filter,
             latency_ms,
             results,
+            strategy,
         )
 
     def fail_retrieval_tool(
@@ -403,6 +415,7 @@ class SqlAlchemyChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         if session_id is None:
             return
@@ -413,6 +426,7 @@ class SqlAlchemyChatAuditWriter:
             query,
             limit,
             metadata_filter,
+            strategy,
         )
         self.complete_retrieval_tool(
             project_id,
@@ -423,6 +437,7 @@ class SqlAlchemyChatAuditWriter:
             metadata_filter,
             latency_ms,
             results,
+            strategy,
         )
 
     def start_retrieval_tool(
@@ -432,6 +447,7 @@ class SqlAlchemyChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
+        strategy: str = "dense",
     ) -> UUID | None:
         if session_id is None:
             return None
@@ -444,6 +460,7 @@ class SqlAlchemyChatAuditWriter:
                 "query": query,
                 "limit": limit,
                 "metadata_filter": serialize_metadata_filter(metadata_filter),
+                "strategy": strategy,
             },
         )
         return tool_call.id
@@ -458,6 +475,7 @@ class SqlAlchemyChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
+        strategy: str = "dense",
     ) -> None:
         if session_id is None or tool_call_id is None:
             return
@@ -466,7 +484,10 @@ class SqlAlchemyChatAuditWriter:
         self._chat_audit_repository.complete_tool_call(
             project_id=project_id,
             tool_call_id=tool_call_id,
-            result_summary_json={"result_count": len(results)},
+            result_summary_json=_retrieval_result_summary(
+                results=results,
+                strategy=strategy,
+            ),
             latency_ms=latency_ms,
         )
         retrieval_run = self._chat_audit_repository.create_retrieval_run(
@@ -474,7 +495,7 @@ class SqlAlchemyChatAuditWriter:
             session_id=session_id,
             tool_call_id=tool_call_id,
             query=query,
-            strategy="dense",
+            strategy=strategy,
             top_k=limit,
             used_rerank=any("rerank_metadata" in result for result in results),
             filters_json=filters_json,
@@ -602,6 +623,29 @@ def _serialize_metadata_filter(
     metadata_filter: RetrievalMetadataFilter | None,
 ) -> dict[str, object] | None:
     return serialize_metadata_filter(metadata_filter)
+
+
+def _retrieval_result_summary(
+    *,
+    results: Sequence[RetrievalResultPayload],
+    strategy: str,
+) -> dict[str, object]:
+    summary: dict[str, object] = {
+        "result_count": len(results),
+        "strategy": strategy,
+    }
+    fallback_reason = _fallback_reason(results)
+    if fallback_reason is not None:
+        summary["fallback_reason"] = fallback_reason
+    return summary
+
+
+def _fallback_reason(results: Sequence[RetrievalResultPayload]) -> str | None:
+    for result in results:
+        fallback_reason = result.get("fallback_reason")
+        if fallback_reason is not None:
+            return fallback_reason
+    return None
 
 
 def _rerank_score(result: RetrievalResultPayload) -> float | None:

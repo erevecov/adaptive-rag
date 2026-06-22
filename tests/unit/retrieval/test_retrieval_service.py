@@ -14,6 +14,7 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
+    GraphProjection,
     Project,
     Source,
 )
@@ -24,6 +25,7 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.graph import GraphRetrievalResult, GraphStoreUnavailableError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import (
     RerankProviderError,
@@ -102,6 +104,36 @@ class BudgetBlockedRerankProvider:
         raise ProviderBudgetExceededError("provider budget exceeded")
 
 
+class RecordingGraphRetriever:
+    def __init__(
+        self,
+        results: tuple[GraphRetrievalResult, ...],
+        *,
+        failure: Exception | None = None,
+    ) -> None:
+        self.results = results
+        self.failure = failure
+        self.requests: list[dict[str, object]] = []
+
+    def expand_project_chunks(
+        self,
+        *,
+        project_id,
+        seed_chunk_ids,
+        limit: int,
+    ) -> tuple[GraphRetrievalResult, ...]:
+        self.requests.append(
+            {
+                "project_id": project_id,
+                "seed_chunk_ids": tuple(seed_chunk_ids),
+                "limit": limit,
+            }
+        )
+        if self.failure is not None:
+            raise self.failure
+        return self.results
+
+
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
@@ -112,6 +144,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            GraphProjection.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -216,6 +249,170 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     assert results[0].score == pytest.approx(1 / 1.1)
     assert results[0].citation.snippet == "Alpha original evidence"
     assert results[0].rerank_metadata is None
+    assert results[0].strategy == "dense"
+
+
+def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far",
+        text="Far graph-expanded evidence",
+        snippet="Far graph-expanded evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense seed evidence",
+        snippet="Alpha dense seed evidence",
+        embedding=_vector(0.1),
+    )
+    projection = GraphProjection(
+        project_id=project.id,
+        status="ready",
+        source_watermark="chunks:v1",
+    )
+    session.add(projection)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    graph_retriever = RecordingGraphRetriever(
+        (
+            GraphRetrievalResult(chunk_id=far.id, distance=1.0, score=0.5),
+            GraphRetrievalResult(chunk_id=near.id, distance=0.0, score=1.0),
+        )
+    )
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        graph_retriever=graph_retriever,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="alpha question",
+            limit=2,
+            strategy="graph",
+        )
+    )
+
+    assert provider.inputs == ["alpha question"]
+    assert graph_retriever.requests == [
+        {
+            "project_id": project.id,
+            "seed_chunk_ids": (near.id, far.id),
+            "limit": 2,
+        }
+    ]
+    assert [result.chunk_id for result in results] == [far.id, near.id]
+    assert [result.strategy for result in results] == ["graph", "graph"]
+    assert results[0].distance == pytest.approx(1.0)
+    assert results[0].score == pytest.approx(0.5)
+    assert results[0].citation.snippet == "Far graph-expanded evidence"
+
+
+def test_retrieval_service_falls_back_to_dense_when_projection_is_not_ready() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far",
+        text="Far original text",
+        snippet="Far original text",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    session.add(GraphProjection(project_id=project.id, status="pending_backfill"))
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    graph_retriever = RecordingGraphRetriever(())
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        graph_retriever=graph_retriever,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="alpha question",
+            limit=2,
+            strategy="graph",
+        )
+    )
+
+    assert graph_retriever.requests == []
+    assert [result.chunk_id for result in results] == [near.id, far.id]
+    assert [result.strategy for result in results] == ["dense", "dense"]
+    assert [result.fallback_reason for result in results] == [
+        "graph_projection_pending_backfill",
+        "graph_projection_pending_backfill",
+    ]
+
+
+def test_retrieval_service_falls_back_to_dense_when_graph_is_unavailable() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far",
+        text="Far original text",
+        snippet="Far original text",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha original evidence",
+        snippet="Alpha original evidence",
+        embedding=_vector(0.1),
+    )
+    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    graph_retriever = RecordingGraphRetriever(
+        (),
+        failure=GraphStoreUnavailableError("neo4j unavailable"),
+    )
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        graph_retriever=graph_retriever,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="alpha question",
+            limit=2,
+            strategy="graph",
+        )
+    )
+
+    assert len(graph_retriever.requests) == 1
+    assert [result.chunk_id for result in results] == [near.id, far.id]
+    assert [result.strategy for result in results] == ["dense", "dense"]
+    assert [result.fallback_reason for result in results] == [
+        "graph_store_unavailable",
+        "graph_store_unavailable",
+    ]
 
 
 def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
@@ -304,6 +501,14 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
                 rerank=RetrievalRerankOptions(candidate_limit=1),
             ),
             "rerank candidate_limit must be greater than or equal to limit",
+        ),
+        (
+            RetrievalSearchRequest(
+                project_id=PROJECT_ID,
+                query="x",
+                strategy="unsupported",
+            ),
+            "retrieval strategy must be dense or graph",
         ),
         (
             RetrievalSearchRequest(

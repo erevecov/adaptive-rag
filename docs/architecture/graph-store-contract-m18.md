@@ -55,5 +55,6 @@ del dominio.
 ## Siguiente paso
 
 `m18-neo4j-adapter-and-health` y `m18-neo4j-indexer` quedaron completados sobre
-este contrato. El siguiente paso es `m18-graph-retrieval-route`: consumir el
-indice graph solo en modo opt-in, con fallback dense y sin cambios de default.
+este contrato. `m18-graph-retrieval-route` tambien quedo completado sobre la
+misma frontera: consume graph solo en modo opt-in, con fallback dense y sin
+cambios de default. El siguiente paso es `m18-evals-quality-gate`.

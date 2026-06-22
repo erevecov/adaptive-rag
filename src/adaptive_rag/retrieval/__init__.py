@@ -14,6 +14,7 @@ from adaptive_rag.retrieval.service import (
     RetrievalSearchResult,
     RetrievalService,
     RetrievalServiceError,
+    RetrievalStrategy,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "RetrievalSearchResult",
     "RetrievalService",
     "RetrievalServiceError",
+    "RetrievalStrategy",
 ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, Protocol
 from uuid import UUID
@@ -67,6 +68,28 @@ class GraphBackfillResult:
     backend: Literal["neo4j"]
     status: GraphProjectionStatus
     source_watermark: str
+
+
+@dataclass(frozen=True, slots=True)
+class GraphRetrievalResult:
+    """Resultado graph routeable antes de rehidratar citations desde Postgres."""
+
+    chunk_id: UUID
+    distance: float
+    score: float
+
+
+class GraphRetriever(Protocol):
+    """Contrato de consulta graph opt-in con fallback dense externo."""
+
+    def expand_project_chunks(
+        self,
+        *,
+        project_id: UUID,
+        seed_chunk_ids: Sequence[UUID],
+        limit: int,
+    ) -> tuple[GraphRetrievalResult, ...]:
+        """Expande seeds dense contra el grafo derivado de un proyecto."""
 
 
 class GraphStore(Protocol):

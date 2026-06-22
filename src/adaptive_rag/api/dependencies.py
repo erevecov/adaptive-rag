@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from inspect import signature
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends
 from fastapi.params import Depends as DependsMarker
@@ -14,6 +14,7 @@ from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.graph import GraphRetriever, get_graph_store
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.provider_runtime import (
     get_rerank_provider as get_runtime_rerank_provider,
@@ -33,6 +34,13 @@ def get_session() -> Iterator[Session]:
 
 def get_rerank_provider_factory() -> RerankProviderFactory:
     return get_runtime_rerank_provider
+
+
+def get_graph_retriever() -> GraphRetriever | None:
+    graph_store = get_graph_store()
+    if hasattr(graph_store, "expand_project_chunks"):
+        return cast(GraphRetriever, graph_store)
+    return None
 
 
 def get_provider_usage_tracker() -> InMemoryProviderUsageTracker:

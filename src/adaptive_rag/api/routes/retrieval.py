@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from adaptive_rag.api.dependencies import (
     RerankProviderFactory,
     get_dense_embedding_provider,
+    get_graph_retriever,
     get_rerank_provider_factory,
     get_session,
 )
@@ -19,6 +20,7 @@ from adaptive_rag.api.schemas.retrieval import (
     RetrievalSearchResponse,
 )
 from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.graph import GraphRetriever
 from adaptive_rag.retrieval import RetrievalService, RetrievalServiceError
 
 router = APIRouter(
@@ -40,6 +42,10 @@ def search_retrieval(
         RerankProviderFactory,
         Depends(get_rerank_provider_factory),
     ],
+    graph_retriever: Annotated[
+        GraphRetriever | None,
+        Depends(get_graph_retriever),
+    ],
 ) -> RetrievalSearchResponse:
     try:
         body.validate_rerank_options()
@@ -50,6 +56,7 @@ def search_retrieval(
             reranker=(
                 rerank_provider_factory() if request.rerank is not None else None
             ),
+            graph_retriever=graph_retriever,
         )
         results = service.search(request)
     except (RetrievalServiceError, ValueError) as exc:

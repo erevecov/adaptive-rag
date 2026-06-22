@@ -13,7 +13,11 @@ from pydantic import (
     model_serializer,
 )
 
-from adaptive_rag.retrieval import RetrievalMetadataFilter, RetrievalRerankOptions
+from adaptive_rag.retrieval import (
+    RetrievalMetadataFilter,
+    RetrievalRerankOptions,
+    RetrievalStrategy,
+)
 from adaptive_rag.retrieval import RetrievalSearchRequest as ServiceSearchRequest
 from adaptive_rag.retrieval.payloads import serialize_retrieval_results
 from adaptive_rag.retrieval.service import RetrievalSearchResult as ServiceSearchResult
@@ -60,6 +64,7 @@ class RetrievalSearchRequestBody(BaseModel):
     limit: int = 10
     metadata_filter: RetrievalMetadataFilterRequest | None = None
     rerank: RetrievalRerankRequest | None = None
+    strategy: RetrievalStrategy = "dense"
 
     def validate_rerank_options(self) -> None:
         if self.rerank is None:
@@ -84,6 +89,7 @@ class RetrievalSearchRequestBody(BaseModel):
             rerank=(
                 self.rerank.to_service_options() if self.rerank is not None else None
             ),
+            strategy=self.strategy,
         )
 
 
@@ -110,6 +116,8 @@ class RetrievalResultResponse(BaseModel):
     score: float
     citation: RetrievalCitationResponse
     embedding_metadata: dict[str, Any] | None
+    strategy: str
+    fallback_reason: str | None = None
     rerank_metadata: dict[str, Any] | None = None
 
     @model_serializer(mode="wrap")
@@ -117,6 +125,8 @@ class RetrievalResultResponse(BaseModel):
         payload = handler(self)
         if not isinstance(payload, dict):
             raise TypeError("retrieval result serializer expected a dict")
+        if self.fallback_reason is None:
+            payload.pop("fallback_reason", None)
         if self.rerank_metadata is None:
             payload.pop("rerank_metadata", None)
         return payload
