@@ -19,7 +19,7 @@
 - M15 Chat frontend inicial: completo.
 - M16 Chat streaming SSE: completo.
 - M17 Chat observability y costo-latencia: completo.
-- M18 Neo4j graph DB decision: activo.
+- M18 Neo4j graph DB decision: completo.
 
 ## M1 Foundation
 
@@ -648,11 +648,11 @@ dependencias, adapter live, indexer o retrieval graph.
 
 ## M18 Neo4j graph DB decision
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m18-neo4j-graph-db-decision/`
+- `openspec/changes/archive/2026-06-22-m18-neo4j-graph-db-decision/`
 
 Objetivo:
 
@@ -701,14 +701,14 @@ Secuencia recomendada:
    retrieval API/CLI, consulta graph DB solo con proyeccion `ready`, rehidrata
    citations desde Postgres y vuelve a dense con `fallback_reason` estable
    cuando graph no puede usarse.
-7. `m18-evals-quality-gate`: pendiente. Comparar dense baseline vs
-   graph-enabled retrieval en suites versionadas antes de promover cualquier
-   default y archivar M18 si corresponde.
+7. `m18-evals-quality-gate`: completo. Agrega un gate dense-vs-graph con
+   metricas de hit rate, best-rank delta, regresiones, filtros, citation
+   coverage y costo provider incremental. La decision queda `hold_default`:
+   graph retrieval sigue opt-in y dense sigue como default.
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
-opcional, no como requisito del stack base. La prioridad inmediata es ejecutar
-`m18-evals-quality-gate` para comparar dense baseline vs graph-enabled
-retrieval antes de cualquier cambio de default o cierre de M18.
+opcional, no como requisito del stack base. M18 queda cerrado con Postgres como
+fuente durable, Neo4j como indice derivado opt-in y `dense` como default.
 
 ## Politica para reducir conflictos de merge
 

@@ -1,14 +1,14 @@
 # M18 Neo4j graph DB decision
 
-Estado: activo como plan de M18.
+Estado: completado y archivado como M18.
 
 ## Decision
 
 M18 avanza como decision tecnica y plan routeable para graph DB. Neo4j es el
 candidato principal porque tiene ecosistema maduro, drivers oficiales, ruta
-local y ruta managed Aura; el adapter live, indexer y ruta retrieval graph ya
-quedaron opt-in y graph DB se mantiene como indice derivado antes de cualquier
-promocion de default.
+local y ruta managed Aura; el adapter live, indexer, ruta retrieval graph y gate
+de evals ya quedaron implementados. Graph DB se mantiene como indice derivado y
+retrieval graph queda opt-in.
 
 La decision recomendada es empezar por decision matrix y contrato `GraphStore`.
 Postgres sigue siendo la fuente durable de verdad; cualquier graph DB es un
@@ -25,6 +25,11 @@ La decision matrix quedo completada en
 como primer backend live opt-in; Memgraph y FalkorDB quedan en `hold`; Kuzu
 queda en `no-go` para el backend routeable de M18; no-op queda como fallback si
 evals futuras no justifican graph retrieval.
+
+El quality gate quedo completado en
+`docs/architecture/graph-quality-gate-m18.md`: la decision es `hold_default`.
+`dense` sigue siendo el default y `strategy=graph` queda para experimentos
+controlados con proyeccion `ready`.
 
 ## Evidencia externa consultada
 
@@ -64,11 +69,10 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 4. `m18-neo4j-adapter-and-health`: completo.
 5. `m18-neo4j-indexer`: completo.
 6. `m18-graph-retrieval-route`: completo.
-7. `m18-evals-quality-gate`: pendiente.
+7. `m18-evals-quality-gate`: completo.
 
 ## Criterio de cierre
 
-M18 debe cerrar cuando haya una decision proceed/no-go documentada, contrato
-routeable testeado, adapter/indexer/ruta opt-in implementados solo si la
-decision procede, y evals comparativas contra dense baseline antes de cualquier
-cambio de default.
+M18 queda cerrado con decision `hold_default`: Neo4j permanece como backend
+graph opt-in, Postgres sigue siendo fuente durable y dense retrieval sigue como
+default.

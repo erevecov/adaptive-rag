@@ -2,25 +2,25 @@
 
 ## Milestone activo
 
-M18 Neo4j graph DB decision.
+Ninguno. Siguiente paso: decidir M19.
 
 ## Ultimo milestone completado
 
-M17 Chat observability y costo-latencia cerrado el 2026-06-21.
+M18 Neo4j graph DB decision cerrado el 2026-06-22.
 
 ## Ultimo slice completado
 
-M18 `m18-graph-retrieval-route`: agrega `strategy=dense|graph` a la request de
-retrieval compartida, API y CLI, conserva `dense` como default y usa dense
-retrieval como seeds antes de consultar graph DB. La ruta graph solo se usa si
-hay `GraphRetriever` y la proyeccion del proyecto esta `ready`; si no, vuelve a
-dense con `fallback_reason` estable. Las citations se rehidratan desde Postgres
-y el audit de chat conserva estrategia/fallback en `ToolCall`.
+M18 `m18-evals-quality-gate`: agrega un gate dense-vs-graph para comparar
+`strategy=dense` contra `strategy=graph` en suites versionadas, con metricas de
+hit rate, best-rank delta, regresiones, metadata filters, citation coverage y
+costo provider incremental. La decision queda `hold_default`: graph retrieval
+sigue opt-in y dense sigue como default.
 
 Comandos validados en este slice:
 
 ```text
 pnpm dlx @fission-ai/openspec validate m18-neo4j-graph-db-decision --strict
+pnpm dlx @fission-ai/openspec archive m18-neo4j-graph-db-decision --yes
 pnpm dlx @fission-ai/openspec validate --specs --strict
 pnpm dlx @fission-ai/openspec list
 uv run pytest
@@ -31,11 +31,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m18-neo4j-graph-db-decision/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-21-m17-chat-observability/`
+- `openspec/changes/archive/2026-06-22-m18-neo4j-graph-db-decision/`
 
 ## Spec canonica activa
 
@@ -59,13 +59,14 @@ git diff --check
 - `openspec/specs/chat-frontend/spec.md`
 - `openspec/specs/chat-streaming/spec.md`
 - `openspec/specs/chat-observability/spec.md`
+- `openspec/specs/graph-store/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-evals-quality-gate`, porque la ruta graph ya existe pero
-  sigue siendo opt-in. El siguiente riesgo es comparar dense baseline vs
-  graph-enabled retrieval en suites versionadas antes de promover defaults o
-  archivar M18.
+- Decidir M19. La opcion recomendada es un milestone de evidencia/operacion
+  graph live si se quiere avanzar Neo4j: medir latencia/costo operacional con
+  Neo4j real y definir reindex/backfill operable antes de considerar cualquier
+  promocion de default.
 
 ## Reglas de coordinacion
 

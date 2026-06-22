@@ -45,6 +45,8 @@ Documentos:
 - `graph-retrieval-route-m18.md`: ruta retrieval graph opt-in sobre seeds dense,
   fallback dense con `fallback_reason` estable y citations rehidratadas desde
   Postgres.
+- `graph-quality-gate-m18.md`: gate M18 dense-vs-graph con reporte versionado,
+  decision `hold_default` y cierre conservador sin cambiar defaults.
 
 Reglas:
 
