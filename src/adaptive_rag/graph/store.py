@@ -68,6 +68,8 @@ class GraphBackfillResult:
     backend: Literal["neo4j"]
     status: GraphProjectionStatus
     source_watermark: str
+    node_count: int | None = None
+    relationship_count: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

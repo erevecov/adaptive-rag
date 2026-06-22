@@ -52,6 +52,8 @@ Documentos:
   defaults.
 - `neo4j-live-harness-m19.md`: smoke CLI opt-in para validar conectividad
   Neo4j local/managed sin exponer secretos ni cambiar defaults.
+- `graph-backfill-reindex-m19.md`: comandos CLI opt-in para reconstruir la
+  proyeccion Neo4j por proyecto y persistir readiness/error codes.
 
 Reglas:
 

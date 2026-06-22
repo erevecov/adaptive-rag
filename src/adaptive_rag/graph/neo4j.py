@@ -134,6 +134,20 @@ class Neo4jGraphStore:
             backend="neo4j",
             status="ready",
             source_watermark=source_watermark,
+            node_count=(
+                1
+                + len(graph.sources)
+                + len(graph.documents)
+                + len(graph.document_versions)
+                + len(graph.chunks)
+            ),
+            relationship_count=(
+                len(graph.sources)
+                + len(graph.documents)
+                + len(graph.document_versions)
+                + len(graph.chunks)
+                + len(graph.chunk_links)
+            ),
         )
 
     def delete_project_graph(self, *, project_id: UUID) -> None:

@@ -29,6 +29,19 @@ Ruta managed esperada: URI cifrada tipo `neo4j+s://...` con username/password
 desde env. El smoke serializa solo scheme/clasificacion de URI, status y error
 code; no imprime host completo ni password.
 
+## Backfill/reindex Neo4j opt-in
+
+Con `graph_store=neo4j` configurado, la proyeccion graph derivada se reconstruye
+por proyecto:
+
+```bash
+uv run adaptive-rag graph backfill <project-id> --source-watermark chunks:v1
+uv run adaptive-rag graph reindex <project-id> --source-watermark chunks:v2
+```
+
+Los comandos imprimen un reporte JSON con status, duracion, conteos y error
+code. Salen con codigo `0` solo cuando la proyeccion termina en `ready`.
+
 ## Documentación
 
 La documentación del repositorio se escribe en español. Se mantienen en inglés

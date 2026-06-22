@@ -279,6 +279,8 @@ def test_neo4j_backfill_replaces_project_scope_then_upserts_graph_payload() -> N
     assert result.backend == "neo4j"
     assert result.status == "ready"
     assert result.source_watermark == "chunks:v2"
+    assert result.node_count == 6
+    assert result.relationship_count == 6
     assert loaded_projects == [project_id]
     assert [set(parameters) for _, parameters in driver.queries] == [
         {"project_id"},

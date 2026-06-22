@@ -14,17 +14,16 @@ M18 Neo4j graph DB decision cerrado el 2026-06-22.
 
 ## Ultimo slice completado
 
-M19 `m19-neo4j-local-managed-harness`: agrega `adaptive-rag graph
-neo4j-smoke` para validar settings y connectivity de Neo4j live con
-`verify_connectivity()`, documenta rutas local/managed y mantiene secretos fuera
-de la salida JSON. `graph_store=disabled` y `strategy=dense` siguen como
-defaults.
+M19 `m19-graph-backfill-reindex-ops`: agrega `adaptive-rag graph backfill` y
+`adaptive-rag graph reindex` para reconstruir la proyeccion Neo4j por
+`project_id`, persistiendo transiciones `pending_backfill`, `indexing`, `ready`
+o `failed`, y serializando un reporte JSON con duracion, conteos y error code.
+`graph_store=disabled` y `strategy=dense` siguen como defaults.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest tests/integration/cli/test_graph_cli.py tests/unit/graph/test_neo4j_adapter.py -q
-uv run adaptive-rag graph neo4j-smoke  # exit 1 esperado con graph_store=disabled
+uv run pytest tests/unit/graph/test_backfill_operations.py tests/integration/cli/test_graph_cli.py tests/unit/graph/test_neo4j_indexer.py -q
 uv run ruff check src tests
 uv run mypy src/adaptive_rag
 pnpm dlx @fission-ai/openspec validate m19-graph-live-ops-plan --strict
@@ -67,11 +66,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m19-graph-backfill-reindex-ops`: agregar comandos operativos para
-  backfill/reindex por `project_id`, con transiciones de readiness y reporte de
-  duracion/error code. Es la opcion recomendada porque el entorno live ya tiene
-  un smoke acotado; ahora falta hacer operable la reconstruccion del indice
-  derivado antes de retrieval graph live.
+- Implementar `m19-graph-live-retrieval-smoke`: ejecutar retrieval `strategy=graph`
+  contra Neo4j real con proyeccion `ready`, filtros, citations y fallback dense.
+  Es la opcion recomendada porque el backfill/reindex ya deja el indice derivado
+  operable por proyecto; ahora falta probar lectura live antes del reporte de
+  evidencia.
 
 ## Reglas de coordinacion
 

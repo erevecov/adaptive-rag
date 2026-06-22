@@ -12,6 +12,11 @@ from adaptive_rag.graph.neo4j import (
     Neo4jGraphStore,
     default_neo4j_driver_factory,
 )
+from adaptive_rag.graph.operations import (
+    GraphBackfillOperationName,
+    GraphBackfillOperationReport,
+    run_graph_backfill_operation,
+)
 from adaptive_rag.graph.runtime import get_graph_store
 from adaptive_rag.graph.store import (
     GRAPH_PROJECTION_STATUS_VALUES,
@@ -35,6 +40,8 @@ __all__ = [
     "DisabledGraphStore",
     "FakeGraphStore",
     "GraphBackfillResult",
+    "GraphBackfillOperationName",
+    "GraphBackfillOperationReport",
     "GraphProjectionStatus",
     "GraphRetriever",
     "GraphRetrievalResult",
@@ -53,5 +60,6 @@ __all__ = [
     "get_graph_store",
     "load_project_graph",
     "load_project_graph_from_database",
+    "run_graph_backfill_operation",
     "should_use_dense_fallback",
 ]
