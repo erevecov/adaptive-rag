@@ -23,12 +23,15 @@ afterEach(() => {
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
+  getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
   getChatSession?: ApiClient['getChatSession']
   listChatSessions?: ApiClient['listChatSessions']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
+    getChatObservabilitySummary:
+      options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
     listChatSessions: options.listChatSessions ?? vi.fn(),
   }

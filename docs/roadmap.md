@@ -804,11 +804,11 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m20-chat-observability-dashboard-plan`: activo. Crea el change OpenSpec,
+1. `m20-chat-observability-dashboard-plan`: completo. Crea el change OpenSpec,
    documenta el layout hibrido aprobado y modifica `chat-observability` y
    `chat-frontend`.
-2. `m20-observability-frontend-client`: agregar tipos y cliente API para el
-   summary M17, con tests de query params y errores.
+2. `m20-observability-frontend-client`: completo. Agrega tipos y cliente API
+   para el summary M17, con tests de query params y errores.
 3. `m20-observability-dashboard-shell`: agregar vista de observability con
    filtros, refresh y metric cards.
 4. `m20-observability-breakdowns`: agregar breakdowns de status/errores,
