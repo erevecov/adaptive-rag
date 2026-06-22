@@ -15,7 +15,10 @@ from adaptive_rag.graph.neo4j import (
 from adaptive_rag.graph.operations import (
     GraphBackfillOperationName,
     GraphBackfillOperationReport,
+    GraphRetrievalSmokeReport,
+    GraphRetrievalSmokeStatus,
     run_graph_backfill_operation,
+    run_graph_retrieval_smoke,
 )
 from adaptive_rag.graph.runtime import get_graph_store
 from adaptive_rag.graph.store import (
@@ -43,6 +46,8 @@ __all__ = [
     "GraphBackfillOperationName",
     "GraphBackfillOperationReport",
     "GraphProjectionStatus",
+    "GraphRetrievalSmokeReport",
+    "GraphRetrievalSmokeStatus",
     "GraphRetriever",
     "GraphRetrievalResult",
     "GraphStore",
@@ -61,5 +66,6 @@ __all__ = [
     "load_project_graph",
     "load_project_graph_from_database",
     "run_graph_backfill_operation",
+    "run_graph_retrieval_smoke",
     "should_use_dense_fallback",
 ]

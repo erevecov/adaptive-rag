@@ -38,7 +38,8 @@ con `limited_experiment`; un cambio de default requiere un milestone posterior.
 2. `m19-neo4j-local-managed-harness`: setup/smoke local y managed.
 3. `m19-graph-backfill-reindex-ops`: completo; comandos operativos de
    backfill/reindex con readiness persistida y reporte JSON.
-4. `m19-graph-live-retrieval-smoke`: smoke de retrieval graph con Neo4j real.
+4. `m19-graph-live-retrieval-smoke`: completo; smoke de retrieval graph con
+   proyeccion `ready`, filtros, citations, latencia y fallback visible.
 5. `m19-graph-live-evidence-report`: reporte comparativo live.
 6. `m19-quality-gate`: validacion, decision y archive.
 
