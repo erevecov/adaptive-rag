@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import App from './App'
 import type {
   ApiClient,
+  ChatObservabilitySummary,
   ChatResponseBody,
   ChatSessionDetailResponse,
   ChatSessionListResponse,
@@ -92,6 +93,54 @@ const sessionListResponse: ChatSessionListResponse = {
     },
   ],
   next_cursor: null,
+}
+
+const observabilitySummary: ChatObservabilitySummary = {
+  errors: {
+    provider_error_count: 1,
+    session_error_count: 2,
+    top_messages: [{ count: 2, message: 'runner failed' }],
+  },
+  filters: {
+    created_at_from: '2026-06-21T00:00:00Z',
+    created_at_to: '2026-06-22T00:00:00Z',
+    status: 'failed',
+  },
+  project_id: projectId,
+  provider_usage: {
+    groups: [
+      {
+        estimated_cost_usd: 0.08,
+        input_count: null,
+        input_tokens: 1200,
+        latency_ms: {
+          avg: 220.5,
+          count: 8,
+          max: 420,
+          min: 120,
+          p50: 210,
+          p95: 410,
+        },
+        model: 'qwen-plus',
+        operation: 'chat',
+        output_tokens: 640,
+        provider: 'qwen',
+        record_count: 8,
+        total_tokens: 1840,
+      },
+    ],
+    missing_cost_count: 1,
+    total_estimated_cost_usd: 0.1234,
+    total_records: 18,
+  },
+  sessions: {
+    by_status: {
+      failed: 2,
+      running: 0,
+      succeeded: 10,
+    },
+    total: 12,
+  },
 }
 
 const emptySessionDetail: ChatSessionDetailResponse = {
@@ -417,5 +466,88 @@ describe('App chat workspace', () => {
       'chat session not found',
     )
     expect(screen.getByRole('button', { name: 'session-123' })).toBeTruthy()
+  })
+
+  test('refreshes observability with filters and renders metric cards', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await user.type(
+      screen.getByLabelText('Created from'),
+      '2026-06-21T00:00:00Z',
+    )
+    await user.type(
+      screen.getByLabelText('Created to'),
+      '2026-06-22T00:00:00Z',
+    )
+    await user.selectOptions(screen.getByLabelText('Status'), 'failed')
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
+      created_at_from: '2026-06-21T00:00:00Z',
+      created_at_to: '2026-06-22T00:00:00Z',
+      status: 'failed',
+    })
+    expect(await screen.findByText('12')).toBeTruthy()
+    expect(screen.getByText('18')).toBeTruthy()
+    expect(screen.getByText('$0.1234')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
+    expect(screen.getByText('410 ms')).toBeTruthy()
+  })
+
+  test('refreshes observability without sending empty filters', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
+      created_at_from: null,
+      created_at_to: null,
+      status: null,
+    })
+    expect(await screen.findByText('12')).toBeTruthy()
+  })
+
+  test('shows observability errors without clearing filters', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => {
+        throw new ApiClientError('observability unavailable', {
+          detail: 'observability unavailable',
+          status: 503,
+        })
+      }),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await user.type(
+      screen.getByLabelText('Created from'),
+      '2026-06-21T00:00:00Z',
+    )
+    await user.selectOptions(screen.getByLabelText('Status'), 'failed')
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'observability unavailable',
+    )
+    expect(
+      (screen.getByLabelText('Created from') as HTMLInputElement).value,
+    ).toBe('2026-06-21T00:00:00Z')
+    expect((screen.getByLabelText('Status') as HTMLSelectElement).value).toBe(
+      'failed',
+    )
   })
 })

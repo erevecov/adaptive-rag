@@ -26,7 +26,7 @@
 ## 3. Slices propuestos de M20
 
 - [x] 3.1 Implementar `m20-observability-frontend-client`.
-- [ ] 3.2 Implementar `m20-observability-dashboard-shell`.
+- [x] 3.2 Implementar `m20-observability-dashboard-shell`.
 - [ ] 3.3 Implementar `m20-observability-breakdowns`.
 - [ ] 3.4 Abrir `m20-observability-summary-shape` solo si el dashboard necesita
   campos agregados que el summary M17 no puede representar sin ambiguedad.

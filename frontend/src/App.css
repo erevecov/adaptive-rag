@@ -23,6 +23,33 @@
   margin-bottom: 22px;
 }
 
+.workspace-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.view-switcher {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #c9d2cf;
+  border-radius: 8px;
+  display: flex;
+  padding: 4px;
+}
+
+.view-tab {
+  background: transparent;
+  color: #43514f;
+  min-height: 36px;
+  min-width: auto;
+  padding: 0 12px;
+}
+
+.view-tab-active {
+  background: #23423e;
+  color: #ffffff;
+}
+
 .workspace-subtitle {
   color: #5f6b69;
   font-size: 15px;
@@ -136,6 +163,7 @@ h3 {
 }
 
 .field input,
+.field select,
 .field textarea {
   background: #ffffff;
   border: 1px solid #cbd6d2;
@@ -158,9 +186,14 @@ h3 {
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   border-color: #2f7d73;
   box-shadow: 0 0 0 3px rgba(47, 125, 115, 0.16);
+}
+
+.field select {
+  min-height: 44px;
 }
 
 .field-compact {
@@ -266,6 +299,68 @@ button:disabled {
   border: 1px solid #dfe6e2;
   border-radius: 8px;
   padding: 16px;
+}
+
+.observability-panel {
+  display: grid;
+  gap: 22px;
+  min-height: auto;
+}
+
+.observability-filters {
+  align-items: end;
+  border-bottom: 1px solid #dfe5e2;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(160px, 1fr)) auto;
+  padding-bottom: 22px;
+}
+
+.observability-filters button {
+  white-space: nowrap;
+}
+
+.observability-empty {
+  background: #f8faf9;
+  border: 1px solid #dfe6e2;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.metric-card {
+  background: #ffffff;
+  border: 1px solid #dfe5e0;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 16px;
+}
+
+.metric-card span {
+  color: #63706d;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-card strong {
+  color: #1f2d29;
+  font-size: 26px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.metric-card small {
+  color: #5c6866;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .citation-list,
@@ -470,12 +565,22 @@ button:disabled {
     flex-direction: column;
   }
 
+  .workspace-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
   h1 {
     font-size: 34px;
   }
 
   .workspace-grid {
     grid-template-columns: 1fr;
+  }
+
+  .observability-filters,
+  .metric-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .panel {
@@ -498,6 +603,15 @@ button:disabled {
   .session-button {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .workspace-actions,
+  .view-switcher,
+  .observability-filters,
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .field-compact {

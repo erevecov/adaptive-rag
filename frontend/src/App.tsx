@@ -4,6 +4,8 @@ import {
   ApiClientError,
   createApiClient,
   type ApiClient,
+  type ChatObservabilityProviderUsageGroup,
+  type ChatObservabilitySummary,
   type ChatHistoryProviderUsage,
   type ChatHistoryRetrievedChunk,
   type ChatHistoryRetrievalRun,
@@ -19,6 +21,7 @@ const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
+type ActiveView = 'chat' | 'observability'
 
 type AppProps = {
   apiClient?: ApiClient
@@ -50,6 +53,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [detailError, setDetailError] = useState<string | null>(null)
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
+  const [activeView, setActiveView] = useState<ActiveView>('chat')
+  const [createdAtFrom, setCreatedAtFrom] = useState('')
+  const [createdAtTo, setCreatedAtTo] = useState('')
+  const [observabilityStatus, setObservabilityStatus] = useState('')
+  const [observabilitySummary, setObservabilitySummary] =
+    useState<ChatObservabilitySummary | null>(null)
+  const [observabilityState, setObservabilityState] =
+    useState<RequestState>('idle')
+  const [observabilityError, setObservabilityError] = useState<string | null>(
+    null,
+  )
 
   const isAsking = requestState === 'loading'
 
@@ -176,6 +190,32 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleRefreshObservability() {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setObservabilityState('failed')
+      setObservabilityError('Project ID is required to refresh observability.')
+      return
+    }
+
+    setObservabilityState('loading')
+    setObservabilityError(null)
+
+    try {
+      const summary = await client.getChatObservabilitySummary(trimmedProjectId, {
+        created_at_from: optionalFilterValue(createdAtFrom),
+        created_at_to: optionalFilterValue(createdAtTo),
+        status: optionalFilterValue(observabilityStatus),
+      })
+      setObservabilitySummary(summary)
+      setObservabilityState('succeeded')
+    } catch (error) {
+      setObservabilityState('failed')
+      setObservabilityError(getErrorMessage(error))
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="workspace-title">
@@ -186,96 +226,327 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               Ask against an existing project and inspect the retrieved context.
             </p>
           </div>
-          <span className="status">Local API</span>
+          <div className="workspace-actions">
+            <ViewSwitcher activeView={activeView} onChange={setActiveView} />
+            <span className="status">Local API</span>
+          </div>
         </header>
 
-        <div className="workspace-grid">
-          <section className="panel panel-primary" aria-labelledby="chat-title">
-            <div className="panel-heading">
-              <div>
-                <p className="panel-label">Chat</p>
-                <h2 id="chat-title">Workspace</h2>
+        {activeView === 'chat' ? (
+          <div className="workspace-grid">
+            <section className="panel panel-primary" aria-labelledby="chat-title">
+              <div className="panel-heading">
+                <div>
+                  <p className="panel-label">Chat</p>
+                  <h2 id="chat-title">Workspace</h2>
+                </div>
+                <span className={statusClassName(requestState)}>
+                  {requestStatusLabel(requestState)}
+                </span>
               </div>
-              <span className={statusClassName(requestState)}>
-                {requestStatusLabel(requestState)}
-              </span>
-            </div>
 
-            <form className="chat-form" onSubmit={handleSubmit}>
-              <label className="field">
-                <span>Project ID</span>
-                <input
-                  autoComplete="off"
-                  name="project-id"
-                  onChange={(event) => setProjectId(event.currentTarget.value)}
-                  placeholder="Project UUID"
-                  value={projectId}
-                />
-              </label>
-
-              <label className="field">
-                <span>Question</span>
-                <textarea
-                  name="question"
-                  onChange={(event) => setQuestion(event.currentTarget.value)}
-                  placeholder="Ask a question about indexed sources"
-                  rows={4}
-                  value={question}
-                />
-              </label>
-
-              <div className="form-actions">
-                <label className="field field-compact">
-                  <span>Retrieval limit</span>
+              <form className="chat-form" onSubmit={handleSubmit}>
+                <label className="field">
+                  <span>Project ID</span>
                   <input
-                    max={20}
-                    min={1}
-                    name="retrieval-limit"
-                    onChange={(event) =>
-                      setRetrievalLimit(normalizeLimit(event.currentTarget.value))
-                    }
-                    type="number"
-                    value={retrievalLimit}
+                    autoComplete="off"
+                    name="project-id"
+                    onChange={(event) => setProjectId(event.currentTarget.value)}
+                    placeholder="Project UUID"
+                    value={projectId}
                   />
                 </label>
-                <button disabled={isAsking} type="submit">
-                  {isAsking ? 'Asking...' : 'Ask'}
-                </button>
-                {isAsking ? (
-                  <button
-                    className="secondary-button"
-                    onClick={handleCancelRequest}
-                    type="button"
-                  >
-                    Cancel
+
+                <label className="field">
+                  <span>Question</span>
+                  <textarea
+                    name="question"
+                    onChange={(event) => setQuestion(event.currentTarget.value)}
+                    placeholder="Ask a question about indexed sources"
+                    rows={4}
+                    value={question}
+                  />
+                </label>
+
+                <div className="form-actions">
+                  <label className="field field-compact">
+                    <span>Retrieval limit</span>
+                    <input
+                      max={20}
+                      min={1}
+                      name="retrieval-limit"
+                      onChange={(event) =>
+                        setRetrievalLimit(normalizeLimit(event.currentTarget.value))
+                      }
+                      type="number"
+                      value={retrievalLimit}
+                    />
+                  </label>
+                  <button disabled={isAsking} type="submit">
+                    {isAsking ? 'Asking...' : 'Ask'}
                   </button>
+                  {isAsking ? (
+                    <button
+                      className="secondary-button"
+                      onClick={handleCancelRequest}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                </div>
+
+                {requestError ? (
+                  <p className="form-feedback form-feedback-error" role="alert">
+                    {requestError}
+                  </p>
                 ) : null}
-              </div>
+              </form>
 
-              {requestError ? (
-                <p className="form-feedback form-feedback-error" role="alert">
-                  {requestError}
-                </p>
-              ) : null}
-            </form>
+              <ResponsePanel response={response} state={requestState} />
+            </section>
 
-            <ResponsePanel response={response} state={requestState} />
-          </section>
-
-          <HistoryPanel
-            detail={sessionDetail}
-            detailError={detailError}
-            detailState={detailState}
-            error={historyError}
-            onRefresh={() => void handleRefreshHistory()}
-            onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
-            selectedSessionId={selectedSessionId}
-            sessions={sessions}
-            state={historyState}
+            <HistoryPanel
+              detail={sessionDetail}
+              detailError={detailError}
+              detailState={detailState}
+              error={historyError}
+              onRefresh={() => void handleRefreshHistory()}
+              onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+              selectedSessionId={selectedSessionId}
+              sessions={sessions}
+              state={historyState}
+            />
+          </div>
+        ) : (
+          <ObservabilityPanel
+            createdAtFrom={createdAtFrom}
+            createdAtTo={createdAtTo}
+            error={observabilityError}
+            onCreatedAtFromChange={setCreatedAtFrom}
+            onCreatedAtToChange={setCreatedAtTo}
+            onProjectIdChange={setProjectId}
+            onRefresh={() => void handleRefreshObservability()}
+            onStatusChange={setObservabilityStatus}
+            projectId={projectId}
+            state={observabilityState}
+            status={observabilityStatus}
+            summary={observabilitySummary}
           />
-        </div>
+        )}
       </section>
     </main>
+  )
+}
+
+function ViewSwitcher({
+  activeView,
+  onChange,
+}: {
+  activeView: ActiveView
+  onChange(view: ActiveView): void
+}) {
+  return (
+    <nav className="view-switcher" aria-label="Workspace views">
+      <button
+        aria-pressed={activeView === 'chat'}
+        className={activeView === 'chat' ? 'view-tab view-tab-active' : 'view-tab'}
+        onClick={() => onChange('chat')}
+        type="button"
+      >
+        Chat
+      </button>
+      <button
+        aria-pressed={activeView === 'observability'}
+        className={
+          activeView === 'observability' ? 'view-tab view-tab-active' : 'view-tab'
+        }
+        onClick={() => onChange('observability')}
+        type="button"
+      >
+        Observability
+      </button>
+    </nav>
+  )
+}
+
+function ObservabilityPanel({
+  createdAtFrom,
+  createdAtTo,
+  error,
+  onCreatedAtFromChange,
+  onCreatedAtToChange,
+  onProjectIdChange,
+  onRefresh,
+  onStatusChange,
+  projectId,
+  state,
+  status,
+  summary,
+}: {
+  createdAtFrom: string
+  createdAtTo: string
+  error: string | null
+  onCreatedAtFromChange(value: string): void
+  onCreatedAtToChange(value: string): void
+  onProjectIdChange(value: string): void
+  onRefresh(): void
+  onStatusChange(value: string): void
+  projectId: string
+  state: RequestState
+  status: string
+  summary: ChatObservabilitySummary | null
+}) {
+  const isRefreshing = state === 'loading'
+
+  return (
+    <section className="panel observability-panel" aria-labelledby="observability-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Observability</p>
+          <h2 id="observability-title">Dashboard shell</h2>
+        </div>
+        <span className={statusClassName(state)}>
+          {observabilityStatusLabel(state)}
+        </span>
+      </div>
+
+      <form
+        className="observability-filters"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onRefresh()
+        }}
+      >
+        <label className="field">
+          <span>Project ID</span>
+          <input
+            autoComplete="off"
+            name="observability-project-id"
+            onChange={(event) => onProjectIdChange(event.currentTarget.value)}
+            placeholder="Project UUID"
+            value={projectId}
+          />
+        </label>
+        <label className="field">
+          <span>Created from</span>
+          <input
+            name="created-at-from"
+            onChange={(event) => onCreatedAtFromChange(event.currentTarget.value)}
+            placeholder="2026-06-21T00:00:00Z"
+            value={createdAtFrom}
+          />
+        </label>
+        <label className="field">
+          <span>Created to</span>
+          <input
+            name="created-at-to"
+            onChange={(event) => onCreatedAtToChange(event.currentTarget.value)}
+            placeholder="2026-06-22T00:00:00Z"
+            value={createdAtTo}
+          />
+        </label>
+        <label className="field">
+          <span>Status</span>
+          <select
+            name="observability-status"
+            onChange={(event) => onStatusChange(event.currentTarget.value)}
+            value={status}
+          >
+            <option value="">Any</option>
+            <option value="running">running</option>
+            <option value="succeeded">succeeded</option>
+            <option value="failed">failed</option>
+          </select>
+        </label>
+        <button disabled={isRefreshing} type="submit">
+          {isRefreshing ? 'Refreshing...' : 'Refresh summary'}
+        </button>
+      </form>
+
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <ObservabilityMetrics summary={summary} />
+    </section>
+  )
+}
+
+function ObservabilityMetrics({
+  summary,
+}: {
+  summary: ChatObservabilitySummary | null
+}) {
+  if (summary === null) {
+    return (
+      <div className="observability-empty">
+        <p className="empty-copy">
+          No observability summary yet. Enter filters and refresh to inspect chat
+          health.
+        </p>
+      </div>
+    )
+  }
+
+  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
+  const errorCount =
+    summary.errors.session_error_count + summary.errors.provider_error_count
+
+  return (
+    <div className="metric-grid" aria-label="Chat observability metrics">
+      <MetricCard
+        label="Sessions"
+        value={String(summary.sessions.total)}
+        detail="Filtered chat sessions"
+      />
+      <MetricCard
+        label="Provider calls"
+        value={String(summary.provider_usage.total_records)}
+        detail={`${summary.provider_usage.missing_cost_count} missing cost`}
+      />
+      <MetricCard
+        label="Estimated cost"
+        value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
+        detail="Known usage only"
+      />
+      <MetricCard
+        label="Errors"
+        value={String(errorCount)}
+        detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
+      />
+      <MetricCard
+        label="Latency"
+        value={
+          slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
+        }
+        detail={
+          slowestP95 === null
+            ? 'No known provider latency'
+            : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
+        }
+      />
+    </div>
+  )
+}
+
+function MetricCard({
+  detail,
+  label,
+  value,
+}: {
+  detail: string
+  label: string
+  value: string
+}) {
+  return (
+    <article className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </article>
   )
 }
 
@@ -763,6 +1034,43 @@ function historyStatusLabel(state: RequestState): string {
     return 'Error'
   }
   return 'Latest'
+}
+
+function observabilityStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Refreshing'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Loaded'
+  }
+  return 'Ready'
+}
+
+function formatUsd(value: number): string {
+  return `$${value.toFixed(4)}`
+}
+
+function optionalFilterValue(value: string): string | null {
+  const trimmedValue = value.trim()
+  return trimmedValue.length > 0 ? trimmedValue : null
+}
+
+function getSlowestP95Group(
+  groups: ChatObservabilityProviderUsageGroup[],
+): ChatObservabilityProviderUsageGroup | null {
+  let slowest: ChatObservabilityProviderUsageGroup | null = null
+  for (const group of groups) {
+    if (group.latency_ms.p95 === null) {
+      continue
+    }
+    if (slowest === null || group.latency_ms.p95 > slowest.latency_ms.p95!) {
+      slowest = group
+    }
+  }
+  return slowest
 }
 
 export default App

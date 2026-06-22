@@ -18,18 +18,19 @@ rollout/default requiere un milestone posterior con evidencia live concluyente.
 
 ## Ultimo slice completado
 
-M20 `m20-observability-frontend-client`: agrega tipos y cliente frontend para
-`GET /projects/{project_id}/chat/observability/summary`, con query params
-publicos, errores estructurados via `ApiClientError` y tests deterministas sin
-backend live.
+M20 `m20-observability-dashboard-shell`: agrega la vista frontend read-only
+`Observability`, filtros por proyecto/fecha/status, refresh sobre
+`getChatObservabilitySummary` y metric cards iniciales para sesiones, provider
+calls, costo estimado, errores y latencia p95 por grupo mas lento.
 
-Este slice no cambia la UI, no agrega endpoints backend y no modifica defaults
-de retrieval, providers, streaming ni graph.
+Este slice no agrega endpoints backend, no consulta tablas internas y no
+modifica defaults de retrieval, providers, streaming ni graph.
 
 Comandos validados en este slice:
 
 ```text
 pnpm --dir frontend test -- src/lib/apiClient.test.ts
+pnpm --dir frontend test -- src/App.test.tsx
 pnpm --dir frontend test
 pnpm --dir frontend run typecheck
 pnpm --dir frontend run lint
@@ -74,10 +75,9 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m20-observability-frontend-client`. Despues, la opcion
-  recomendada es `m20-observability-dashboard-shell` para agregar una vista
-  read-only `Observability` con filtros, refresh y metric cards sobre el
-  cliente frontend ya tipado.
+- Completar y mergear `m20-observability-dashboard-shell`. Despues, la opcion
+  recomendada es `m20-observability-breakdowns` para agregar status breakdown,
+  errores agregados, provider usage table y session health table.
 
 ## Reglas de coordinacion
 

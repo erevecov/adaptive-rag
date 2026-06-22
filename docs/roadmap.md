@@ -809,8 +809,8 @@ Secuencia recomendada:
    `chat-frontend`.
 2. `m20-observability-frontend-client`: completo. Agrega tipos y cliente API
    para el summary M17, con tests de query params y errores.
-3. `m20-observability-dashboard-shell`: agregar vista de observability con
-   filtros, refresh y metric cards.
+3. `m20-observability-dashboard-shell`: completo. Agrega vista de observability
+   con filtros, refresh y metric cards.
 4. `m20-observability-breakdowns`: agregar breakdowns de status/errores,
    provider usage table y session health table.
 5. `m20-observability-summary-shape`: opcional, solo si hace falta una
