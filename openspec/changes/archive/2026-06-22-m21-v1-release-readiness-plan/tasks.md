@@ -23,8 +23,8 @@
 
 ## 3. Slices propuestos de M21
 
-- [ ] 3.1 Implementar `m21-v1-scope-reconciliation`.
-- [ ] 3.2 Implementar `m21-release-package-local-stack`.
-- [ ] 3.3 Implementar `m21-portfolio-demo-and-report`.
-- [ ] 3.4 Ejecutar `m21-release-quality-gate` y archivar el change cuando se
+- [x] 3.1 Implementar `m21-v1-scope-reconciliation`.
+- [x] 3.2 Implementar `m21-release-package-local-stack`.
+- [x] 3.3 Implementar `m21-portfolio-demo-and-report`.
+- [x] 3.4 Ejecutar `m21-release-quality-gate` y archivar el change cuando se
   complete.

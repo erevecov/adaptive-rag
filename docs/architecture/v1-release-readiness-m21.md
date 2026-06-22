@@ -1,6 +1,6 @@
 # M21 V1 release readiness
 
-Estado: activo en planificacion.
+Estado: cerrado en rama `codex/m21-complete`; archive OpenSpec completado.
 
 ## Decision
 
@@ -22,6 +22,16 @@ defaults, voz, MCP server, auth multi-user o PDF/Office.
 - Definir el paquete local de release: API, worker y Postgres/pgvector.
 - Definir demo script, README y reporte reproducible de evals/costo/latencia.
 - Cerrar con quality gate y OpenSpec archive.
+
+## Checklist M21
+
+| Area | Estado | Evidencia |
+| --- | --- | --- |
+| Scope reconciliation | `done` | `docs/architecture/v1-design.md` clasifica items como `in_v1` o `defer_post_v1`. |
+| Release package local | `done` | `Dockerfile`, `compose.yaml`, `.env.example` y `docs/architecture/v1-release-package.md`. |
+| Worker local | `done` | `adaptive-rag jobs run-worker` procesa `ingest_source` por `project_id`. |
+| Demo/reporte offline | `done` | README y runbook generan JSON desde `evals/fixtures/*` sin hosted providers. |
+| Quality gate | `done` | Frontend/Python/OpenSpec, compose config, smokes CLI y archive M21 completados. |
 
 ## Fuera de alcance
 

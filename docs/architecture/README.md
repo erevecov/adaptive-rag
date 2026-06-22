@@ -20,6 +20,9 @@ Documentos:
   local para chat, routing, embeddings, rerank, sparse y voz.
 - `v1-release-readiness-m21.md`: decision M21 para recortar v1.0 al core
   demostrable post-M20, clasificar deferrals y preparar release package/demo.
+- `v1-release-package.md`: runbook M21 para ejecutar API, worker
+  project-scoped, Postgres/pgvector y demo offline reproducible sin servicios
+  hosted obligatorios.
 - `chat-audit-trail-m13.md`: decision M13 para persistir sesiones, mensajes,
   tool calls, retrieval runs, citations y usage/cost antes de streaming,
   dashboards o historial.
