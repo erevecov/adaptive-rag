@@ -124,6 +124,71 @@ export type ChatSessionListParams = {
   cursor?: string | null
 }
 
+export type ChatObservabilitySummaryParams = {
+  created_at_from?: string | null
+  created_at_to?: string | null
+  status?: ChatSessionStatus | null
+}
+
+export type ChatObservabilityFilters = {
+  created_at_from: string | null
+  created_at_to: string | null
+  status: ChatSessionStatus | null
+}
+
+export type ChatObservabilitySessionSummary = {
+  total: number
+  by_status: Record<string, number>
+}
+
+export type ChatObservabilityLatencySummary = {
+  count: number
+  min: number | null
+  avg: number | null
+  p50: number | null
+  p95: number | null
+  max: number | null
+}
+
+export type ChatObservabilityProviderUsageGroup = {
+  operation: string
+  provider: string
+  model: string
+  record_count: number
+  estimated_cost_usd: number | null
+  input_tokens: number | null
+  output_tokens: number | null
+  total_tokens: number | null
+  input_count: number | null
+  latency_ms: ChatObservabilityLatencySummary
+}
+
+export type ChatObservabilityProviderUsageSummary = {
+  total_records: number
+  total_estimated_cost_usd: number
+  missing_cost_count: number
+  groups: ChatObservabilityProviderUsageGroup[]
+}
+
+export type ChatObservabilityErrorMessage = {
+  message: string
+  count: number
+}
+
+export type ChatObservabilityErrorSummary = {
+  session_error_count: number
+  provider_error_count: number
+  top_messages: ChatObservabilityErrorMessage[]
+}
+
+export type ChatObservabilitySummary = {
+  project_id: string
+  filters: ChatObservabilityFilters
+  sessions: ChatObservabilitySessionSummary
+  provider_usage: ChatObservabilityProviderUsageSummary
+  errors: ChatObservabilityErrorSummary
+}
+
 export type ChatSessionMetadata = {
   session_id: string
   status: ChatSessionStatus
@@ -235,6 +300,10 @@ export type ApiClient = {
     projectId: string,
     sessionId: string,
   ): Promise<ChatSessionDetailResponse>
+  getChatObservabilitySummary(
+    projectId: string,
+    params?: ChatObservabilitySummaryParams,
+  ): Promise<ChatObservabilitySummary>
 }
 
 export type ApiClientOptions = {
@@ -270,6 +339,21 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}/chat/sessions/${encodePathSegment(sessionId)}`,
       })
     },
+    getChatObservabilitySummary(projectId, params = {}) {
+      const url = new URL(
+        `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/chat/observability/summary`,
+      )
+      appendSearchParam(url, 'created_at_from', params.created_at_from)
+      appendSearchParam(url, 'created_at_to', params.created_at_to)
+      appendSearchParam(url, 'status', params.status)
+
+      return requestJson<ChatObservabilitySummary>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
     listChatSessions(projectId, params = {}) {
       const url = new URL(
         `${baseUrl}/projects/${encodePathSegment(projectId)}/chat/sessions`,
@@ -292,6 +376,9 @@ function appendSearchParam(
   value: number | string | null | undefined,
 ): void {
   if (value === undefined || value === null) {
+    return
+  }
+  if (typeof value === 'string' && value.trim().length === 0) {
     return
   }
   url.searchParams.append(key, String(value))

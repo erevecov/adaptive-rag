@@ -116,6 +116,121 @@ describe('createApiClient', () => {
     expect(calls[0].init?.method).toBe('GET')
   })
 
+  test('loads chat observability summaries with encoded optional query params', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        errors: {
+          provider_error_count: 1,
+          session_error_count: 2,
+          top_messages: [{ count: 2, message: 'runner failed' }],
+        },
+        filters: {
+          created_at_from: '2026-06-21T00:00:00Z',
+          created_at_to: '2026-06-22T00:00:00Z',
+          status: 'failed',
+        },
+        project_id: projectId,
+        provider_usage: {
+          groups: [
+            {
+              estimated_cost_usd: 0.08,
+              input_count: null,
+              input_tokens: 1200,
+              latency_ms: {
+                avg: 220.5,
+                count: 8,
+                max: 420,
+                min: 120,
+                p50: 210,
+                p95: 410,
+              },
+              model: 'qwen-plus',
+              operation: 'chat',
+              output_tokens: 640,
+              provider: 'qwen',
+              record_count: 8,
+              total_tokens: 1840,
+            },
+          ],
+          missing_cost_count: 1,
+          total_estimated_cost_usd: 0.1234,
+          total_records: 18,
+        },
+        sessions: {
+          by_status: {
+            failed: 2,
+            running: 0,
+            succeeded: 10,
+          },
+          total: 12,
+        },
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.getChatObservabilitySummary(projectId, {
+      created_at_from: '2026-06-21T00:00:00Z',
+      created_at_to: '2026-06-22T00:00:00Z',
+      status: 'failed',
+    })
+
+    expect(response.provider_usage.groups[0].latency_ms.p95).toBe(410)
+    expect(response.errors.top_messages[0].message).toBe('runner failed')
+    expect(calls).toHaveLength(1)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/chat/observability/summary?created_at_from=2026-06-21T00%3A00%3A00Z&created_at_to=2026-06-22T00%3A00%3A00Z&status=failed`,
+    )
+    expect(calls[0].init?.method).toBe('GET')
+  })
+
+  test('omits empty chat observability summary query params', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        errors: {
+          provider_error_count: 0,
+          session_error_count: 0,
+          top_messages: [],
+        },
+        filters: {
+          created_at_from: null,
+          created_at_to: null,
+          status: null,
+        },
+        project_id: projectId,
+        provider_usage: {
+          groups: [],
+          missing_cost_count: 0,
+          total_estimated_cost_usd: 0,
+          total_records: 0,
+        },
+        sessions: {
+          by_status: {},
+          total: 0,
+        },
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    await client.getChatObservabilitySummary(projectId, {
+      created_at_from: '',
+      created_at_to: null,
+      status: '',
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/chat/observability/summary`,
+    )
+  })
+
   test('loads a session detail without mutating history', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const sessionId = '22222222-2222-4222-8222-222222222222'

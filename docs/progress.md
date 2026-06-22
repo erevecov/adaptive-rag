@@ -18,23 +18,23 @@ rollout/default requiere un milestone posterior con evidencia live concluyente.
 
 ## Ultimo slice completado
 
-M19 `m19-quality-gate`: valida el milestone completo, archiva
-`m19-graph-live-ops-plan`, publica los requisitos M19 en
-`openspec/specs/graph-store/spec.md` y preserva la decision conservadora
-`hold_default`.
+M20 `m20-observability-frontend-client`: agrega tipos y cliente frontend para
+`GET /projects/{project_id}/chat/observability/summary`, con query params
+publicos, errores estructurados via `ApiClientError` y tests deterministas sin
+backend live.
 
-Los smokes live Neo4j no se ejecutaron en el gate local porque el worktree no
-tenia `.env` ni variables `ADAPTIVE_RAG_GRAPH_STORE`/`ADAPTIVE_RAG_NEO4J_*`
-configuradas.
+Este slice no cambia la UI, no agrega endpoints backend y no modifica defaults
+de retrieval, providers, streaming ni graph.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest
-uv run ruff check src tests
-uv run mypy src/adaptive_rag
-npx --yes @fission-ai/openspec validate m19-graph-live-ops-plan --strict
-npx --yes @fission-ai/openspec archive m19-graph-live-ops-plan --yes
+pnpm --dir frontend test -- src/lib/apiClient.test.ts
+pnpm --dir frontend test
+pnpm --dir frontend run typecheck
+pnpm --dir frontend run lint
+pnpm --dir frontend run build
+npx --yes @fission-ai/openspec validate m20-chat-observability-dashboard-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -74,11 +74,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m20-chat-observability-dashboard-plan`. Despues, la
-  opcion recomendada es `m20-observability-frontend-client` para agregar tipos
-  y cliente frontend de
-  `GET /projects/{project_id}/chat/observability/summary` antes de construir
-  la UI.
+- Completar y mergear `m20-observability-frontend-client`. Despues, la opcion
+  recomendada es `m20-observability-dashboard-shell` para agregar una vista
+  read-only `Observability` con filtros, refresh y metric cards sobre el
+  cliente frontend ya tipado.
 
 ## Reglas de coordinacion
 

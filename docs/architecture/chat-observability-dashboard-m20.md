@@ -42,8 +42,8 @@ orientada a debugging local-first, no marketing.
 
 ## Secuencia
 
-1. `m20-chat-observability-dashboard-plan`: activo.
-2. `m20-observability-frontend-client`: siguiente recomendado.
+1. `m20-chat-observability-dashboard-plan`: completo.
+2. `m20-observability-frontend-client`: completo.
 3. `m20-observability-dashboard-shell`: construir filtros y metric cards.
 4. `m20-observability-breakdowns`: construir breakdowns y tablas.
 5. `m20-observability-summary-shape`: opcional, solo si hace falta una
