@@ -4,14 +4,15 @@ Fecha: 2026-06-22.
 
 ## Decision
 
-M19 debe medir y operar Neo4j live antes de cualquier promocion de graph
-retrieval. M18 dejo `strategy=graph` disponible como opt-in, pero el cierre fue
-`hold_default`; por eso M19 conserva `strategy=dense` y `graph_store=disabled`
-como defaults.
+M19 midio y operativizo Neo4j live antes de cualquier promocion de graph
+retrieval. M18 dejo `strategy=graph` disponible como opt-in y M19 conserva la
+decision `hold_default`; por eso `strategy=dense` y `graph_store=disabled`
+siguen como defaults.
 
-La meta es pasar de "la ruta existe" a "la ruta se puede correr, reconstruir y
-medir con Neo4j real". Si la evidencia resulta positiva, M19 solo puede cerrar
-con `limited_experiment`; un cambio de default requiere un milestone posterior.
+El repo ahora puede ejecutar smoke de conectividad, backfill/reindex, smoke de
+retrieval graph y reporte de evidencia consolidada. El gate local no tuvo
+entorno Neo4j live configurado, por lo que no existe evidencia concluyente de
+latencia/costo operacional para avanzar a `limited_experiment`.
 
 ## Alcance
 
@@ -34,8 +35,8 @@ con `limited_experiment`; un cambio de default requiere un milestone posterior.
 
 ## Secuencia recomendada
 
-1. `m19-graph-live-ops-plan`: planificacion y delta OpenSpec.
-2. `m19-neo4j-local-managed-harness`: setup/smoke local y managed.
+1. `m19-graph-live-ops-plan`: completo; planificacion y delta OpenSpec.
+2. `m19-neo4j-local-managed-harness`: completo; setup/smoke local y managed.
 3. `m19-graph-backfill-reindex-ops`: completo; comandos operativos de
    backfill/reindex con readiness persistida y reporte JSON.
 4. `m19-graph-live-retrieval-smoke`: completo; smoke de retrieval graph con
@@ -43,7 +44,7 @@ con `limited_experiment`; un cambio de default requiere un milestone posterior.
 5. `m19-graph-live-evidence-report`: completo; reporte comparativo live que
    consolida calidad dense-vs-graph, artefactos backfill/reindex, retrieval
    smoke, error codes, latencia/fallback y costo operacional declarado.
-6. `m19-quality-gate`: validacion, decision y archive.
+6. `m19-quality-gate`: completo; validacion, decision `hold_default` y archive.
 
 ## Criterio de cierre
 
@@ -55,4 +56,6 @@ M19 cierra con una decision explicita:
 - `no_go_promotion`: graph queda pausado para promocion por problemas
   operativos o de calidad.
 
-`promote_default` queda fuera de alcance de M19.
+Decision final: `hold_default`. `promote_default` queda fuera de alcance de M19.
+Un cambio futuro requiere un milestone posterior con rollout, rollback,
+observability y evidencia live real.

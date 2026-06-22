@@ -2,44 +2,50 @@
 
 ## Milestone activo
 
-M19 Graph live ops evidence.
+Ninguno.
 
-Objetivo: medir y operar Neo4j live como indice derivado opt-in antes de
-considerar cualquier promocion de graph retrieval. `dense` sigue como default y
-`graph` sigue limitado a experimentos controlados.
+El siguiente milestone debe abrir un nuevo change OpenSpec antes de cualquier
+implementacion.
 
 ## Ultimo milestone completado
 
-M18 Neo4j graph DB decision cerrado el 2026-06-22.
+M19 Graph live ops evidence cerrado el 2026-06-22.
+
+Decision: `hold_default`. Neo4j sigue como indice derivado opt-in,
+`graph_store=disabled` y `strategy=dense` siguen como defaults, y cualquier
+rollout/default requiere un milestone posterior con evidencia live concluyente.
 
 ## Ultimo slice completado
 
-M19 `m19-graph-live-evidence-report`: agrega
-`adaptive-rag evals graph-live-evidence` para consolidar el quality gate
-dense-vs-graph con reportes live de backfill/reindex, retrieval smoke, error
-codes, latencia/fallback y costo operacional graph declarado. El comando no
-ejecuta operaciones live por si mismo; consume artefactos JSON previos y sale
-con codigo no cero si calidad u operaciones live fallan.
+M19 `m19-quality-gate`: valida el milestone completo, archiva
+`m19-graph-live-ops-plan`, publica los requisitos M19 en
+`openspec/specs/graph-store/spec.md` y preserva la decision conservadora
+`hold_default`.
+
+Los smokes live Neo4j no se ejecutaron en el gate local porque el worktree no
+tenia `.env` ni variables `ADAPTIVE_RAG_GRAPH_STORE`/`ADAPTIVE_RAG_NEO4J_*`
+configuradas.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest tests/unit/evals/test_graph_live_evidence_report.py tests/integration/cli/test_evals_cli.py -q
+uv run pytest
 uv run ruff check src tests
 uv run mypy src/adaptive_rag
-pnpm dlx @fission-ai/openspec validate m19-graph-live-ops-plan --strict
-pnpm dlx @fission-ai/openspec validate --specs --strict
-uv run pytest
+npx --yes @fission-ai/openspec validate m19-graph-live-ops-plan --strict
+npx --yes @fission-ai/openspec archive m19-graph-live-ops-plan --yes
+npx --yes @fission-ai/openspec validate --specs --strict
+npx --yes @fission-ai/openspec list
 git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m19-graph-live-ops-plan/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-22-m18-neo4j-graph-db-decision/`
+- `openspec/changes/archive/2026-06-22-m19-graph-live-ops-plan/`
 
 ## Spec canonica activa
 
@@ -67,11 +73,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Ejecutar `m19-quality-gate`: correr el set completo de validaciones,
-  reconciliar la decision `hold_default`, `limited_experiment` o
-  `no_go_promotion`, archivar el change OpenSpec y publicar la spec canonica.
-  Es la opcion recomendada porque ya existen los artefactos de setup,
-  backfill/reindex, retrieval smoke y evidencia consolidada.
+- Abrir un nuevo change OpenSpec antes de implementar mas trabajo. La opcion
+  recomendada es `m20-graph-limited-experiment-plan` solo si hay un entorno
+  Neo4j live y un proyecto/dataset controlado para producir evidencia real de
+  latencia, costo y fallback. Sin ese entorno, conviene pausar graph rollout y
+  elegir el siguiente bloque de producto desde roadmap.
 
 ## Reglas de coordinacion
 
