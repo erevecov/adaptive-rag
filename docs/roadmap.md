@@ -21,6 +21,7 @@
 - M17 Chat observability y costo-latencia: completo.
 - M18 Neo4j graph DB decision: completo.
 - M19 Graph live ops evidence: completo.
+- M20 Chat observability dashboard: activo.
 
 ## M1 Foundation
 
@@ -768,10 +769,57 @@ retrieval graph y reporte de evidencia, pero el gate local no tuvo entorno
 Neo4j live configurado para demostrar latencia/costo operacional concluyente.
 `dense` sigue como default; Neo4j live sigue opt-in.
 
-Continuacion: abrir `m20-graph-limited-experiment-plan` solo si se cuenta con
-Neo4j live y un proyecto/dataset controlado para producir evidencia real. Sin
-ese entorno, pausar graph rollout y elegir el siguiente bloque de producto
-desde roadmap.
+Continuacion: graph rollout queda pausado hasta contar con Neo4j live y un
+proyecto/dataset controlado para producir evidencia real. Sin ese entorno, el
+siguiente bloque seleccionado es M20 Chat observability dashboard sobre la
+superficie M17 ya estable.
+
+## M20 Chat observability dashboard
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m20-chat-observability-dashboard-plan/`
+
+Objetivo:
+
+- Exponer un dashboard frontend read-only de observability de chat para revisar
+  sesiones, costo, latencia, errores, provider usage y salud reciente usando
+  APIs publicas existentes.
+
+Condiciones del milestone:
+
+- El dashboard debe empezar consumiendo
+  `GET /projects/{project_id}/chat/observability/summary`.
+- Puede reutilizar `GET /projects/{project_id}/chat/sessions` para sesiones
+  recientes.
+- Las tarjetas y tablas deben etiquetar metricas segun la derivacion real del
+  contrato; no se debe inventar p95 global desde p95 por grupos.
+- Cualquier extension backend debe ser backward-compatible, derivada de tablas
+  existentes y sin nuevas tablas/materialized views en el primer slice.
+- La UI no debe exponer mensajes completos, respuestas completas, provider
+  payloads, prompts, API keys ni secretos.
+- M20 no cambia retrieval, rerank, providers, streaming ni graph defaults.
+
+Secuencia recomendada:
+
+1. `m20-chat-observability-dashboard-plan`: activo. Crea el change OpenSpec,
+   documenta el layout hibrido aprobado y modifica `chat-observability` y
+   `chat-frontend`.
+2. `m20-observability-frontend-client`: agregar tipos y cliente API para el
+   summary M17, con tests de query params y errores.
+3. `m20-observability-dashboard-shell`: agregar vista de observability con
+   filtros, refresh y metric cards.
+4. `m20-observability-breakdowns`: agregar breakdowns de status/errores,
+   provider usage table y session health table.
+5. `m20-observability-summary-shape`: opcional, solo si hace falta una
+   extension backend compatible para evitar derivaciones ambiguas.
+6. `m20-quality-gate`: validar frontend/Python/OpenSpec y archivar el change.
+
+Decision: proceed con frontend-first. M20 captura valor de producto sobre el
+audit trail y observability ya implementados, mientras graph rollout queda en
+hold hasta tener evidencia live concluyente.
 
 ## Politica para reducir conflictos de merge
 

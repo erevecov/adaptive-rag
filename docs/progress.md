@@ -2,10 +2,11 @@
 
 ## Milestone activo
 
-Ninguno.
+M20 Chat observability dashboard.
 
-El siguiente milestone debe abrir un nuevo change OpenSpec antes de cualquier
-implementacion.
+M20 convierte el resumen read-only de observability de M17 en una vista
+frontend operativa. El layout aprobado es hibrido: filtros superiores, metric
+cards, breakdowns, provider usage table y session health table.
 
 ## Ultimo milestone completado
 
@@ -41,7 +42,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m20-chat-observability-dashboard-plan/`
 
 ## Ultimo change archivado
 
@@ -73,11 +74,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec antes de implementar mas trabajo. La opcion
-  recomendada es `m20-graph-limited-experiment-plan` solo si hay un entorno
-  Neo4j live y un proyecto/dataset controlado para producir evidencia real de
-  latencia, costo y fallback. Sin ese entorno, conviene pausar graph rollout y
-  elegir el siguiente bloque de producto desde roadmap.
+- Completar y mergear `m20-chat-observability-dashboard-plan`. Despues, la
+  opcion recomendada es `m20-observability-frontend-client` para agregar tipos
+  y cliente frontend de
+  `GET /projects/{project_id}/chat/observability/summary` antes de construir
+  la UI.
 
 ## Reglas de coordinacion
 
