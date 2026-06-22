@@ -11,6 +11,7 @@ from neo4j.exceptions import AuthError, DriverError, Neo4jError, ServiceUnavaila
 from adaptive_rag.graph.indexer import ProjectGraphLoader
 from adaptive_rag.graph.store import (
     GraphBackfillResult,
+    GraphRetrievalResult,
     GraphStoreBackend,
     GraphStoreConfigurationError,
     GraphStoreHealth,
@@ -138,6 +139,30 @@ class Neo4jGraphStore:
     def delete_project_graph(self, *, project_id: UUID) -> None:
         self._execute_query(_DELETE_PROJECT_GRAPH_QUERY, project_id=str(project_id))
 
+    def expand_project_chunks(
+        self,
+        *,
+        project_id: UUID,
+        seed_chunk_ids: list[UUID] | tuple[UUID, ...],
+        limit: int,
+    ) -> tuple[GraphRetrievalResult, ...]:
+        if limit <= 0 or not seed_chunk_ids:
+            return ()
+        records = self._execute_query_records(
+            _EXPAND_PROJECT_CHUNKS_QUERY,
+            project_id=str(project_id),
+            seed_chunk_ids=[str(chunk_id) for chunk_id in seed_chunk_ids],
+            limit=limit,
+        )
+        return tuple(
+            GraphRetrievalResult(
+                chunk_id=UUID(str(record["chunk_id"])),
+                distance=float(record["distance"]),
+                score=float(record["score"]),
+            )
+            for record in records
+        )
+
     def close(self) -> None:
         self._driver.close()
 
@@ -150,6 +175,24 @@ class Neo4jGraphStore:
             raise GraphStoreQueryError("neo4j graph query failed") from exc
         except Exception as exc:
             raise GraphStoreQueryError("neo4j graph query failed") from exc
+
+    def _execute_query_records(self, query: str, **parameters: Any) -> list[Any]:
+        try:
+            result = self._driver.execute_query(query, **parameters)
+        except (ServiceUnavailable, DriverError) as exc:
+            raise GraphStoreUnavailableError("neo4j graph store unavailable") from exc
+        except Neo4jError as exc:
+            raise GraphStoreQueryError("neo4j graph query failed") from exc
+        except Exception as exc:
+            raise GraphStoreQueryError("neo4j graph query failed") from exc
+
+        if isinstance(result, tuple) and result:
+            records = result[0]
+        else:
+            records = result
+        if records is None:
+            return []
+        return list(records)
 
 
 def default_neo4j_driver_factory(
@@ -213,4 +256,17 @@ UNWIND $chunk_links AS link
 MATCH (left:AdaptiveRagChunk {id: link.from_chunk_id})
 MATCH (right:AdaptiveRagChunk {id: link.to_chunk_id})
 MERGE (left)-[:NEXT_CHUNK]->(right)
+"""
+
+_EXPAND_PROJECT_CHUNKS_QUERY = """
+UNWIND $seed_chunk_ids AS seed_id
+MATCH (seed:AdaptiveRagChunk {id: seed_id, project_id: $project_id})
+MATCH path = (seed)-[:NEXT_CHUNK*0..1]-(chunk:AdaptiveRagChunk {
+    project_id: $project_id
+})
+WITH chunk, min(length(path)) AS distance
+WITH chunk, distance, 1.0 / (1.0 + toFloat(distance)) AS score
+ORDER BY distance ASC, chunk.id ASC
+RETURN chunk.id AS chunk_id, distance AS distance, score AS score
+LIMIT $limit
 """

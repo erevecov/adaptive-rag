@@ -42,6 +42,9 @@ Documentos:
 - `neo4j-indexer-m18.md`: indexer Neo4j idempotente por `project_id`, con
   payload derivado desde Postgres y relaciones iniciales de project/source/
   document/version/chunk.
+- `graph-retrieval-route-m18.md`: ruta retrieval graph opt-in sobre seeds dense,
+  fallback dense con `fallback_reason` estable y citations rehidratadas desde
+  Postgres.
 
 Reglas:
 

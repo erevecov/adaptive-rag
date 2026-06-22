@@ -10,6 +10,7 @@ import typer
 
 from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
+    get_cli_graph_retriever,
     get_cli_rerank_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
@@ -19,6 +20,7 @@ from adaptive_rag.retrieval import (
     RetrievalSearchRequest,
     RetrievalService,
     RetrievalServiceError,
+    RetrievalStrategy,
 )
 from adaptive_rag.retrieval.payloads import serialize_retrieval_results
 
@@ -54,6 +56,10 @@ def search(
         int | None,
         typer.Option("--rerank-candidate-limit"),
     ] = None,
+    strategy: Annotated[
+        RetrievalStrategy,
+        typer.Option("--strategy"),
+    ] = "dense",
 ) -> None:
     try:
         rerank_options = _build_rerank_options(
@@ -80,6 +86,7 @@ def search(
         limit=limit,
         metadata_filter=metadata_filter,
         rerank=rerank_options,
+        strategy=strategy,
     )
 
     with session_scope() as session:
@@ -87,6 +94,7 @@ def search(
             session,
             provider=get_cli_dense_embedding_provider(),
             reranker=get_cli_rerank_provider() if rerank_options is not None else None,
+            graph_retriever=get_cli_graph_retriever(),
         )
         try:
             results = service.search(request)

@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import (
     get_dense_embedding_provider,
+    get_graph_retriever,
     get_rerank_provider_factory,
     get_session,
 )
@@ -22,6 +23,7 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
+    GraphProjection,
     Project,
     Source,
 )
@@ -32,6 +34,7 @@ from adaptive_rag.db.repositories import (
     SourceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.graph import GraphRetrievalResult
 from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
@@ -66,6 +69,28 @@ class RecordingRerankProvider:
         )
 
 
+class RecordingGraphRetriever:
+    def __init__(self, results: tuple[GraphRetrievalResult, ...]) -> None:
+        self.results = results
+        self.requests: list[dict[str, object]] = []
+
+    def expand_project_chunks(
+        self,
+        *,
+        project_id,
+        seed_chunk_ids,
+        limit: int,
+    ) -> tuple[GraphRetrievalResult, ...]:
+        self.requests.append(
+            {
+                "project_id": project_id,
+                "seed_chunk_ids": tuple(seed_chunk_ids),
+                "limit": limit,
+            }
+        )
+        return self.results
+
+
 def _make_session() -> Session:
     engine = create_engine(
         "sqlite+pysqlite://",
@@ -80,6 +105,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            GraphProjection.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -97,6 +123,7 @@ def _client(
     session: Session,
     provider: StaticQueryEmbeddingProvider,
     rerank_provider_factory: Iterator[RecordingRerankProvider] | None = None,
+    graph_retriever: RecordingGraphRetriever | None = None,
 ) -> TestClient:
     app = create_app()
 
@@ -108,6 +135,8 @@ def _client(
 
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
+    if graph_retriever is not None:
+        app.dependency_overrides[get_graph_retriever] = lambda: graph_retriever
     if rerank_provider_factory is not None:
         providers = iter(rerank_provider_factory)
 
@@ -235,6 +264,8 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     assert first["distance"] == pytest.approx(0.1)
     assert first["score"] == pytest.approx(1 / 1.1)
     assert first["embedding_metadata"] is None
+    assert first["strategy"] == "dense"
+    assert "fallback_reason" not in first
     assert "rerank_metadata" not in first
     assert first["citation"] == {
         "source_id": str(source.id),
@@ -337,6 +368,109 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
         "score_metadata": {"request_id": "api-rerank-request"},
         "used_rerank": True,
     }
+
+
+def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Far graph-expanded evidence",
+        snippet="Far graph-expanded evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Header\n\nAlpha dense seed evidence",
+        snippet="Alpha dense seed evidence",
+        embedding=_vector(0.1),
+    )
+    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    graph_retriever = RecordingGraphRetriever(
+        (GraphRetrievalResult(chunk_id=far.id, distance=1.0, score=0.5),)
+    )
+    client = _client(
+        session=session,
+        provider=provider,
+        graph_retriever=graph_retriever,
+    )
+
+    response = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        json={"query": "alpha question", "limit": 1, "strategy": "graph"},
+    )
+
+    assert response.status_code == 200
+    assert provider.inputs == ["alpha question"]
+    assert graph_retriever.requests == [
+        {
+            "project_id": project.id,
+            "seed_chunk_ids": (near.id,),
+            "limit": 1,
+        }
+    ]
+    data = response.json()
+    assert [result["chunk_id"] for result in data["results"]] == [str(far.id)]
+    assert data["results"][0]["strategy"] == "graph"
+    assert "fallback_reason" not in data["results"][0]
+
+
+def test_retrieval_search_endpoint_reports_graph_fallback_reason() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _far_source, _far_document, _far_version, far = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Far original evidence",
+        snippet="Far original evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Header\n\nAlpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    session.add(GraphProjection(project_id=project.id, status="pending_backfill"))
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    graph_retriever = RecordingGraphRetriever(())
+    client = _client(
+        session=session,
+        provider=provider,
+        graph_retriever=graph_retriever,
+    )
+
+    response = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        json={"query": "alpha question", "limit": 2, "strategy": "graph"},
+    )
+
+    assert response.status_code == 200
+    assert graph_retriever.requests == []
+    data = response.json()
+    assert [result["chunk_id"] for result in data["results"]] == [
+        str(near.id),
+        str(far.id),
+    ]
+    assert [result["strategy"] for result in data["results"]] == ["dense", "dense"]
+    assert [result["fallback_reason"] for result in data["results"]] == [
+        "graph_projection_pending_backfill",
+        "graph_projection_pending_backfill",
+    ]
 
 
 def test_retrieval_search_endpoint_rejects_invalid_rerank_limit_before_provider() -> (

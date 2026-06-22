@@ -10,12 +10,12 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M18 `m18-neo4j-indexer`: agrega `Neo4jProjectGraph` y
-`load_project_graph(session, project_id)` para serializar facts canonicos desde
-Postgres, y extiende `Neo4jGraphStore.backfill_project_graph(...)` para
-reconstruir nodos/relaciones Neo4j de forma idempotente por `project_id`. El
-slice conserva `graph_store=disabled` como default y no agrega worker/CLI de
-reindex, retrieval graph, evals graph ni cambios de default.
+M18 `m18-graph-retrieval-route`: agrega `strategy=dense|graph` a la request de
+retrieval compartida, API y CLI, conserva `dense` como default y usa dense
+retrieval como seeds antes de consultar graph DB. La ruta graph solo se usa si
+hay `GraphRetriever` y la proyeccion del proyecto esta `ready`; si no, vuelve a
+dense con `fallback_reason` estable. Las citations se rehidratan desde Postgres
+y el audit de chat conserva estrategia/fallback en `ToolCall`.
 
 Comandos validados en este slice:
 
@@ -62,10 +62,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-graph-retrieval-route`, porque el indice derivado ya puede
-  reconstruirse en Neo4j. El siguiente riesgo es consumirlo solo en modo opt-in,
-  con fallback dense cuando graph store este disabled/unavailable o la
-  proyeccion del proyecto no este `ready`, sin cambiar defaults.
+- Continuar con `m18-evals-quality-gate`, porque la ruta graph ya existe pero
+  sigue siendo opt-in. El siguiente riesgo es comparar dense baseline vs
+  graph-enabled retrieval en suites versionadas antes de promover defaults o
+  archivar M18.
 
 ## Reglas de coordinacion
 

@@ -127,6 +127,8 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
     assert tool_events[0]["event"] == "retrieval_tool"
     assert tool_events[0]["query"] == "alpha evidence"
     assert tool_events[0]["limit"] == 1
+    assert tool_events[0]["strategy"] == "dense"
+    assert tool_events[0]["fallback_reason"] is None
     assert tool_events[0]["result_count"] == 1
     assert tool_events[0]["chunk_ids"] == [str(chunk_id)]
     assert tool_events[0]["metadata_filter"] == {
@@ -136,6 +138,59 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
     assert isinstance(tool_events[0]["latency_ms"], int)
     assert tool_events[0]["latency_ms"] >= 0
     assert serialize_chat_response(response)["session_id"] == str(audit.session_id)
+
+
+def test_chat_service_records_graph_retrieval_strategy_from_results() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    service = ChatService(
+        runner=ToolCallingRunner(query="alpha evidence", cited_chunk_ids=(chunk_id,)),
+        retrieval_service=RecordingRetrievalService(
+            [
+                _retrieval_result(
+                    chunk_id=chunk_id,
+                    snippet="Alpha evidence",
+                    strategy="graph",
+                )
+            ]
+        ),
+        audit_writer=audit,
+    )
+
+    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+
+    tool_events = [
+        event for event in audit.events if event["event"] == "retrieval_tool"
+    ]
+    assert tool_events[0]["strategy"] == "graph"
+
+
+def test_chat_service_records_graph_fallback_reason_from_results() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    service = ChatService(
+        runner=ToolCallingRunner(query="alpha evidence", cited_chunk_ids=(chunk_id,)),
+        retrieval_service=RecordingRetrievalService(
+            [
+                _retrieval_result(
+                    chunk_id=chunk_id,
+                    snippet="Alpha evidence",
+                    fallback_reason="graph_projection_pending_backfill",
+                )
+            ]
+        ),
+        audit_writer=audit,
+    )
+
+    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+
+    tool_events = [
+        event for event in audit.events if event["event"] == "retrieval_tool"
+    ]
+    assert tool_events[0]["strategy"] == "dense"
+    assert tool_events[0]["fallback_reason"] == "graph_projection_pending_backfill"
 
 
 def test_successful_chat_ignores_provider_usage_failure_and_succeeds() -> None:
@@ -254,7 +309,13 @@ def test_invalid_retrieval_limit_does_not_start_audit_session() -> None:
     assert audit.events == []
 
 
-def _retrieval_result(*, chunk_id: UUID, snippet: str) -> RetrievalSearchResult:
+def _retrieval_result(
+    *,
+    chunk_id: UUID,
+    snippet: str,
+    strategy: str = "dense",
+    fallback_reason: str | None = None,
+) -> RetrievalSearchResult:
     source_id = uuid4()
     document_id = uuid4()
     document_version_id = uuid4()
@@ -280,4 +341,6 @@ def _retrieval_result(*, chunk_id: UUID, snippet: str) -> RetrievalSearchResult:
         score=1 / 1.2,
         citation=citation,
         embedding_metadata={"provider": "fake"},
+        strategy=strategy,
+        fallback_reason=fallback_reason,
     )

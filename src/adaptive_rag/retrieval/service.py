@@ -5,13 +5,20 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
+from adaptive_rag.db.repositories import GraphProjectionRepository
 from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.graph import (
+    GraphRetrievalResult,
+    GraphRetriever,
+    GraphStoreError,
+    should_use_dense_fallback,
+)
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import (
     RerankCandidate,
@@ -55,6 +62,9 @@ class RetrievalRerankOptions:
     candidate_limit: int
 
 
+RetrievalStrategy = Literal["dense", "graph"]
+
+
 @dataclass(frozen=True, slots=True)
 class RetrievalSearchRequest:
     """Solicitud interna de retrieval sobre query text."""
@@ -64,6 +74,7 @@ class RetrievalSearchRequest:
     limit: int = 10
     metadata_filter: RetrievalMetadataFilter | None = None
     rerank: RetrievalRerankOptions | None = None
+    strategy: RetrievalStrategy = "dense"
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +87,14 @@ class RetrievalSearchResult:
     citation: DenseRetrievalCitation
     embedding_metadata: dict[str, Any] | None
     rerank_metadata: dict[str, Any] | None = None
+    strategy: RetrievalStrategy = "dense"
+    fallback_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _GraphRetrievalAttempt:
+    results: list[RetrievalSearchResult] | None
+    fallback_reason: str | None = None
 
 
 class RetrievalService:
@@ -87,15 +106,22 @@ class RetrievalService:
         *,
         provider: DenseEmbeddingProvider,
         reranker: RerankProvider | None = None,
+        graph_retriever: GraphRetriever | None = None,
+        graph_projection_repository: GraphProjectionRepository | None = None,
     ) -> None:
         self._provider = provider
         self._reranker = reranker
         self._retriever = DenseRetriever(session)
+        self._graph_retriever = graph_retriever
+        self._graph_projection_repository = (
+            graph_projection_repository or GraphProjectionRepository(session)
+        )
 
     def search(self, request: RetrievalSearchRequest) -> list[RetrievalSearchResult]:
         query = _validate_query(request.query)
         if request.limit <= 0:
             raise RetrievalServiceError("limit must be positive")
+        strategy = _validate_strategy(request.strategy)
         rerank_options = _validate_rerank_options(
             request.rerank,
             limit=request.limit,
@@ -111,7 +137,7 @@ class RetrievalService:
         )
 
         try:
-            results = self._retriever.search(
+            dense_results = self._retriever.search(
                 project_id=request.project_id,
                 query_embedding=query_embedding,
                 limit=dense_limit,
@@ -120,7 +146,21 @@ class RetrievalService:
         except DenseRetrievalError as exc:
             raise RetrievalServiceError(str(exc)) from exc
 
-        search_results = [_to_search_result(result) for result in results]
+        search_results = [_to_search_result(result) for result in dense_results]
+        if strategy == "graph":
+            graph_attempt = self._try_graph_results(
+                project_id=request.project_id,
+                dense_results=dense_results,
+                limit=dense_limit,
+                filters=filters,
+            )
+            if graph_attempt.results is not None:
+                search_results = graph_attempt.results
+            elif graph_attempt.fallback_reason is not None:
+                search_results = [
+                    _with_fallback_reason(result, graph_attempt.fallback_reason)
+                    for result in search_results
+                ]
         if rerank_options is None or not search_results:
             return search_results
         return self._rerank_results(
@@ -129,6 +169,88 @@ class RetrievalService:
             limit=request.limit,
             options=rerank_options,
         )
+
+    def _try_graph_results(
+        self,
+        *,
+        project_id: UUID,
+        dense_results: list[DenseRetrievalResult],
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> _GraphRetrievalAttempt:
+        if self._graph_retriever is None:
+            return _GraphRetrievalAttempt(
+                results=None,
+                fallback_reason="graph_retriever_unavailable",
+            )
+        projection = self._graph_projection_repository.get(project_id=project_id)
+        if projection is None:
+            return _GraphRetrievalAttempt(
+                results=None,
+                fallback_reason="graph_projection_missing",
+            )
+        if should_use_dense_fallback(projection.status):
+            return _GraphRetrievalAttempt(
+                results=None,
+                fallback_reason=f"graph_projection_{projection.status}",
+            )
+
+        seed_chunk_ids = tuple(result.chunk_id for result in dense_results)
+        if not seed_chunk_ids:
+            return _GraphRetrievalAttempt(results=[])
+        try:
+            graph_hits = self._graph_retriever.expand_project_chunks(
+                project_id=project_id,
+                seed_chunk_ids=seed_chunk_ids,
+                limit=limit,
+            )
+        except GraphStoreError as exc:
+            return _GraphRetrievalAttempt(
+                results=None,
+                fallback_reason=exc.error_code,
+            )
+        if not graph_hits:
+            return _GraphRetrievalAttempt(results=[])
+        return _GraphRetrievalAttempt(
+            results=self._to_graph_search_results(
+                project_id=project_id,
+                graph_hits=graph_hits,
+                filters=filters,
+            )
+        )
+
+    def _to_graph_search_results(
+        self,
+        *,
+        project_id: UUID,
+        graph_hits: Sequence[GraphRetrievalResult],
+        filters: DenseRetrievalFilters,
+    ) -> list[RetrievalSearchResult]:
+        citations_by_chunk_id = self._retriever.get_by_chunk_ids(
+            project_id=project_id,
+            chunk_ids=[hit.chunk_id for hit in graph_hits],
+            filters=filters,
+        )
+        results: list[RetrievalSearchResult] = []
+        seen_chunk_ids: set[UUID] = set()
+        for hit in graph_hits:
+            if hit.chunk_id in seen_chunk_ids:
+                continue
+            source = citations_by_chunk_id.get(hit.chunk_id)
+            if source is None:
+                continue
+            seen_chunk_ids.add(hit.chunk_id)
+            results.append(
+                RetrievalSearchResult(
+                    chunk_id=hit.chunk_id,
+                    distance=hit.distance,
+                    score=hit.score,
+                    citation=source.citation,
+                    embedding_metadata=source.embedding_metadata,
+                    strategy="graph",
+                )
+            )
+        return results
 
     def _embed_query(self, query: str) -> Sequence[float]:
         if self._provider.dimensions != EMBEDDING_DIMENSIONS:
@@ -187,6 +309,12 @@ def _validate_query(query: str) -> str:
     return value
 
 
+def _validate_strategy(strategy: str) -> RetrievalStrategy:
+    if strategy not in ("dense", "graph"):
+        raise RetrievalServiceError("retrieval strategy must be dense or graph")
+    return cast(RetrievalStrategy, strategy)
+
+
 def _validate_rerank_options(
     rerank_options: RetrievalRerankOptions | None,
     *,
@@ -219,6 +347,28 @@ def _to_search_result(result: DenseRetrievalResult) -> RetrievalSearchResult:
             if result.embedding_metadata is not None
             else None
         ),
+    )
+
+
+def _with_fallback_reason(
+    result: RetrievalSearchResult,
+    fallback_reason: str,
+) -> RetrievalSearchResult:
+    return RetrievalSearchResult(
+        chunk_id=result.chunk_id,
+        distance=result.distance,
+        score=result.score,
+        citation=result.citation,
+        embedding_metadata=(
+            dict(result.embedding_metadata)
+            if result.embedding_metadata is not None
+            else None
+        ),
+        rerank_metadata=(
+            dict(result.rerank_metadata) if result.rerank_metadata is not None else None
+        ),
+        strategy=result.strategy,
+        fallback_reason=fallback_reason,
     )
 
 
@@ -285,6 +435,8 @@ def _with_rerank_metadata(
             "score_metadata": dict(score.metadata),
             "used_rerank": True,
         },
+        strategy=result.strategy,
+        fallback_reason=result.fallback_reason,
     )
 
 

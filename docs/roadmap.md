@@ -697,17 +697,18 @@ Secuencia recomendada:
 5. `m18-neo4j-indexer`: completo. Materializa nodos/relaciones derivados
    desde proyectos, sources, documents, document versions, chunks y metadata con
    backfill idempotente por `project_id`.
-6. `m18-graph-retrieval-route`: pendiente. Agregar retrieval graph opt-in y
-   routeable, con fallback claro a dense retrieval cuando este deshabilitado o
-   no disponible.
+6. `m18-graph-retrieval-route`: completo. Agrega `strategy=dense|graph` en
+   retrieval API/CLI, consulta graph DB solo con proyeccion `ready`, rehidrata
+   citations desde Postgres y vuelve a dense con `fallback_reason` estable
+   cuando graph no puede usarse.
 7. `m18-evals-quality-gate`: pendiente. Comparar dense baseline vs
    graph-enabled retrieval en suites versionadas antes de promover cualquier
    default y archivar M18 si corresponde.
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
-opcional, no como requisito del stack base. La prioridad inmediata es
-implementar `m18-graph-retrieval-route` sobre el indexer cerrado, sin promover
-graph retrieval como default.
+opcional, no como requisito del stack base. La prioridad inmediata es ejecutar
+`m18-evals-quality-gate` para comparar dense baseline vs graph-enabled
+retrieval antes de cualquier cambio de default o cierre de M18.
 
 ## Politica para reducir conflictos de merge
 

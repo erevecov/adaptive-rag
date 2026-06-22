@@ -128,12 +128,29 @@ de Neo4j live.
 El sistema MUST preservar contratos existentes de retrieval cuando graph DB se
 usa como ruta opt-in.
 
+#### Scenario: Retrieval graph se solicita explicitamente
+
+- **WHEN** una llamada API o CLI de retrieval solicita `strategy=graph`
+- **THEN** el sistema mantiene `strategy=dense` como default para llamadas que
+  no lo solicitan
+- **AND** usa resultados dense como seeds antes de consultar graph DB
+- **AND** solo consulta graph DB cuando existe una proyeccion `ready` del
+  proyecto y un graph retriever disponible
+
 #### Scenario: Retrieval graph respeta filtros y citations
 
 - **WHEN** una consulta usa retrieval graph
 - **THEN** respeta aislamiento por proyecto y metadata filters
 - **AND** devuelve citations compatibles con la superficie de retrieval actual
 - **AND** registra audit trail de estrategia y fallos
+
+#### Scenario: Fallback graph conserva razon estable
+
+- **WHEN** `strategy=graph` no puede usar graph DB por falta de retriever,
+  proyeccion no ready o error estable de graph store
+- **THEN** el sistema devuelve resultados dense filtrados
+- **AND** expone `strategy=dense`
+- **AND** expone una `fallback_reason` estable para audit y observabilidad
 
 #### Scenario: Promotion requiere evals
 

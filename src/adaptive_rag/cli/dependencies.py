@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from inspect import signature
+from typing import cast
 
 from adaptive_rag.chat import ChatRunner
 from adaptive_rag.config.settings import get_settings
@@ -12,6 +13,7 @@ from adaptive_rag.evals import (
     EvalRunOptions,
     validate_hosted_eval_credentials,
 )
+from adaptive_rag.graph import GraphRetriever, get_graph_store
 from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_dense_embedding_provider,
@@ -49,6 +51,13 @@ def get_cli_chat_runner(
 
 def get_cli_rerank_provider() -> RerankProvider:
     return get_rerank_provider()
+
+
+def get_cli_graph_retriever() -> GraphRetriever | None:
+    graph_store = get_graph_store()
+    if hasattr(graph_store, "expand_project_chunks"):
+        return cast(GraphRetriever, graph_store)
+    return None
 
 
 def get_cli_hosted_eval_runtime(

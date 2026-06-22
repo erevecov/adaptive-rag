@@ -317,11 +317,30 @@ Fuera de alcance:
 
 ### 6. `m18-graph-retrieval-route`
 
+Estado: completo.
+
 Alcance:
 
 - Agregar ruta retrieval graph opt-in.
 - Fallback a dense retrieval.
 - Audit trail de estrategia graph.
+
+Resultado:
+
+- Agrega `strategy=dense|graph` en la request compartida de retrieval, API y
+  CLI, manteniendo `dense` como default.
+- La ruta graph sigue ejecutando dense retrieval primero para obtener seeds y
+  solo consulta graph DB cuando existe `GraphRetriever` y la proyeccion del
+  proyecto esta `ready`.
+- `Neo4jGraphStore.expand_project_chunks(...)` expande chunks seed con
+  `NEXT_CHUNK*0..1` dentro del `project_id` y devuelve hits para rehidratar
+  citations desde Postgres.
+- El fallback devuelve resultados dense con `fallback_reason` estable cuando no
+  hay retriever, la proyeccion no esta ready o graph store falla con errores
+  estables.
+- Los payloads de retrieval exponen `strategy` y, cuando aplica,
+  `fallback_reason`; chat audit resume estrategia y razon de fallback en el
+  `ToolCall`.
 
 Fuera de alcance:
 

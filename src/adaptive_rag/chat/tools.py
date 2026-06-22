@@ -161,5 +161,12 @@ class ChatRetrievalTool:
                 active_filter,
                 latency_ms,
                 payloads,
+                _strategy_for_results(results),
             )
         return ChatRetrievalToolResult(results=payloads)
+
+
+def _strategy_for_results(results: list[RetrievalSearchResult]) -> str:
+    if any(result.strategy == "graph" for result in results):
+        return "graph"
+    return "dense"
