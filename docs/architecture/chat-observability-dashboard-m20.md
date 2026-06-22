@@ -1,6 +1,6 @@
 # M20 Chat observability dashboard
 
-Estado: activo en planificacion.
+Estado: completo.
 
 ## Decision
 
@@ -48,16 +48,16 @@ orientada a debugging local-first, no marketing.
 4. `m20-observability-breakdowns`: completo.
 5. `m20-observability-summary-shape`: no necesario; el summary M17 cubrio los
    breakdowns sin extension backward-compatible.
-6. `m20-quality-gate`: validar y archivar M20.
+6. `m20-quality-gate`: completo. Valida y archiva M20.
 
 ## Criterio de cierre
 
-M20 debe cerrar cuando un usuario pueda abrir el frontend local, ingresar un
+M20 cierra cuando un usuario puede abrir el frontend local, ingresar un
 `project_id`, refrescar observability con filtros acotados y ver salud/costo/
 latencia/errores de chat desde APIs publicas read-only, sin cambios de defaults
 ni fuga de datos sensibles.
 
-Spec canonica esperada:
+Spec canonica publicada:
 
 - `openspec/specs/chat-observability/spec.md`
 - `openspec/specs/chat-frontend/spec.md`
