@@ -15,6 +15,14 @@ from adaptive_rag.evals.candidate_limit_runner import (
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.datasets import load_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError, EvalDatasetError
+from adaptive_rag.evals.graph_live_evidence import (
+    GraphLiveEvidenceReport,
+    GraphOperationalCost,
+    build_graph_live_evidence_report,
+    load_graph_operation_report,
+    load_graph_retrieval_smoke_report,
+    serialize_graph_live_evidence_report,
+)
 from adaptive_rag.evals.graph_quality_gate_runner import (
     GraphQualityGateDecision,
     GraphQualityGateReport,
@@ -76,9 +84,14 @@ __all__ = [
     "EvalThresholds",
     "GraphQualityGateDecision",
     "GraphQualityGateReport",
+    "GraphLiveEvidenceReport",
+    "GraphOperationalCost",
     "RetrievalEvalCase",
     "build_candidate_limit_eval_matrix",
+    "build_graph_live_evidence_report",
     "load_eval_suite",
+    "load_graph_operation_report",
+    "load_graph_retrieval_smoke_report",
     "run_chat_eval_suite",
     "run_candidate_limit_ab_retrieval_eval_suite",
     "run_eval_suite",
@@ -89,6 +102,7 @@ __all__ = [
     "run_retrieval_eval_suite",
     "serialize_eval_report",
     "serialize_graph_quality_gate_report",
+    "serialize_graph_live_evidence_report",
     "serialize_candidate_limit_ab_run_report",
     "serialize_candidate_limit_eval_matrix",
     "summarize_provider_usage",

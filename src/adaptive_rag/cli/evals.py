@@ -20,11 +20,16 @@ from adaptive_rag.evals import (
     EvalConfigurationError,
     EvalDatasetError,
     EvalRunMode,
+    GraphOperationalCost,
+    build_graph_live_evidence_report,
     load_eval_suite,
+    load_graph_operation_report,
+    load_graph_retrieval_smoke_report,
     run_eval_suite,
     run_graph_quality_gate_eval_suite,
     run_hosted_eval_suite,
     serialize_eval_report,
+    serialize_graph_live_evidence_report,
     serialize_graph_quality_gate_report,
     validate_hosted_rerank_eval_options,
 )
@@ -126,6 +131,70 @@ def graph_quality_gate(
         raise typer.Exit(1) from exc
 
     payload = json.dumps(serialize_graph_quality_gate_report(report))
+    if output is None:
+        typer.echo(payload)
+    else:
+        output.write_text(f"{payload}\n", encoding="utf-8")
+
+    if report.status == "failed":
+        raise typer.Exit(1)
+
+
+@app.command("graph-live-evidence")
+def graph_live_evidence(
+    suite_path: Annotated[Path, typer.Argument()],
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+    operation_report: Annotated[
+        list[Path] | None,
+        typer.Option("--operation-report"),
+    ] = None,
+    retrieval_smoke_report: Annotated[
+        list[Path] | None,
+        typer.Option("--retrieval-smoke-report"),
+    ] = None,
+    graph_operational_cost_usd: Annotated[
+        float | None,
+        typer.Option("--graph-operational-cost-usd"),
+    ] = None,
+    graph_operational_cost_notes: Annotated[
+        str | None,
+        typer.Option("--graph-operational-cost-notes"),
+    ] = None,
+) -> None:
+    try:
+        suite = load_eval_suite(suite_path)
+        operation_reports = tuple(
+            load_graph_operation_report(path) for path in operation_report or ()
+        )
+        retrieval_reports = tuple(
+            load_graph_retrieval_smoke_report(path)
+            for path in retrieval_smoke_report or ()
+        )
+    except EvalDatasetError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    try:
+        with session_scope() as session:
+            quality_report = run_graph_quality_gate_eval_suite(
+                session,
+                suite,
+                provider=get_cli_dense_embedding_provider(),
+            )
+        report = build_graph_live_evidence_report(
+            quality_report=quality_report,
+            operation_reports=operation_reports,
+            retrieval_smoke_reports=retrieval_reports,
+            graph_operational_cost=GraphOperationalCost(
+                amount_usd=graph_operational_cost_usd,
+                notes=graph_operational_cost_notes,
+            ),
+        )
+    except (EvalConfigurationError, QwenEmbeddingProviderError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    payload = json.dumps(serialize_graph_live_evidence_report(report))
     if output is None:
         typer.echo(payload)
     else:

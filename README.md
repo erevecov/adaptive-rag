@@ -54,6 +54,25 @@ El comando imprime status, latencia, conteos, `fallback_reason`, chunk ids y
 sources. Sale con codigo `0` solo si obtiene resultados `strategy=graph`; si
 cae a dense fallback o no hay hits graph, sale con codigo `1`.
 
+## Evidencia graph live
+
+Para consolidar la evidencia M19, ejecuta el quality gate dense-vs-graph junto
+con los artefactos JSON emitidos por backfill/reindex y retrieval smoke:
+
+```bash
+uv run adaptive-rag evals graph-live-evidence <suite.json> \
+  --operation-report backfill.json \
+  --operation-report reindex.json \
+  --retrieval-smoke-report retrieval-smoke.json \
+  --graph-operational-cost-usd 12.50 \
+  --graph-operational-cost-notes "Neo4j Aura daily estimate"
+```
+
+El comando reporta `comparison_metrics`, `operational_metrics`, `error_codes`,
+`graph_operational_cost`, `operation_reports` y `retrieval_smoke_reports`.
+Sale con codigo `0` solo cuando el quality gate pasa y todos los artefactos
+live quedan `ready`; no ejecuta operaciones Neo4j por si mismo.
+
 ## Documentación
 
 La documentación del repositorio se escribe en español. Se mantienen en inglés

@@ -40,7 +40,9 @@ con `limited_experiment`; un cambio de default requiere un milestone posterior.
    backfill/reindex con readiness persistida y reporte JSON.
 4. `m19-graph-live-retrieval-smoke`: completo; smoke de retrieval graph con
    proyeccion `ready`, filtros, citations, latencia y fallback visible.
-5. `m19-graph-live-evidence-report`: reporte comparativo live.
+5. `m19-graph-live-evidence-report`: completo; reporte comparativo live que
+   consolida calidad dense-vs-graph, artefactos backfill/reindex, retrieval
+   smoke, error codes, latencia/fallback y costo operacional declarado.
 6. `m19-quality-gate`: validacion, decision y archive.
 
 ## Criterio de cierre

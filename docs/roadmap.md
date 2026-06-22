@@ -755,8 +755,10 @@ Secuencia recomendada:
    `adaptive-rag graph retrieval-smoke` para ejecutar `strategy=graph` con
    proyeccion `ready`, filtros, citations, latencia y salida no cero ante
    fallback o ausencia de hits graph.
-5. `m19-graph-live-evidence-report`: reportar calidad dense-vs-graph, latencia,
-   fallback, errores, duracion de backfill/reindex y costo operacional.
+5. `m19-graph-live-evidence-report`: completo. Agrega
+   `adaptive-rag evals graph-live-evidence` para reportar calidad
+   dense-vs-graph, latencia, fallback, errores, duracion de backfill/reindex y
+   costo operacional declarado desde artefactos JSON previos.
 6. `m19-quality-gate`: validar, decidir `hold_default`, `limited_experiment` o
    `no_go_promotion`, archivar el change y publicar spec canonica actualizada.
 
