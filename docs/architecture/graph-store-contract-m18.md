@@ -54,7 +54,6 @@ del dominio.
 
 ## Siguiente paso
 
-`m18-neo4j-adapter-and-health` quedo completado sobre este contrato. El
-siguiente paso es `m18-neo4j-indexer`: materializar nodos y relaciones derivados
-desde Postgres de forma idempotente por `project_id`, sin route de retrieval
-graph ni cambios de default todavia.
+`m18-neo4j-adapter-and-health` y `m18-neo4j-indexer` quedaron completados sobre
+este contrato. El siguiente paso es `m18-graph-retrieval-route`: consumir el
+indice graph solo en modo opt-in, con fallback dense y sin cambios de default.

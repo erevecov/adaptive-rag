@@ -287,15 +287,33 @@ Fuera de alcance:
 
 ### 5. `m18-neo4j-indexer`
 
+Estado: completo.
+
 Alcance:
 
 - Materializar grafo derivado desde Postgres.
 - Reindex idempotente por proyecto.
 - Preservar aislamiento y metadata.
 
+Resultado:
+
+- Agrega `Neo4jProjectGraph` y `load_project_graph(session, project_id)` para
+  construir un payload determinista desde Project, Source, Document,
+  DocumentVersion y Chunk.
+- Serializa metadata JSON como strings estables para propiedades Neo4j y
+  conserva anchors de citations por version/chunk/offset sin copiar embeddings
+  ni `normalized_text` completo.
+- `Neo4jGraphStore.backfill_project_graph(...)` elimina el scope
+  `AdaptiveRagGraph` del proyecto y luego ejecuta `MERGE` de nodos y relaciones
+  project/source/document/version/chunk.
+- `delete_project_graph(...)` queda implementado como borrado scoped por
+  `project_id`.
+- `get_graph_store(...)` inyecta el loader Postgres por default para runtime
+  Neo4j, con loader inyectable en tests.
+
 Fuera de alcance:
 
-- Retrieval graph online por default.
+- Worker/CLI de reindex, retrieval graph online y cambios de default.
 
 ### 6. `m18-graph-retrieval-route`
 

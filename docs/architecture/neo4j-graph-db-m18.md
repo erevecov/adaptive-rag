@@ -52,7 +52,7 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 
 - Agregar dependencia `graphdatascience`.
 - Agregar Docker Compose, Neo4j Desktop config o Aura secrets.
-- Agregar indexer, reindex jobs o route de retrieval graph.
+- Agregar reindex jobs o route de retrieval graph.
 - Cambiar defaults de retrieval, rerank, chat, streaming o observability.
 
 ## Secuencia
@@ -61,7 +61,7 @@ Context7 resolvio docs oficiales de Neo4j y se consultaron:
 2. `m18-graph-db-decision-matrix`: completo.
 3. `m18-graph-store-contract`: completo.
 4. `m18-neo4j-adapter-and-health`: completo.
-5. `m18-neo4j-indexer`: pendiente.
+5. `m18-neo4j-indexer`: completo.
 6. `m18-graph-retrieval-route`: pendiente.
 7. `m18-evals-quality-gate`: pendiente.
 

@@ -28,7 +28,7 @@
 - [x] 3.2 Implementar `m18-graph-store-contract`, incluyendo
   readiness/backfill por proyecto en Postgres antes del adapter live.
 - [x] 3.3 Implementar `m18-neo4j-adapter-and-health`.
-- [ ] 3.4 Implementar `m18-neo4j-indexer`.
+- [x] 3.4 Implementar `m18-neo4j-indexer`.
 - [ ] 3.5 Implementar `m18-graph-retrieval-route`.
 - [ ] 3.6 Ejecutar `m18-evals-quality-gate` y archivar el change cuando se
   complete.

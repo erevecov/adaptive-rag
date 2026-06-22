@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from adaptive_rag.config.settings import Settings, get_settings
+from adaptive_rag.graph.indexer import (
+    ProjectGraphLoader,
+    load_project_graph_from_database,
+)
 from adaptive_rag.graph.neo4j import (
     Neo4jDriverFactory,
     Neo4jGraphStore,
@@ -21,6 +25,7 @@ def get_graph_store(
     settings: Settings | None = None,
     *,
     driver_factory: Neo4jDriverFactory | None = None,
+    project_graph_loader: ProjectGraphLoader | None = None,
 ) -> GraphStore:
     runtime_settings = settings or get_settings()
     if runtime_settings.graph_store == "disabled":
@@ -36,7 +41,10 @@ def get_graph_store(
         raise GraphStoreUnavailableError(
             "failed to initialize neo4j graph store"
         ) from exc
-    return Neo4jGraphStore(driver=driver)
+    return Neo4jGraphStore(
+        driver=driver,
+        project_graph_loader=project_graph_loader or load_project_graph_from_database,
+    )
 
 
 def _require_neo4j_settings(settings: Settings) -> tuple[str, str, str]:
