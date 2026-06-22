@@ -751,8 +751,10 @@ Secuencia recomendada:
    backfill/reindex por proyecto, con transiciones `pending_backfill`,
    `indexing`, `ready` y `failed`, reporte JSON de duracion/error code y
    conteos del payload materializado.
-4. `m19-graph-live-retrieval-smoke`: ejecutar retrieval graph con Neo4j real,
-   proyeccion `ready`, filtros, citations y fallback.
+4. `m19-graph-live-retrieval-smoke`: completo. Agrega
+   `adaptive-rag graph retrieval-smoke` para ejecutar `strategy=graph` con
+   proyeccion `ready`, filtros, citations, latencia y salida no cero ante
+   fallback o ausencia de hits graph.
 5. `m19-graph-live-evidence-report`: reportar calidad dense-vs-graph, latencia,
    fallback, errores, duracion de backfill/reindex y costo operacional.
 6. `m19-quality-gate`: validar, decidir `hold_default`, `limited_experiment` o

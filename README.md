@@ -42,6 +42,18 @@ uv run adaptive-rag graph reindex <project-id> --source-watermark chunks:v2
 Los comandos imprimen un reporte JSON con status, duracion, conteos y error
 code. Salen con codigo `0` solo cuando la proyeccion termina en `ready`.
 
+## Retrieval graph smoke opt-in
+
+Con una proyeccion `ready`, se puede validar la ruta live de lectura graph:
+
+```bash
+uv run adaptive-rag graph retrieval-smoke <project-id> --query "alpha question" --limit 5
+```
+
+El comando imprime status, latencia, conteos, `fallback_reason`, chunk ids y
+sources. Sale con codigo `0` solo si obtiene resultados `strategy=graph`; si
+cae a dense fallback o no hay hits graph, sale con codigo `1`.
+
 ## Documentación
 
 La documentación del repositorio se escribe en español. Se mantienen en inglés

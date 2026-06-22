@@ -14,16 +14,16 @@ M18 Neo4j graph DB decision cerrado el 2026-06-22.
 
 ## Ultimo slice completado
 
-M19 `m19-graph-backfill-reindex-ops`: agrega `adaptive-rag graph backfill` y
-`adaptive-rag graph reindex` para reconstruir la proyeccion Neo4j por
-`project_id`, persistiendo transiciones `pending_backfill`, `indexing`, `ready`
-o `failed`, y serializando un reporte JSON con duracion, conteos y error code.
+M19 `m19-graph-live-retrieval-smoke`: agrega
+`adaptive-rag graph retrieval-smoke` para ejecutar `strategy=graph` contra una
+proyeccion `ready`, medir latencia, reportar resultados/citations y salir con
+codigo no cero cuando la ruta cae a dense fallback o no devuelve hits graph.
 `graph_store=disabled` y `strategy=dense` siguen como defaults.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest tests/unit/graph/test_backfill_operations.py tests/integration/cli/test_graph_cli.py tests/unit/graph/test_neo4j_indexer.py -q
+uv run pytest tests/unit/graph/test_retrieval_smoke_operations.py tests/integration/cli/test_graph_cli.py -q
 uv run ruff check src tests
 uv run mypy src/adaptive_rag
 pnpm dlx @fission-ai/openspec validate m19-graph-live-ops-plan --strict
@@ -66,11 +66,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m19-graph-live-retrieval-smoke`: ejecutar retrieval `strategy=graph`
-  contra Neo4j real con proyeccion `ready`, filtros, citations y fallback dense.
-  Es la opcion recomendada porque el backfill/reindex ya deja el indice derivado
-  operable por proyecto; ahora falta probar lectura live antes del reporte de
-  evidencia.
+- Implementar `m19-graph-live-evidence-report`: extender el reporte comparativo
+  dense-vs-graph con latencia live, fallback counts, error codes, duracion de
+  backfill/reindex y costo operacional declarado. Es la opcion recomendada
+  porque ya existen smoke de conectividad, backfill/reindex y retrieval graph;
+  ahora falta consolidar evidencia para el gate de decision.
 
 ## Reglas de coordinacion
 

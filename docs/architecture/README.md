@@ -54,6 +54,8 @@ Documentos:
   Neo4j local/managed sin exponer secretos ni cambiar defaults.
 - `graph-backfill-reindex-m19.md`: comandos CLI opt-in para reconstruir la
   proyeccion Neo4j por proyecto y persistir readiness/error codes.
+- `graph-retrieval-smoke-m19.md`: smoke CLI opt-in para validar retrieval
+  `strategy=graph` con proyeccion ready, citations y fallback visible.
 
 Reglas:
 
