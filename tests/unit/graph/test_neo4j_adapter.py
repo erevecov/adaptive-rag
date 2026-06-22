@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -9,7 +10,6 @@ from adaptive_rag.config.settings import Settings
 from adaptive_rag.graph import (
     DisabledGraphStore,
     GraphStoreConfigurationError,
-    GraphStoreQueryError,
     GraphStoreUnavailableError,
     Neo4jGraphStore,
     get_graph_store,
@@ -20,12 +20,17 @@ class FakeNeo4jDriver:
     def __init__(self, *, failure: Exception | None = None) -> None:
         self.failure = failure
         self.verify_calls = 0
+        self.execute_queries: list[tuple[str, dict[str, Any]]] = []
         self.close_calls = 0
 
     def verify_connectivity(self) -> None:
         self.verify_calls += 1
         if self.failure is not None:
             raise self.failure
+
+    def execute_query(self, query: str, **parameters: Any) -> object:
+        self.execute_queries.append((query, parameters))
+        return object()
 
     def close(self) -> None:
         self.close_calls += 1
@@ -128,23 +133,17 @@ def test_neo4j_close_delegates_to_driver() -> None:
     assert fake_driver.close_calls == 1
 
 
-def test_neo4j_indexing_methods_stay_out_of_adapter_health_slice() -> None:
+def test_neo4j_indexing_requires_project_graph_loader() -> None:
     store = Neo4jGraphStore(driver=FakeNeo4jDriver())
 
     with pytest.raises(
-        GraphStoreQueryError,
-        match="neo4j graph indexing is not implemented",
+        GraphStoreConfigurationError,
+        match="project graph loader is required for neo4j indexing",
     ):
         store.backfill_project_graph(
             project_id=uuid4(),
             source_watermark="chunks:v1",
         )
-
-    with pytest.raises(
-        GraphStoreQueryError,
-        match="neo4j graph indexing is not implemented",
-    ):
-        store.delete_project_graph(project_id=uuid4())
 
 
 def test_neo4j_configuration_errors_do_not_include_password() -> None:

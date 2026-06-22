@@ -10,12 +10,12 @@ M17 Chat observability y costo-latencia cerrado el 2026-06-21.
 
 ## Ultimo slice completado
 
-M18 `m18-neo4j-adapter-and-health`: agrega `neo4j>=6.0`, `Neo4jGraphStore` y
-factory `get_graph_store(...)` para crear el driver con URI/auth opt-in y
-ejecutar `verify_connectivity()` solo en `health_check()`. Los fallos de auth,
-servicio y driver se mapean a errores estables sin secretos. El slice no agrega
-indexer, reindex jobs, retrieval graph, Docker/Aura secrets ni cambios de
-default.
+M18 `m18-neo4j-indexer`: agrega `Neo4jProjectGraph` y
+`load_project_graph(session, project_id)` para serializar facts canonicos desde
+Postgres, y extiende `Neo4jGraphStore.backfill_project_graph(...)` para
+reconstruir nodos/relaciones Neo4j de forma idempotente por `project_id`. El
+slice conserva `graph_store=disabled` como default y no agrega worker/CLI de
+reindex, retrieval graph, evals graph ni cambios de default.
 
 Comandos validados en este slice:
 
@@ -62,10 +62,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Continuar con `m18-neo4j-indexer`, porque el adapter Neo4j opt-in y health
-  checks ya estan cerrados. El siguiente riesgo es materializar nodos/relaciones
-  derivados desde Postgres de forma idempotente por `project_id`, sin activar
-  retrieval graph ni cambiar defaults.
+- Continuar con `m18-graph-retrieval-route`, porque el indice derivado ya puede
+  reconstruirse en Neo4j. El siguiente riesgo es consumirlo solo en modo opt-in,
+  con fallback dense cuando graph store este disabled/unavailable o la
+  proyeccion del proyecto no este `ready`, sin cambiar defaults.
 
 ## Reglas de coordinacion
 

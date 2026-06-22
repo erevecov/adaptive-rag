@@ -17,12 +17,16 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.graph import (
-    GRAPH_PROJECTION_STATUS_VALUES as _GRAPH_PROJECTION_STATUS_VALUES,
-)
 
 GRAPH_PROJECTION_BACKEND_VALUES = ("neo4j",)
-GRAPH_PROJECTION_STATUS_VALUES = _GRAPH_PROJECTION_STATUS_VALUES
+GRAPH_PROJECTION_STATUS_VALUES = (
+    "disabled",
+    "pending_backfill",
+    "indexing",
+    "ready",
+    "stale",
+    "failed",
+)
 DEFAULT_GRAPH_SCHEMA_VERSION = "graph-store-v1"
 DEFAULT_GRAPH_EXTRACTOR_VERSION = "graph-extractor-v1"
 

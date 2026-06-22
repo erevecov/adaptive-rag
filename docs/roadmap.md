@@ -694,9 +694,9 @@ Secuencia recomendada:
    adapter `Neo4jGraphStore`, factory `get_graph_store(...)`, validacion de
    URI/auth y health check con `verify_connectivity()` y errores estables sin
    exponer secretos.
-5. `m18-neo4j-indexer`: pendiente. Materializar nodos/relaciones derivados
-   desde proyectos, sources, documents, chunks y metadata con reindex
-   idempotente.
+5. `m18-neo4j-indexer`: completo. Materializa nodos/relaciones derivados
+   desde proyectos, sources, documents, document versions, chunks y metadata con
+   backfill idempotente por `project_id`.
 6. `m18-graph-retrieval-route`: pendiente. Agregar retrieval graph opt-in y
    routeable, con fallback claro a dense retrieval cuando este deshabilitado o
    no disponible.
@@ -706,8 +706,8 @@ Secuencia recomendada:
 
 Decision: Neo4j avanza como candidato principal para una integracion graph DB
 opcional, no como requisito del stack base. La prioridad inmediata es
-implementar `m18-neo4j-indexer` sobre el adapter cerrado, sin retrieval graph ni
-cambio de defaults.
+implementar `m18-graph-retrieval-route` sobre el indexer cerrado, sin promover
+graph retrieval como default.
 
 ## Politica para reducir conflictos de merge
 

@@ -39,6 +39,9 @@ Documentos:
   Neo4j live.
 - `neo4j-adapter-health-m18.md`: adapter Neo4j opt-in, dependencia driver,
   health check con `verify_connectivity()` y mapeo de errores estables.
+- `neo4j-indexer-m18.md`: indexer Neo4j idempotente por `project_id`, con
+  payload derivado desde Postgres y relaciones iniciales de project/source/
+  document/version/chunk.
 
 Reglas:
 

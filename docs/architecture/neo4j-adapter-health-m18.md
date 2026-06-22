@@ -41,6 +41,6 @@ ejecuta `verify_connectivity()` solo dentro de `health_check()`.
 
 ## Siguiente paso
 
-`m18-neo4j-indexer` debe usar este adapter para materializar el indice derivado
-desde Postgres de forma idempotente por `project_id`. Ese slice debe preservar
-`graph_store=disabled` como default y no activar retrieval graph.
+`m18-neo4j-indexer` ya usa este adapter para materializar el indice derivado
+desde Postgres de forma idempotente por `project_id`. El siguiente paso es
+`m18-graph-retrieval-route`, todavia sin cambiar defaults.
