@@ -28,6 +28,8 @@ from adaptive_rag.db.models import (
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.evals import EvalRunOptions
+from adaptive_rag.evals.graph_quality_gate_runner import GraphQualityGateReport
+from adaptive_rag.evals.models import EvalRunReport
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderCallRecord,
@@ -657,6 +659,144 @@ def test_evals_graph_quality_gate_command_outputs_comparison_report(
     assert data["comparison_metrics"]["graph_citation_coverage"] == 1.0
 
 
+def test_evals_graph_live_evidence_command_outputs_operational_report(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_dense_embedding_provider",
+        lambda: object(),
+    )
+
+    def fake_graph_quality_gate(
+        *_args: object,
+        **_kwargs: object,
+    ) -> GraphQualityGateReport:
+        return _graph_quality_report("cli-live-evidence")
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.run_graph_quality_gate_eval_suite",
+        fake_graph_quality_gate,
+    )
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-live-evidence",
+            "thresholds": {"retrieval_hit_rate": 1.0},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+    operation_report = tmp_path / "backfill.json"
+    operation_report.write_text(
+        json.dumps(
+            {
+                "project_id": "00000000-0000-0000-0000-000000000123",
+                "backend": "neo4j",
+                "operation": "backfill",
+                "previous_status": "disabled",
+                "status": "ready",
+                "source_watermark": "chunks:v1",
+                "duration_ms": 1200,
+                "node_count": 10,
+                "relationship_count": 9,
+                "error_code": None,
+            }
+        ),
+        encoding="utf-8",
+    )
+    retrieval_report = tmp_path / "retrieval-smoke.json"
+    retrieval_report.write_text(
+        json.dumps(
+            {
+                "project_id": "00000000-0000-0000-0000-000000000123",
+                "backend": "neo4j",
+                "status": "ready",
+                "requested_strategy": "graph",
+                "result_count": 2,
+                "graph_result_count": 2,
+                "citation_count": 2,
+                "fallback_reason": None,
+                "latency_ms": 40,
+                "limit": 2,
+                "chunk_ids": ["00000000-0000-0000-0000-000000000456"],
+                "source_external_ids": ["alpha.md"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "graph-live-evidence",
+            str(suite_path),
+            "--operation-report",
+            str(operation_report),
+            "--retrieval-smoke-report",
+            str(retrieval_report),
+            "--graph-operational-cost-usd",
+            "12.5",
+            "--graph-operational-cost-notes",
+            "Neo4j Aura daily estimate",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["suite_id"] == "cli-live-evidence"
+    assert data["status"] == "passed"
+    assert data["decision"] == "hold_default"
+    assert data["operational_metrics"]["graph_backfill_duration_ms_total"] == 1200.0
+    assert data["operational_metrics"]["graph_retrieval_latency_ms_avg"] == 40.0
+    assert data["operational_metrics"]["graph_operational_cost_usd"] == 12.5
+    assert data["graph_operational_cost"]["notes"] == "Neo4j Aura daily estimate"
+    assert data["operation_reports"][0]["node_count"] == 10
+    assert data["retrieval_smoke_reports"][0]["source_external_ids"] == ["alpha.md"]
+
+    failed_operation_report = tmp_path / "failed-backfill.json"
+    failed_operation_report.write_text(
+        json.dumps(
+            {
+                "project_id": "00000000-0000-0000-0000-000000000123",
+                "backend": "neo4j",
+                "operation": "backfill",
+                "previous_status": "disabled",
+                "status": "failed",
+                "source_watermark": "chunks:v1",
+                "duration_ms": 1200,
+                "node_count": None,
+                "relationship_count": None,
+                "error_code": "graph_store_unavailable",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    failed_result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "graph-live-evidence",
+            str(suite_path),
+            "--operation-report",
+            str(failed_operation_report),
+            "--retrieval-smoke-report",
+            str(retrieval_report),
+        ],
+    )
+
+    assert failed_result.exit_code == 1
+    failed_data = json.loads(failed_result.stdout)
+    assert failed_data["status"] == "failed"
+    assert failed_data["error_codes"] == {"graph_store_unavailable": 1}
+
+
 def test_evals_run_command_hosted_mode_requires_budget(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -728,6 +868,36 @@ def _write_suite(tmp_path: Path, payload: object) -> Path:
     suite_path = tmp_path / "suite.json"
     suite_path.write_text(json.dumps(payload), encoding="utf-8")
     return suite_path
+
+
+def _graph_quality_report(suite_id: str) -> GraphQualityGateReport:
+    dense_report = EvalRunReport(
+        suite_id=suite_id,
+        status="passed",
+        metrics={"retrieval_hit_rate": 1.0, "retrieval_passed_count": 1.0},
+        thresholds={"retrieval_hit_rate": 1.0},
+        cases=(),
+    )
+    graph_report = EvalRunReport(
+        suite_id=suite_id,
+        status="passed",
+        metrics={"retrieval_hit_rate": 1.0, "retrieval_passed_count": 1.0},
+        thresholds={"retrieval_hit_rate": 1.0},
+        cases=(),
+    )
+    return GraphQualityGateReport(
+        suite_id=suite_id,
+        status="passed",
+        decision="hold_default",
+        dense_baseline=dense_report,
+        graph=graph_report,
+        comparison_metrics={
+            "graph_provider_cost_delta_usd": 0.0,
+            "graph_retrieval_hit_rate": 1.0,
+            "graph_retrieval_hit_rate_delta": 0.0,
+        },
+        comparison_cases=(),
+    )
 
 
 def _vector(first: float) -> list[float]:

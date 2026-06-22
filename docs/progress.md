@@ -14,16 +14,17 @@ M18 Neo4j graph DB decision cerrado el 2026-06-22.
 
 ## Ultimo slice completado
 
-M19 `m19-graph-live-retrieval-smoke`: agrega
-`adaptive-rag graph retrieval-smoke` para ejecutar `strategy=graph` contra una
-proyeccion `ready`, medir latencia, reportar resultados/citations y salir con
-codigo no cero cuando la ruta cae a dense fallback o no devuelve hits graph.
-`graph_store=disabled` y `strategy=dense` siguen como defaults.
+M19 `m19-graph-live-evidence-report`: agrega
+`adaptive-rag evals graph-live-evidence` para consolidar el quality gate
+dense-vs-graph con reportes live de backfill/reindex, retrieval smoke, error
+codes, latencia/fallback y costo operacional graph declarado. El comando no
+ejecuta operaciones live por si mismo; consume artefactos JSON previos y sale
+con codigo no cero si calidad u operaciones live fallan.
 
 Comandos validados en este slice:
 
 ```text
-uv run pytest tests/unit/graph/test_retrieval_smoke_operations.py tests/integration/cli/test_graph_cli.py -q
+uv run pytest tests/unit/evals/test_graph_live_evidence_report.py tests/integration/cli/test_evals_cli.py -q
 uv run ruff check src tests
 uv run mypy src/adaptive_rag
 pnpm dlx @fission-ai/openspec validate m19-graph-live-ops-plan --strict
@@ -66,11 +67,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Implementar `m19-graph-live-evidence-report`: extender el reporte comparativo
-  dense-vs-graph con latencia live, fallback counts, error codes, duracion de
-  backfill/reindex y costo operacional declarado. Es la opcion recomendada
-  porque ya existen smoke de conectividad, backfill/reindex y retrieval graph;
-  ahora falta consolidar evidencia para el gate de decision.
+- Ejecutar `m19-quality-gate`: correr el set completo de validaciones,
+  reconciliar la decision `hold_default`, `limited_experiment` o
+  `no_go_promotion`, archivar el change OpenSpec y publicar la spec canonica.
+  Es la opcion recomendada porque ya existen los artefactos de setup,
+  backfill/reindex, retrieval smoke y evidencia consolidada.
 
 ## Reglas de coordinacion
 

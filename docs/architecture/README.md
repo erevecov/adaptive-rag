@@ -56,6 +56,9 @@ Documentos:
   proyeccion Neo4j por proyecto y persistir readiness/error codes.
 - `graph-retrieval-smoke-m19.md`: smoke CLI opt-in para validar retrieval
   `strategy=graph` con proyeccion ready, citations y fallback visible.
+- `graph-live-evidence-report-m19.md`: reporte M19 que consolida el quality
+  gate dense-vs-graph con artefactos live de backfill/reindex, retrieval smoke,
+  error codes, latencia/fallback y costo operacional declarado.
 
 Reglas:
 
