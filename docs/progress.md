@@ -18,10 +18,9 @@ rollout/default requiere un milestone posterior con evidencia live concluyente.
 
 ## Ultimo slice completado
 
-M20 `m20-observability-dashboard-shell`: agrega la vista frontend read-only
-`Observability`, filtros por proyecto/fecha/status, refresh sobre
-`getChatObservabilitySummary` y metric cards iniciales para sesiones, provider
-calls, costo estimado, errores y latencia p95 por grupo mas lento.
+M20 `m20-observability-breakdowns`: completa la vista frontend read-only
+`Observability` con status breakdown, mensajes de error agregados, provider
+usage table y session health, todo derivado del summary M17 existente.
 
 Este slice no agrega endpoints backend, no consulta tablas internas y no
 modifica defaults de retrieval, providers, streaming ni graph.
@@ -29,7 +28,6 @@ modifica defaults de retrieval, providers, streaming ni graph.
 Comandos validados en este slice:
 
 ```text
-pnpm --dir frontend test -- src/lib/apiClient.test.ts
 pnpm --dir frontend test -- src/App.test.tsx
 pnpm --dir frontend test
 pnpm --dir frontend run typecheck
@@ -75,9 +73,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m20-observability-dashboard-shell`. Despues, la opcion
-  recomendada es `m20-observability-breakdowns` para agregar status breakdown,
-  errores agregados, provider usage table y session health table.
+- Completar y mergear `m20-observability-breakdowns`. Despues, la opcion
+  recomendada es `m20-quality-gate` para validar frontend/Python/OpenSpec y
+  archivar el change M20. No hace falta abrir `m20-observability-summary-shape`
+  porque el summary M17 cubrio los breakdowns sin campos nuevos.
 
 ## Reglas de coordinacion
 

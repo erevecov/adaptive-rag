@@ -811,10 +811,10 @@ Secuencia recomendada:
    para el summary M17, con tests de query params y errores.
 3. `m20-observability-dashboard-shell`: completo. Agrega vista de observability
    con filtros, refresh y metric cards.
-4. `m20-observability-breakdowns`: agregar breakdowns de status/errores,
-   provider usage table y session health table.
-5. `m20-observability-summary-shape`: opcional, solo si hace falta una
-   extension backend compatible para evitar derivaciones ambiguas.
+4. `m20-observability-breakdowns`: completo. Agrega breakdowns de
+   status/errores, provider usage table y session health table.
+5. `m20-observability-summary-shape`: no necesario; el summary M17 cubrio los
+   breakdowns sin extension backend.
 6. `m20-quality-gate`: validar frontend/Python/OpenSpec y archivar el change.
 
 Decision: proceed con frontend-first. M20 captura valor de producto sobre el

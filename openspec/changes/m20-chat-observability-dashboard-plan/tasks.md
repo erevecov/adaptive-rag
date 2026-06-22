@@ -27,7 +27,7 @@
 
 - [x] 3.1 Implementar `m20-observability-frontend-client`.
 - [x] 3.2 Implementar `m20-observability-dashboard-shell`.
-- [ ] 3.3 Implementar `m20-observability-breakdowns`.
-- [ ] 3.4 Abrir `m20-observability-summary-shape` solo si el dashboard necesita
-  campos agregados que el summary M17 no puede representar sin ambiguedad.
+- [x] 3.3 Implementar `m20-observability-breakdowns`.
+- [x] 3.4 Evaluar `m20-observability-summary-shape`; no abrirlo porque el
+  summary M17 cubre los breakdowns sin campos agregados nuevos.
 - [ ] 3.5 Ejecutar `m20-quality-gate` y archivar el change cuando se complete.
