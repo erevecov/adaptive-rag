@@ -30,4 +30,4 @@
 - [x] 3.3 Implementar `m20-observability-breakdowns`.
 - [x] 3.4 Evaluar `m20-observability-summary-shape`; no abrirlo porque el
   summary M17 cubre los breakdowns sin campos agregados nuevos.
-- [ ] 3.5 Ejecutar `m20-quality-gate` y archivar el change cuando se complete.
+- [x] 3.5 Ejecutar `m20-quality-gate` y archivar el change cuando se complete.

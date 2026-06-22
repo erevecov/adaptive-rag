@@ -2,37 +2,43 @@
 
 ## Milestone activo
 
-M20 Chat observability dashboard.
+No hay milestone activo.
+
+M20 Chat observability dashboard quedo completado y archivado el 2026-06-22.
+
+## Ultimo milestone completado
+
+M20 Chat observability dashboard cerrado el 2026-06-22.
 
 M20 convierte el resumen read-only de observability de M17 en una vista
 frontend operativa. El layout aprobado es hibrido: filtros superiores, metric
 cards, breakdowns, provider usage table y session health table.
 
-## Ultimo milestone completado
-
-M19 Graph live ops evidence cerrado el 2026-06-22.
-
-Decision: `hold_default`. Neo4j sigue como indice derivado opt-in,
-`graph_store=disabled` y `strategy=dense` siguen como defaults, y cualquier
-rollout/default requiere un milestone posterior con evidencia live concluyente.
+M20 no cambia retrieval, rerank, providers, streaming ni graph defaults. La
+decision M19 sigue vigente: Neo4j queda en `hold_default` hasta contar con
+evidencia live concluyente.
 
 ## Ultimo slice completado
 
-M20 `m20-observability-breakdowns`: completa la vista frontend read-only
-`Observability` con status breakdown, mensajes de error agregados, provider
-usage table y session health, todo derivado del summary M17 existente.
+M20 `m20-quality-gate`: valida frontend, Python, OpenSpec y smokes CLI;
+archiva el change M20 y publica los requisitos canonicos en
+`chat-frontend` y `chat-observability`.
 
-Este slice no agrega endpoints backend, no consulta tablas internas y no
-modifica defaults de retrieval, providers, streaming ni graph.
+Este cierre no agrega endpoints backend, no consulta tablas internas y no
+modifica defaults de retrieval, rerank, providers, streaming ni graph.
 
-Comandos validados en este slice:
+Comandos validados en el gate M20:
 
 ```text
-pnpm --dir frontend test -- src/App.test.tsx
 pnpm --dir frontend test
 pnpm --dir frontend run typecheck
 pnpm --dir frontend run lint
+uv run pytest
 pnpm --dir frontend run build
+uv run ruff check .
+uv run mypy src
+uv run adaptive-rag version
+uv run adaptive-rag health
 npx --yes @fission-ai/openspec validate m20-chat-observability-dashboard-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
@@ -41,11 +47,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m20-chat-observability-dashboard-plan/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-22-m19-graph-live-ops-plan/`
+- `openspec/changes/archive/2026-06-22-m20-chat-observability-dashboard-plan/`
 
 ## Spec canonica activa
 
@@ -73,10 +79,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m20-observability-breakdowns`. Despues, la opcion
-  recomendada es `m20-quality-gate` para validar frontend/Python/OpenSpec y
-  archivar el change M20. No hace falta abrir `m20-observability-summary-shape`
-  porque el summary M17 cubrio los breakdowns sin campos nuevos.
+- Despues de mergear el cierre M20, sincronizar `main` y abrir un nuevo
+  change OpenSpec para el siguiente milestone antes de implementar. No hace
+  falta abrir `m20-observability-summary-shape` porque el summary M17 cubrio
+  los breakdowns sin campos nuevos.
 
 ## Reglas de coordinacion
 

@@ -21,7 +21,7 @@
 - M17 Chat observability y costo-latencia: completo.
 - M18 Neo4j graph DB decision: completo.
 - M19 Graph live ops evidence: completo.
-- M20 Chat observability dashboard: activo.
+- M20 Chat observability dashboard: completo.
 
 ## M1 Foundation
 
@@ -776,11 +776,11 @@ superficie M17 ya estable.
 
 ## M20 Chat observability dashboard
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m20-chat-observability-dashboard-plan/`
+- `openspec/changes/archive/2026-06-22-m20-chat-observability-dashboard-plan/`
 
 Objetivo:
 
@@ -815,11 +815,16 @@ Secuencia recomendada:
    status/errores, provider usage table y session health table.
 5. `m20-observability-summary-shape`: no necesario; el summary M17 cubrio los
    breakdowns sin extension backend.
-6. `m20-quality-gate`: validar frontend/Python/OpenSpec y archivar el change.
+6. `m20-quality-gate`: completo. Valida frontend/Python/OpenSpec, smokes CLI,
+   archiva el change M20 y publica las specs canonicas `chat-frontend` y
+   `chat-observability`.
 
 Decision: proceed con frontend-first. M20 captura valor de producto sobre el
 audit trail y observability ya implementados, mientras graph rollout queda en
 hold hasta tener evidencia live concluyente.
+
+Continuacion: M20 queda cerrado. La siguiente tarea debe abrir un nuevo change
+OpenSpec desde `main` para el proximo milestone antes de implementar.
 
 ## Politica para reducir conflictos de merge
 
