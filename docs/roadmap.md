@@ -1115,11 +1115,11 @@ capacidades avanzadas de retrieval antes del frontend polish.
 
 ## M27 Post-v1 retrieval expansion
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m27-retrieval-expansion-plan/`
+- `openspec/changes/archive/2026-06-23-m27-retrieval-expansion-plan/`
 
 Objetivo:
 
@@ -1136,11 +1136,11 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m27-retrieval-expansion-plan`: activo. Crea el OpenSpec post-v1 y fija el
+1. `m27-retrieval-expansion-plan`: completo. Crea el OpenSpec post-v1 y fija el
    orden de trabajo.
-2. `m28-contextual-retrieval-generated-summaries`: propuesto. Generar
+2. `m28-contextual-retrieval-generated-summaries`: activo. Generar
    `contextual_summary`, reusar `embedding_input_text`/`lexical_input_text` y
-   medir dense con/sin contexto.
+   exponer evidencia de indexing contextualizado por first-run.
 3. `m29-lexical-retrieval-rrf`: propuesto. Agregar Postgres full-text local y
    RRF preservando filtros, ordering estable y citations.
 4. `m30-qwen-sparse-dense-sparse`: propuesto. Verificar docs actuales de Qwen y
@@ -1149,9 +1149,42 @@ Secuencia recomendada:
    lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
    `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
 
-Continuacion: completar M27 y luego abrir M28. La razon es directa: Contextual
-Retrieval tiene el menor blast radius porque el schema y el builder de inputs ya
-reservan esa forma.
+Continuacion: completar M28 y luego abrir M29. La razon es directa: despues de
+persistir contexto estable por chunk, lexical/RRF puede reutilizar el mismo
+campo de entrada sin inventar una superficie frontend.
+
+## M28 Contextual Retrieval generated summaries
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m28-contextual-retrieval-generated-summaries/`
+
+Objetivo:
+
+- Generar y persistir `contextual_summary` durante indexing local antes de
+  embeddings densos, sin cambiar el default `dense`.
+
+Condiciones del milestone:
+
+- El contextualizer default debe ser local y determinista.
+- La pipeline debe ser project-scoped e idempotente.
+- `first-run` debe reportar `contextualized_chunk_count` y
+  `reused_contextualized_chunk_count`.
+- Citations deben seguir saliendo del texto normalizado original, no del
+  resumen generado.
+
+Secuencia recomendada:
+
+1. `m28-contextualization-pipeline`: activo. Agrega generador local, pipeline y
+   persistencia de summaries.
+2. `m28-first-run-reporting`: activo. Wirea first-run y quality gate mediante
+   los conteos nuevos.
+3. `m28-docs-and-gate`: activo. Actualiza runbooks, valida OpenSpec y deja M28
+   listo para archivar.
+
+Continuacion: archivar M28 y abrir M29 para lexical/RRF local.
 
 ## Politica para reducir conflictos de merge
 

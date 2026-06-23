@@ -2,62 +2,45 @@
 
 ## Milestone activo
 
-M27 `m27-retrieval-expansion-plan`.
+M28 `m28-contextual-retrieval-generated-summaries`.
+
+M28 implementa el primer slice del nuevo alcance post-v1: generar
+`contextual_summary` durante indexing local, antes de embeddings, para activar
+Contextual Retrieval sin cambiar el default `dense` ni agregar una nueva rama de
+ranking. La evidencia publica sale por `adaptive-rag first-run smoke` y el gate
+v1 reutiliza ese reporte.
+
+## Ultimo milestone completado
+
+M27 Post-v1 retrieval expansion cerrado el 2026-06-23.
 
 M27 abre el nuevo alcance post-v1 para dejar listas capacidades avanzadas de
 retrieval antes de pulir frontend. El objetivo aprobado es opt-in y medible:
 Contextual Retrieval generado, lexical/RRF, Qwen sparse / `dense_sparse` y un
-gate comparativo posterior. `dense` sigue siendo el default hasta que el gate
-demuestre una promocion segura.
-
-## Ultimo milestone completado
-
-M26 V1 product quality gate cerrado el 2026-06-23.
-
-M26 agrega el gate final de producto v1: `adaptive-rag v1 quality-gate` ejecuta
-la primera corrida publica, valida criterios de release, emite evidencia JSON
-con `release_decision = ready_for_v1_0` y documenta que el tag o GitHub release
-siguen siendo acciones manuales. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m26-v1-product-quality-gate/` y actualiza
-las specs canonicas `v1-product-completion` y `v1-release-readiness`.
-
-El producto v1 terminado mantiene dense retrieval como default, rerank como
-opt-in medible y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen
-sparse retrieval, Contextual Retrieval generado, auth multi-user, PDF/Office,
-voice y MCP server siguen fuera del default salvo nueva evidencia/OpenSpec. Con
-M26, la brecha de producto local-first single-user queda cerrada para review de
-release manual.
+gate comparativo posterior. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m27-retrieval-expansion-plan/` y actualiza
+la spec canonica `retrieval-quality`.
 
 ## Ultimo slice completado
 
-M26 `m26-v1-product-quality-gate`: completa el gate final de producto v1 por
-CLI/docs, valida backend, frontend y OpenSpec, y archiva
-`m26-v1-product-quality-gate`.
+M27 `m27-retrieval-expansion-plan`: completa el plan post-v1 para retrieval
+avanzado, valida OpenSpec/docs y archiva `m27-retrieval-expansion-plan`.
 
-Comandos validados en el cierre M26:
+Comandos validados al cerrar M27 y abrir M28:
 
 ```text
-uv run pytest
-uv run ruff check .
-uv run mypy src
-uv run alembic heads
-pnpm --dir frontend test
-pnpm --dir frontend run typecheck
-pnpm --dir frontend run lint
-pnpm --dir frontend run build
-npx --yes @fission-ai/openspec validate m26-v1-product-quality-gate --strict
-npx --yes @fission-ai/openspec validate --specs --strict
+npx --yes @fission-ai/openspec validate m27-retrieval-expansion-plan --strict
+npx --yes @fission-ai/openspec validate m28-contextual-retrieval-generated-summaries --strict
 npx --yes @fission-ai/openspec list
-git diff --check
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m27-retrieval-expansion-plan/`
+- `openspec/changes/m28-contextual-retrieval-generated-summaries/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m26-v1-product-quality-gate/`
+- `openspec/changes/archive/2026-06-23-m27-retrieval-expansion-plan/`
 
 ## Spec canonica activa
 

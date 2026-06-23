@@ -40,8 +40,9 @@ uv run adaptive-rag first-run smoke
 ```
 
 El comando crea un project, crea una source Markdown, encola y procesa un job
-`ingest_source`, crea chunks, persiste embeddings densos fake y pregunta al
-chat local. La salida es JSON machine-readable. Campos esperados:
+`ingest_source`, crea chunks, genera `contextual_summary`, persiste embeddings
+densos fake y pregunta al chat local. La salida es JSON machine-readable.
+Campos esperados:
 
 ```json
 {
@@ -51,6 +52,8 @@ chat local. La salida es JSON machine-readable. Campos esperados:
   "job": {"id": "...", "status": "succeeded"},
   "document_version_id": "...",
   "chunk_count": 2,
+  "contextualized_chunk_count": 2,
+  "reused_contextualized_chunk_count": 0,
   "embedded_chunk_count": 2,
   "citation_count": 1,
   "answer": "..."

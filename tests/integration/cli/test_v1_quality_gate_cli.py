@@ -62,6 +62,11 @@ def test_v1_quality_gate_emits_release_decision(
     assert payload["first_run"]["source"]["external_id"] == "release-demo.md"
     assert payload["first_run"]["job"]["status"] == "succeeded"
     assert payload["first_run"]["chunk_count"] >= 1
+    assert (
+        payload["first_run"]["contextualized_chunk_count"]
+        == payload["first_run"]["chunk_count"]
+    )
+    assert payload["first_run"]["reused_contextualized_chunk_count"] == 0
     assert payload["first_run"]["citation_count"] >= 1
     assert all(criterion["status"] == "passed" for criterion in payload["criteria"])
     assert {

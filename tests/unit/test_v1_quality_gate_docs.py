@@ -15,6 +15,7 @@ def test_v1_quality_gate_runbook_documents_final_gate() -> None:
     assert '"release_decision": "ready_for_v1_0"' in content
     assert '"criteria"' in content
     assert '"first_run"' in content
+    assert '"contextualized_chunk_count"' in content
     assert "Qwen" in content
     assert "Neo4j" in content
     assert "opt-in" in content
