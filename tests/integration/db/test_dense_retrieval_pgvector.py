@@ -17,6 +17,7 @@ from adaptive_rag.db.repositories import (
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.retrieval import DenseRetriever
+from adaptive_rag.retrieval.dense import DenseRetrievalFilters
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -99,5 +100,82 @@ def test_dense_retriever_orders_by_pgvector_l2_distance(
             "Near evidence",
             "Far evidence",
         ]
+    finally:
+        session.close()
+
+
+def test_dense_retriever_filters_tags_with_postgres_jsonb(
+    pg_url: str,
+    pg_engine: Engine,
+) -> None:
+    run_alembic_upgrade(pg_url)
+    session = create_session_factory(pg_engine)()
+    try:
+        project = ProjectRepository(session).create(name="pgvector-tags")
+        matching_source = SourceRepository(session).create(
+            project_id=project.id,
+            source_type="markdown",
+            external_id="matching.md",
+            tags=["docs", "v1"],
+        )
+        other_source = SourceRepository(session).create(
+            project_id=project.id,
+            source_type="markdown",
+            external_id="other.md",
+            tags=["blog"],
+        )
+        matching_document = DocumentRepository(session).create_document(
+            project_id=project.id,
+            source_id=matching_source.id,
+            stable_id="matching.md",
+        )
+        other_document = DocumentRepository(session).create_document(
+            project_id=project.id,
+            source_id=other_source.id,
+            stable_id="other.md",
+        )
+        matching_version = DocumentRepository(session).create_version(
+            project_id=project.id,
+            document_id=matching_document.id,
+            version_number=1,
+            normalized_text="Matching evidence",
+            content_hash="sha256:matching",
+            index_fingerprint="fp:matching",
+        )
+        other_version = DocumentRepository(session).create_version(
+            project_id=project.id,
+            document_id=other_document.id,
+            version_number=1,
+            normalized_text="Other evidence",
+            content_hash="sha256:other",
+            index_fingerprint="fp:other",
+        )
+        matching_chunk = ChunkRepository(session).create(
+            project_id=project.id,
+            document_version_id=matching_version.id,
+            ordinal=0,
+            char_start=0,
+            char_end=17,
+            embedding=_vector(0.1),
+        )
+        ChunkRepository(session).create(
+            project_id=project.id,
+            document_version_id=other_version.id,
+            ordinal=0,
+            char_start=0,
+            char_end=14,
+            embedding=_vector(0.0),
+        )
+        session.commit()
+
+        results = DenseRetriever(session).search(
+            project_id=project.id,
+            query_embedding=_vector(0.0),
+            limit=2,
+            filters=DenseRetrievalFilters(tags=("docs", "v1")),
+        )
+
+        assert [result.chunk_id for result in results] == [matching_chunk.id]
+        assert results[0].citation.source_tags == ("docs", "v1")
     finally:
         session.close()

@@ -10,6 +10,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 COPY pyproject.toml uv.lock README.md ./
 COPY alembic.ini ./
 COPY alembic ./alembic
+COPY evals ./evals
 COPY src ./src
 
 RUN uv sync --frozen --no-dev

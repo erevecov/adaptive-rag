@@ -9,7 +9,9 @@ from datetime import datetime
 from typing import Any, cast
 from uuid import UUID
 
+from sqlalchemy import cast as sql_cast
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import (
@@ -280,7 +282,9 @@ class DenseRetriever:
                 Document.created_at <= filters.document_created_at_to
             )
         if apply_tags_in_sql and filters.tags:
-            statement = statement.where(Source.tags.contains(list(filters.tags)))
+            statement = statement.where(
+                sql_cast(Source.tags, JSONB).contains(list(filters.tags))
+            )
 
         return statement
 
