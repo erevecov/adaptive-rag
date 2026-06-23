@@ -29,9 +29,11 @@ from adaptive_rag.evals import (
     run_eval_suite,
     run_graph_quality_gate_eval_suite,
     run_hosted_eval_suite,
+    run_retrieval_strategy_gate_eval_suite,
     serialize_eval_report,
     serialize_graph_live_evidence_report,
     serialize_graph_quality_gate_report,
+    serialize_retrieval_strategy_gate_report,
     validate_hosted_rerank_eval_options,
 )
 from adaptive_rag.provider_runtime import ProviderConfigurationError
@@ -115,6 +117,43 @@ def run(
         raise typer.Exit(1) from exc
 
     payload = json.dumps(serialize_eval_report(report))
+    if output is None:
+        typer.echo(payload)
+    else:
+        output.write_text(f"{payload}\n", encoding="utf-8")
+
+    if report.status == "failed":
+        raise typer.Exit(1)
+
+
+@app.command("strategy-gate")
+def strategy_gate(
+    suite_path: Annotated[Path, typer.Argument()],
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    try:
+        suite = load_eval_suite(suite_path)
+    except EvalDatasetError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    try:
+        with session_scope() as session:
+            report = run_retrieval_strategy_gate_eval_suite(
+                session,
+                suite,
+                provider=get_cli_dense_embedding_provider(),
+                sparse_provider=get_cli_sparse_embedding_provider(),
+            )
+    except (
+        EvalConfigurationError,
+        ProviderConfigurationError,
+        QwenEmbeddingProviderError,
+    ) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    payload = json.dumps(serialize_retrieval_strategy_gate_report(report))
     if output is None:
         typer.echo(payload)
     else:

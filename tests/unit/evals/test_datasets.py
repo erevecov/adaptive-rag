@@ -117,6 +117,42 @@ def test_load_eval_suite_parses_versioned_retrieval_and_chat_cases(
     assert chat_case.expected_tool_queries == ("alpha evidence",)
 
 
+def test_load_eval_suite_parses_contextual_summary_for_strategy_gate(
+    tmp_path: Path,
+) -> None:
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "contextual",
+            "thresholds": {"retrieval_hit_rate": 1.0},
+            "evidence": [
+                {
+                    "id": "alpha",
+                    "text": "Alpha original evidence",
+                    "contextual_summary": "This chunk explains the alpha policy.",
+                    "source_type": "markdown",
+                    "source_external_id": "alpha.md",
+                }
+            ],
+            "retrieval_cases": [
+                {
+                    "id": "retrieve-alpha",
+                    "query": "What explains the alpha policy?",
+                    "expected_evidence_ids": ["alpha"],
+                }
+            ],
+            "chat_cases": [],
+        },
+    )
+
+    suite = load_eval_suite(suite_path)
+
+    assert suite.evidence[0].contextual_summary == (
+        "This chunk explains the alpha policy."
+    )
+
+
 def test_load_eval_suite_rejects_unknown_expected_evidence(
     tmp_path: Path,
 ) -> None:

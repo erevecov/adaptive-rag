@@ -59,6 +59,15 @@ from adaptive_rag.evals.models import (
 from adaptive_rag.evals.reports import serialize_eval_report
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
 from adaptive_rag.evals.runner import run_eval_suite
+from adaptive_rag.evals.strategy_gate_runner import (
+    StrategyGateDecision,
+    StrategyGateReport,
+    StrategyGateRow,
+    StrategyGateRowStatus,
+    StrategyGateStrategy,
+    run_retrieval_strategy_gate_eval_suite,
+    serialize_retrieval_strategy_gate_report,
+)
 
 __all__ = [
     "CandidateLimitEvalMatrix",
@@ -87,6 +96,11 @@ __all__ = [
     "GraphLiveEvidenceReport",
     "GraphOperationalCost",
     "RetrievalEvalCase",
+    "StrategyGateDecision",
+    "StrategyGateReport",
+    "StrategyGateRow",
+    "StrategyGateRowStatus",
+    "StrategyGateStrategy",
     "build_candidate_limit_eval_matrix",
     "build_graph_live_evidence_report",
     "load_eval_suite",
@@ -96,6 +110,7 @@ __all__ = [
     "run_candidate_limit_ab_retrieval_eval_suite",
     "run_eval_suite",
     "run_graph_quality_gate_eval_suite",
+    "run_retrieval_strategy_gate_eval_suite",
     "run_hosted_eval_suite",
     "run_hosted_chat_eval_suite",
     "run_hosted_retrieval_eval_suite",
@@ -103,6 +118,7 @@ __all__ = [
     "serialize_eval_report",
     "serialize_graph_quality_gate_report",
     "serialize_graph_live_evidence_report",
+    "serialize_retrieval_strategy_gate_report",
     "serialize_candidate_limit_ab_run_report",
     "serialize_candidate_limit_eval_matrix",
     "summarize_provider_usage",

@@ -2,45 +2,46 @@
 
 ## Milestone activo
 
-M30 `m30-qwen-sparse-dense-sparse`.
+M31 `m31-retrieval-strategy-gate`.
 
-M30 implementa sparse embeddings Qwen/DashScope, backfill explicito y
-`strategy=dense_sparse` como estrategia opt-in antes de pulir frontend. El
-objetivo es dejar listo el contrato backend de sparse retrieval sin promoverlo
-por defecto: `dense` sigue siendo el default y fallback hasta M31.
+M31 compara `dense`, `contextual_dense`, `lexical`, `hybrid_rrf`,
+`dense_sparse`, `graph` y `dense_rerank` antes de pulir frontend. El objetivo
+es emitir evidencia y decision por estrategia sin cambiar el default por
+inercia: `dense` sigue siendo default salvo que el gate recomiende promocion.
 
 ## Ultimo milestone completado
 
-M29 Lexical retrieval and RRF cerrado el 2026-06-23.
+M30 Qwen sparse dense_sparse cerrado el 2026-06-23.
 
-M29 agrega `strategy=lexical` y `strategy=hybrid_rrf` como estrategias opt-in,
-preserva citations originales, expone API/CLI/evals y deja scores
-lexical/RRF en audit/history. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m29-lexical-retrieval-rrf/` y actualiza
-las specs canonicas `chat-audit-trail`, `evals-baseline`,
+M30 agrega sparse embeddings Qwen/DashScope, backfill explicito,
+`SparseRetriever`, `strategy=dense_sparse` opt-in y `sparse_score` en
+audit/history. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m30-qwen-sparse-dense-sparse/` y actualiza
+las specs canonicas `chat-audit-trail`, `evals-baseline`, `provider-runtime`,
 `retrieval-quality` y `retrieval-surface`.
 
 ## Ultimo slice completado
 
-M29 `m29-lexical-retrieval-rrf`: completa lexical retrieval local, fusion
-dense+lexical por RRF y superficies opt-in para API/CLI/evals.
+M30 `m30-qwen-sparse-dense-sparse`: completa sparse provider Qwen/fake,
+backfill sobre `chunk_sparse_embeddings`, `SparseRetriever`, fusion
+dense+sparse por RRF y superficies opt-in para API/CLI/evals.
 
-Comandos validados al cerrar M29 y abrir M30:
+Comandos validados al cerrar M30 y abrir M31:
 
 ```text
-npx --yes @fission-ai/openspec validate m29-lexical-retrieval-rrf --strict
-npx --yes @fission-ai/openspec archive m29-lexical-retrieval-rrf --yes
 npx --yes @fission-ai/openspec validate m30-qwen-sparse-dense-sparse --strict
+npx --yes @fission-ai/openspec archive m30-qwen-sparse-dense-sparse --yes
+npx --yes @fission-ai/openspec validate m31-retrieval-strategy-gate --strict
 npx --yes @fission-ai/openspec list
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m30-qwen-sparse-dense-sparse/`
+- `openspec/changes/m31-retrieval-strategy-gate/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m29-lexical-retrieval-rrf/`
+- `openspec/changes/archive/2026-06-23-m30-qwen-sparse-dense-sparse/`
 
 ## Spec canonica activa
 
@@ -73,9 +74,10 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar M30 en un solo PR: sparse provider Qwen/fake, backfill sobre
-  `chunk_sparse_embeddings`, `SparseRetriever`, `strategy=dense_sparse`,
-  `sparse_score` en audit/history y docs de uso opt-in.
+- Completar M31 en un solo PR: runner `strategy-gate`, JSON estable de
+  decisiones, soporte de `contextual_summary` en eval fixtures, CLI
+  `adaptive-rag evals strategy-gate` y docs de decision antes de frontend
+  polish.
 
 ## Reglas de coordinacion
 

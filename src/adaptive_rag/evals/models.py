@@ -42,6 +42,7 @@ class EvalEvidence:
     tags: tuple[str, ...] = ()
     metadata: dict[str, object] | None = None
     embedding: tuple[float, ...] | None = None
+    contextual_summary: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
