@@ -7,6 +7,7 @@ tests es aislamiento por `project_id`, filtros tipados y orden estable.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -92,6 +93,29 @@ def test_project_repository_get_returns_project_or_none():
 
     assert ProjectRepository(session).get(project.id).name == "demo"
     assert ProjectRepository(session).get(uuid4()) is None
+
+
+def test_project_repository_lists_projects_in_deterministic_order():
+    session = _make_session()
+    newer_b = ProjectRepository(session).create(name="b")
+    newer_a = ProjectRepository(session).create(name="a")
+    older = ProjectRepository(session).create(name="old")
+    same_name_second = ProjectRepository(session).create(name="same")
+    same_name_first = ProjectRepository(session).create(name="same")
+    older.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+    newer_a.created_at = datetime(2026, 1, 2, tzinfo=UTC)
+    newer_b.created_at = datetime(2026, 1, 2, tzinfo=UTC)
+    same_name_first.created_at = datetime(2026, 1, 3, tzinfo=UTC)
+    same_name_second.created_at = datetime(2026, 1, 3, tzinfo=UTC)
+    session.commit()
+
+    projects = ProjectRepository(session).list()
+
+    assert projects == sorted(
+        projects,
+        key=lambda project: (project.created_at, project.name, str(project.id)),
+    )
+    assert [project.name for project in projects[:3]] == ["old", "a", "b"]
 
 
 def test_source_repository_lists_only_requested_project():
