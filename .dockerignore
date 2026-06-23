@@ -14,4 +14,3 @@ dist
 frontend/node_modules
 frontend/dist
 htmlcov
-tools/kanban/index.html
