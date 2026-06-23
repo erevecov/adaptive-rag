@@ -2,19 +2,18 @@
 
 ## Milestone activo
 
-M23 Product authoring surface.
-
-M23 abre la superficie publica minima para crear/listar/ver projects y sources
-por API, CLI y frontend. Este milestone no ejecuta ingestion ni expone job
-state; eso queda para M24.
+Ninguno. No hay changes OpenSpec activos despues de archivar M23.
 
 ## Ultimo milestone completado
 
-M22 V1 product scope reset cerrado el 2026-06-23.
+M23 Product authoring surface cerrado el 2026-06-23.
 
-M22 redefine v1 como producto local-first single-user terminado y archiva la
-spec canonica `v1-product-completion`. M21 queda como evidencia de
-core/pre-v1 y no como autorizacion para cortar tag o release v1.0.
+M23 agrega la superficie publica minima para crear/listar/ver projects y
+sources por API, CLI y frontend. El milestone mantiene ingestion y job state
+fuera de authoring: crear sources no encola jobs, no crea documents, no crea
+chunks y no llama providers. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m23-product-authoring-surface/` y publica
+la spec canonica `product-authoring-surface`.
 
 El producto v1 terminado mantiene dense retrieval como default, rerank como
 opt-in medible y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen
@@ -26,18 +25,19 @@ demo con datos propios.
 
 ## Ultimo slice completado
 
-M23 `m23-authoring-api-contract`: agrega `ProjectRepository.list()` y endpoints
-HTTP publicos para crear/listar/ver projects y sources, sin encolar ingestion ni
-crear jobs.
+M23 `m23-quality-gate`: completa authoring por API/CLI/frontend, valida backend,
+frontend y OpenSpec, y archiva `m23-product-authoring-surface`.
 
-Comandos validados en el slice M23 API:
+Comandos validados en el cierre M23:
 
 ```text
-uv run pytest tests/unit/db/repositories/test_repositories.py::test_project_repository_lists_projects_in_deterministic_order -q
-uv run pytest tests/integration/api/test_authoring.py -q
 uv run pytest
 uv run ruff check .
 uv run mypy src
+pnpm --dir frontend test
+pnpm --dir frontend run typecheck
+pnpm --dir frontend run lint
+pnpm --dir frontend run build
 npx --yes @fission-ai/openspec validate m23-product-authoring-surface --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
@@ -46,17 +46,18 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m23-product-authoring-surface/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m22-v1-product-scope-reset/`
+- `openspec/changes/archive/2026-06-23-m23-product-authoring-surface/`
 
 ## Spec canonica activa
 
 - `openspec/specs/domain-schema/spec.md`
 - `openspec/specs/repositories/spec.md`
 - `openspec/specs/job-queue/spec.md`
+- `openspec/specs/product-authoring-surface/spec.md`
 - `openspec/specs/url-fetch-policy/spec.md`
 - `openspec/specs/ingestion-retrieval-plan/spec.md`
 - `openspec/specs/ingestion-pipeline/spec.md`
@@ -80,9 +81,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir `m23-authoring-cli`. La opcion recomendada es implementar la CLI antes
-  del frontend porque entrega un flujo local scriptable y reutiliza el contrato
-  API/repository ya fijado por `m23-authoring-api-contract`.
+- Abrir `m24-ingestion-ops-surface`. La opcion recomendada es definir primero
+  el contrato de ejecucion explicita de ingestion y visibilidad de jobs, porque
+  M23 ya permite crear projects/sources pero aun no hay camino publico completo
+  para procesarlos end-to-end.
 
 ## Reglas de coordinacion
 

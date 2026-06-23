@@ -14,6 +14,9 @@ import {
   type ChatSessionDetailResponse,
   type ChatSessionSummary,
   type ChatToolCall,
+  type Project,
+  type Source,
+  type SourceCreateBody,
 } from './lib/apiClient'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
@@ -23,7 +26,7 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type ActiveView = 'chat' | 'observability'
+type ActiveView = 'chat' | 'observability' | 'authoring'
 
 type AppProps = {
   apiClient?: ApiClient
@@ -64,6 +67,23 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [observabilityState, setObservabilityState] =
     useState<RequestState>('idle')
   const [observabilityError, setObservabilityError] = useState<string | null>(
+    null,
+  )
+  const [projects, setProjects] = useState<Project[]>([])
+  const [sources, setSources] = useState<Source[]>([])
+  const [projectName, setProjectName] = useState('')
+  const [sourceType, setSourceType] = useState('markdown')
+  const [sourceExternalId, setSourceExternalId] = useState('')
+  const [sourceContent, setSourceContent] = useState('')
+  const [sourceTags, setSourceTags] = useState('')
+  const [projectAuthoringState, setProjectAuthoringState] =
+    useState<RequestState>('idle')
+  const [sourceAuthoringState, setSourceAuthoringState] =
+    useState<RequestState>('idle')
+  const [projectAuthoringError, setProjectAuthoringError] = useState<
+    string | null
+  >(null)
+  const [sourceAuthoringError, setSourceAuthoringError] = useState<string | null>(
     null,
   )
 
@@ -218,6 +238,121 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleRefreshProjects() {
+    setProjectAuthoringState('loading')
+    setProjectAuthoringError(null)
+
+    try {
+      const response = await client.listProjects()
+      setProjects(response.items)
+      setProjectAuthoringState('succeeded')
+    } catch (error) {
+      setProjectAuthoringState('failed')
+      setProjectAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedName = projectName.trim()
+    if (trimmedName.length === 0) {
+      setProjectAuthoringState('failed')
+      setProjectAuthoringError('Project name is required.')
+      return
+    }
+
+    setProjectAuthoringState('loading')
+    setProjectAuthoringError(null)
+
+    try {
+      const project = await client.createProject({ name: trimmedName })
+      setProjects((current) => upsertProject(current, project))
+      setProjectId(project.id)
+      setProjectName('')
+      setSources([])
+      setProjectAuthoringState('succeeded')
+    } catch (error) {
+      setProjectAuthoringState('failed')
+      setProjectAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  function handleSelectProject(project: Project) {
+    setProjectId(project.id)
+    setSources([])
+    setSourceAuthoringError(null)
+    setSourceAuthoringState('idle')
+  }
+
+  async function handleRefreshSources(projectIdOverride?: string) {
+    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+
+    if (trimmedProjectId.length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError('Project ID is required to refresh sources.')
+      return
+    }
+
+    setSourceAuthoringState('loading')
+    setSourceAuthoringError(null)
+
+    try {
+      const response = await client.listSources(trimmedProjectId)
+      setSources(response.items)
+      setSourceAuthoringState('succeeded')
+    } catch (error) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleCreateSource(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedProjectId = projectId.trim()
+    const trimmedExternalId = sourceExternalId.trim()
+    const content = sourceContent
+
+    if (trimmedProjectId.length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError('Project ID is required to create a source.')
+      return
+    }
+    if (trimmedExternalId.length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError('External ID is required.')
+      return
+    }
+    if (isTextSourceType(sourceType) && content.trim().length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(`${sourceType} source requires content.`)
+      return
+    }
+
+    const body = buildSourceCreateBody({
+      content,
+      externalId: trimmedExternalId,
+      sourceType,
+      tags: sourceTags,
+    })
+
+    setSourceAuthoringState('loading')
+    setSourceAuthoringError(null)
+
+    try {
+      const source = await client.createSource(trimmedProjectId, body)
+      setSources((current) => upsertSource(current, source))
+      setSourceExternalId('')
+      setSourceContent('')
+      setSourceTags('')
+      setSourceAuthoringState('succeeded')
+    } catch (error) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="workspace-title">
@@ -320,7 +455,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               state={historyState}
             />
           </div>
-        ) : (
+        ) : activeView === 'observability' ? (
           <ObservabilityPanel
             createdAtFrom={createdAtFrom}
             createdAtTo={createdAtTo}
@@ -334,6 +469,32 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             state={observabilityState}
             status={observabilityStatus}
             summary={observabilitySummary}
+          />
+        ) : (
+          <AuthoringPanel
+            onCreateProject={(event) => void handleCreateProject(event)}
+            onCreateSource={(event) => void handleCreateSource(event)}
+            onProjectIdChange={setProjectId}
+            onProjectNameChange={setProjectName}
+            onRefreshProjects={() => void handleRefreshProjects()}
+            onRefreshSources={() => void handleRefreshSources()}
+            onSelectProject={handleSelectProject}
+            onSourceContentChange={setSourceContent}
+            onSourceExternalIdChange={setSourceExternalId}
+            onSourceTagsChange={setSourceTags}
+            onSourceTypeChange={setSourceType}
+            projectError={projectAuthoringError}
+            projectId={projectId}
+            projectName={projectName}
+            projectState={projectAuthoringState}
+            projects={projects}
+            sourceContent={sourceContent}
+            sourceError={sourceAuthoringError}
+            sourceExternalId={sourceExternalId}
+            sourceState={sourceAuthoringState}
+            sourceTags={sourceTags}
+            sourceType={sourceType}
+            sources={sources}
           />
         )}
       </section>
@@ -368,7 +529,278 @@ function ViewSwitcher({
       >
         Observability
       </button>
+      <button
+        aria-pressed={activeView === 'authoring'}
+        className={
+          activeView === 'authoring' ? 'view-tab view-tab-active' : 'view-tab'
+        }
+        onClick={() => onChange('authoring')}
+        type="button"
+      >
+        Authoring
+      </button>
     </nav>
+  )
+}
+
+function AuthoringPanel({
+  onCreateProject,
+  onCreateSource,
+  onProjectIdChange,
+  onProjectNameChange,
+  onRefreshProjects,
+  onRefreshSources,
+  onSelectProject,
+  onSourceContentChange,
+  onSourceExternalIdChange,
+  onSourceTagsChange,
+  onSourceTypeChange,
+  projectError,
+  projectId,
+  projectName,
+  projectState,
+  projects,
+  sourceContent,
+  sourceError,
+  sourceExternalId,
+  sourceState,
+  sourceTags,
+  sourceType,
+  sources,
+}: {
+  onCreateProject(event: FormEvent<HTMLFormElement>): void
+  onCreateSource(event: FormEvent<HTMLFormElement>): void
+  onProjectIdChange(value: string): void
+  onProjectNameChange(value: string): void
+  onRefreshProjects(): void
+  onRefreshSources(): void
+  onSelectProject(project: Project): void
+  onSourceContentChange(value: string): void
+  onSourceExternalIdChange(value: string): void
+  onSourceTagsChange(value: string): void
+  onSourceTypeChange(value: string): void
+  projectError: string | null
+  projectId: string
+  projectName: string
+  projectState: RequestState
+  projects: Project[]
+  sourceContent: string
+  sourceError: string | null
+  sourceExternalId: string
+  sourceState: RequestState
+  sourceTags: string
+  sourceType: string
+  sources: Source[]
+}) {
+  const isProjectBusy = projectState === 'loading'
+  const isSourceBusy = sourceState === 'loading'
+
+  return (
+    <div className="authoring-grid">
+      <section className="panel authoring-panel" aria-labelledby="projects-title">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Projects</p>
+            <h2 id="projects-title">Authoring</h2>
+          </div>
+          <span className={statusClassName(projectState)}>
+            {authoringStatusLabel(projectState)}
+          </span>
+        </div>
+
+        <form className="authoring-form" onSubmit={onCreateProject}>
+          <label className="field">
+            <span>Project name</span>
+            <input
+              autoComplete="off"
+              name="project-name"
+              onChange={(event) => onProjectNameChange(event.currentTarget.value)}
+              placeholder="Demo"
+              value={projectName}
+            />
+          </label>
+          <div className="form-actions">
+            <button disabled={isProjectBusy} type="submit">
+              {isProjectBusy ? 'Creating...' : 'Create project'}
+            </button>
+            <button
+              className="secondary-button"
+              disabled={isProjectBusy}
+              onClick={onRefreshProjects}
+              type="button"
+            >
+              {isProjectBusy ? 'Refreshing...' : 'Refresh projects'}
+            </button>
+          </div>
+        </form>
+
+        {projectError ? (
+          <p className="form-feedback form-feedback-error" role="alert">
+            {projectError}
+          </p>
+        ) : null}
+
+        <ProjectList
+          activeProjectId={projectId}
+          onSelectProject={onSelectProject}
+          projects={projects}
+        />
+      </section>
+
+      <section className="panel authoring-panel" aria-labelledby="sources-title">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Sources</p>
+            <h2 id="sources-title">Content registry</h2>
+          </div>
+          <span className={statusClassName(sourceState)}>
+            {authoringStatusLabel(sourceState)}
+          </span>
+        </div>
+
+        <form className="authoring-form" onSubmit={onCreateSource}>
+          <label className="field">
+            <span>Project ID</span>
+            <input
+              autoComplete="off"
+              name="authoring-project-id"
+              onChange={(event) => onProjectIdChange(event.currentTarget.value)}
+              placeholder="Project UUID"
+              value={projectId}
+            />
+          </label>
+          <div className="source-form-grid">
+            <label className="field">
+              <span>Source type</span>
+              <select
+                name="source-type"
+                onChange={(event) => onSourceTypeChange(event.currentTarget.value)}
+                value={sourceType}
+              >
+                <option value="markdown">markdown</option>
+                <option value="text">text</option>
+                <option value="txt">txt</option>
+                <option value="url">url</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>External ID</span>
+              <input
+                autoComplete="off"
+                name="source-external-id"
+                onChange={(event) =>
+                  onSourceExternalIdChange(event.currentTarget.value)
+                }
+                placeholder="notes.md"
+                value={sourceExternalId}
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>Content</span>
+            <textarea
+              name="source-content"
+              onChange={(event) => onSourceContentChange(event.currentTarget.value)}
+              placeholder="# Notes"
+              rows={5}
+              value={sourceContent}
+            />
+          </label>
+          <label className="field">
+            <span>Tags</span>
+            <input
+              autoComplete="off"
+              name="source-tags"
+              onChange={(event) => onSourceTagsChange(event.currentTarget.value)}
+              placeholder="docs, local"
+              value={sourceTags}
+            />
+          </label>
+          <div className="form-actions">
+            <button disabled={isSourceBusy} type="submit">
+              {isSourceBusy ? 'Creating...' : 'Create source'}
+            </button>
+            <button
+              className="secondary-button"
+              disabled={isSourceBusy}
+              onClick={onRefreshSources}
+              type="button"
+            >
+              {isSourceBusy ? 'Refreshing...' : 'Refresh sources'}
+            </button>
+          </div>
+        </form>
+
+        {sourceError ? (
+          <p className="form-feedback form-feedback-error" role="alert">
+            {sourceError}
+          </p>
+        ) : null}
+
+        <SourceList sources={sources} />
+      </section>
+    </div>
+  )
+}
+
+function ProjectList({
+  activeProjectId,
+  onSelectProject,
+  projects,
+}: {
+  activeProjectId: string
+  onSelectProject(project: Project): void
+  projects: Project[]
+}) {
+  if (projects.length === 0) {
+    return <p className="empty-copy">No projects loaded.</p>
+  }
+
+  return (
+    <ul className="authoring-list" aria-label="Projects">
+      {projects.map((project) => (
+        <li key={project.id}>
+          <button
+            aria-label={`Select ${project.name}`}
+            className={
+              project.id === activeProjectId
+                ? 'authoring-row authoring-row-active'
+                : 'authoring-row'
+            }
+            onClick={() => onSelectProject(project)}
+            type="button"
+          >
+            <span>
+              <strong>{project.name}</strong>
+              <small>{project.id}</small>
+            </span>
+            <em>{project.embedding_mode}</em>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function SourceList({ sources }: { sources: Source[] }) {
+  if (sources.length === 0) {
+    return <p className="empty-copy">No sources loaded.</p>
+  }
+
+  return (
+    <ul className="authoring-list" aria-label="Sources">
+      {sources.map((source) => (
+        <li key={source.id}>
+          <div className="authoring-row authoring-row-static">
+            <span>
+              <strong>{source.external_id}</strong>
+              <small>{source.id}</small>
+            </span>
+            <em>{source.source_type}</em>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -1217,6 +1649,66 @@ function observabilityStatusLabel(state: RequestState): string {
     return 'Loaded'
   }
   return 'Ready'
+}
+
+function authoringStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Saving'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Saved'
+  }
+  return 'Ready'
+}
+
+function buildSourceCreateBody({
+  content,
+  externalId,
+  sourceType,
+  tags,
+}: {
+  content: string
+  externalId: string
+  sourceType: string
+  tags: string
+}): SourceCreateBody {
+  const parsedTags = parseTags(tags)
+  const trimmedContent = content.trim()
+  const body: SourceCreateBody = {
+    external_id: externalId,
+    source_type: sourceType,
+  }
+  if (parsedTags.length > 0) {
+    body.tags = parsedTags
+  }
+  if (trimmedContent.length > 0 || isTextSourceType(sourceType)) {
+    body.extra_metadata = { content }
+  }
+  return body
+}
+
+function isTextSourceType(sourceType: string): boolean {
+  return sourceType === 'markdown' || sourceType === 'text' || sourceType === 'txt'
+}
+
+function parseTags(value: string): string[] {
+  return value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+}
+
+function upsertProject(projects: Project[], project: Project): Project[] {
+  const nextProjects = projects.filter((item) => item.id !== project.id)
+  return [...nextProjects, project]
+}
+
+function upsertSource(sources: Source[], source: Source): Source[] {
+  const nextSources = sources.filter((item) => item.id !== source.id)
+  return [...nextSources, source]
 }
 
 function formatUsd(value: number): string {

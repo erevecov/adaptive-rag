@@ -12,6 +12,10 @@ import type {
   ChatResponseBody,
   ChatSessionDetailResponse,
   ChatSessionListResponse,
+  Project,
+  ProjectListResponse,
+  Source,
+  SourceListResponse,
 } from './lib/apiClient'
 import { ApiClientError } from './lib/apiClient'
 
@@ -24,17 +28,29 @@ afterEach(() => {
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
+  createProject?: ApiClient['createProject']
+  createSource?: ApiClient['createSource']
   getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
   getChatSession?: ApiClient['getChatSession']
+  getProject?: ApiClient['getProject']
+  getSource?: ApiClient['getSource']
   listChatSessions?: ApiClient['listChatSessions']
+  listProjects?: ApiClient['listProjects']
+  listSources?: ApiClient['listSources']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
+    createProject: options.createProject ?? vi.fn(),
+    createSource: options.createSource ?? vi.fn(),
     getChatObservabilitySummary:
       options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
+    getProject: options.getProject ?? vi.fn(),
+    getSource: options.getSource ?? vi.fn(),
     listChatSessions: options.listChatSessions ?? vi.fn(),
+    listProjects: options.listProjects ?? vi.fn(),
+    listSources: options.listSources ?? vi.fn(),
   }
 }
 
@@ -93,6 +109,35 @@ const sessionListResponse: ChatSessionListResponse = {
     },
   ],
   next_cursor: null,
+}
+
+const projectSummary: Project = {
+  budget_config_json: null,
+  created_at: '2026-06-22T00:00:00Z',
+  embedding_mode: 'dense',
+  id: projectId,
+  name: 'Demo',
+  retrieval_contextualization_enabled: true,
+  updated_at: '2026-06-22T00:00:00Z',
+}
+
+const projectListResponse: ProjectListResponse = {
+  items: [projectSummary],
+}
+
+const sourceSummary: Source = {
+  created_at: '2026-06-22T00:00:01Z',
+  external_id: 'notes.md',
+  extra_metadata: { content: '# Notes' },
+  id: '22222222-2222-4222-8222-222222222222',
+  project_id: projectId,
+  source_type: 'markdown',
+  tags: ['docs', 'local'],
+  updated_at: '2026-06-22T00:00:01Z',
+}
+
+const sourceListResponse: SourceListResponse = {
+  items: [sourceSummary],
 }
 
 const observabilitySummary: ChatObservabilitySummary = {
@@ -270,6 +315,47 @@ describe('App chat workspace', () => {
 
     expect(screen.getByLabelText('Project ID')).toBeTruthy()
     expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('creates a project and source from the authoring workspace', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      createProject: vi.fn(async () => projectSummary),
+      createSource: vi.fn(async () => sourceSummary),
+      listProjects: vi.fn(async () => projectListResponse),
+      listSources: vi.fn(async () => sourceListResponse),
+    })
+
+    render(<App apiClient={client} />)
+
+    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
+    expect(await screen.findByText('Demo')).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Project name'), 'Demo')
+    await user.click(screen.getByRole('button', { name: 'Create project' }))
+
+    expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
+    expect(await screen.findByText(projectId)).toBeTruthy()
+
+    await user.selectOptions(screen.getByLabelText('Source type'), 'markdown')
+    await user.type(screen.getByLabelText('External ID'), 'notes.md')
+    await user.type(screen.getByLabelText('Content'), '# Notes')
+    await user.type(screen.getByLabelText('Tags'), 'docs, local')
+    await user.click(screen.getByRole('button', { name: 'Create source' }))
+
+    expect(client.createSource).toHaveBeenCalledWith(projectId, {
+      external_id: 'notes.md',
+      extra_metadata: { content: '# Notes' },
+      source_type: 'markdown',
+      tags: ['docs', 'local'],
+    })
+    expect(await screen.findByText('notes.md')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Chat' }))
+    expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
+      projectId,
+    )
   })
 
   test('submits a chat question and renders response details', async () => {

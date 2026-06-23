@@ -42,3 +42,28 @@
   project-scoped.
 - [x] 5.5 Validar que crear source no encola jobs ni ejecuta ingestion.
 - [x] 5.6 Confirmar tests de repository/API.
+
+## 6. Implementacion CLI
+
+- [x] 6.1 Agregar tests rojos para `adaptive-rag projects create|list|show`.
+- [x] 6.2 Agregar tests rojos para `adaptive-rag sources create|list|show`.
+- [x] 6.3 Implementar comandos CLI de projects y sources con JSON por stdout.
+- [x] 6.4 Confirmar errores estables por stderr para project/source faltante,
+  source duplicado y content faltante.
+- [x] 6.5 Confirmar que crear sources por CLI no encola ingestion jobs.
+
+## 7. Implementacion frontend
+
+- [x] 7.1 Agregar tests rojos de `apiClient` para projects/sources.
+- [x] 7.2 Implementar tipos y metodos frontend de projects/sources.
+- [x] 7.3 Agregar vista compacta de authoring integrada con chat/history/
+  observability.
+- [x] 7.4 Confirmar que seleccionar/crear project actualiza el `projectId`
+  compartido por chat y observability.
+
+## 8. Quality gate y archive
+
+- [x] 8.1 Validar backend con pytest, Ruff y mypy.
+- [x] 8.2 Validar frontend con Vitest, typecheck, lint y build.
+- [x] 8.3 Validar OpenSpec activo y specs canonicas.
+- [x] 8.4 Confirmar `git diff --check`.

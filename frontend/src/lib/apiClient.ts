@@ -1,5 +1,54 @@
 type JsonObject = Record<string, unknown>
 
+export type Project = {
+  id: string
+  name: string
+  embedding_mode: string
+  retrieval_contextualization_enabled: boolean
+  budget_config_json: JsonObject | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProjectCreateBody = {
+  name: string
+  embedding_mode?: string
+  retrieval_contextualization_enabled?: boolean
+  budget_config_json?: JsonObject | null
+}
+
+export type ProjectListResponse = {
+  items: Project[]
+}
+
+export type Source = {
+  id: string
+  project_id: string
+  source_type: string
+  external_id: string
+  tags: string[] | null
+  extra_metadata: JsonObject | null
+  created_at: string
+  updated_at: string
+}
+
+export type SourceCreateBody = {
+  source_type: string
+  external_id: string
+  tags?: string[] | null
+  extra_metadata?: JsonObject | null
+}
+
+export type SourceListParams = {
+  source_type?: string | null
+  external_id?: string | null
+  tag?: string | null
+}
+
+export type SourceListResponse = {
+  items: Source[]
+}
+
 export type RetrievalMetadataFilter = {
   source_id?: string | null
   document_id?: string | null
@@ -285,6 +334,15 @@ export class ApiClientError extends Error {
 }
 
 export type ApiClient = {
+  createProject(body: ProjectCreateBody): Promise<Project>
+  listProjects(): Promise<ProjectListResponse>
+  getProject(projectId: string): Promise<Project>
+  createSource(projectId: string, body: SourceCreateBody): Promise<Source>
+  listSources(
+    projectId: string,
+    params?: SourceListParams,
+  ): Promise<SourceListResponse>
+  getSource(projectId: string, sourceId: string): Promise<Source>
   askChat(projectId: string, body: ChatRequestBody): Promise<ChatResponseBody>
   askChatStream(
     projectId: string,
@@ -316,6 +374,53 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   const fetchImpl = options.fetch ?? globalThis.fetch
 
   return {
+    createProject(body) {
+      return requestJson<Project>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects`,
+      })
+    },
+    listProjects() {
+      return requestJson<ProjectListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects`,
+      })
+    },
+    getProject(projectId) {
+      return requestJson<Project>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+      })
+    },
+    createSource(projectId, body) {
+      return requestJson<Source>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/sources`,
+      })
+    },
+    listSources(projectId, params = {}) {
+      const url = new URL(
+        `${baseUrl}/projects/${encodePathSegment(projectId)}/sources`,
+      )
+      appendSearchParam(url, 'source_type', params.source_type)
+      appendSearchParam(url, 'external_id', params.external_id)
+      appendSearchParam(url, 'tag', params.tag)
+
+      return requestJson<SourceListResponse>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    getSource(projectId, sourceId) {
+      return requestJson<Source>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/sources/${encodePathSegment(sourceId)}`,
+      })
+    },
     askChat(projectId, body) {
       return requestJson<ChatResponseBody>(fetchImpl, {
         body,

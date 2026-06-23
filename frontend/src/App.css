@@ -480,6 +480,102 @@ button:disabled {
   border-bottom: 0;
 }
 
+.authoring-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.authoring-panel {
+  display: grid;
+  gap: 18px;
+  min-height: auto;
+}
+
+.authoring-form {
+  border-bottom: 1px solid #dfe5e2;
+  display: grid;
+  gap: 14px;
+  padding-bottom: 18px;
+}
+
+.source-form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(140px, 0.7fr) minmax(0, 1.3fr);
+}
+
+.authoring-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.authoring-list li {
+  min-width: 0;
+}
+
+.authoring-row {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dfe5e0;
+  border-radius: 8px;
+  color: inherit;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.authoring-row:hover,
+.authoring-row-active {
+  background: #edf6f3;
+  border-color: #bdd4cc;
+}
+
+.authoring-row-static:hover {
+  background: #ffffff;
+  border-color: #dfe5e0;
+}
+
+.authoring-row span {
+  min-width: 0;
+}
+
+.authoring-row strong,
+.authoring-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.authoring-row strong {
+  color: #25302f;
+  font-size: 14px;
+}
+
+.authoring-row small {
+  color: #5c6866;
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 5px;
+}
+
+.authoring-row em {
+  background: #eef4f2;
+  border-radius: 999px;
+  color: #4f625f;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
 .health-summary {
   align-items: start;
   display: grid;
@@ -712,6 +808,10 @@ button:disabled {
     grid-template-columns: 1fr 1fr;
   }
 
+  .authoring-grid {
+    grid-template-columns: 1fr;
+  }
+
   .panel {
     min-height: auto;
   }
@@ -737,6 +837,8 @@ button:disabled {
   .workspace-actions,
   .view-switcher,
   .observability-filters,
+  .authoring-grid,
+  .source-form-grid,
   .metric-grid,
   .observability-breakdowns {
     display: grid;
