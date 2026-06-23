@@ -25,6 +25,7 @@ from adaptive_rag.db.repositories.graph_projection import GraphProjectionReposit
 from adaptive_rag.db.repositories.jobs import JobRepository
 from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.sources import SourceRepository
+from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingRepository
 
 __all__ = [
     "ChatAuditRepository",
@@ -49,4 +50,5 @@ __all__ = [
     "ProviderUsageRepository",
     "SourceFilters",
     "SourceRepository",
+    "SparseEmbeddingRepository",
 ]

@@ -405,6 +405,7 @@ class ChatHistoryRetrievedChunkResponse(BaseModel):
     rank: int
     dense_score: float | None
     lexical_score: float | None
+    sparse_score: float | None
     rrf_score: float | None
     rerank_score: float | None
     citation: dict[str, Any]
@@ -421,6 +422,7 @@ class ChatHistoryRetrievedChunkResponse(BaseModel):
             rank=retrieved_chunk.rank,
             dense_score=retrieved_chunk.dense_score,
             lexical_score=retrieved_chunk.lexical_score,
+            sparse_score=retrieved_chunk.sparse_score,
             rrf_score=retrieved_chunk.rrf_score,
             rerank_score=retrieved_chunk.rerank_score,
             citation=dict(retrieved_chunk.citation_json),

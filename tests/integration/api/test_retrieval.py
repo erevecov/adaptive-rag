@@ -16,11 +16,13 @@ from adaptive_rag.api.dependencies import (
     get_graph_retriever,
     get_rerank_provider_factory,
     get_session,
+    get_sparse_embedding_provider_factory,
 )
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     GraphProjection,
@@ -32,8 +34,10 @@ from adaptive_rag.db.repositories import (
     DocumentRepository,
     ProjectRepository,
     SourceRepository,
+    SparseEmbeddingRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.embeddings import SparseEmbeddingVector
 from adaptive_rag.graph import GraphRetrievalResult
 from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
@@ -50,6 +54,23 @@ class StaticQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [list(self.embedding) for _text in texts]
+
+
+class StaticSparseEmbeddingProvider:
+    provider_name = "fake"
+    model_name = "static-sparse-v1"
+    dimensions = EMBEDDING_DIMENSIONS
+
+    def __init__(self, query_vector: SparseEmbeddingVector) -> None:
+        self.query_vector = query_vector
+        self.query_inputs: list[str] = []
+
+    def embed_documents(self, texts: list[str]) -> list[SparseEmbeddingVector]:
+        return [self.query_vector for _text in texts]
+
+    def embed_query(self, text: str) -> SparseEmbeddingVector:
+        self.query_inputs.append(text)
+        return self.query_vector
 
 
 class RecordingRerankProvider:
@@ -105,6 +126,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             GraphProjection.__table__,
         ],
     )
@@ -122,6 +144,7 @@ def _client(
     *,
     session: Session,
     provider: StaticQueryEmbeddingProvider,
+    sparse_provider: StaticSparseEmbeddingProvider | None = None,
     rerank_provider_factory: Iterator[RecordingRerankProvider] | None = None,
     graph_retriever: RecordingGraphRetriever | None = None,
 ) -> TestClient:
@@ -133,8 +156,16 @@ def _client(
     def override_provider() -> StaticQueryEmbeddingProvider:
         return provider
 
+    def override_sparse_provider() -> StaticSparseEmbeddingProvider:
+        return sparse_provider or StaticSparseEmbeddingProvider(
+            SparseEmbeddingVector(indices=(), values=())
+        )
+
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
+    app.dependency_overrides[get_sparse_embedding_provider_factory] = (
+        lambda: override_sparse_provider
+    )
     if graph_retriever is not None:
         app.dependency_overrides[get_graph_retriever] = lambda: graph_retriever
     if rerank_provider_factory is not None:
@@ -201,6 +232,25 @@ def _create_embedded_chunk(
     )
     session.flush()
     return source, document, version, chunk
+
+
+def _create_sparse_embedding(
+    session: Session,
+    *,
+    project: Project,
+    chunk: Chunk,
+    indices: tuple[int, ...],
+    values: tuple[float, ...],
+    fingerprint: str,
+) -> None:
+    SparseEmbeddingRepository(session).upsert_current(
+        project_id=project.id,
+        chunk_id=chunk.id,
+        vector=SparseEmbeddingVector(indices=indices, values=values),
+        input_hash=f"sha256:{fingerprint}",
+        index_fingerprint=fingerprint,
+        extra_metadata={"provider": "fake"},
+    )
 
 
 def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
@@ -482,6 +532,79 @@ def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> 
         "dense_score": pytest.approx(1 / 1.1),
         "lexical_rank": 1,
         "lexical_score": 3.0,
+    }
+
+
+def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _general_source, _general_document, _general_version, _general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general-doc",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=_vector(0.1),
+        )
+    )
+    _target_source, _target_document, _target_version, target = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="target.md",
+            stable_id="target-doc",
+            text="Header\n\nInstall the connector with the default path.",
+            snippet="Install the connector with the default path.",
+            embedding=_vector(0.4),
+            contextual_summary="SKU-42 connector installation reference.",
+        )
+    )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=target,
+        indices=(42,),
+        values=(3.0,),
+        fingerprint="sparse-fp:target",
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(42,), values=(1.0,))
+    )
+    client = _client(
+        session=session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    )
+
+    response = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        json={
+            "query": "SKU-42 installation",
+            "limit": 2,
+            "strategy": "dense_sparse",
+        },
+    )
+
+    assert response.status_code == 200
+    assert provider.inputs == ["SKU-42 installation"]
+    assert sparse_provider.query_inputs == ["SKU-42 installation"]
+    data = response.json()
+    assert data["results"][0]["chunk_id"] == str(target.id)
+    assert data["results"][0]["strategy"] == "dense_sparse"
+    assert data["results"][0]["retrieval_metadata"] == {
+        "rrf_k": 60,
+        "rrf_score": pytest.approx((1 / 62) + (1 / 61)),
+        "source_strategies": ["dense", "sparse"],
+        "used_rrf": True,
+        "dense_rank": 2,
+        "dense_score": pytest.approx(1 / 1.4),
+        "sparse_rank": 1,
+        "sparse_score": 3.0,
+        "sparse_index_fingerprint": "sparse-fp:target",
     }
 
 

@@ -167,6 +167,7 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         rank=1,
         dense_score=0.9,
         lexical_score=0.4,
+        sparse_score=0.3,
         rrf_score=0.2,
         rerank_score=0.95,
         citation_json={"chunk_id": str(chunk.id), "snippet": "Alpha evidence"},
@@ -199,6 +200,7 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
     assert retrieval_runs[0].query == "alpha"
     assert retrieved_chunks[0].dense_score == 0.9
     assert retrieved_chunks[0].lexical_score == 0.4
+    assert retrieved_chunks[0].sparse_score == 0.3
     assert retrieved_chunks[0].rrf_score == 0.2
     assert retrieved_chunks[0].rerank_score == 0.95
     assert retrieved_chunks[0].citation_json == {
@@ -260,6 +262,7 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
         "retrieval_metadata": {
             "dense_score": 0.88,
             "lexical_score": 3.0,
+            "sparse_score": 2.0,
             "rrf_score": 0.03252247488101534,
             "dense_rank": 1,
             "lexical_rank": 2,
@@ -290,6 +293,7 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
     assert retrieval_runs[0].strategy == "hybrid_rrf"
     assert retrieved_chunks[0].dense_score == 0.88
     assert retrieved_chunks[0].lexical_score == 3.0
+    assert retrieved_chunks[0].sparse_score == 2.0
     assert retrieved_chunks[0].rrf_score == 0.03252247488101534
     assert retrieved_chunks[0].rerank_score == 0.97
 

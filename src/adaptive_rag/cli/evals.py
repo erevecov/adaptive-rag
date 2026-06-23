@@ -13,6 +13,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
     get_cli_hosted_eval_runtime,
+    get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
@@ -95,6 +96,11 @@ def run(
                     session,
                     suite,
                     provider=get_cli_dense_embedding_provider(),
+                    sparse_provider=(
+                        get_cli_sparse_embedding_provider()
+                        if retrieval_strategy == "dense_sparse"
+                        else None
+                    ),
                     chat_runner=get_cli_chat_runner(),
                     retrieval_strategy=retrieval_strategy,
                 )

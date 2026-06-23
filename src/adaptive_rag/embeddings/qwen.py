@@ -9,6 +9,7 @@ from typing import Any, Protocol
 import httpx
 
 from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
+from adaptive_rag.embeddings.sparse import SparseEmbeddingVector
 from adaptive_rag.provider_usage import (
     ProviderBudgetExceededError,
     ProviderBudgetGuard,
@@ -33,6 +34,18 @@ class QwenEmbeddingClient(Protocol):
         dimensions: int,
     ) -> list[list[float]]:
         """Genera embeddings para textos con el modelo indicado."""
+
+
+class QwenSparseEmbeddingClient(Protocol):
+    def embed_sparse_texts(
+        self,
+        *,
+        model: str,
+        texts: list[str],
+        text_type: str,
+        dimensions: int,
+    ) -> list[SparseEmbeddingVector]:
+        """Genera sparse embeddings Qwen para textos con text_type explicito."""
 
 
 @dataclass(slots=True)
@@ -67,6 +80,50 @@ class QwenDenseEmbeddingProvider:
         return embeddings
 
 
+@dataclass(slots=True)
+class QwenSparseEmbeddingProvider:
+    """Implementa SparseEmbeddingProvider usando un cliente Qwen inyectable."""
+
+    model_name: str
+    client: QwenSparseEmbeddingClient
+    provider_name: str = "qwen"
+    dimensions: int = EMBEDDING_DIMENSIONS
+
+    def embed_documents(self, texts: list[str]) -> list[SparseEmbeddingVector]:
+        if not texts:
+            return []
+        embeddings = self.client.embed_sparse_texts(
+            model=self.model_name,
+            texts=texts,
+            text_type="document",
+            dimensions=self.dimensions,
+        )
+        self._validate_count(embeddings, expected_count=len(texts))
+        return embeddings
+
+    def embed_query(self, text: str) -> SparseEmbeddingVector:
+        embeddings = self.client.embed_sparse_texts(
+            model=self.model_name,
+            texts=[text],
+            text_type="query",
+            dimensions=self.dimensions,
+        )
+        self._validate_count(embeddings, expected_count=1)
+        return embeddings[0]
+
+    def _validate_count(
+        self,
+        embeddings: list[SparseEmbeddingVector],
+        *,
+        expected_count: int,
+    ) -> None:
+        if len(embeddings) != expected_count:
+            raise QwenEmbeddingProviderError(
+                "qwen sparse embedding provider returned wrong count: "
+                f"expected {expected_count}, got {len(embeddings)}"
+            )
+
+
 @dataclass(frozen=True, slots=True)
 class QwenHTTPEmbeddingClient:
     """Cliente HTTP pequeno para endpoints Qwen/DashScope de embeddings."""
@@ -97,6 +154,51 @@ class QwenHTTPEmbeddingClient:
         try:
             response_data, request_id = self._post(endpoint=endpoint, payload=payload)
             embeddings = _extract_embeddings(response_data)
+            record = build_success_record(
+                provider="qwen",
+                model=model,
+                operation="embedding",
+                duration_ms=_elapsed_ms(started),
+                response_data=response_data,
+                price_catalog=self.price_catalog,
+                request_id=request_id,
+                input_count=len(texts),
+            )
+            record_with_budget(
+                record=record,
+                tracker=self.usage_tracker,
+                budget_guard=self.budget_guard,
+            )
+            return embeddings
+        except Exception as exc:
+            if not _is_budget_error(exc):
+                self._record_failure(
+                    model=model,
+                    duration_ms=_elapsed_ms(started),
+                    error=exc,
+                    input_count=len(texts),
+                )
+            raise
+
+    def embed_sparse_texts(
+        self,
+        *,
+        model: str,
+        texts: list[str],
+        text_type: str,
+        dimensions: int,
+    ) -> list[SparseEmbeddingVector]:
+        endpoint, payload = _sparse_embedding_request(
+            base_url=self.base_url,
+            model=model,
+            texts=texts,
+            text_type=text_type,
+            dimensions=dimensions,
+        )
+        started = perf_counter()
+        try:
+            response_data, request_id = self._post(endpoint=endpoint, payload=payload)
+            embeddings = _extract_sparse_embeddings(response_data)
             record = build_success_record(
                 provider="qwen",
                 model=model,
@@ -217,6 +319,36 @@ def _embedding_request(
     )
 
 
+def _sparse_embedding_request(
+    *,
+    base_url: str,
+    model: str,
+    texts: list[str],
+    text_type: str,
+    dimensions: int,
+) -> tuple[str, dict[str, Any]]:
+    if _is_openai_compatible_base(base_url):
+        raise QwenEmbeddingProviderError(
+            "qwen sparse embeddings require DashScope text-embedding endpoint"
+        )
+    if text_type not in ("document", "query"):
+        raise QwenEmbeddingProviderError(
+            "qwen sparse text_type must be document or query"
+        )
+    return (
+        _embedding_endpoint(base_url),
+        {
+            "model": model,
+            "input": {"texts": texts},
+            "parameters": {
+                "dimension": dimensions,
+                "output_type": "sparse",
+                "text_type": text_type,
+            },
+        },
+    )
+
+
 def _is_openai_compatible_base(base_url: str) -> bool:
     value = base_url.rstrip("/")
     return value.endswith("/v1") or "/compatible-mode/" in value
@@ -252,12 +384,63 @@ def _extract_embeddings(response_data: dict[str, Any]) -> list[list[float]]:
     )
 
 
+def _extract_sparse_embeddings(
+    response_data: dict[str, Any],
+) -> list[SparseEmbeddingVector]:
+    output = response_data.get("output")
+    if isinstance(output, dict) and isinstance(output.get("embeddings"), list):
+        items = sorted(
+            output["embeddings"],
+            key=lambda item: (
+                item.get("text_index", 0) if isinstance(item, dict) else 0
+            ),
+        )
+        return [_sparse_embedding_from_item(item) for item in items]
+
+    raise QwenEmbeddingProviderError(
+        "qwen sparse embedding response does not contain embeddings"
+    )
+
+
 def _embedding_from_item(item: object) -> list[float]:
     if not isinstance(item, dict) or not isinstance(item.get("embedding"), list):
         raise QwenEmbeddingProviderError(
             "qwen embedding response item is missing embedding"
         )
     return [float(value) for value in item["embedding"]]
+
+
+def _sparse_embedding_from_item(item: object) -> SparseEmbeddingVector:
+    if not isinstance(item, dict) or not isinstance(item.get("sparse_embedding"), list):
+        raise QwenEmbeddingProviderError(
+            "qwen sparse embedding response item is missing sparse_embedding"
+        )
+    entries = item["sparse_embedding"]
+    indices: list[int] = []
+    values: list[float] = []
+    tokens: list[str] = []
+    has_all_tokens = True
+    for entry in entries:
+        if (
+            not isinstance(entry, dict)
+            or "index" not in entry
+            or "value" not in entry
+        ):
+            raise QwenEmbeddingProviderError(
+                "qwen sparse embedding entry is missing index or value"
+            )
+        indices.append(int(entry["index"]))
+        values.append(float(entry["value"]))
+        token = entry.get("token")
+        if token is None:
+            has_all_tokens = False
+        else:
+            tokens.append(str(token))
+    return SparseEmbeddingVector(
+        indices=tuple(indices),
+        values=tuple(values),
+        tokens=tuple(tokens) if has_all_tokens else None,
+    )
 
 
 def _response_request_id(response: httpx.Response) -> str | None:

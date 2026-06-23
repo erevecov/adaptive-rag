@@ -8,6 +8,8 @@ from adaptive_rag.embeddings import (
     QwenDenseEmbeddingProvider,
     QwenEmbeddingProviderError,
     QwenHTTPEmbeddingClient,
+    QwenSparseEmbeddingProvider,
+    SparseEmbeddingVector,
 )
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
@@ -36,7 +38,31 @@ class RecordingQwenEmbeddingClient:
                 "dimensions": dimensions,
             }
         )
-        return self.embeddings
+        return self.embeddings[: len(texts)]
+
+
+class RecordingQwenSparseEmbeddingClient:
+    def __init__(self, embeddings: list[SparseEmbeddingVector]) -> None:
+        self.embeddings = embeddings
+        self.calls: list[dict[str, object]] = []
+
+    def embed_sparse_texts(
+        self,
+        *,
+        model: str,
+        texts: list[str],
+        text_type: str,
+        dimensions: int,
+    ) -> list[SparseEmbeddingVector]:
+        self.calls.append(
+            {
+                "model": model,
+                "texts": list(texts),
+                "text_type": text_type,
+                "dimensions": dimensions,
+            }
+        )
+        return self.embeddings[: len(texts)]
 
 
 def _vector(value: float = 0.1) -> list[float]:
@@ -88,6 +114,49 @@ def test_qwen_provider_rejects_wrong_embedding_dimension() -> None:
         provider.embed_texts(["alpha"])
 
 
+def test_qwen_sparse_provider_calls_client_with_document_and_query_text_type() -> None:
+    sparse = SparseEmbeddingVector(
+        indices=(1, 42),
+        values=(0.25, 0.75),
+        tokens=("alpha", "beta"),
+    )
+    client = RecordingQwenSparseEmbeddingClient([sparse, sparse])
+    provider = QwenSparseEmbeddingProvider(
+        model_name="text-embedding-v4",
+        client=client,
+    )
+
+    assert provider.embed_documents(["alpha", "beta"]) == [sparse, sparse]
+    assert provider.embed_query("alpha") == sparse
+    assert client.calls == [
+        {
+            "model": "text-embedding-v4",
+            "texts": ["alpha", "beta"],
+            "text_type": "document",
+            "dimensions": EMBEDDING_DIMENSIONS,
+        },
+        {
+            "model": "text-embedding-v4",
+            "texts": ["alpha"],
+            "text_type": "query",
+            "dimensions": EMBEDDING_DIMENSIONS,
+        },
+    ]
+
+
+def test_qwen_sparse_provider_rejects_wrong_embedding_count() -> None:
+    provider = QwenSparseEmbeddingProvider(
+        model_name="text-embedding-v4",
+        client=RecordingQwenSparseEmbeddingClient([]),
+    )
+
+    with pytest.raises(
+        QwenEmbeddingProviderError,
+        match="qwen sparse embedding provider returned wrong count",
+    ):
+        provider.embed_documents(["alpha"])
+
+
 def test_qwen_http_client_posts_dashscope_embedding_payload() -> None:
     requests: list[httpx.Request] = []
 
@@ -131,6 +200,83 @@ def test_qwen_http_client_posts_dashscope_embedding_payload() -> None:
         b'{"model":"text-embedding-v4","input":{"texts":["alpha","beta"]},'
         b'"parameters":{"dimension":1024}}'
     )
+
+
+def test_qwen_http_client_posts_dashscope_sparse_embedding_payload() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            headers={"x-request-id": "req_sparse"},
+            json={
+                "output": {
+                    "embeddings": [
+                        {
+                            "text_index": 1,
+                            "sparse_embedding": [
+                                {"index": 7, "value": 0.5, "token": "beta"}
+                            ],
+                        },
+                        {
+                            "text_index": 0,
+                            "sparse_embedding": [
+                                {"index": 3, "value": 0.25, "token": "alpha"},
+                                {"index": 9, "value": 0.75, "token": "omega"},
+                            ],
+                        },
+                    ]
+                },
+                "usage": {"total_tokens": 100},
+            },
+        )
+
+    tracker = InMemoryProviderUsageTracker()
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+        usage_tracker=tracker,
+        price_catalog=ProviderPriceCatalog(
+            embedding_input_price_per_million_tokens_usd=0.13,
+        ),
+    )
+
+    embeddings = client.embed_sparse_texts(
+        model="text-embedding-v4",
+        texts=["alpha", "beta"],
+        text_type="document",
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert embeddings == [
+        SparseEmbeddingVector(
+            indices=(3, 9),
+            values=(0.25, 0.75),
+            tokens=("alpha", "omega"),
+        ),
+        SparseEmbeddingVector(indices=(7,), values=(0.5,), tokens=("beta",)),
+    ]
+    assert len(requests) == 1
+    request = requests[0]
+    assert request.method == "POST"
+    assert str(request.url) == (
+        "https://example.test/api/v1/services/embeddings/text-embedding"
+    )
+    assert request.headers["authorization"] == "Bearer sk-test"
+    assert request.read() == (
+        b'{"model":"text-embedding-v4","input":{"texts":["alpha","beta"]},'
+        b'"parameters":{"dimension":1024,"output_type":"sparse",'
+        b'"text_type":"document"}}'
+    )
+    assert len(tracker.records) == 1
+    record = tracker.records[0]
+    assert record.operation == "embedding"
+    assert record.usage.input_tokens == 100
+    assert record.request_id == "req_sparse"
 
 
 def test_qwen_http_client_accepts_openai_compatible_embedding_shape() -> None:

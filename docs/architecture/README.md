@@ -70,6 +70,8 @@ Documentos:
   error codes, latencia/fallback y costo operacional declarado.
 - `lexical-rrf-m29.md`: decision M29 para exponer `strategy=lexical` y
   `strategy=hybrid_rrf` como capacidades opt-in sin promover defaults.
+- `qwen-sparse-dense-sparse-m30.md`: contrato M30 para sparse embeddings
+  Qwen/DashScope, backfill y `strategy=dense_sparse` opt-in.
 
 Reglas:
 

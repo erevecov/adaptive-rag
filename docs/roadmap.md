@@ -1141,16 +1141,16 @@ Secuencia recomendada:
 2. `m28-contextual-retrieval-generated-summaries`: completo. Generar
    `contextual_summary`, reusar `embedding_input_text`/`lexical_input_text` y
    exponer evidencia de indexing contextualizado por first-run.
-3. `m29-lexical-retrieval-rrf`: activo. Agregar Postgres full-text local y
+3. `m29-lexical-retrieval-rrf`: completo. Agrega lexical retrieval local y
    RRF preservando filtros, ordering estable y citations.
-4. `m30-qwen-sparse-dense-sparse`: propuesto. Verificar docs actuales de Qwen y
+4. `m30-qwen-sparse-dense-sparse`: activo. Verificar docs actuales de Qwen y
    completar storage/scoring/reindex para `dense_sparse` como opt-in.
 5. `m31-retrieval-strategy-gate`: propuesto. Comparar dense, contextual dense,
    lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
    `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
 
-Continuacion: completar M29 y luego abrir M30. La razon es directa: lexical/RRF
-local fija el contrato de fusion antes de disenar sparse provider-specific.
+Continuacion: completar M30 en un solo PR. La razon es directa: M29 ya fijo el
+contrato de fusion RRF y M30 debe dejar sparse listo antes de pulir frontend.
 
 ## M28 Contextual Retrieval generated summaries
 
@@ -1187,11 +1187,11 @@ Continuacion: archivar M28 y abrir M29 para lexical/RRF local.
 
 ## M29 Lexical retrieval and RRF
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m29-lexical-retrieval-rrf/`
+- `openspec/changes/archive/2026-06-23-m29-lexical-retrieval-rrf/`
 
 Objetivo:
 
@@ -1209,12 +1209,48 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m29-lexical-retriever`: activo. Implementa lexical ranking local.
-2. `m29-hybrid-rrf`: activo. Agrega fusion dense+lexical y metadata de scores.
-3. `m29-surfaces-evals`: activo. Expone API/CLI/evals y valida docs/OpenSpec.
+1. `m29-lexical-retriever`: completo. Implementa lexical ranking local.
+2. `m29-hybrid-rrf`: completo. Agrega fusion dense+lexical y metadata de scores.
+3. `m29-surfaces-evals`: completo. Expone API/CLI/evals y valida docs/OpenSpec.
 
-Continuacion: archivar M29 y abrir M30 para Qwen sparse / `dense_sparse` solo
-despues de verificar documentacion provider actual.
+Continuacion: M30 usa el contrato RRF ya mergeado para agregar Qwen sparse /
+`dense_sparse` como opt-in.
+
+## M30 Qwen sparse dense_sparse
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m30-qwen-sparse-dense-sparse/`
+
+Objetivo:
+
+- Agregar sparse embeddings Qwen/DashScope, backfill explicito sobre
+  `chunk_sparse_embeddings`, `SparseRetriever` y `strategy=dense_sparse` como
+  opt-in dense+sparse RRF.
+
+Condiciones del milestone:
+
+- `dense` sigue como default.
+- Sparse provider usa DashScope native TextEmbedding con `output_type=sparse`
+  y `text_type=query|document`.
+- Sparse backfill usa el mismo input contextualizado que dense/lexical.
+- `dense_sparse` debe preservar filtros, citations originales, deduplicacion y
+  metadata de rank/score.
+- Audit/history debe preservar `sparse_score` cuando exista.
+
+Secuencia recomendada:
+
+1. `m30-sparse-provider-pipeline`: activo. Implementa provider Qwen/fake,
+   repositorio y backfill idempotente.
+2. `m30-sparse-retrieval`: activo. Implementa `SparseRetriever` y fusion
+   dense+sparse por RRF.
+3. `m30-surfaces-evals`: activo. Expone API/CLI/evals, docs y validaciones.
+
+Continuacion: completar M30 y luego abrir M31 para comparar dense, contextual
+dense, lexical, sparse, hybrid RRF, graph opt-in y rerank antes de promover
+estrategias.
 
 ## Politica para reducir conflictos de merge
 

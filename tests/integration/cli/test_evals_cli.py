@@ -233,12 +233,14 @@ def test_evals_run_command_passes_retrieval_strategy_to_offline_runner(
         suite,
         *,
         provider=None,
+        sparse_provider=None,
         chat_runner=None,
         retrieval_strategy="dense",
     ) -> EvalRunReport:
         captured["session"] = session_arg
         captured["suite_id"] = suite.suite_id
         captured["provider"] = provider
+        captured["sparse_provider"] = sparse_provider
         captured["chat_runner"] = chat_runner
         captured["retrieval_strategy"] = retrieval_strategy
         return EvalRunReport(
@@ -261,14 +263,15 @@ def test_evals_run_command_passes_retrieval_strategy_to_offline_runner(
             "run",
             str(suite_path),
             "--retrieval-strategy",
-            "lexical",
+            "dense_sparse",
         ],
     )
 
     assert result.exit_code == 0
     assert captured["session"] is session
     assert captured["suite_id"] == "cli-strategy"
-    assert captured["retrieval_strategy"] == "lexical"
+    assert captured["retrieval_strategy"] == "dense_sparse"
+    assert captured["sparse_provider"] is not None
 
 
 def test_evals_run_command_writes_output_and_exits_one_on_failed_report(

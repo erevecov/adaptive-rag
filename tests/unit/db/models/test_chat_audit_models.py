@@ -225,6 +225,7 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
         rank=1,
         dense_score=0.9,
         lexical_score=0.4,
+        sparse_score=0.3,
         rrf_score=0.2,
         rerank_score=0.95,
         citation_json={"chunk_id": str(chunk.id), "snippet": "Alpha evidence"},
@@ -239,6 +240,7 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     assert fetched.rank == 1
     assert fetched.dense_score == 0.9
     assert fetched.lexical_score == 0.4
+    assert fetched.sparse_score == 0.3
     assert fetched.rrf_score == 0.2
     assert fetched.rerank_score == 0.95
     assert fetched.citation_json == {
@@ -246,8 +248,8 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
         "snippet": "Alpha evidence",
     }
     assert "lexical_score" in columns
+    assert "sparse_score" in columns
     assert "rrf_score" in columns
-    assert "sparse_score" not in columns
 
 
 def test_retrieved_chunk_requires_citation_payload() -> None:

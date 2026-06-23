@@ -12,6 +12,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     GraphProjection,
@@ -23,8 +24,10 @@ from adaptive_rag.db.repositories import (
     DocumentRepository,
     ProjectRepository,
     SourceRepository,
+    SparseEmbeddingRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.embeddings import SparseEmbeddingVector
 from adaptive_rag.graph import GraphRetrievalResult, GraphStoreUnavailableError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import (
@@ -56,6 +59,25 @@ class StaticQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [list(self.embedding) for _text in texts]
+
+
+class StaticSparseEmbeddingProvider:
+    provider_name = "fake"
+    model_name = "fake-sparse-embedding-v1"
+    dimensions = EMBEDDING_DIMENSIONS
+
+    def __init__(self, query_vector: SparseEmbeddingVector) -> None:
+        self.query_vector = query_vector
+        self.query_inputs: list[str] = []
+        self.document_inputs: list[str] = []
+
+    def embed_documents(self, texts: list[str]) -> list[SparseEmbeddingVector]:
+        self.document_inputs.extend(texts)
+        return [self.query_vector for _text in texts]
+
+    def embed_query(self, text: str) -> SparseEmbeddingVector:
+        self.query_inputs.append(text)
+        return self.query_vector
 
 
 class WrongDimensionQueryEmbeddingProvider:
@@ -144,6 +166,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             GraphProjection.__table__,
         ],
     )
@@ -215,6 +238,25 @@ def _create_embedded_chunk(
         document.created_at = document_created_at
     session.flush()
     return source, document, version, chunk
+
+
+def _create_sparse_embedding(
+    session: Session,
+    *,
+    project: Project,
+    chunk: Chunk,
+    indices: tuple[int, ...],
+    values: tuple[float, ...],
+    fingerprint: str,
+) -> None:
+    SparseEmbeddingRepository(session).upsert_current(
+        project_id=project.id,
+        chunk_id=chunk.id,
+        vector=SparseEmbeddingVector(indices=indices, values=values),
+        input_hash=f"sha256:{fingerprint}",
+        index_fingerprint=fingerprint,
+        extra_metadata={"provider": "fake"},
+    )
 
 
 def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
@@ -349,6 +391,82 @@ def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
         "rrf_k": 60,
         "rrf_score": results[0].score,
         "source_strategies": ["dense", "lexical"],
+        "used_rrf": True,
+    }
+    assert results[1].retrieval_metadata == {
+        "dense_rank": 1,
+        "dense_score": pytest.approx(1 / 1.1),
+        "rrf_k": 60,
+        "rrf_score": results[1].score,
+        "source_strategies": ["dense"],
+        "used_rrf": True,
+    }
+
+
+def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _dense_source, _dense_document, _dense_version, dense_only = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="dense.md",
+            stable_id="dense",
+            text="Alpha semantic evidence",
+            snippet="Alpha semantic evidence",
+            embedding=_vector(0.1),
+        )
+    )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="target.md",
+        stable_id="target",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=target,
+        indices=(42,),
+        values=(3.0,),
+        fingerprint="sparse-fp:target",
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(42,), values=(1.0,))
+    )
+    session.commit()
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="SKU-42 installation",
+            limit=2,
+            strategy="dense_sparse",
+        )
+    )
+
+    assert provider.inputs == ["SKU-42 installation"]
+    assert sparse_provider.query_inputs == ["SKU-42 installation"]
+    assert [result.chunk_id for result in results] == [target.id, dense_only.id]
+    assert [result.strategy for result in results] == ["dense_sparse", "dense_sparse"]
+    assert results[0].retrieval_metadata == {
+        "dense_rank": 2,
+        "dense_score": pytest.approx(1 / 1.4),
+        "rrf_k": 60,
+        "rrf_score": results[0].score,
+        "source_strategies": ["dense", "sparse"],
+        "sparse_index_fingerprint": "sparse-fp:target",
+        "sparse_rank": 1,
+        "sparse_score": 3.0,
         "used_rrf": True,
     }
     assert results[1].retrieval_metadata == {
@@ -617,7 +735,8 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
                 query="x",
                 strategy="unsupported",
             ),
-            "retrieval strategy must be dense, graph, lexical or hybrid_rrf",
+            "retrieval strategy must be dense, graph, lexical, hybrid_rrf "
+            "or dense_sparse",
         ),
         (
             RetrievalSearchRequest(
@@ -657,6 +776,28 @@ def test_retrieval_service_rejects_invalid_requests_without_provider_call(
 
     with pytest.raises(RetrievalServiceError, match=message):
         RetrievalService(session, provider=provider).search(search_request)
+
+    assert provider.inputs == []
+
+
+def test_retrieval_service_requires_sparse_provider_for_dense_sparse() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    with pytest.raises(
+        RetrievalServiceError,
+        match="sparse embedding provider is required for dense_sparse retrieval",
+    ):
+        RetrievalService(session, provider=provider).search(
+            RetrievalSearchRequest(
+                project_id=project.id,
+                query="alpha question",
+                limit=3,
+                strategy="dense_sparse",
+            )
+        )
 
     assert provider.inputs == []
 

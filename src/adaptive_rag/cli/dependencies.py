@@ -8,7 +8,7 @@ from typing import cast
 
 from adaptive_rag.chat import ChatRunner
 from adaptive_rag.config.settings import get_settings
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.evals import (
     EvalRunOptions,
     validate_hosted_eval_credentials,
@@ -21,7 +21,10 @@ from adaptive_rag.provider_runtime import (
 )
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.rerank import RerankProvider
-from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
+from adaptive_rag.retrieval.providers import (
+    get_default_dense_embedding_provider,
+    get_default_sparse_embedding_provider,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +43,15 @@ def get_cli_dense_embedding_provider(
     if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
         return get_default_dense_embedding_provider(usage_tracker=usage_tracker)
     return get_default_dense_embedding_provider()
+
+
+def get_cli_sparse_embedding_provider(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
+) -> SparseEmbeddingProvider:
+    if "usage_tracker" in signature(get_default_sparse_embedding_provider).parameters:
+        return get_default_sparse_embedding_provider(usage_tracker=usage_tracker)
+    return get_default_sparse_embedding_provider()
 
 
 def get_cli_chat_runner(
