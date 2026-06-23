@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from adaptive_rag.embeddings import DenseEmbeddingProvider, FakeDenseEmbeddingProvider
+from adaptive_rag.embeddings import (
+    DenseEmbeddingProvider,
+    FakeDenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
+    SparseEmbeddingPipeline,
+    SparseEmbeddingProvider,
+)
 from adaptive_rag.evals.fixtures import (
     EvalRetrievalFixtureProject,
     build_retrieval_fixture_project,
@@ -35,6 +41,7 @@ def run_retrieval_eval_suite(
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider | None = None,
+    sparse_provider: SparseEmbeddingProvider | None = None,
     reranker: RerankProvider | None = None,
     rerank_options: RetrievalRerankOptions | None = None,
     strategy: RetrievalStrategy = "dense",
@@ -49,9 +56,25 @@ def run_retrieval_eval_suite(
         suite,
         provider=active_provider,
     )
+    if strategy == "dense_sparse":
+        active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
+        sparse_pipeline = SparseEmbeddingPipeline(
+            session,
+            provider=active_sparse_provider,
+        )
+        for document_version_id in active_fixture_project.document_version_ids:
+            sparse_pipeline.embed_document_version(
+                project_id=active_fixture_project.project_id,
+                document_version_id=document_version_id,
+            )
     service = RetrievalService(
         session,
         provider=active_provider,
+        sparse_provider=(
+            (sparse_provider or FakeSparseEmbeddingProvider())
+            if strategy == "dense_sparse"
+            else None
+        ),
         reranker=reranker,
         graph_retriever=graph_retriever,
     )

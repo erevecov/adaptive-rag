@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     provider_runtime_mode: ProviderRuntimeMode = "fake"
     embedding_provider: str = "fake"
     embedding_model: str = "fake-embedding-v1"
+    sparse_embedding_provider: str = "fake"
+    sparse_embedding_model: str = "fake-sparse-embedding-v1"
     chat_provider: str = "fake"
     chat_model: str = "retrieval-grounded-local-v1"
     rerank_provider: str = "fake"

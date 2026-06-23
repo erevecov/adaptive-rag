@@ -169,6 +169,8 @@ class ChatRetrievalTool:
 def _strategy_for_results(results: list[RetrievalSearchResult]) -> str:
     if any(result.strategy == "graph" for result in results):
         return "graph"
+    if any(result.strategy == "dense_sparse" for result in results):
+        return "dense_sparse"
     if any(result.strategy == "hybrid_rrf" for result in results):
         return "hybrid_rrf"
     if any(result.strategy == "lexical" for result in results):

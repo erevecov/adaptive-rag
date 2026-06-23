@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.api.dependencies import (
     RerankProviderFactory,
+    SparseEmbeddingProviderFactory,
     get_dense_embedding_provider,
     get_graph_retriever,
     get_rerank_provider_factory,
     get_session,
+    get_sparse_embedding_provider_factory,
 )
 from adaptive_rag.api.schemas.retrieval import (
     RetrievalSearchRequestBody,
@@ -42,6 +44,10 @@ def search_retrieval(
         RerankProviderFactory,
         Depends(get_rerank_provider_factory),
     ],
+    sparse_provider_factory: Annotated[
+        SparseEmbeddingProviderFactory,
+        Depends(get_sparse_embedding_provider_factory),
+    ],
     graph_retriever: Annotated[
         GraphRetriever | None,
         Depends(get_graph_retriever),
@@ -53,6 +59,11 @@ def search_retrieval(
         service = RetrievalService(
             session,
             provider=provider,
+            sparse_provider=(
+                sparse_provider_factory()
+                if request.strategy == "dense_sparse"
+                else None
+            ),
             reranker=(
                 rerank_provider_factory() if request.rerank is not None else None
             ),

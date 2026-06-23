@@ -309,6 +309,7 @@ class ChatAuditRepository:
         citation_json: Mapping[str, Any],
         dense_score: float | None = None,
         lexical_score: float | None = None,
+        sparse_score: float | None = None,
         rrf_score: float | None = None,
         rerank_score: float | None = None,
     ) -> RetrievedChunk:
@@ -329,6 +330,7 @@ class ChatAuditRepository:
             rank=rank,
             dense_score=dense_score,
             lexical_score=lexical_score,
+            sparse_score=sparse_score,
             rrf_score=rrf_score,
             rerank_score=rerank_score,
             citation_json=dict(citation_json),

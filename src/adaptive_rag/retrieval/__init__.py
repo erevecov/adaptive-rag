@@ -21,6 +21,11 @@ from adaptive_rag.retrieval.service import (
     RetrievalServiceError,
     RetrievalStrategy,
 )
+from adaptive_rag.retrieval.sparse import (
+    SparseRetrievalError,
+    SparseRetrievalResult,
+    SparseRetriever,
+)
 
 __all__ = [
     "DenseRetriever",
@@ -38,4 +43,7 @@ __all__ = [
     "RetrievalService",
     "RetrievalServiceError",
     "RetrievalStrategy",
+    "SparseRetrievalError",
+    "SparseRetrievalResult",
+    "SparseRetriever",
 ]

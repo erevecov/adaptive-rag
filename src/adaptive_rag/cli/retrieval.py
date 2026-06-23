@@ -12,6 +12,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
     get_cli_graph_retriever,
     get_cli_rerank_provider,
+    get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
 from adaptive_rag.db.session import session_scope
@@ -93,6 +94,11 @@ def search(
         service = RetrievalService(
             session,
             provider=get_cli_dense_embedding_provider(),
+            sparse_provider=(
+                get_cli_sparse_embedding_provider()
+                if strategy == "dense_sparse"
+                else None
+            ),
             reranker=get_cli_rerank_provider() if rerank_options is not None else None,
             graph_retriever=get_cli_graph_retriever(),
         )

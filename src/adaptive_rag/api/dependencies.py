@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever, get_graph_store
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.provider_runtime import (
@@ -22,9 +22,13 @@ from adaptive_rag.provider_runtime import (
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import RetrievalService
-from adaptive_rag.retrieval.providers import get_default_dense_embedding_provider
+from adaptive_rag.retrieval.providers import (
+    get_default_dense_embedding_provider,
+    get_default_sparse_embedding_provider,
+)
 
 RerankProviderFactory = Callable[[], RerankProvider]
+SparseEmbeddingProviderFactory = Callable[[], SparseEmbeddingProvider]
 
 
 def get_session() -> Iterator[Session]:
@@ -34,6 +38,10 @@ def get_session() -> Iterator[Session]:
 
 def get_rerank_provider_factory() -> RerankProviderFactory:
     return get_runtime_rerank_provider
+
+
+def get_sparse_embedding_provider_factory() -> SparseEmbeddingProviderFactory:
+    return get_sparse_embedding_provider
 
 
 def get_graph_retriever() -> GraphRetriever | None:
@@ -48,6 +56,7 @@ def get_provider_usage_tracker() -> InMemoryProviderUsageTracker:
 
 
 _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
+_SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 
 
@@ -64,6 +73,23 @@ def get_dense_embedding_provider(
     if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
         return get_default_dense_embedding_provider(usage_tracker=active_usage_tracker)
     return get_default_dense_embedding_provider()
+
+
+def get_sparse_embedding_provider(
+    usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
+        _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
+    ),
+) -> SparseEmbeddingProvider:
+    active_usage_tracker = (
+        get_provider_usage_tracker()
+        if isinstance(usage_tracker, DependsMarker)
+        else usage_tracker
+    )
+    if "usage_tracker" in signature(get_default_sparse_embedding_provider).parameters:
+        return get_default_sparse_embedding_provider(
+            usage_tracker=active_usage_tracker
+        )
+    return get_default_sparse_embedding_provider()
 
 
 def get_retrieval_service(

@@ -192,6 +192,32 @@ def test_chat_service_records_hybrid_retrieval_strategy_from_results() -> None:
     assert tool_events[0]["strategy"] == "hybrid_rrf"
 
 
+def test_chat_service_records_dense_sparse_retrieval_strategy_from_results() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    service = ChatService(
+        runner=ToolCallingRunner(query="alpha evidence", cited_chunk_ids=(chunk_id,)),
+        retrieval_service=RecordingRetrievalService(
+            [
+                _retrieval_result(
+                    chunk_id=chunk_id,
+                    snippet="Alpha evidence",
+                    strategy="dense_sparse",
+                )
+            ]
+        ),
+        audit_writer=audit,
+    )
+
+    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+
+    tool_events = [
+        event for event in audit.events if event["event"] == "retrieval_tool"
+    ]
+    assert tool_events[0]["strategy"] == "dense_sparse"
+
+
 def test_chat_service_records_graph_fallback_reason_from_results() -> None:
     project_id = uuid4()
     chunk_id = uuid4()

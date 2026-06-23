@@ -2,44 +2,45 @@
 
 ## Milestone activo
 
-M29 `m29-lexical-retrieval-rrf`.
+M30 `m30-qwen-sparse-dense-sparse`.
 
-M29 implementa lexical retrieval local y `hybrid_rrf` como estrategias opt-in
-antes de pulir frontend. El objetivo es cubrir terminos exactos, codigos e
-identificadores sin promover nada por defecto: `dense` sigue siendo el default y
-fallback hasta M31.
+M30 implementa sparse embeddings Qwen/DashScope, backfill explicito y
+`strategy=dense_sparse` como estrategia opt-in antes de pulir frontend. El
+objetivo es dejar listo el contrato backend de sparse retrieval sin promoverlo
+por defecto: `dense` sigue siendo el default y fallback hasta M31.
 
 ## Ultimo milestone completado
 
-M28 Contextual Retrieval generated summaries cerrado el 2026-06-23.
+M29 Lexical retrieval and RRF cerrado el 2026-06-23.
 
-M28 genera y persiste `contextual_summary` durante indexing local, wirea
-first-run/v1 gate para reportar contextualized counts y mantiene citations
-ancladas al texto original. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m28-contextual-retrieval-generated-summaries/`
-y actualiza las specs canonicas `embedding-baseline` y `first-run-onboarding`.
+M29 agrega `strategy=lexical` y `strategy=hybrid_rrf` como estrategias opt-in,
+preserva citations originales, expone API/CLI/evals y deja scores
+lexical/RRF en audit/history. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m29-lexical-retrieval-rrf/` y actualiza
+las specs canonicas `chat-audit-trail`, `evals-baseline`,
+`retrieval-quality` y `retrieval-surface`.
 
 ## Ultimo slice completado
 
-M28 `m28-contextual-retrieval-generated-summaries`: completa generacion local de
-contexto por chunk, valida first-run/gate y archiva
-`m28-contextual-retrieval-generated-summaries`.
+M29 `m29-lexical-retrieval-rrf`: completa lexical retrieval local, fusion
+dense+lexical por RRF y superficies opt-in para API/CLI/evals.
 
-Comandos validados al cerrar M28 y abrir M29:
+Comandos validados al cerrar M29 y abrir M30:
 
 ```text
-npx --yes @fission-ai/openspec validate m28-contextual-retrieval-generated-summaries --strict
 npx --yes @fission-ai/openspec validate m29-lexical-retrieval-rrf --strict
+npx --yes @fission-ai/openspec archive m29-lexical-retrieval-rrf --yes
+npx --yes @fission-ai/openspec validate m30-qwen-sparse-dense-sparse --strict
 npx --yes @fission-ai/openspec list
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m29-lexical-retrieval-rrf/`
+- `openspec/changes/m30-qwen-sparse-dense-sparse/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m28-contextual-retrieval-generated-summaries/`
+- `openspec/changes/archive/2026-06-23-m29-lexical-retrieval-rrf/`
 
 ## Spec canonica activa
 
@@ -72,9 +73,9 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear M29 como PR de backend contract. Despues abrir M30 para
-  Qwen sparse / `dense_sparse`, verificando documentacion provider actual antes
-  de codificar payloads, storage o costos.
+- Completar M30 en un solo PR: sparse provider Qwen/fake, backfill sobre
+  `chunk_sparse_embeddings`, `SparseRetriever`, `strategy=dense_sparse`,
+  `sparse_score` en audit/history y docs de uso opt-in.
 
 ## Reglas de coordinacion
 

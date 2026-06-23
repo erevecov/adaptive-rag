@@ -54,6 +54,7 @@ class RetrievedChunk(Base):
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
     dense_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     lexical_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sparse_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rrf_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rerank_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     citation_json: Mapped[dict[str, Any]] = mapped_column(

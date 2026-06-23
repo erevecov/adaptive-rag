@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
 from adaptive_rag.db.repositories import GraphProjectionRepository
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import (
     GraphRetrievalResult,
     GraphRetriever,
@@ -39,6 +39,11 @@ from adaptive_rag.retrieval.lexical import (
     LexicalRetrievalError,
     LexicalRetrievalResult,
     LexicalRetriever,
+)
+from adaptive_rag.retrieval.sparse import (
+    SparseRetrievalError,
+    SparseRetrievalResult,
+    SparseRetriever,
 )
 
 
@@ -67,7 +72,7 @@ class RetrievalRerankOptions:
     candidate_limit: int
 
 
-RetrievalStrategy = Literal["dense", "graph", "lexical", "hybrid_rrf"]
+RetrievalStrategy = Literal["dense", "graph", "lexical", "hybrid_rrf", "dense_sparse"]
 RRF_K = 60
 
 
@@ -112,14 +117,17 @@ class RetrievalService:
         session: Session,
         *,
         provider: DenseEmbeddingProvider,
+        sparse_provider: SparseEmbeddingProvider | None = None,
         reranker: RerankProvider | None = None,
         graph_retriever: GraphRetriever | None = None,
         graph_projection_repository: GraphProjectionRepository | None = None,
     ) -> None:
         self._provider = provider
+        self._sparse_provider = sparse_provider
         self._reranker = reranker
         self._retriever = DenseRetriever(session)
         self._lexical_retriever = LexicalRetriever(session)
+        self._sparse_retriever = SparseRetriever(session)
         self._graph_retriever = graph_retriever
         self._graph_projection_repository = (
             graph_projection_repository or GraphProjectionRepository(session)
@@ -135,6 +143,10 @@ class RetrievalService:
             limit=request.limit,
             reranker=self._reranker,
         )
+        if strategy == "dense_sparse" and self._sparse_provider is None:
+            raise RetrievalServiceError(
+                "sparse embedding provider is required for dense_sparse retrieval"
+            )
 
         filters = _to_dense_filters(request.metadata_filter)
         candidate_limit = (
@@ -173,6 +185,20 @@ class RetrievalService:
                     dense_results=dense_results,
                     lexical_results=lexical_results,
                     limit=candidate_limit,
+                    strategy="hybrid_rrf",
+                )
+            elif strategy == "dense_sparse":
+                sparse_results = self._raw_sparse_results(
+                    project_id=request.project_id,
+                    query=query,
+                    limit=candidate_limit,
+                    filters=filters,
+                )
+                search_results = _fuse_rrf_results(
+                    dense_results=dense_results,
+                    sparse_results=sparse_results,
+                    limit=candidate_limit,
+                    strategy="dense_sparse",
                 )
             else:
                 search_results = [_to_search_result(result) for result in dense_results]
@@ -236,6 +262,29 @@ class RetrievalService:
                 filters=filters,
             )
         except LexicalRetrievalError as exc:
+            raise RetrievalServiceError(str(exc)) from exc
+
+    def _raw_sparse_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[SparseRetrievalResult]:
+        if self._sparse_provider is None:
+            raise RetrievalServiceError(
+                "sparse embedding provider is required for dense_sparse retrieval"
+            )
+        try:
+            query_vector = self._sparse_provider.embed_query(query)
+            return self._sparse_retriever.search(
+                project_id=project_id,
+                query_vector=query_vector,
+                limit=limit,
+                filters=filters,
+            )
+        except SparseRetrievalError as exc:
             raise RetrievalServiceError(str(exc)) from exc
 
     def _try_graph_results(
@@ -379,9 +428,10 @@ def _validate_query(query: str) -> str:
 
 
 def _validate_strategy(strategy: str) -> RetrievalStrategy:
-    if strategy not in ("dense", "graph", "lexical", "hybrid_rrf"):
+    if strategy not in ("dense", "graph", "lexical", "hybrid_rrf", "dense_sparse"):
         raise RetrievalServiceError(
-            "retrieval strategy must be dense, graph, lexical or hybrid_rrf"
+            "retrieval strategy must be dense, graph, lexical, hybrid_rrf "
+            "or dense_sparse"
         )
     return cast(RetrievalStrategy, strategy)
 
@@ -520,8 +570,10 @@ def _with_rerank_metadata(
 def _fuse_rrf_results(
     *,
     dense_results: list[DenseRetrievalResult],
-    lexical_results: list[LexicalRetrievalResult],
+    lexical_results: Sequence[LexicalRetrievalResult] = (),
+    sparse_results: Sequence[SparseRetrievalResult] = (),
     limit: int,
+    strategy: Literal["hybrid_rrf", "dense_sparse"],
 ) -> list[RetrievalSearchResult]:
     by_chunk_id: dict[UUID, _RRFAccumulator] = {}
     for rank, dense_result in enumerate(dense_results, start=1):
@@ -540,6 +592,14 @@ def _fuse_rrf_results(
         accumulator.lexical_result = lexical_result
         accumulator.lexical_rank = rank
         accumulator.rrf_score += _rrf_score(rank)
+    for rank, sparse_result in enumerate(sparse_results, start=1):
+        accumulator = by_chunk_id.setdefault(
+            sparse_result.chunk_id,
+            _RRFAccumulator(chunk_id=sparse_result.chunk_id),
+        )
+        accumulator.sparse_result = sparse_result
+        accumulator.sparse_rank = rank
+        accumulator.rrf_score += _rrf_score(rank)
 
     accumulators = sorted(
         by_chunk_id.values(),
@@ -551,10 +611,18 @@ def _fuse_rrf_results(
                 if accumulator.lexical_rank is not None
                 else 10**9
             ),
+            (
+                accumulator.sparse_rank
+                if accumulator.sparse_rank is not None
+                else 10**9
+            ),
             str(accumulator.chunk_id),
         ),
     )
-    return [_to_rrf_search_result(accumulator) for accumulator in accumulators[:limit]]
+    return [
+        _to_rrf_search_result(accumulator, strategy=strategy)
+        for accumulator in accumulators[:limit]
+    ]
 
 
 @dataclass(slots=True)
@@ -563,12 +631,22 @@ class _RRFAccumulator:
     rrf_score: float = 0.0
     dense_rank: int | None = None
     lexical_rank: int | None = None
+    sparse_rank: int | None = None
     dense_result: DenseRetrievalResult | None = None
     lexical_result: LexicalRetrievalResult | None = None
+    sparse_result: SparseRetrievalResult | None = None
 
 
-def _to_rrf_search_result(accumulator: _RRFAccumulator) -> RetrievalSearchResult:
-    source = accumulator.dense_result or accumulator.lexical_result
+def _to_rrf_search_result(
+    accumulator: _RRFAccumulator,
+    *,
+    strategy: Literal["hybrid_rrf", "dense_sparse"],
+) -> RetrievalSearchResult:
+    source = (
+        accumulator.dense_result
+        or accumulator.lexical_result
+        or accumulator.sparse_result
+    )
     if source is None:
         raise RetrievalServiceError("RRF accumulator has no retrieval result")
 
@@ -587,6 +665,13 @@ def _to_rrf_search_result(accumulator: _RRFAccumulator) -> RetrievalSearchResult
     ):
         metadata["lexical_rank"] = accumulator.lexical_rank
         metadata["lexical_score"] = accumulator.lexical_result.score
+    if accumulator.sparse_result is not None and accumulator.sparse_rank is not None:
+        metadata["sparse_rank"] = accumulator.sparse_rank
+        metadata["sparse_score"] = accumulator.sparse_result.score
+        sparse_metadata = accumulator.sparse_result.sparse_metadata
+        metadata["sparse_index_fingerprint"] = sparse_metadata[
+            "sparse_index_fingerprint"
+        ]
 
     return RetrievalSearchResult(
         chunk_id=source.chunk_id,
@@ -595,7 +680,7 @@ def _to_rrf_search_result(accumulator: _RRFAccumulator) -> RetrievalSearchResult
         citation=source.citation,
         embedding_metadata=_copy_metadata(source.embedding_metadata),
         retrieval_metadata=metadata,
-        strategy="hybrid_rrf",
+        strategy=strategy,
     )
 
 
@@ -605,6 +690,8 @@ def _rrf_source_strategies(accumulator: _RRFAccumulator) -> list[str]:
         strategies.append("dense")
     if accumulator.lexical_result is not None:
         strategies.append("lexical")
+    if accumulator.sparse_result is not None:
+        strategies.append("sparse")
     return strategies
 
 

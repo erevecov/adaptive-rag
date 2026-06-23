@@ -5,7 +5,6 @@ Define la persistencia durable del audit trail de chat: sesiones, mensajes,
 tool calls, retrieval runs, retrieved chunks, citations y usage/cost asociados,
 manteniendo aislamiento por proyecto y sin convertir M13 en streaming,
 historial publico ni dashboards.
-
 ## Requirements
 ### Requirement: Chat persiste audit trail durable
 
@@ -113,3 +112,16 @@ de sesiones ni streaming.
 - **THEN** llama al mismo servicio conversacional que la API
 - **AND** persiste el mismo tipo de audit trail
 - **AND** no agrega comandos de historial en M13
+
+### Requirement: Audit trail stores lexical and RRF scores when present
+
+The chat audit trail MUST preserve retrieval score metadata for non-dense
+strategies without changing the default chat retrieval strategy.
+
+#### Scenario: Retrieved chunks store strategy scores
+
+- **WHEN** serialized retrieval results include dense, lexical or RRF score
+  metadata
+- **THEN** durable retrieved chunk rows store those values in the existing score
+  columns
+- **AND** missing score metadata remains nullable for legacy dense results

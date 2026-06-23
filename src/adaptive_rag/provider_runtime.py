@@ -8,8 +8,11 @@ from adaptive_rag.config.settings import Settings, get_settings
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
     QwenDenseEmbeddingProvider,
     QwenHTTPEmbeddingClient,
+    QwenSparseEmbeddingProvider,
+    SparseEmbeddingProvider,
 )
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
@@ -36,6 +39,18 @@ def get_dense_embedding_provider(
 ) -> DenseEmbeddingProvider:
     runtime_settings = settings or get_settings()
     return _build_embedding_provider(runtime_settings, usage_tracker=usage_tracker)
+
+
+def get_sparse_embedding_provider(
+    settings: Settings | None = None,
+    *,
+    usage_tracker: ProviderUsageTracker | None = None,
+) -> SparseEmbeddingProvider:
+    runtime_settings = settings or get_settings()
+    return _build_sparse_embedding_provider(
+        runtime_settings,
+        usage_tracker=usage_tracker,
+    )
 
 
 def get_chat_runner(
@@ -82,6 +97,52 @@ def _build_embedding_provider(
         raise ProviderConfigurationError("qwen credentials were not validated")
     return QwenDenseEmbeddingProvider(
         model_name=settings.embedding_model,
+        client=QwenHTTPEmbeddingClient(
+            api_key=settings.qwen_api_key.get_secret_value(),
+            base_url=settings.qwen_base_url,
+            timeout_seconds=settings.provider_timeout_seconds,
+            max_retries=settings.provider_max_retries,
+            usage_tracker=(
+                usage_tracker
+                if usage_tracker is not None
+                else InMemoryProviderUsageTracker()
+            ),
+            price_catalog=_provider_price_catalog(settings),
+            budget_guard=_provider_budget_guard(settings),
+        ),
+    )
+
+
+def _build_sparse_embedding_provider(
+    settings: Settings,
+    *,
+    usage_tracker: ProviderUsageTracker | None,
+) -> SparseEmbeddingProvider:
+    if settings.provider_runtime_mode == "fake":
+        if settings.sparse_embedding_provider != "fake":
+            raise ProviderConfigurationError(
+                f"sparse embedding provider '{settings.sparse_embedding_provider}' "
+                "requires live provider runtime mode"
+            )
+        return FakeSparseEmbeddingProvider()
+
+    if settings.sparse_embedding_provider != "qwen":
+        raise ProviderConfigurationError(
+            "unsupported sparse embedding provider: "
+            f"{settings.sparse_embedding_provider}"
+        )
+    _require_qwen_credentials(settings)
+    if (
+        not settings.sparse_embedding_model
+        or settings.sparse_embedding_model == "fake-sparse-embedding-v1"
+    ):
+        raise ProviderConfigurationError(
+            "ADAPTIVE_RAG_SPARSE_EMBEDDING_MODEL must be set for qwen"
+        )
+    if settings.qwen_api_key is None or settings.qwen_base_url is None:
+        raise ProviderConfigurationError("qwen credentials were not validated")
+    return QwenSparseEmbeddingProvider(
+        model_name=settings.sparse_embedding_model,
         client=QwenHTTPEmbeddingClient(
             api_key=settings.qwen_api_key.get_secret_value(),
             base_url=settings.qwen_base_url,

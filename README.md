@@ -123,6 +123,13 @@ uv run adaptive-rag retrieval search \
   --project-id <project-id> \
   --query "SKU-42 installation" \
   --strategy hybrid_rrf
+
+uv run adaptive-rag sparse backfill --project-id <project-id>
+
+uv run adaptive-rag retrieval search \
+  --project-id <project-id> \
+  --query "SKU-42 installation" \
+  --strategy dense_sparse
 ```
 
 Offline evals tambien aceptan la estrategia:
@@ -131,12 +138,19 @@ Offline evals tambien aceptan la estrategia:
 uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
   --mode offline \
   --retrieval-strategy hybrid_rrf
+
+uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
+  --mode offline \
+  --retrieval-strategy dense_sparse
 ```
 
 `lexical` usa full-text local y `contextual_summary` cuando existe.
-`hybrid_rrf` fusiona dense + lexical con Reciprocal Rank Fusion. Ninguna de
-estas rutas promueve el default del producto; esa decision queda para el gate
-M31. Detalles: `docs/architecture/lexical-rrf-m29.md`.
+`hybrid_rrf` fusiona dense + lexical con Reciprocal Rank Fusion.
+`dense_sparse` requiere ejecutar primero `adaptive-rag sparse backfill` y
+fusiona dense + sparse con la misma constante RRF. Ninguna de estas rutas
+promueve el default del producto; esa decision queda para el gate M31.
+Detalles: `docs/architecture/lexical-rrf-m29.md` y
+`docs/architecture/qwen-sparse-dense-sparse-m30.md`.
 
 ## Smoke Neo4j opt-in
 

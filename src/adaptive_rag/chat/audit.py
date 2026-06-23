@@ -509,6 +509,7 @@ class SqlAlchemyChatAuditWriter:
                 rank=rank,
                 dense_score=_dense_score(result),
                 lexical_score=_retrieval_metadata_score(result, "lexical_score"),
+                sparse_score=_retrieval_metadata_score(result, "sparse_score"),
                 rrf_score=_retrieval_metadata_score(result, "rrf_score"),
                 rerank_score=_rerank_score(result),
                 citation_json=result["citation"],

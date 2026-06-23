@@ -26,6 +26,7 @@ class EvalRetrievalFixtureProject:
 
     project_id: UUID
     evidence_id_by_chunk_id: dict[UUID, str]
+    document_version_ids: tuple[UUID, ...]
 
 
 def build_retrieval_fixture_project(
@@ -46,6 +47,7 @@ def build_retrieval_fixture_project(
     chunk_repo = ChunkRepository(session)
     embeddings = _resolve_evidence_embeddings(suite.evidence, provider=provider)
     evidence_id_by_chunk_id: dict[UUID, str] = {}
+    document_version_ids: list[UUID] = []
 
     for index, evidence in enumerate(suite.evidence):
         source = source_repo.create(
@@ -96,11 +98,13 @@ def build_retrieval_fixture_project(
             "eval_suite_id": suite.suite_id,
         }
         evidence_id_by_chunk_id[chunk.id] = evidence.id
+        document_version_ids.append(version.id)
 
     session.flush()
     return EvalRetrievalFixtureProject(
         project_id=project.id,
         evidence_id_by_chunk_id=evidence_id_by_chunk_id,
+        document_version_ids=tuple(document_version_ids),
     )
 
 

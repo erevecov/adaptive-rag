@@ -7,13 +7,16 @@ from adaptive_rag.cli import dependencies as cli_dependencies
 from adaptive_rag.config.settings import Settings
 from adaptive_rag.embeddings import (
     FakeDenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
     QwenDenseEmbeddingProvider,
+    QwenSparseEmbeddingProvider,
 )
 from adaptive_rag.provider_runtime import (
     ProviderConfigurationError,
     get_chat_runner,
     get_dense_embedding_provider,
     get_rerank_provider,
+    get_sparse_embedding_provider,
 )
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
@@ -35,11 +38,13 @@ def test_provider_runtime_defaults_to_fake_without_credentials():
     settings = _settings()
 
     provider = get_dense_embedding_provider(settings)
+    sparse_provider = get_sparse_embedding_provider(settings)
     runner = get_chat_runner(settings)
     reranker = get_rerank_provider(settings)
 
     assert settings.provider_runtime_mode == "fake"
     assert isinstance(provider, FakeDenseEmbeddingProvider)
+    assert isinstance(sparse_provider, FakeSparseEmbeddingProvider)
     assert isinstance(runner, RetrievalGroundedChatRunner)
     assert isinstance(reranker, FakeRerankProvider)
 
@@ -52,6 +57,16 @@ def test_fake_runtime_rejects_non_fake_embedding_provider():
         match="embedding provider 'qwen' requires live provider runtime mode",
     ):
         get_dense_embedding_provider(settings)
+
+
+def test_fake_runtime_rejects_non_fake_sparse_embedding_provider():
+    settings = _settings(sparse_embedding_provider="qwen")
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="sparse embedding provider 'qwen' requires live provider runtime mode",
+    ):
+        get_sparse_embedding_provider(settings)
 
 
 def test_fake_runtime_rejects_non_fake_chat_provider():
@@ -89,6 +104,21 @@ def test_unknown_live_provider_fails_before_client_creation():
         get_dense_embedding_provider(settings)
 
 
+def test_unknown_live_sparse_provider_fails_before_client_creation():
+    settings = _settings(
+        provider_runtime_mode="live",
+        sparse_embedding_provider="unknown",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="unsupported sparse embedding provider: unknown",
+    ):
+        get_sparse_embedding_provider(settings)
+
+
 def test_unknown_live_rerank_provider_fails_before_client_creation():
     settings = _settings(
         provider_runtime_mode="live",
@@ -118,6 +148,22 @@ def test_live_provider_requires_credentials_before_network_clients():
         match="ADAPTIVE_RAG_QWEN_API_KEY is required for live provider runtime",
     ):
         get_dense_embedding_provider(settings)
+
+
+def test_live_qwen_sparse_provider_requires_credentials_before_network_clients():
+    settings = _settings(
+        provider_runtime_mode="live",
+        sparse_embedding_provider="qwen",
+        sparse_embedding_model="text-embedding-v4",
+        qwen_api_key=None,
+        qwen_base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_QWEN_API_KEY is required for live provider runtime",
+    ):
+        get_sparse_embedding_provider(settings)
 
 
 def test_live_qwen_rerank_provider_requires_credentials_before_network_clients():
@@ -152,6 +198,22 @@ def test_live_qwen_embedding_provider_requires_live_model():
         get_dense_embedding_provider(settings)
 
 
+def test_live_qwen_sparse_provider_requires_live_model():
+    settings = _settings(
+        provider_runtime_mode="live",
+        sparse_embedding_provider="qwen",
+        sparse_embedding_model="fake-sparse-embedding-v1",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+    )
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_SPARSE_EMBEDDING_MODEL must be set for qwen",
+    ):
+        get_sparse_embedding_provider(settings)
+
+
 def test_live_qwen_rerank_provider_requires_live_model():
     settings = _settings(
         provider_runtime_mode="live",
@@ -182,6 +244,25 @@ def test_live_qwen_embedding_provider_is_configured_without_network_call():
     provider = get_dense_embedding_provider(settings)
 
     assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert provider.provider_name == "qwen"
+    assert provider.model_name == "text-embedding-v4"
+    assert provider.dimensions == 1024
+
+
+def test_live_qwen_sparse_provider_is_configured_without_network_call():
+    settings = _settings(
+        provider_runtime_mode="live",
+        sparse_embedding_provider="qwen",
+        sparse_embedding_model="text-embedding-v4",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+        provider_timeout_seconds=7.5,
+        provider_max_retries=3,
+    )
+
+    provider = get_sparse_embedding_provider(settings)
+
+    assert isinstance(provider, QwenSparseEmbeddingProvider)
     assert provider.provider_name == "qwen"
     assert provider.model_name == "text-embedding-v4"
     assert provider.dimensions == 1024
@@ -220,6 +301,30 @@ def test_live_qwen_embedding_provider_receives_budget_and_price_config():
     provider = get_dense_embedding_provider(settings)
 
     assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert isinstance(provider.client.budget_guard, ProviderBudgetGuard)
+    assert provider.client.budget_guard.max_cost_usd == 0.01
+    assert isinstance(provider.client.usage_tracker, InMemoryProviderUsageTracker)
+    assert isinstance(provider.client.price_catalog, ProviderPriceCatalog)
+    assert (
+        provider.client.price_catalog.embedding_input_price_per_million_tokens_usd
+        == 0.13
+    )
+
+
+def test_live_qwen_sparse_provider_receives_budget_and_price_config():
+    settings = _settings(
+        provider_runtime_mode="live",
+        sparse_embedding_provider="qwen",
+        sparse_embedding_model="text-embedding-v4",
+        qwen_api_key="sk-test",
+        qwen_base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+        provider_max_cost_usd=0.01,
+        provider_embedding_input_price_per_million_tokens_usd=0.13,
+    )
+
+    provider = get_sparse_embedding_provider(settings)
+
+    assert isinstance(provider, QwenSparseEmbeddingProvider)
     assert isinstance(provider.client.budget_guard, ProviderBudgetGuard)
     assert provider.client.budget_guard.max_cost_usd == 0.01
     assert isinstance(provider.client.usage_tracker, InMemoryProviderUsageTracker)
@@ -357,6 +462,15 @@ def test_live_qwen_runtime_can_share_usage_tracker():
     tracker = InMemoryProviderUsageTracker()
 
     provider = get_dense_embedding_provider(settings, usage_tracker=tracker)
+    sparse_provider = get_sparse_embedding_provider(
+        settings.model_copy(
+            update={
+                "sparse_embedding_provider": "qwen",
+                "sparse_embedding_model": "text-embedding-v4",
+            }
+        ),
+        usage_tracker=tracker,
+    )
     runner = get_chat_runner(settings, usage_tracker=tracker)
     reranker = get_rerank_provider(
         settings.model_copy(
@@ -369,9 +483,11 @@ def test_live_qwen_runtime_can_share_usage_tracker():
     )
 
     assert isinstance(provider, QwenDenseEmbeddingProvider)
+    assert isinstance(sparse_provider, QwenSparseEmbeddingProvider)
     assert isinstance(runner, QwenChatRunner)
     assert isinstance(reranker, QwenRerankProvider)
     assert provider.client.usage_tracker is tracker
+    assert sparse_provider.client.usage_tracker is tracker
     assert runner.client.usage_tracker is tracker
     assert reranker.client.usage_tracker is tracker
 
@@ -384,10 +500,18 @@ def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):
         api_dependencies.get_dense_embedding_provider(),
         FakeDenseEmbeddingProvider,
     )
+    assert isinstance(
+        api_dependencies.get_sparse_embedding_provider(),
+        FakeSparseEmbeddingProvider,
+    )
     assert isinstance(api_dependencies.get_chat_runner(), RetrievalGroundedChatRunner)
     assert isinstance(
         cli_dependencies.get_cli_dense_embedding_provider(),
         FakeDenseEmbeddingProvider,
+    )
+    assert isinstance(
+        cli_dependencies.get_cli_sparse_embedding_provider(),
+        FakeSparseEmbeddingProvider,
     )
     assert isinstance(
         cli_dependencies.get_cli_chat_runner(),
@@ -398,7 +522,12 @@ def test_api_and_cli_dependencies_use_runtime_factories(monkeypatch):
 def test_api_and_cli_dependencies_propagate_runtime_configuration_errors(
     monkeypatch,
 ):
-    settings = _settings(provider_runtime_mode="live", embedding_provider="qwen")
+    settings = _settings(
+        provider_runtime_mode="live",
+        embedding_provider="qwen",
+        sparse_embedding_provider="qwen",
+        sparse_embedding_model="text-embedding-v4",
+    )
     monkeypatch.setattr(provider_runtime, "get_settings", lambda: settings)
 
     with pytest.raises(
@@ -412,3 +541,9 @@ def test_api_and_cli_dependencies_propagate_runtime_configuration_errors(
         match="ADAPTIVE_RAG_QWEN_API_KEY is required",
     ):
         cli_dependencies.get_cli_dense_embedding_provider()
+
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_QWEN_API_KEY is required",
+    ):
+        cli_dependencies.get_cli_sparse_embedding_provider()

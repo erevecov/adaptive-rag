@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.models import EvalRunReport, EvalStatus, EvalSuite
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
@@ -17,6 +17,7 @@ def run_eval_suite(
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider | None = None,
+    sparse_provider: SparseEmbeddingProvider | None = None,
     chat_runner: ChatRunner | None = None,
     retrieval_strategy: RetrievalStrategy = "dense",
 ) -> EvalRunReport:
@@ -26,6 +27,7 @@ def run_eval_suite(
         session,
         suite,
         provider=provider,
+        sparse_provider=sparse_provider,
         strategy=retrieval_strategy,
     )
     chat_report = run_chat_eval_suite(
