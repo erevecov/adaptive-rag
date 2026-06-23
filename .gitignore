@@ -14,7 +14,6 @@ build/
 .coverage
 artifacts/
 htmlcov/
-tools/kanban/index.html
 
 # ZCode / skills local artifacts
 .agents/
