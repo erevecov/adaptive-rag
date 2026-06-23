@@ -52,6 +52,19 @@ uv run adaptive-rag first-run smoke
 El comando imprime evidencia JSON con project/source/job ids, chunk count,
 embedding count, answer y `citation_count`.
 
+## Gate final v1
+
+El gate final de producto esta en `docs/v1-quality-gate.md`. Genera evidencia
+machine-readable del flujo completo y una decision `ready_for_v1_0` sin cortar
+tags ni releases automaticamente:
+
+```bash
+uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json
+```
+
+Un manual git tag or GitHub release sigue siendo una accion humana separada
+despues de revisar el artefacto del gate.
+
 ## Stack local core
 
 El paquete local usa Postgres con pgvector y la API FastAPI:

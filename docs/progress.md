@@ -2,33 +2,33 @@
 
 ## Milestone activo
 
-Ninguno. No hay changes OpenSpec activos despues de archivar M25.
+Ninguno. No hay changes OpenSpec activos despues de archivar M26.
 
 ## Ultimo milestone completado
 
-M25 First-run onboarding cerrado el 2026-06-23.
+M26 V1 product quality gate cerrado el 2026-06-23.
 
-M25 agrega el camino local reproducible de primera corrida: setup documentado,
-`adaptive-rag first-run smoke`, datos sample/propios creados por superficies
-publicas, ingestion, chunking, embeddings fake y chat con citations en un
-reporte JSON. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m25-first-run-onboarding/` y publica la
-spec canonica `first-run-onboarding`.
+M26 agrega el gate final de producto v1: `adaptive-rag v1 quality-gate` ejecuta
+la primera corrida publica, valida criterios de release, emite evidencia JSON
+con `release_decision = ready_for_v1_0` y documenta que el tag o GitHub release
+siguen siendo acciones manuales. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m26-v1-product-quality-gate/` y actualiza
+las specs canonicas `v1-product-completion` y `v1-release-readiness`.
 
 El producto v1 terminado mantiene dense retrieval como default, rerank como
 opt-in medible y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen
 sparse retrieval, Contextual Retrieval generado, auth multi-user, PDF/Office,
-voice y MCP server siguen fuera del default salvo nueva evidencia/OpenSpec.
-La brecha principal ahora es el gate final de producto: demo final con datos
-propios/sample, smokes documentados, evidencia de release y decision explicita
-de v1.0.
+voice y MCP server siguen fuera del default salvo nueva evidencia/OpenSpec. Con
+M26, la brecha de producto local-first single-user queda cerrada para review de
+release manual.
 
 ## Ultimo slice completado
 
-M25 `m25-quality-gate`: completa first-run onboarding por CLI/docs, valida
-backend, frontend y OpenSpec, y archiva `m25-first-run-onboarding`.
+M26 `m26-v1-product-quality-gate`: completa el gate final de producto v1 por
+CLI/docs, valida backend, frontend y OpenSpec, y archiva
+`m26-v1-product-quality-gate`.
 
-Comandos validados en el cierre M25:
+Comandos validados en el cierre M26:
 
 ```text
 uv run pytest
@@ -39,7 +39,7 @@ pnpm --dir frontend test
 pnpm --dir frontend run typecheck
 pnpm --dir frontend run lint
 pnpm --dir frontend run build
-npx --yes @fission-ai/openspec validate m25-first-run-onboarding --strict
+npx --yes @fission-ai/openspec validate m26-v1-product-quality-gate --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -51,7 +51,7 @@ git diff --check
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m25-first-run-onboarding/`
+- `openspec/changes/archive/2026-06-23-m26-v1-product-quality-gate/`
 
 ## Spec canonica activa
 
@@ -84,9 +84,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir `m26-v1-product-quality-gate`. La opcion recomendada es cerrar el gate
-  final de release real, porque M25 ya da una primera corrida reproducible y
-  falta convertirla en evidencia completa de v1 con docs/smokes/demo final.
+- Mergear el PR de M26 y reejecutar `uv run adaptive-rag v1 quality-gate` desde
+  `main`. Si el artefacto conserva `release_decision = ready_for_v1_0`, la
+  siguiente decision es manual: cortar tag/GitHub release v1.0 o abrir un
+  OpenSpec post-v1 si se decide agregar alcance nuevo.
 
 ## Reglas de coordinacion
 

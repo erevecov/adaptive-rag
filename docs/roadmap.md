@@ -27,6 +27,7 @@
 - M23 Product authoring surface: completo.
 - M24 Ingestion ops surface: completo.
 - M25 First-run onboarding: completo.
+- M26 V1 product quality gate: completo.
 
 ## M1 Foundation
 
@@ -922,12 +923,13 @@ Secuencia recomendada:
    exponer job state, failure reasons y retry/dead-letter.
 4. `m25-first-run-onboarding`: completo. Setup local, migraciones, seed/demo
    y guia para datos propios.
-5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
+5. `m26-v1-product-quality-gate`: completo. Demo final con datos propios,
    docs, smokes y gate de release real.
 
-Continuacion: abrir `m26-v1-product-quality-gate` desde `main`. La razon es
-directa: M25 ya deja una primera corrida local reproducible, pero v1 todavia
-necesita el gate final con demo, smokes, evidencia y decision de release.
+Continuacion: M26 queda como cierre del backlog de producto v1 local-first
+single-user. La siguiente decision no es agregar features por defecto, sino
+mergear el gate, reejecutar la evidencia desde `main` y decidir manualmente tag
+o GitHub release v1.0.
 
 ## M23 Product authoring surface
 
@@ -1063,9 +1065,54 @@ Secuencia recomendada:
 4. `m25-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
    M25.
 
-Continuacion: abrir `m26-v1-product-quality-gate`, para convertir la primera
-corrida en evidencia final de release real con demo, smokes, docs y decision
-v1.0.
+Continuacion: M26 convierte la primera corrida en evidencia final de release
+real con demo, smokes, docs y decision v1.0.
+
+## M26 V1 product quality gate
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-23-m26-v1-product-quality-gate/`
+
+Specs canonicas:
+
+- `openspec/specs/v1-product-completion/spec.md`
+- `openspec/specs/v1-release-readiness/spec.md`
+
+Objetivo:
+
+- Convertir el first-run local en evidencia final de producto v1 con una
+  decision machine-readable de release.
+
+Condiciones del milestone:
+
+- El comando `adaptive-rag v1 quality-gate` debe ejecutar el flujo publico de
+  project/source, ingestion, chunking, embeddings fake y chat con citations.
+- La salida debe incluir `release_decision`, criterios de release, evidencia
+  `first_run`, job state, conteos de indexing, citation count, deferrals y
+  nota de accion manual.
+- `ready_for_v1_0` no crea tag ni GitHub release automatico.
+- Qwen hosted, rerank hosted, Neo4j/graph, auth multi-user, PDF/Office, voice,
+  MCP server y hosted observability siguen fuera del default salvo nuevo
+  OpenSpec.
+
+Secuencia recomendada:
+
+1. `m26-v1-product-quality-gate`: completo. Crea el plan OpenSpec y documenta
+   el contrato final de gate v1.
+2. `m26-quality-gate-cli`: completo. Agrega `adaptive-rag v1 quality-gate` con
+   reporte JSON, criterios de release y soporte `--output`.
+3. `m26-release-runbook`: completo. Agrega `docs/v1-quality-gate.md` y
+   actualiza README.
+4. `m26-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
+   M26.
+
+Continuacion: mergear M26 y reejecutar `uv run adaptive-rag v1 quality-gate`
+desde `main`. Si el artefacto conserva `release_decision = ready_for_v1_0`, la
+siguiente accion es decidir manualmente si cortar tag/GitHub release v1.0. Si
+se quiere mas alcance, abrir un OpenSpec post-v1.
 
 ## Politica para reducir conflictos de merge
 
