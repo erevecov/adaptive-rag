@@ -2,10 +2,12 @@
 
 ## Milestone activo
 
-Sin change OpenSpec activo.
+M32 Frontend polish esta activo en
+`openspec/changes/m32-frontend-polish-plan/`.
 
-M31 quedo archivado y no hay cambios activos en OpenSpec. El siguiente
-milestone debe abrirse desde `origin/main` antes de tocar frontend.
+El change abre el plan de polish antes de tocar runtime frontend: inventario de
+workflows, estados operativos, politica de retrieval default y criterios de QA
+visual.
 
 ## Ultimo milestone completado
 
@@ -35,7 +37,7 @@ npx --yes @fission-ai/openspec list
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m32-frontend-polish-plan/`
 
 ## Ultimo change archivado
 
@@ -72,10 +74,10 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Abrir M32 como change OpenSpec de frontend polish. La opcion recomendada es
-  pulir la experiencia existente de authoring, ingestion, first-run, retrieval
-  dense y chat/historial sin exponer modos avanzados como default; cualquier
-  control avanzado debe quedar opt-in y atado a decisiones del gate.
+- Completar y mergear `m32-frontend-polish-plan`. La opcion recomendada despues
+  del merge es abrir `m32-product-shell-and-authoring`, porque primero conviene
+  consolidar shell, project/source authoring e ingestion ops antes de pulir chat
+  y observability.
 
 ## Reglas de coordinacion
 

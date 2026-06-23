@@ -28,7 +28,8 @@
 - M24 Ingestion ops surface: completo.
 - M25 First-run onboarding: completo.
 - M26 V1 product quality gate: completo.
-- M27 Post-v1 retrieval expansion: activo.
+- M27 Post-v1 retrieval expansion: completo.
+- M32 Frontend polish: activo.
 
 ## M1 Foundation
 
@@ -1304,7 +1305,11 @@ promovido.
 
 ## M32 Frontend polish
 
-Estado: recomendado, no abierto.
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m32-frontend-polish-plan/`
 
 Objetivo:
 
@@ -1324,8 +1329,9 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m32-frontend-polish-plan`: propuesto. Definir inventario de pantallas,
-   flujos, estados vacios/carga/error y criterios de QA visual.
+1. `m32-frontend-polish-plan`: activo. Definir inventario de pantallas,
+   flujos, estados vacios/carga/error, politica de retrieval default y
+   criterios de QA visual.
 2. `m32-product-shell-and-authoring`: propuesto. Pulir shell, navegacion,
    project/source authoring e ingestion ops.
 3. `m32-chat-retrieval-experience`: propuesto. Pulir chat, streaming, citations,
@@ -1333,8 +1339,9 @@ Secuencia recomendada:
 4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
    docs/runbooks.
 
-Continuacion: abrir M32 en un solo PR de planificacion o dividirlo si el
-inventario visual resulta demasiado grande.
+Continuacion: completar y mergear `m32-frontend-polish-plan`; despues abrir
+`m32-product-shell-and-authoring` para consolidar shell, navegacion,
+project/source authoring e ingestion ops antes de tocar chat.
 
 ## Politica para reducir conflictos de merge
 
