@@ -24,6 +24,7 @@
 - M20 Chat observability dashboard: completo.
 - M21 V1 core/readiness: completo.
 - M22 V1 product scope reset: completo.
+- M23 Product authoring surface: activo.
 
 ## M1 Foundation
 
@@ -925,6 +926,48 @@ Secuencia recomendada:
 Continuacion: abrir `m23-product-authoring-surface` desde `main`. La razon es
 directa: sin authoring publico de projects/sources no hay ingestion con datos
 propios, onboarding real ni demo final de producto.
+
+## M23 Product authoring surface
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m23-product-authoring-surface/`
+
+Objetivo:
+
+- Permitir que un usuario local cree/lista/vea projects y sources desde
+  superficies publicas, sin SQL manual ni fixtures internas.
+
+Condiciones del milestone:
+
+- La surface publica debe cubrir API, CLI y frontend para projects y sources.
+- Crear project usa `embedding_mode = dense` como default publico; `dense_sparse`
+  sigue reservado hasta evidencia/OpenSpec nuevo.
+- Crear source soporta `markdown`, `text`, `txt` y `url`, que son los tipos que
+  el pipeline de ingestion ya entiende.
+- Para sources text-like, el contenido se guarda en `extra_metadata.content`.
+- Crear source no encola `ingest_source`, no crea documents, no crea chunks y no
+  llama providers. Ingestion/job state queda para M24.
+- La UI debe ser una surface de trabajo compacta integrada con chat/history/
+  observability, no una landing page.
+
+Secuencia recomendada:
+
+1. `m23-product-authoring-surface`: activo. Crea el plan OpenSpec y documenta
+   los contratos.
+2. `m23-authoring-api-contract`: propuesto. Agrega schemas/routes API y ajustes
+   minimos de repositories.
+3. `m23-authoring-cli`: propuesto. Agrega comandos JSON de projects/sources.
+4. `m23-authoring-frontend`: propuesto. Agrega cliente y UI compacta de
+   projects/sources.
+5. `m23-quality-gate`: propuesto. Valida frontend/backend/OpenSpec y archiva
+   M23.
+
+Continuacion esperada tras el planning PR: implementar
+`m23-authoring-api-contract` antes de CLI/frontend, para fijar el contrato
+publico compartido.
 
 ## Politica para reducir conflictos de merge
 

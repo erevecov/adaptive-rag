@@ -2,7 +2,11 @@
 
 ## Milestone activo
 
-Ninguno. No hay changes OpenSpec activos despues de M22.
+M23 Product authoring surface.
+
+M23 abre la superficie publica minima para crear/listar/ver projects y sources
+por API, CLI y frontend. Este milestone no ejecuta ingestion ni expone job
+state; eso queda para M24.
 
 ## Ultimo milestone completado
 
@@ -37,7 +41,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m23-product-authoring-surface/`
 
 ## Ultimo change archivado
 
@@ -71,9 +75,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir `m23-product-authoring-surface`. La opcion recomendada es empezar por
-  authoring de projects/sources porque desbloquea ingestion con datos propios,
-  onboarding real y demo final sin fixtures internas.
+- Completar el planning PR de `m23-product-authoring-surface` y seguir con
+  `m23-authoring-api-contract`. La opcion recomendada es implementar primero
+  API/repositories porque la CLI y el frontend deben consumir el mismo contrato
+  publico.
 
 ## Reglas de coordinacion
 

@@ -30,6 +30,25 @@ datos propios pasan a ser gaps de producto para v1, no mejoras post-v1.
 Lexical/RRF, Qwen sparse, graph default, auth multi-user, PDF/Office, voice y
 MCP siguen fuera del default salvo nuevo OpenSpec con evidencia.
 
+## Decision M23: authoring publico de projects/sources
+
+Fecha: 2026-06-23
+
+M23 convierte el gap de authoring en un milestone propio. La meta es que un
+usuario local pueda crear/listar/ver projects y sources desde API, CLI y
+frontend sin tocar SQL ni fixtures internas.
+
+M23 queda limitado a authoring. Crear una source persiste identidad y metadata
+publica, pero no encola `ingest_source`, no crea `document_versions`, no crea
+chunks y no llama providers. Ingestion execution, job state visible,
+retry/dead-letter y runbook de datos propios quedan para M24/M25.
+
+Los source types publicos de M23 son `markdown`, `text`, `txt` y `url`, porque
+son los tipos que el pipeline actual entiende. Para sources text-like, el
+contenido se guarda en `extra_metadata.content`. Para `url`, `external_id` es
+la URL; el fetch y las protecciones SSRF siguen perteneciendo al pipeline de
+ingestion, no al authoring.
+
 ## Reconciliación M21 para v1.0
 
 Fecha: 2026-06-22
