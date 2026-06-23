@@ -26,6 +26,7 @@
 - M22 V1 product scope reset: completo.
 - M23 Product authoring surface: completo.
 - M24 Ingestion ops surface: completo.
+- M25 First-run onboarding: completo.
 
 ## M1 Foundation
 
@@ -919,15 +920,14 @@ Secuencia recomendada:
    sources desde API, CLI y frontend.
 3. `m24-ingestion-ops-surface`: completo. Ejecutar ingestion end-to-end y
    exponer job state, failure reasons y retry/dead-letter.
-4. `m25-first-run-onboarding`: propuesto. Setup local, migraciones, seed/demo
+4. `m25-first-run-onboarding`: completo. Setup local, migraciones, seed/demo
    y guia para datos propios.
 5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
    docs, smokes y gate de release real.
 
-Continuacion: abrir `m25-first-run-onboarding` desde `main`. La razon es
-directa: M24 ya permite operar ingestion y jobs desde superficies publicas, pero
-v1 todavia necesita una primera corrida local reproducible con migraciones,
-seed/demo y datos propios.
+Continuacion: abrir `m26-v1-product-quality-gate` desde `main`. La razon es
+directa: M25 ya deja una primera corrida local reproducible, pero v1 todavia
+necesita el gate final con demo, smokes, evidencia y decision de release.
 
 ## M23 Product authoring surface
 
@@ -1022,6 +1022,50 @@ Secuencia recomendada:
 Continuacion: abrir `m25-first-run-onboarding`, para cerrar setup local,
 migraciones, seed/demo y guia de datos propios sobre las superficies publicas
 M23/M24 antes del gate final de v1.
+
+## M25 First-run onboarding
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-23-m25-first-run-onboarding/`
+
+Spec canonica:
+
+- `openspec/specs/first-run-onboarding/spec.md`
+
+Objetivo:
+
+- Permitir que un usuario local llegue desde una instalacion inicial hasta una
+  respuesta de chat con citations usando datos sample o propios creados por
+  superficies publicas.
+
+Condiciones del milestone:
+
+- El runbook debe cubrir dependencias, Postgres, migraciones y smoke default.
+- El comando `adaptive-rag first-run smoke` debe crear project/source, ejecutar
+  ingestion, chunking, embeddings fake y chat con citations.
+- La salida debe ser JSON machine-readable con ids, job status, conteos,
+  answer, `citation_count` y siguientes comandos.
+- Qwen, rerank hosted y Neo4j deben quedar marcados como opt-in, no como
+  requisito del camino default.
+- README debe apuntar a `docs/first-run.md` como primera ruta de producto local.
+
+Secuencia recomendada:
+
+1. `m25-first-run-onboarding`: completo. Crea el plan OpenSpec y documenta el
+   contrato de primera corrida.
+2. `m25-first-run-cli-smoke`: completo. Agrega servicio/CLI para crear datos,
+   ingerir, indexar y consultar con citations.
+3. `m25-first-run-runbook`: completo. Agrega `docs/first-run.md` y actualiza
+   README con el camino default.
+4. `m25-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
+   M25.
+
+Continuacion: abrir `m26-v1-product-quality-gate`, para convertir la primera
+corrida en evidencia final de release real con demo, smokes, docs y decision
+v1.0.
 
 ## Politica para reducir conflictos de merge
 

@@ -5,14 +5,14 @@ portafolio.
 
 ## Estado pre-v1 y criterio v1
 
-El repositorio ya tiene un core local-first demostrable: dense retrieval con
+El repositorio ya tiene un flujo local-first demostrable: authoring de
+projects/sources, ingestion jobs visibles, indexing local, dense retrieval con
 pgvector, chat con citations, rerank opt-in, evals offline, observability local
 y un paquete Docker Compose para API, worker project-scoped y Postgres/pgvector.
 
 La definicion de v1 cambio: v1 significa producto local-first single-user
-terminado, no solo release de portafolio del core. Antes de cortar v1.0 faltan
-authoring de projects/sources, ingestion end-to-end desde superficies publicas,
-job state visible, onboarding local y demo con datos propios.
+terminado, no solo release de portafolio del core. Antes de cortar v1.0 queda
+el gate final con demo/documentacion/smokes de release sobre el flujo completo.
 
 No requiere Qwen hosted, Neo4j, voice, MCP server, auth multi-user ni
 observability hosted para el gate default. Qwen, rerank hosted y Neo4j quedan
@@ -35,6 +35,22 @@ inicializada; se pueden ejecutar dentro de Docker Compose como se muestra abajo.
 uv run adaptive-rag version
 uv run adaptive-rag health
 ```
+
+## Primera corrida local
+
+El camino recomendado para nuevos usuarios esta en `docs/first-run.md`. Prueba
+el flujo completo authoring -> ingestion -> indexing -> cited chat con providers
+fake y sin credenciales hosted:
+
+```bash
+uv sync --extra dev
+docker compose up --build postgres
+uv run alembic upgrade head
+uv run adaptive-rag first-run smoke
+```
+
+El comando imprime evidencia JSON con project/source/job ids, chunk count,
+embedding count, answer y `citation_count`.
 
 ## Stack local core
 
