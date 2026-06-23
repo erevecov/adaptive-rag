@@ -1145,13 +1145,13 @@ Secuencia recomendada:
    RRF preservando filtros, ordering estable y citations.
 4. `m30-qwen-sparse-dense-sparse`: completo. Verificar docs actuales de Qwen y
    completar storage/scoring/reindex para `dense_sparse` como opt-in.
-5. `m31-retrieval-strategy-gate`: activo. Comparar dense, contextual dense,
+5. `m31-retrieval-strategy-gate`: completo. Comparar dense, contextual dense,
    lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
    `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
 
-Continuacion: completar M31 en un solo PR. La razon es directa: M28-M30 ya
-dejaron listas las ramas backend avanzadas y ahora hace falta el gate que
-decide si alguna puede afectar defaults o frontend polish.
+Continuacion: M31 queda cerrado. La siguiente tarea recomendada es abrir M32
+para frontend polish, consumiendo contratos backend estables y manteniendo
+`dense` como default de producto.
 
 ## M28 Contextual Retrieval generated summaries
 
@@ -1255,11 +1255,11 @@ promover estrategias o pulir el frontend.
 
 ## M31 Retrieval strategy gate
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m31-retrieval-strategy-gate/`
+- `openspec/changes/archive/2026-06-23-m31-retrieval-strategy-gate/`
 
 Objetivo:
 
@@ -1281,15 +1281,60 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m31-strategy-gate-runner`: activo. Implementa runner, decisiones y
+1. `m31-strategy-gate-runner`: completo. Implementa runner, decisiones y
    serializer JSON.
-2. `m31-contextual-dense-fixtures`: activo. Permite `contextual_summary` en
+2. `m31-contextual-dense-fixtures`: completo. Permite `contextual_summary` en
    eval evidence y reporta `needs_more_data` cuando falta.
-3. `m31-cli-docs-gate`: activo. Expone `adaptive-rag evals strategy-gate`,
+3. `m31-cli-docs-gate`: completo. Expone `adaptive-rag evals strategy-gate`,
    actualiza docs y valida OpenSpec.
 
-Continuacion: completar M31 y usar el resultado para decidir si el frontend
-polish expone solo `dense` o algun modo opt-in con evidencia suficiente.
+Decision de cierre:
+
+- `dense` sigue como default recomendado para frontend polish.
+- `contextual_dense` requiere suites con `contextual_summary` antes de cualquier
+  promocion.
+- `lexical`, `hybrid_rrf`, `dense_sparse` y `dense_rerank` pueden permanecer
+  como capacidades opt-in/evaluables, no como default visual.
+- `graph` queda en `hold` sin evidencia live operacional.
+
+Continuacion: abrir M32 para frontend polish. El alcance recomendado es mejorar
+authoring, ingestion, first-run, retrieval dense y chat/historial con una UI mas
+pulida, sin inventar controles para modos avanzados que el gate no haya
+promovido.
+
+## M32 Frontend polish
+
+Estado: recomendado, no abierto.
+
+Objetivo:
+
+- Pulir el frontend existente como producto terminado usando las superficies
+  backend ya estables: project authoring, ingestion ops, first-run onboarding,
+  retrieval dense, chat, streaming, historial y observability basica.
+
+Condiciones del milestone:
+
+- Abrir un nuevo change OpenSpec desde `origin/main` antes de implementar.
+- Mantener `dense` como experiencia default.
+- No exponer `contextual_dense`, `lexical`, `hybrid_rrf`, `dense_sparse`,
+  `dense_rerank` o `graph` como default.
+- Si algun modo avanzado aparece en UI, debe ser opt-in, claramente
+  experimental y consistente con la decision M31.
+- Priorizar polish de workflows reales sobre landing pages o nuevas features.
+
+Secuencia recomendada:
+
+1. `m32-frontend-polish-plan`: propuesto. Definir inventario de pantallas,
+   flujos, estados vacios/carga/error y criterios de QA visual.
+2. `m32-product-shell-and-authoring`: propuesto. Pulir shell, navegacion,
+   project/source authoring e ingestion ops.
+3. `m32-chat-retrieval-experience`: propuesto. Pulir chat, streaming, citations,
+   historial y retrieval dense.
+4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
+   docs/runbooks.
+
+Continuacion: abrir M32 en un solo PR de planificacion o dividirlo si el
+inventario visual resulta demasiado grande.
 
 ## Politica para reducir conflictos de merge
 
