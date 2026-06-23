@@ -22,7 +22,8 @@
 - M18 Neo4j graph DB decision: completo.
 - M19 Graph live ops evidence: completo.
 - M20 Chat observability dashboard: completo.
-- M21 V1 release readiness: completo.
+- M21 V1 core/readiness: completo.
+- M22 V1 product scope reset: activo.
 
 ## M1 Foundation
 
@@ -827,7 +828,7 @@ hold hasta tener evidencia live concluyente.
 Continuacion: M20 queda cerrado. La siguiente tarea debe abrir un nuevo change
 OpenSpec desde `main` para el proximo milestone antes de implementar.
 
-## M21 V1 release readiness
+## M21 V1 core/readiness
 
 Estado: cerrado el 2026-06-22.
 
@@ -837,8 +838,9 @@ Change archivado:
 
 Objetivo:
 
-- Convertir M1-M20 en una v1.0 publicable de portafolio, con alcance explicito,
+- Convertir M1-M20 en un core local-first demostrable, con alcance explicito,
   deferrals auditable, release package local-first, demo y reporte reproducible.
+  M22 redefine posteriormente que esto no basta para llamar terminado a v1.
 
 Condiciones del milestone:
 
@@ -866,9 +868,54 @@ Resultado:
 4. `m21-release-quality-gate`: completo. Frontend/Python/OpenSpec/compose y
    smokes CLI pasaron, y M21 quedo archivado.
 
-Decision: M21 cierra con recorte conservador de v1.0. El producto core queda
-demostrable local-first; lexical/RRF, Qwen sparse, graph defaults y nuevas
-surfaces de authoring no se reabren sin evidencia/OpenSpec nuevo.
+Decision: M21 cierra con recorte conservador del core. El sistema queda
+demostrable local-first, pero no como producto v1 terminado. Lexical/RRF, Qwen
+sparse, graph defaults y features aspiracionales no se reabren sin
+evidencia/OpenSpec nuevo. Las nuevas surfaces de authoring ya no son
+"post-v1" por defecto: M22 las reclasifica como gap de producto para una v1
+real.
+
+## M22 V1 product scope reset
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m22-v1-product-scope-reset/`
+
+Objetivo:
+
+- Redefinir v1 como producto local-first single-user terminado, no como release
+  de portafolio del core M1-M21.
+
+Condiciones del milestone:
+
+- M21 queda como evidencia de core/pre-v1 y no autoriza tag/manual release
+  v1.0.
+- El porcentaje de v1 debe recalcularse contra backlog de producto terminado,
+  no contra la checklist de release package M21.
+- El producto v1 debe permitir crear proyecto, agregar sources, ejecutar
+  ingestion, ver estado de jobs, consultar con citations y operar errores desde
+  superficies publicas documentadas.
+- La demo final debe usar datos propios o sample inputs creados por las
+  superficies publicas; no puede depender de fixtures internas como happy path
+  principal.
+- Dense retrieval sigue como default; rerank, Qwen hosted y Neo4j/graph siguen
+  opt-in. Lexical/RRF, Qwen sparse, graph default, auth multi-user, PDF/Office,
+  voice y MCP no entran por inercia.
+
+Secuencia recomendada:
+
+1. `m22-v1-product-scope-reset`: activo. Corrige docs y OpenSpec para bloquear
+   una release v1 prematura.
+2. `m23-product-authoring-surface`: propuesto. Crear/editar projects y sources
+   desde API/CLI/UI o una superficie publica equivalente.
+3. `m24-ingestion-ops-surface`: propuesto. Ejecutar ingestion end-to-end y
+   exponer job state, failure reasons y retry/dead-letter.
+4. `m25-first-run-onboarding`: propuesto. Setup local, migraciones, seed/demo
+   y guia para datos propios.
+5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
+   docs, smokes y gate de release real.
 
 ## Politica para reducir conflictos de merge
 
