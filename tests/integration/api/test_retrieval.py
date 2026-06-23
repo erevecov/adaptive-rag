@@ -164,6 +164,7 @@ def _create_embedded_chunk(
     text: str,
     snippet: str,
     embedding: list[float] | None,
+    contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
         project_id=project.id,
@@ -195,6 +196,7 @@ def _create_embedded_chunk(
         token_count=3,
         section_metadata={"heading": stable_id, "section_path": [stable_id]},
         chunker_metadata={"chunker_version": "semantic_markdown_v1"},
+        contextual_summary=contextual_summary,
         embedding=embedding,
     )
     session.flush()
@@ -367,6 +369,119 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
         "rerank_score": 0.99,
         "score_metadata": {"request_id": "api-rerank-request"},
         "used_rerank": True,
+    }
+
+
+def test_retrieval_search_endpoint_uses_lexical_strategy_when_requested() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _general_source, _general_document, _general_version, general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general-doc",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=None,
+        )
+    )
+    _target_source, _target_document, _target_version, target = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="target.md",
+            stable_id="target-doc",
+            text="Header\n\nInstall the connector with the default path.",
+            snippet="Install the connector with the default path.",
+            embedding=None,
+            contextual_summary="SKU-42 connector installation reference.",
+        )
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    client = _client(session=session, provider=provider)
+
+    response = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        json={
+            "query": "SKU-42 installation",
+            "limit": 2,
+            "strategy": "lexical",
+        },
+    )
+
+    assert response.status_code == 200
+    assert provider.inputs == []
+    data = response.json()
+    assert [result["chunk_id"] for result in data["results"]] == [
+        str(target.id),
+        str(general.id),
+    ]
+    assert data["results"][0]["strategy"] == "lexical"
+    assert data["results"][0]["retrieval_metadata"] == {
+        "lexical_rank": 1,
+        "lexical_score": 3.0,
+        "used_lexical": True,
+    }
+    assert data["results"][0]["citation"]["snippet"] == (
+        "Install the connector with the default path."
+    )
+
+
+def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _general_source, _general_document, _general_version, _general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general-doc",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=_vector(0.9),
+        )
+    )
+    _target_source, _target_document, _target_version, target = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="target.md",
+            stable_id="target-doc",
+            text="Header\n\nInstall the connector with the default path.",
+            snippet="Install the connector with the default path.",
+            embedding=_vector(0.1),
+            contextual_summary="SKU-42 connector installation reference.",
+        )
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    client = _client(session=session, provider=provider)
+
+    response = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        json={
+            "query": "SKU-42 installation",
+            "limit": 2,
+            "strategy": "hybrid_rrf",
+        },
+    )
+
+    assert response.status_code == 200
+    assert provider.inputs == ["SKU-42 installation"]
+    data = response.json()
+    assert data["results"][0]["chunk_id"] == str(target.id)
+    assert data["results"][0]["strategy"] == "hybrid_rrf"
+    assert data["results"][0]["retrieval_metadata"] == {
+        "rrf_k": 60,
+        "rrf_score": pytest.approx(2 / 61),
+        "source_strategies": ["dense", "lexical"],
+        "used_rrf": True,
+        "dense_rank": 1,
+        "dense_score": pytest.approx(1 / 1.1),
+        "lexical_rank": 1,
+        "lexical_score": 3.0,
     }
 
 

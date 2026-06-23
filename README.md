@@ -108,6 +108,36 @@ Los artefactos en `artifacts/` son locales y se pueden regenerar cuando se
 necesite evidencia fresca. Esta demo prueba el core; la demo final de v1 debe
 partir de datos creados por las superficies publicas del producto.
 
+## Retrieval strategies opt-in
+
+`dense` sigue siendo el default. Para experimentos backend se puede seleccionar
+una estrategia explicita en API/CLI:
+
+```bash
+uv run adaptive-rag retrieval search \
+  --project-id <project-id> \
+  --query "SKU-42 installation" \
+  --strategy lexical
+
+uv run adaptive-rag retrieval search \
+  --project-id <project-id> \
+  --query "SKU-42 installation" \
+  --strategy hybrid_rrf
+```
+
+Offline evals tambien aceptan la estrategia:
+
+```bash
+uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
+  --mode offline \
+  --retrieval-strategy hybrid_rrf
+```
+
+`lexical` usa full-text local y `contextual_summary` cuando existe.
+`hybrid_rrf` fusiona dense + lexical con Reciprocal Rank Fusion. Ninguna de
+estas rutas promueve el default del producto; esa decision queda para el gate
+M31. Detalles: `docs/architecture/lexical-rrf-m29.md`.
+
 ## Smoke Neo4j opt-in
 
 Neo4j no forma parte del stack obligatorio. Para validar un entorno live local o

@@ -9,6 +9,7 @@ from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.models import EvalRunReport, EvalStatus, EvalSuite
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.retrieval import RetrievalStrategy
 
 
 def run_eval_suite(
@@ -17,6 +18,7 @@ def run_eval_suite(
     *,
     provider: DenseEmbeddingProvider | None = None,
     chat_runner: ChatRunner | None = None,
+    retrieval_strategy: RetrievalStrategy = "dense",
 ) -> EvalRunReport:
     """Ejecuta retrieval y chat de una suite en un reporte unico."""
 
@@ -24,6 +26,7 @@ def run_eval_suite(
         session,
         suite,
         provider=provider,
+        strategy=retrieval_strategy,
     )
     chat_report = run_chat_eval_suite(
         session,

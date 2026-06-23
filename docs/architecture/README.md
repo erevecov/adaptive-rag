@@ -68,6 +68,8 @@ Documentos:
 - `graph-live-evidence-report-m19.md`: reporte M19 que consolida el quality
   gate dense-vs-graph con artefactos live de backfill/reindex, retrieval smoke,
   error codes, latencia/fallback y costo operacional declarado.
+- `lexical-rrf-m29.md`: decision M29 para exponer `strategy=lexical` y
+  `strategy=hybrid_rrf` como capacidades opt-in sin promover defaults.
 
 Reglas:
 

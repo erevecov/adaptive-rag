@@ -7,6 +7,11 @@ from adaptive_rag.retrieval.dense import (
     DenseRetrievalResult,
     DenseRetriever,
 )
+from adaptive_rag.retrieval.lexical import (
+    LexicalRetrievalError,
+    LexicalRetrievalResult,
+    LexicalRetriever,
+)
 from adaptive_rag.retrieval.service import (
     RetrievalMetadataFilter,
     RetrievalRerankOptions,
@@ -23,6 +28,9 @@ __all__ = [
     "DenseRetrievalError",
     "DenseRetrievalFilters",
     "DenseRetrievalResult",
+    "LexicalRetrievalError",
+    "LexicalRetrievalResult",
+    "LexicalRetriever",
     "RetrievalMetadataFilter",
     "RetrievalRerankOptions",
     "RetrievalSearchRequest",

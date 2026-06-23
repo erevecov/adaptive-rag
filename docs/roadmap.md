@@ -1138,10 +1138,10 @@ Secuencia recomendada:
 
 1. `m27-retrieval-expansion-plan`: completo. Crea el OpenSpec post-v1 y fija el
    orden de trabajo.
-2. `m28-contextual-retrieval-generated-summaries`: activo. Generar
+2. `m28-contextual-retrieval-generated-summaries`: completo. Generar
    `contextual_summary`, reusar `embedding_input_text`/`lexical_input_text` y
    exponer evidencia de indexing contextualizado por first-run.
-3. `m29-lexical-retrieval-rrf`: propuesto. Agregar Postgres full-text local y
+3. `m29-lexical-retrieval-rrf`: activo. Agregar Postgres full-text local y
    RRF preservando filtros, ordering estable y citations.
 4. `m30-qwen-sparse-dense-sparse`: propuesto. Verificar docs actuales de Qwen y
    completar storage/scoring/reindex para `dense_sparse` como opt-in.
@@ -1149,17 +1149,16 @@ Secuencia recomendada:
    lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
    `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
 
-Continuacion: completar M28 y luego abrir M29. La razon es directa: despues de
-persistir contexto estable por chunk, lexical/RRF puede reutilizar el mismo
-campo de entrada sin inventar una superficie frontend.
+Continuacion: completar M29 y luego abrir M30. La razon es directa: lexical/RRF
+local fija el contrato de fusion antes de disenar sparse provider-specific.
 
 ## M28 Contextual Retrieval generated summaries
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m28-contextual-retrieval-generated-summaries/`
+- `openspec/changes/archive/2026-06-23-m28-contextual-retrieval-generated-summaries/`
 
 Objetivo:
 
@@ -1177,14 +1176,45 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m28-contextualization-pipeline`: activo. Agrega generador local, pipeline y
+1. `m28-contextualization-pipeline`: completo. Agrega generador local, pipeline y
    persistencia de summaries.
-2. `m28-first-run-reporting`: activo. Wirea first-run y quality gate mediante
+2. `m28-first-run-reporting`: completo. Wirea first-run y quality gate mediante
    los conteos nuevos.
-3. `m28-docs-and-gate`: activo. Actualiza runbooks, valida OpenSpec y deja M28
+3. `m28-docs-and-gate`: completo. Actualiza runbooks, valida OpenSpec y deja M28
    listo para archivar.
 
 Continuacion: archivar M28 y abrir M29 para lexical/RRF local.
+
+## M29 Lexical retrieval and RRF
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m29-lexical-retrieval-rrf/`
+
+Objetivo:
+
+- Agregar `strategy=lexical` y `strategy=hybrid_rrf` como capacidades opt-in
+  locales, preservando filtros, ordering estable y citations originales.
+
+Condiciones del milestone:
+
+- `dense` sigue como default.
+- `lexical` usa input contextualizado cuando existe y fallback deterministic en
+  SQLite/tests.
+- `hybrid_rrf` fusiona dense + lexical sin duplicar chunks.
+- API, CLI y evals offline deben poder seleccionar la estrategia explicitamente.
+- Audit/history debe preservar scores lexical/RRF cuando existan.
+
+Secuencia recomendada:
+
+1. `m29-lexical-retriever`: activo. Implementa lexical ranking local.
+2. `m29-hybrid-rrf`: activo. Agrega fusion dense+lexical y metadata de scores.
+3. `m29-surfaces-evals`: activo. Expone API/CLI/evals y valida docs/OpenSpec.
+
+Continuacion: archivar M29 y abrir M30 para Qwen sparse / `dense_sparse` solo
+despues de verificar documentacion provider actual.
 
 ## Politica para reducir conflictos de merge
 

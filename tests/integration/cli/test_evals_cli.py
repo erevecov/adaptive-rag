@@ -209,6 +209,68 @@ def test_evals_run_command_outputs_json_report(
     }
 
 
+def test_evals_run_command_passes_retrieval_strategy_to_offline_runner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-strategy",
+            "thresholds": {},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run_eval_suite(
+        session_arg,
+        suite,
+        *,
+        provider=None,
+        chat_runner=None,
+        retrieval_strategy="dense",
+    ) -> EvalRunReport:
+        captured["session"] = session_arg
+        captured["suite_id"] = suite.suite_id
+        captured["provider"] = provider
+        captured["chat_runner"] = chat_runner
+        captured["retrieval_strategy"] = retrieval_strategy
+        return EvalRunReport(
+            suite_id=suite.suite_id,
+            status="passed",
+            metrics={},
+            thresholds={},
+            cases=(),
+        )
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.run_eval_suite",
+        fake_run_eval_suite,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--retrieval-strategy",
+            "lexical",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["session"] is session
+    assert captured["suite_id"] == "cli-strategy"
+    assert captured["retrieval_strategy"] == "lexical"
+
+
 def test_evals_run_command_writes_output_and_exits_one_on_failed_report(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

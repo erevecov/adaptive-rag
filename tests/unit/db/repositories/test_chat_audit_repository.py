@@ -6,6 +6,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from adaptive_rag.chat import ChatRequest
+from adaptive_rag.chat.audit import SqlAlchemyChatAuditWriter
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     ChatMessage,
@@ -31,6 +33,7 @@ from adaptive_rag.db.repositories import (
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.provider_usage import ProviderCallRecord, ProviderTokenUsage
+from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 
 def _make_session():
@@ -202,6 +205,93 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         "chunk_id": str(chunk.id),
         "snippet": "Alpha evidence",
     }
+
+
+def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    chunk = _make_chunk(session, project=project)
+    version = session.get(DocumentVersion, chunk.document_version_id)
+    assert version is not None
+    document = session.get(Document, version.document_id)
+    assert document is not None
+    source = session.get(Source, document.source_id)
+    assert source is not None
+    audit_repo = ChatAuditRepository(session)
+    writer = SqlAlchemyChatAuditWriter(
+        session=session,
+        chat_audit_repository=audit_repo,
+        provider_usage_repository=ProviderUsageRepository(session),
+    )
+    session_id = writer.start_session(
+        ChatRequest(project_id=project.id, message="alpha"),
+        "alpha",
+    )
+    tool_call_id = writer.start_retrieval_tool(
+        project.id,
+        session_id,
+        "alpha",
+        1,
+        None,
+        strategy="hybrid_rrf",
+    )
+    result: RetrievalResultPayload = {
+        "chunk_id": str(chunk.id),
+        "distance": 0.12,
+        "score": 0.88,
+        "citation": {
+            "source_id": str(source.id),
+            "source_type": "markdown",
+            "source_external_id": "demo.md",
+            "source_tags": [],
+            "source_extra_metadata": None,
+            "document_id": str(document.id),
+            "document_stable_id": "demo-doc",
+            "document_version_id": str(version.id),
+            "document_version_number": 1,
+            "chunk_id": str(chunk.id),
+            "char_start": 0,
+            "char_end": 14,
+            "snippet": "Alpha evidence",
+            "section_metadata": None,
+        },
+        "embedding_metadata": {"provider": "fake"},
+        "strategy": "hybrid_rrf",
+        "retrieval_metadata": {
+            "dense_score": 0.88,
+            "lexical_score": 3.0,
+            "rrf_score": 0.03252247488101534,
+            "dense_rank": 1,
+            "lexical_rank": 2,
+        },
+        "rerank_metadata": {"rerank_score": 0.97},
+    }
+
+    writer.complete_retrieval_tool(
+        project.id,
+        session_id,
+        tool_call_id,
+        "alpha",
+        1,
+        None,
+        8,
+        [result],
+        strategy="hybrid_rrf",
+    )
+
+    retrieval_runs = audit_repo.list_retrieval_runs(
+        project_id=project.id,
+        session_id=session_id,
+    )
+    retrieved_chunks = audit_repo.list_retrieved_chunks(
+        project_id=project.id,
+        retrieval_run_id=retrieval_runs[0].id,
+    )
+    assert retrieval_runs[0].strategy == "hybrid_rrf"
+    assert retrieved_chunks[0].dense_score == 0.88
+    assert retrieved_chunks[0].lexical_score == 3.0
+    assert retrieved_chunks[0].rrf_score == 0.03252247488101534
+    assert retrieved_chunks[0].rerank_score == 0.97
 
 
 def test_repository_scopes_reads_and_writes_by_project() -> None:

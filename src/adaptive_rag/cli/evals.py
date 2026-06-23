@@ -35,6 +35,7 @@ from adaptive_rag.evals import (
 )
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
+from adaptive_rag.retrieval import RetrievalStrategy
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -50,6 +51,10 @@ def run(
         int | None,
         typer.Option("--rerank-candidate-limit"),
     ] = None,
+    retrieval_strategy: Annotated[
+        RetrievalStrategy,
+        typer.Option("--retrieval-strategy"),
+    ] = "dense",
 ) -> None:
     try:
         suite = load_eval_suite(suite_path)
@@ -60,6 +65,10 @@ def run(
     active_mode = _parse_mode(mode)
     try:
         if active_mode == "hosted":
+            if retrieval_strategy != "dense":
+                raise EvalConfigurationError(
+                    "retrieval strategy selection is only supported in offline mode"
+                )
             validate_hosted_rerank_eval_options(
                 suite,
                 rerank_candidate_limit=rerank_candidate_limit,
@@ -87,6 +96,7 @@ def run(
                     suite,
                     provider=get_cli_dense_embedding_provider(),
                     chat_runner=get_cli_chat_runner(),
+                    retrieval_strategy=retrieval_strategy,
                 )
     except (
         EvalConfigurationError,

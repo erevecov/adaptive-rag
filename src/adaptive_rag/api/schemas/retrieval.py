@@ -118,6 +118,7 @@ class RetrievalResultResponse(BaseModel):
     embedding_metadata: dict[str, Any] | None
     strategy: str
     fallback_reason: str | None = None
+    retrieval_metadata: dict[str, Any] | None = None
     rerank_metadata: dict[str, Any] | None = None
 
     @model_serializer(mode="wrap")
@@ -127,6 +128,8 @@ class RetrievalResultResponse(BaseModel):
             raise TypeError("retrieval result serializer expected a dict")
         if self.fallback_reason is None:
             payload.pop("fallback_reason", None)
+        if self.retrieval_metadata is None:
+            payload.pop("retrieval_metadata", None)
         if self.rerank_metadata is None:
             payload.pop("rerank_metadata", None)
         return payload
