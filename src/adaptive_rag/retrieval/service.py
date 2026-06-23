@@ -35,6 +35,11 @@ from adaptive_rag.retrieval.dense import (
     DenseRetrievalResult,
     DenseRetriever,
 )
+from adaptive_rag.retrieval.lexical import (
+    LexicalRetrievalError,
+    LexicalRetrievalResult,
+    LexicalRetriever,
+)
 
 
 class RetrievalServiceError(ValueError):
@@ -62,7 +67,8 @@ class RetrievalRerankOptions:
     candidate_limit: int
 
 
-RetrievalStrategy = Literal["dense", "graph"]
+RetrievalStrategy = Literal["dense", "graph", "lexical", "hybrid_rrf"]
+RRF_K = 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +92,7 @@ class RetrievalSearchResult:
     score: float
     citation: DenseRetrievalCitation
     embedding_metadata: dict[str, Any] | None
+    retrieval_metadata: dict[str, Any] | None = None
     rerank_metadata: dict[str, Any] | None = None
     strategy: RetrievalStrategy = "dense"
     fallback_reason: str | None = None
@@ -112,6 +119,7 @@ class RetrievalService:
         self._provider = provider
         self._reranker = reranker
         self._retriever = DenseRetriever(session)
+        self._lexical_retriever = LexicalRetriever(session)
         self._graph_retriever = graph_retriever
         self._graph_projection_repository = (
             graph_projection_repository or GraphProjectionRepository(session)
@@ -129,38 +137,62 @@ class RetrievalService:
         )
 
         filters = _to_dense_filters(request.metadata_filter)
-        query_embedding = self._embed_query(query)
-        dense_limit = (
+        candidate_limit = (
             rerank_options.candidate_limit
             if rerank_options is not None
             else request.limit
         )
 
-        try:
-            dense_results = self._retriever.search(
+        if strategy == "lexical":
+            search_results = self._lexical_results(
                 project_id=request.project_id,
-                query_embedding=query_embedding,
-                limit=dense_limit,
+                query=query,
+                limit=candidate_limit,
                 filters=filters,
             )
-        except DenseRetrievalError as exc:
-            raise RetrievalServiceError(str(exc)) from exc
+        else:
+            query_embedding = self._embed_query(query)
+            try:
+                dense_results = self._retriever.search(
+                    project_id=request.project_id,
+                    query_embedding=query_embedding,
+                    limit=candidate_limit,
+                    filters=filters,
+                )
+            except DenseRetrievalError as exc:
+                raise RetrievalServiceError(str(exc)) from exc
 
-        search_results = [_to_search_result(result) for result in dense_results]
-        if strategy == "graph":
-            graph_attempt = self._try_graph_results(
-                project_id=request.project_id,
-                dense_results=dense_results,
-                limit=dense_limit,
-                filters=filters,
-            )
-            if graph_attempt.results is not None:
-                search_results = graph_attempt.results
-            elif graph_attempt.fallback_reason is not None:
-                search_results = [
-                    _with_fallback_reason(result, graph_attempt.fallback_reason)
-                    for result in search_results
-                ]
+            if strategy == "hybrid_rrf":
+                lexical_results = self._raw_lexical_results(
+                    project_id=request.project_id,
+                    query=query,
+                    limit=candidate_limit,
+                    filters=filters,
+                )
+                search_results = _fuse_rrf_results(
+                    dense_results=dense_results,
+                    lexical_results=lexical_results,
+                    limit=candidate_limit,
+                )
+            else:
+                search_results = [_to_search_result(result) for result in dense_results]
+                if strategy == "graph":
+                    graph_attempt = self._try_graph_results(
+                        project_id=request.project_id,
+                        dense_results=dense_results,
+                        limit=candidate_limit,
+                        filters=filters,
+                    )
+                    if graph_attempt.results is not None:
+                        search_results = graph_attempt.results
+                    elif graph_attempt.fallback_reason is not None:
+                        search_results = [
+                            _with_fallback_reason(
+                                result,
+                                graph_attempt.fallback_reason,
+                            )
+                            for result in search_results
+                        ]
         if rerank_options is None or not search_results:
             return search_results
         return self._rerank_results(
@@ -169,6 +201,42 @@ class RetrievalService:
             limit=request.limit,
             options=rerank_options,
         )
+
+    def _lexical_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[RetrievalSearchResult]:
+        return [
+            _to_lexical_search_result(result)
+            for result in self._raw_lexical_results(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+                filters=filters,
+            )
+        ]
+
+    def _raw_lexical_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[LexicalRetrievalResult]:
+        try:
+            return self._lexical_retriever.search(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+                filters=filters,
+            )
+        except LexicalRetrievalError as exc:
+            raise RetrievalServiceError(str(exc)) from exc
 
     def _try_graph_results(
         self,
@@ -285,6 +353,7 @@ class RetrievalService:
                 metadata={
                     "chunk_id": str(result.chunk_id),
                     "dense_rank": dense_rank,
+                    "retrieval_metadata": _copy_metadata(result.retrieval_metadata),
                 },
             )
             for dense_rank, result in enumerate(results, start=1)
@@ -310,8 +379,10 @@ def _validate_query(query: str) -> str:
 
 
 def _validate_strategy(strategy: str) -> RetrievalStrategy:
-    if strategy not in ("dense", "graph"):
-        raise RetrievalServiceError("retrieval strategy must be dense or graph")
+    if strategy not in ("dense", "graph", "lexical", "hybrid_rrf"):
+        raise RetrievalServiceError(
+            "retrieval strategy must be dense, graph, lexical or hybrid_rrf"
+        )
     return cast(RetrievalStrategy, strategy)
 
 
@@ -350,6 +421,20 @@ def _to_search_result(result: DenseRetrievalResult) -> RetrievalSearchResult:
     )
 
 
+def _to_lexical_search_result(
+    result: LexicalRetrievalResult,
+) -> RetrievalSearchResult:
+    return RetrievalSearchResult(
+        chunk_id=result.chunk_id,
+        distance=result.distance,
+        score=result.score,
+        citation=result.citation,
+        embedding_metadata=_copy_metadata(result.embedding_metadata),
+        retrieval_metadata=dict(result.lexical_metadata),
+        strategy="lexical",
+    )
+
+
 def _with_fallback_reason(
     result: RetrievalSearchResult,
     fallback_reason: str,
@@ -359,14 +444,9 @@ def _with_fallback_reason(
         distance=result.distance,
         score=result.score,
         citation=result.citation,
-        embedding_metadata=(
-            dict(result.embedding_metadata)
-            if result.embedding_metadata is not None
-            else None
-        ),
-        rerank_metadata=(
-            dict(result.rerank_metadata) if result.rerank_metadata is not None else None
-        ),
+        embedding_metadata=_copy_metadata(result.embedding_metadata),
+        retrieval_metadata=_copy_metadata(result.retrieval_metadata),
+        rerank_metadata=_copy_metadata(result.rerank_metadata),
         strategy=result.strategy,
         fallback_reason=fallback_reason,
     )
@@ -420,11 +500,8 @@ def _with_rerank_metadata(
         distance=result.distance,
         score=result.score,
         citation=result.citation,
-        embedding_metadata=(
-            dict(result.embedding_metadata)
-            if result.embedding_metadata is not None
-            else None
-        ),
+        embedding_metadata=_copy_metadata(result.embedding_metadata),
+        retrieval_metadata=_copy_metadata(result.retrieval_metadata),
         rerank_metadata={
             "candidate_limit": candidate_limit,
             "dense_rank": dense_rank,
@@ -438,6 +515,105 @@ def _with_rerank_metadata(
         strategy=result.strategy,
         fallback_reason=result.fallback_reason,
     )
+
+
+def _fuse_rrf_results(
+    *,
+    dense_results: list[DenseRetrievalResult],
+    lexical_results: list[LexicalRetrievalResult],
+    limit: int,
+) -> list[RetrievalSearchResult]:
+    by_chunk_id: dict[UUID, _RRFAccumulator] = {}
+    for rank, dense_result in enumerate(dense_results, start=1):
+        accumulator = by_chunk_id.setdefault(
+            dense_result.chunk_id,
+            _RRFAccumulator(chunk_id=dense_result.chunk_id),
+        )
+        accumulator.dense_result = dense_result
+        accumulator.dense_rank = rank
+        accumulator.rrf_score += _rrf_score(rank)
+    for rank, lexical_result in enumerate(lexical_results, start=1):
+        accumulator = by_chunk_id.setdefault(
+            lexical_result.chunk_id,
+            _RRFAccumulator(chunk_id=lexical_result.chunk_id),
+        )
+        accumulator.lexical_result = lexical_result
+        accumulator.lexical_rank = rank
+        accumulator.rrf_score += _rrf_score(rank)
+
+    accumulators = sorted(
+        by_chunk_id.values(),
+        key=lambda accumulator: (
+            -accumulator.rrf_score,
+            accumulator.dense_rank if accumulator.dense_rank is not None else 10**9,
+            (
+                accumulator.lexical_rank
+                if accumulator.lexical_rank is not None
+                else 10**9
+            ),
+            str(accumulator.chunk_id),
+        ),
+    )
+    return [_to_rrf_search_result(accumulator) for accumulator in accumulators[:limit]]
+
+
+@dataclass(slots=True)
+class _RRFAccumulator:
+    chunk_id: UUID
+    rrf_score: float = 0.0
+    dense_rank: int | None = None
+    lexical_rank: int | None = None
+    dense_result: DenseRetrievalResult | None = None
+    lexical_result: LexicalRetrievalResult | None = None
+
+
+def _to_rrf_search_result(accumulator: _RRFAccumulator) -> RetrievalSearchResult:
+    source = accumulator.dense_result or accumulator.lexical_result
+    if source is None:
+        raise RetrievalServiceError("RRF accumulator has no retrieval result")
+
+    metadata: dict[str, Any] = {
+        "rrf_k": RRF_K,
+        "rrf_score": accumulator.rrf_score,
+        "source_strategies": _rrf_source_strategies(accumulator),
+        "used_rrf": True,
+    }
+    if accumulator.dense_result is not None and accumulator.dense_rank is not None:
+        metadata["dense_rank"] = accumulator.dense_rank
+        metadata["dense_score"] = accumulator.dense_result.score
+    if (
+        accumulator.lexical_result is not None
+        and accumulator.lexical_rank is not None
+    ):
+        metadata["lexical_rank"] = accumulator.lexical_rank
+        metadata["lexical_score"] = accumulator.lexical_result.score
+
+    return RetrievalSearchResult(
+        chunk_id=source.chunk_id,
+        distance=1.0 / (1.0 + accumulator.rrf_score),
+        score=accumulator.rrf_score,
+        citation=source.citation,
+        embedding_metadata=_copy_metadata(source.embedding_metadata),
+        retrieval_metadata=metadata,
+        strategy="hybrid_rrf",
+    )
+
+
+def _rrf_source_strategies(accumulator: _RRFAccumulator) -> list[str]:
+    strategies: list[str] = []
+    if accumulator.dense_result is not None:
+        strategies.append("dense")
+    if accumulator.lexical_result is not None:
+        strategies.append("lexical")
+    return strategies
+
+
+def _rrf_score(rank: int) -> float:
+    return 1.0 / (RRF_K + rank)
+
+
+def _copy_metadata(value: dict[str, Any] | None) -> dict[str, Any] | None:
+    return dict(value) if value is not None else None
 
 
 def _to_dense_filters(

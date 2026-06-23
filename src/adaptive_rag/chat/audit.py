@@ -507,9 +507,9 @@ class SqlAlchemyChatAuditWriter:
                 retrieval_run_id=retrieval_run.id,
                 chunk_id=UUID(result["chunk_id"]),
                 rank=rank,
-                dense_score=result["score"],
-                lexical_score=None,
-                rrf_score=None,
+                dense_score=_dense_score(result),
+                lexical_score=_retrieval_metadata_score(result, "lexical_score"),
+                rrf_score=_retrieval_metadata_score(result, "rrf_score"),
                 rerank_score=_rerank_score(result),
                 citation_json=result["citation"],
             )
@@ -648,11 +648,33 @@ def _fallback_reason(results: Sequence[RetrievalResultPayload]) -> str | None:
     return None
 
 
+def _dense_score(result: RetrievalResultPayload) -> float | None:
+    metadata_score = _retrieval_metadata_score(result, "dense_score")
+    if metadata_score is not None:
+        return metadata_score
+    if result["strategy"] in {"dense", "graph"}:
+        return result["score"]
+    return None
+
+
+def _retrieval_metadata_score(
+    result: RetrievalResultPayload,
+    key: str,
+) -> float | None:
+    metadata = result.get("retrieval_metadata")
+    if metadata is None:
+        return None
+    return _numeric_score(metadata.get(key))
+
+
 def _rerank_score(result: RetrievalResultPayload) -> float | None:
     metadata = result.get("rerank_metadata")
     if metadata is None:
         return None
-    value = metadata.get("rerank_score")
+    return _numeric_score(metadata.get("rerank_score"))
+
+
+def _numeric_score(value: object) -> float | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):

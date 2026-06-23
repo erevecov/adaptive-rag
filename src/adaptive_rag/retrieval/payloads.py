@@ -32,6 +32,7 @@ class RetrievalResultPayload(TypedDict):
     embedding_metadata: dict[str, Any] | None
     strategy: str
     fallback_reason: NotRequired[str]
+    retrieval_metadata: NotRequired[dict[str, Any]]
     rerank_metadata: NotRequired[dict[str, Any]]
 
 
@@ -68,6 +69,8 @@ def serialize_retrieval_result(result: RetrievalSearchResult) -> RetrievalResult
     }
     if result.fallback_reason is not None:
         payload["fallback_reason"] = result.fallback_reason
+    if result.retrieval_metadata is not None:
+        payload["retrieval_metadata"] = _copy_dict(result.retrieval_metadata) or {}
     if result.rerank_metadata is not None:
         payload["rerank_metadata"] = _copy_dict(result.rerank_metadata) or {}
     return payload

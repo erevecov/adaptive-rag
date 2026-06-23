@@ -2,45 +2,44 @@
 
 ## Milestone activo
 
-M28 `m28-contextual-retrieval-generated-summaries`.
+M29 `m29-lexical-retrieval-rrf`.
 
-M28 implementa el primer slice del nuevo alcance post-v1: generar
-`contextual_summary` durante indexing local, antes de embeddings, para activar
-Contextual Retrieval sin cambiar el default `dense` ni agregar una nueva rama de
-ranking. La evidencia publica sale por `adaptive-rag first-run smoke` y el gate
-v1 reutiliza ese reporte.
+M29 implementa lexical retrieval local y `hybrid_rrf` como estrategias opt-in
+antes de pulir frontend. El objetivo es cubrir terminos exactos, codigos e
+identificadores sin promover nada por defecto: `dense` sigue siendo el default y
+fallback hasta M31.
 
 ## Ultimo milestone completado
 
-M27 Post-v1 retrieval expansion cerrado el 2026-06-23.
+M28 Contextual Retrieval generated summaries cerrado el 2026-06-23.
 
-M27 abre el nuevo alcance post-v1 para dejar listas capacidades avanzadas de
-retrieval antes de pulir frontend. El objetivo aprobado es opt-in y medible:
-Contextual Retrieval generado, lexical/RRF, Qwen sparse / `dense_sparse` y un
-gate comparativo posterior. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m27-retrieval-expansion-plan/` y actualiza
-la spec canonica `retrieval-quality`.
+M28 genera y persiste `contextual_summary` durante indexing local, wirea
+first-run/v1 gate para reportar contextualized counts y mantiene citations
+ancladas al texto original. El change quedo archivado en
+`openspec/changes/archive/2026-06-23-m28-contextual-retrieval-generated-summaries/`
+y actualiza las specs canonicas `embedding-baseline` y `first-run-onboarding`.
 
 ## Ultimo slice completado
 
-M27 `m27-retrieval-expansion-plan`: completa el plan post-v1 para retrieval
-avanzado, valida OpenSpec/docs y archiva `m27-retrieval-expansion-plan`.
+M28 `m28-contextual-retrieval-generated-summaries`: completa generacion local de
+contexto por chunk, valida first-run/gate y archiva
+`m28-contextual-retrieval-generated-summaries`.
 
-Comandos validados al cerrar M27 y abrir M28:
+Comandos validados al cerrar M28 y abrir M29:
 
 ```text
-npx --yes @fission-ai/openspec validate m27-retrieval-expansion-plan --strict
 npx --yes @fission-ai/openspec validate m28-contextual-retrieval-generated-summaries --strict
+npx --yes @fission-ai/openspec validate m29-lexical-retrieval-rrf --strict
 npx --yes @fission-ai/openspec list
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m28-contextual-retrieval-generated-summaries/`
+- `openspec/changes/m29-lexical-retrieval-rrf/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m27-retrieval-expansion-plan/`
+- `openspec/changes/archive/2026-06-23-m28-contextual-retrieval-generated-summaries/`
 
 ## Spec canonica activa
 
@@ -73,10 +72,9 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear M27 como PR de planificacion. Despues abrir
-  `m28-contextual-retrieval-generated-summaries`, porque reutiliza campos e
-  input builders existentes y estabiliza la rama dense contextual antes de
-  agregar lexical/RRF o sparse.
+- Completar y mergear M29 como PR de backend contract. Despues abrir M30 para
+  Qwen sparse / `dense_sparse`, verificando documentacion provider actual antes
+  de codificar payloads, storage o costos.
 
 ## Reglas de coordinacion
 

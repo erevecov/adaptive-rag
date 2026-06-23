@@ -174,6 +174,7 @@ def _create_embedded_chunk(
     embedding: list[float] | None,
     source_created_at: datetime | None = None,
     document_created_at: datetime | None = None,
+    contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
         project_id=project.id,
@@ -205,6 +206,7 @@ def _create_embedded_chunk(
         token_count=3,
         section_metadata={"heading": stable_id, "section_path": [stable_id]},
         chunker_metadata={"chunker_version": "semantic_markdown_v1"},
+        contextual_summary=contextual_summary,
         embedding=embedding,
     )
     if source_created_at is not None:
@@ -250,6 +252,113 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     assert results[0].citation.snippet == "Alpha original evidence"
     assert results[0].rerank_metadata is None
     assert results[0].strategy == "dense"
+
+
+def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _general_source, _general_document, _general_version, general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=None,
+        )
+    )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="sku.md",
+        stable_id="sku",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=None,
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    results = RetrievalService(session, provider=provider).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="SKU-42 installation",
+            limit=2,
+            strategy="lexical",
+        )
+    )
+
+    assert provider.inputs == []
+    assert [result.chunk_id for result in results] == [target.id, general.id]
+    assert [result.strategy for result in results] == ["lexical", "lexical"]
+    assert results[0].score > results[1].score
+    assert results[0].citation.snippet == "Install the connector with the default path."
+    assert results[0].retrieval_metadata == {
+        "lexical_rank": 1,
+        "lexical_score": results[0].score,
+        "used_lexical": True,
+    }
+
+
+def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _dense_source, _dense_document, _dense_version, dense_only = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="dense.md",
+            stable_id="dense",
+            text="Alpha semantic evidence",
+            snippet="Alpha semantic evidence",
+            embedding=_vector(0.1),
+        )
+    )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="target.md",
+        stable_id="target",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    results = RetrievalService(session, provider=provider).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="SKU-42 installation",
+            limit=2,
+            strategy="hybrid_rrf",
+        )
+    )
+
+    assert provider.inputs == ["SKU-42 installation"]
+    assert [result.chunk_id for result in results] == [target.id, dense_only.id]
+    assert [result.strategy for result in results] == ["hybrid_rrf", "hybrid_rrf"]
+    assert results[0].retrieval_metadata == {
+        "dense_rank": 2,
+        "dense_score": pytest.approx(1 / 1.4),
+        "lexical_rank": 1,
+        "lexical_score": 3.0,
+        "rrf_k": 60,
+        "rrf_score": results[0].score,
+        "source_strategies": ["dense", "lexical"],
+        "used_rrf": True,
+    }
+    assert results[1].retrieval_metadata == {
+        "dense_rank": 1,
+        "dense_score": pytest.approx(1 / 1.1),
+        "rrf_k": 60,
+        "rrf_score": results[1].score,
+        "source_strategies": ["dense"],
+        "used_rrf": True,
+    }
 
 
 def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> None:
@@ -508,7 +617,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
                 query="x",
                 strategy="unsupported",
             ),
-            "retrieval strategy must be dense or graph",
+            "retrieval strategy must be dense, graph, lexical or hybrid_rrf",
         ),
         (
             RetrievalSearchRequest(
