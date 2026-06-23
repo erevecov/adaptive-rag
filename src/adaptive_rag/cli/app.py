@@ -11,6 +11,7 @@ from adaptive_rag.cli.projects import app as projects_app
 from adaptive_rag.cli.providers import app as providers_app
 from adaptive_rag.cli.retrieval import app as retrieval_app
 from adaptive_rag.cli.sources import app as sources_app
+from adaptive_rag.cli.v1 import app as v1_app
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
 
@@ -24,6 +25,7 @@ app.add_typer(providers_app, name="providers")
 app.add_typer(projects_app, name="projects")
 app.add_typer(retrieval_app, name="retrieval")
 app.add_typer(sources_app, name="sources")
+app.add_typer(v1_app, name="v1")
 console = Console()
 
 

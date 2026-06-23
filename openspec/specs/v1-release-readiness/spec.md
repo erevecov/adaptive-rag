@@ -88,3 +88,11 @@ without mandatory hosted services beyond optional provider smokes.
   product scope
 - **AND** frontend, Python, CLI smokes, OpenSpec validation and release
   documentation checks have passed
+
+#### Scenario: Final quality gate emits release decision
+
+- **WHEN** `adaptive-rag v1 quality-gate` completes successfully
+- **THEN** it emits `release_decision` as `ready_for_v1_0`
+- **AND** it includes passed criteria for product flow, ingestion job state,
+  indexing, cited chat, public follow-up commands and opt-in boundaries
+- **AND** it records that a git tag or GitHub release remains a manual action
