@@ -2,20 +2,15 @@
 
 ## Milestone activo
 
-M22 V1 product scope reset.
-
-M22 redefine v1 como producto local-first single-user terminado. M21 queda como
-evidencia de core/pre-v1 y no como autorizacion para cortar tag o release
-v1.0.
+Ninguno. No hay changes OpenSpec activos despues de M22.
 
 ## Ultimo milestone completado
 
-M21 V1 core/readiness cerrado el 2026-06-22.
+M22 V1 product scope reset cerrado el 2026-06-23.
 
-M21 reconcilia el alcance v1.0 contra OpenSpec y el codigo real, agrega el
-release package local-first, documenta el demo offline reproducible y archiva
-la spec `v1-release-readiness`. Despues del reset M22, esa evidencia se trata
-como readiness del core, no como producto v1 terminado.
+M22 redefine v1 como producto local-first single-user terminado y archiva la
+spec canonica `v1-product-completion`. M21 queda como evidencia de
+core/pre-v1 y no como autorizacion para cortar tag o release v1.0.
 
 El producto v1 terminado mantiene dense retrieval como default, rerank como
 opt-in medible y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen
@@ -27,24 +22,14 @@ demo con datos propios.
 
 ## Ultimo slice completado
 
-M21 `m21-release-quality-gate`: valida frontend, Python, OpenSpec, compose
-config y smokes CLI; archiva el change M21 y publica la spec canonica
-`v1-release-readiness`.
+M22 `m22-v1-product-scope-reset`: archiva el reset de scope, publica la spec
+canonica `v1-product-completion` y modifica `v1-release-readiness` para bloquear
+una release v1.0 hasta completar el producto.
 
-Comandos validados en el gate M21:
+Comandos validados en el cierre M22:
 
 ```text
-pnpm --dir frontend test
-pnpm --dir frontend run typecheck
-pnpm --dir frontend run lint
 uv run pytest
-pnpm --dir frontend run build
-uv run ruff check .
-uv run mypy src
-uv run adaptive-rag version
-uv run adaptive-rag health
-docker compose config
-npx --yes @fission-ai/openspec validate m21-v1-release-readiness-plan --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -52,11 +37,11 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m22-v1-product-scope-reset/`
+- Ninguno.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-22-m21-v1-release-readiness-plan/`
+- `openspec/changes/archive/2026-06-23-m22-v1-product-scope-reset/`
 
 ## Spec canonica activa
 
@@ -82,11 +67,11 @@ git diff --check
 - `openspec/specs/chat-observability/spec.md`
 - `openspec/specs/graph-store/spec.md`
 - `openspec/specs/v1-release-readiness/spec.md`
+- `openspec/specs/v1-product-completion/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Completar M22 y abrir el primer slice de producto terminado:
-  `m23-product-authoring-surface`. La opcion recomendada es empezar por
+- Abrir `m23-product-authoring-surface`. La opcion recomendada es empezar por
   authoring de projects/sources porque desbloquea ingestion con datos propios,
   onboarding real y demo final sin fixtures internas.
 

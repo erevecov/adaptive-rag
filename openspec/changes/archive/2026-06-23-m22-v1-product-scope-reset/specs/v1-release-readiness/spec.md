@@ -33,7 +33,7 @@ as core/pre-v1 evidence, not as the final v1.0 product boundary.
 - **AND** no manual v1.0 tag or final release should be cut until
   `v1-product-completion` is satisfied
 
-### Requirement: Readiness audit separates core completion from product completion
+### Requirement: Readiness audit separates core completion from release package
 
 The system MUST measure v1.0 readiness as a product-completion checklist, not
 only as a release package checklist.

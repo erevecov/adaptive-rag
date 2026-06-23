@@ -23,7 +23,7 @@
 - M19 Graph live ops evidence: completo.
 - M20 Chat observability dashboard: completo.
 - M21 V1 core/readiness: completo.
-- M22 V1 product scope reset: activo.
+- M22 V1 product scope reset: completo.
 
 ## M1 Foundation
 
@@ -877,11 +877,16 @@ real.
 
 ## M22 V1 product scope reset
 
-Estado: activo.
+Estado: cerrado el 2026-06-23.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m22-v1-product-scope-reset/`
+- `openspec/changes/archive/2026-06-23-m22-v1-product-scope-reset/`
+
+Specs canonicas:
+
+- `openspec/specs/v1-product-completion/spec.md`
+- `openspec/specs/v1-release-readiness/spec.md`
 
 Objetivo:
 
@@ -906,8 +911,8 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m22-v1-product-scope-reset`: activo. Corrige docs y OpenSpec para bloquear
-   una release v1 prematura.
+1. `m22-v1-product-scope-reset`: completo. Corrige docs y OpenSpec para
+   bloquear una release v1 prematura.
 2. `m23-product-authoring-surface`: propuesto. Crear/editar projects y sources
    desde API/CLI/UI o una superficie publica equivalente.
 3. `m24-ingestion-ops-surface`: propuesto. Ejecutar ingestion end-to-end y
@@ -916,6 +921,10 @@ Secuencia recomendada:
    y guia para datos propios.
 5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
    docs, smokes y gate de release real.
+
+Continuacion: abrir `m23-product-authoring-surface` desde `main`. La razon es
+directa: sin authoring publico de projects/sources no hay ingestion con datos
+propios, onboarding real ni demo final de producto.
 
 ## Politica para reducir conflictos de merge
 
