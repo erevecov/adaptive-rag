@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Project
@@ -39,4 +40,12 @@ class ProjectRepository:
 
     def get(self, project_id: UUID) -> Project | None:
         return self._session.get(Project, project_id)
+
+    def list(self) -> list[Project]:
+        statement = select(Project).order_by(
+            Project.created_at,
+            Project.name,
+            Project.id,
+        )
+        return list(self._session.scalars(statement))
 

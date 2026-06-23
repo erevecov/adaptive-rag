@@ -26,14 +26,19 @@ demo con datos propios.
 
 ## Ultimo slice completado
 
-M22 `m22-v1-product-scope-reset`: archiva el reset de scope, publica la spec
-canonica `v1-product-completion` y modifica `v1-release-readiness` para bloquear
-una release v1.0 hasta completar el producto.
+M23 `m23-authoring-api-contract`: agrega `ProjectRepository.list()` y endpoints
+HTTP publicos para crear/listar/ver projects y sources, sin encolar ingestion ni
+crear jobs.
 
-Comandos validados en el cierre M22:
+Comandos validados en el slice M23 API:
 
 ```text
+uv run pytest tests/unit/db/repositories/test_repositories.py::test_project_repository_lists_projects_in_deterministic_order -q
+uv run pytest tests/integration/api/test_authoring.py -q
 uv run pytest
+uv run ruff check .
+uv run mypy src
+npx --yes @fission-ai/openspec validate m23-product-authoring-surface --strict
 npx --yes @fission-ai/openspec validate --specs --strict
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -75,10 +80,9 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Completar el planning PR de `m23-product-authoring-surface` y seguir con
-  `m23-authoring-api-contract`. La opcion recomendada es implementar primero
-  API/repositories porque la CLI y el frontend deben consumir el mismo contrato
-  publico.
+- Abrir `m23-authoring-cli`. La opcion recomendada es implementar la CLI antes
+  del frontend porque entrega un flujo local scriptable y reutiliza el contrato
+  API/repository ya fijado por `m23-authoring-api-contract`.
 
 ## Reglas de coordinacion
 

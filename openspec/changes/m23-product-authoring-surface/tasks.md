@@ -31,3 +31,14 @@
 - [x] 4.2 Validar `openspec validate --specs --strict`.
 - [x] 4.3 Confirmar `openspec list`.
 - [x] 4.4 Ejecutar `git diff --check`.
+
+## 5. Implementacion API/repositories
+
+- [x] 5.1 Agregar tests rojos para `ProjectRepository.list()` y endpoints de
+  authoring.
+- [x] 5.2 Implementar `ProjectRepository.list()` sin commits implicitos.
+- [x] 5.3 Agregar schemas y routes HTTP para crear/listar/ver projects.
+- [x] 5.4 Agregar schemas y routes HTTP para crear/listar/ver sources
+  project-scoped.
+- [x] 5.5 Validar que crear source no encola jobs ni ejecuta ingestion.
+- [x] 5.6 Confirmar tests de repository/API.

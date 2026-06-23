@@ -957,17 +957,17 @@ Secuencia recomendada:
 
 1. `m23-product-authoring-surface`: activo. Crea el plan OpenSpec y documenta
    los contratos.
-2. `m23-authoring-api-contract`: propuesto. Agrega schemas/routes API y ajustes
-   minimos de repositories.
+2. `m23-authoring-api-contract`: completo. Agrega schemas/routes API y ajustes
+   minimos de repositories para crear/listar/ver projects y sources.
 3. `m23-authoring-cli`: propuesto. Agrega comandos JSON de projects/sources.
 4. `m23-authoring-frontend`: propuesto. Agrega cliente y UI compacta de
    projects/sources.
 5. `m23-quality-gate`: propuesto. Valida frontend/backend/OpenSpec y archiva
    M23.
 
-Continuacion esperada tras el planning PR: implementar
-`m23-authoring-api-contract` antes de CLI/frontend, para fijar el contrato
-publico compartido.
+Continuacion: implementar `m23-authoring-cli` antes de frontend, para dar un
+flujo local scriptable de projects/sources y reutilizar el contrato
+API/repository ya fijado.
 
 ## Politica para reducir conflictos de merge
 
