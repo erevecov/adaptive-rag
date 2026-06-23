@@ -22,7 +22,7 @@
 - M18 Neo4j graph DB decision: completo.
 - M19 Graph live ops evidence: completo.
 - M20 Chat observability dashboard: completo.
-- M21 V1 release readiness: activo.
+- M21 V1 release readiness: completo.
 
 ## M1 Foundation
 

@@ -77,9 +77,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Crear el PR final de M21. Despues de mergearlo, sincronizar `main` y decidir
-  si se corta un tag/manual release v1.0 o si se abre el primer change post-v1
-  para authoring de projects/sources.
+- M21 ya esta mergeado en `main`. Siguiente decision recomendada: cortar un
+  tag/manual release v1.0 despues de regenerar evidencia fresca con el
+  gate/demo offline. Si no se corta release todavia, abrir el primer change
+  post-v1 para authoring de projects/sources.
 
 ## Reglas de coordinacion
 

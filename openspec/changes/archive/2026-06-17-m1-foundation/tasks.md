@@ -4,7 +4,7 @@
 
 M1 Foundation se entrego via PRs directos (#1 a #5) sin pasar por el flujo
 formal de OpenSpec (proposal/spec/tasks). Este archivo se crea a posteriori con
-fines de observacion: permite que el kanban reconozca m1-foundation como done.
+fines de observacion para conservar el registro de entrega de M1.
 
 No hay proposal, design ni spec delta retroactivos. La fuente de verdad de lo
 entregado son los commits y PRs mergeados entre `89f2f4f` y `f8f05b6`.
