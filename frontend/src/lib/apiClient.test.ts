@@ -45,6 +45,159 @@ function sseResponse(chunks: string[], init?: ResponseInit): Response {
 }
 
 describe('createApiClient', () => {
+  test('creates and lists projects through the authoring API', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const createdAt = '2026-06-22T00:00:00Z'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        budget_config_json: null,
+        created_at: createdAt,
+        embedding_mode: 'dense',
+        id: projectId,
+        name: 'Demo',
+        retrieval_contextualization_enabled: true,
+        updated_at: createdAt,
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.createProject({ name: 'Demo' })
+
+    expect(response.id).toBe(projectId)
+    expect(calls).toHaveLength(1)
+    expect(String(calls[0].input)).toBe('http://api.local/projects')
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.headers).toEqual({
+      'content-type': 'application/json',
+    })
+    expect(calls[0].init?.body).toBe(JSON.stringify({ name: 'Demo' }))
+  })
+
+  test('lists projects and loads a project by id', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const createdAt = '2026-06-22T00:00:00Z'
+    const project = {
+      budget_config_json: null,
+      created_at: createdAt,
+      embedding_mode: 'dense',
+      id: projectId,
+      name: 'Demo',
+      retrieval_contextualization_enabled: true,
+      updated_at: createdAt,
+    }
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      return jsonResponse(String(input).endsWith('/projects') ? { items: [project] } : project)
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch: fetchStub,
+    })
+
+    const listed = await client.listProjects()
+    const loaded = await client.getProject(projectId)
+
+    expect(listed.items).toHaveLength(1)
+    expect(loaded.name).toBe('Demo')
+    expect(String(calls[0].input)).toBe('http://api.local/projects')
+    expect(String(calls[1].input)).toBe(
+      `http://api.local/projects/${projectId}`,
+    )
+    expect(calls[0].init?.method).toBe('GET')
+    expect(calls[1].init?.method).toBe('GET')
+  })
+
+  test('creates sources and lists sources with optional filters', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sourceId = '22222222-2222-4222-8222-222222222222'
+    const createdAt = '2026-06-22T00:00:00Z'
+    const source = {
+      created_at: createdAt,
+      external_id: 'notes.md',
+      extra_metadata: { content: '# Notes' },
+      id: sourceId,
+      project_id: projectId,
+      source_type: 'markdown',
+      tags: ['docs'],
+      updated_at: createdAt,
+    }
+    const { fetch, calls } = createFetchStub(jsonResponse(source))
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.createSource(projectId, {
+      external_id: 'notes.md',
+      extra_metadata: { content: '# Notes' },
+      source_type: 'markdown',
+      tags: ['docs'],
+    })
+
+    expect(response.id).toBe(sourceId)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/sources`,
+    )
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.body).toBe(
+      JSON.stringify({
+        external_id: 'notes.md',
+        extra_metadata: { content: '# Notes' },
+        source_type: 'markdown',
+        tags: ['docs'],
+      }),
+    )
+
+    const listFetch = createFetchStub(jsonResponse({ items: [source] }))
+    const listClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: listFetch.fetch,
+    })
+
+    await listClient.listSources(projectId, {
+      external_id: 'notes.md',
+      source_type: 'markdown',
+      tag: 'docs',
+    })
+
+    expect(String(listFetch.calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/sources?source_type=markdown&external_id=notes.md&tag=docs`,
+    )
+  })
+
+  test('loads a source by id', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sourceId = '22222222-2222-4222-8222-222222222222'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        created_at: '2026-06-22T00:00:00Z',
+        external_id: 'https://example.com/doc',
+        extra_metadata: null,
+        id: sourceId,
+        project_id: projectId,
+        source_type: 'url',
+        tags: null,
+        updated_at: '2026-06-22T00:00:00Z',
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.getSource(projectId, sourceId)
+
+    expect(response.source_type).toBe('url')
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/sources/${sourceId}`,
+    )
+    expect(calls[0].init?.method).toBe('GET')
+  })
+
   test('posts chat requests with stable JSON payloads', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const sessionId = '22222222-2222-4222-8222-222222222222'

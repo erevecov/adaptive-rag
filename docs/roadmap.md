@@ -24,7 +24,7 @@
 - M20 Chat observability dashboard: completo.
 - M21 V1 core/readiness: completo.
 - M22 V1 product scope reset: completo.
-- M23 Product authoring surface: activo.
+- M23 Product authoring surface: completo.
 
 ## M1 Foundation
 
@@ -914,8 +914,8 @@ Secuencia recomendada:
 
 1. `m22-v1-product-scope-reset`: completo. Corrige docs y OpenSpec para
    bloquear una release v1 prematura.
-2. `m23-product-authoring-surface`: propuesto. Crear/editar projects y sources
-   desde API/CLI/UI o una superficie publica equivalente.
+2. `m23-product-authoring-surface`: completo. Crear/listar/ver projects y
+   sources desde API, CLI y frontend.
 3. `m24-ingestion-ops-surface`: propuesto. Ejecutar ingestion end-to-end y
    exponer job state, failure reasons y retry/dead-letter.
 4. `m25-first-run-onboarding`: propuesto. Setup local, migraciones, seed/demo
@@ -923,17 +923,22 @@ Secuencia recomendada:
 5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
    docs, smokes y gate de release real.
 
-Continuacion: abrir `m23-product-authoring-surface` desde `main`. La razon es
-directa: sin authoring publico de projects/sources no hay ingestion con datos
-propios, onboarding real ni demo final de producto.
+Continuacion: abrir `m24-ingestion-ops-surface` desde `main`. La razon es
+directa: M23 ya crea projects/sources por superficies publicas, pero todavia
+falta ejecutar ingestion end-to-end, exponer job state y operar fallos/retries
+sin SQL manual.
 
 ## M23 Product authoring surface
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m23-product-authoring-surface/`
+- `openspec/changes/archive/2026-06-23-m23-product-authoring-surface/`
+
+Spec canonica:
+
+- `openspec/specs/product-authoring-surface/spec.md`
 
 Objetivo:
 
@@ -955,19 +960,19 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m23-product-authoring-surface`: activo. Crea el plan OpenSpec y documenta
+1. `m23-product-authoring-surface`: completo. Crea el plan OpenSpec y documenta
    los contratos.
 2. `m23-authoring-api-contract`: completo. Agrega schemas/routes API y ajustes
    minimos de repositories para crear/listar/ver projects y sources.
-3. `m23-authoring-cli`: propuesto. Agrega comandos JSON de projects/sources.
-4. `m23-authoring-frontend`: propuesto. Agrega cliente y UI compacta de
+3. `m23-authoring-cli`: completo. Agrega comandos JSON de projects/sources.
+4. `m23-authoring-frontend`: completo. Agrega cliente y UI compacta de
    projects/sources.
-5. `m23-quality-gate`: propuesto. Valida frontend/backend/OpenSpec y archiva
+5. `m23-quality-gate`: completo. Valida frontend/backend/OpenSpec y archiva
    M23.
 
-Continuacion: implementar `m23-authoring-cli` antes de frontend, para dar un
-flujo local scriptable de projects/sources y reutilizar el contrato
-API/repository ya fijado.
+Continuacion: abrir `m24-ingestion-ops-surface`, para ejecutar ingestion
+explicitamente desde superficies publicas, mostrar job state y permitir retry/
+dead-letter sin depender de SQL manual.
 
 ## Politica para reducir conflictos de merge
 
