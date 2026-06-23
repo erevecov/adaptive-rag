@@ -28,6 +28,7 @@
 - M24 Ingestion ops surface: completo.
 - M25 First-run onboarding: completo.
 - M26 V1 product quality gate: completo.
+- M27 Post-v1 retrieval expansion: activo.
 
 ## M1 Foundation
 
@@ -1109,10 +1110,48 @@ Secuencia recomendada:
 4. `m26-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
    M26.
 
-Continuacion: mergear M26 y reejecutar `uv run adaptive-rag v1 quality-gate`
-desde `main`. Si el artefacto conserva `release_decision = ready_for_v1_0`, la
-siguiente accion es decidir manualmente si cortar tag/GitHub release v1.0. Si
-se quiere mas alcance, abrir un OpenSpec post-v1.
+Continuacion: abrir M27 para nuevo alcance post-v1 si se decide preparar
+capacidades avanzadas de retrieval antes del frontend polish.
+
+## M27 Post-v1 retrieval expansion
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m27-retrieval-expansion-plan/`
+
+Objetivo:
+
+- Dejar listas capacidades avanzadas de retrieval antes de pulir frontend, sin
+  cambiar el default `dense` hasta contar con evidencia comparativa.
+
+Condiciones del milestone:
+
+- M27 no implementa runtime retrieval; define alcance, secuencia y gates.
+- Todas las capacidades nuevas empiezan opt-in.
+- `dense` sigue como default y fallback hasta que M31 recomiende promocion.
+- Frontend polish debe esperar contratos backend estables o excluir los modos
+  avanzados del alcance visual.
+
+Secuencia recomendada:
+
+1. `m27-retrieval-expansion-plan`: activo. Crea el OpenSpec post-v1 y fija el
+   orden de trabajo.
+2. `m28-contextual-retrieval-generated-summaries`: propuesto. Generar
+   `contextual_summary`, reusar `embedding_input_text`/`lexical_input_text` y
+   medir dense con/sin contexto.
+3. `m29-lexical-retrieval-rrf`: propuesto. Agregar Postgres full-text local y
+   RRF preservando filtros, ordering estable y citations.
+4. `m30-qwen-sparse-dense-sparse`: propuesto. Verificar docs actuales de Qwen y
+   completar storage/scoring/reindex para `dense_sparse` como opt-in.
+5. `m31-retrieval-strategy-gate`: propuesto. Comparar dense, contextual dense,
+   lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
+   `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
+
+Continuacion: completar M27 y luego abrir M28. La razon es directa: Contextual
+Retrieval tiene el menor blast radius porque el schema y el builder de inputs ya
+reservan esa forma.
 
 ## Politica para reducir conflictos de merge
 

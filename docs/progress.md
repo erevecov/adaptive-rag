@@ -2,7 +2,13 @@
 
 ## Milestone activo
 
-Ninguno. No hay changes OpenSpec activos despues de archivar M26.
+M27 `m27-retrieval-expansion-plan`.
+
+M27 abre el nuevo alcance post-v1 para dejar listas capacidades avanzadas de
+retrieval antes de pulir frontend. El objetivo aprobado es opt-in y medible:
+Contextual Retrieval generado, lexical/RRF, Qwen sparse / `dense_sparse` y un
+gate comparativo posterior. `dense` sigue siendo el default hasta que el gate
+demuestre una promocion segura.
 
 ## Ultimo milestone completado
 
@@ -47,7 +53,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m27-retrieval-expansion-plan/`
 
 ## Ultimo change archivado
 
@@ -84,10 +90,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Mergear el PR de M26 y reejecutar `uv run adaptive-rag v1 quality-gate` desde
-  `main`. Si el artefacto conserva `release_decision = ready_for_v1_0`, la
-  siguiente decision es manual: cortar tag/GitHub release v1.0 o abrir un
-  OpenSpec post-v1 si se decide agregar alcance nuevo.
+- Completar y mergear M27 como PR de planificacion. Despues abrir
+  `m28-contextual-retrieval-generated-summaries`, porque reutiliza campos e
+  input builders existentes y estabiliza la rama dense contextual antes de
+  agregar lexical/RRF o sparse.
 
 ## Reglas de coordinacion
 
