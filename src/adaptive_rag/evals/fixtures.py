@@ -34,18 +34,23 @@ def build_retrieval_fixture_project(
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider,
+    use_contextual_summaries: bool = False,
 ) -> EvalRetrievalFixtureProject:
     """Persiste evidence como sources/documents/chunks para RetrievalService."""
 
     _validate_provider_dimensions(provider)
     project = ProjectRepository(session).create(
         name=f"eval:{suite.suite_id}",
-        retrieval_contextualization_enabled=False,
+        retrieval_contextualization_enabled=use_contextual_summaries,
     )
     source_repo = SourceRepository(session)
     document_repo = DocumentRepository(session)
     chunk_repo = ChunkRepository(session)
-    embeddings = _resolve_evidence_embeddings(suite.evidence, provider=provider)
+    embeddings = _resolve_evidence_embeddings(
+        suite.evidence,
+        provider=provider,
+        use_contextual_summaries=use_contextual_summaries,
+    )
     evidence_id_by_chunk_id: dict[UUID, str] = {}
     document_version_ids: list[UUID] = []
 
@@ -88,6 +93,9 @@ def build_retrieval_fixture_project(
                 "eval_suite_id": suite.suite_id,
                 "eval_evidence_id": evidence.id,
             },
+            contextual_summary=(
+                evidence.contextual_summary if use_contextual_summaries else None
+            ),
             embedding=embeddings[index],
         )
         chunk.embedding_metadata = {
@@ -112,10 +120,11 @@ def _resolve_evidence_embeddings(
     evidence: tuple[EvalEvidence, ...],
     *,
     provider: DenseEmbeddingProvider,
+    use_contextual_summaries: bool,
 ) -> list[list[float]]:
     embeddings: list[list[float] | None] = [
         _validate_embedding(item.embedding, evidence_id=item.id)
-        if item.embedding is not None
+        if item.embedding is not None and not use_contextual_summaries
         else None
         for item in evidence
     ]
@@ -124,7 +133,13 @@ def _resolve_evidence_embeddings(
     ]
     if missing_indexes:
         generated = provider.embed_texts(
-            [evidence[index].text for index in missing_indexes]
+            [
+                _embedding_text(
+                    evidence[index],
+                    use_contextual_summary=use_contextual_summaries,
+                )
+                for index in missing_indexes
+            ]
         )
         if len(generated) != len(missing_indexes):
             raise EvalDatasetError("eval embedding provider returned wrong count")
@@ -134,6 +149,17 @@ def _resolve_evidence_embeddings(
                 evidence_id=evidence[index].id,
             )
     return [embedding for embedding in embeddings if embedding is not None]
+
+
+def _embedding_text(
+    evidence: EvalEvidence,
+    *,
+    use_contextual_summary: bool,
+) -> str:
+    contextual_summary = evidence.contextual_summary or ""
+    if use_contextual_summary and contextual_summary:
+        return f"{contextual_summary}\n\n{evidence.text}"
+    return evidence.text
 
 
 def _validate_embedding(

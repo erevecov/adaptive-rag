@@ -1143,14 +1143,15 @@ Secuencia recomendada:
    exponer evidencia de indexing contextualizado por first-run.
 3. `m29-lexical-retrieval-rrf`: completo. Agrega lexical retrieval local y
    RRF preservando filtros, ordering estable y citations.
-4. `m30-qwen-sparse-dense-sparse`: activo. Verificar docs actuales de Qwen y
+4. `m30-qwen-sparse-dense-sparse`: completo. Verificar docs actuales de Qwen y
    completar storage/scoring/reindex para `dense_sparse` como opt-in.
-5. `m31-retrieval-strategy-gate`: propuesto. Comparar dense, contextual dense,
+5. `m31-retrieval-strategy-gate`: activo. Comparar dense, contextual dense,
    lexical, sparse, hybrid RRF, graph opt-in y rerank para decidir `promote`,
    `keep_opt_in`, `hold`, `no_go` o `needs_more_data`.
 
-Continuacion: completar M30 en un solo PR. La razon es directa: M29 ya fijo el
-contrato de fusion RRF y M30 debe dejar sparse listo antes de pulir frontend.
+Continuacion: completar M31 en un solo PR. La razon es directa: M28-M30 ya
+dejaron listas las ramas backend avanzadas y ahora hace falta el gate que
+decide si alguna puede afectar defaults o frontend polish.
 
 ## M28 Contextual Retrieval generated summaries
 
@@ -1218,11 +1219,11 @@ Continuacion: M30 usa el contrato RRF ya mergeado para agregar Qwen sparse /
 
 ## M30 Qwen sparse dense_sparse
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m30-qwen-sparse-dense-sparse/`
+- `openspec/changes/archive/2026-06-23-m30-qwen-sparse-dense-sparse/`
 
 Objetivo:
 
@@ -1242,15 +1243,53 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m30-sparse-provider-pipeline`: activo. Implementa provider Qwen/fake,
+1. `m30-sparse-provider-pipeline`: completo. Implementa provider Qwen/fake,
    repositorio y backfill idempotente.
-2. `m30-sparse-retrieval`: activo. Implementa `SparseRetriever` y fusion
+2. `m30-sparse-retrieval`: completo. Implementa `SparseRetriever` y fusion
    dense+sparse por RRF.
-3. `m30-surfaces-evals`: activo. Expone API/CLI/evals, docs y validaciones.
+3. `m30-surfaces-evals`: completo. Expone API/CLI/evals, docs y validaciones.
 
-Continuacion: completar M30 y luego abrir M31 para comparar dense, contextual
-dense, lexical, sparse, hybrid RRF, graph opt-in y rerank antes de promover
-estrategias.
+Continuacion: M30 queda cerrado. Completar M31 para comparar dense,
+contextual dense, lexical, sparse, hybrid RRF, graph opt-in y rerank antes de
+promover estrategias o pulir el frontend.
+
+## M31 Retrieval strategy gate
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m31-retrieval-strategy-gate/`
+
+Objetivo:
+
+- Comparar las estrategias de retrieval listas contra `dense`, emitir decision
+  por estrategia y conservar `dense` como default salvo evidencia explicita de
+  promocion.
+
+Condiciones del milestone:
+
+- El gate debe correr offline por CLI sin hosted providers por defecto.
+- Debe comparar `dense`, `contextual_dense`, `lexical`, `hybrid_rrf`,
+  `dense_sparse`, `graph` y `dense_rerank` cuando haya evidencia suficiente.
+- Cada fila debe emitir `promote`, `keep_opt_in`, `hold`, `no_go` o
+  `needs_more_data`.
+- Graph puede pasar calidad offline, pero queda `hold` sin evidencia live
+  operacional.
+- Frontend polish no debe inventar modos: debe consumir decisions del gate o
+  excluir modos avanzados.
+
+Secuencia recomendada:
+
+1. `m31-strategy-gate-runner`: activo. Implementa runner, decisiones y
+   serializer JSON.
+2. `m31-contextual-dense-fixtures`: activo. Permite `contextual_summary` en
+   eval evidence y reporta `needs_more_data` cuando falta.
+3. `m31-cli-docs-gate`: activo. Expone `adaptive-rag evals strategy-gate`,
+   actualiza docs y valida OpenSpec.
+
+Continuacion: completar M31 y usar el resultado para decidir si el frontend
+polish expone solo `dense` o algun modo opt-in con evidencia suficiente.
 
 ## Politica para reducir conflictos de merge
 

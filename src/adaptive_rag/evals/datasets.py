@@ -53,6 +53,7 @@ _SUITE_FIELDS = frozenset(
 )
 _EVIDENCE_FIELDS = frozenset(
     {
+        "contextual_summary",
         "id",
         "text",
         "source_type",
@@ -212,6 +213,10 @@ def _parse_evidence(value: object, *, index: int) -> EvalEvidence:
         embedding=parse_float_tuple(
             payload.get("embedding"),
             field_name=f"{field_name}.embedding",
+        ),
+        contextual_summary=optional_nonempty_str(
+            payload.get("contextual_summary"),
+            field_name=f"{field_name}.contextual_summary",
         ),
     )
 
