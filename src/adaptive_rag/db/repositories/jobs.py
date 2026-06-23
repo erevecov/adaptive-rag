@@ -49,6 +49,21 @@ class JobRepository:
         statement = select(Job).where(Job.id == job_id, Job.project_id == project_id)
         return self._session.scalars(statement).one_or_none()
 
+    def list(
+        self,
+        *,
+        project_id: UUID,
+        status: str | None = None,
+        job_type: str | None = None,
+    ) -> builtins.list[Job]:
+        statement = select(Job).where(Job.project_id == project_id)
+        if status is not None:
+            statement = statement.where(Job.status == status)
+        if job_type is not None:
+            statement = statement.where(Job.job_type == job_type)
+        statement = statement.order_by(Job.created_at, Job.id)
+        return builtins.list(self._session.scalars(statement))
+
     def lease_next(
         self,
         *,
@@ -140,6 +155,29 @@ class JobRepository:
             event_type="blocked",
             message=reason,
         )
+        self._session.flush()
+        return job
+
+    def requeue(
+        self,
+        *,
+        project_id: UUID,
+        job_id: UUID,
+        run_after: datetime | None = None,
+        reset_attempts: bool = True,
+    ) -> Job:
+        job = self._require_job(project_id=project_id, job_id=job_id)
+        if job.status not in {"blocked", "dead_letter"}:
+            raise ValueError("job is not retryable")
+
+        job.status = "queued"
+        job.locked_by = None
+        job.locked_until = None
+        job.last_error = None
+        job.run_after = run_after or utc_now()
+        if reset_attempts:
+            job.attempts = 0
+        self._add_event(project_id=project_id, job_id=job.id, event_type="retried")
         self._session.flush()
         return job
 

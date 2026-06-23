@@ -576,6 +576,63 @@ button:disabled {
   white-space: nowrap;
 }
 
+.authoring-row-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.compact-button {
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.ingestion-panel {
+  border-top: 1px solid #dfe5e2;
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.ingestion-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ingestion-heading h3 {
+  color: #1f2d29;
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ingestion-run {
+  align-items: center;
+  background: #f7faf8;
+  border: 1px solid #dfe8e2;
+  border-radius: 8px;
+  color: #596764;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.ingestion-run strong {
+  color: #24413d;
+}
+
+.job-error {
+  color: #8a3535;
+}
+
 .health-summary {
   align-items: start;
   display: grid;

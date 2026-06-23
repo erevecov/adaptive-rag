@@ -44,6 +44,35 @@ function sseResponse(chunks: string[], init?: ResponseInit): Response {
   )
 }
 
+function jobPayload({
+  jobId = '33333333-3333-4333-8333-333333333333',
+  projectId = '11111111-1111-4111-8111-111111111111',
+  sourceId = '22222222-2222-4222-8222-222222222222',
+  status = 'queued',
+}: {
+  jobId?: string
+  projectId?: string
+  sourceId?: string
+  status?: string
+}) {
+  return {
+    attempts: 0,
+    created_at: '2026-06-23T00:00:00Z',
+    id: jobId,
+    job_type: 'ingest_source',
+    last_error: status === 'blocked' ? 'missing content' : null,
+    locked_by: null,
+    locked_until: null,
+    max_attempts: 3,
+    payload_json: { source_id: sourceId },
+    priority: 0,
+    project_id: projectId,
+    run_after: '2026-06-23T00:00:00Z',
+    status,
+    updated_at: '2026-06-23T00:00:00Z',
+  }
+}
+
 describe('createApiClient', () => {
   test('creates and lists projects through the authoring API', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
@@ -196,6 +225,139 @@ describe('createApiClient', () => {
       `http://api.local/projects/${projectId}/sources/${sourceId}`,
     )
     expect(calls[0].init?.method).toBe('GET')
+  })
+
+  test('enqueues ingestion jobs for sources', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sourceId = '22222222-2222-4222-8222-222222222222'
+    const jobId = '33333333-3333-4333-8333-333333333333'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse(jobPayload({ jobId, projectId, sourceId })),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.enqueueIngestionJob(projectId, sourceId, {
+      max_attempts: 2,
+      priority: 4,
+    })
+
+    expect(response.id).toBe(jobId)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/sources/${sourceId}/ingestion-jobs`,
+    )
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.body).toBe(
+      JSON.stringify({ max_attempts: 2, priority: 4 }),
+    )
+  })
+
+  test('lists ingestion jobs with optional filters', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sourceId = '22222222-2222-4222-8222-222222222222'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        items: [jobPayload({ projectId, sourceId })],
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    await client.listIngestionJobs(projectId, {
+      job_type: 'ingest_source',
+      source_id: sourceId,
+      status: 'blocked',
+    })
+
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/ingestion-jobs?source_id=${sourceId}&status=blocked&job_type=ingest_source`,
+    )
+    expect(calls[0].init?.method).toBe('GET')
+  })
+
+  test('loads and retries ingestion job detail', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const jobId = '33333333-3333-4333-8333-333333333333'
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      return jsonResponse(
+        String(input).endsWith('/retry')
+          ? jobPayload({ jobId, projectId, status: 'queued' })
+          : {
+              events: [
+                {
+                  created_at: '2026-06-23T00:00:00Z',
+                  event_type: 'blocked',
+                  extra_metadata: null,
+                  id: '44444444-4444-4444-8444-444444444444',
+                  job_id: jobId,
+                  message: 'missing content',
+                  project_id: projectId,
+                },
+              ],
+              job: jobPayload({ jobId, projectId, status: 'blocked' }),
+            },
+      )
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: fetchStub,
+    })
+
+    const detail = await client.getIngestionJob(projectId, jobId)
+    const retried = await client.retryIngestionJob(projectId, jobId)
+
+    expect(detail.events[0].event_type).toBe('blocked')
+    expect(retried.status).toBe('queued')
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/ingestion-jobs/${jobId}`,
+    )
+    expect(String(calls[1].input)).toBe(
+      `http://api.local/projects/${projectId}/ingestion-jobs/${jobId}/retry`,
+    )
+    expect(calls[1].init?.method).toBe('POST')
+  })
+
+  test('runs the next ingestion job', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const jobId = '33333333-3333-4333-8333-333333333333'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        created_document_version: true,
+        document_id: '55555555-5555-4555-8555-555555555555',
+        document_version_id: '66666666-6666-4666-8666-666666666666',
+        error_message: null,
+        job_id: jobId,
+        project_id: projectId,
+        source_id: '22222222-2222-4222-8222-222222222222',
+        status: 'processed',
+        worker_id: 'frontend-test',
+      }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    const response = await client.runNextIngestionJob(projectId, {
+      lease_seconds: 60,
+      worker_id: 'frontend-test',
+    })
+
+    expect(response.status).toBe('processed')
+    expect(response.job_id).toBe(jobId)
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/ingestion-jobs/run-next`,
+    )
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.body).toBe(
+      JSON.stringify({ lease_seconds: 60, worker_id: 'frontend-test' }),
+    )
   })
 
   test('posts chat requests with stable JSON payloads', async () => {

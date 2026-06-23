@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from adaptive_rag.api.routes.authoring import router as authoring_router
 from adaptive_rag.api.routes.chat import router as chat_router
 from adaptive_rag.api.routes.health import router as health_router
+from adaptive_rag.api.routes.ingestion_ops import router as ingestion_ops_router
 from adaptive_rag.api.routes.retrieval import router as retrieval_router
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
@@ -15,6 +16,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Adaptive RAG", version="0.1.0")
     app.include_router(health_router)
     app.include_router(authoring_router)
+    app.include_router(ingestion_ops_router)
     app.include_router(retrieval_router)
     app.include_router(chat_router)
     return app

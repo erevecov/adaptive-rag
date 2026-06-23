@@ -14,6 +14,8 @@ import {
   type ChatSessionDetailResponse,
   type ChatSessionSummary,
   type ChatToolCall,
+  type IngestionJob,
+  type IngestionRunResponse,
   type Project,
   type Source,
   type SourceCreateBody,
@@ -86,6 +88,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [sourceAuthoringError, setSourceAuthoringError] = useState<string | null>(
     null,
   )
+  const [ingestionJobs, setIngestionJobs] = useState<IngestionJob[]>([])
+  const [ingestionRun, setIngestionRun] = useState<IngestionRunResponse | null>(
+    null,
+  )
+  const [ingestionState, setIngestionState] = useState<RequestState>('idle')
+  const [ingestionError, setIngestionError] = useState<string | null>(null)
 
   const isAsking = requestState === 'loading'
 
@@ -271,6 +279,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setProjectId(project.id)
       setProjectName('')
       setSources([])
+      setIngestionJobs([])
+      setIngestionRun(null)
       setProjectAuthoringState('succeeded')
     } catch (error) {
       setProjectAuthoringState('failed')
@@ -281,6 +291,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   function handleSelectProject(project: Project) {
     setProjectId(project.id)
     setSources([])
+    setIngestionJobs([])
+    setIngestionRun(null)
+    setIngestionError(null)
+    setIngestionState('idle')
     setSourceAuthoringError(null)
     setSourceAuthoringState('idle')
   }
@@ -350,6 +364,99 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshIngestionJobs(projectIdOverride?: string) {
+    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+
+    if (trimmedProjectId.length === 0) {
+      setIngestionState('failed')
+      setIngestionError('Project ID is required to refresh ingestion jobs.')
+      return
+    }
+
+    setIngestionState('loading')
+    setIngestionError(null)
+
+    try {
+      const response = await client.listIngestionJobs(trimmedProjectId, {
+        job_type: 'ingest_source',
+      })
+      setIngestionJobs(response.items)
+      setIngestionState('succeeded')
+    } catch (error) {
+      setIngestionState('failed')
+      setIngestionError(getErrorMessage(error))
+    }
+  }
+
+  async function handleEnqueueIngestion(source: Source) {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setIngestionState('failed')
+      setIngestionError('Project ID is required to enqueue ingestion.')
+      return
+    }
+
+    setIngestionState('loading')
+    setIngestionError(null)
+
+    try {
+      const job = await client.enqueueIngestionJob(trimmedProjectId, source.id)
+      setIngestionJobs((current) => upsertIngestionJob(current, job))
+      setIngestionState('succeeded')
+    } catch (error) {
+      setIngestionState('failed')
+      setIngestionError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRunNextIngestion() {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setIngestionState('failed')
+      setIngestionError('Project ID is required to run ingestion.')
+      return
+    }
+
+    setIngestionState('loading')
+    setIngestionError(null)
+
+    try {
+      const run = await client.runNextIngestionJob(trimmedProjectId)
+      setIngestionRun(run)
+      setIngestionState('succeeded')
+      if (run.job_id !== null) {
+        await handleRefreshIngestionJobs(trimmedProjectId)
+      }
+    } catch (error) {
+      setIngestionState('failed')
+      setIngestionError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRetryIngestionJob(job: IngestionJob) {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setIngestionState('failed')
+      setIngestionError('Project ID is required to retry ingestion.')
+      return
+    }
+
+    setIngestionState('loading')
+    setIngestionError(null)
+
+    try {
+      const nextJob = await client.retryIngestionJob(trimmedProjectId, job.id)
+      setIngestionJobs((current) => upsertIngestionJob(current, nextJob))
+      setIngestionState('succeeded')
+    } catch (error) {
+      setIngestionState('failed')
+      setIngestionError(getErrorMessage(error))
     }
   }
 
@@ -472,12 +579,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           />
         ) : (
           <AuthoringPanel
+            ingestionError={ingestionError}
+            ingestionJobs={ingestionJobs}
+            ingestionRun={ingestionRun}
+            ingestionState={ingestionState}
             onCreateProject={(event) => void handleCreateProject(event)}
             onCreateSource={(event) => void handleCreateSource(event)}
+            onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
             onProjectIdChange={setProjectId}
             onProjectNameChange={setProjectName}
+            onRefreshIngestionJobs={() => void handleRefreshIngestionJobs()}
             onRefreshProjects={() => void handleRefreshProjects()}
             onRefreshSources={() => void handleRefreshSources()}
+            onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
+            onRunNextIngestion={() => void handleRunNextIngestion()}
             onSelectProject={handleSelectProject}
             onSourceContentChange={setSourceContent}
             onSourceExternalIdChange={setSourceExternalId}
@@ -544,12 +659,20 @@ function ViewSwitcher({
 }
 
 function AuthoringPanel({
+  ingestionError,
+  ingestionJobs,
+  ingestionRun,
+  ingestionState,
   onCreateProject,
   onCreateSource,
+  onEnqueueIngestion,
   onProjectIdChange,
   onProjectNameChange,
+  onRefreshIngestionJobs,
   onRefreshProjects,
   onRefreshSources,
+  onRetryIngestionJob,
+  onRunNextIngestion,
   onSelectProject,
   onSourceContentChange,
   onSourceExternalIdChange,
@@ -568,12 +691,20 @@ function AuthoringPanel({
   sourceType,
   sources,
 }: {
+  ingestionError: string | null
+  ingestionJobs: IngestionJob[]
+  ingestionRun: IngestionRunResponse | null
+  ingestionState: RequestState
   onCreateProject(event: FormEvent<HTMLFormElement>): void
   onCreateSource(event: FormEvent<HTMLFormElement>): void
+  onEnqueueIngestion(source: Source): void
   onProjectIdChange(value: string): void
   onProjectNameChange(value: string): void
+  onRefreshIngestionJobs(): void
   onRefreshProjects(): void
   onRefreshSources(): void
+  onRetryIngestionJob(job: IngestionJob): void
+  onRunNextIngestion(): void
   onSelectProject(project: Project): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
@@ -594,6 +725,7 @@ function AuthoringPanel({
 }) {
   const isProjectBusy = projectState === 'loading'
   const isSourceBusy = sourceState === 'loading'
+  const isIngestionBusy = ingestionState === 'loading'
 
   return (
     <div className="authoring-grid">
@@ -737,7 +869,17 @@ function AuthoringPanel({
           </p>
         ) : null}
 
-        <SourceList sources={sources} />
+        <SourceList onEnqueueIngestion={onEnqueueIngestion} sources={sources} />
+        <IngestionJobsPanel
+          error={ingestionError}
+          jobs={ingestionJobs}
+          onRefresh={onRefreshIngestionJobs}
+          onRetry={onRetryIngestionJob}
+          onRunNext={onRunNextIngestion}
+          run={ingestionRun}
+          state={ingestionState}
+          isBusy={isIngestionBusy}
+        />
       </section>
     </div>
   )
@@ -782,7 +924,13 @@ function ProjectList({
   )
 }
 
-function SourceList({ sources }: { sources: Source[] }) {
+function SourceList({
+  onEnqueueIngestion,
+  sources,
+}: {
+  onEnqueueIngestion(source: Source): void
+  sources: Source[]
+}) {
   if (sources.length === 0) {
     return <p className="empty-copy">No sources loaded.</p>
   }
@@ -796,7 +944,123 @@ function SourceList({ sources }: { sources: Source[] }) {
               <strong>{source.external_id}</strong>
               <small>{source.id}</small>
             </span>
-            <em>{source.source_type}</em>
+            <div className="authoring-row-actions">
+              <em>{source.source_type}</em>
+              <button
+                aria-label={`Enqueue ingestion for ${source.external_id}`}
+                className="secondary-button compact-button"
+                onClick={() => onEnqueueIngestion(source)}
+                type="button"
+              >
+                Queue
+              </button>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function IngestionJobsPanel({
+  error,
+  isBusy,
+  jobs,
+  onRefresh,
+  onRetry,
+  onRunNext,
+  run,
+  state,
+}: {
+  error: string | null
+  isBusy: boolean
+  jobs: IngestionJob[]
+  onRefresh(): void
+  onRetry(job: IngestionJob): void
+  onRunNext(): void
+  run: IngestionRunResponse | null
+  state: RequestState
+}) {
+  return (
+    <section className="ingestion-panel" aria-labelledby="ingestion-jobs-title">
+      <div className="ingestion-heading">
+        <div>
+          <p className="panel-label">Ingestion</p>
+          <h3 id="ingestion-jobs-title">Jobs</h3>
+        </div>
+        <span className={statusClassName(state)}>
+          {ingestionStatusLabel(state)}
+        </span>
+      </div>
+
+      <div className="form-actions">
+        <button
+          className="secondary-button"
+          disabled={isBusy}
+          onClick={onRefresh}
+          type="button"
+        >
+          Refresh jobs
+        </button>
+        <button disabled={isBusy} onClick={onRunNext} type="button">
+          Run next job
+        </button>
+      </div>
+
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {run ? (
+        <p className="ingestion-run">
+          Last run <strong>{run.status}</strong>
+          {run.error_message ? <span>{run.error_message}</span> : null}
+        </p>
+      ) : null}
+
+      <IngestionJobList jobs={jobs} onRetry={onRetry} />
+    </section>
+  )
+}
+
+function IngestionJobList({
+  jobs,
+  onRetry,
+}: {
+  jobs: IngestionJob[]
+  onRetry(job: IngestionJob): void
+}) {
+  if (jobs.length === 0) {
+    return <p className="empty-copy">No ingestion jobs loaded.</p>
+  }
+
+  return (
+    <ul className="authoring-list" aria-label="Ingestion jobs">
+      {jobs.map((job) => (
+        <li key={job.id}>
+          <div className="authoring-row authoring-row-static">
+            <span>
+              <strong>{job.status}</strong>
+              <small>{job.id}</small>
+              {job.last_error ? (
+                <small className="job-error">{job.last_error}</small>
+              ) : null}
+            </span>
+            <div className="authoring-row-actions">
+              <em>{job.job_type}</em>
+              {isRetryableIngestionJob(job) ? (
+                <button
+                  aria-label={`Retry ingestion job ${job.id}`}
+                  className="secondary-button compact-button"
+                  onClick={() => onRetry(job)}
+                  type="button"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
           </div>
         </li>
       ))}
@@ -1664,6 +1928,19 @@ function authoringStatusLabel(state: RequestState): string {
   return 'Ready'
 }
 
+function ingestionStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Working'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Updated'
+  }
+  return 'Ready'
+}
+
 function buildSourceCreateBody({
   content,
   externalId,
@@ -1709,6 +1986,18 @@ function upsertProject(projects: Project[], project: Project): Project[] {
 function upsertSource(sources: Source[], source: Source): Source[] {
   const nextSources = sources.filter((item) => item.id !== source.id)
   return [...nextSources, source]
+}
+
+function upsertIngestionJob(
+  jobs: IngestionJob[],
+  job: IngestionJob,
+): IngestionJob[] {
+  const nextJobs = jobs.filter((item) => item.id !== job.id)
+  return [job, ...nextJobs]
+}
+
+function isRetryableIngestionJob(job: IngestionJob): boolean {
+  return job.status === 'blocked' || job.status === 'dead_letter'
 }
 
 function formatUsd(value: number): string {
