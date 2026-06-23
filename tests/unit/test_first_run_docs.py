@@ -13,6 +13,7 @@ def test_first_run_runbook_documents_required_local_path() -> None:
     assert "uv run alembic upgrade head" in content
     assert "uv run adaptive-rag first-run smoke" in content
     assert '"status": "succeeded"' in content
+    assert '"contextualized_chunk_count"' in content
     assert '"citation_count"' in content
     assert "Qwen" in content
     assert "Neo4j" in content

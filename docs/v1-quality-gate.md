@@ -49,9 +49,9 @@ mkdir -p artifacts
 uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json
 ```
 
-El comando crea un project/source, procesa ingestion, chunks y embeddings,
-ejecuta chat con citations y evalua criterios de release sobre ese reporte.
-La salida esperada tiene esta forma:
+El comando crea un project/source, procesa ingestion, chunks, contextualization
+y embeddings, ejecuta chat con citations y evalua criterios de release sobre
+ese reporte. La salida esperada tiene esta forma:
 
 ```json
 {
@@ -69,6 +69,8 @@ La salida esperada tiene esta forma:
     "status": "succeeded",
     "job": {"status": "succeeded"},
     "chunk_count": 2,
+    "contextualized_chunk_count": 2,
+    "reused_contextualized_chunk_count": 0,
     "embedded_chunk_count": 2,
     "citation_count": 1
   },

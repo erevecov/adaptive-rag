@@ -91,6 +91,21 @@ class ChunkRepository:
         self._session.flush()
         return chunk
 
+    def update_contextual_summary(
+        self,
+        *,
+        project_id: UUID,
+        chunk_id: UUID,
+        contextual_summary: str,
+    ) -> Chunk:
+        chunk = self._get_chunk_for_project(project_id=project_id, chunk_id=chunk_id)
+        if chunk is None:
+            raise ValueError("chunk does not belong to project")
+
+        chunk.contextual_summary = contextual_summary
+        self._session.flush()
+        return chunk
+
     def _get_chunk_for_project(
         self,
         *,

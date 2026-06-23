@@ -62,6 +62,8 @@ def test_first_run_smoke_creates_indexed_cited_demo(
     assert payload["job"]["status"] == "succeeded"
     assert payload["document_version_id"] is not None
     assert payload["chunk_count"] >= 1
+    assert payload["contextualized_chunk_count"] == payload["chunk_count"]
+    assert payload["reused_contextualized_chunk_count"] == 0
     assert payload["embedded_chunk_count"] == payload["chunk_count"]
     assert payload["citation_count"] >= 1
     assert "Adaptive RAG first run" in payload["answer"]
@@ -69,6 +71,7 @@ def test_first_run_smoke_creates_indexed_cited_demo(
 
     chunks = session.scalars(select(Chunk)).all()
     assert len(chunks) == payload["chunk_count"]
+    assert all(chunk.contextual_summary for chunk in chunks)
     assert all(chunk.embedding is not None for chunk in chunks)
 
 
@@ -98,6 +101,8 @@ def test_first_run_smoke_uses_custom_content_and_question(
     payload = json.loads(result.stdout)
     assert payload["source"]["external_id"] == "custom.md"
     assert payload["question"] == "What proves the onboarding path?"
+    assert payload["contextualized_chunk_count"] == payload["chunk_count"]
+    assert payload["reused_contextualized_chunk_count"] == 0
     assert "Alpha local evidence" in payload["answer"]
     assert payload["citation_count"] >= 1
 

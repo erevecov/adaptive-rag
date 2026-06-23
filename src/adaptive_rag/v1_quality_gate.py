@@ -115,6 +115,9 @@ def v1_quality_gate_report_payload(report: V1QualityGateReport) -> dict[str, obj
 def _build_criteria(report: FirstRunReport) -> tuple[V1QualityGateCriterion, ...]:
     first_run_payload = first_run_report_payload(report)
     indexed_count = report.embedded_chunk_count + report.reused_chunk_count
+    contextualized_count = (
+        report.contextualized_chunk_count + report.reused_contextualized_chunk_count
+    )
     next_commands = first_run_payload["next_commands"]
     return (
         _criterion(
@@ -131,8 +134,13 @@ def _build_criteria(report: FirstRunReport) -> tuple[V1QualityGateCriterion, ...
         ),
         _criterion(
             "indexed_evidence",
-            report.chunk_count > 0 and indexed_count >= report.chunk_count,
-            "Chunking and dense fake embeddings produced indexed evidence.",
+            report.chunk_count > 0
+            and contextualized_count >= report.chunk_count
+            and indexed_count >= report.chunk_count,
+            (
+                "Chunking, contextualization and dense fake embeddings "
+                "produced indexed evidence."
+            ),
         ),
         _criterion(
             "cited_chat",

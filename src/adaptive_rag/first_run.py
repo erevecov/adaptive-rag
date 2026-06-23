@@ -10,6 +10,10 @@ from sqlalchemy.orm import Session
 from adaptive_rag import authoring, ingestion_ops
 from adaptive_rag.chat import ChatRequest, ChatRunner, ChatService
 from adaptive_rag.chunking import ChunkingPipeline, ChunkingPipelineError
+from adaptive_rag.contextualization import (
+    ContextualizationPipeline,
+    ContextualizationPipelineError,
+)
 from adaptive_rag.db.models import Job, Project, Source
 from adaptive_rag.embeddings import (
     DenseEmbeddingPipeline,
@@ -47,6 +51,8 @@ class FirstRunReport:
     question: str
     document_version_id: UUID
     chunk_count: int
+    contextualized_chunk_count: int
+    reused_contextualized_chunk_count: int
     embedded_chunk_count: int
     reused_chunk_count: int
     answer: str
@@ -92,6 +98,12 @@ def run_first_run_smoke(
             project_id=project.id,
             document_version_id=run.document_version_id,
         )
+        contextualization_result = (
+            ContextualizationPipeline(session).contextualize_document_version(
+                project_id=project.id,
+                document_version_id=run.document_version_id,
+            )
+        )
         embedding_result = DenseEmbeddingPipeline(
             session,
             provider=dense_embedding_provider,
@@ -99,7 +111,11 @@ def run_first_run_smoke(
             project_id=project.id,
             document_version_id=run.document_version_id,
         )
-    except (ChunkingPipelineError, DenseEmbeddingPipelineError) as exc:
+    except (
+        ChunkingPipelineError,
+        ContextualizationPipelineError,
+        DenseEmbeddingPipelineError,
+    ) as exc:
         raise FirstRunError(str(exc)) from exc
 
     chat = ChatService(
@@ -126,6 +142,12 @@ def run_first_run_smoke(
         question=question,
         document_version_id=run.document_version_id,
         chunk_count=len(chunk_result.chunks),
+        contextualized_chunk_count=(
+            contextualization_result.contextualized_chunk_count
+        ),
+        reused_contextualized_chunk_count=(
+            contextualization_result.reused_contextualized_chunk_count
+        ),
         embedded_chunk_count=embedding_result.embedded_chunk_count,
         reused_chunk_count=embedding_result.reused_chunk_count,
         answer=chat.answer,
@@ -142,6 +164,10 @@ def first_run_report_payload(report: FirstRunReport) -> dict[str, object]:
         "question": report.question,
         "document_version_id": str(report.document_version_id),
         "chunk_count": report.chunk_count,
+        "contextualized_chunk_count": report.contextualized_chunk_count,
+        "reused_contextualized_chunk_count": (
+            report.reused_contextualized_chunk_count
+        ),
         "embedded_chunk_count": report.embedded_chunk_count,
         "reused_chunk_count": report.reused_chunk_count,
         "answer": report.answer,

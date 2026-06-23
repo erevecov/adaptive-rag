@@ -23,4 +23,4 @@
 
 - [x] 4.1 Run OpenSpec validation.
 - [x] 4.2 Run docs-safe validation.
-- [ ] 4.3 Commit, push and open a draft PR.
+- [x] 4.3 Commit, push and open a draft PR.
