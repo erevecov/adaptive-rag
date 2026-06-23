@@ -2,20 +2,28 @@
 
 ## Milestone activo
 
-Ninguno. No hay changes OpenSpec activos despues de M21.
+M22 V1 product scope reset.
+
+M22 redefine v1 como producto local-first single-user terminado. M21 queda como
+evidencia de core/pre-v1 y no como autorizacion para cortar tag o release
+v1.0.
 
 ## Ultimo milestone completado
 
-M21 V1 release readiness cerrado el 2026-06-22.
+M21 V1 core/readiness cerrado el 2026-06-22.
 
 M21 reconcilia el alcance v1.0 contra OpenSpec y el codigo real, agrega el
 release package local-first, documenta el demo offline reproducible y archiva
-la spec `v1-release-readiness`.
+la spec `v1-release-readiness`. Despues del reset M22, esa evidencia se trata
+como readiness del core, no como producto v1 terminado.
 
-El corte v1.0 mantiene dense retrieval como default, rerank como opt-in medible
-y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen sparse retrieval,
-Contextual Retrieval generado, auth multi-user, PDF/Office, voice y MCP server
-quedan diferidos post-v1 salvo nueva evidencia/OpenSpec.
+El producto v1 terminado mantiene dense retrieval como default, rerank como
+opt-in medible y graph/Neo4j como opt-in `hold_default`. Lexical/RRF, Qwen
+sparse retrieval, Contextual Retrieval generado, auth multi-user, PDF/Office,
+voice y MCP server siguen fuera del default salvo nueva evidencia/OpenSpec.
+La brecha principal ahora es producto: authoring de projects/sources, ingestion
+end-to-end desde superficies publicas, job state visible, onboarding local y
+demo con datos propios.
 
 ## Ultimo slice completado
 
@@ -44,7 +52,7 @@ git diff --check
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m22-v1-product-scope-reset/`
 
 ## Ultimo change archivado
 
@@ -77,10 +85,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- M21 ya esta mergeado en `main`. Siguiente decision recomendada: cortar un
-  tag/manual release v1.0 despues de regenerar evidencia fresca con el
-  gate/demo offline. Si no se corta release todavia, abrir el primer change
-  post-v1 para authoring de projects/sources.
+- Completar M22 y abrir el primer slice de producto terminado:
+  `m23-product-authoring-surface`. La opcion recomendada es empezar por
+  authoring de projects/sources porque desbloquea ingestion con datos propios,
+  onboarding real y demo final sin fixtures internas.
 
 ## Reglas de coordinacion
 

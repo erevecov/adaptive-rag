@@ -3,15 +3,20 @@
 Sistema RAG personal, aislado por proyecto, pensado para aprendizaje y
 portafolio.
 
-## Alcance v1.0
+## Estado pre-v1 y criterio v1
 
-La release v1.0 es local-first y conservadora: dense retrieval con pgvector,
-chat con citations, rerank opt-in, evals offline, observability local y un
-paquete Docker Compose para API, worker project-scoped y Postgres/pgvector.
+El repositorio ya tiene un core local-first demostrable: dense retrieval con
+pgvector, chat con citations, rerank opt-in, evals offline, observability local
+y un paquete Docker Compose para API, worker project-scoped y Postgres/pgvector.
+
+La definicion de v1 cambio: v1 significa producto local-first single-user
+terminado, no solo release de portafolio del core. Antes de cortar v1.0 faltan
+authoring de projects/sources, ingestion end-to-end desde superficies publicas,
+job state visible, onboarding local y demo con datos propios.
 
 No requiere Qwen hosted, Neo4j, voice, MCP server, auth multi-user ni
 observability hosted para el gate default. Qwen, rerank hosted y Neo4j quedan
-como smokes opt-in con presupuesto/configuración explícita.
+como smokes opt-in con presupuesto/configuracion explicita.
 
 ## Desarrollo local
 
@@ -31,7 +36,7 @@ uv run adaptive-rag version
 uv run adaptive-rag health
 ```
 
-## Stack local de release
+## Stack local core
 
 El paquete local usa Postgres con pgvector y la API FastAPI:
 
@@ -53,9 +58,9 @@ En Docker Compose el worker usa profile porque requiere `project_id`:
 ADAPTIVE_RAG_WORKER_PROJECT_ID=<project-id> docker compose --profile worker up worker
 ```
 
-Detalles y runbook: `docs/architecture/v1-release-package.md`.
+Detalles y runbook del core M21: `docs/architecture/v1-release-package.md`.
 
-## Demo de portafolio
+## Demo core reproducible
 
 El demo reproducible usa fixtures offline y providers `fake`; no consume
 credenciales ni costo externo:
@@ -71,7 +76,8 @@ docker compose run --rm api adaptive-rag evals run evals/fixtures/chat-smoke.jso
 ```
 
 Los artefactos en `artifacts/` son locales y se pueden regenerar cuando se
-necesite evidencia fresca.
+necesite evidencia fresca. Esta demo prueba el core; la demo final de v1 debe
+partir de datos creados por las superficies publicas del producto.
 
 ## Smoke Neo4j opt-in
 

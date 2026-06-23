@@ -9,14 +9,38 @@ implementados, cambios activos y requisitos verificables. Si este documento
 contradice una spec canónica o un change OpenSpec aceptado, se debe actualizar
 este documento o seguir OpenSpec.
 
+## Decision M22: v1 producto terminado
+
+Fecha: 2026-06-23
+
+M22 cambia el significado de v1. La v1 ya no es una release de portafolio del
+core M1-M21; v1 significa producto local-first single-user terminado.
+
+M21 queda como evidencia de core/pre-v1: el stack puede correr localmente, el
+release package existe y los gates principales pasaron. Esa evidencia no
+autoriza un tag/manual release v1.0 por si sola. Antes de cortar v1.0, el
+producto debe permitir que un usuario cree un proyecto, agregue sources,
+ejecute ingestion, vea estado de jobs, consulte sus propios datos con
+citations y opere errores desde superficies publicas documentadas.
+
+Los items que M21 marco como `in_v1` ahora se leen como `in_core_pre_v1` salvo
+que tambien satisfagan la experiencia end-to-end de producto. Los items de
+authoring de projects/sources, ingestion operativa, onboarding local y demo con
+datos propios pasan a ser gaps de producto para v1, no mejoras post-v1.
+Lexical/RRF, Qwen sparse, graph default, auth multi-user, PDF/Office, voice y
+MCP siguen fuera del default salvo nuevo OpenSpec con evidencia.
+
 ## Reconciliación M21 para v1.0
 
 Fecha: 2026-06-22
 
-M21 recorta la primera release pública al alcance verificable en
+Nota M22: esta reconciliacion queda como registro historico de core/pre-v1. No
+define por si sola el producto v1 terminado.
+
+M21 recorta la release de portafolio propuesta al alcance verificable en
 `openspec/specs/` y en el código actual. Las secciones históricas de este
 documento siguen siendo útiles como dirección de producto, pero esta tabla
-manda para v1.0:
+solo manda para el core pre-v1:
 
 | Item original de v1 | Estado M21 | Decisión de release |
 | --- | --- | --- |
@@ -34,7 +58,7 @@ manda para v1.0:
 | Postgres full-text, lexical retrieval y RRF | `defer_post_v1` | Requieren evidencia de fallos lexicales actuales y nuevo OpenSpec. |
 | Qwen sparse retrieval / `dense_sparse` runtime | `defer_post_v1` | El schema existe, pero scoring/retrieval sparse no entra sin evidencia nueva. |
 | Graph retrieval como default o dependencia del stack | `defer_post_v1` | Neo4j/graph sigue opt-in y `hold_default` por M19. |
-| API/CLI self-service para crear projects/sources | `defer_post_v1` | v1.0 publica retrieval/chat/evals/worker sobre contratos existentes; surfaces de authoring quedan para una iteración posterior. |
+| API/CLI/UI self-service para crear projects/sources | `product_gap` | M22 reclasifica authoring como gap de producto: v1 terminada no puede depender de fixtures internas o SQL manual. |
 | Auth multi-user, PDF/Office, voice, MCP server, hosted observability | `defer_post_v1` | Fuera del corte local-first. |
 
 ## Propósito
@@ -57,6 +81,10 @@ términos técnicos que sean más precisos o reconocibles, como `retrieval`,
 `provider`, `chunk`, `tool calling`, `rerank` o `embedding`.
 
 ## Fuera de alcance
+
+Nota M22: esta seccion conserva decisiones de alcance tecnico, pero ya no
+excluye authoring, ingestion operativa, onboarding ni demo con datos propios.
+Esos bloques son necesarios para una v1 terminada local-first.
 
 La v1 no implementará un frontend completo, OAuth/login, observabilidad SaaS
 hosted, graph RAG, retrieval multimodal, ingestion de PDF/Office con calidad
@@ -1386,12 +1414,17 @@ Reglas:
 - Agregar dependencias `opentelemetry-*` solo cuando implementemos
   instrumentación real o un exporter concreto.
 
-## Release v1.0 de portafolio
+## Paquete core M21 y criterio M22 de v1
 
-La primera release pública prioriza un vertical slice demostrable, local-first y
-conservador. Debe permitir validar el backend, el worker project-scoped, el chat
-RAG, retrieval dense, rerank opt-in, evals offline y un reporte reproducible de
-calidad/costo/latencia sin depender de servicios hosted.
+M21 produjo un vertical slice demostrable, local-first y conservador. Permite
+validar el backend, el worker project-scoped, el chat RAG, retrieval dense,
+rerank opt-in, evals offline y un reporte reproducible de calidad/costo/latencia
+sin depender de servicios hosted.
+
+M22 cambia el criterio de release: este paquete es core/pre-v1, no producto v1
+terminado. Antes de cortar v1.0 faltan authoring de projects/sources, ingestion
+end-to-end desde superficies publicas, job state visible, onboarding local y
+demo con datos propios.
 
 Incluye:
 
@@ -1414,17 +1447,20 @@ Incluye:
 - Docker Compose con API, Postgres/pgvector y worker profile
 - README, runbook de release package y reporte reproducible de evals
 
-Quedan fuera de la primera release pública aunque existan huecos preparados en
-el diseño: API/CLI self-service para crear projects/sources, Contextual
-Retrieval generado, Postgres full-text, lexical retrieval, RRF, Qwen sparse
-retrieval runtime, graph retrieval como default, auth multi-user, PDF/Office,
-Unstructured, Qdrant, HNSW, SPLADE, sparse retrievers externos, OpenTelemetry
-exporter, dashboards de costos avanzados, optimización avanzada de sparse
-scoring, voice, servidor MCP y reindex masivo de proyecto como flujo principal.
+Quedan fuera del core M21 aunque existan huecos preparados en el diseño:
+Contextual Retrieval generado, Postgres full-text, lexical retrieval, RRF,
+Qwen sparse retrieval runtime, graph retrieval como default, auth multi-user,
+PDF/Office, Unstructured, Qdrant, HNSW, SPLADE, sparse retrievers externos,
+OpenTelemetry exporter, dashboards de costos avanzados, optimización avanzada
+de sparse scoring, voice, servidor MCP y reindex masivo de proyecto como flujo
+principal.
+
+Authoring de projects/sources, ingestion operativa y onboarding local ya no son
+deferrals post-v1: M22 los trata como gaps obligatorios para una v1 terminada.
 
 ## Superficie de API
 
-Endpoints FastAPI de v1.0:
+Endpoints FastAPI del core pre-v1:
 
 - `GET /health`
 - `POST /projects/{project_id}/retrieval/search`
@@ -1439,14 +1475,14 @@ Endpoints FastAPI de v1.0:
 campos tipados de v1. El backend rechaza filtros con campos desconocidos en vez
 de ignorarlos silenciosamente.
 
-Los endpoints de `projects`, `sources`, `ingestion-jobs` y `eval-runs` quedan
-diferidos post-v1. En v1.0 la creación de fixtures y evidencia de evals ocurre
-por CLI/repositorios y el worker consume filas `jobs` existentes con
-`job_type = ingest_source`.
+Los endpoints de `projects`, `sources`, `ingestion-jobs` y `eval-runs` no
+forman parte del core M21. M22 reclasifica los primeros tres como gaps de
+producto para v1 terminada. La creacion de fixtures y evidencia de evals por
+CLI/repositorios queda como mecanismo tecnico, no como happy path final.
 
 ## Superficie de CLI
 
-Comandos Typer de v1.0:
+Comandos Typer del core pre-v1:
 
 - `adaptive-rag version`
 - `adaptive-rag health`
