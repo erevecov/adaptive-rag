@@ -49,6 +49,74 @@ export type SourceListResponse = {
   items: Source[]
 }
 
+export type IngestionJob = {
+  id: string
+  project_id: string
+  job_type: string
+  status: string
+  priority: number
+  payload_json: JsonObject | null
+  attempts: number
+  max_attempts: number
+  run_after: string
+  locked_by: string | null
+  locked_until: string | null
+  last_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type IngestionJobEvent = {
+  id: string
+  project_id: string
+  job_id: string
+  event_type: string
+  message: string | null
+  extra_metadata: JsonObject | null
+  created_at: string
+}
+
+export type EnqueueIngestionJobBody = {
+  priority?: number
+  max_attempts?: number
+}
+
+export type IngestionJobListParams = {
+  source_id?: string | null
+  status?: string | null
+  job_type?: string | null
+}
+
+export type IngestionJobListResponse = {
+  items: IngestionJob[]
+}
+
+export type IngestionJobDetailResponse = {
+  job: IngestionJob
+  events: IngestionJobEvent[]
+}
+
+export type RetryIngestionJobBody = {
+  reset_attempts?: boolean
+}
+
+export type RunNextIngestionJobBody = {
+  worker_id?: string | null
+  lease_seconds?: number
+}
+
+export type IngestionRunResponse = {
+  status: string
+  project_id: string
+  worker_id: string
+  job_id: string | null
+  source_id: string | null
+  document_id: string | null
+  document_version_id: string | null
+  created_document_version: boolean | null
+  error_message: string | null
+}
+
 export type RetrievalMetadataFilter = {
   source_id?: string | null
   document_id?: string | null
@@ -343,6 +411,28 @@ export type ApiClient = {
     params?: SourceListParams,
   ): Promise<SourceListResponse>
   getSource(projectId: string, sourceId: string): Promise<Source>
+  enqueueIngestionJob(
+    projectId: string,
+    sourceId: string,
+    body?: EnqueueIngestionJobBody,
+  ): Promise<IngestionJob>
+  listIngestionJobs(
+    projectId: string,
+    params?: IngestionJobListParams,
+  ): Promise<IngestionJobListResponse>
+  getIngestionJob(
+    projectId: string,
+    jobId: string,
+  ): Promise<IngestionJobDetailResponse>
+  retryIngestionJob(
+    projectId: string,
+    jobId: string,
+    body?: RetryIngestionJobBody,
+  ): Promise<IngestionJob>
+  runNextIngestionJob(
+    projectId: string,
+    body?: RunNextIngestionJobBody,
+  ): Promise<IngestionRunResponse>
   askChat(projectId: string, body: ChatRequestBody): Promise<ChatResponseBody>
   askChatStream(
     projectId: string,
@@ -419,6 +509,54 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/projects/${encodePathSegment(
           projectId,
         )}/sources/${encodePathSegment(sourceId)}`,
+      })
+    },
+    enqueueIngestionJob(projectId, sourceId, body = {}) {
+      return requestJson<IngestionJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/sources/${encodePathSegment(sourceId)}/ingestion-jobs`,
+      })
+    },
+    listIngestionJobs(projectId, params = {}) {
+      const url = new URL(
+        `${baseUrl}/projects/${encodePathSegment(projectId)}/ingestion-jobs`,
+      )
+      appendSearchParam(url, 'source_id', params.source_id)
+      appendSearchParam(url, 'status', params.status)
+      appendSearchParam(url, 'job_type', params.job_type)
+
+      return requestJson<IngestionJobListResponse>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    getIngestionJob(projectId, jobId) {
+      return requestJson<IngestionJobDetailResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/ingestion-jobs/${encodePathSegment(jobId)}`,
+      })
+    },
+    retryIngestionJob(projectId, jobId, body = {}) {
+      return requestJson<IngestionJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/ingestion-jobs/${encodePathSegment(jobId)}/retry`,
+      })
+    },
+    runNextIngestionJob(projectId, body = {}) {
+      return requestJson<IngestionRunResponse>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/ingestion-jobs/run-next`,
       })
     },
     askChat(projectId, body) {

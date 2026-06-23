@@ -29,6 +29,7 @@ from adaptive_rag.db.repositories import (
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.ingestion import FetchResult
 from adaptive_rag.ingestion.pipeline import (
+    IngestionBlockedResult,
     IngestionPipeline,
     ParsedDocument,
 )
@@ -215,7 +216,9 @@ def test_run_next_blocks_job_when_source_belongs_to_another_project() -> None:
 
     documents = DocumentRepository(session).list(project_id=project_b.id)
 
-    assert result is None
+    assert isinstance(result, IngestionBlockedResult)
+    assert result.job.id == job.id
+    assert result.error_message == "source does not belong to project"
     assert documents == []
     blocked_job = JobRepository(session).get(project_id=project_b.id, job_id=job.id)
 
@@ -320,7 +323,12 @@ def test_run_next_blocks_url_source_when_fetch_result_is_not_html() -> None:
         lease_until=_run_time() + timedelta(minutes=10),
     )
 
-    assert result is None
+    assert isinstance(result, IngestionBlockedResult)
+    assert result.job.id == job.id
+    assert (
+        result.error_message
+        == "URL source content type is not HTML: application/pdf"
+    )
     assert fetcher.requested_urls == ["https://example.com/file.pdf"]
     assert extractor.calls == []
     assert DocumentRepository(session).list(project_id=project.id) == []

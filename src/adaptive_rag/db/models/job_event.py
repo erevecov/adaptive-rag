@@ -21,6 +21,7 @@ JOB_EVENT_TYPE_VALUES = (
     "blocked",
     "dead_lettered",
     "released",
+    "retried",
 )
 
 
@@ -32,7 +33,7 @@ class JobEvent(Base):
         CheckConstraint(
             "event_type IN ("
             "'created', 'leased', 'completed', 'failed_attempt', "
-            "'blocked', 'dead_lettered', 'released'"
+            "'blocked', 'dead_lettered', 'released', 'retried'"
             ")",
             name="job_events_event_type_check",
         ),

@@ -12,6 +12,9 @@ import type {
   ChatResponseBody,
   ChatSessionDetailResponse,
   ChatSessionListResponse,
+  IngestionJob,
+  IngestionJobListResponse,
+  IngestionRunResponse,
   Project,
   ProjectListResponse,
   Source,
@@ -30,27 +33,37 @@ function createClientStub(options: {
   askChatStream?: ApiClient['askChatStream']
   createProject?: ApiClient['createProject']
   createSource?: ApiClient['createSource']
+  enqueueIngestionJob?: ApiClient['enqueueIngestionJob']
   getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
   getChatSession?: ApiClient['getChatSession']
+  getIngestionJob?: ApiClient['getIngestionJob']
   getProject?: ApiClient['getProject']
   getSource?: ApiClient['getSource']
   listChatSessions?: ApiClient['listChatSessions']
+  listIngestionJobs?: ApiClient['listIngestionJobs']
   listProjects?: ApiClient['listProjects']
   listSources?: ApiClient['listSources']
+  retryIngestionJob?: ApiClient['retryIngestionJob']
+  runNextIngestionJob?: ApiClient['runNextIngestionJob']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
+    enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
     getChatObservabilitySummary:
       options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
+    getIngestionJob: options.getIngestionJob ?? vi.fn(),
     getProject: options.getProject ?? vi.fn(),
     getSource: options.getSource ?? vi.fn(),
     listChatSessions: options.listChatSessions ?? vi.fn(),
+    listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
     listProjects: options.listProjects ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
+    retryIngestionJob: options.retryIngestionJob ?? vi.fn(),
+    runNextIngestionJob: options.runNextIngestionJob ?? vi.fn(),
   }
 }
 
@@ -138,6 +151,39 @@ const sourceSummary: Source = {
 
 const sourceListResponse: SourceListResponse = {
   items: [sourceSummary],
+}
+
+const ingestionJob: IngestionJob = {
+  attempts: 1,
+  created_at: '2026-06-22T00:00:02Z',
+  id: '33333333-3333-4333-8333-333333333333',
+  job_type: 'ingest_source',
+  last_error: 'missing content',
+  locked_by: null,
+  locked_until: null,
+  max_attempts: 3,
+  payload_json: { source_id: sourceSummary.id },
+  priority: 0,
+  project_id: projectId,
+  run_after: '2026-06-22T00:00:02Z',
+  status: 'blocked',
+  updated_at: '2026-06-22T00:00:03Z',
+}
+
+const ingestionJobListResponse: IngestionJobListResponse = {
+  items: [ingestionJob],
+}
+
+const processedIngestionRun: IngestionRunResponse = {
+  created_document_version: true,
+  document_id: '44444444-4444-4444-8444-444444444444',
+  document_version_id: '55555555-5555-4555-8555-555555555555',
+  error_message: null,
+  job_id: ingestionJob.id,
+  project_id: projectId,
+  source_id: sourceSummary.id,
+  status: 'processed',
+  worker_id: 'frontend',
 }
 
 const observabilitySummary: ChatObservabilitySummary = {
@@ -356,6 +402,62 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
       projectId,
     )
+  })
+
+  test('runs ingestion operations from the authoring workspace', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      enqueueIngestionJob: vi.fn(async () => ({
+        ...ingestionJob,
+        last_error: null,
+        status: 'queued',
+      })),
+      listIngestionJobs: vi.fn(async () => ingestionJobListResponse),
+      listSources: vi.fn(async () => sourceListResponse),
+      retryIngestionJob: vi.fn(async () => ({
+        ...ingestionJob,
+        last_error: null,
+        status: 'queued',
+      })),
+      runNextIngestionJob: vi.fn(async () => processedIngestionRun),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+    expect(await screen.findByText('notes.md')).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
+    )
+
+    expect(client.enqueueIngestionJob).toHaveBeenCalledWith(
+      projectId,
+      sourceSummary.id,
+    )
+    expect(await screen.findByText('queued')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+
+    expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
+      job_type: 'ingest_source',
+    })
+    expect(await screen.findByText('blocked')).toBeTruthy()
+    expect(screen.getByText('missing content')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+
+    expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
+    expect(await screen.findByText('processed')).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Retry ingestion job ${ingestionJob.id}`,
+      }),
+    )
+
+    expect(client.retryIngestionJob).toHaveBeenCalledWith(projectId, ingestionJob.id)
   })
 
   test('submits a chat question and renders response details', async () => {

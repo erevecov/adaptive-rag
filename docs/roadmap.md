@@ -25,6 +25,7 @@
 - M21 V1 core/readiness: completo.
 - M22 V1 product scope reset: completo.
 - M23 Product authoring surface: completo.
+- M24 Ingestion ops surface: completo.
 
 ## M1 Foundation
 
@@ -916,17 +917,17 @@ Secuencia recomendada:
    bloquear una release v1 prematura.
 2. `m23-product-authoring-surface`: completo. Crear/listar/ver projects y
    sources desde API, CLI y frontend.
-3. `m24-ingestion-ops-surface`: propuesto. Ejecutar ingestion end-to-end y
+3. `m24-ingestion-ops-surface`: completo. Ejecutar ingestion end-to-end y
    exponer job state, failure reasons y retry/dead-letter.
 4. `m25-first-run-onboarding`: propuesto. Setup local, migraciones, seed/demo
    y guia para datos propios.
 5. `m26-v1-product-quality-gate`: propuesto. Demo final con datos propios,
    docs, smokes y gate de release real.
 
-Continuacion: abrir `m24-ingestion-ops-surface` desde `main`. La razon es
-directa: M23 ya crea projects/sources por superficies publicas, pero todavia
-falta ejecutar ingestion end-to-end, exponer job state y operar fallos/retries
-sin SQL manual.
+Continuacion: abrir `m25-first-run-onboarding` desde `main`. La razon es
+directa: M24 ya permite operar ingestion y jobs desde superficies publicas, pero
+v1 todavia necesita una primera corrida local reproducible con migraciones,
+seed/demo y datos propios.
 
 ## M23 Product authoring surface
 
@@ -973,6 +974,54 @@ Secuencia recomendada:
 Continuacion: abrir `m24-ingestion-ops-surface`, para ejecutar ingestion
 explicitamente desde superficies publicas, mostrar job state y permitir retry/
 dead-letter sin depender de SQL manual.
+
+## M24 Ingestion ops surface
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-23-m24-ingestion-ops-surface/`
+
+Spec canonica:
+
+- `openspec/specs/ingestion-ops-surface/spec.md`
+
+Objetivo:
+
+- Permitir que un usuario local procese sources existentes desde superficies
+  publicas, vea job state/error y pueda reintentar fallos retryable sin SQL
+  manual.
+
+Condiciones del milestone:
+
+- La surface publica debe cubrir API, CLI y frontend para enqueue/list/show/
+  run-next/retry de ingestion jobs.
+- Crear source sigue sin ejecutar ingestion automaticamente; el disparo es
+  explicito y observable.
+- `run-worker --once` y la API de run-next deben reportar `processed`,
+  `blocked` o `idle` de forma estable.
+- Jobs `blocked` y `dead_letter` se pueden reencolar limpiando error/lease y
+  dejando evento `retried`.
+- La UI debe mantener Authoring como superficie de trabajo compacta, con
+  controles por source y panel de jobs.
+
+Secuencia recomendada:
+
+1. `m24-ingestion-ops-surface`: completo. Crea el plan OpenSpec y documenta
+   contratos de ingestion ops.
+2. `m24-backend-api-contract`: completo. Agrega repository/ops/routes/schemas y
+   reporte observable de blocked jobs.
+3. `m24-cli-ops`: completo. Agrega comandos JSON de jobs y estabiliza
+   `run-worker --once`.
+4. `m24-authoring-ingestion-ui`: completo. Agrega cliente y controles compactos
+   de enqueue/run/status/retry.
+5. `m24-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
+   M24.
+
+Continuacion: abrir `m25-first-run-onboarding`, para cerrar setup local,
+migraciones, seed/demo y guia de datos propios sobre las superficies publicas
+M23/M24 antes del gate final de v1.
 
 ## Politica para reducir conflictos de merge
 

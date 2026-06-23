@@ -39,6 +39,8 @@ source que no pertenece al `project_id` del job leaseado.
 - **THEN** el pipeline no crea documents ni document versions
 - **AND** marca el job como `blocked`
 - **AND** registra el evento `blocked` con el mismo `project_id` del job
+- **AND** devuelve un resultado observable que identifica el job bloqueado y el
+  error
 
 ### Requirement: URL ingestion usa fetch seguro antes del extractor HTML
 

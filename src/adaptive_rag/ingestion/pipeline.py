@@ -61,6 +61,12 @@ class IngestionRunResult:
     created_document_version: bool
 
 
+@dataclass(frozen=True, slots=True)
+class IngestionBlockedResult:
+    job: Job
+    error_message: str
+
+
 class BasicTextParser:
     """Parser determinista para fuentes Markdown/TXT inline."""
 
@@ -125,7 +131,7 @@ class IngestionPipeline:
         worker_id: str,
         now: datetime,
         lease_until: datetime,
-    ) -> IngestionRunResult | None:
+    ) -> IngestionRunResult | IngestionBlockedResult | None:
         job = self._job_repo.lease_next(
             project_id=project_id,
             worker_id=worker_id,
@@ -139,8 +145,12 @@ class IngestionPipeline:
         try:
             result = self._process_job(project_id=project_id, job=job)
         except (IngestionPipelineError, URLFetchPolicyError) as exc:
-            self._job_repo.block(project_id=project_id, job_id=job.id, reason=str(exc))
-            return None
+            blocked_job = self._job_repo.block(
+                project_id=project_id,
+                job_id=job.id,
+                reason=str(exc),
+            )
+            return IngestionBlockedResult(job=blocked_job, error_message=str(exc))
 
         self._job_repo.complete(project_id=project_id, job_id=job.id)
         return result
