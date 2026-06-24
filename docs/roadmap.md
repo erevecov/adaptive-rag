@@ -30,6 +30,7 @@
 - M26 V1 product quality gate: completo.
 - M27 Post-v1 retrieval expansion: completo.
 - M32 Frontend polish: activo.
+- M33 Runtime provider settings: activo.
 
 ## M1 Foundation
 
@@ -1342,8 +1343,59 @@ Secuencia recomendada:
 4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
    docs/runbooks.
 
-Continuacion: completar y mergear `m32-chat-retrieval-experience`; despues
-abrir `m32-visual-qa-and-docs` para cerrar QA responsive y docs/runbooks de M32.
+Continuacion: `m32-visual-qa-and-docs` queda propuesto para cerrar QA
+responsive y docs/runbooks de M32. La configuracion de providers/runtime no se
+incluye en M32; se separa en M33.
+
+## M33 Runtime provider settings
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m33-runtime-provider-settings-plan/`
+
+Objetivo:
+
+- Convertir la configuracion de providers de un contrato principalmente
+  `.env`-driven a runtime settings operables: provider connections globales,
+  secrets cifrados, slots fijos, pool de chat con un default y overrides por
+  proyecto.
+
+Condiciones del milestone:
+
+- Provider connections y secrets son globales del workspace local, no por
+  proyecto.
+- Proyectos pueden overridear slots o pool/default de chat, pero no guardan
+  secrets.
+- Hosted providers, local endpoints y fakes pueden coexistir y usarse en slots
+  distintos al mismo tiempo.
+- El conjunto inicial de slots es fijo: `chat`, `dense_embedding`,
+  `sparse_embedding`, `rerank` y `contextualization`.
+- El slot `chat` permite varios modelos habilitados, con exactamente uno como
+  default efectivo.
+- `.env` sigue como fallback local/legacy.
+- El frontend nunca lee ni muestra secrets.
+
+Secuencia recomendada:
+
+1. `m33-runtime-provider-settings-plan`: definir OpenSpec, contratos,
+   restricciones y slices.
+2. `m33-provider-connections-secrets`: schema, repositories, encryption helper,
+   status APIs y docs.
+3. `m33-global-slot-defaults`: enum de slots, defaults globales, pool de chat y
+   APIs globales.
+4. `m33-project-runtime-overrides`: overrides por proyecto y resolucion
+   inherited/overridden.
+5. `m33-runtime-resolution-wiring`: factories efectivas para chat, dense
+   embedding, sparse embedding, rerank y contextualization.
+6. `m33-runtime-settings-ui`: UI global Runtime settings y controles de
+   overrides por proyecto.
+7. `m33-quality-gate`: validacion, docs y archive.
+
+Continuacion: completar y mergear `m33-runtime-provider-settings-plan`; despues
+abrir `m33-provider-connections-secrets`, porque schema/cifrado es la base de
+los slots y overrides posteriores.
 
 ## Politica para reducir conflictos de merge
 
