@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     provider_chat_output_price_per_million_tokens_usd: float | None = None
     provider_embedding_input_price_per_million_tokens_usd: float | None = None
     provider_rerank_input_price_per_million_tokens_usd: float | None = None
+    provider_secrets_key: SecretStr | None = Field(default=None)
     qwen_api_key: SecretStr | None = Field(default=None)
     qwen_base_url: str | None = Field(default=None)
     neo4j_uri: str | None = Field(default=None)

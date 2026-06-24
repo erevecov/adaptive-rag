@@ -22,10 +22,10 @@ las specs canonicas `evals-baseline` y `retrieval-quality`.
 
 ## Ultimo slice completado
 
-M32 `m32-chat-retrieval-experience`: agrega el contrato `dense` read-only al
-flujo de chat, distingue streaming parcial de respuesta final, muestra metadata
-de citations y hace legibles strategy/top-k/latencia/rank/score en historial
-sin agregar controles para modos avanzados.
+M33 `m33-provider-connections-secrets`: agrega provider connections globales,
+secrets cifrados server-side con `ADAPTIVE_RAG_PROVIDER_SECRETS_KEY`, repository
+y API de status en `/runtime-settings/connections` sin devolver plaintext ni
+ciphertext.
 
 Comandos validados al cerrar M31:
 
@@ -76,10 +76,9 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m33-runtime-provider-settings-plan`. La opcion
-  recomendada despues del merge es abrir `m33-provider-connections-secrets`,
-  porque el schema/cifrado global es la base necesaria antes de slots, project
-  overrides, wiring runtime o UI.
+- Abrir `m33-global-slot-defaults`, porque los secrets/connections globales ya
+  dan la base para persistir defaults de slots y el pool de chat sin tocar aun
+  project overrides, wiring runtime ni UI.
 
 - `m32-visual-qa-and-docs` sigue pendiente como cierre visual/documental de M32,
   pero no debe absorber la configuracion de providers/runtime.

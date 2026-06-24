@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterator
 from inspect import signature
 from typing import Annotated, cast
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.params import Depends as DependsMarker
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_ru
 from adaptive_rag.provider_runtime import (
     get_rerank_provider as get_runtime_rerank_provider,
 )
+from adaptive_rag.provider_secrets import ProviderSecretKeyError, ProviderSecretStore
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import RetrievalService
@@ -53,6 +54,21 @@ def get_graph_retriever() -> GraphRetriever | None:
 
 def get_provider_usage_tracker() -> InMemoryProviderUsageTracker:
     return InMemoryProviderUsageTracker()
+
+
+def get_provider_secret_store() -> ProviderSecretStore:
+    try:
+        return ProviderSecretStore.from_settings()
+    except ProviderSecretKeyError as exc:
+        code = (
+            "provider_secret_key_missing"
+            if "is required" in str(exc)
+            else "provider_secret_key_invalid"
+        )
+        raise HTTPException(
+            status_code=422,
+            detail={"code": code, "message": str(exc)},
+        ) from exc
 
 
 _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
