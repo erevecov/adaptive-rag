@@ -6,33 +6,36 @@ No hay OpenSpec changes activos.
 
 ## Ultimo milestone completado
 
-M32 Frontend polish cerrado el 2026-06-24.
+M34 Runtime model catalog cerrado el 2026-06-24.
 
-M32 pule la UI de workspace local para project/source authoring, ingestion ops,
-chat dense default, streaming, citations, historial y observability, con QA
-responsive desktop/mobile. El cierre corrigio layout mobile de acciones y filas
-operativas para evitar controles comprimidos.
+M34 elimina los IDs manuales de runtime settings para conexiones creadas desde
+la UI, agrega un catalogo global de modelos por provider connection y permite
+sincronizar IDs reales desde endpoints `/models` compatibles con Qwen/DashScope,
+locales y fakes. La UI consume ese catalogo mediante selectors para defaults
+globales, pool/default de chat y overrides por proyecto, preservando pricing o
+metadata solo cuando el provider la entrega.
 El change quedo archivado en
-`openspec/changes/archive/2026-06-24-m32-frontend-polish-plan/` y actualiza
-las specs canonicas `chat-frontend`, `first-run-onboarding`,
-`ingestion-ops-surface` y `product-authoring-surface`.
+`openspec/changes/archive/2026-06-24-m34-runtime-model-catalog/` y actualiza
+las specs canonicas `provider-runtime` y `chat-frontend`.
 
 ## Ultimo slice completado
 
-M32 `m32-visual-qa-and-docs`: ejecuta QA visual con API mockeada sobre desktop
-`1440x960` y mobile `390x844`, cubriendo chat, history, authoring,
-observability y runtime settings; confirma sin overflow horizontal, controles
-recortados ni errores de consola.
+M34 `m34-runtime-model-catalog`: agrega catalogo persistido de modelos por
+conexion, sync de modelos Qwen/local/fake, IDs de conexiones generados por el
+backend y selectors en Runtime settings/proyecto para usar IDs reales sin
+memorizarlos.
 
-Comandos validados al cerrar M32:
+Comandos validados al cerrar M34:
 
 ```text
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm build
-npx --yes @fission-ai/openspec validate m32-frontend-polish-plan --strict
-npx --yes @fission-ai/openspec archive m32-frontend-polish-plan --yes
+uv run pytest
+uv run ruff check src tests
+pnpm --dir frontend test
+pnpm --dir frontend lint
+pnpm --dir frontend typecheck
+pnpm --dir frontend build
+npx --yes @fission-ai/openspec validate m34-runtime-model-catalog --strict
+npx --yes @fission-ai/openspec archive m34-runtime-model-catalog --yes
 npx --yes @fission-ai/openspec validate --specs --strict --no-interactive
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -44,7 +47,7 @@ git diff --check
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-24-m32-frontend-polish-plan/`
+- `openspec/changes/archive/2026-06-24-m34-runtime-model-catalog/`
 
 ## Spec canonica activa
 
@@ -78,8 +81,9 @@ git diff --check
 ## Siguiente tarea recomendada
 
 - Abrir un nuevo change OpenSpec para un milestone de acceptance end-to-end
-  post-polish, validando el flujo local completo con project authoring,
-  ingestion, runtime settings y chat citado antes de agregar nuevas features.
+  post-runtime-settings, validando el flujo local completo con project
+  authoring, ingestion, sync/catalogo de modelos, runtime settings y chat citado
+  antes de agregar nuevas features.
 
 ## Reglas de coordinacion
 
