@@ -81,6 +81,28 @@ def test_connection_api_lists_hosted_and_local_without_secrets() -> None:
     assert "sk-hosted-secret" not in str(payload)
 
 
+def test_connection_create_api_generates_connection_id() -> None:
+    session = _make_session()
+    client = _client(session=session)
+
+    response = client.post(
+        "/runtime-settings/connections",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat", "dense_embedding"],
+            "metadata": {"label": "Hosted Qwen"},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["connection_id"].startswith("qwen-hosted-")
+    assert payload["provider"] == "qwen"
+    assert session.get(ProviderConnection, payload["connection_id"]) is not None
+
+
 def test_secret_api_persists_status_without_reading_value_back(monkeypatch) -> None:
     key = base64.urlsafe_b64encode(b"2" * 32).decode("ascii")
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)

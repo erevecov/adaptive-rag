@@ -95,3 +95,43 @@ class ProviderSecret(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+class ProviderModelCatalog(Base):
+    """Safe provider model metadata discovered for a global connection."""
+
+    __tablename__ = "provider_model_catalog"
+
+    connection_id: Mapped[str] = mapped_column(
+        ForeignKey("provider_connections.connection_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    model_id: Mapped[str] = mapped_column(primary_key=True)
+    capabilities_json: Mapped[list[str]] = mapped_column(
+        JSONWithJSONB(), nullable=False
+    )
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONWithJSONB(), nullable=True
+    )
+    pricing_json: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONWithJSONB(), nullable=True
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

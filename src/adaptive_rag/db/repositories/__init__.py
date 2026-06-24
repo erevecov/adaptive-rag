@@ -26,6 +26,7 @@ from adaptive_rag.db.repositories.jobs import JobRepository
 from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.provider_connections import (
     ProviderConnectionRepository,
+    ProviderModelCatalogRepository,
     ProviderSecretStatus,
 )
 from adaptive_rag.db.repositories.runtime_settings import (
@@ -59,6 +60,7 @@ __all__ = [
     "JobRepository",
     "ProjectRepository",
     "ProviderConnectionRepository",
+    "ProviderModelCatalogRepository",
     "ProviderSecretStatus",
     "ProviderUsageRepository",
     "EffectiveChatModel",

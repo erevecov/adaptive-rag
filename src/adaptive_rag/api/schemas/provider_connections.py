@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from adaptive_rag.db.models import ProviderConnection
+from adaptive_rag.db.models import ProviderConnection, ProviderModelCatalog
 from adaptive_rag.db.repositories import ProviderSecretStatus
 
 
@@ -83,3 +83,37 @@ class ProviderConnectionResponse(BaseModel):
 
 class ProviderConnectionListResponse(BaseModel):
     items: list[ProviderConnectionResponse]
+
+
+class ProviderModelResponse(BaseModel):
+    connection_id: str
+    model_id: str
+    capabilities: list[str]
+    metadata: dict[str, Any] | None
+    pricing: dict[str, Any] | None
+    last_seen_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, model: ProviderModelCatalog) -> ProviderModelResponse:
+        return cls(
+            connection_id=model.connection_id,
+            model_id=model.model_id,
+            capabilities=list(model.capabilities_json),
+            metadata=model.metadata_json,
+            pricing=model.pricing_json,
+            last_seen_at=model.last_seen_at,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+
+class ProviderModelListResponse(BaseModel):
+    items: list[ProviderModelResponse]
+
+
+class ProviderModelSyncResponse(BaseModel):
+    connection_id: str
+    synced_count: int
+    items: list[ProviderModelResponse]

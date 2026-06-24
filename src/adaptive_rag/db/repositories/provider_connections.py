@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -17,8 +18,10 @@ from adaptive_rag.db.models import (
     PROVIDER_CONNECTION_TYPE_VALUES,
     PROVIDER_SECRET_NAME_VALUES,
     ProviderConnection,
+    ProviderModelCatalog,
     ProviderSecret,
 )
+from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.provider_secrets import ProviderSecretStore
 
 
@@ -43,6 +46,38 @@ class ProviderConnectionRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def create_connection(
+        self,
+        *,
+        provider: str,
+        connection_type: str,
+        capabilities: Iterable[str],
+        base_url: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> ProviderConnection:
+        provider = _normalize_supported_value(
+            provider,
+            supported=PROVIDER_CONNECTION_PROVIDER_VALUES,
+            label="provider",
+        )
+        connection_type = _normalize_supported_value(
+            connection_type,
+            supported=PROVIDER_CONNECTION_TYPE_VALUES,
+            label="connection_type",
+        )
+        for _attempt in range(20):
+            connection_id = _generated_connection_id(provider, connection_type)
+            if self.get_connection(connection_id) is None:
+                return self.upsert_connection(
+                    connection_id=connection_id,
+                    provider=provider,
+                    connection_type=connection_type,
+                    base_url=base_url,
+                    capabilities=capabilities,
+                    metadata=metadata,
+                )
+        raise ValueError("connection_id generation exhausted")
 
     def upsert_connection(
         self,
@@ -171,6 +206,80 @@ class ProviderConnectionRepository:
         return [_secret_status(secret) for secret in self._session.scalars(statement)]
 
 
+class ProviderModelCatalogRepository:
+    """Persistence for provider model IDs discovered per connection."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def upsert_model(
+        self,
+        *,
+        connection_id: str,
+        model_id: str,
+        capabilities: Iterable[str],
+        metadata: Mapping[str, Any] | None = None,
+        pricing: Mapping[str, Any] | None = None,
+    ) -> ProviderModelCatalog:
+        if self._session.get(ProviderConnection, connection_id) is None:
+            raise ValueError("connection_not_found")
+        model_id = _normalize_identifier(model_id, "model_id")
+        capabilities_json = _normalize_capabilities(capabilities)
+        metadata_json = dict(metadata) if metadata is not None else None
+        pricing_json = dict(pricing) if pricing is not None else None
+
+        model = self._session.get(ProviderModelCatalog, (connection_id, model_id))
+        now = utc_now()
+        if model is None:
+            model = ProviderModelCatalog(
+                connection_id=connection_id,
+                model_id=model_id,
+                capabilities_json=capabilities_json,
+                metadata_json=metadata_json,
+                pricing_json=pricing_json,
+                last_seen_at=now,
+            )
+            self._session.add(model)
+        else:
+            model.capabilities_json = capabilities_json
+            model.metadata_json = metadata_json
+            model.pricing_json = pricing_json
+            model.last_seen_at = now
+
+        self._session.flush()
+        return model
+
+    def list_models(
+        self,
+        *,
+        connection_id: str | None = None,
+        capability: str | None = None,
+    ) -> list[ProviderModelCatalog]:
+        statement = select(ProviderModelCatalog)
+        if connection_id is not None:
+            statement = statement.where(
+                ProviderModelCatalog.connection_id == connection_id
+            )
+        models = list(
+            self._session.scalars(
+                statement.order_by(
+                    ProviderModelCatalog.connection_id,
+                    ProviderModelCatalog.model_id,
+                )
+            )
+        )
+        if capability is None or capability.strip() == "":
+            return models
+        normalized = _normalize_supported_value(
+            capability,
+            supported=PROVIDER_CONNECTION_CAPABILITY_VALUES,
+            label="provider capability",
+        )
+        return [
+            model for model in models if normalized in model.capabilities_json
+        ]
+
+
 def _secret_status(secret: ProviderSecret) -> ProviderSecretStatus:
     return ProviderSecretStatus(
         connection_id=secret.connection_id,
@@ -213,3 +322,7 @@ def _normalize_capabilities(capabilities: Iterable[str]) -> list[str]:
         for capability in PROVIDER_CONNECTION_CAPABILITY_VALUES
         if capability in requested
     ]
+
+
+def _generated_connection_id(provider: str, connection_type: str) -> str:
+    return f"{provider}-{connection_type}-{uuid4().hex[:8]}"

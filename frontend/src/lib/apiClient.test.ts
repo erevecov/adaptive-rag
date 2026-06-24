@@ -656,6 +656,78 @@ describe('createApiClient', () => {
     expect(calls[2].init?.body).toBe(JSON.stringify({ value: 'sk-hosted-secret' }))
   })
 
+  test('creates provider connections and syncs provider model catalog', async () => {
+    const connection = {
+      base_url: 'https://dashscope.example.test/compatible-mode/v1',
+      capabilities: ['chat', 'dense_embedding'],
+      connection_id: 'qwen-hosted-abc123',
+      connection_type: 'hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      metadata: { label: 'Hosted Qwen' },
+      provider: 'qwen',
+      secrets: [],
+      updated_at: '2026-06-24T00:00:00Z',
+    }
+    const model = {
+      capabilities: ['chat'],
+      connection_id: connection.connection_id,
+      created_at: '2026-06-24T00:00:00Z',
+      last_seen_at: '2026-06-24T00:00:00Z',
+      metadata: { object: 'model' },
+      model_id: 'qwen-plus',
+      pricing: null,
+      updated_at: '2026-06-24T00:00:00Z',
+    }
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      const url = String(input)
+      if (url.endsWith('/models/sync')) {
+        return jsonResponse({
+          connection_id: connection.connection_id,
+          items: [model],
+          synced_count: 1,
+        })
+      }
+      if (url.includes('/runtime-settings/models')) {
+        return jsonResponse({ items: [model] })
+      }
+      return jsonResponse(connection)
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: fetchStub,
+    })
+
+    const created = await client.createProviderConnection({
+      base_url: connection.base_url,
+      capabilities: connection.capabilities,
+      connection_type: connection.connection_type,
+      metadata: connection.metadata,
+      provider: connection.provider,
+    })
+    const synced = await client.syncProviderModels(connection.connection_id)
+    const listed = await client.listProviderModels({
+      capability: 'chat',
+      connection_id: connection.connection_id,
+    })
+
+    expect(created.connection_id).toBe('qwen-hosted-abc123')
+    expect(synced.synced_count).toBe(1)
+    expect(listed.items[0].model_id).toBe('qwen-plus')
+    expect(String(calls[0].input)).toBe(
+      'http://api.local/runtime-settings/connections',
+    )
+    expect(calls[0].init?.method).toBe('POST')
+    expect(String(calls[1].input)).toBe(
+      'http://api.local/runtime-settings/connections/qwen-hosted-abc123/models/sync',
+    )
+    expect(calls[1].init?.method).toBe('POST')
+    expect(String(calls[2].input)).toBe(
+      'http://api.local/runtime-settings/models?connection_id=qwen-hosted-abc123&capability=chat',
+    )
+  })
+
   test('manages global and project runtime settings', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const slot = {

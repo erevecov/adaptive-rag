@@ -422,6 +422,32 @@ export type ProviderConnectionUpsertBody = {
   metadata?: JsonObject | null
 }
 
+export type ProviderModel = {
+  connection_id: string
+  model_id: string
+  capabilities: string[]
+  metadata: JsonObject | null
+  pricing: JsonObject | null
+  last_seen_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type ProviderModelListParams = {
+  connection_id?: string | null
+  capability?: string | null
+}
+
+export type ProviderModelListResponse = {
+  items: ProviderModel[]
+}
+
+export type ProviderModelSyncResponse = {
+  connection_id: string
+  synced_count: number
+  items: ProviderModel[]
+}
+
 export type ProviderSecretUpsertBody = {
   value: string
 }
@@ -555,11 +581,18 @@ export type ApiClient = {
     params?: ChatObservabilitySummaryParams,
   ): Promise<ChatObservabilitySummary>
   listProviderConnections(): Promise<ProviderConnectionListResponse>
+  createProviderConnection(
+    body: ProviderConnectionUpsertBody,
+  ): Promise<ProviderConnection>
   upsertProviderConnection(
     connectionId: string,
     body: ProviderConnectionUpsertBody,
   ): Promise<ProviderConnection>
   deleteProviderConnection(connectionId: string): Promise<DeleteResponse>
+  listProviderModels(
+    params?: ProviderModelListParams,
+  ): Promise<ProviderModelListResponse>
+  syncProviderModels(connectionId: string): Promise<ProviderModelSyncResponse>
   upsertProviderSecret(
     connectionId: string,
     secretName: string,
@@ -767,6 +800,13 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/runtime-settings/connections`,
       })
     },
+    createProviderConnection(body) {
+      return requestJson<ProviderConnection>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/runtime-settings/connections`,
+      })
+    },
     upsertProviderConnection(connectionId, body) {
       return requestJson<ProviderConnection>(fetchImpl, {
         body,
@@ -782,6 +822,24 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
           connectionId,
         )}`,
+      })
+    },
+    listProviderModels(params = {}) {
+      const url = new URL(`${baseUrl}/runtime-settings/models`)
+      appendSearchParam(url, 'connection_id', params.connection_id)
+      appendSearchParam(url, 'capability', params.capability)
+
+      return requestJson<ProviderModelListResponse>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    syncProviderModels(connectionId) {
+      return requestJson<ProviderModelSyncResponse>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}/models/sync`,
       })
     },
     upsertProviderSecret(connectionId, secretName, body) {

@@ -12,10 +12,12 @@ from fastapi.params import Depends as DependsMarker
 from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
+from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever, get_graph_store
+from adaptive_rag.provider_models import HTTPProviderModelLister, ProviderModelLister
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.provider_runtime import (
     get_rerank_provider as get_runtime_rerank_provider,
@@ -62,6 +64,12 @@ def get_provider_secret_store() -> ProviderSecretStore:
             status_code=422,
             detail={"code": code, "message": str(exc)},
         ) from exc
+
+
+def get_provider_model_lister() -> ProviderModelLister:
+    return HTTPProviderModelLister(
+        timeout_seconds=get_settings().provider_timeout_seconds,
+    )
 
 
 _SESSION_DEPENDENCY = Depends(get_session)

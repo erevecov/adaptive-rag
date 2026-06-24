@@ -7,16 +7,32 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from adaptive_rag.api.dependencies import get_provider_secret_store, get_session
+from adaptive_rag.api.dependencies import (
+    get_provider_model_lister,
+    get_provider_secret_store,
+    get_session,
+)
 from adaptive_rag.api.schemas.provider_connections import (
     ProviderConnectionListResponse,
     ProviderConnectionResponse,
     ProviderConnectionUpsertRequestBody,
+    ProviderModelListResponse,
+    ProviderModelResponse,
+    ProviderModelSyncResponse,
     ProviderSecretStatusResponse,
     ProviderSecretUpsertRequestBody,
 )
-from adaptive_rag.db.repositories import ProviderConnectionRepository
-from adaptive_rag.provider_secrets import ProviderSecretStore
+from adaptive_rag.db.models import ProviderConnection, ProviderSecret
+from adaptive_rag.db.repositories import (
+    ProviderConnectionRepository,
+    ProviderModelCatalogRepository,
+)
+from adaptive_rag.provider_models import ProviderModelInfo, ProviderModelLister
+from adaptive_rag.provider_secrets import (
+    ProviderSecretDecryptError,
+    ProviderSecretKeyError,
+    ProviderSecretStore,
+)
 
 router = APIRouter(prefix="/runtime-settings", tags=["runtime-settings"])
 
@@ -35,6 +51,29 @@ def list_provider_connections(
             )
             for connection in connections
         ]
+    )
+
+
+@router.post("/connections", response_model=ProviderConnectionResponse)
+def create_provider_connection(
+    body: ProviderConnectionUpsertRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProviderConnectionResponse:
+    repository = ProviderConnectionRepository(session)
+    try:
+        connection = repository.create_connection(
+            provider=body.provider,
+            connection_type=body.connection_type,
+            base_url=body.base_url,
+            capabilities=body.capabilities,
+            metadata=body.metadata,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProviderConnectionResponse.from_connection(
+        connection,
+        secrets=repository.list_secret_statuses(connection.connection_id),
     )
 
 
@@ -71,6 +110,60 @@ def delete_provider_connection(
     deleted = ProviderConnectionRepository(session).delete_connection(connection_id)
     session.commit()
     return {"deleted": deleted}
+
+
+@router.get("/models", response_model=ProviderModelListResponse)
+def list_provider_models(
+    session: Annotated[Session, Depends(get_session)],
+    connection_id: str | None = None,
+    capability: str | None = None,
+) -> ProviderModelListResponse:
+    try:
+        models = ProviderModelCatalogRepository(session).list_models(
+            connection_id=connection_id,
+            capability=capability,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    return ProviderModelListResponse(
+        items=[ProviderModelResponse.from_model(model) for model in models]
+    )
+
+
+@router.post(
+    "/connections/{connection_id}/models/sync",
+    response_model=ProviderModelSyncResponse,
+)
+def sync_provider_models(
+    connection_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    lister: Annotated[ProviderModelLister, Depends(get_provider_model_lister)],
+    secret_store: Annotated[ProviderSecretStore, Depends(get_provider_secret_store)],
+) -> ProviderModelSyncResponse:
+    connection = session.get(ProviderConnection, connection_id)
+    if connection is None:
+        raise _http_error(ValueError("connection not found"))
+    try:
+        api_key = _api_key_for_sync(connection, session, secret_store)
+        discovered = lister.list_models(connection, api_key=api_key)
+        models = [
+            ProviderModelCatalogRepository(session).upsert_model(
+                connection_id=connection.connection_id,
+                model_id=model.model_id,
+                capabilities=_catalog_capabilities(connection, model),
+                metadata=model.metadata,
+                pricing=model.pricing,
+            )
+            for model in discovered
+        ]
+    except (ProviderSecretDecryptError, ProviderSecretKeyError, ValueError) as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProviderModelSyncResponse(
+        connection_id=connection.connection_id,
+        synced_count=len(discovered),
+        items=[ProviderModelResponse.from_model(model) for model in models],
+    )
 
 
 @router.put(
@@ -117,6 +210,31 @@ def delete_provider_secret(
     return {"deleted": deleted}
 
 
+def _api_key_for_sync(
+    connection: ProviderConnection,
+    session: Session,
+    secret_store: ProviderSecretStore,
+) -> str | None:
+    secret = session.get(ProviderSecret, (connection.connection_id, "api_key"))
+    if secret is None:
+        return None
+    return secret_store.decrypt(secret.encrypted_value)
+
+
+def _catalog_capabilities(
+    connection: ProviderConnection,
+    model: ProviderModelInfo,
+) -> list[str]:
+    if not model.capabilities:
+        return list(connection.capabilities_json)
+    connection_capabilities = set(connection.capabilities_json)
+    return [
+        capability
+        for capability in model.capabilities
+        if capability in connection_capabilities
+    ]
+
+
 def _http_error(error: ValueError) -> HTTPException:
     message = str(error)
     if message == "connection not found":
@@ -132,6 +250,21 @@ def _http_error(error: ValueError) -> HTTPException:
         code = "unsupported_provider_capability"
     elif message.startswith("unsupported secret_name:"):
         code = "unsupported_provider_secret"
+    elif message.startswith("provider model"):
+        code = "provider_model_sync_failed"
+    elif message.startswith("unsupported provider model listing:"):
+        code = "provider_model_sync_failed"
+    elif message == "provider secret could not be decrypted":
+        code = "provider_secret_decrypt_failed"
+    elif message.startswith("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY"):
+        code = "provider_secret_key_invalid"
+    elif message == "connection_not_found":
+        return HTTPException(
+            status_code=404,
+            detail={"code": "connection_not_found", "message": message},
+        )
+    elif message.startswith("unsupported provider capability:"):
+        code = "unsupported_provider_capability"
     else:
         code = "invalid_provider_connection"
     return HTTPException(status_code=422, detail={"code": code, "message": message})

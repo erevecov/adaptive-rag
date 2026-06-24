@@ -20,6 +20,7 @@ from adaptive_rag.db.models.provider_connection import (
     PROVIDER_CONNECTION_TYPE_VALUES,
     PROVIDER_SECRET_NAME_VALUES,
     ProviderConnection,
+    ProviderModelCatalog,
     ProviderSecret,
 )
 from adaptive_rag.db.models.provider_usage import (
@@ -70,6 +71,7 @@ __all__ = [
     "ProjectChatModel",
     "ProjectRuntimeSlotOverride",
     "ProviderConnection",
+    "ProviderModelCatalog",
     "ProviderSecret",
     "ProviderUsage",
     "RetrievalRun",

@@ -31,6 +31,7 @@
 - M27 Post-v1 retrieval expansion: completo.
 - M32 Frontend polish: completo.
 - M33 Runtime provider settings: completo.
+- M34 Runtime model catalog: completo.
 
 ## M1 Foundation
 
@@ -1397,8 +1398,44 @@ Secuencia recomendada:
 7. `m33-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
    M33.
 
-Continuacion: M33 queda cerrado. M32 tambien quedo archivado el 2026-06-24; no
-hay changes activos.
+Continuacion: M33 queda cerrado. M34 agrega el catalogo de modelos para que la
+UI deje de pedir IDs manuales.
+
+## M34 Runtime model catalog
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-24-m34-runtime-model-catalog/`
+
+Objetivo:
+
+- Reemplazar entrada manual de IDs de conexiones/modelos en Runtime settings por
+  IDs generados automaticamente para conexiones del sistema y selectors basados
+  en un catalogo persistido de modelos reales por provider connection.
+
+Condiciones del milestone:
+
+- Crear provider connections desde la API/UI genera IDs estables en backend.
+- El frontend nunca requiere memorizar connection IDs ni model IDs para
+  configurar slots globales, pool/default de chat u overrides por proyecto.
+- Qwen/DashScope y endpoints locales compatibles pueden sincronizar modelos
+  desde `/models`; fake mantiene catalogo determinista local.
+- El catalogo guarda `model_id`, capabilities, metadata y pricing solo si el
+  provider lo devuelve.
+- Secrets se leen y descifran solo en backend durante el sync; el frontend no
+  recupera ni muestra valores secretos.
+
+Secuencia recomendada:
+
+1. `m34-runtime-model-catalog`: completo. Verifica docs actuales de
+   DashScope/Qwen, crea OpenSpec, implementa schema/API/UI/tests y ejecuta QA
+   responsive de Runtime settings.
+
+Continuacion: M34 queda cerrado. No hay changes activos; la siguiente tarea
+recomendada es acceptance end-to-end post-runtime-settings con sync/catalogo de
+modelos, slots efectivos y chat citado en el flujo local completo.
 
 ## Politica para reducir conflictos de merge
 

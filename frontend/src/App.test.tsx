@@ -19,6 +19,7 @@ import type {
   Project,
   ProjectRuntimeSettings,
   ProviderConnectionListResponse,
+  ProviderModelListResponse,
   RuntimeSlotDefaultListResponse,
   ProjectListResponse,
   Source,
@@ -36,6 +37,7 @@ function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
   createProject?: ApiClient['createProject']
+  createProviderConnection?: ApiClient['createProviderConnection']
   createSource?: ApiClient['createSource']
   enqueueIngestionJob?: ApiClient['enqueueIngestionJob']
   getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
@@ -48,6 +50,7 @@ function createClientStub(options: {
   listChatSessions?: ApiClient['listChatSessions']
   listIngestionJobs?: ApiClient['listIngestionJobs']
   listProviderConnections?: ApiClient['listProviderConnections']
+  listProviderModels?: ApiClient['listProviderModels']
   listProjects?: ApiClient['listProjects']
   listRuntimeSlotDefaults?: ApiClient['listRuntimeSlotDefaults']
   listSources?: ApiClient['listSources']
@@ -60,11 +63,13 @@ function createClientStub(options: {
   upsertProviderSecret?: ApiClient['upsertProviderSecret']
   upsertRuntimeSlotDefault?: ApiClient['upsertRuntimeSlotDefault']
   deleteProjectRuntimeSlotOverride?: ApiClient['deleteProjectRuntimeSlotOverride']
+  syncProviderModels?: ApiClient['syncProviderModels']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
+    createProviderConnection: options.createProviderConnection ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
     enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
     getChatObservabilitySummary:
@@ -78,6 +83,7 @@ function createClientStub(options: {
     listChatSessions: options.listChatSessions ?? vi.fn(),
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
     listProviderConnections: options.listProviderConnections ?? vi.fn(),
+    listProviderModels: options.listProviderModels ?? vi.fn(),
     listProjects: options.listProjects ?? vi.fn(),
     listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
@@ -99,6 +105,7 @@ function createClientStub(options: {
     deleteRuntimeSlotDefault: vi.fn(),
     setDefaultChatModel: vi.fn(),
     setDefaultProjectChatModel: vi.fn(),
+    syncProviderModels: options.syncProviderModels ?? vi.fn(),
   }
 }
 
@@ -326,6 +333,41 @@ const chatModelsResponse: ChatModelListResponse = {
       is_default: true,
       model_id: 'llama3.1:8b',
       parameters: null,
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+  ],
+}
+
+const providerModelsResponse: ProviderModelListResponse = {
+  items: [
+    {
+      capabilities: ['chat'],
+      connection_id: 'qwen-hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      last_seen_at: '2026-06-24T00:00:00Z',
+      metadata: { object: 'model' },
+      model_id: 'qwen-plus',
+      pricing: null,
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+    {
+      capabilities: ['dense_embedding', 'sparse_embedding'],
+      connection_id: 'qwen-hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      last_seen_at: '2026-06-24T00:00:00Z',
+      metadata: { name: 'Qwen Embedding' },
+      model_id: 'text-embedding-v4',
+      pricing: { input_per_million_tokens_usd: 0.07 },
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+    {
+      capabilities: ['chat'],
+      connection_id: 'local-chat',
+      created_at: '2026-06-24T00:00:00Z',
+      last_seen_at: '2026-06-24T00:00:00Z',
+      metadata: { object: 'model' },
+      model_id: 'llama3.1:8b',
+      pricing: null,
       updated_at: '2026-06-24T00:00:00Z',
     },
   ],
@@ -1031,11 +1073,12 @@ describe('App chat workspace', () => {
   test('manages runtime settings without rendering provider secrets', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
+      createProviderConnection: vi.fn(async () => providerConnectionsResponse.items[0]),
       getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
       listChatModels: vi.fn(async () => chatModelsResponse),
       listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
       listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
-      upsertProviderConnection: vi.fn(async () => providerConnectionsResponse.items[0]),
       upsertProviderSecret: vi.fn(async () => ({
         configured: true,
         connection_id: 'qwen-hosted',
@@ -1045,6 +1088,13 @@ describe('App chat workspace', () => {
         updated_at: '2026-06-24T00:00:02Z',
       })),
       upsertRuntimeSlotDefault: vi.fn(async () => runtimeSlotDefaultsResponse.items[0]),
+      syncProviderModels: vi.fn(async () => ({
+        connection_id: 'qwen-hosted',
+        items: providerModelsResponse.items.filter(
+          (model) => model.connection_id === 'qwen-hosted',
+        ),
+        synced_count: 2,
+      })),
     })
 
     render(<App apiClient={client} initialProjectId={projectId} />)
@@ -1053,12 +1103,13 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
 
     expect(client.listProviderConnections).toHaveBeenCalled()
+    expect(client.listProviderModels).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
     expect(screen.getByText('api_key configured / last four cret')).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
+    expect(screen.queryByLabelText('Connection ID')).toBeNull()
 
-    await user.type(screen.getByLabelText('Connection ID'), 'qwen-hosted')
     await user.selectOptions(screen.getByLabelText('Provider'), 'qwen')
     await user.selectOptions(screen.getByLabelText('Connection type'), 'hosted')
     await user.type(
@@ -1068,7 +1119,7 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Capabilities'), 'chat, dense_embedding')
     await user.click(screen.getByRole('button', { name: 'Save connection' }))
 
-    expect(client.upsertProviderConnection).toHaveBeenCalledWith('qwen-hosted', {
+    expect(client.createProviderConnection).toHaveBeenCalledWith({
       base_url: 'https://dashscope.example.test/compatible-mode/v1',
       capabilities: ['chat', 'dense_embedding'],
       connection_type: 'hosted',
@@ -1076,7 +1127,12 @@ describe('App chat workspace', () => {
       provider: 'qwen',
     })
 
-    await user.type(screen.getByLabelText('Secret connection ID'), 'qwen-hosted')
+    await user.selectOptions(screen.getByLabelText('Model sync connection'), 'qwen-hosted')
+    await user.click(screen.getByRole('button', { name: 'Sync models' }))
+
+    expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
+
+    await user.selectOptions(screen.getByLabelText('Secret connection'), 'qwen-hosted')
     await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
     await user.click(screen.getByRole('button', { name: 'Save secret' }))
 
@@ -1089,8 +1145,8 @@ describe('App chat workspace', () => {
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
     await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
-    await user.type(screen.getByLabelText('Global slot connection ID'), 'qwen-hosted')
-    await user.type(screen.getByLabelText('Global slot model ID'), 'text-embedding-v4')
+    await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
+    await user.selectOptions(screen.getByLabelText('Global slot model'), 'text-embedding-v4')
     await user.click(screen.getByRole('button', { name: 'Save global slot' }))
 
     expect(client.upsertRuntimeSlotDefault).toHaveBeenCalledWith(
@@ -1109,6 +1165,7 @@ describe('App chat workspace', () => {
       getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
       listChatModels: vi.fn(async () => chatModelsResponse),
       listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
       listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
       upsertProjectRuntimeSlotOverride: vi.fn(async () => ({
         connection_id: 'local-chat',
@@ -1132,8 +1189,8 @@ describe('App chat workspace', () => {
     expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
 
     await user.selectOptions(screen.getByLabelText('Project slot'), 'chat')
-    await user.type(screen.getByLabelText('Project slot connection ID'), 'local-chat')
-    await user.type(screen.getByLabelText('Project slot model ID'), 'llama3.1:8b')
+    await user.selectOptions(screen.getByLabelText('Project slot connection'), 'local-chat')
+    await user.selectOptions(screen.getByLabelText('Project slot model'), 'llama3.1:8b')
     await user.click(screen.getByRole('button', { name: 'Save project override' }))
 
     expect(client.upsertProjectRuntimeSlotOverride).toHaveBeenCalledWith(

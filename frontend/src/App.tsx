@@ -20,6 +20,7 @@ import {
   type Project,
   type ProjectRuntimeSettings,
   type ProviderConnection,
+  type ProviderModel,
   type ProviderSecretStatus,
   type RuntimeSlotDefault,
   type Source,
@@ -41,6 +42,10 @@ const RUNTIME_SLOTS = [
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime'
+type ProviderModelOption = {
+  connection_id: string
+  model_id: string
+}
 
 type AppProps = {
   apiClient?: ApiClient
@@ -111,15 +116,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   >([])
   const [runtimeSlots, setRuntimeSlots] = useState<RuntimeSlotDefault[]>([])
   const [runtimeChatModels, setRuntimeChatModels] = useState<ChatModel[]>([])
+  const [runtimeProviderModels, setRuntimeProviderModels] = useState<
+    ProviderModel[]
+  >([])
   const [projectRuntimeSettings, setProjectRuntimeSettings] =
     useState<ProjectRuntimeSettings | null>(null)
   const [runtimeState, setRuntimeState] = useState<RequestState>('idle')
   const [runtimeError, setRuntimeError] = useState<string | null>(null)
-  const [connectionId, setConnectionId] = useState('')
   const [connectionProvider, setConnectionProvider] = useState('qwen')
   const [connectionType, setConnectionType] = useState('hosted')
   const [connectionBaseUrl, setConnectionBaseUrl] = useState('')
   const [connectionCapabilities, setConnectionCapabilities] = useState('')
+  const [modelSyncConnectionId, setModelSyncConnectionId] = useState('')
   const [secretConnectionId, setSecretConnectionId] = useState('')
   const [secretValue, setSecretValue] = useState('')
   const [globalSlot, setGlobalSlot] = useState('chat')
@@ -501,14 +509,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
 
     try {
-      const [connections, slots, chatModels] = await Promise.all([
+      const [connections, slots, chatModels, providerModels] = await Promise.all([
         client.listProviderConnections(),
         client.listRuntimeSlotDefaults(),
         client.listChatModels(),
+        client.listProviderModels(),
       ])
       setRuntimeConnections(connections.items)
       setRuntimeSlots(slots.items)
       setRuntimeChatModels(chatModels.items)
+      setRuntimeProviderModels(providerModels.items)
       const trimmedProjectId = projectId.trim()
       if (trimmedProjectId.length > 0) {
         setProjectRuntimeSettings(
@@ -526,27 +536,43 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSaveConnection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const trimmedConnectionId = connectionId.trim()
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const connection = await client.createProviderConnection({
+        base_url: optionalFilterValue(connectionBaseUrl),
+        capabilities: parseTags(connectionCapabilities),
+        connection_type: connectionType,
+        metadata: null,
+        provider: connectionProvider,
+      })
+      setRuntimeConnections((current) => upsertConnection(current, connection))
+      setSecretConnectionId(connection.connection_id)
+      setModelSyncConnectionId(connection.connection_id)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSyncProviderModels(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedConnectionId = modelSyncConnectionId.trim()
     if (trimmedConnectionId.length === 0) {
       setRuntimeState('failed')
-      setRuntimeError('Connection ID is required.')
+      setRuntimeError('Model sync connection is required.')
       return
     }
 
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      const connection = await client.upsertProviderConnection(
-        trimmedConnectionId,
-        {
-          base_url: optionalFilterValue(connectionBaseUrl),
-          capabilities: parseTags(connectionCapabilities),
-          connection_type: connectionType,
-          metadata: null,
-          provider: connectionProvider,
-        },
+      const response = await client.syncProviderModels(trimmedConnectionId)
+      setRuntimeProviderModels((current) =>
+        upsertProviderModels(current, response.items),
       )
-      setRuntimeConnections((current) => upsertConnection(current, connection))
       setRuntimeState('succeeded')
     } catch (error) {
       setRuntimeState('failed')
@@ -819,7 +845,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             chatModels={runtimeChatModels}
             connectionBaseUrl={connectionBaseUrl}
             connectionCapabilities={connectionCapabilities}
-            connectionId={connectionId}
             connectionProvider={connectionProvider}
             connectionType={connectionType}
             connections={runtimeConnections}
@@ -831,7 +856,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             onChatModelIdChange={setGlobalChatModelId}
             onConnectionBaseUrlChange={setConnectionBaseUrl}
             onConnectionCapabilitiesChange={setConnectionCapabilities}
-            onConnectionIdChange={setConnectionId}
             onConnectionProviderChange={setConnectionProvider}
             onConnectionTypeChange={setConnectionType}
             onGlobalSlotChange={setGlobalSlot}
@@ -847,6 +871,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
             onSaveProjectOverride={(event) => void handleSaveProjectOverride(event)}
             onSaveSecret={(event) => void handleSaveSecret(event)}
+            onSyncProviderModels={(event) => void handleSyncProviderModels(event)}
+            onModelSyncConnectionIdChange={setModelSyncConnectionId}
             projectId={projectId}
             projectRuntimeSettings={projectRuntimeSettings}
             projectSlot={projectSlot}
@@ -854,6 +880,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             projectSlotModelId={projectSlotModelId}
             secretConnectionId={secretConnectionId}
             secretValue={secretValue}
+            modelSyncConnectionId={modelSyncConnectionId}
+            providerModels={runtimeProviderModels}
             slots={runtimeSlots}
             state={runtimeState}
             onSecretConnectionIdChange={setSecretConnectionId}
@@ -985,7 +1013,6 @@ function RuntimeSettingsPanel({
   chatModels,
   connectionBaseUrl,
   connectionCapabilities,
-  connectionId,
   connectionProvider,
   connectionType,
   connections,
@@ -997,7 +1024,6 @@ function RuntimeSettingsPanel({
   onChatModelIdChange,
   onConnectionBaseUrlChange,
   onConnectionCapabilitiesChange,
-  onConnectionIdChange,
   onConnectionProviderChange,
   onConnectionTypeChange,
   onGlobalSlotChange,
@@ -1013,8 +1039,12 @@ function RuntimeSettingsPanel({
   onSaveGlobalSlot,
   onSaveProjectOverride,
   onSaveSecret,
+  onSyncProviderModels,
+  onModelSyncConnectionIdChange,
   onSecretConnectionIdChange,
   onSecretValueChange,
+  modelSyncConnectionId,
+  providerModels,
   projectId,
   projectRuntimeSettings,
   projectSlot,
@@ -1030,7 +1060,6 @@ function RuntimeSettingsPanel({
   chatModels: ChatModel[]
   connectionBaseUrl: string
   connectionCapabilities: string
-  connectionId: string
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
@@ -1042,7 +1071,6 @@ function RuntimeSettingsPanel({
   onChatModelIdChange(value: string): void
   onConnectionBaseUrlChange(value: string): void
   onConnectionCapabilitiesChange(value: string): void
-  onConnectionIdChange(value: string): void
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
   onGlobalSlotChange(value: string): void
@@ -1058,8 +1086,12 @@ function RuntimeSettingsPanel({
   onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
   onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
   onSaveSecret(event: FormEvent<HTMLFormElement>): void
+  onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
+  onModelSyncConnectionIdChange(value: string): void
   onSecretConnectionIdChange(value: string): void
   onSecretValueChange(value: string): void
+  modelSyncConnectionId: string
+  providerModels: ProviderModel[]
   projectId: string
   projectRuntimeSettings: ProjectRuntimeSettings | null
   projectSlot: string
@@ -1070,6 +1102,29 @@ function RuntimeSettingsPanel({
   slots: RuntimeSlotDefault[]
   state: RequestState
 }) {
+  const globalSlotConnections = connectionsForCapability(connections, globalSlot)
+  const globalSlotModelOptions = providerModelOptions({
+    capability: globalSlot,
+    connectionId: globalSlotConnectionId,
+    providerModels,
+    selectedModelId: globalSlotModelId,
+  })
+  const chatConnections = connectionsForCapability(connections, 'chat')
+  const chatModelOptions = providerModelOptions({
+    capability: 'chat',
+    connectionId: chatConnectionId,
+    configuredModels: chatModels,
+    providerModels,
+    selectedModelId: chatModelId,
+  })
+  const projectSlotConnections = connectionsForCapability(connections, projectSlot)
+  const projectSlotModelOptions = providerModelOptions({
+    capability: projectSlot,
+    connectionId: projectSlotConnectionId,
+    providerModels,
+    selectedModelId: projectSlotModelId,
+  })
+
   return (
     <div className="runtime-grid">
       <section className="panel runtime-panel" aria-labelledby="runtime-title">
@@ -1125,13 +1180,6 @@ function RuntimeSettingsPanel({
         <form className="authoring-form" onSubmit={onSaveConnection}>
           <div className="runtime-form-grid">
             <label className="field">
-              <span>Connection ID</span>
-              <input
-                onChange={(event) => onConnectionIdChange(event.currentTarget.value)}
-                value={connectionId}
-              />
-            </label>
-            <label className="field">
               <span>Provider</span>
               <select
                 onChange={(event) =>
@@ -1179,14 +1227,31 @@ function RuntimeSettingsPanel({
           <button type="submit">Save connection</button>
         </form>
 
+        <form className="authoring-form" onSubmit={onSyncProviderModels}>
+          <div className="runtime-form-grid">
+            <label className="field runtime-field-wide">
+              <span>Model sync connection</span>
+              <ConnectionSelect
+                connections={connections}
+                onChange={onModelSyncConnectionIdChange}
+                testId="model-sync-connection-select"
+                value={modelSyncConnectionId}
+              />
+            </label>
+          </div>
+          <button type="submit">Sync models</button>
+        </form>
+
+        <ProviderModelCatalogView providerModels={providerModels} />
+
         <form className="authoring-form" onSubmit={onSaveSecret}>
           <div className="runtime-form-grid">
             <label className="field">
-              <span>Secret connection ID</span>
-              <input
-                onChange={(event) =>
-                  onSecretConnectionIdChange(event.currentTarget.value)
-                }
+              <span>Secret connection</span>
+              <ConnectionSelect
+                connections={connections}
+                onChange={onSecretConnectionIdChange}
+                testId="secret-connection-select"
                 value={secretConnectionId}
               />
             </label>
@@ -1219,6 +1284,7 @@ function RuntimeSettingsPanel({
             <label className="field">
               <span>Global slot</span>
               <select
+                data-testid="global-slot-select"
                 onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
                 value={globalSlot}
               >
@@ -1230,20 +1296,20 @@ function RuntimeSettingsPanel({
               </select>
             </label>
             <label className="field">
-              <span>Global slot connection ID</span>
-              <input
-                onChange={(event) =>
-                  onGlobalSlotConnectionIdChange(event.currentTarget.value)
-                }
+              <span>Global slot connection</span>
+              <ConnectionSelect
+                connections={globalSlotConnections}
+                onChange={onGlobalSlotConnectionIdChange}
+                testId="global-slot-connection-select"
                 value={globalSlotConnectionId}
               />
             </label>
             <label className="field">
-              <span>Global slot model ID</span>
-              <input
-                onChange={(event) =>
-                  onGlobalSlotModelIdChange(event.currentTarget.value)
-                }
+              <span>Global slot model</span>
+              <ProviderModelSelect
+                models={globalSlotModelOptions}
+                onChange={onGlobalSlotModelIdChange}
+                testId="global-slot-model-select"
                 value={globalSlotModelId}
               />
             </label>
@@ -1278,18 +1344,20 @@ function RuntimeSettingsPanel({
         <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
           <div className="runtime-form-grid">
             <label className="field">
-              <span>Chat connection ID</span>
-              <input
-                onChange={(event) =>
-                  onChatConnectionIdChange(event.currentTarget.value)
-                }
+              <span>Chat connection</span>
+              <ConnectionSelect
+                connections={chatConnections}
+                onChange={onChatConnectionIdChange}
+                testId="chat-connection-select"
                 value={chatConnectionId}
               />
             </label>
             <label className="field">
-              <span>Chat model ID</span>
-              <input
-                onChange={(event) => onChatModelIdChange(event.currentTarget.value)}
+              <span>Chat model</span>
+              <ProviderModelSelect
+                models={chatModelOptions}
+                onChange={onChatModelIdChange}
+                testId="chat-model-select"
                 value={chatModelId}
               />
             </label>
@@ -1331,20 +1399,20 @@ function RuntimeSettingsPanel({
               </select>
             </label>
             <label className="field">
-              <span>Project slot connection ID</span>
-              <input
-                onChange={(event) =>
-                  onProjectSlotConnectionIdChange(event.currentTarget.value)
-                }
+              <span>Project slot connection</span>
+              <ConnectionSelect
+                connections={projectSlotConnections}
+                onChange={onProjectSlotConnectionIdChange}
+                testId="project-slot-connection-select"
                 value={projectSlotConnectionId}
               />
             </label>
             <label className="field">
-              <span>Project slot model ID</span>
-              <input
-                onChange={(event) =>
-                  onProjectSlotModelIdChange(event.currentTarget.value)
-                }
+              <span>Project slot model</span>
+              <ProviderModelSelect
+                models={projectSlotModelOptions}
+                onChange={onProjectSlotModelIdChange}
+                testId="project-slot-model-select"
                 value={projectSlotModelId}
               />
             </label>
@@ -1374,6 +1442,100 @@ function ConnectionSecretSummary({
         </small>
       ))}
     </>
+  )
+}
+
+function ConnectionSelect({
+  connections,
+  onChange,
+  testId,
+  value,
+}: {
+  connections: ProviderConnection[]
+  onChange(value: string): void
+  testId?: string
+  value: string
+}) {
+  return (
+    <select
+      data-testid={testId}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      value={value}
+    >
+      <option value="">
+        {connections.length === 0 ? 'No connections loaded' : 'Select connection'}
+      </option>
+      {connections.map((connection) => (
+        <option key={connection.connection_id} value={connection.connection_id}>
+          {connectionOptionLabel(connection)}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function ProviderModelSelect({
+  models,
+  onChange,
+  testId,
+  value,
+}: {
+  models: ProviderModelOption[]
+  onChange(value: string): void
+  testId?: string
+  value: string
+}) {
+  return (
+    <select
+      data-testid={testId}
+      disabled={models.length === 0}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      value={value}
+    >
+      <option value="">
+        {models.length === 0 ? 'No models loaded' : 'Select model'}
+      </option>
+      {models.map((model) => (
+        <option key={`${model.connection_id}-${model.model_id}`} value={model.model_id}>
+          {model.model_id}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function ProviderModelCatalogView({
+  providerModels,
+}: {
+  providerModels: ProviderModel[]
+}) {
+  return (
+    <section className="runtime-section" aria-label="Provider model catalog">
+      <h3>Model catalog</h3>
+      <ul className="authoring-list">
+        {providerModels.length === 0 ? (
+          <li className="authoring-row authoring-row-static">
+            <span>No provider models loaded.</span>
+          </li>
+        ) : (
+          providerModels.map((model) => (
+            <li
+              className="authoring-row authoring-row-static"
+              key={`${model.connection_id}-${model.model_id}`}
+            >
+              <span>
+                <strong>{model.model_id}</strong>
+                <small>
+                  {model.connection_id} / {model.capabilities.join(', ')}
+                </small>
+                {model.pricing ? <small>pricing metadata saved</small> : null}
+              </span>
+              <em>{model.pricing ? 'pricing' : 'metadata'}</em>
+            </li>
+          ))
+        )}
+      </ul>
+    </section>
   )
 }
 
@@ -2940,6 +3102,101 @@ function upsertChatModel(models: ChatModel[], model: ChatModel): ChatModel[] {
         : item,
     )
   return [...nextModels, model]
+}
+
+function upsertProviderModels(
+  models: ProviderModel[],
+  nextModels: ProviderModel[],
+): ProviderModel[] {
+  const nextKeys = new Set(
+    nextModels.map((model) => `${model.connection_id}\u0000${model.model_id}`),
+  )
+  return [
+    ...models.filter(
+      (model) => !nextKeys.has(`${model.connection_id}\u0000${model.model_id}`),
+    ),
+    ...nextModels,
+  ]
+}
+
+function connectionsForCapability(
+  connections: ProviderConnection[],
+  capability: string,
+): ProviderConnection[] {
+  return connections.filter((connection) =>
+    connection.capabilities.includes(capability),
+  )
+}
+
+function providerModelOptions({
+  capability,
+  configuredModels = [],
+  connectionId,
+  providerModels,
+  selectedModelId,
+}: {
+  capability: string
+  configuredModels?: ProviderModelOption[]
+  connectionId: string
+  providerModels: ProviderModel[]
+  selectedModelId: string
+}): ProviderModelOption[] {
+  if (connectionId.length === 0) {
+    return []
+  }
+  const options: ProviderModelOption[] = providerModels
+    .filter(
+      (model) =>
+        model.connection_id === connectionId &&
+        model.capabilities.includes(capability),
+    )
+    .map((model) => ({
+      connection_id: model.connection_id,
+      model_id: model.model_id,
+    }))
+  for (const model of configuredModels) {
+    if (model.connection_id === connectionId) {
+      options.push(model)
+    }
+  }
+  if (selectedModelId.trim().length > 0) {
+    options.push({
+      connection_id: connectionId,
+      model_id: selectedModelId.trim(),
+    })
+  }
+  return uniqueProviderModelOptions(options)
+}
+
+function uniqueProviderModelOptions(
+  options: ProviderModelOption[],
+): ProviderModelOption[] {
+  const seen = new Set<string>()
+  const unique: ProviderModelOption[] = []
+  for (const option of options) {
+    const key = `${option.connection_id}\u0000${option.model_id}`
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    unique.push(option)
+  }
+  return unique
+}
+
+function connectionOptionLabel(connection: ProviderConnection): string {
+  const label = metadataLabel(connection.metadata)
+  if (label === null) {
+    return `${connection.connection_id} (${connection.provider}/${connection.connection_type})`
+  }
+  return `${label} (${connection.provider}/${connection.connection_type})`
+}
+
+function metadataLabel(metadata: Record<string, unknown> | null): string | null {
+  const label = metadata?.label
+  return typeof label === 'string' && label.trim().length > 0
+    ? label.trim()
+    : null
 }
 
 function upsertIngestionJob(
