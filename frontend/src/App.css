@@ -29,6 +29,44 @@
   gap: 12px;
 }
 
+.project-context {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #d5ddd9;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.34fr);
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.project-context div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.project-context span {
+  color: #63706d;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.project-context strong {
+  color: #223532;
+  font-size: 15px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.project-context small {
+  color: #5c6866;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .view-switcher {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #c9d2cf;
@@ -76,7 +114,7 @@ p {
 
 h1 {
   font-size: 38px;
-  line-height: 1.05;
+  line-height: 1.15;
 }
 
 h2 {
@@ -487,6 +525,7 @@ button:disabled {
 }
 
 .authoring-panel {
+  align-content: start;
   display: grid;
   gap: 18px;
   min-height: auto;
@@ -630,6 +669,35 @@ button:disabled {
 }
 
 .job-error {
+  color: #8a3535;
+}
+
+.job-status {
+  border-radius: 999px;
+  display: inline-flex;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.job-status-queued {
+  background: #e8f0f7;
+  color: #315575;
+}
+
+.job-status-running {
+  background: #e6f1ed;
+  color: #27534d;
+}
+
+.job-status-succeeded {
+  background: #eef4f2;
+  color: #397267;
+}
+
+.job-status-blocked,
+.job-status-dead_letter,
+.job-status-failed {
+  background: #f8e9e6;
   color: #8a3535;
 }
 
@@ -859,6 +927,7 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .project-context,
   .observability-filters,
   .metric-grid,
   .observability-breakdowns {

@@ -467,7 +467,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           <div>
             <h1 id="workspace-title">Adaptive RAG</h1>
             <p className="workspace-subtitle">
-              Ask against an existing project and inspect the retrieved context.
+              Work through project setup, ingestion and cited chat from one
+              local workspace.
             </p>
           </div>
           <div className="workspace-actions">
@@ -475,6 +476,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             <span className="status">Local API</span>
           </div>
         </header>
+
+        <ProjectContextBar projectId={projectId} projects={projects} />
 
         {activeView === 'chat' ? (
           <div className="workspace-grid">
@@ -614,6 +617,35 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         )}
       </section>
     </main>
+  )
+}
+
+function ProjectContextBar({
+  projectId,
+  projects,
+}: {
+  projectId: string
+  projects: Project[]
+}) {
+  const trimmedProjectId = projectId.trim()
+  const selectedProject = projects.find((project) => project.id === trimmedProjectId)
+  const contextLabel = selectedProject?.name ?? 'Project ID entered'
+  const contextValue =
+    trimmedProjectId.length > 0 ? trimmedProjectId : 'No project selected'
+
+  return (
+    <section className="project-context" aria-label="Selected project context">
+      <div>
+        <span>Selected project</span>
+        <strong>{contextLabel}</strong>
+        <small>{contextValue}</small>
+      </div>
+      <div>
+        <span>Retrieval path</span>
+        <strong>dense default</strong>
+        <small>Advanced modes stay opt-in after M31.</small>
+      </div>
+    </section>
   )
 }
 
@@ -943,6 +975,8 @@ function SourceList({
             <span>
               <strong>{source.external_id}</strong>
               <small>{source.id}</small>
+              <small>Ready to queue ingestion</small>
+              <small>Queue ingestion when this source should be indexed.</small>
             </span>
             <div className="authoring-row-actions">
               <em>{source.source_type}</em>
@@ -1015,7 +1049,9 @@ function IngestionJobsPanel({
 
       {run ? (
         <p className="ingestion-run">
-          Last run <strong>{run.status}</strong>
+          <span>{`Last run ${run.status}`}</span>
+          <strong>{run.status}</strong>
+          <span>{ingestionRunMessage(run)}</span>
           {run.error_message ? <span>{run.error_message}</span> : null}
         </p>
       ) : null}
@@ -1042,8 +1078,13 @@ function IngestionJobList({
         <li key={job.id}>
           <div className="authoring-row authoring-row-static">
             <span>
-              <strong>{job.status}</strong>
+              <strong className={jobStatusClassName(job.status)}>
+                {job.status}
+              </strong>
               <small>{job.id}</small>
+              <small>{formatAttempts(job)}</small>
+              <small>{formatRunAfter(job)}</small>
+              <small>{formatLockState(job)}</small>
               {job.last_error ? (
                 <small className="job-error">{job.last_error}</small>
               ) : null}
@@ -1998,6 +2039,46 @@ function upsertIngestionJob(
 
 function isRetryableIngestionJob(job: IngestionJob): boolean {
   return job.status === 'blocked' || job.status === 'dead_letter'
+}
+
+function formatAttempts(job: IngestionJob): string {
+  return `attempt ${job.attempts} of ${job.max_attempts}`
+}
+
+function formatRunAfter(job: IngestionJob): string {
+  return `run after ${job.run_after}`
+}
+
+function formatLockState(job: IngestionJob): string {
+  if (job.locked_by === null && job.locked_until === null) {
+    return 'unlocked'
+  }
+  if (job.locked_by !== null && job.locked_until !== null) {
+    return `locked by ${job.locked_by} until ${job.locked_until}`
+  }
+  if (job.locked_by !== null) {
+    return `locked by ${job.locked_by}`
+  }
+  return `locked until ${job.locked_until}`
+}
+
+function ingestionRunMessage(run: IngestionRunResponse): string {
+  if (run.status === 'idle') {
+    return 'No ingestion job was processed.'
+  }
+  if (run.status === 'blocked') {
+    return 'The backend blocked the job before indexing completed.'
+  }
+  if (run.status === 'processed') {
+    return run.created_document_version
+      ? 'Document version was created.'
+      : 'Job completed without a new document version.'
+  }
+  return 'Run result reported by the backend.'
+}
+
+function jobStatusClassName(status: string): string {
+  return `job-status job-status-${status.replace(/[^a-z0-9_-]/gi, '-').toLowerCase()}`
 }
 
 function formatUsd(value: number): string {

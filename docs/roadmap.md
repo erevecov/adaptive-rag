@@ -1329,19 +1329,20 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m32-frontend-polish-plan`: activo. Definir inventario de pantallas,
+1. `m32-frontend-polish-plan`: completo. Definir inventario de pantallas,
    flujos, estados vacios/carga/error, politica de retrieval default y
    criterios de QA visual.
-2. `m32-product-shell-and-authoring`: propuesto. Pulir shell, navegacion,
-   project/source authoring e ingestion ops.
+2. `m32-product-shell-and-authoring`: completo en branch de implementacion.
+   Agrega contexto de proyecto compartido, mantiene `dense` como default visible,
+   explicita source -> ingestion y muestra metadata operativa de jobs/run-next.
 3. `m32-chat-retrieval-experience`: propuesto. Pulir chat, streaming, citations,
    historial y retrieval dense.
 4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
    docs/runbooks.
 
-Continuacion: completar y mergear `m32-frontend-polish-plan`; despues abrir
-`m32-product-shell-and-authoring` para consolidar shell, navegacion,
-project/source authoring e ingestion ops antes de tocar chat.
+Continuacion: completar y mergear `m32-product-shell-and-authoring`; despues
+abrir `m32-chat-retrieval-experience` para pulir chat, streaming, citations,
+historial y retrieval dense antes del closeout visual/documental.
 
 ## Politica para reducir conflictos de merge
 
