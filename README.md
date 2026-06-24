@@ -65,6 +65,19 @@ uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json
 Un manual git tag or GitHub release sigue siendo una accion humana separada
 despues de revisar el artefacto del gate.
 
+## Acceptance post-runtime-settings
+
+El runbook `docs/runtime-acceptance.md` valida provider connections dentro del
+flujo local completo. Tambien valida model catalog:
+
+```bash
+uv run adaptive-rag acceptance runtime-settings-smoke \
+  --output artifacts/runtime-acceptance.json
+```
+
+El comando usa providers `fake`, no requiere Qwen hosted y confirma que el chat
+citado se ejecuta con runtime settings persistidos.
+
 ## Stack local core
 
 El paquete local usa Postgres con pgvector y la API FastAPI:

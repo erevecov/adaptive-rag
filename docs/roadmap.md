@@ -32,6 +32,7 @@
 - M32 Frontend polish: completo.
 - M33 Runtime provider settings: completo.
 - M34 Runtime model catalog: completo.
+- M35 Acceptance e2e post-runtime-settings: completo.
 
 ## M1 Foundation
 
@@ -1436,6 +1437,41 @@ Secuencia recomendada:
 Continuacion: M34 queda cerrado. No hay changes activos; la siguiente tarea
 recomendada es acceptance end-to-end post-runtime-settings con sync/catalogo de
 modelos, slots efectivos y chat citado en el flujo local completo.
+
+## M35 Acceptance e2e post-runtime-settings
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-24-m35-acceptance-e2e-post-runtime-settings/`
+
+Objetivo:
+
+- Validar que runtime settings persistidos, model catalog, slots globales y
+  overrides por proyecto funcionan dentro del flujo local completo de authoring,
+  ingestion, indexing y chat citado.
+
+Condiciones del milestone:
+
+- El gate default debe usar providers `fake` y no depender de Qwen live,
+  endpoints locales ni secrets.
+- El smoke debe configurar provider connections y model catalog desde la DB.
+- El smoke debe resolver embeddings/chat desde settings efectivas por proyecto.
+- El reporte debe ser JSON machine-readable y no exponer secrets.
+- Qwen/local live, rerank hosted y graph siguen opt-in fuera del gate default.
+
+Secuencia recomendada:
+
+1. `m35-acceptance-e2e-post-runtime-settings`: completo. Agrega OpenSpec,
+   runner `adaptive_rag.acceptance`, CLI
+   `adaptive-rag acceptance runtime-settings-smoke`, runbook
+   `docs/runtime-acceptance.md`, tests CLI/docs y archive.
+
+Continuacion: M35 queda cerrado. La siguiente accion recomendada es ejecutar el
+smoke desde `main` despues del merge contra una base local real; si pasa, abrir
+un slice pequeno de hardening de UX/error states de Runtime settings usando esa
+evidencia como baseline.
 
 ## Politica para reducir conflictos de merge
 
