@@ -1089,11 +1089,17 @@ button:disabled {
   }
 
   .panel-heading,
-  .form-actions,
   .message-card-header,
   .session-button {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .workspace-actions,
@@ -1116,6 +1122,19 @@ button:disabled {
   .compact-list li {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .authoring-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .authoring-row-actions {
+    justify-content: flex-start;
+  }
+
+  .authoring-row em {
+    width: fit-content;
   }
 
   .breakdown-heading {

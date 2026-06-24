@@ -29,7 +29,7 @@
 - M25 First-run onboarding: completo.
 - M26 V1 product quality gate: completo.
 - M27 Post-v1 retrieval expansion: completo.
-- M32 Frontend polish: activo.
+- M32 Frontend polish: completo.
 - M33 Runtime provider settings: completo.
 
 ## M1 Foundation
@@ -1306,11 +1306,11 @@ promovido.
 
 ## M32 Frontend polish
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m32-frontend-polish-plan/`
+- `openspec/changes/archive/2026-06-24-m32-frontend-polish-plan/`
 
 Objetivo:
 
@@ -1340,12 +1340,13 @@ Secuencia recomendada:
    Agrega contrato `dense` visible en chat, streaming partial state sin
    citations finales falsas, metadata de citations e historial de retrieval
    read-only con strategy/top-k/latencia/rank/score.
-4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
-   docs/runbooks.
+4. `m32-visual-qa-and-docs`: completo. Ejecuta QA responsive desktop/mobile
+   sobre chat, history, authoring, observability y runtime settings, corrige
+   layout mobile de acciones/filas operativas y archiva M32.
 
-Continuacion: `m32-visual-qa-and-docs` queda propuesto para cerrar QA
-responsive y docs/runbooks de M32. La configuracion de providers/runtime no se
-incluye en M32; se separa en M33.
+Continuacion: M32 queda cerrado. La siguiente tarea recomendada es abrir un
+change OpenSpec para acceptance end-to-end post-polish, validando el flujo local
+completo antes de sumar nuevas features.
 
 ## M33 Runtime provider settings
 
@@ -1396,8 +1397,8 @@ Secuencia recomendada:
 7. `m33-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
    M33.
 
-Continuacion: M33 queda cerrado. La siguiente tarea recomendada es
-`m32-visual-qa-and-docs` para cerrar el unico change activo restante.
+Continuacion: M33 queda cerrado. M32 tambien quedo archivado el 2026-06-24; no
+hay changes activos.
 
 ## Politica para reducir conflictos de merge
 
