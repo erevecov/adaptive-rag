@@ -15,7 +15,11 @@ import type {
   IngestionJob,
   IngestionJobListResponse,
   IngestionRunResponse,
+  ChatModelListResponse,
   Project,
+  ProjectRuntimeSettings,
+  ProviderConnectionListResponse,
+  RuntimeSlotDefaultListResponse,
   ProjectListResponse,
   Source,
   SourceListResponse,
@@ -38,13 +42,24 @@ function createClientStub(options: {
   getChatSession?: ApiClient['getChatSession']
   getIngestionJob?: ApiClient['getIngestionJob']
   getProject?: ApiClient['getProject']
+  getProjectRuntimeSettings?: ApiClient['getProjectRuntimeSettings']
   getSource?: ApiClient['getSource']
+  listChatModels?: ApiClient['listChatModels']
   listChatSessions?: ApiClient['listChatSessions']
   listIngestionJobs?: ApiClient['listIngestionJobs']
+  listProviderConnections?: ApiClient['listProviderConnections']
   listProjects?: ApiClient['listProjects']
+  listRuntimeSlotDefaults?: ApiClient['listRuntimeSlotDefaults']
   listSources?: ApiClient['listSources']
   retryIngestionJob?: ApiClient['retryIngestionJob']
   runNextIngestionJob?: ApiClient['runNextIngestionJob']
+  upsertChatModel?: ApiClient['upsertChatModel']
+  upsertProjectChatModel?: ApiClient['upsertProjectChatModel']
+  upsertProjectRuntimeSlotOverride?: ApiClient['upsertProjectRuntimeSlotOverride']
+  upsertProviderConnection?: ApiClient['upsertProviderConnection']
+  upsertProviderSecret?: ApiClient['upsertProviderSecret']
+  upsertRuntimeSlotDefault?: ApiClient['upsertRuntimeSlotDefault']
+  deleteProjectRuntimeSlotOverride?: ApiClient['deleteProjectRuntimeSlotOverride']
 }): ApiClient {
   return {
     askChat: options.askChat ?? vi.fn(),
@@ -57,13 +72,33 @@ function createClientStub(options: {
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
     getIngestionJob: options.getIngestionJob ?? vi.fn(),
     getProject: options.getProject ?? vi.fn(),
+    getProjectRuntimeSettings: options.getProjectRuntimeSettings ?? vi.fn(),
     getSource: options.getSource ?? vi.fn(),
+    listChatModels: options.listChatModels ?? vi.fn(),
     listChatSessions: options.listChatSessions ?? vi.fn(),
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
+    listProviderConnections: options.listProviderConnections ?? vi.fn(),
     listProjects: options.listProjects ?? vi.fn(),
+    listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
     retryIngestionJob: options.retryIngestionJob ?? vi.fn(),
     runNextIngestionJob: options.runNextIngestionJob ?? vi.fn(),
+    upsertChatModel: options.upsertChatModel ?? vi.fn(),
+    upsertProjectChatModel: options.upsertProjectChatModel ?? vi.fn(),
+    upsertProjectRuntimeSlotOverride:
+      options.upsertProjectRuntimeSlotOverride ?? vi.fn(),
+    upsertProviderConnection: options.upsertProviderConnection ?? vi.fn(),
+    upsertProviderSecret: options.upsertProviderSecret ?? vi.fn(),
+    upsertRuntimeSlotDefault: options.upsertRuntimeSlotDefault ?? vi.fn(),
+    deleteChatModel: vi.fn(),
+    deleteProjectChatModel: vi.fn(),
+    deleteProjectRuntimeSlotOverride:
+      options.deleteProjectRuntimeSlotOverride ?? vi.fn(),
+    deleteProviderConnection: vi.fn(),
+    deleteProviderSecret: vi.fn(),
+    deleteRuntimeSlotDefault: vi.fn(),
+    setDefaultChatModel: vi.fn(),
+    setDefaultProjectChatModel: vi.fn(),
   }
 }
 
@@ -232,6 +267,97 @@ const observabilitySummary: ChatObservabilitySummary = {
     },
     total: 12,
   },
+}
+
+const providerConnectionsResponse: ProviderConnectionListResponse = {
+  items: [
+    {
+      base_url: 'https://dashscope.example.test/compatible-mode/v1',
+      capabilities: ['chat', 'dense_embedding', 'rerank'],
+      connection_id: 'qwen-hosted',
+      connection_type: 'hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      metadata: { label: 'Hosted Qwen' },
+      provider: 'qwen',
+      secrets: [
+        {
+          configured: true,
+          connection_id: 'qwen-hosted',
+          fingerprint: 'fingerprint',
+          last_four: 'cret',
+          secret_name: 'api_key',
+          updated_at: '2026-06-24T00:00:01Z',
+        },
+      ],
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+    {
+      base_url: 'http://localhost:11434/v1',
+      capabilities: ['chat'],
+      connection_id: 'local-chat',
+      connection_type: 'local',
+      created_at: '2026-06-24T00:00:00Z',
+      metadata: null,
+      provider: 'local_openai_compatible',
+      secrets: [],
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+  ],
+}
+
+const runtimeSlotDefaultsResponse: RuntimeSlotDefaultListResponse = {
+  items: [
+    {
+      connection_id: 'qwen-hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      model_id: 'text-embedding-v4',
+      parameters: null,
+      slot: 'dense_embedding',
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+  ],
+}
+
+const chatModelsResponse: ChatModelListResponse = {
+  items: [
+    {
+      connection_id: 'local-chat',
+      created_at: '2026-06-24T00:00:00Z',
+      is_default: true,
+      model_id: 'llama3.1:8b',
+      parameters: null,
+      updated_at: '2026-06-24T00:00:00Z',
+    },
+  ],
+}
+
+const projectRuntimeSettings: ProjectRuntimeSettings = {
+  chat_models: [
+    {
+      connection_id: 'local-chat',
+      is_default: true,
+      model_id: 'llama3.1:8b',
+      parameters: null,
+      source: 'overridden',
+    },
+  ],
+  project_id: projectId,
+  slots: [
+    {
+      connection_id: 'qwen-hosted',
+      model_id: 'text-embedding-v4',
+      parameters: null,
+      slot: 'dense_embedding',
+      source: 'inherited',
+    },
+    {
+      connection_id: 'local-chat',
+      model_id: 'llama3.1:8b',
+      parameters: null,
+      slot: 'chat',
+      source: 'overridden',
+    },
+  ],
 }
 
 const emptySessionDetail: ChatSessionDetailResponse = {
@@ -899,6 +1025,131 @@ describe('App chat workspace', () => {
     ).toBe('2026-06-21T00:00:00Z')
     expect((screen.getByLabelText('Status') as HTMLSelectElement).value).toBe(
       'failed',
+    )
+  })
+
+  test('manages runtime settings without rendering provider secrets', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
+      listChatModels: vi.fn(async () => chatModelsResponse),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
+      upsertProviderConnection: vi.fn(async () => providerConnectionsResponse.items[0]),
+      upsertProviderSecret: vi.fn(async () => ({
+        configured: true,
+        connection_id: 'qwen-hosted',
+        fingerprint: 'new-fingerprint',
+        last_four: 'cret',
+        secret_name: 'api_key',
+        updated_at: '2026-06-24T00:00:02Z',
+      })),
+      upsertRuntimeSlotDefault: vi.fn(async () => runtimeSlotDefaultsResponse.items[0]),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+
+    expect(client.listProviderConnections).toHaveBeenCalled()
+    expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
+    expect(screen.getByText('api_key configured / last four cret')).toBeTruthy()
+    expect(screen.queryByText('sk-hosted-secret')).toBeNull()
+
+    await user.type(screen.getByLabelText('Connection ID'), 'qwen-hosted')
+    await user.selectOptions(screen.getByLabelText('Provider'), 'qwen')
+    await user.selectOptions(screen.getByLabelText('Connection type'), 'hosted')
+    await user.type(
+      screen.getByLabelText('Base URL'),
+      'https://dashscope.example.test/compatible-mode/v1',
+    )
+    await user.type(screen.getByLabelText('Capabilities'), 'chat, dense_embedding')
+    await user.click(screen.getByRole('button', { name: 'Save connection' }))
+
+    expect(client.upsertProviderConnection).toHaveBeenCalledWith('qwen-hosted', {
+      base_url: 'https://dashscope.example.test/compatible-mode/v1',
+      capabilities: ['chat', 'dense_embedding'],
+      connection_type: 'hosted',
+      metadata: null,
+      provider: 'qwen',
+    })
+
+    await user.type(screen.getByLabelText('Secret connection ID'), 'qwen-hosted')
+    await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
+    await user.click(screen.getByRole('button', { name: 'Save secret' }))
+
+    expect(client.upsertProviderSecret).toHaveBeenCalledWith(
+      'qwen-hosted',
+      'api_key',
+      { value: 'sk-hosted-secret' },
+    )
+    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
+    expect(screen.queryByText('sk-hosted-secret')).toBeNull()
+
+    await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
+    await user.type(screen.getByLabelText('Global slot connection ID'), 'qwen-hosted')
+    await user.type(screen.getByLabelText('Global slot model ID'), 'text-embedding-v4')
+    await user.click(screen.getByRole('button', { name: 'Save global slot' }))
+
+    expect(client.upsertRuntimeSlotDefault).toHaveBeenCalledWith(
+      'dense_embedding',
+      {
+        connection_id: 'qwen-hosted',
+        model_id: 'text-embedding-v4',
+      },
+    )
+  })
+
+  test('shows project runtime inheritance and resets overrides', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      deleteProjectRuntimeSlotOverride: vi.fn(async () => ({ deleted: true })),
+      getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
+      listChatModels: vi.fn(async () => chatModelsResponse),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
+      upsertProjectRuntimeSlotOverride: vi.fn(async () => ({
+        connection_id: 'local-chat',
+        model_id: 'llama3.1:8b',
+        parameters: null,
+        slot: 'chat',
+        source: 'overridden',
+      })),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+
+    const projectSettings = await screen.findByRole('region', {
+      name: 'Project runtime settings',
+    })
+    expect(within(projectSettings).getAllByText('dense_embedding').length).toBeGreaterThan(0)
+    expect(within(projectSettings).getAllByText('inherited').length).toBeGreaterThan(0)
+    expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
+
+    await user.selectOptions(screen.getByLabelText('Project slot'), 'chat')
+    await user.type(screen.getByLabelText('Project slot connection ID'), 'local-chat')
+    await user.type(screen.getByLabelText('Project slot model ID'), 'llama3.1:8b')
+    await user.click(screen.getByRole('button', { name: 'Save project override' }))
+
+    expect(client.upsertProjectRuntimeSlotOverride).toHaveBeenCalledWith(
+      projectId,
+      'chat',
+      {
+        connection_id: 'local-chat',
+        model_id: 'llama3.1:8b',
+      },
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Reset chat to global' }))
+
+    expect(client.deleteProjectRuntimeSlotOverride).toHaveBeenCalledWith(
+      projectId,
+      'chat',
     )
   })
 })

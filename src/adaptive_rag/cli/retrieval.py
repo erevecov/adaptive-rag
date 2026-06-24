@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from collections.abc import Callable
+from inspect import signature
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 import typer
+from sqlalchemy.orm import Session
 
 from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
@@ -16,6 +19,8 @@ from adaptive_rag.cli.dependencies import (
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
 from adaptive_rag.db.session import session_scope
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
+from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import (
     RetrievalRerankOptions,
     RetrievalSearchRequest,
@@ -93,13 +98,23 @@ def search(
     with session_scope() as session:
         service = RetrievalService(
             session,
-            provider=get_cli_dense_embedding_provider(),
+            provider=_get_dense_embedding_provider(
+                project_id=project_id,
+                session=session,
+            ),
             sparse_provider=(
-                get_cli_sparse_embedding_provider()
+                _get_sparse_embedding_provider(
+                    project_id=project_id,
+                    session=session,
+                )
                 if strategy == "dense_sparse"
                 else None
             ),
-            reranker=get_cli_rerank_provider() if rerank_options is not None else None,
+            reranker=(
+                _get_rerank_provider(project_id=project_id, session=session)
+                if rerank_options is not None
+                else None
+            ),
             graph_retriever=get_cli_graph_retriever(),
         )
         try:
@@ -125,4 +140,64 @@ def _build_rerank_options(
             "rerank candidate_limit must be greater than or equal to limit"
         )
     return RetrievalRerankOptions(candidate_limit=candidate_limit)
+
+
+def _get_dense_embedding_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+) -> DenseEmbeddingProvider:
+    kwargs = _project_runtime_kwargs(
+        get_cli_dense_embedding_provider,
+        project_id=project_id,
+        session=session,
+    )
+    return cast(
+        DenseEmbeddingProvider,
+        cast(Any, get_cli_dense_embedding_provider)(**kwargs),
+    )
+
+
+def _get_sparse_embedding_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+) -> SparseEmbeddingProvider:
+    kwargs = _project_runtime_kwargs(
+        get_cli_sparse_embedding_provider,
+        project_id=project_id,
+        session=session,
+    )
+    return cast(
+        SparseEmbeddingProvider,
+        cast(Any, get_cli_sparse_embedding_provider)(**kwargs),
+    )
+
+
+def _get_rerank_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+) -> RerankProvider:
+    kwargs = _project_runtime_kwargs(
+        get_cli_rerank_provider,
+        project_id=project_id,
+        session=session,
+    )
+    return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+
+
+def _project_runtime_kwargs(
+    factory: Callable[..., object],
+    *,
+    project_id: UUID,
+    session: Session,
+) -> dict[str, object]:
+    parameters = signature(factory).parameters
+    kwargs: dict[str, object] = {}
+    if "project_id" in parameters:
+        kwargs["project_id"] = project_id
+    if "session" in parameters:
+        kwargs["session"] = session
+    return kwargs
 

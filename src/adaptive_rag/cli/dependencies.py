@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from inspect import signature
-from typing import cast
+from typing import Any, cast
+from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner
 from adaptive_rag.config.settings import get_settings
@@ -38,31 +42,82 @@ class CliHostedEvalRuntime:
 
 def get_cli_dense_embedding_provider(
     *,
+    project_id: UUID | None = None,
+    session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
-    if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
-        return get_default_dense_embedding_provider(usage_tracker=usage_tracker)
-    return get_default_dense_embedding_provider()
+    kwargs = _runtime_factory_kwargs(
+        get_default_dense_embedding_provider,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(
+        DenseEmbeddingProvider,
+        cast(Any, get_default_dense_embedding_provider)(**kwargs),
+    )
 
 
 def get_cli_sparse_embedding_provider(
     *,
+    project_id: UUID | None = None,
+    session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> SparseEmbeddingProvider:
-    if "usage_tracker" in signature(get_default_sparse_embedding_provider).parameters:
-        return get_default_sparse_embedding_provider(usage_tracker=usage_tracker)
-    return get_default_sparse_embedding_provider()
+    kwargs = _runtime_factory_kwargs(
+        get_default_sparse_embedding_provider,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(
+        SparseEmbeddingProvider,
+        cast(Any, get_default_sparse_embedding_provider)(**kwargs),
+    )
 
 
 def get_cli_chat_runner(
     *,
+    project_id: UUID | None = None,
+    session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> ChatRunner:
-    return get_chat_runner(usage_tracker=usage_tracker)
+    return get_chat_runner(
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
 
 
-def get_cli_rerank_provider() -> RerankProvider:
-    return get_rerank_provider()
+def get_cli_rerank_provider(
+    *,
+    project_id: UUID | None = None,
+    session: Session | None = None,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
+) -> RerankProvider:
+    return get_rerank_provider(
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+
+
+def _runtime_factory_kwargs(
+    factory: Callable[..., object],
+    *,
+    project_id: UUID | None,
+    session: Session | None,
+    usage_tracker: InMemoryProviderUsageTracker | None,
+) -> dict[str, object]:
+    parameters = signature(factory).parameters
+    kwargs: dict[str, object] = {}
+    if "project_id" in parameters:
+        kwargs["project_id"] = project_id
+    if "session" in parameters:
+        kwargs["session"] = session
+    if "usage_tracker" in parameters:
+        kwargs["usage_tracker"] = usage_tracker
+    return kwargs
 
 
 def get_cli_graph_store() -> GraphStore:

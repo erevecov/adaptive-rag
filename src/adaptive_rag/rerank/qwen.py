@@ -69,6 +69,7 @@ class QwenHTTPRerankClient:
     max_retries: int
     transport: httpx.BaseTransport | None = None
     usage_tracker: ProviderUsageTracker | None = None
+    provider_name: str = "qwen"
     price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
     budget_guard: ProviderBudgetGuard | None = None
     instruct: str = _DEFAULT_RERANK_INSTRUCT
@@ -99,7 +100,7 @@ class QwenHTTPRerankClient:
                 request_id=request_id,
             )
             record = build_success_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="rerank",
                 duration_ms=_elapsed_ms(started),
@@ -180,7 +181,7 @@ class QwenHTTPRerankClient:
             return
         self.usage_tracker.record(
             build_failure_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="rerank",
                 duration_ms=duration_ms,

@@ -593,6 +593,51 @@ button:disabled {
   min-height: auto;
 }
 
+.runtime-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.runtime-panel {
+  align-content: start;
+  display: grid;
+  gap: 18px;
+  min-height: auto;
+}
+
+.runtime-panel-wide {
+  grid-column: 1 / -1;
+}
+
+.runtime-section {
+  display: grid;
+  gap: 12px;
+}
+
+.runtime-section h3 {
+  color: #1f2d29;
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.runtime-form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.runtime-field-wide {
+  grid-column: 1 / -1;
+}
+
+.project-runtime-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .authoring-form {
   border-bottom: 1px solid #dfe5e2;
   display: grid;
@@ -1024,6 +1069,11 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .runtime-grid,
+  .project-runtime-grid {
+    grid-template-columns: 1fr;
+  }
+
   .panel {
     min-height: auto;
   }
@@ -1051,6 +1101,9 @@ button:disabled {
   .observability-filters,
   .authoring-grid,
   .chat-retrieval-summary,
+  .runtime-form-grid,
+  .runtime-grid,
+  .project-runtime-grid,
   .source-form-grid,
   .metric-grid,
   .observability-breakdowns {

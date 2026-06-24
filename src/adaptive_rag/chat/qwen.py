@@ -95,6 +95,7 @@ class QwenHTTPChatClient:
     max_retries: int
     transport: httpx.BaseTransport | None = None
     usage_tracker: ProviderUsageTracker | None = None
+    provider_name: str = "qwen"
     price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
     budget_guard: ProviderBudgetGuard | None = None
 
@@ -120,7 +121,7 @@ class QwenHTTPChatClient:
                 payload=payload,
             )
             record = build_success_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="chat",
                 duration_ms=_elapsed_ms(started),
@@ -198,7 +199,7 @@ class QwenHTTPChatClient:
             return
         self.usage_tracker.record(
             build_failure_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="chat",
                 duration_ms=duration_ms,

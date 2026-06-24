@@ -2,47 +2,52 @@
 
 ## Milestone activo
 
-M33 Runtime provider settings esta activo en
-`openspec/changes/m33-runtime-provider-settings-plan/`.
+M32 Frontend polish sigue activo en
+`openspec/changes/m32-frontend-polish-plan/`.
 
-El change planifica configuracion global de provider connections, secrets
-cifrados, slots fijos, pool de chat con default unico y overrides por proyecto.
-La regla de diseno es que proyectos aislan conocimiento/chats/settings propias,
-pero provider credentials y connections pertenecen al workspace global.
+El cierre pendiente es `m32-visual-qa-and-docs`: QA responsive y actualizacion
+de docs/runbooks sobre la UI de producto ya construida.
 
 ## Ultimo milestone completado
 
-M31 Retrieval strategy gate cerrado el 2026-06-23.
+M33 Runtime provider settings cerrado el 2026-06-24.
 
-M31 agrega el runner offline `strategy-gate`, JSON estable de decisiones,
-soporte de `contextual_summary` en eval fixtures y la CLI
-`adaptive-rag evals strategy-gate`. El change quedo archivado en
-`openspec/changes/archive/2026-06-23-m31-retrieval-strategy-gate/` y actualiza
-las specs canonicas `evals-baseline` y `retrieval-quality`.
+M33 agrega provider connections globales, secrets cifrados, slots fijos,
+pool de chat con default unico, overrides por proyecto, resolucion runtime
+efectiva para API/CLI y pantalla Runtime settings sin exponer valores secretos.
+El change quedo archivado en
+`openspec/changes/archive/2026-06-24-m33-runtime-provider-settings-plan/` y
+actualiza las specs canonicas `provider-runtime` y `chat-frontend`.
 
 ## Ultimo slice completado
 
-M33 `m33-project-runtime-overrides`: agrega overrides por proyecto para slots
-fijos y pool/default de chat, con respuestas `inherited`/`overridden` en
-`/projects/{project_id}/runtime-settings` sin guardar secrets project-scoped.
+M33 `m33-quality-gate`: conecta factories efectivas de chat, dense embedding,
+sparse embedding, rerank y contextualization a la configuracion persistida,
+agrega UI Runtime settings, valida backend/frontend/OpenSpec y archiva M33.
 
-Comandos validados al cerrar M31:
+Comandos validados al cerrar M33:
 
 ```text
-npx --yes @fission-ai/openspec validate m31-retrieval-strategy-gate --strict
-npx --yes @fission-ai/openspec archive m31-retrieval-strategy-gate --yes
+uv run ruff check .
+uv run mypy src
+uv run pytest
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm build
+npx --yes @fission-ai/openspec validate m33-runtime-provider-settings-plan --strict
+npx --yes @fission-ai/openspec archive m33-runtime-provider-settings-plan --yes
 npx --yes @fission-ai/openspec validate --specs --strict --no-interactive
 npx --yes @fission-ai/openspec list
 ```
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m33-runtime-provider-settings-plan/`
 - `openspec/changes/m32-frontend-polish-plan/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-23-m31-retrieval-strategy-gate/`
+- `openspec/changes/archive/2026-06-24-m33-runtime-provider-settings-plan/`
 
 ## Spec canonica activa
 
@@ -75,12 +80,9 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Abrir `m33-runtime-resolution-wiring`, porque connections/secrets, defaults
-  globales y overrides por proyecto ya existen; ahora toca que las factories
-  efectivas resuelvan providers desde esa configuracion antes de caer a `.env`.
-
-- `m32-visual-qa-and-docs` sigue pendiente como cierre visual/documental de M32,
-  pero no debe absorber la configuracion de providers/runtime.
+- Ejecutar `m32-visual-qa-and-docs` para cerrar QA responsive y docs/runbooks
+  de M32. Es la opcion recomendada porque M33 ya esta archivado y no queda otro
+  change activo salvo M32.
 
 ## Reglas de coordinacion
 

@@ -16,7 +16,12 @@ import {
   type ChatToolCall,
   type IngestionJob,
   type IngestionRunResponse,
+  type ChatModel,
   type Project,
+  type ProjectRuntimeSettings,
+  type ProviderConnection,
+  type ProviderSecretStatus,
+  type RuntimeSlotDefault,
   type Source,
   type SourceCreateBody,
 } from './lib/apiClient'
@@ -26,9 +31,16 @@ const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
+const RUNTIME_SLOTS = [
+  'chat',
+  'dense_embedding',
+  'sparse_embedding',
+  'rerank',
+  'contextualization',
+]
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type ActiveView = 'chat' | 'observability' | 'authoring'
+type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime'
 
 type AppProps = {
   apiClient?: ApiClient
@@ -94,6 +106,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   )
   const [ingestionState, setIngestionState] = useState<RequestState>('idle')
   const [ingestionError, setIngestionError] = useState<string | null>(null)
+  const [runtimeConnections, setRuntimeConnections] = useState<
+    ProviderConnection[]
+  >([])
+  const [runtimeSlots, setRuntimeSlots] = useState<RuntimeSlotDefault[]>([])
+  const [runtimeChatModels, setRuntimeChatModels] = useState<ChatModel[]>([])
+  const [projectRuntimeSettings, setProjectRuntimeSettings] =
+    useState<ProjectRuntimeSettings | null>(null)
+  const [runtimeState, setRuntimeState] = useState<RequestState>('idle')
+  const [runtimeError, setRuntimeError] = useState<string | null>(null)
+  const [connectionId, setConnectionId] = useState('')
+  const [connectionProvider, setConnectionProvider] = useState('qwen')
+  const [connectionType, setConnectionType] = useState('hosted')
+  const [connectionBaseUrl, setConnectionBaseUrl] = useState('')
+  const [connectionCapabilities, setConnectionCapabilities] = useState('')
+  const [secretConnectionId, setSecretConnectionId] = useState('')
+  const [secretValue, setSecretValue] = useState('')
+  const [globalSlot, setGlobalSlot] = useState('chat')
+  const [globalSlotConnectionId, setGlobalSlotConnectionId] = useState('')
+  const [globalSlotModelId, setGlobalSlotModelId] = useState('')
+  const [globalChatConnectionId, setGlobalChatConnectionId] = useState('')
+  const [globalChatModelId, setGlobalChatModelId] = useState('')
+  const [projectSlot, setProjectSlot] = useState('chat')
+  const [projectSlotConnectionId, setProjectSlotConnectionId] = useState('')
+  const [projectSlotModelId, setProjectSlotModelId] = useState('')
 
   const isAsking = requestState === 'loading'
 
@@ -460,6 +496,200 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleRefreshRuntime() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const [connections, slots, chatModels] = await Promise.all([
+        client.listProviderConnections(),
+        client.listRuntimeSlotDefaults(),
+        client.listChatModels(),
+      ])
+      setRuntimeConnections(connections.items)
+      setRuntimeSlots(slots.items)
+      setRuntimeChatModels(chatModels.items)
+      const trimmedProjectId = projectId.trim()
+      if (trimmedProjectId.length > 0) {
+        setProjectRuntimeSettings(
+          await client.getProjectRuntimeSettings(trimmedProjectId),
+        )
+      } else {
+        setProjectRuntimeSettings(null)
+      }
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSaveConnection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedConnectionId = connectionId.trim()
+    if (trimmedConnectionId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Connection ID is required.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const connection = await client.upsertProviderConnection(
+        trimmedConnectionId,
+        {
+          base_url: optionalFilterValue(connectionBaseUrl),
+          capabilities: parseTags(connectionCapabilities),
+          connection_type: connectionType,
+          metadata: null,
+          provider: connectionProvider,
+        },
+      )
+      setRuntimeConnections((current) => upsertConnection(current, connection))
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSaveSecret(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedConnectionId = secretConnectionId.trim()
+    const trimmedSecret = secretValue.trim()
+    if (trimmedConnectionId.length === 0 || trimmedSecret.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Secret connection ID and API key are required.')
+      setSecretValue('')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const status = await client.upsertProviderSecret(
+        trimmedConnectionId,
+        'api_key',
+        { value: trimmedSecret },
+      )
+      setRuntimeConnections((current) =>
+        updateConnectionSecret(current, trimmedConnectionId, status),
+      )
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    } finally {
+      setSecretValue('')
+    }
+  }
+
+  async function handleSaveGlobalSlot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedConnectionId = globalSlotConnectionId.trim()
+    const trimmedModelId = globalSlotModelId.trim()
+    if (trimmedConnectionId.length === 0 || trimmedModelId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Global slot connection and model are required.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const slot = await client.upsertRuntimeSlotDefault(globalSlot, {
+        connection_id: trimmedConnectionId,
+        model_id: trimmedModelId,
+      })
+      setRuntimeSlots((current) => upsertRuntimeSlot(current, slot))
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSaveGlobalChatModel(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedConnectionId = globalChatConnectionId.trim()
+    const trimmedModelId = globalChatModelId.trim()
+    if (trimmedConnectionId.length === 0 || trimmedModelId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Chat connection and model are required.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const model = await client.upsertChatModel({
+        connection_id: trimmedConnectionId,
+        make_default: true,
+        model_id: trimmedModelId,
+      })
+      setRuntimeChatModels((current) => upsertChatModel(current, model))
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSaveProjectOverride(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedProjectId = projectId.trim()
+    const trimmedConnectionId = projectSlotConnectionId.trim()
+    const trimmedModelId = projectSlotModelId.trim()
+    if (
+      trimmedProjectId.length === 0 ||
+      trimmedConnectionId.length === 0 ||
+      trimmedModelId.length === 0
+    ) {
+      setRuntimeState('failed')
+      setRuntimeError('Project, connection and model are required.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      await client.upsertProjectRuntimeSlotOverride(trimmedProjectId, projectSlot, {
+        connection_id: trimmedConnectionId,
+        model_id: trimmedModelId,
+      })
+      setProjectRuntimeSettings(
+        await client.getProjectRuntimeSettings(trimmedProjectId),
+      )
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleResetProjectSlot(slot: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Project ID is required to reset runtime overrides.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      await client.deleteProjectRuntimeSlotOverride(trimmedProjectId, slot)
+      setProjectRuntimeSettings(
+        await client.getProjectRuntimeSettings(trimmedProjectId),
+      )
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="workspace" aria-labelledby="workspace-title">
@@ -582,6 +812,53 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             status={observabilityStatus}
             summary={observabilitySummary}
           />
+        ) : activeView === 'runtime' ? (
+          <RuntimeSettingsPanel
+            chatConnectionId={globalChatConnectionId}
+            chatModelId={globalChatModelId}
+            chatModels={runtimeChatModels}
+            connectionBaseUrl={connectionBaseUrl}
+            connectionCapabilities={connectionCapabilities}
+            connectionId={connectionId}
+            connectionProvider={connectionProvider}
+            connectionType={connectionType}
+            connections={runtimeConnections}
+            error={runtimeError}
+            globalSlot={globalSlot}
+            globalSlotConnectionId={globalSlotConnectionId}
+            globalSlotModelId={globalSlotModelId}
+            onChatConnectionIdChange={setGlobalChatConnectionId}
+            onChatModelIdChange={setGlobalChatModelId}
+            onConnectionBaseUrlChange={setConnectionBaseUrl}
+            onConnectionCapabilitiesChange={setConnectionCapabilities}
+            onConnectionIdChange={setConnectionId}
+            onConnectionProviderChange={setConnectionProvider}
+            onConnectionTypeChange={setConnectionType}
+            onGlobalSlotChange={setGlobalSlot}
+            onGlobalSlotConnectionIdChange={setGlobalSlotConnectionId}
+            onGlobalSlotModelIdChange={setGlobalSlotModelId}
+            onProjectSlotChange={setProjectSlot}
+            onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
+            onProjectSlotModelIdChange={setProjectSlotModelId}
+            onRefresh={() => void handleRefreshRuntime()}
+            onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
+            onSaveConnection={(event) => void handleSaveConnection(event)}
+            onSaveGlobalChatModel={(event) => void handleSaveGlobalChatModel(event)}
+            onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
+            onSaveProjectOverride={(event) => void handleSaveProjectOverride(event)}
+            onSaveSecret={(event) => void handleSaveSecret(event)}
+            projectId={projectId}
+            projectRuntimeSettings={projectRuntimeSettings}
+            projectSlot={projectSlot}
+            projectSlotConnectionId={projectSlotConnectionId}
+            projectSlotModelId={projectSlotModelId}
+            secretConnectionId={secretConnectionId}
+            secretValue={secretValue}
+            slots={runtimeSlots}
+            state={runtimeState}
+            onSecretConnectionIdChange={setSecretConnectionId}
+            onSecretValueChange={setSecretValue}
+          />
         ) : (
           <AuthoringPanel
             ingestionError={ingestionError}
@@ -688,7 +965,502 @@ function ViewSwitcher({
       >
         Authoring
       </button>
+      <button
+        aria-pressed={activeView === 'runtime'}
+        className={
+          activeView === 'runtime' ? 'view-tab view-tab-active' : 'view-tab'
+        }
+        onClick={() => onChange('runtime')}
+        type="button"
+      >
+        Runtime
+      </button>
     </nav>
+  )
+}
+
+function RuntimeSettingsPanel({
+  chatConnectionId,
+  chatModelId,
+  chatModels,
+  connectionBaseUrl,
+  connectionCapabilities,
+  connectionId,
+  connectionProvider,
+  connectionType,
+  connections,
+  error,
+  globalSlot,
+  globalSlotConnectionId,
+  globalSlotModelId,
+  onChatConnectionIdChange,
+  onChatModelIdChange,
+  onConnectionBaseUrlChange,
+  onConnectionCapabilitiesChange,
+  onConnectionIdChange,
+  onConnectionProviderChange,
+  onConnectionTypeChange,
+  onGlobalSlotChange,
+  onGlobalSlotConnectionIdChange,
+  onGlobalSlotModelIdChange,
+  onProjectSlotChange,
+  onProjectSlotConnectionIdChange,
+  onProjectSlotModelIdChange,
+  onRefresh,
+  onResetProjectSlot,
+  onSaveConnection,
+  onSaveGlobalChatModel,
+  onSaveGlobalSlot,
+  onSaveProjectOverride,
+  onSaveSecret,
+  onSecretConnectionIdChange,
+  onSecretValueChange,
+  projectId,
+  projectRuntimeSettings,
+  projectSlot,
+  projectSlotConnectionId,
+  projectSlotModelId,
+  secretConnectionId,
+  secretValue,
+  slots,
+  state,
+}: {
+  chatConnectionId: string
+  chatModelId: string
+  chatModels: ChatModel[]
+  connectionBaseUrl: string
+  connectionCapabilities: string
+  connectionId: string
+  connectionProvider: string
+  connectionType: string
+  connections: ProviderConnection[]
+  error: string | null
+  globalSlot: string
+  globalSlotConnectionId: string
+  globalSlotModelId: string
+  onChatConnectionIdChange(value: string): void
+  onChatModelIdChange(value: string): void
+  onConnectionBaseUrlChange(value: string): void
+  onConnectionCapabilitiesChange(value: string): void
+  onConnectionIdChange(value: string): void
+  onConnectionProviderChange(value: string): void
+  onConnectionTypeChange(value: string): void
+  onGlobalSlotChange(value: string): void
+  onGlobalSlotConnectionIdChange(value: string): void
+  onGlobalSlotModelIdChange(value: string): void
+  onProjectSlotChange(value: string): void
+  onProjectSlotConnectionIdChange(value: string): void
+  onProjectSlotModelIdChange(value: string): void
+  onRefresh(): void
+  onResetProjectSlot(slot: string): void
+  onSaveConnection(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
+  onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
+  onSaveSecret(event: FormEvent<HTMLFormElement>): void
+  onSecretConnectionIdChange(value: string): void
+  onSecretValueChange(value: string): void
+  projectId: string
+  projectRuntimeSettings: ProjectRuntimeSettings | null
+  projectSlot: string
+  projectSlotConnectionId: string
+  projectSlotModelId: string
+  secretConnectionId: string
+  secretValue: string
+  slots: RuntimeSlotDefault[]
+  state: RequestState
+}) {
+  return (
+    <div className="runtime-grid">
+      <section className="panel runtime-panel" aria-labelledby="runtime-title">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Runtime</p>
+            <h2 id="runtime-title">Provider settings</h2>
+          </div>
+          <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+        </div>
+
+        <button
+          className="secondary-button"
+          disabled={state === 'loading'}
+          onClick={onRefresh}
+          type="button"
+        >
+          {state === 'loading' ? 'Refreshing...' : 'Refresh runtime'}
+        </button>
+
+        {error ? (
+          <p className="form-feedback form-feedback-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        <section className="runtime-section" aria-label="Provider connections">
+          <h3>Connections</h3>
+          <ul className="authoring-list">
+            {connections.length === 0 ? (
+              <li className="authoring-row authoring-row-static">
+                <span>No runtime connections loaded.</span>
+              </li>
+            ) : (
+              connections.map((connection) => (
+                <li className="authoring-row authoring-row-static" key={connection.connection_id}>
+                  <span>
+                    <strong>{connection.connection_id}</strong>
+                    <small>
+                      {connection.provider} / {connection.connection_type}
+                    </small>
+                    <small>{connection.capabilities.join(', ')}</small>
+                    {connection.base_url ? <small>{connection.base_url}</small> : null}
+                    <ConnectionSecretSummary connection={connection} />
+                  </span>
+                  <em>{connection.connection_type}</em>
+                </li>
+              ))
+            )}
+          </ul>
+        </section>
+
+        <form className="authoring-form" onSubmit={onSaveConnection}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Connection ID</span>
+              <input
+                onChange={(event) => onConnectionIdChange(event.currentTarget.value)}
+                value={connectionId}
+              />
+            </label>
+            <label className="field">
+              <span>Provider</span>
+              <select
+                onChange={(event) =>
+                  onConnectionProviderChange(event.currentTarget.value)
+                }
+                value={connectionProvider}
+              >
+                <option value="qwen">qwen</option>
+                <option value="local_openai_compatible">
+                  local_openai_compatible
+                </option>
+                <option value="fake">fake</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Connection type</span>
+              <select
+                onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
+                value={connectionType}
+              >
+                <option value="hosted">hosted</option>
+                <option value="local">local</option>
+                <option value="fake">fake</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Base URL</span>
+              <input
+                onChange={(event) =>
+                  onConnectionBaseUrlChange(event.currentTarget.value)
+                }
+                value={connectionBaseUrl}
+              />
+            </label>
+            <label className="field runtime-field-wide">
+              <span>Capabilities</span>
+              <input
+                onChange={(event) =>
+                  onConnectionCapabilitiesChange(event.currentTarget.value)
+                }
+                value={connectionCapabilities}
+              />
+            </label>
+          </div>
+          <button type="submit">Save connection</button>
+        </form>
+
+        <form className="authoring-form" onSubmit={onSaveSecret}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Secret connection ID</span>
+              <input
+                onChange={(event) =>
+                  onSecretConnectionIdChange(event.currentTarget.value)
+                }
+                value={secretConnectionId}
+              />
+            </label>
+            <label className="field">
+              <span>API key</span>
+              <input
+                autoComplete="off"
+                onChange={(event) => onSecretValueChange(event.currentTarget.value)}
+                type="password"
+                value={secretValue}
+              />
+            </label>
+          </div>
+          <button type="submit">Save secret</button>
+        </form>
+      </section>
+
+      <section className="panel runtime-panel" aria-labelledby="runtime-slots-title">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Defaults</p>
+            <h2 id="runtime-slots-title">Global slots</h2>
+          </div>
+        </div>
+
+        <RuntimeSlotList slots={slots} />
+
+        <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Global slot</span>
+              <select
+                onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
+                value={globalSlot}
+              >
+                {RUNTIME_SLOTS.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Global slot connection ID</span>
+              <input
+                onChange={(event) =>
+                  onGlobalSlotConnectionIdChange(event.currentTarget.value)
+                }
+                value={globalSlotConnectionId}
+              />
+            </label>
+            <label className="field">
+              <span>Global slot model ID</span>
+              <input
+                onChange={(event) =>
+                  onGlobalSlotModelIdChange(event.currentTarget.value)
+                }
+                value={globalSlotModelId}
+              />
+            </label>
+          </div>
+          <button type="submit">Save global slot</button>
+        </form>
+
+        <section className="runtime-section" aria-label="Global chat models">
+          <h3>Chat models</h3>
+          <ul className="authoring-list">
+            {chatModels.length === 0 ? (
+              <li className="authoring-row authoring-row-static">
+                <span>No chat models loaded.</span>
+              </li>
+            ) : (
+              chatModels.map((model) => (
+                <li
+                  className="authoring-row authoring-row-static"
+                  key={`${model.connection_id}-${model.model_id}`}
+                >
+                  <span>
+                    <strong>{model.model_id}</strong>
+                    <small>{model.connection_id}</small>
+                  </span>
+                  <em>{model.is_default ? 'default' : 'enabled'}</em>
+                </li>
+              ))
+            )}
+          </ul>
+        </section>
+
+        <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Chat connection ID</span>
+              <input
+                onChange={(event) =>
+                  onChatConnectionIdChange(event.currentTarget.value)
+                }
+                value={chatConnectionId}
+              />
+            </label>
+            <label className="field">
+              <span>Chat model ID</span>
+              <input
+                onChange={(event) => onChatModelIdChange(event.currentTarget.value)}
+                value={chatModelId}
+              />
+            </label>
+          </div>
+          <button type="submit">Save chat default</button>
+        </form>
+      </section>
+
+      <section
+        className="panel runtime-panel runtime-panel-wide"
+        aria-label="Project runtime settings"
+      >
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Project</p>
+            <h2>Runtime overrides</h2>
+          </div>
+          <span className="status">{projectId.trim() || 'No project'}</span>
+        </div>
+
+        <ProjectRuntimeSettingsView
+          onResetProjectSlot={onResetProjectSlot}
+          settings={projectRuntimeSettings}
+        />
+
+        <form className="authoring-form" onSubmit={onSaveProjectOverride}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Project slot</span>
+              <select
+                onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
+                value={projectSlot}
+              >
+                {RUNTIME_SLOTS.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Project slot connection ID</span>
+              <input
+                onChange={(event) =>
+                  onProjectSlotConnectionIdChange(event.currentTarget.value)
+                }
+                value={projectSlotConnectionId}
+              />
+            </label>
+            <label className="field">
+              <span>Project slot model ID</span>
+              <input
+                onChange={(event) =>
+                  onProjectSlotModelIdChange(event.currentTarget.value)
+                }
+                value={projectSlotModelId}
+              />
+            </label>
+          </div>
+          <button type="submit">Save project override</button>
+        </form>
+      </section>
+    </div>
+  )
+}
+
+function ConnectionSecretSummary({
+  connection,
+}: {
+  connection: ProviderConnection
+}) {
+  if (connection.secrets.length === 0) {
+    return <small>No secret status</small>
+  }
+  return (
+    <>
+      {connection.secrets.map((secret) => (
+        <small key={secret.secret_name}>
+          {secret.secret_name}{' '}
+          {secret.configured ? 'configured' : 'not configured'}
+          {secret.last_four ? ` / last four ${secret.last_four}` : ''}
+        </small>
+      ))}
+    </>
+  )
+}
+
+function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
+  return (
+    <ul className="authoring-list" aria-label="Global runtime slots">
+      {slots.length === 0 ? (
+        <li className="authoring-row authoring-row-static">
+          <span>No global slot defaults loaded.</span>
+        </li>
+      ) : (
+        slots.map((slot) => (
+          <li className="authoring-row authoring-row-static" key={slot.slot}>
+            <span>
+              <strong>{slot.slot}</strong>
+              <small>
+                {slot.connection_id} / {slot.model_id}
+              </small>
+            </span>
+            <em>global</em>
+          </li>
+        ))
+      )}
+    </ul>
+  )
+}
+
+function ProjectRuntimeSettingsView({
+  onResetProjectSlot,
+  settings,
+}: {
+  onResetProjectSlot(slot: string): void
+  settings: ProjectRuntimeSettings | null
+}) {
+  if (settings === null) {
+    return <p className="empty-copy">No project runtime settings loaded.</p>
+  }
+  return (
+    <div className="project-runtime-grid">
+      <section className="runtime-section">
+        <h3>Effective slots</h3>
+        <ul className="authoring-list">
+          {settings.slots.map((slot) => (
+            <li className="authoring-row authoring-row-static" key={slot.slot}>
+              <span>
+                <strong>{slot.slot}</strong>
+                <small>
+                  {slot.connection_id} / {slot.model_id}
+                </small>
+              </span>
+              <div className="authoring-row-actions">
+                <em>{slot.source}</em>
+                {slot.source === 'overridden' ? (
+                  <button
+                    className="compact-button"
+                    onClick={() => onResetProjectSlot(slot.slot)}
+                    type="button"
+                  >
+                    Reset {slot.slot} to global
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="runtime-section">
+        <h3>Chat pool</h3>
+        <ul className="authoring-list">
+          {settings.chat_models.map((model) => (
+            <li
+              className="authoring-row authoring-row-static"
+              key={`${model.connection_id}-${model.model_id}`}
+            >
+              <span>
+                <strong>{model.model_id}</strong>
+                <small>{model.connection_id}</small>
+              </span>
+              <div className="authoring-row-actions">
+                <em>{model.source}</em>
+                <em>{model.is_default ? 'default' : 'enabled'}</em>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   )
 }
 
@@ -2042,6 +2814,19 @@ function authoringStatusLabel(state: RequestState): string {
   return 'Ready'
 }
 
+function runtimeStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Refreshing'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Saved'
+  }
+  return 'Ready'
+}
+
 function ingestionStatusLabel(state: RequestState): string {
   if (state === 'loading') {
     return 'Working'
@@ -2100,6 +2885,61 @@ function upsertProject(projects: Project[], project: Project): Project[] {
 function upsertSource(sources: Source[], source: Source): Source[] {
   const nextSources = sources.filter((item) => item.id !== source.id)
   return [...nextSources, source]
+}
+
+function upsertConnection(
+  connections: ProviderConnection[],
+  connection: ProviderConnection,
+): ProviderConnection[] {
+  const nextConnections = connections.filter(
+    (item) => item.connection_id !== connection.connection_id,
+  )
+  return [...nextConnections, connection]
+}
+
+function updateConnectionSecret(
+  connections: ProviderConnection[],
+  connectionId: string,
+  secret: ProviderSecretStatus,
+): ProviderConnection[] {
+  return connections.map((connection) => {
+    if (connection.connection_id !== connectionId) {
+      return connection
+    }
+    const nextSecrets = connection.secrets.filter(
+      (item) => item.secret_name !== secret.secret_name,
+    )
+    return {
+      ...connection,
+      secrets: [...nextSecrets, secret],
+    }
+  })
+}
+
+function upsertRuntimeSlot(
+  slots: RuntimeSlotDefault[],
+  slot: RuntimeSlotDefault,
+): RuntimeSlotDefault[] {
+  const nextSlots = slots.filter((item) => item.slot !== slot.slot)
+  return [...nextSlots, slot]
+}
+
+function upsertChatModel(models: ChatModel[], model: ChatModel): ChatModel[] {
+  const nextModels = models
+    .filter(
+      (item) =>
+        item.connection_id !== model.connection_id ||
+        item.model_id !== model.model_id,
+    )
+    .map((item) =>
+      model.is_default
+        ? {
+            ...item,
+            is_default: false,
+          }
+        : item,
+    )
+  return [...nextModels, model]
 }
 
 function upsertIngestionJob(
