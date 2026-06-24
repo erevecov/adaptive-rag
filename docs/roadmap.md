@@ -1381,8 +1381,9 @@ Secuencia recomendada:
 
 1. `m33-runtime-provider-settings-plan`: definir OpenSpec, contratos,
    restricciones y slices.
-2. `m33-provider-connections-secrets`: schema, repositories, encryption helper,
-   status APIs y docs.
+2. `m33-provider-connections-secrets`: completo. Agrega schema, repositories,
+   encryption helper Fernet, status APIs y docs para provider connections
+   globales y secrets cifrados.
 3. `m33-global-slot-defaults`: enum de slots, defaults globales, pool de chat y
    APIs globales.
 4. `m33-project-runtime-overrides`: overrides por proyecto y resolucion
@@ -1393,9 +1394,9 @@ Secuencia recomendada:
    overrides por proyecto.
 7. `m33-quality-gate`: validacion, docs y archive.
 
-Continuacion: completar y mergear `m33-runtime-provider-settings-plan`; despues
-abrir `m33-provider-connections-secrets`, porque schema/cifrado es la base de
-los slots y overrides posteriores.
+Continuacion: abrir `m33-global-slot-defaults`, porque las connections y
+secrets globales ya dan la base para defaults de slots y pool de chat antes de
+project overrides, runtime wiring o UI.
 
 ## Politica para reducir conflictos de merge
 

@@ -14,6 +14,14 @@ from adaptive_rag.db.models.graph_projection import (
 from adaptive_rag.db.models.job import JOB_STATUS_VALUES, Job
 from adaptive_rag.db.models.job_event import JOB_EVENT_TYPE_VALUES, JobEvent
 from adaptive_rag.db.models.project import JSONWithJSONB, Project
+from adaptive_rag.db.models.provider_connection import (
+    PROVIDER_CONNECTION_CAPABILITY_VALUES,
+    PROVIDER_CONNECTION_PROVIDER_VALUES,
+    PROVIDER_CONNECTION_TYPE_VALUES,
+    PROVIDER_SECRET_NAME_VALUES,
+    ProviderConnection,
+    ProviderSecret,
+)
 from adaptive_rag.db.models.provider_usage import (
     PROVIDER_USAGE_OPERATION_VALUES,
     PROVIDER_USAGE_SOURCE_VALUES,
@@ -44,9 +52,15 @@ __all__ = [
     "JobEvent",
     "JSONWithJSONB",
     "PROVIDER_USAGE_OPERATION_VALUES",
+    "PROVIDER_CONNECTION_CAPABILITY_VALUES",
+    "PROVIDER_CONNECTION_PROVIDER_VALUES",
+    "PROVIDER_CONNECTION_TYPE_VALUES",
+    "PROVIDER_SECRET_NAME_VALUES",
     "PROVIDER_USAGE_SOURCE_VALUES",
     "PROVIDER_USAGE_STATUS_VALUES",
     "Project",
+    "ProviderConnection",
+    "ProviderSecret",
     "ProviderUsage",
     "RetrievalRun",
     "RetrievedChunk",

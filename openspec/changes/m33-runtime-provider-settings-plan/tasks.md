@@ -28,7 +28,7 @@
 
 ## 4. Future implementation slices
 
-- [ ] 4.1 Implement `m33-provider-connections-secrets`.
+- [x] 4.1 Implement `m33-provider-connections-secrets`.
 - [ ] 4.2 Implement `m33-global-slot-defaults`.
 - [ ] 4.3 Implement `m33-project-runtime-overrides`.
 - [ ] 4.4 Implement `m33-runtime-resolution-wiring`.
