@@ -8,6 +8,9 @@ from adaptive_rag.api.routes.provider_connections import (
     router as provider_connections_router,
 )
 from adaptive_rag.api.routes.retrieval import router as retrieval_router
+from adaptive_rag.api.routes.runtime_settings import (
+    project_router as project_runtime_settings_router,
+)
 from adaptive_rag.api.routes.runtime_settings import router as runtime_settings_router
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
@@ -25,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(provider_connections_router)
     app.include_router(runtime_settings_router)
+    app.include_router(project_runtime_settings_router)
     return app
 
 

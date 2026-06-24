@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,13 +14,20 @@ from adaptive_rag.api.schemas.runtime_settings import (
     ChatModelResponse,
     ChatModelUpsertRequestBody,
     DeleteResponse,
+    ProjectChatModelResponse,
+    ProjectRuntimeSettingsResponse,
+    ProjectRuntimeSlotResponse,
     RuntimeSlotDefaultListResponse,
     RuntimeSlotDefaultResponse,
     RuntimeSlotDefaultUpsertRequestBody,
 )
-from adaptive_rag.db.repositories import RuntimeSettingsRepository
+from adaptive_rag.db.repositories import (
+    ProjectRuntimeSettingsRepository,
+    RuntimeSettingsRepository,
+)
 
 router = APIRouter(prefix="/runtime-settings", tags=["runtime-settings"])
+project_router = APIRouter(tags=["runtime-settings"])
 
 
 @router.get("/slots", response_model=RuntimeSlotDefaultListResponse)
@@ -129,10 +137,139 @@ def delete_chat_model(
     return DeleteResponse(deleted=deleted)
 
 
+@project_router.get(
+    "/projects/{project_id}/runtime-settings",
+    response_model=ProjectRuntimeSettingsResponse,
+)
+def get_project_runtime_settings(
+    project_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProjectRuntimeSettingsResponse:
+    try:
+        settings = ProjectRuntimeSettingsRepository(
+            session
+        ).get_project_runtime_settings(project_id)
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    return ProjectRuntimeSettingsResponse.from_settings(settings)
+
+
+@project_router.put(
+    "/projects/{project_id}/runtime-settings/slots/{slot}",
+    response_model=ProjectRuntimeSlotResponse,
+)
+def upsert_project_runtime_slot_override(
+    project_id: UUID,
+    slot: str,
+    body: RuntimeSlotDefaultUpsertRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProjectRuntimeSlotResponse:
+    try:
+        override = ProjectRuntimeSettingsRepository(session).upsert_slot_override(
+            project_id=project_id,
+            slot=slot,
+            connection_id=body.connection_id,
+            model_id=body.model_id,
+            parameters=body.parameters,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProjectRuntimeSlotResponse.from_override(override)
+
+
+@project_router.delete(
+    "/projects/{project_id}/runtime-settings/slots/{slot}",
+    response_model=DeleteResponse,
+)
+def delete_project_runtime_slot_override(
+    project_id: UUID,
+    slot: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> DeleteResponse:
+    try:
+        deleted = ProjectRuntimeSettingsRepository(session).delete_slot_override(
+            project_id=project_id,
+            slot=slot,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return DeleteResponse(deleted=deleted)
+
+
+@project_router.put(
+    "/projects/{project_id}/runtime-settings/chat/models",
+    response_model=ProjectChatModelResponse,
+)
+def upsert_project_chat_model(
+    project_id: UUID,
+    body: ChatModelUpsertRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProjectChatModelResponse:
+    try:
+        model = ProjectRuntimeSettingsRepository(session).upsert_chat_model(
+            project_id=project_id,
+            connection_id=body.connection_id,
+            model_id=body.model_id,
+            make_default=body.make_default,
+            parameters=body.parameters,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProjectChatModelResponse.from_model(model)
+
+
+@project_router.put(
+    "/projects/{project_id}/runtime-settings/chat/models/{connection_id}/"
+    "{model_id}/default",
+    response_model=ProjectChatModelResponse,
+)
+def set_default_project_chat_model(
+    project_id: UUID,
+    connection_id: str,
+    model_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProjectChatModelResponse:
+    try:
+        model = ProjectRuntimeSettingsRepository(session).set_default_chat_model(
+            project_id=project_id,
+            connection_id=connection_id,
+            model_id=model_id,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProjectChatModelResponse.from_model(model)
+
+
+@project_router.delete(
+    "/projects/{project_id}/runtime-settings/chat/models/{connection_id}/{model_id}",
+    response_model=DeleteResponse,
+)
+def delete_project_chat_model(
+    project_id: UUID,
+    connection_id: str,
+    model_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> DeleteResponse:
+    try:
+        deleted = ProjectRuntimeSettingsRepository(session).delete_chat_model(
+            project_id=project_id,
+            connection_id=connection_id,
+            model_id=model_id,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return DeleteResponse(deleted=deleted)
+
+
 def _http_error(error: ValueError) -> HTTPException:
     message = str(error)
     code = message.split(":", maxsplit=1)[0]
-    if code == "connection_not_found" or code == "chat_model_not_found":
+    if code in {"connection_not_found", "chat_model_not_found", "project_not_found"}:
         return HTTPException(
             status_code=404,
             detail={"code": code, "message": message},
