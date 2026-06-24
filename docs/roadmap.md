@@ -1386,17 +1386,18 @@ Secuencia recomendada:
    globales y secrets cifrados.
 3. `m33-global-slot-defaults`: completo. Agrega enum de slots, defaults
    globales, pool de chat y APIs globales.
-4. `m33-project-runtime-overrides`: overrides por proyecto y resolucion
-   inherited/overridden.
+4. `m33-project-runtime-overrides`: completo. Agrega overrides por proyecto y
+   resolucion inherited/overridden sin secrets project-scoped.
 5. `m33-runtime-resolution-wiring`: factories efectivas para chat, dense
    embedding, sparse embedding, rerank y contextualization.
 6. `m33-runtime-settings-ui`: UI global Runtime settings y controles de
    overrides por proyecto.
 7. `m33-quality-gate`: validacion, docs y archive.
 
-Continuacion: abrir `m33-project-runtime-overrides`, porque los defaults
-globales y el pool de chat ya existen; el siguiente paso es que cada proyecto
-pueda overridear settings sin guardar secrets project-scoped.
+Continuacion: abrir `m33-runtime-resolution-wiring`, porque ya existen
+connections/secrets, defaults globales y overrides por proyecto. El siguiente
+paso es que las factories efectivas resuelvan providers desde esa configuracion
+antes de caer a `.env`.
 
 ## Politica para reducir conflictos de merge
 

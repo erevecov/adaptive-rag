@@ -28,7 +28,13 @@ from adaptive_rag.db.repositories.provider_connections import (
     ProviderConnectionRepository,
     ProviderSecretStatus,
 )
-from adaptive_rag.db.repositories.runtime_settings import RuntimeSettingsRepository
+from adaptive_rag.db.repositories.runtime_settings import (
+    EffectiveChatModel,
+    EffectiveRuntimeSlot,
+    ProjectRuntimeSettings,
+    ProjectRuntimeSettingsRepository,
+    RuntimeSettingsRepository,
+)
 from adaptive_rag.db.repositories.sources import SourceRepository
 from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingRepository
 
@@ -55,6 +61,10 @@ __all__ = [
     "ProviderConnectionRepository",
     "ProviderSecretStatus",
     "ProviderUsageRepository",
+    "EffectiveChatModel",
+    "EffectiveRuntimeSlot",
+    "ProjectRuntimeSettings",
+    "ProjectRuntimeSettingsRepository",
     "RuntimeSettingsRepository",
     "SourceFilters",
     "SourceRepository",

@@ -30,7 +30,7 @@
 
 - [x] 4.1 Implement `m33-provider-connections-secrets`.
 - [x] 4.2 Implement `m33-global-slot-defaults`.
-- [ ] 4.3 Implement `m33-project-runtime-overrides`.
+- [x] 4.3 Implement `m33-project-runtime-overrides`.
 - [ ] 4.4 Implement `m33-runtime-resolution-wiring`.
 - [ ] 4.5 Implement `m33-runtime-settings-ui`.
 - [ ] 4.6 Run `m33-quality-gate` and archive the change when complete.

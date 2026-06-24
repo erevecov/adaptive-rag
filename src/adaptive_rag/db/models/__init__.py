@@ -33,6 +33,8 @@ from adaptive_rag.db.models.retrieved_chunk import RetrievedChunk
 from adaptive_rag.db.models.runtime_settings import (
     RUNTIME_SLOT_VALUES,
     GlobalChatModel,
+    ProjectChatModel,
+    ProjectRuntimeSlotOverride,
     RuntimeSlotDefault,
 )
 from adaptive_rag.db.models.source import Source
@@ -65,6 +67,8 @@ __all__ = [
     "PROVIDER_USAGE_SOURCE_VALUES",
     "PROVIDER_USAGE_STATUS_VALUES",
     "Project",
+    "ProjectChatModel",
+    "ProjectRuntimeSlotOverride",
     "ProviderConnection",
     "ProviderSecret",
     "ProviderUsage",
