@@ -2,13 +2,13 @@
 
 ## Milestone activo
 
-M32 Frontend polish esta activo en
-`openspec/changes/m32-frontend-polish-plan/`.
+M33 Runtime provider settings esta activo en
+`openspec/changes/m33-runtime-provider-settings-plan/`.
 
-El change ya cubre el plan de polish, `m32-product-shell-and-authoring` y
-avanza con el slice `m32-chat-retrieval-experience`: chat, streaming partial
-state, citations e historial read-only con `dense` como default visible y sin
-promover modos avanzados de retrieval.
+El change planifica configuracion global de provider connections, secrets
+cifrados, slots fijos, pool de chat con default unico y overrides por proyecto.
+La regla de diseno es que proyectos aislan conocimiento/chats/settings propias,
+pero provider credentials y connections pertenecen al workspace global.
 
 ## Ultimo milestone completado
 
@@ -38,6 +38,7 @@ npx --yes @fission-ai/openspec list
 
 ## Change OpenSpec activo
 
+- `openspec/changes/m33-runtime-provider-settings-plan/`
 - `openspec/changes/m32-frontend-polish-plan/`
 
 ## Ultimo change archivado
@@ -75,10 +76,13 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m32-chat-retrieval-experience`. La opcion recomendada
-  despues del merge es abrir `m32-visual-qa-and-docs`, porque ya quedan
-  cubiertos shell, authoring, ingestion ops, chat, streaming, citations e
-  historial, y el riesgo restante de M32 esta en QA responsive/documentacion.
+- Completar y mergear `m33-runtime-provider-settings-plan`. La opcion
+  recomendada despues del merge es abrir `m33-provider-connections-secrets`,
+  porque el schema/cifrado global es la base necesaria antes de slots, project
+  overrides, wiring runtime o UI.
+
+- `m32-visual-qa-and-docs` sigue pendiente como cierre visual/documental de M32,
+  pero no debe absorber la configuracion de providers/runtime.
 
 ## Reglas de coordinacion
 
