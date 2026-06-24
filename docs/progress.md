@@ -22,10 +22,9 @@ las specs canonicas `evals-baseline` y `retrieval-quality`.
 
 ## Ultimo slice completado
 
-M33 `m33-provider-connections-secrets`: agrega provider connections globales,
-secrets cifrados server-side con `ADAPTIVE_RAG_PROVIDER_SECRETS_KEY`, repository
-y API de status en `/runtime-settings/connections` sin devolver plaintext ni
-ciphertext.
+M33 `m33-global-slot-defaults`: agrega defaults globales por slot fijo,
+pool global de modelos chat con default unico, repository y API en
+`/runtime-settings/slots` y `/runtime-settings/chat/models`.
 
 Comandos validados al cerrar M31:
 
@@ -76,9 +75,9 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Abrir `m33-global-slot-defaults`, porque los secrets/connections globales ya
-  dan la base para persistir defaults de slots y el pool de chat sin tocar aun
-  project overrides, wiring runtime ni UI.
+- Abrir `m33-project-runtime-overrides`, porque los defaults globales y el pool
+  de chat ya existen; ahora toca permitir que proyectos overrideen slots/pool
+  sin guardar secrets project-scoped.
 
 - `m32-visual-qa-and-docs` sigue pendiente como cierre visual/documental de M32,
   pero no debe absorber la configuracion de providers/runtime.
