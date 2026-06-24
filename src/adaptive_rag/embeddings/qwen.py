@@ -134,6 +134,7 @@ class QwenHTTPEmbeddingClient:
     max_retries: int
     transport: httpx.BaseTransport | None = None
     usage_tracker: ProviderUsageTracker | None = None
+    provider_name: str = "qwen"
     price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
     budget_guard: ProviderBudgetGuard | None = None
 
@@ -155,7 +156,7 @@ class QwenHTTPEmbeddingClient:
             response_data, request_id = self._post(endpoint=endpoint, payload=payload)
             embeddings = _extract_embeddings(response_data)
             record = build_success_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="embedding",
                 duration_ms=_elapsed_ms(started),
@@ -200,7 +201,7 @@ class QwenHTTPEmbeddingClient:
             response_data, request_id = self._post(endpoint=endpoint, payload=payload)
             embeddings = _extract_sparse_embeddings(response_data)
             record = build_success_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="embedding",
                 duration_ms=_elapsed_ms(started),
@@ -282,7 +283,7 @@ class QwenHTTPEmbeddingClient:
             return
         self.usage_tracker.record(
             build_failure_record(
-                provider="qwen",
+                provider=self.provider_name,
                 model=model,
                 operation="embedding",
                 duration_ms=duration_ms,

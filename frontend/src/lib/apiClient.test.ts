@@ -581,6 +581,180 @@ describe('createApiClient', () => {
     expect(calls[0].init?.method).toBe('GET')
   })
 
+  test('manages runtime provider connections and secrets without readback', async () => {
+    const connection = {
+      base_url: 'https://dashscope.example.test/compatible-mode/v1',
+      capabilities: ['chat', 'dense_embedding'],
+      connection_id: 'qwen-hosted',
+      connection_type: 'hosted',
+      created_at: '2026-06-24T00:00:00Z',
+      metadata: { label: 'Hosted Qwen' },
+      provider: 'qwen',
+      secrets: [
+        {
+          configured: true,
+          connection_id: 'qwen-hosted',
+          fingerprint: 'fingerprint',
+          last_four: 'cret',
+          secret_name: 'api_key',
+          updated_at: '2026-06-24T00:00:01Z',
+        },
+      ],
+      updated_at: '2026-06-24T00:00:00Z',
+    }
+    const secretStatus = connection.secrets[0]
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      if (String(input).endsWith('/secrets/api_key')) {
+        return jsonResponse(secretStatus)
+      }
+      return jsonResponse(
+        init?.method === 'GET' ? { items: [connection] } : connection,
+      )
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: fetchStub,
+    })
+
+    const listed = await client.listProviderConnections()
+    const saved = await client.upsertProviderConnection('qwen-hosted', {
+      base_url: connection.base_url,
+      capabilities: ['chat', 'dense_embedding'],
+      connection_type: 'hosted',
+      metadata: { label: 'Hosted Qwen' },
+      provider: 'qwen',
+    })
+    const secret = await client.upsertProviderSecret(
+      'qwen-hosted',
+      'api_key',
+      { value: 'sk-hosted-secret' },
+    )
+
+    expect(listed.items[0].secrets[0].last_four).toBe('cret')
+    expect(saved.provider).toBe('qwen')
+    expect(secret.configured).toBe(true)
+    expect(String(calls[0].input)).toBe('http://api.local/runtime-settings/connections')
+    expect(String(calls[1].input)).toBe(
+      'http://api.local/runtime-settings/connections/qwen-hosted',
+    )
+    expect(calls[1].init?.method).toBe('PUT')
+    expect(calls[1].init?.body).toBe(
+      JSON.stringify({
+        base_url: connection.base_url,
+        capabilities: ['chat', 'dense_embedding'],
+        connection_type: 'hosted',
+        metadata: { label: 'Hosted Qwen' },
+        provider: 'qwen',
+      }),
+    )
+    expect(String(calls[2].input)).toBe(
+      'http://api.local/runtime-settings/connections/qwen-hosted/secrets/api_key',
+    )
+    expect(calls[2].init?.method).toBe('PUT')
+    expect(calls[2].init?.body).toBe(JSON.stringify({ value: 'sk-hosted-secret' }))
+  })
+
+  test('manages global and project runtime settings', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const slot = {
+      connection_id: 'qwen-hosted',
+      model_id: 'text-embedding-v4',
+      parameters: null,
+      slot: 'dense_embedding',
+    }
+    const projectSettings = {
+      chat_models: [
+        {
+          connection_id: 'local-chat',
+          is_default: true,
+          model_id: 'llama3.1:8b',
+          parameters: null,
+          source: 'overridden',
+        },
+      ],
+      project_id: projectId,
+      slots: [
+        {
+          ...slot,
+          source: 'inherited',
+        },
+      ],
+    }
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      const value = String(input)
+      if (value.endsWith('/chat/models')) {
+        return jsonResponse({
+          connection_id: 'local-chat',
+          created_at: '2026-06-24T00:00:00Z',
+          is_default: true,
+          model_id: 'llama3.1:8b',
+          parameters: null,
+          updated_at: '2026-06-24T00:00:00Z',
+        })
+      }
+      if (value.includes('/projects/')) {
+        return init?.method === 'DELETE'
+          ? jsonResponse({ deleted: true })
+          : jsonResponse(projectSettings)
+      }
+      return init?.method === 'GET'
+        ? jsonResponse({ items: [slot] })
+        : jsonResponse({
+            ...slot,
+            created_at: '2026-06-24T00:00:00Z',
+            updated_at: '2026-06-24T00:00:00Z',
+          })
+    }
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch: fetchStub,
+    })
+
+    const globalSlots = await client.listRuntimeSlotDefaults()
+    await client.upsertRuntimeSlotDefault('dense_embedding', {
+      connection_id: 'qwen-hosted',
+      model_id: 'text-embedding-v4',
+    })
+    await client.upsertChatModel({
+      connection_id: 'local-chat',
+      make_default: true,
+      model_id: 'llama3.1:8b',
+    })
+    const effective = await client.getProjectRuntimeSettings(projectId)
+    await client.upsertProjectRuntimeSlotOverride(projectId, 'chat', {
+      connection_id: 'local-chat',
+      model_id: 'llama3.1:8b',
+    })
+    const deleted = await client.deleteProjectRuntimeSlotOverride(
+      projectId,
+      'chat',
+    )
+
+    expect(globalSlots.items[0].slot).toBe('dense_embedding')
+    expect(effective.chat_models[0].source).toBe('overridden')
+    expect(deleted.deleted).toBe(true)
+    expect(String(calls[1].input)).toBe(
+      'http://api.local/runtime-settings/slots/dense_embedding',
+    )
+    expect(calls[1].init?.method).toBe('PUT')
+    expect(String(calls[2].input)).toBe(
+      'http://api.local/runtime-settings/chat/models',
+    )
+    expect(calls[2].init?.method).toBe('POST')
+    expect(String(calls[3].input)).toBe(
+      `http://api.local/projects/${projectId}/runtime-settings`,
+    )
+    expect(String(calls[4].input)).toBe(
+      `http://api.local/projects/${projectId}/runtime-settings/slots/chat`,
+    )
+    expect(calls[4].init?.method).toBe('PUT')
+    expect(calls[5].init?.method).toBe('DELETE')
+  })
+
   test('raises structured errors for non-success responses', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const { fetch } = createFetchStub(

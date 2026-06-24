@@ -61,12 +61,20 @@ class DeterministicContextualizer:
     provider_name = "local"
     model_name = "deterministic-context-v1"
 
-    def __init__(self, *, max_summary_chars: int = 240) -> None:
+    def __init__(
+        self,
+        *,
+        max_summary_chars: int = 240,
+        model_name: str = "deterministic-context-v1",
+        provider_name: str = "local",
+    ) -> None:
         if max_summary_chars < 80:
             raise ContextualizationPipelineError(
                 "max_summary_chars must be at least 80"
             )
         self._max_summary_chars = max_summary_chars
+        self.model_name = model_name
+        self.provider_name = provider_name
 
     def contextualize(
         self,

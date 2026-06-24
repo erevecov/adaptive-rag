@@ -30,7 +30,7 @@
 - M26 V1 product quality gate: completo.
 - M27 Post-v1 retrieval expansion: completo.
 - M32 Frontend polish: activo.
-- M33 Runtime provider settings: activo.
+- M33 Runtime provider settings: completo.
 
 ## M1 Foundation
 
@@ -1349,11 +1349,11 @@ incluye en M32; se separa en M33.
 
 ## M33 Runtime provider settings
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m33-runtime-provider-settings-plan/`
+- `openspec/changes/archive/2026-06-24-m33-runtime-provider-settings-plan/`
 
 Objetivo:
 
@@ -1379,7 +1379,7 @@ Condiciones del milestone:
 
 Secuencia recomendada:
 
-1. `m33-runtime-provider-settings-plan`: definir OpenSpec, contratos,
+1. `m33-runtime-provider-settings-plan`: completo. Define OpenSpec, contratos,
    restricciones y slices.
 2. `m33-provider-connections-secrets`: completo. Agrega schema, repositories,
    encryption helper Fernet, status APIs y docs para provider connections
@@ -1388,16 +1388,16 @@ Secuencia recomendada:
    globales, pool de chat y APIs globales.
 4. `m33-project-runtime-overrides`: completo. Agrega overrides por proyecto y
    resolucion inherited/overridden sin secrets project-scoped.
-5. `m33-runtime-resolution-wiring`: factories efectivas para chat, dense
-   embedding, sparse embedding, rerank y contextualization.
-6. `m33-runtime-settings-ui`: UI global Runtime settings y controles de
-   overrides por proyecto.
-7. `m33-quality-gate`: validacion, docs y archive.
+5. `m33-runtime-resolution-wiring`: completo. Conecta factories efectivas para
+   chat, dense embedding, sparse embedding, rerank y contextualization a
+   runtime settings persistidos, con `.env` como fallback.
+6. `m33-runtime-settings-ui`: completo. Agrega UI global Runtime settings y
+   controles de overrides por proyecto sin exponer secrets.
+7. `m33-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
+   M33.
 
-Continuacion: abrir `m33-runtime-resolution-wiring`, porque ya existen
-connections/secrets, defaults globales y overrides por proyecto. El siguiente
-paso es que las factories efectivas resuelvan providers desde esa configuracion
-antes de caer a `.env`.
+Continuacion: M33 queda cerrado. La siguiente tarea recomendada es
+`m32-visual-qa-and-docs` para cerrar el unico change activo restante.
 
 ## Politica para reducir conflictos de merge
 

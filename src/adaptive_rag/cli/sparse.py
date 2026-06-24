@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from inspect import signature
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 import typer
@@ -16,6 +17,7 @@ from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import (
     SparseEmbeddingPipeline,
     SparseEmbeddingPipelineError,
+    SparseEmbeddingProvider,
 )
 
 app = typer.Typer(no_args_is_help=True)
@@ -37,7 +39,10 @@ def backfill(
         )
         pipeline = SparseEmbeddingPipeline(
             session,
-            provider=get_cli_sparse_embedding_provider(),
+            provider=_get_sparse_embedding_provider(
+                project_id=project_id,
+                session=session,
+            ),
         )
         embedded_count = 0
         reused_count = 0
@@ -81,3 +86,20 @@ def _list_project_document_version_ids(
         )
     )
     return list(session.scalars(statement))
+
+
+def _get_sparse_embedding_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+) -> SparseEmbeddingProvider:
+    parameters = signature(get_cli_sparse_embedding_provider).parameters
+    kwargs: dict[str, object] = {}
+    if "project_id" in parameters:
+        kwargs["project_id"] = project_id
+    if "session" in parameters:
+        kwargs["session"] = session
+    return cast(
+        SparseEmbeddingProvider,
+        cast(Any, get_cli_sparse_embedding_provider)(**kwargs),
+    )

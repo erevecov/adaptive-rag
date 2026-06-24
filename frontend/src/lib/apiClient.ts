@@ -389,6 +389,108 @@ export type ChatSessionDetailResponse = {
   provider_usage: ChatHistoryProviderUsage[]
 }
 
+export type ProviderSecretStatus = {
+  connection_id: string
+  secret_name: string
+  configured: boolean
+  updated_at: string | null
+  last_four: string | null
+  fingerprint: string | null
+}
+
+export type ProviderConnection = {
+  connection_id: string
+  provider: string
+  connection_type: string
+  base_url: string | null
+  capabilities: string[]
+  metadata: JsonObject | null
+  secrets: ProviderSecretStatus[]
+  created_at: string
+  updated_at: string
+}
+
+export type ProviderConnectionListResponse = {
+  items: ProviderConnection[]
+}
+
+export type ProviderConnectionUpsertBody = {
+  provider: string
+  connection_type: string
+  base_url?: string | null
+  capabilities: string[]
+  metadata?: JsonObject | null
+}
+
+export type ProviderSecretUpsertBody = {
+  value: string
+}
+
+export type RuntimeSlotDefault = {
+  slot: string
+  connection_id: string
+  model_id: string
+  parameters: JsonObject | null
+  created_at: string
+  updated_at: string
+}
+
+export type RuntimeSlotDefaultListResponse = {
+  items: RuntimeSlotDefault[]
+}
+
+export type RuntimeSlotDefaultUpsertBody = {
+  connection_id: string
+  model_id: string
+  parameters?: JsonObject | null
+}
+
+export type ChatModel = {
+  connection_id: string
+  model_id: string
+  is_default: boolean
+  parameters: JsonObject | null
+  created_at: string
+  updated_at: string
+}
+
+export type ChatModelListResponse = {
+  items: ChatModel[]
+}
+
+export type ChatModelUpsertBody = {
+  connection_id: string
+  model_id: string
+  make_default?: boolean
+  parameters?: JsonObject | null
+}
+
+export type DeleteResponse = {
+  deleted: boolean
+}
+
+export type ProjectRuntimeSlot = {
+  slot: string
+  source: string
+  connection_id: string
+  model_id: string
+  parameters: JsonObject | null
+}
+
+export type ProjectChatModel = {
+  connection_id: string
+  model_id: string
+  is_default: boolean
+  source: string
+  parameters: JsonObject | null
+}
+
+export type ProjectRuntimeSettings = {
+  project_id: string
+  slots: ProjectRuntimeSlot[]
+  chat_models: ProjectChatModel[]
+}
+
 export class ApiClientError extends Error {
   readonly detail: unknown
   readonly status: number
@@ -452,6 +554,55 @@ export type ApiClient = {
     projectId: string,
     params?: ChatObservabilitySummaryParams,
   ): Promise<ChatObservabilitySummary>
+  listProviderConnections(): Promise<ProviderConnectionListResponse>
+  upsertProviderConnection(
+    connectionId: string,
+    body: ProviderConnectionUpsertBody,
+  ): Promise<ProviderConnection>
+  deleteProviderConnection(connectionId: string): Promise<DeleteResponse>
+  upsertProviderSecret(
+    connectionId: string,
+    secretName: string,
+    body: ProviderSecretUpsertBody,
+  ): Promise<ProviderSecretStatus>
+  deleteProviderSecret(
+    connectionId: string,
+    secretName: string,
+  ): Promise<DeleteResponse>
+  listRuntimeSlotDefaults(): Promise<RuntimeSlotDefaultListResponse>
+  upsertRuntimeSlotDefault(
+    slot: string,
+    body: RuntimeSlotDefaultUpsertBody,
+  ): Promise<RuntimeSlotDefault>
+  deleteRuntimeSlotDefault(slot: string): Promise<DeleteResponse>
+  listChatModels(): Promise<ChatModelListResponse>
+  upsertChatModel(body: ChatModelUpsertBody): Promise<ChatModel>
+  setDefaultChatModel(connectionId: string, modelId: string): Promise<ChatModel>
+  deleteChatModel(connectionId: string, modelId: string): Promise<DeleteResponse>
+  getProjectRuntimeSettings(projectId: string): Promise<ProjectRuntimeSettings>
+  upsertProjectRuntimeSlotOverride(
+    projectId: string,
+    slot: string,
+    body: RuntimeSlotDefaultUpsertBody,
+  ): Promise<ProjectRuntimeSlot>
+  deleteProjectRuntimeSlotOverride(
+    projectId: string,
+    slot: string,
+  ): Promise<DeleteResponse>
+  upsertProjectChatModel(
+    projectId: string,
+    body: ChatModelUpsertBody,
+  ): Promise<ProjectChatModel>
+  setDefaultProjectChatModel(
+    projectId: string,
+    connectionId: string,
+    modelId: string,
+  ): Promise<ProjectChatModel>
+  deleteProjectChatModel(
+    projectId: string,
+    connectionId: string,
+    modelId: string,
+  ): Promise<DeleteResponse>
 }
 
 export type ApiClientOptions = {
@@ -610,6 +761,148 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
+    listProviderConnections() {
+      return requestJson<ProviderConnectionListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/runtime-settings/connections`,
+      })
+    },
+    upsertProviderConnection(connectionId, body) {
+      return requestJson<ProviderConnection>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}`,
+      })
+    },
+    deleteProviderConnection(connectionId) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}`,
+      })
+    },
+    upsertProviderSecret(connectionId, secretName, body) {
+      return requestJson<ProviderSecretStatus>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}/secrets/${encodePathSegment(secretName)}`,
+      })
+    },
+    deleteProviderSecret(connectionId, secretName) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}/secrets/${encodePathSegment(secretName)}`,
+      })
+    },
+    listRuntimeSlotDefaults() {
+      return requestJson<RuntimeSlotDefaultListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/runtime-settings/slots`,
+      })
+    },
+    upsertRuntimeSlotDefault(slot, body) {
+      return requestJson<RuntimeSlotDefault>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/runtime-settings/slots/${encodePathSegment(slot)}`,
+      })
+    },
+    deleteRuntimeSlotDefault(slot) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/runtime-settings/slots/${encodePathSegment(slot)}`,
+      })
+    },
+    listChatModels() {
+      return requestJson<ChatModelListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/runtime-settings/chat/models`,
+      })
+    },
+    upsertChatModel(body) {
+      return requestJson<ChatModel>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/runtime-settings/chat/models`,
+      })
+    },
+    setDefaultChatModel(connectionId, modelId) {
+      return requestJson<ChatModel>(fetchImpl, {
+        method: 'PUT',
+        url: `${baseUrl}/runtime-settings/chat/models/${encodePathSegment(
+          connectionId,
+        )}/${encodePathSegment(modelId)}/default`,
+      })
+    },
+    deleteChatModel(connectionId, modelId) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/runtime-settings/chat/models/${encodePathSegment(
+          connectionId,
+        )}/${encodePathSegment(modelId)}`,
+      })
+    },
+    getProjectRuntimeSettings(projectId) {
+      return requestJson<ProjectRuntimeSettings>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings`,
+      })
+    },
+    upsertProjectRuntimeSlotOverride(projectId, slot, body) {
+      return requestJson<ProjectRuntimeSlot>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/slots/${encodePathSegment(slot)}`,
+      })
+    },
+    deleteProjectRuntimeSlotOverride(projectId, slot) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/slots/${encodePathSegment(slot)}`,
+      })
+    },
+    upsertProjectChatModel(projectId, body) {
+      return requestJson<ProjectChatModel>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/chat/models`,
+      })
+    },
+    setDefaultProjectChatModel(projectId, connectionId, modelId) {
+      return requestJson<ProjectChatModel>(fetchImpl, {
+        method: 'PUT',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/chat/models/${encodePathSegment(
+          connectionId,
+        )}/${encodePathSegment(modelId)}/default`,
+      })
+    },
+    deleteProjectChatModel(projectId, connectionId, modelId) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/chat/models/${encodePathSegment(
+          connectionId,
+        )}/${encodePathSegment(modelId)}`,
+      })
+    },
   }
 }
 
@@ -635,7 +928,7 @@ async function requestJson<T>(
   fetchImpl: typeof fetch,
   options: {
     body?: unknown
-    method: 'GET' | 'POST'
+    method: 'DELETE' | 'GET' | 'POST' | 'PUT'
     url: string
   },
 ): Promise<T> {

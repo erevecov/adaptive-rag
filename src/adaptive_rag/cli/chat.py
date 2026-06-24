@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from inspect import signature
-from typing import Annotated
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 import typer
@@ -17,6 +18,7 @@ from adaptive_rag.api.schemas.chat import (
 )
 from adaptive_rag.chat import (
     ChatRequest,
+    ChatRunner,
     ChatService,
     ChatServiceError,
     SqlAlchemyChatAuditWriter,
@@ -96,10 +98,18 @@ def ask(
         )
         retrieval_service = RetrievalService(
             session,
-            provider=_get_chat_dense_embedding_provider(usage_tracker=usage_tracker),
+            provider=_get_chat_dense_embedding_provider(
+                project_id=project_id,
+                session=session,
+                usage_tracker=usage_tracker,
+            ),
         )
         service = ChatService(
-            runner=get_cli_chat_runner(usage_tracker=usage_tracker),
+            runner=_get_chat_runner(
+                project_id=project_id,
+                session=session,
+                usage_tracker=usage_tracker,
+            ),
             retrieval_service=retrieval_service,
             audit_writer=audit_writer,
             provider_usage_records=lambda: usage_tracker.records,
@@ -203,8 +213,50 @@ def _commit_or_rollback_chat_error(session: Session) -> None:
 
 def _get_chat_dense_embedding_provider(
     *,
+    project_id: UUID,
+    session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> DenseEmbeddingProvider:
-    if "usage_tracker" in signature(get_cli_dense_embedding_provider).parameters:
-        return get_cli_dense_embedding_provider(usage_tracker=usage_tracker)
-    return get_cli_dense_embedding_provider()
+    kwargs = _runtime_factory_kwargs(
+        get_cli_dense_embedding_provider,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(
+        DenseEmbeddingProvider,
+        cast(Any, get_cli_dense_embedding_provider)(**kwargs),
+    )
+
+
+def _get_chat_runner(
+    *,
+    project_id: UUID,
+    session: Session,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> ChatRunner:
+    kwargs = _runtime_factory_kwargs(
+        get_cli_chat_runner,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(ChatRunner, cast(Any, get_cli_chat_runner)(**kwargs))
+
+
+def _runtime_factory_kwargs(
+    factory: Callable[..., object],
+    *,
+    project_id: UUID,
+    session: Session,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> dict[str, object]:
+    parameters = signature(factory).parameters
+    kwargs: dict[str, object] = {}
+    if "project_id" in parameters:
+        kwargs["project_id"] = project_id
+    if "session" in parameters:
+        kwargs["session"] = session
+    if "usage_tracker" in parameters:
+        kwargs["usage_tracker"] = usage_tracker
+    return kwargs

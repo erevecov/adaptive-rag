@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from inspect import signature
-from typing import Annotated, cast
+from inspect import Parameter, signature
+from typing import Annotated, Any, cast
+from uuid import UUID
 
 from fastapi import Depends, HTTPException
 from fastapi.params import Depends as DependsMarker
@@ -37,14 +38,6 @@ def get_session() -> Iterator[Session]:
         yield session
 
 
-def get_rerank_provider_factory() -> RerankProviderFactory:
-    return get_runtime_rerank_provider
-
-
-def get_sparse_embedding_provider_factory() -> SparseEmbeddingProviderFactory:
-    return get_sparse_embedding_provider
-
-
 def get_graph_retriever() -> GraphRetriever | None:
     graph_store = get_graph_store()
     if hasattr(graph_store, "expand_project_chunks"):
@@ -71,41 +64,128 @@ def get_provider_secret_store() -> ProviderSecretStore:
         ) from exc
 
 
+_SESSION_DEPENDENCY = Depends(get_session)
 _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
+_RERANK_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 
 
+def _call_with_supported_kwargs(factory: Callable[..., Any], **kwargs: object) -> Any:
+    parameters = signature(factory).parameters
+    if any(
+        parameter.kind is Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    ):
+        return factory(**kwargs)
+    supported_kwargs = {
+        name: value for name, value in kwargs.items() if name in parameters
+    }
+    return factory(**supported_kwargs)
+
+
+def get_rerank_provider_factory(
+    project_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
+    usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
+        _RERANK_PROVIDER_USAGE_TRACKER_DEPENDENCY
+    ),
+) -> RerankProviderFactory:
+    active_session = None if isinstance(session, DependsMarker) else session
+    active_usage_tracker = (
+        get_provider_usage_tracker()
+        if isinstance(usage_tracker, DependsMarker)
+        else usage_tracker
+    )
+
+    def build() -> RerankProvider:
+        return cast(
+            RerankProvider,
+            _call_with_supported_kwargs(
+                get_runtime_rerank_provider,
+                project_id=project_id,
+                session=active_session,
+                usage_tracker=active_usage_tracker,
+            ),
+        )
+
+    return build
+
+
+def get_sparse_embedding_provider_factory(
+    project_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
+    usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
+        _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
+    ),
+) -> SparseEmbeddingProviderFactory:
+    active_session = None if isinstance(session, DependsMarker) else session
+    active_usage_tracker = (
+        get_provider_usage_tracker()
+        if isinstance(usage_tracker, DependsMarker)
+        else usage_tracker
+    )
+
+    def build() -> SparseEmbeddingProvider:
+        return cast(
+            SparseEmbeddingProvider,
+            _call_with_supported_kwargs(
+                get_default_sparse_embedding_provider,
+                project_id=project_id,
+                session=active_session,
+                usage_tracker=active_usage_tracker,
+            ),
+        )
+
+    return build
+
+
 def get_dense_embedding_provider(
+    project_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
     ),
 ) -> DenseEmbeddingProvider:
+    active_session = None if isinstance(session, DependsMarker) else session
     active_usage_tracker = (
         get_provider_usage_tracker()
         if isinstance(usage_tracker, DependsMarker)
         else usage_tracker
     )
-    if "usage_tracker" in signature(get_default_dense_embedding_provider).parameters:
-        return get_default_dense_embedding_provider(usage_tracker=active_usage_tracker)
-    return get_default_dense_embedding_provider()
+    return cast(
+        DenseEmbeddingProvider,
+        _call_with_supported_kwargs(
+            get_default_dense_embedding_provider,
+            project_id=project_id,
+            session=active_session,
+            usage_tracker=active_usage_tracker,
+        ),
+    )
 
 
 def get_sparse_embedding_provider(
+    project_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
     ),
 ) -> SparseEmbeddingProvider:
+    active_session = None if isinstance(session, DependsMarker) else session
     active_usage_tracker = (
         get_provider_usage_tracker()
         if isinstance(usage_tracker, DependsMarker)
         else usage_tracker
     )
-    if "usage_tracker" in signature(get_default_sparse_embedding_provider).parameters:
-        return get_default_sparse_embedding_provider(
-            usage_tracker=active_usage_tracker
-        )
-    return get_default_sparse_embedding_provider()
+    return cast(
+        SparseEmbeddingProvider,
+        _call_with_supported_kwargs(
+            get_default_sparse_embedding_provider,
+            project_id=project_id,
+            session=active_session,
+            usage_tracker=active_usage_tracker,
+        ),
+    )
 
 
 def get_retrieval_service(
@@ -129,18 +209,27 @@ def get_chat_audit_writer(
 
 
 def get_chat_runner(
+    project_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY
     ),
 ) -> ChatRunner:
+    active_session = None if isinstance(session, DependsMarker) else session
     active_usage_tracker = (
         get_provider_usage_tracker()
         if isinstance(usage_tracker, DependsMarker)
         else usage_tracker
     )
-    if "usage_tracker" in signature(get_runtime_chat_runner).parameters:
-        return get_runtime_chat_runner(usage_tracker=active_usage_tracker)
-    return get_runtime_chat_runner()
+    return cast(
+        ChatRunner,
+        _call_with_supported_kwargs(
+            get_runtime_chat_runner,
+            project_id=project_id,
+            session=active_session,
+            usage_tracker=active_usage_tracker,
+        ),
+    )
 
 
 def get_chat_service(
