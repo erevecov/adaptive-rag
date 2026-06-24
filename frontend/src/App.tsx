@@ -543,6 +543,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   ) : null}
                 </div>
 
+                <ChatRetrievalSummary retrievalLimit={retrievalLimit} />
+
                 {requestError ? (
                   <p className="form-feedback form-feedback-error" role="alert">
                     {requestError}
@@ -1457,6 +1459,22 @@ function MetricCard({
   )
 }
 
+function ChatRetrievalSummary({
+  retrievalLimit,
+}: {
+  retrievalLimit: number
+}) {
+  return (
+    <section className="chat-retrieval-summary" aria-label="Chat retrieval mode">
+      <div>
+        <span>Dense retrieval default</span>
+        <strong>Top {retrievalLimit} cited chunks</strong>
+      </div>
+      <p>Backend default retrieval stays dense for product chat.</p>
+    </section>
+  )
+}
+
 function ResponsePanel({
   response,
   state,
@@ -1466,7 +1484,7 @@ function ResponsePanel({
 }) {
   if (state === 'loading') {
     if (response !== null) {
-      return <ResponseContent response={response} />
+      return <ResponseContent response={response} state={state} />
     }
     return (
       <div className="message-card message-card-muted" aria-live="polite">
@@ -1486,13 +1504,28 @@ function ResponsePanel({
   }
 
   return (
-    <ResponseContent response={response} />
+    <ResponseContent response={response} state={state} />
   )
 }
 
-function ResponseContent({ response }: { response: ChatResponseBody }) {
+function ResponseContent({
+  response,
+  state,
+}: {
+  response: ChatResponseBody
+  state: RequestState
+}) {
+  const isStreaming = state === 'loading'
+
   return (
     <div className="response-stack" aria-label="Chat response">
+      {isStreaming ? (
+        <div className="streaming-status" aria-live="polite">
+          <span>Streaming answer</span>
+          <strong>Retrieval in progress</strong>
+        </div>
+      ) : null}
+
       <div className="message-card">
         <div className="message-card-header">
           <span className="message-role">Assistant</span>
@@ -1505,7 +1538,9 @@ function ResponseContent({ response }: { response: ChatResponseBody }) {
 
       <section className="result-section" aria-labelledby="citations-title">
         <h3 id="citations-title">Citations</h3>
-        {response.citations.length === 0 ? (
+        {isStreaming && response.citations.length === 0 ? (
+          <p className="empty-copy">Citations appear after the final response.</p>
+        ) : response.citations.length === 0 ? (
           <p className="empty-copy">No citations returned.</p>
         ) : (
           <ol className="citation-list">
@@ -1514,8 +1549,15 @@ function ResponseContent({ response }: { response: ChatResponseBody }) {
                 <div>
                   <strong>{result.citation.source_external_id}</strong>
                   <p>{result.citation.snippet}</p>
+                  <div className="citation-meta">
+                    <span>{result.citation.source_type} source</span>
+                    <span>version {result.citation.document_version_number}</span>
+                    <span>
+                      chars {result.citation.char_start}-{result.citation.char_end}
+                    </span>
+                  </div>
                 </div>
-                <span>{formatScore(result.score)}</span>
+                <span>score {formatScore(result.score)}</span>
               </li>
             ))}
           </ol>
@@ -1695,7 +1737,9 @@ function SessionDetailPanel({
         <CompactStateList
           emptyLabel="No stored tool calls."
           items={detail.tool_calls}
-          renderItem={(call) => <ToolCallDetail call={call} />}
+          renderItem={(call) => (
+            <ToolCallDetail call={call} key={call.tool_call_id} />
+          )}
         />
       </section>
 
@@ -1704,7 +1748,9 @@ function SessionDetailPanel({
         <CompactStateList
           emptyLabel="No stored retrieval runs."
           items={detail.retrieval_runs}
-          renderItem={(run) => <RetrievalRunDetail run={run} />}
+          renderItem={(run) => (
+            <RetrievalRunDetail key={run.retrieval_run_id} run={run} />
+          )}
         />
       </section>
 
@@ -1713,7 +1759,9 @@ function SessionDetailPanel({
         <CompactStateList
           emptyLabel="No provider usage stored."
           items={detail.provider_usage}
-          renderItem={(usage) => <ProviderUsageDetail usage={usage} />}
+          renderItem={(usage) => (
+            <ProviderUsageDetail key={usage.provider_usage_id} usage={usage} />
+          )}
         />
       </section>
     </section>
@@ -1750,9 +1798,11 @@ function RetrievalRunDetail({ run }: { run: ChatHistoryRetrievalRun }) {
   return (
     <li key={run.retrieval_run_id}>
       <strong>{run.query}</strong>
-      <p>
-        {run.strategy} / top {run.top_k}
-      </p>
+      <div className="retrieval-run-meta">
+        <span>{retrievalStrategyLabel(run)}</span>
+        <span>top {run.top_k}</span>
+        {run.latency_ms === null ? null : <span>latency {run.latency_ms} ms</span>}
+      </div>
       <ul className="retrieved-chunk-list">
         {run.retrieved_chunks.map((chunk) => (
           <RetrievedChunkDetail chunk={chunk} key={chunk.retrieved_chunk_id} />
@@ -1763,10 +1813,22 @@ function RetrievalRunDetail({ run }: { run: ChatHistoryRetrievalRun }) {
 }
 
 function RetrievedChunkDetail({ chunk }: { chunk: ChatHistoryRetrievedChunk }) {
+  const scores = [
+    formatOptionalScore('dense score', chunk.dense_score),
+    formatOptionalScore('lexical score', chunk.lexical_score),
+    formatOptionalScore('rrf score', chunk.rrf_score),
+    formatOptionalScore('rerank score', chunk.rerank_score),
+  ].filter((score): score is string => score !== null)
+
   return (
     <li>
-      <span>#{chunk.rank}</span>
-      <p>{getCitationText(chunk.citation, 'snippet')}</p>
+      <span>rank {chunk.rank}</span>
+      <div>
+        <p>{getCitationText(chunk.citation, 'snippet')}</p>
+        {scores.length > 0 ? (
+          <small className="retrieved-chunk-scores">{scores.join(' / ')}</small>
+        ) : null}
+      </div>
     </li>
   )
 }
@@ -1892,6 +1954,10 @@ function formatScore(score: number): string {
   return score.toFixed(2)
 }
 
+function formatOptionalScore(label: string, score: number | null): string | null {
+  return score === null ? null : `${label} ${formatScore(score)}`
+}
+
 function formatJsonValue(value: unknown): string {
   if (value === null || value === undefined) {
     return 'None'
@@ -1911,6 +1977,13 @@ function getCitationText(value: unknown, key: string): string {
   return typeof nextValue === 'string' && nextValue.length > 0
     ? nextValue
     : 'No citation text stored.'
+}
+
+function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
+  if (run.strategy === 'dense' && !run.used_rerank) {
+    return 'default dense retrieval'
+  }
+  return run.used_rerank ? `${run.strategy} with rerank` : `${run.strategy} retrieval`
 }
 
 function statusClassName(state: RequestState): string {

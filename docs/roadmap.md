@@ -1335,14 +1335,15 @@ Secuencia recomendada:
 2. `m32-product-shell-and-authoring`: completo en branch de implementacion.
    Agrega contexto de proyecto compartido, mantiene `dense` como default visible,
    explicita source -> ingestion y muestra metadata operativa de jobs/run-next.
-3. `m32-chat-retrieval-experience`: propuesto. Pulir chat, streaming, citations,
-   historial y retrieval dense.
+3. `m32-chat-retrieval-experience`: completo en branch de implementacion.
+   Agrega contrato `dense` visible en chat, streaming partial state sin
+   citations finales falsas, metadata de citations e historial de retrieval
+   read-only con strategy/top-k/latencia/rank/score.
 4. `m32-visual-qa-and-docs`: propuesto. Ejecutar QA responsive y actualizar
    docs/runbooks.
 
-Continuacion: completar y mergear `m32-product-shell-and-authoring`; despues
-abrir `m32-chat-retrieval-experience` para pulir chat, streaming, citations,
-historial y retrieval dense antes del closeout visual/documental.
+Continuacion: completar y mergear `m32-chat-retrieval-experience`; despues
+abrir `m32-visual-qa-and-docs` para cerrar QA responsive y docs/runbooks de M32.
 
 ## Politica para reducir conflictos de merge
 

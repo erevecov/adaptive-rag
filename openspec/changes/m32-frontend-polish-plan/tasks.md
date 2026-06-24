@@ -42,3 +42,21 @@
 - [x] 6.2 Run frontend lint, typecheck and build.
 - [x] 6.3 Run OpenSpec validation.
 - [x] 6.4 Run responsive browser QA for authoring and shell views.
+
+## 7. Chat retrieval experience polish
+
+- [x] 7.1 Add tests for the chat surface showing `dense` as the default
+  retrieval path without advanced strategy controls.
+- [x] 7.2 Add tests for streaming partial answers that distinguish in-progress
+  retrieval from final citations.
+- [x] 7.3 Add tests for citation metadata and read-only retrieval history
+  strategy/rank/score details.
+- [x] 7.4 Polish chat, streaming, citations and session detail UI without
+  changing backend contracts or promoting advanced retrieval modes.
+
+## 8. Validation for chat retrieval experience
+
+- [x] 8.1 Run targeted frontend tests for chat/retrieval polish.
+- [x] 8.2 Run full frontend tests, lint, typecheck and build.
+- [x] 8.3 Run OpenSpec validation.
+- [x] 8.4 Run responsive browser QA for chat and history flows.

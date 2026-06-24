@@ -485,6 +485,22 @@ describe('App chat workspace', () => {
     expect(screen.getByText('Selected project')).toBeTruthy()
   })
 
+  test('frames chat as dense retrieval without advanced mode controls', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    expect(screen.getByText('Dense retrieval default')).toBeTruthy()
+    expect(
+      screen.getByText('Backend default retrieval stays dense for product chat.'),
+    ).toBeTruthy()
+    expect(screen.getByText('Top 5 cited chunks')).toBeTruthy()
+    expect(
+      screen.queryByRole('combobox', { name: /retrieval strategy/i }),
+    ).toBeNull()
+    expect(screen.queryByText('hybrid_rrf')).toBeNull()
+    expect(screen.queryByText('dense_sparse')).toBeNull()
+    expect(screen.queryByText('graph')).toBeNull()
+  })
+
   test('shows explicit ingestion next steps and job operation metadata', async () => {
     const user = userEvent.setup()
     const idleRun: IngestionRunResponse = {
@@ -554,6 +570,10 @@ describe('App chat workspace', () => {
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
+    expect(screen.getByText('score 0.88')).toBeTruthy()
+    expect(screen.getByText('url source')).toBeTruthy()
+    expect(screen.getByText('version 2')).toBeTruthy()
+    expect(screen.getByText('chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getAllByText('session-123')).toHaveLength(2)
   })
@@ -583,6 +603,12 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
+    expect(screen.getByText('Streaming answer')).toBeTruthy()
+    expect(screen.getByText('Retrieval in progress')).toBeTruthy()
+    expect(
+      screen.getByText('Citations appear after the final response.'),
+    ).toBeTruthy()
+    expect(screen.queryByText('No citations returned.')).toBeNull()
     expect(screen.getByText('streaming evidence')).toBeTruthy()
 
     finalResponse.resolve(chatResponse)
@@ -689,9 +715,13 @@ describe('App chat workspace', () => {
     expect(screen.getByText('The import failed because the worker was not running.')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getByText('deployment import failure')).toBeTruthy()
+    expect(screen.getByText('default dense retrieval')).toBeTruthy()
+    expect(screen.getByText('latency 41 ms')).toBeTruthy()
     expect(
       screen.getByText('Confirm the worker is running before retrying the import.'),
     ).toBeTruthy()
+    expect(screen.getByText('rank 1')).toBeTruthy()
+    expect(screen.getByText('dense score 0.84')).toBeTruthy()
     expect(screen.getByText('qwen / qwen-plus')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
