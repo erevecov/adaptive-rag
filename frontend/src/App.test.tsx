@@ -382,7 +382,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Create project' }))
 
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
-    expect(await screen.findByText(projectId)).toBeTruthy()
+    expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
 
     await user.selectOptions(screen.getByLabelText('Source type'), 'markdown')
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
@@ -458,6 +458,70 @@ describe('App chat workspace', () => {
     )
 
     expect(client.retryIngestionJob).toHaveBeenCalledWith(projectId, ingestionJob.id)
+  })
+
+  test('keeps selected project context visible across workspace views', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listProjects: vi.fn(async () => projectListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    expect(screen.getByText('Selected project')).toBeTruthy()
+    expect(screen.getByText(projectId)).toBeTruthy()
+    expect(screen.getByText('dense default')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
+    await user.click(await screen.findByRole('button', { name: 'Select Demo' }))
+
+    expect(screen.getAllByText(projectId).length).toBeGreaterThanOrEqual(2)
+
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
+      projectId,
+    )
+    expect(screen.getByText('Selected project')).toBeTruthy()
+  })
+
+  test('shows explicit ingestion next steps and job operation metadata', async () => {
+    const user = userEvent.setup()
+    const idleRun: IngestionRunResponse = {
+      created_document_version: null,
+      document_id: null,
+      document_version_id: null,
+      error_message: null,
+      job_id: null,
+      project_id: projectId,
+      source_id: null,
+      status: 'idle',
+      worker_id: 'frontend',
+    }
+    const client = createClientStub({
+      listIngestionJobs: vi.fn(async () => ingestionJobListResponse),
+      listSources: vi.fn(async () => sourceListResponse),
+      runNextIngestionJob: vi.fn(async () => idleRun),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+
+    expect(await screen.findByText('Ready to queue ingestion')).toBeTruthy()
+    expect(screen.getByText('Queue ingestion when this source should be indexed.')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+
+    expect(await screen.findByText('attempt 1 of 3')).toBeTruthy()
+    expect(screen.getByText('run after 2026-06-22T00:00:02Z')).toBeTruthy()
+    expect(screen.getByText('unlocked')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+
+    expect(await screen.findByText('Last run idle')).toBeTruthy()
+    expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
   })
 
   test('submits a chat question and renders response details', async () => {

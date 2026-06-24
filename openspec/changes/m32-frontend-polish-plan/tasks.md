@@ -25,3 +25,20 @@
 - [x] 4.1 Run OpenSpec validation for `m32-frontend-polish-plan`.
 - [x] 4.2 Run canonical spec validation and diff hygiene checks.
 - [x] 4.3 Commit, push and open a draft PR.
+
+## 5. Product shell and authoring polish
+
+- [x] 5.1 Add tests for selected project context across workspace views.
+- [x] 5.2 Add tests for explicit source-to-ingestion next steps.
+- [x] 5.3 Add tests for ingestion job attempts, scheduling and lock state.
+- [x] 5.4 Add a compact project context bar shared by authoring, chat and
+  observability.
+- [x] 5.5 Polish source rows and ingestion run/job state without changing API
+  contracts or retrieval defaults.
+
+## 6. Validation for product shell and authoring
+
+- [x] 6.1 Run frontend unit tests.
+- [x] 6.2 Run frontend lint, typecheck and build.
+- [x] 6.3 Run OpenSpec validation.
+- [x] 6.4 Run responsive browser QA for authoring and shell views.
