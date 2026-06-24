@@ -30,6 +30,11 @@ from adaptive_rag.db.models.provider_usage import (
 )
 from adaptive_rag.db.models.retrieval_run import RetrievalRun
 from adaptive_rag.db.models.retrieved_chunk import RetrievedChunk
+from adaptive_rag.db.models.runtime_settings import (
+    RUNTIME_SLOT_VALUES,
+    GlobalChatModel,
+    RuntimeSlotDefault,
+)
 from adaptive_rag.db.models.source import Source
 from adaptive_rag.db.models.tool_call import TOOL_CALL_STATUS_VALUES, ToolCall
 
@@ -45,6 +50,7 @@ __all__ = [
     "DocumentVersion",
     "GRAPH_PROJECTION_BACKEND_VALUES",
     "GRAPH_PROJECTION_STATUS_VALUES",
+    "GlobalChatModel",
     "GraphProjection",
     "JOB_EVENT_TYPE_VALUES",
     "JOB_STATUS_VALUES",
@@ -64,6 +70,8 @@ __all__ = [
     "ProviderUsage",
     "RetrievalRun",
     "RetrievedChunk",
+    "RUNTIME_SLOT_VALUES",
+    "RuntimeSlotDefault",
     "Source",
     "TOOL_CALL_STATUS_VALUES",
     "ToolCall",

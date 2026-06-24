@@ -1384,8 +1384,8 @@ Secuencia recomendada:
 2. `m33-provider-connections-secrets`: completo. Agrega schema, repositories,
    encryption helper Fernet, status APIs y docs para provider connections
    globales y secrets cifrados.
-3. `m33-global-slot-defaults`: enum de slots, defaults globales, pool de chat y
-   APIs globales.
+3. `m33-global-slot-defaults`: completo. Agrega enum de slots, defaults
+   globales, pool de chat y APIs globales.
 4. `m33-project-runtime-overrides`: overrides por proyecto y resolucion
    inherited/overridden.
 5. `m33-runtime-resolution-wiring`: factories efectivas para chat, dense
@@ -1394,9 +1394,9 @@ Secuencia recomendada:
    overrides por proyecto.
 7. `m33-quality-gate`: validacion, docs y archive.
 
-Continuacion: abrir `m33-global-slot-defaults`, porque las connections y
-secrets globales ya dan la base para defaults de slots y pool de chat antes de
-project overrides, runtime wiring o UI.
+Continuacion: abrir `m33-project-runtime-overrides`, porque los defaults
+globales y el pool de chat ya existen; el siguiente paso es que cada proyecto
+pueda overridear settings sin guardar secrets project-scoped.
 
 ## Politica para reducir conflictos de merge
 
