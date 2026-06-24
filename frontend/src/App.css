@@ -245,6 +245,44 @@ h3 {
   justify-content: space-between;
 }
 
+.chat-retrieval-summary {
+  align-items: center;
+  background: #f5f8f7;
+  border: 1px solid #d8e2de;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  padding: 12px 14px;
+}
+
+.chat-retrieval-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chat-retrieval-summary span,
+.citation-meta span,
+.retrieval-run-meta span {
+  color: #397267;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.chat-retrieval-summary strong {
+  color: #223532;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.chat-retrieval-summary p {
+  color: #5c6866;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 button {
   background: #23423e;
   border: 0;
@@ -330,6 +368,30 @@ button:disabled {
 .result-section {
   display: grid;
   gap: 14px;
+}
+
+.streaming-status {
+  align-items: center;
+  background: #eaf4f1;
+  border: 1px solid #cfe0db;
+  border-radius: 8px;
+  color: #23423e;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.streaming-status span {
+  color: #397267;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.streaming-status strong {
+  color: #223532;
+  font-size: 13px;
 }
 
 .result-section {
@@ -779,6 +841,22 @@ button:disabled {
   padding: 5px 8px;
 }
 
+.citation-meta,
+.retrieval-run-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.citation-meta span,
+.retrieval-run-meta span {
+  background: #edf6f3;
+  border-radius: 999px;
+  padding: 5px 8px;
+  text-transform: none;
+}
+
 .tool-call-list li {
   display: grid;
   gap: 4px;
@@ -904,6 +982,14 @@ button:disabled {
   font-weight: 800;
 }
 
+.retrieved-chunk-scores {
+  color: #397267;
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 20px;
@@ -964,6 +1050,7 @@ button:disabled {
   .view-switcher,
   .observability-filters,
   .authoring-grid,
+  .chat-retrieval-summary,
   .source-form-grid,
   .metric-grid,
   .observability-breakdowns {

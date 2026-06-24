@@ -5,9 +5,9 @@
 M32 Frontend polish esta activo en
 `openspec/changes/m32-frontend-polish-plan/`.
 
-El change ya cubre el plan de polish y avanza con el slice
-`m32-product-shell-and-authoring`: shell compacto, contexto de proyecto
-compartido, source authoring e ingestion ops sin cambiar contratos backend ni
+El change ya cubre el plan de polish, `m32-product-shell-and-authoring` y
+avanza con el slice `m32-chat-retrieval-experience`: chat, streaming partial
+state, citations e historial read-only con `dense` como default visible y sin
 promover modos avanzados de retrieval.
 
 ## Ultimo milestone completado
@@ -22,10 +22,10 @@ las specs canonicas `evals-baseline` y `retrieval-quality`.
 
 ## Ultimo slice completado
 
-M32 `m32-product-shell-and-authoring`: agrega una barra compacta de contexto de
-proyecto compartida entre views, explicita el paso source -> ingestion y hace
-visibles attempts, scheduling, lock state, retryability y resultado de
-`run-next` sin afirmar indexing cuando el backend devuelve `idle` o `blocked`.
+M32 `m32-chat-retrieval-experience`: agrega el contrato `dense` read-only al
+flujo de chat, distingue streaming parcial de respuesta final, muestra metadata
+de citations y hace legibles strategy/top-k/latencia/rank/score en historial
+sin agregar controles para modos avanzados.
 
 Comandos validados al cerrar M31:
 
@@ -75,10 +75,10 @@ npx --yes @fission-ai/openspec list
 
 ## Siguiente tarea recomendada
 
-- Completar y mergear `m32-product-shell-and-authoring`. La opcion recomendada
-  despues del merge es abrir `m32-chat-retrieval-experience`, porque ya queda
-  consolidado el contexto de proyecto, authoring e ingestion ops, y el siguiente
-  riesgo visible esta en chat, streaming, citations, historial y retrieval dense.
+- Completar y mergear `m32-chat-retrieval-experience`. La opcion recomendada
+  despues del merge es abrir `m32-visual-qa-and-docs`, porque ya quedan
+  cubiertos shell, authoring, ingestion ops, chat, streaming, citations e
+  historial, y el riesgo restante de M32 esta en QA responsive/documentacion.
 
 ## Reglas de coordinacion
 
