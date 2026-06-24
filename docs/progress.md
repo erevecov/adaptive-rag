@@ -6,26 +6,24 @@ No hay OpenSpec changes activos.
 
 ## Ultimo milestone completado
 
-M34 Runtime model catalog cerrado el 2026-06-24.
+M35 Acceptance e2e post-runtime-settings cerrado el 2026-06-24.
 
-M34 elimina los IDs manuales de runtime settings para conexiones creadas desde
-la UI, agrega un catalogo global de modelos por provider connection y permite
-sincronizar IDs reales desde endpoints `/models` compatibles con Qwen/DashScope,
-locales y fakes. La UI consume ese catalogo mediante selectors para defaults
-globales, pool/default de chat y overrides por proyecto, preservando pricing o
-metadata solo cuando el provider la entrega.
+M35 agrega `adaptive-rag acceptance runtime-settings-smoke`, un gate local que
+configura provider connections fake, sincroniza model catalog, setea slots
+globales, crea un override por proyecto y ejecuta ingestion/indexing/chat citado
+resolviendo providers desde runtime settings persistidos.
 El change quedo archivado en
-`openspec/changes/archive/2026-06-24-m34-runtime-model-catalog/` y actualiza
-las specs canonicas `provider-runtime` y `chat-frontend`.
+`openspec/changes/archive/2026-06-24-m35-acceptance-e2e-post-runtime-settings/`
+y actualiza las specs canonicas `provider-runtime` y
+`v1-product-completion`.
 
 ## Ultimo slice completado
 
-M34 `m34-runtime-model-catalog`: agrega catalogo persistido de modelos por
-conexion, sync de modelos Qwen/local/fake, IDs de conexiones generados por el
-backend y selectors en Runtime settings/proyecto para usar IDs reales sin
-memorizarlos.
+M35 `m35-acceptance-e2e-post-runtime-settings`: agrega runner/CLI de acceptance,
+runbook `docs/runtime-acceptance.md`, tests CLI/docs y evidencia JSON para
+catalogo, slots efectivos, runtime resolution y first-run citado.
 
-Comandos validados al cerrar M34:
+Comandos validados al cerrar M35:
 
 ```text
 uv run pytest
@@ -34,8 +32,8 @@ pnpm --dir frontend test
 pnpm --dir frontend lint
 pnpm --dir frontend typecheck
 pnpm --dir frontend build
-npx --yes @fission-ai/openspec validate m34-runtime-model-catalog --strict
-npx --yes @fission-ai/openspec archive m34-runtime-model-catalog --yes
+npx --yes @fission-ai/openspec validate m35-acceptance-e2e-post-runtime-settings --strict
+npx --yes @fission-ai/openspec archive m35-acceptance-e2e-post-runtime-settings --yes
 npx --yes @fission-ai/openspec validate --specs --strict --no-interactive
 npx --yes @fission-ai/openspec list
 git diff --check
@@ -47,7 +45,7 @@ git diff --check
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-24-m34-runtime-model-catalog/`
+- `openspec/changes/archive/2026-06-24-m35-acceptance-e2e-post-runtime-settings/`
 
 ## Spec canonica activa
 
@@ -80,10 +78,10 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Abrir un nuevo change OpenSpec para un milestone de acceptance end-to-end
-  post-runtime-settings, validando el flujo local completo con project
-  authoring, ingestion, sync/catalogo de modelos, runtime settings y chat citado
-  antes de agregar nuevas features.
+- Ejecutar el nuevo acceptance smoke sobre una base local real desde `main`
+  despues del merge. Si pasa, la siguiente decision recomendada es un change
+  pequeno para hardening de UX/error states de Runtime settings con evidencia
+  del smoke, no nuevas capacidades de provider.
 
 ## Reglas de coordinacion
 
