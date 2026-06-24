@@ -60,3 +60,13 @@
 - [x] 8.2 Run full frontend tests, lint, typecheck and build.
 - [x] 8.3 Run OpenSpec validation.
 - [x] 8.4 Run responsive browser QA for chat and history flows.
+
+## 9. Visual QA and docs closeout
+
+- [x] 9.1 Run desktop and mobile visual QA across chat, history, authoring,
+  observability and runtime settings using mocked public API responses.
+- [x] 9.2 Fix mobile responsive layout issues found in `.form-actions` and
+  authoring rows.
+- [x] 9.3 Re-run visual QA and confirm no horizontal overflow, clipped controls
+  or console errors.
+- [x] 9.4 Reconcile progress and roadmap docs, then archive M32.
