@@ -19,24 +19,21 @@ y actualiza las specs canonicas `provider-runtime` y
 
 ## Ultimo slice completado
 
-M35 `m35-acceptance-e2e-post-runtime-settings`: agrega runner/CLI de acceptance,
-runbook `docs/runtime-acceptance.md`, tests CLI/docs y evidencia JSON para
-catalogo, slots efectivos, runtime resolution y first-run citado.
+Post-M35 `runtime-settings-ux-hardening` (PR #139): bloquea guardar global
+slots, chat default y overrides por proyecto cuando la provider connection
+seleccionada no tiene modelos compatibles sincronizados. La UI muestra un hint
+de sync de modelos y deja los controles de save deshabilitados hasta que exista
+catalogo compatible.
 
-Comandos validados al cerrar M35:
+Comandos validados al cerrar el hardening:
 
 ```text
-uv run pytest
-uv run ruff check src tests
 pnpm --dir frontend test
-pnpm --dir frontend lint
 pnpm --dir frontend typecheck
+pnpm --dir frontend lint
 pnpm --dir frontend build
-npx --yes @fission-ai/openspec validate m35-acceptance-e2e-post-runtime-settings --strict
-npx --yes @fission-ai/openspec archive m35-acceptance-e2e-post-runtime-settings --yes
-npx --yes @fission-ai/openspec validate --specs --strict --no-interactive
-npx --yes @fission-ai/openspec list
 git diff --check
+Browser QA Runtime settings: missing synced model hint visible, model select disabled, save disabled y consola limpia.
 ```
 
 ## Change OpenSpec activo
@@ -78,10 +75,11 @@ git diff --check
 
 ## Siguiente tarea recomendada
 
-- Ejecutar el nuevo acceptance smoke sobre una base local real desde `main`
-  despues del merge. Si pasa, la siguiente decision recomendada es un change
-  pequeno para hardening de UX/error states de Runtime settings con evidencia
-  del smoke, no nuevas capacidades de provider.
+- Re-ejecutar desde `origin/main` el gate final de release/v1.0: acceptance
+  smoke `adaptive-rag acceptance runtime-settings-smoke` sobre una base local
+  real, suite backend/frontend minima y revision de docs de release. La opcion
+  recomendada es decidir tag/GitHub release solo despues de ese gate; abrir un
+  nuevo OpenSpec solo si aparece una capacidad nueva concreta.
 
 ## Reglas de coordinacion
 
