@@ -33,6 +33,7 @@
 - M33 Runtime provider settings: completo.
 - M34 Runtime model catalog: completo.
 - M35 Acceptance e2e post-runtime-settings: completo.
+- Post-M35 Runtime settings UX/error-state hardening: completo.
 
 ## M1 Foundation
 
@@ -1468,10 +1469,38 @@ Secuencia recomendada:
    `adaptive-rag acceptance runtime-settings-smoke`, runbook
    `docs/runtime-acceptance.md`, tests CLI/docs y archive.
 
-Continuacion: M35 queda cerrado. La siguiente accion recomendada es ejecutar el
-smoke desde `main` despues del merge contra una base local real; si pasa, abrir
-un slice pequeno de hardening de UX/error states de Runtime settings usando esa
-evidencia como baseline.
+Continuacion: M35 queda cerrado. El slice post-M35 de Runtime settings
+UX/error-state hardening quedo mergeado en PR #139 usando la evidencia del
+acceptance smoke como baseline.
+
+## Post-M35 Runtime settings UX/error-state hardening
+
+Estado: completo.
+
+PR:
+
+- #139 `[codex] Guard runtime saves without synced models`
+
+Objetivo:
+
+- Evitar que Runtime settings guarde global slots, chat default u overrides por
+  proyecto cuando la provider connection elegida todavia no tiene modelos
+  compatibles sincronizados.
+
+Entregado:
+
+- Guard de UI para global slots, chat default y project overrides sin modelo
+  compatible sincronizado.
+- Hint explicito de sync de modelos antes de guardar, en vez de caer en una
+  validacion generica de missing model.
+- Save controls deshabilitados mientras no exista catalogo compatible.
+- Cobertura frontend para el caso de global slot sin modelo compatible y QA en
+  browser sobre Runtime settings.
+
+Continuacion: no hay OpenSpec activo. La siguiente tarea recomendada es correr
+el gate final de release/v1.0 desde `origin/main`, incluyendo acceptance smoke
+local real, suite backend/frontend minima y revision de docs de release antes de
+decidir manualmente tag o GitHub release.
 
 ## Politica para reducir conflictos de merge
 
