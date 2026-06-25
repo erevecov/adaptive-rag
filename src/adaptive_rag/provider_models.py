@@ -94,11 +94,14 @@ def _models_endpoint(base_url: str) -> str:
 def _model_items(data: object) -> list[object] | None:
     if not isinstance(data, dict):
         return None
-    if isinstance(data.get("data"), list):
-        return data["data"]
+    items = data.get("data")
+    if isinstance(items, list):
+        return items
     output = data.get("output")
-    if isinstance(output, dict) and isinstance(output.get("data"), list):
-        return output["data"]
+    if isinstance(output, dict):
+        output_items = output.get("data")
+        if isinstance(output_items, list):
+            return output_items
     return None
 
 
