@@ -1124,6 +1124,21 @@ function RuntimeSettingsPanel({
     providerModels,
     selectedModelId: projectSlotModelId,
   })
+  const globalSlotSyncMessage = missingSyncedModelMessage({
+    connectionId: globalSlotConnectionId,
+    modelOptions: globalSlotModelOptions,
+    target: globalSlot,
+  })
+  const chatSyncMessage = missingSyncedModelMessage({
+    connectionId: chatConnectionId,
+    modelOptions: chatModelOptions,
+    target: 'chat default',
+  })
+  const projectSlotSyncMessage = missingSyncedModelMessage({
+    connectionId: projectSlotConnectionId,
+    modelOptions: projectSlotModelOptions,
+    target: projectSlot,
+  })
 
   return (
     <div className="runtime-grid">
@@ -1314,7 +1329,14 @@ function RuntimeSettingsPanel({
               />
             </label>
           </div>
-          <button type="submit">Save global slot</button>
+          {globalSlotSyncMessage ? (
+            <p className="form-feedback runtime-sync-hint">
+              {globalSlotSyncMessage}
+            </p>
+          ) : null}
+          <button disabled={globalSlotSyncMessage !== null} type="submit">
+            Save global slot
+          </button>
         </form>
 
         <section className="runtime-section" aria-label="Global chat models">
@@ -1362,7 +1384,12 @@ function RuntimeSettingsPanel({
               />
             </label>
           </div>
-          <button type="submit">Save chat default</button>
+          {chatSyncMessage ? (
+            <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
+          ) : null}
+          <button disabled={chatSyncMessage !== null} type="submit">
+            Save chat default
+          </button>
         </form>
       </section>
 
@@ -1417,7 +1444,14 @@ function RuntimeSettingsPanel({
               />
             </label>
           </div>
-          <button type="submit">Save project override</button>
+          {projectSlotSyncMessage ? (
+            <p className="form-feedback runtime-sync-hint">
+              {projectSlotSyncMessage}
+            </p>
+          ) : null}
+          <button disabled={projectSlotSyncMessage !== null} type="submit">
+            Save project override
+          </button>
         </form>
       </section>
     </div>
@@ -3126,6 +3160,22 @@ function connectionsForCapability(
   return connections.filter((connection) =>
     connection.capabilities.includes(capability),
   )
+}
+
+function missingSyncedModelMessage({
+  connectionId,
+  modelOptions,
+  target,
+}: {
+  connectionId: string
+  modelOptions: ProviderModelOption[]
+  target: string
+}): string | null {
+  const trimmedConnectionId = connectionId.trim()
+  if (trimmedConnectionId.length === 0 || modelOptions.length > 0) {
+    return null
+  }
+  return `Sync models for ${trimmedConnectionId} before saving ${target}.`
 }
 
 function providerModelOptions({
