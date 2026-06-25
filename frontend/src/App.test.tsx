@@ -1209,4 +1209,50 @@ describe('App chat workspace', () => {
       'chat',
     )
   })
+
+  test('blocks global slot save until the selected connection has compatible synced models', async () => {
+    const user = userEvent.setup()
+    const upsertRuntimeSlotDefault = vi.fn(
+      async () => runtimeSlotDefaultsResponse.items[0],
+    )
+    const client = createClientStub({
+      getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
+      listChatModels: vi.fn(async () => chatModelsResponse),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => ({
+        items: providerModelsResponse.items.filter(
+          (model) =>
+            !(
+              model.connection_id === 'qwen-hosted' &&
+              model.capabilities.includes('dense_embedding')
+            ),
+        ),
+      })),
+      listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
+      upsertRuntimeSlotDefault,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+
+    await screen.findByText('qwen-hosted')
+    await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
+    await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
+
+    expect(
+      screen.getByText(
+        'Sync models for qwen-hosted before saving dense_embedding.',
+      ),
+    ).toBeTruthy()
+    const saveButton = screen.getByRole('button', {
+      name: 'Save global slot',
+    }) as HTMLButtonElement
+    expect(saveButton.disabled).toBe(true)
+
+    await user.click(saveButton)
+
+    expect(upsertRuntimeSlotDefault).not.toHaveBeenCalled()
+  })
 })
