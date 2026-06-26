@@ -342,6 +342,20 @@ def test_qwen_http_client_reports_http_errors_without_secret() -> None:
     assert "sk-secret-value" not in message
 
 
+def test_qwen_http_embedding_client_repr_hides_api_key() -> None:
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-secret-value",
+        base_url="https://example.test/v1",
+        timeout_seconds=5.0,
+        max_retries=0,
+    )
+
+    representation = repr(client)
+
+    assert "https://example.test/v1" in representation
+    assert "sk-secret-value" not in representation
+
+
 def test_qwen_http_embedding_client_records_usage_and_estimated_cost() -> None:
     tracker = InMemoryProviderUsageTracker()
 

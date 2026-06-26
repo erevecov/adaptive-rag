@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         "postgresql+psycopg://adaptive_rag:adaptive_rag"
         "@localhost:5432/adaptive_rag"
     )
-    api_key: str | None = Field(default=None)
+    api_key: SecretStr | None = Field(default=None)
     vector_store: VectorStoreName = "pgvector"
     graph_store: GraphStoreName = "disabled"
     provider_runtime_mode: ProviderRuntimeMode = "fake"

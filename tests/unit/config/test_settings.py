@@ -21,6 +21,16 @@ def test_api_key_is_optional(monkeypatch):
     assert settings.api_key is None
 
 
+def test_api_key_setting_hides_value_when_configured(monkeypatch):
+    monkeypatch.setenv("ADAPTIVE_RAG_API_KEY", "secret-api-key")
+
+    settings = Settings()
+
+    assert settings.api_key is not None
+    assert settings.api_key.get_secret_value() == "secret-api-key"
+    assert "secret-api-key" not in repr(settings)
+
+
 def test_provider_runtime_settings_use_env_prefix(monkeypatch):
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_RUNTIME_MODE", "live")
     monkeypatch.setenv("ADAPTIVE_RAG_EMBEDDING_PROVIDER", "qwen")
