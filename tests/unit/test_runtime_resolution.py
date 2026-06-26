@@ -31,6 +31,7 @@ from adaptive_rag.embeddings import QwenDenseEmbeddingProvider
 from adaptive_rag.embeddings.qwen import QwenHTTPEmbeddingClient
 from adaptive_rag.provider_runtime import (
     ProviderConfigurationError,
+    ResolvedRuntimeSlot,
     get_chat_runner,
     get_contextualizer,
     get_dense_embedding_provider,
@@ -198,6 +199,23 @@ def test_global_chat_default_resolves_without_project_id() -> None:
     assert runner.model_name == "llama3.1:8b"
     assert isinstance(runner.client, QwenHTTPChatClient)
     assert runner.client.base_url == "http://localhost:11434/v1"
+
+
+def test_resolved_runtime_slot_repr_hides_api_key() -> None:
+    slot = ResolvedRuntimeSlot(
+        slot="chat",
+        provider="qwen",
+        connection_id="qwen-hosted",
+        model_id="qwen-plus",
+        base_url="https://example.test/v1",
+        parameters=None,
+        api_key="sk-secret-value",
+    )
+
+    representation = repr(slot)
+
+    assert "qwen-hosted" in representation
+    assert "sk-secret-value" not in representation
 
 
 def test_runtime_resolution_falls_back_to_env_when_no_persisted_setting() -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any, Protocol
 
@@ -128,7 +128,7 @@ class QwenSparseEmbeddingProvider:
 class QwenHTTPEmbeddingClient:
     """Cliente HTTP pequeno para endpoints Qwen/DashScope de embeddings."""
 
-    api_key: str
+    api_key: str = field(repr=False)
     base_url: str
     timeout_seconds: float
     max_retries: int

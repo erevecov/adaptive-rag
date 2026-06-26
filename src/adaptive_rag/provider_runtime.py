@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
@@ -60,7 +60,7 @@ class ResolvedRuntimeSlot:
     model_id: str
     base_url: str | None
     parameters: dict[str, Any] | None
-    api_key: str | None
+    api_key: str | None = field(repr=False)
 
 
 def get_dense_embedding_provider(
