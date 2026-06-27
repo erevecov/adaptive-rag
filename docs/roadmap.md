@@ -34,6 +34,7 @@
 - M34 Runtime model catalog: completo.
 - M35 Acceptance e2e post-runtime-settings: completo.
 - Post-M35 Runtime settings UX/error-state hardening: completo.
+- Post-M35 Final release gate/audit closeout: completo.
 
 ## M1 Foundation
 
@@ -1497,10 +1498,42 @@ Entregado:
 - Cobertura frontend para el caso de global slot sin modelo compatible y QA en
   browser sobre Runtime settings.
 
-Continuacion: no hay OpenSpec activo. La siguiente tarea recomendada es correr
-el gate final de release/v1.0 desde `origin/main`, incluyendo acceptance smoke
-local real, suite backend/frontend minima y revision de docs de release antes de
-decidir manualmente tag o GitHub release.
+Continuacion: el gate final de release/v1.0 queda cubierto por el cierre
+post-M35 de PR #142. No hay tag ni GitHub release v1.0.
+
+## Post-M35 Final release gate/audit closeout
+
+Estado: completo.
+
+PR:
+
+- #142 `[codex] Hide runtime secrets from repr`
+
+Objetivo:
+
+- Re-ejecutar desde `origin/main` el gate final local de v1.0, confirmar que el
+  producto cumple el contrato `ready_for_v1_0`, revisar la exposicion de
+  secrets y dejar documentada la decision de no crear tag ni GitHub release
+  todavia.
+
+Entregado:
+
+- `adaptive-rag v1 quality-gate` exitoso con
+  `release_decision=ready_for_v1_0`.
+- `adaptive-rag acceptance runtime-settings-smoke` exitoso, incluyendo el
+  criterio `secret_values_not_exposed`.
+- Suite backend/frontend, OpenSpec strict y auditorias de seguridad locales
+  pasadas antes del merge.
+- Redaccion adicional de secrets en `Settings`, `QwenHTTPEmbeddingClient` y
+  `ResolvedRuntimeSlot` para evitar exposicion via `repr`.
+
+Continuacion: no hay OpenSpec activo. La siguiente tarea recomendada es abrir
+un nuevo change OpenSpec para una feature pre-v1 concreta antes de implementar.
+Opcion recomendada: hardening opt-in de auth/API key para la API antes de
+exponer el producto fuera de localhost, reutilizando `ADAPTIVE_RAG_API_KEY` ya
+redacted y manteniendo el default local sin auth segun el contrato actual. No
+crear tag ni GitHub release v1.0 hasta cerrar esa feature y re-ejecutar el gate
+final.
 
 ## Politica para reducir conflictos de merge
 

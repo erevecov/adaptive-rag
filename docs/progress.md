@@ -19,22 +19,33 @@ y actualiza las specs canonicas `provider-runtime` y
 
 ## Ultimo slice completado
 
-Post-M35 `runtime-settings-ux-hardening` (PR #139): bloquea guardar global
-slots, chat default y overrides por proyecto cuando la provider connection
-seleccionada no tiene modelos compatibles sincronizados. La UI muestra un hint
-de sync de modelos y deja los controles de save deshabilitados hasta que exista
-catalogo compatible.
+Post-M35 final release gate/audit closeout (PR #142): re-ejecuta desde
+`origin/main` el gate final local, confirma `release_decision=ready_for_v1_0`,
+valida el acceptance smoke post-runtime-settings y corrige la exposicion de
+secrets en `repr`.
 
-Comandos validados al cerrar el hardening:
+Comandos validados al cerrar el gate/audit:
 
 ```text
+uv run adaptive-rag v1 quality-gate --output artifacts\v1-quality-gate.json
+uv run adaptive-rag acceptance runtime-settings-smoke --output artifacts\runtime-acceptance.json
+uv run pytest
+uv run ruff check .
+uv run mypy src\adaptive_rag
 pnpm --dir frontend test
 pnpm --dir frontend typecheck
 pnpm --dir frontend lint
 pnpm --dir frontend build
+npx --yes @fission-ai/openspec validate --specs --strict --no-interactive
+uv tool run pip-audit --strict
+pnpm --dir frontend audit --prod
+uv tool run bandit -r src -q
 git diff --check
-Browser QA Runtime settings: missing synced model hint visible, model select disabled, save disabled y consola limpia.
 ```
+
+Resultado: el producto queda listo segun el gate local (`ready_for_v1_0`), pero
+no se creo tag ni GitHub release v1.0. La decision queda diferida
+intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Change OpenSpec activo
 
@@ -75,11 +86,12 @@ Browser QA Runtime settings: missing synced model hint visible, model select dis
 
 ## Siguiente tarea recomendada
 
-- Re-ejecutar desde `origin/main` el gate final de release/v1.0: acceptance
-  smoke `adaptive-rag acceptance runtime-settings-smoke` sobre una base local
-  real, suite backend/frontend minima y revision de docs de release. La opcion
-  recomendada es decidir tag/GitHub release solo despues de ese gate; abrir un
-  nuevo OpenSpec solo si aparece una capacidad nueva concreta.
+- Elegir la proxima feature pre-v1 mediante un nuevo OpenSpec antes de
+  implementar. Opcion recomendada: hardening opt-in de auth/API key para la API
+  antes de exponer el producto fuera de localhost, reutilizando
+  `ADAPTIVE_RAG_API_KEY` ya redacted y manteniendo el default local sin auth
+  segun el contrato actual. No crear tag ni GitHub release v1.0 hasta cerrar
+  esa feature y re-ejecutar el gate final.
 
 ## Reglas de coordinacion
 
