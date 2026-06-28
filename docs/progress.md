@@ -2,25 +2,19 @@
 
 ## Milestone activo
 
-M36 Functional chat workspace activo en `m36-chat-functional-workspace`.
+M37 Project RBAC/chat knowledge activo en
+`m37-project-rbac-chat-knowledge`.
 
-Objetivo: convertir el chat frontend en un workspace funcional de investigacion,
-usando contratos publicos reales para sesiones, detalle de audit trail,
-observability, citations y sources. Cada feature debe cerrar con pruebas o QA
-antes de avanzar. No se deben mostrar archive, memory ni STT Qwen como UI falsa
-si no hay contrato backend verificado.
+Objetivo: convertir proyectos en espacios compartidos con usuarios,
+membresias por proyecto, sesiones de chat privadas por usuario y flujo de
+conocimiento propuesto desde chat. Todos los usuarios autenticados pueden ver
+nombres de proyectos, pero solo `superadmin` o miembros asignados pueden
+acceder. `superadmin` administra usuarios/proyectos globales; `admin`,
+`contributor` y `viewer` operan por proyecto.
 
-Estado de implementacion: el chat quedo reorganizado como workspace funcional de
-tres zonas: rail de sesiones, chat central e inspector derecho con tabs
-Context/Minimap. La paleta ya no esta acoplada a Chat: Settings
-incluye Appearance con temas globales Light, Dark y Purple, aplicados via
-`data-theme`, `.dark` y `localStorage`. Session navigation,
-context/usage, minimap, action stepper, source viewer desde citas actuales y
-chunks historicos, y STT browser fallback quedaron implementados con tests.
-Qwen STT queda deferred
-porque la documentacion actual de DashScope requiere ASR con `file_urls`/polling
-y no existe contrato backend local de audio. Memory queda deferred tras verificar
-que no hay tabla, repositorio ni ruta API durable.
+Estado de planificacion: disenio aprobado para auth local first-party,
+`project_memberships`, `chat_sessions.user_id` y `knowledge_proposals`. El
+OpenSpec M37 define el contrato antes de tocar schema, rutas o UI.
 
 ## Ultimo milestone completado
 
@@ -37,9 +31,20 @@ y actualiza las specs canonicas `provider-runtime` y
 
 ## Ultimo slice completado
 
-Post-M35 final release gate/audit closeout (PR #142): re-ejecuta desde
-`origin/main` el gate final local, confirma `release_decision=ready_for_v1_0`,
-valida el acceptance smoke post-runtime-settings y corrige la exposicion de
+M36 Functional chat workspace: el chat quedo reorganizado como workspace
+funcional de tres zonas: rail de sesiones, chat central e inspector derecho con
+tabs Context/Minimap. La paleta ya no esta acoplada a Chat: Settings incluye
+Appearance con temas globales Light, Dark y Purple, aplicados via `data-theme`,
+`.dark` y `localStorage`. Session navigation, context/usage, minimap, action
+stepper, source viewer desde citas actuales y chunks historicos, y STT browser
+fallback quedaron implementados con tests. Qwen STT queda deferred porque la
+documentacion actual de DashScope requiere ASR con `file_urls`/polling y no
+existe contrato backend local de audio. Memory queda deferred tras verificar
+que no hay tabla, repositorio ni ruta API durable.
+
+Post-M35 final release gate/audit closeout (PR #142): re-ejecuto desde
+`origin/main` el gate final local, confirmo `release_decision=ready_for_v1_0`,
+valido el acceptance smoke post-runtime-settings y corrigio la exposicion de
 secrets en `repr`.
 
 Comandos validados al cerrar el gate/audit:
@@ -68,6 +73,7 @@ intencionalmente para permitir una feature pre-v1 adicional.
 ## Change OpenSpec activo
 
 - `openspec/changes/m36-chat-functional-workspace/`
+- `openspec/changes/m37-project-rbac-chat-knowledge/`
 
 ## Ultimo change archivado
 
@@ -104,8 +110,10 @@ intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Siguiente tarea recomendada
 
-- Revisar el diff de M36, preparar PR y decidir si se quiere agregar un contrato
-  backend real para Qwen STT o memoria durable en un milestone posterior.
+- Validar y revisar el OpenSpec M37. Si el contrato queda aprobado, el primer
+  slice recomendado es `m37-auth-schema-repositories`, porque usuarios,
+  membresias, ownership de sesiones y propuestas de conocimiento bloquean el
+  resto del trabajo.
 
 ## Reglas de coordinacion
 
