@@ -9,7 +9,7 @@ from dataclasses import dataclass, replace
 from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError
 from adaptive_rag.evals.fixtures import build_retrieval_fixture_project
@@ -170,6 +170,7 @@ def run_hosted_eval_suite(
     *,
     provider: DenseEmbeddingProvider,
     runner: ChatRunner,
+    sparse_provider: SparseEmbeddingProvider | None = None,
     reranker: RerankProvider | None = None,
     rerank_candidate_limit: int | None = None,
     usage_tracker: InMemoryProviderUsageTracker,
@@ -206,6 +207,7 @@ def run_hosted_eval_suite(
         session,
         suite,
         provider=provider,
+        sparse_provider=sparse_provider,
         runner=runner,
     )
     status: EvalStatus = (
@@ -240,6 +242,7 @@ def run_hosted_chat_eval_suite(
     runner: ChatRunner,
     usage_tracker: InMemoryProviderUsageTracker,
     options: EvalRunOptions,
+    sparse_provider: SparseEmbeddingProvider | None = None,
 ) -> EvalRunReport:
     """Ejecuta chat hosted y agrega usage/cost al reporte."""
 
@@ -251,6 +254,7 @@ def run_hosted_chat_eval_suite(
         session,
         suite,
         provider=provider,
+        sparse_provider=sparse_provider,
         runner=runner,
     )
     return replace(

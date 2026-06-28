@@ -158,6 +158,14 @@ fake provider runtime or dense embedding contract.
 - **AND** uses `text_type=query` for retrieval queries
 - **AND** parses each sparse item as `index`, `value` and optional `token`
 
+#### Scenario: Qwen embeddings respect DashScope batch limits
+
+- **WHEN** a live Qwen dense or sparse embedding request contains more than 10
+  texts
+- **THEN** the provider splits the request into batches of at most 10 texts
+- **AND** returns embeddings in the original input order
+- **AND** records provider usage for each network call without logging secrets
+
 #### Scenario: Sparse provider records usage as embedding
 
 - **WHEN** a sparse embedding provider call completes, fails or is blocked

@@ -25,6 +25,9 @@ class QwenEmbeddingProviderError(ValueError):
     """Error estable para llamadas de embeddings Qwen."""
 
 
+DASHSCOPE_EMBEDDING_BATCH_SIZE = 10
+
+
 class QwenEmbeddingClient(Protocol):
     def embed_texts(
         self,
@@ -145,6 +148,26 @@ class QwenHTTPEmbeddingClient:
         texts: list[str],
         dimensions: int,
     ) -> list[list[float]]:
+        if not texts:
+            return []
+        embeddings: list[list[float]] = []
+        for batch in _embedding_batches(texts):
+            embeddings.extend(
+                self._embed_text_batch(
+                    model=model,
+                    texts=batch,
+                    dimensions=dimensions,
+                )
+            )
+        return embeddings
+
+    def _embed_text_batch(
+        self,
+        *,
+        model: str,
+        texts: list[str],
+        dimensions: int,
+    ) -> list[list[float]]:
         endpoint, payload = _embedding_request(
             base_url=self.base_url,
             model=model,
@@ -182,6 +205,28 @@ class QwenHTTPEmbeddingClient:
             raise
 
     def embed_sparse_texts(
+        self,
+        *,
+        model: str,
+        texts: list[str],
+        text_type: str,
+        dimensions: int,
+    ) -> list[SparseEmbeddingVector]:
+        if not texts:
+            return []
+        embeddings: list[SparseEmbeddingVector] = []
+        for batch in _embedding_batches(texts):
+            embeddings.extend(
+                self._embed_sparse_text_batch(
+                    model=model,
+                    texts=batch,
+                    text_type=text_type,
+                    dimensions=dimensions,
+                )
+            )
+        return embeddings
+
+    def _embed_sparse_text_batch(
         self,
         *,
         model: str,
@@ -347,6 +392,13 @@ def _sparse_embedding_request(
                 "text_type": text_type,
             },
         },
+    )
+
+
+def _embedding_batches(texts: list[str]) -> tuple[list[str], ...]:
+    return tuple(
+        texts[index : index + DASHSCOPE_EMBEDDING_BATCH_SIZE]
+        for index in range(0, len(texts), DASHSCOPE_EMBEDDING_BATCH_SIZE)
     )
 
 

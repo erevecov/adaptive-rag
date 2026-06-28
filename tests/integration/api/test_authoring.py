@@ -38,7 +38,7 @@ def _client(*, session: Session) -> TestClient:
     return TestClient(app)
 
 
-def test_create_project_defaults_to_dense_and_lists_projects() -> None:
+def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
     session = _make_session()
     client = _client(session=session)
 
@@ -47,7 +47,7 @@ def test_create_project_defaults_to_dense_and_lists_projects() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["name"] == "Demo"
-    assert payload["embedding_mode"] == "dense"
+    assert payload["embedding_mode"] == "dense_sparse"
     assert payload["retrieval_contextualization_enabled"] is True
     assert payload["budget_config_json"] is None
     assert set(payload) == {
@@ -75,16 +75,16 @@ def test_get_project_returns_404_for_missing_project() -> None:
     assert response.json()["detail"] == "project not found"
 
 
-def test_create_project_rejects_public_dense_sparse_mode() -> None:
+def test_create_project_accepts_explicit_dense_mode() -> None:
     client = _client(session=_make_session())
 
     response = client.post(
         "/projects",
-        json={"name": "Sparse", "embedding_mode": "dense_sparse"},
+        json={"name": "Dense", "embedding_mode": "dense"},
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == "project embedding_mode must be dense"
+    assert response.status_code == 200
+    assert response.json()["embedding_mode"] == "dense"
 
 
 def test_create_text_source_requires_content_and_lists_sources() -> None:

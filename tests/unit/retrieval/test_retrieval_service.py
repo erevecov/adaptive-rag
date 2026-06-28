@@ -284,7 +284,12 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     session.commit()
 
     results = RetrievalService(session, provider=provider).search(
-        RetrievalSearchRequest(project_id=project.id, query="alpha question", limit=2)
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="alpha question",
+            limit=2,
+            strategy="dense",
+        )
     )
 
     assert provider.inputs == ["alpha question"]
@@ -341,6 +346,53 @@ def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> No
         "lexical_rank": 1,
         "lexical_score": results[0].score,
         "used_lexical": True,
+    }
+
+
+def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    filler = " ".join(f"filler{i}" for i in range(80))
+    _long_source, _long_document, _long_version, long_match = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="long.md",
+        stable_id="long",
+        text=f"SKU 42 manual {filler}",
+        snippet=f"SKU 42 manual {filler}",
+        embedding=None,
+    )
+    _short_source, _short_document, _short_version, short_match = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="short.md",
+            stable_id="short",
+            text="Header\n\nSKU 42 manual",
+            snippet="SKU 42 manual",
+            embedding=None,
+        )
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    results = RetrievalService(session, provider=provider).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="SKU 42 manual",
+            limit=2,
+            strategy="bm25",
+        )
+    )
+
+    assert provider.inputs == []
+    assert [result.chunk_id for result in results] == [short_match.id, long_match.id]
+    assert [result.strategy for result in results] == ["bm25", "bm25"]
+    assert results[0].score > results[1].score
+    assert results[0].retrieval_metadata == {
+        "bm25_rank": 1,
+        "bm25_score": results[0].score,
+        "used_bm25": True,
     }
 
 
@@ -476,6 +528,69 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
         "rrf_score": results[1].score,
         "source_strategies": ["dense"],
         "used_rrf": True,
+    }
+
+
+def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    _general_source, _general_document, _general_version, _general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=_vector(0.1),
+        )
+    )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="target.md",
+        stable_id="target",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=target,
+        indices=(42,),
+        values=(3.0,),
+        fingerprint="sparse-fp:target",
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(42,), values=(1.0,))
+    )
+    session.commit()
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    ).search(
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="SKU-42 installation",
+            limit=2,
+            strategy="sparse",
+        )
+    )
+
+    assert provider.inputs == []
+    assert sparse_provider.query_inputs == ["SKU-42 installation"]
+    assert [result.chunk_id for result in results] == [target.id]
+    assert [result.strategy for result in results] == ["sparse"]
+    assert results[0].retrieval_metadata == {
+        "sparse_index_fingerprint": "sparse-fp:target",
+        "sparse_rank": 1,
+        "sparse_score": 3.0,
+        "used_sparse": True,
     }
 
 
@@ -692,6 +807,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
             project_id=project.id,
             query="filtered question",
             limit=5,
+            strategy="dense",
             metadata_filter=RetrievalMetadataFilter(
                 source_id=wanted_source.id,
                 document_id=wanted_document.id,
@@ -735,13 +851,14 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
                 query="x",
                 strategy="unsupported",
             ),
-            "retrieval strategy must be dense, graph, lexical, hybrid_rrf "
-            "or dense_sparse",
+            "retrieval strategy must be dense, graph, lexical, bm25, "
+            "sparse, hybrid_rrf or dense_sparse",
         ),
         (
             RetrievalSearchRequest(
                 project_id=PROJECT_ID,
                 query="x",
+                strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(source_type=" "),
             ),
             "source_type must not be empty",
@@ -750,6 +867,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
             RetrievalSearchRequest(
                 project_id=PROJECT_ID,
                 query="x",
+                strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(tags=("",)),
             ),
             "tags must not be empty",
@@ -758,6 +876,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
             RetrievalSearchRequest(
                 project_id=PROJECT_ID,
                 query="x",
+                strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(
                     source_created_at_from=datetime(2026, 2, 2, tzinfo=UTC),
                     source_created_at_to=datetime(2026, 2, 1, tzinfo=UTC),
@@ -780,7 +899,10 @@ def test_retrieval_service_rejects_invalid_requests_without_provider_call(
     assert provider.inputs == []
 
 
-def test_retrieval_service_requires_sparse_provider_for_dense_sparse() -> None:
+@pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
+def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
+    strategy: str,
+) -> None:
     session = _make_session()
     project = _create_project(session, "demo")
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -788,14 +910,14 @@ def test_retrieval_service_requires_sparse_provider_for_dense_sparse() -> None:
 
     with pytest.raises(
         RetrievalServiceError,
-        match="sparse embedding provider is required for dense_sparse retrieval",
+        match="sparse embedding provider is required for sparse retrieval",
     ):
         RetrievalService(session, provider=provider).search(
             RetrievalSearchRequest(
                 project_id=project.id,
                 query="alpha question",
                 limit=3,
-                strategy="dense_sparse",
+                strategy=strategy,
             )
         )
 
@@ -873,12 +995,13 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
         provider=provider,
         reranker=reranker,
     ).search(
-        RetrievalSearchRequest(
-            project_id=project.id,
-            query="beta question",
-            limit=1,
-            rerank=RetrievalRerankOptions(candidate_limit=2),
-        )
+            RetrievalSearchRequest(
+                project_id=project.id,
+                query="beta question",
+                limit=1,
+                strategy="dense",
+                rerank=RetrievalRerankOptions(candidate_limit=2),
+            )
     )
 
     assert provider.inputs == ["beta question"]
@@ -937,6 +1060,7 @@ def test_retrieval_service_maps_rerank_provider_errors() -> None:
                 project_id=project.id,
                 query="alpha question",
                 limit=1,
+                strategy="dense",
                 rerank=RetrievalRerankOptions(candidate_limit=1),
             )
         )
@@ -970,6 +1094,7 @@ def test_retrieval_service_maps_rerank_budget_errors() -> None:
                 project_id=project.id,
                 query="alpha question",
                 limit=1,
+                strategy="dense",
                 rerank=RetrievalRerankOptions(candidate_limit=1),
             )
         )
@@ -989,6 +1114,7 @@ def test_retrieval_service_rejects_wrong_query_embedding_dimension() -> None:
             RetrievalSearchRequest(
                 project_id=project.id,
                 query="dimension question",
+                strategy="dense",
             )
         )
 

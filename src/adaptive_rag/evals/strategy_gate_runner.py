@@ -26,12 +26,14 @@ from adaptive_rag.evals.models import (
     EvalCaseComparison,
     EvalCaseComparisonOutcome,
     EvalCaseResult,
+    EvalProviderUsageSummary,
     EvalRunReport,
     EvalStatus,
     EvalSuite,
 )
 from adaptive_rag.evals.reports import (
     serialize_eval_case_comparison,
+    serialize_eval_provider_usage,
     serialize_eval_report,
 )
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
@@ -51,6 +53,8 @@ StrategyGateStrategy = Literal[
     "dense",
     "contextual_dense",
     "lexical",
+    "bm25",
+    "sparse",
     "hybrid_rrf",
     "dense_sparse",
     "graph",
@@ -62,6 +66,8 @@ DEFAULT_STRATEGIES: tuple[StrategyGateStrategy, ...] = (
     "dense",
     "contextual_dense",
     "lexical",
+    "bm25",
+    "sparse",
     "hybrid_rrf",
     "dense_sparse",
     "graph",
@@ -98,6 +104,7 @@ class StrategyGateReport:
     recommended_default: str
     dense_baseline: EvalRunReport
     rows: tuple[StrategyGateRow, ...]
+    provider_usage: EvalProviderUsageSummary | None = None
 
 
 def run_retrieval_strategy_gate_eval_suite(
@@ -154,7 +161,7 @@ def run_retrieval_strategy_gate_eval_suite(
     return StrategyGateReport(
         suite_id=suite.suite_id,
         status=status,
-        default_strategy="dense",
+        default_strategy="dense_sparse",
         recommended_default=recommended_default,
         dense_baseline=replace(dense_report, mode="offline"),
         rows=rows,
@@ -166,7 +173,7 @@ def serialize_retrieval_strategy_gate_report(
 ) -> dict[str, object]:
     """Serialize strategy gate output with stable key ordering."""
 
-    return {
+    payload: dict[str, object] = {
         "suite_id": report.suite_id,
         "status": report.status,
         "default_strategy": report.default_strategy,
@@ -174,6 +181,11 @@ def serialize_retrieval_strategy_gate_report(
         "dense_baseline": serialize_eval_report(report.dense_baseline),
         "strategy_decisions": [_serialize_row(row) for row in report.rows],
     }
+    if report.provider_usage is not None:
+        payload["provider_usage"] = serialize_eval_provider_usage(
+            report.provider_usage
+        )
+    return payload
 
 
 def _run_strategy_row(
@@ -195,7 +207,7 @@ def _run_strategy_row(
             status=dense_report.status,
             decision="promote" if dense_report.status == "passed" else "no_go",
             reason=(
-                "dense baseline passes and remains the recommended default"
+                "dense baseline passes as the stable comparison baseline"
                 if dense_report.status == "passed"
                 else "dense baseline failed the retrieval suite"
             ),
@@ -319,7 +331,9 @@ def _run_strategy_report(
         suite,
         provider=provider,
         sparse_provider=(
-            sparse_provider if retrieval_strategy == "dense_sparse" else None
+            sparse_provider
+            if retrieval_strategy in ("sparse", "dense_sparse")
+            else None
         ),
         strategy=retrieval_strategy,
         fixture_project=fixture_project,
@@ -357,7 +371,15 @@ class FixtureOrderGraphRetriever:
 
 
 def _to_retrieval_strategy(strategy: StrategyGateStrategy) -> RetrievalStrategy:
-    if strategy not in ("dense", "lexical", "hybrid_rrf", "dense_sparse", "graph"):
+    if strategy not in (
+        "dense",
+        "lexical",
+        "bm25",
+        "sparse",
+        "hybrid_rrf",
+        "dense_sparse",
+        "graph",
+    ):
         raise ValueError(f"{strategy} is not a RetrievalStrategy")
     return strategy
 
@@ -372,6 +394,10 @@ def _build_strategy_comparison_metrics(
 ) -> dict[str, float]:
     dense_hit_rate = dense_report.metrics["retrieval_hit_rate"]
     strategy_hit_rate = strategy_report.metrics["retrieval_hit_rate"]
+    dense_mrr = dense_report.metrics["retrieval_mrr_at_k"]
+    strategy_mrr = strategy_report.metrics["retrieval_mrr_at_k"]
+    dense_ndcg = dense_report.metrics["retrieval_ndcg_at_k"]
+    strategy_ndcg = strategy_report.metrics["retrieval_ndcg_at_k"]
     case_count = len(comparison_cases)
     best_rank_delta_total = sum(
         comparison.best_rank_delta for comparison in comparison_cases
@@ -409,6 +435,10 @@ def _build_strategy_comparison_metrics(
         f"{prefix}_provider_cost_delta_usd": 0.0,
         f"{prefix}_retrieval_hit_rate": strategy_hit_rate,
         f"{prefix}_retrieval_hit_rate_delta": strategy_hit_rate - dense_hit_rate,
+        f"{prefix}_retrieval_mrr_at_k": strategy_mrr,
+        f"{prefix}_retrieval_mrr_at_k_delta": strategy_mrr - dense_mrr,
+        f"{prefix}_retrieval_ndcg_at_k": strategy_ndcg,
+        f"{prefix}_retrieval_ndcg_at_k_delta": strategy_ndcg - dense_ndcg,
         f"{prefix}_retrieval_passed_count": strategy_report.metrics[
             "retrieval_passed_count"
         ],
@@ -496,6 +526,12 @@ def _decide_strategy(
                 "graph passes the offline quality contract but still requires "
                 "live operational evidence before promotion"
             ),
+        )
+    if strategy == "dense_sparse":
+        return (
+            "promote",
+            "dense_sparse matches dense without regressions and is the "
+            "promoted Qwen default",
         )
     if comparison_metrics[f"{prefix}_retrieval_hit_rate_delta"] > 0.0:
         return "promote", f"{strategy} improves retrieval hit rate without regressions"

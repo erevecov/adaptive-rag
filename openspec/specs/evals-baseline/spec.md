@@ -98,6 +98,19 @@ explicit retrieval strategies.
 - **THEN** retrieval eval cases run with `strategy=hybrid_rrf`
 - **AND** the aggregate retrieval metrics keep the existing schema
 
+#### Scenario: Eval CLI selects BM25 retrieval
+
+- **WHEN** `adaptive-rag evals run` receives `--retrieval-strategy bm25`
+- **THEN** retrieval eval cases run with `strategy=bm25`
+- **AND** no sparse embedding provider is required for that local strategy
+
+#### Scenario: Eval CLI selects sparse retrieval
+
+- **WHEN** `adaptive-rag evals run` receives `--retrieval-strategy sparse`
+- **THEN** retrieval eval cases run with `strategy=sparse`
+- **AND** a sparse embedding provider is configured for the eval run
+- **AND** the offline default is `dense_sparse` when no strategy flag is supplied
+
 ### Requirement: Offline evals can select dense_sparse retrieval
 
 The eval runner MUST allow retrieval suites to run with `strategy=dense_sparse`
@@ -108,7 +121,16 @@ without making hosted calls by default.
 - **WHEN** `adaptive-rag evals run` receives
   `--retrieval-strategy dense_sparse` in offline mode
 - **THEN** retrieval eval cases run with `strategy=dense_sparse`
-- **AND** the default remains `dense` when no strategy flag is supplied
+- **AND** the offline default remains `dense_sparse` when no strategy flag is
+  supplied
+
+#### Scenario: Hosted eval retrieval defaults to dense
+
+- **WHEN** `adaptive-rag evals run --mode hosted` receives no
+  `--retrieval-strategy`
+- **THEN** retrieval eval cases run with `strategy=dense`
+- **AND** chat eval cases use the default chat retrieval path with the
+  configured sparse provider when available
 
 ### Requirement: Offline evals expose a retrieval strategy gate
 
@@ -123,13 +145,16 @@ strategies against dense baseline without hosted calls by default.
   `default_strategy` and `recommended_default`
 - **AND** each decision row includes a strategy name, status, decision, reason,
   metrics and comparison metrics
+- **AND** retrieval metrics include hit rate, MRR@k and nDCG@k
+- **AND** BM25, sparse and dense_sparse rows are included when using the default
+  strategy set
 
 #### Scenario: Contextual dense requires contextual evidence
 
 - **WHEN** the strategy gate evaluates `contextual_dense`
 - **AND** the suite evidence has no `contextual_summary` values
 - **THEN** the row is skipped with decision `needs_more_data`
-- **AND** the default recommendation remains `dense`
+- **AND** the default recommendation remains `dense_sparse`
 
 #### Scenario: Evals evidence can carry contextual summaries
 

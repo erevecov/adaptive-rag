@@ -1,7 +1,7 @@
 # M30 Qwen sparse dense_sparse
 
-M30 agrega sparse embeddings como capacidad opt-in sin cambiar el default
-`dense`.
+M30 agrego sparse embeddings como capacidad opt-in. Tras el strategy gate y la
+medicion live de Qwen, el producto promueve `dense_sparse` como default.
 
 ## Alcance
 
@@ -12,7 +12,8 @@ M30 agrega sparse embeddings como capacidad opt-in sin cambiar el default
   como fallback.
 - `strategy=dense_sparse` ejecuta dense retrieval y sparse retrieval, deduplica
   por chunk y fusiona con Reciprocal Rank Fusion (`k=60`).
-- API, CLI y evals offline aceptan `dense_sparse`.
+- API, CLI, chat y evals offline usan `dense_sparse` por default.
+- `strategy=dense` sigue disponible como baseline explicito.
 - Audit/history preserva `sparse_score` cuando el resultado lo trae.
 
 ## Provider Qwen
@@ -27,6 +28,10 @@ OpenAI-compatible. El payload envia:
 
 El response esperado contiene `output.embeddings[].sparse_embedding[]` con
 `index`, `value` y `token` opcional.
+
+DashScope limita embeddings a 10 textos por request. El cliente Qwen debe
+partir requests dense y sparse en batches de 10 y recombinar las respuestas en
+orden para backfills y evals.
 
 Config live minima:
 
@@ -55,8 +60,9 @@ uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
   --retrieval-strategy dense_sparse
 ```
 
-## No cambios de default
+## Promocion de default
 
-M30 no promueve sparse ni `dense_sparse`. El default del producto sigue siendo
-`dense`; M31 debe comparar dense, contextual dense, lexical, sparse, hybrid RRF,
-graph opt-in y rerank antes de decidir promocion.
+El default del producto es `dense_sparse` porque la medicion live con Qwen
+igualo dense en hit rate, MRR y nDCG sobre la suite focal, sin regresiones.
+BM25 y sparse-only quedan como estrategias explicitas porque regresaron un caso
+en la misma medicion.

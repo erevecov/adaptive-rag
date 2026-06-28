@@ -261,6 +261,8 @@ def test_candidate_limit_ab_runner_serializes_quality_cost_and_regressions(
     assert payload["dense_baseline"]["metrics"] == {
         "retrieval_case_count": 1.0,
         "retrieval_hit_rate": 0.0,
+        "retrieval_mrr_at_k": 0.0,
+        "retrieval_ndcg_at_k": 0.0,
         "retrieval_passed_count": 0.0,
     }
     assert payload["rows"][0]["provider_usage"]["operations"] == [

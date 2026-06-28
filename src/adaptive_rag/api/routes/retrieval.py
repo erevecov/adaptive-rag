@@ -61,7 +61,7 @@ def search_retrieval(
             provider=provider,
             sparse_provider=(
                 sparse_provider_factory()
-                if request.strategy == "dense_sparse"
+                if request.strategy in ("sparse", "dense_sparse")
                 else None
             ),
             reranker=(

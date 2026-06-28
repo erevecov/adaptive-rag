@@ -11,6 +11,7 @@ from adaptive_rag.cli.app import app
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     GlobalChatModel,
@@ -81,12 +82,21 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
     runtime = payload["runtime_settings"]
     assert runtime["global_connection"]["provider"] == "fake"
     assert runtime["global_connection"]["connection_type"] == "fake"
-    assert runtime["model_catalog"]["synced_count"] >= 3
+    assert runtime["model_catalog"]["synced_count"] >= 4
     assert "retrieval-grounded-local-v1" in runtime["model_catalog"]["model_ids"]
     assert "fake-embedding-v1" in runtime["model_catalog"]["model_ids"]
+    assert "fake-sparse-embedding-v1" in runtime["model_catalog"]["model_ids"]
     assert runtime["global_slots"]["chat"]["model_id"] == "retrieval-grounded-local-v1"
     assert runtime["global_slots"]["dense_embedding"]["model_id"] == "fake-embedding-v1"
+    assert (
+        runtime["global_slots"]["sparse_embedding"]["model_id"]
+        == "fake-sparse-embedding-v1"
+    )
     assert runtime["effective_project_settings"]["chat"]["source"] == "inherited"
+    assert (
+        runtime["effective_project_settings"]["sparse_embedding"]["source"]
+        == "inherited"
+    )
     assert (
         runtime["effective_project_settings"]["dense_embedding"]["source"]
         == "overridden"
@@ -98,6 +108,10 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
     assert runtime["resolved_runtime"]["dense_embedding"]["provider"] == "fake"
     assert runtime["resolved_runtime"]["dense_embedding"]["model_id"] == (
         "fake-embedding-v1"
+    )
+    assert runtime["resolved_runtime"]["sparse_embedding"]["provider"] == "fake"
+    assert runtime["resolved_runtime"]["sparse_embedding"]["model_id"] == (
+        "fake-sparse-embedding-v1"
     )
     assert "hosted_qwen" in payload["opt_in_systems"]
     assert "sk-runtime-acceptance-secret" not in result.stdout
@@ -113,6 +127,7 @@ def _make_session():
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             Job.__table__,
             JobEvent.__table__,
             ProviderConnection.__table__,

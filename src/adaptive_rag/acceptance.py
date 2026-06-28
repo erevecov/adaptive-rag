@@ -27,6 +27,8 @@ from adaptive_rag.db.repositories import (
 from adaptive_rag.embeddings import (
     DenseEmbeddingPipeline,
     DenseEmbeddingPipelineError,
+    SparseEmbeddingPipeline,
+    SparseEmbeddingPipelineError,
 )
 from adaptive_rag.first_run import (
     DEFAULT_QUESTION,
@@ -39,6 +41,7 @@ from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_contextualizer,
     get_dense_embedding_provider,
+    get_sparse_embedding_provider,
 )
 from adaptive_rag.retrieval import RetrievalService
 
@@ -184,6 +187,9 @@ def runtime_settings_acceptance_report_payload(
                 "dense_embedding": _slot_payload(
                     report.global_slots["dense_embedding"]
                 ),
+                "sparse_embedding": _slot_payload(
+                    report.global_slots["sparse_embedding"]
+                ),
                 "contextualization": _slot_payload(
                     report.global_slots["contextualization"]
                 ),
@@ -193,6 +199,9 @@ def runtime_settings_acceptance_report_payload(
                 "dense_embedding": _slot_payload(
                     report.effective_slots["dense_embedding"]
                 ),
+                "sparse_embedding": _slot_payload(
+                    report.effective_slots["sparse_embedding"]
+                ),
                 "contextualization": _slot_payload(
                     report.effective_slots["contextualization"]
                 ),
@@ -201,6 +210,9 @@ def runtime_settings_acceptance_report_payload(
                 "chat": _resolved_slot_payload(report.resolved_runtime["chat"]),
                 "dense_embedding": _resolved_slot_payload(
                     report.resolved_runtime["dense_embedding"]
+                ),
+                "sparse_embedding": _resolved_slot_payload(
+                    report.resolved_runtime["sparse_embedding"]
                 ),
             },
         },
@@ -257,6 +269,10 @@ def _required_model_ids(
             model_catalog,
             "dense_embedding",
         ),
+        "sparse_embedding": _model_id_for_capability(
+            model_catalog,
+            "sparse_embedding",
+        ),
         "contextualization": _model_id_for_capability(
             model_catalog,
             "contextualization",
@@ -290,6 +306,11 @@ def _configure_global_defaults(
         slot="dense_embedding",
         connection_id=connection.connection_id,
         model_id=model_ids["dense_embedding"],
+    )
+    runtime.upsert_slot_default(
+        slot="sparse_embedding",
+        connection_id=connection.connection_id,
+        model_id=model_ids["sparse_embedding"],
     )
     runtime.upsert_slot_default(
         slot="contextualization",
@@ -359,10 +380,22 @@ def _run_project_flow(
             project_id=project.id,
             document_version_id=run.document_version_id,
         )
+        sparse_embedding_provider = get_sparse_embedding_provider(
+            project_id=project.id,
+            session=session,
+        )
+        SparseEmbeddingPipeline(
+            session,
+            provider=sparse_embedding_provider,
+        ).embed_document_version(
+            project_id=project.id,
+            document_version_id=run.document_version_id,
+        )
     except (
         ChunkingPipelineError,
         ContextualizationPipelineError,
         DenseEmbeddingPipelineError,
+        SparseEmbeddingPipelineError,
     ) as exc:
         raise AcceptanceError(str(exc)) from exc
 
@@ -372,6 +405,7 @@ def _run_project_flow(
         retrieval_service=RetrievalService(
             session,
             provider=dense_embedding_provider,
+            sparse_provider=sparse_embedding_provider,
         ),
     ).respond(
         ChatRequest(
@@ -447,6 +481,10 @@ def _resolved_runtime(
         project_id=project_id,
         session=session,
     )
+    sparse_provider = get_sparse_embedding_provider(
+        project_id=project_id,
+        session=session,
+    )
     return {
         "chat": {
             "provider": _provider_name(chat_runner, effective_slots["chat"]),
@@ -464,6 +502,17 @@ def _resolved_runtime(
                 effective_slots["dense_embedding"],
             ),
         },
+        "sparse_embedding": {
+            "provider": _provider_name(
+                sparse_provider,
+                effective_slots["sparse_embedding"],
+            ),
+            "connection_id": effective_slots["sparse_embedding"]["connection_id"],
+            "model_id": _model_name(
+                sparse_provider,
+                effective_slots["sparse_embedding"],
+            ),
+        },
     }
 
 
@@ -477,15 +526,17 @@ def _criteria(
     return (
         _criterion(
             "model_catalog_synced",
-            len(model_catalog) >= 3,
+            len(model_catalog) >= 4,
             "Fake provider model catalog was synchronized.",
         ),
         _criterion(
             "global_runtime_defaults",
             effective_slots.get("chat", {}).get("source") == "inherited"
+            and effective_slots.get("sparse_embedding", {}).get("source")
+            == "inherited"
             and effective_slots.get("contextualization", {}).get("source")
             == "inherited",
-            "Project inherits global chat and contextualization defaults.",
+            "Project inherits global chat, sparse and contextualization defaults.",
         ),
         _criterion(
             "project_runtime_override",
@@ -496,7 +547,8 @@ def _criteria(
         _criterion(
             "effective_runtime_resolution",
             resolved_runtime["chat"]["provider"] == "fake"
-            and resolved_runtime["dense_embedding"]["provider"] == "fake",
+            and resolved_runtime["dense_embedding"]["provider"] == "fake"
+            and resolved_runtime["sparse_embedding"]["provider"] == "fake",
             "Factories resolved fake providers from persisted runtime settings.",
         ),
         _criterion(

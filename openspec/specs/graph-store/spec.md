@@ -136,8 +136,8 @@ usa como ruta opt-in.
 #### Scenario: Retrieval graph se solicita explicitamente
 
 - **WHEN** una llamada API o CLI de retrieval solicita `strategy=graph`
-- **THEN** el sistema mantiene `strategy=dense` como default para llamadas que
-  no lo solicitan
+- **THEN** el sistema mantiene `strategy=dense_sparse` como default para
+  llamadas que no lo solicitan
 - **AND** usa resultados dense como seeds antes de consultar graph DB
 - **AND** solo consulta graph DB cuando existe una proyeccion `ready` del
   proyecto y un graph retriever disponible
@@ -171,7 +171,7 @@ usa como ruta opt-in.
   comparaciones por caso
 - **AND** reporta mejoras, empates, regresiones, delta de hit rate, filtros,
   citation coverage y costo provider incremental
-- **AND** mantiene `dense` como default cuando la decision es `hold_default`
+- **AND** mantiene el default vigente cuando la decision es `hold_default`
 
 ### Requirement: Graph live ops requiere evidencia operacional
 
@@ -182,7 +182,7 @@ operacional con Neo4j live.
 
 - **WHEN** se abre el milestone de graph live ops
 - **THEN** `graph_store=disabled` sigue siendo el default de configuracion
-- **AND** `strategy=dense` sigue siendo el default de retrieval
+- **AND** graph retrieval sigue sin ser el default de retrieval
 - **AND** cualquier uso de Neo4j live requiere opt-in explicito
 
 #### Scenario: Setup live separa local y managed
@@ -236,7 +236,7 @@ de default.
 
 El sistema MUST cerrar M19 con una decision que no promueve graph como default.
 
-#### Scenario: Gate conserva dense default
+#### Scenario: Gate no promueve graph default
 
 - **WHEN** M19 evalua la evidencia graph live
 - **THEN** la decision es `hold_default`, `limited_experiment` o

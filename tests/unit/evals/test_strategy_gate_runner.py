@@ -40,7 +40,7 @@ class MappingEmbeddingProvider:
         return [list(self._mapping[text]) for text in texts]
 
 
-def test_strategy_gate_compares_ready_modes_and_keeps_dense_default(
+def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
     tmp_path: Path,
 ) -> None:
     suite = load_eval_suite(
@@ -111,6 +111,8 @@ def test_strategy_gate_compares_ready_modes_and_keeps_dense_default(
         strategies=(
             "dense",
             "lexical",
+            "bm25",
+            "sparse",
             "hybrid_rrf",
             "dense_sparse",
             "graph",
@@ -119,15 +121,17 @@ def test_strategy_gate_compares_ready_modes_and_keeps_dense_default(
     )
 
     assert report.status == "passed"
-    assert report.default_strategy == "dense"
-    assert report.recommended_default == "dense"
+    assert report.default_strategy == "dense_sparse"
+    assert report.recommended_default == "dense_sparse"
     assert report.dense_baseline.metrics["retrieval_hit_rate"] == 1.0
     decisions = {row.strategy: row.decision for row in report.rows}
     assert decisions == {
         "dense": "promote",
         "lexical": "keep_opt_in",
+        "bm25": "keep_opt_in",
+        "sparse": "keep_opt_in",
         "hybrid_rrf": "keep_opt_in",
-        "dense_sparse": "keep_opt_in",
+        "dense_sparse": "promote",
         "graph": "hold",
         "dense_rerank": "keep_opt_in",
     }
@@ -135,145 +139,61 @@ def test_strategy_gate_compares_ready_modes_and_keeps_dense_default(
     payload = serialize_retrieval_strategy_gate_report(report)
     assert payload["suite_id"] == "strategy-gate-ready"
     assert payload["status"] == "passed"
-    assert payload["default_strategy"] == "dense"
-    assert payload["recommended_default"] == "dense"
-    assert payload["strategy_decisions"] == [
-        {
-            "strategy": "dense",
-            "status": "passed",
-            "decision": "promote",
-            "reason": "dense baseline passes and remains the recommended default",
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {},
-        },
-        {
-            "strategy": "lexical",
-            "status": "passed",
-            "decision": "keep_opt_in",
-            "reason": "lexical matches dense without regressions",
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {
-                "lexical_best_rank_delta_avg": 0.0,
-                "lexical_case_improvement_count": 0.0,
-                "lexical_case_regression_count": 0.0,
-                "lexical_case_tie_count": 2.0,
-                "lexical_citation_coverage": 1.0,
-                "lexical_metadata_filter_case_count": 1.0,
-                "lexical_metadata_filter_passed_count": 1.0,
-                "lexical_provider_cost_delta_usd": 0.0,
-                "lexical_retrieval_hit_rate": 1.0,
-                "lexical_retrieval_hit_rate_delta": 0.0,
-                "lexical_retrieval_passed_count": 2.0,
-            },
-        },
-        {
-            "strategy": "hybrid_rrf",
-            "status": "passed",
-            "decision": "keep_opt_in",
-            "reason": "hybrid_rrf matches dense without regressions",
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {
-                "hybrid_rrf_best_rank_delta_avg": 0.0,
-                "hybrid_rrf_case_improvement_count": 0.0,
-                "hybrid_rrf_case_regression_count": 0.0,
-                "hybrid_rrf_case_tie_count": 2.0,
-                "hybrid_rrf_citation_coverage": 1.0,
-                "hybrid_rrf_metadata_filter_case_count": 1.0,
-                "hybrid_rrf_metadata_filter_passed_count": 1.0,
-                "hybrid_rrf_provider_cost_delta_usd": 0.0,
-                "hybrid_rrf_retrieval_hit_rate": 1.0,
-                "hybrid_rrf_retrieval_hit_rate_delta": 0.0,
-                "hybrid_rrf_retrieval_passed_count": 2.0,
-            },
-        },
-        {
-            "strategy": "dense_sparse",
-            "status": "passed",
-            "decision": "keep_opt_in",
-            "reason": "dense_sparse matches dense without regressions",
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {
-                "dense_sparse_best_rank_delta_avg": 0.0,
-                "dense_sparse_case_improvement_count": 0.0,
-                "dense_sparse_case_regression_count": 0.0,
-                "dense_sparse_case_tie_count": 2.0,
-                "dense_sparse_citation_coverage": 1.0,
-                "dense_sparse_metadata_filter_case_count": 1.0,
-                "dense_sparse_metadata_filter_passed_count": 1.0,
-                "dense_sparse_provider_cost_delta_usd": 0.0,
-                "dense_sparse_retrieval_hit_rate": 1.0,
-                "dense_sparse_retrieval_hit_rate_delta": 0.0,
-                "dense_sparse_retrieval_passed_count": 2.0,
-            },
-        },
-        {
-            "strategy": "graph",
-            "status": "passed",
-            "decision": "hold",
-            "reason": (
-                "graph passes the offline quality contract but still requires "
-                "live operational evidence before promotion"
-            ),
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {
-                "graph_best_rank_delta_avg": 0.0,
-                "graph_case_improvement_count": 0.0,
-                "graph_case_regression_count": 0.0,
-                "graph_case_tie_count": 2.0,
-                "graph_citation_coverage": 1.0,
-                "graph_metadata_filter_case_count": 1.0,
-                "graph_metadata_filter_passed_count": 1.0,
-                "graph_provider_cost_delta_usd": 0.0,
-                "graph_retrieval_hit_rate": 1.0,
-                "graph_retrieval_hit_rate_delta": 0.0,
-                "graph_retrieval_passed_count": 2.0,
-            },
-        },
-        {
-            "strategy": "dense_rerank",
-            "status": "passed",
-            "decision": "keep_opt_in",
-            "reason": "dense_rerank matches dense without regressions",
-            "metrics": {
-                "retrieval_case_count": 2.0,
-                "retrieval_hit_rate": 1.0,
-                "retrieval_passed_count": 2.0,
-            },
-            "comparison_metrics": {
-                "dense_rerank_best_rank_delta_avg": 0.0,
-                "dense_rerank_case_improvement_count": 0.0,
-                "dense_rerank_case_regression_count": 0.0,
-                "dense_rerank_case_tie_count": 2.0,
-                "dense_rerank_citation_coverage": 1.0,
-                "dense_rerank_metadata_filter_case_count": 1.0,
-                "dense_rerank_metadata_filter_passed_count": 1.0,
-                "dense_rerank_provider_cost_delta_usd": 0.0,
-                "dense_rerank_retrieval_hit_rate": 1.0,
-                "dense_rerank_retrieval_hit_rate_delta": 0.0,
-                "dense_rerank_retrieval_passed_count": 2.0,
-            },
-        },
+    assert payload["default_strategy"] == "dense_sparse"
+    assert payload["recommended_default"] == "dense_sparse"
+    decision_payloads = payload["strategy_decisions"]
+    assert [row["strategy"] for row in decision_payloads] == [
+        "dense",
+        "lexical",
+        "bm25",
+        "sparse",
+        "hybrid_rrf",
+        "dense_sparse",
+        "graph",
+        "dense_rerank",
     ]
+    payload_by_strategy = {row["strategy"]: row for row in decision_payloads}
+    assert payload_by_strategy["dense"]["decision"] == "promote"
+    assert payload_by_strategy["graph"]["decision"] == "hold"
+    assert payload_by_strategy["dense_sparse"]["decision"] == "promote"
+    for strategy in (
+        "lexical",
+        "bm25",
+        "sparse",
+        "hybrid_rrf",
+        "dense_rerank",
+    ):
+        assert payload_by_strategy[strategy]["decision"] == "keep_opt_in"
+
+    expected_metrics = {
+        "retrieval_case_count": 2.0,
+        "retrieval_hit_rate": 1.0,
+        "retrieval_mrr_at_k": 1.0,
+        "retrieval_ndcg_at_k": 1.0,
+        "retrieval_passed_count": 2.0,
+    }
+    for row in decision_payloads:
+        assert row["status"] == "passed"
+        assert row["metrics"] == expected_metrics
+
+    assert payload_by_strategy["dense"]["comparison_metrics"] == {}
+    for strategy in (
+        "lexical",
+        "bm25",
+        "sparse",
+        "hybrid_rrf",
+        "dense_sparse",
+        "graph",
+        "dense_rerank",
+    ):
+        comparison_metrics = payload_by_strategy[strategy]["comparison_metrics"]
+        assert comparison_metrics[f"{strategy}_case_tie_count"] == 2.0
+        assert comparison_metrics[f"{strategy}_retrieval_hit_rate"] == 1.0
+        assert comparison_metrics[f"{strategy}_retrieval_hit_rate_delta"] == 0.0
+        assert comparison_metrics[f"{strategy}_retrieval_mrr_at_k"] == 1.0
+        assert comparison_metrics[f"{strategy}_retrieval_mrr_at_k_delta"] == 0.0
+        assert comparison_metrics[f"{strategy}_retrieval_ndcg_at_k"] == 1.0
+        assert comparison_metrics[f"{strategy}_retrieval_ndcg_at_k_delta"] == 0.0
 
 
 def test_strategy_gate_marks_contextual_dense_needs_more_data_without_summaries(

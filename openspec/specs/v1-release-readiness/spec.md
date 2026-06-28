@@ -28,7 +28,8 @@ as core/pre-v1 evidence, not as the final v1.0 product boundary.
   tuning defaults are considered for v1.0
 - **THEN** they remain out of scope unless a current OpenSpec change provides
   evidence that satisfies the retrieval-quality and graph-store gates
-- **AND** dense retrieval remains the default product path
+- **AND** retrieval follows the current default product path defined by
+  retrieval-quality
 
 #### Scenario: Core readiness does not authorize final release
 

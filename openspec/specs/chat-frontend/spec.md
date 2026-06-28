@@ -286,23 +286,24 @@ of authoring, ingestion, chat, history and observability.
 - **AND** it does not invent a successful chat answer, citation or ingestion
   result when the backend did not return one
 
-### Requirement: Frontend retrieval polish keeps dense default
+### Requirement: Frontend retrieval polish follows dense_sparse default
 
-The frontend MUST keep `dense` as the default retrieval experience for M32 and
-MUST NOT promote advanced retrieval modes into the default UI.
+The frontend MUST follow the backend `dense_sparse` default retrieval
+experience and MUST NOT promote other advanced retrieval modes into the default
+UI.
 
-#### Scenario: Default chat uses dense retrieval
+#### Scenario: Default chat uses dense_sparse retrieval
 
 - **WHEN** a user sends a normal chat question without selecting experimental
   controls
 - **THEN** the frontend uses the backend default retrieval strategy
-- **AND** the backend default remains `dense`
+- **AND** the backend default is `dense_sparse`
 
 #### Scenario: Advanced modes are not default controls
 
 - **WHEN** M32 frontend polish is implemented
-- **THEN** `contextual_dense`, `lexical`, `hybrid_rrf`, `dense_sparse`,
-  `dense_rerank` and `graph` are not presented as default product controls
+- **THEN** `contextual_dense`, `lexical`, `hybrid_rrf`, `dense_rerank` and
+  `graph` are not presented as default product controls
 - **AND** any later exposure is opt-in, clearly experimental and consistent
   with M31 strategy-gate decisions
 

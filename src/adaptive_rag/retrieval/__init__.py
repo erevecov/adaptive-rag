@@ -1,5 +1,10 @@
 """Retrieval baseline para Adaptive RAG."""
 
+from adaptive_rag.retrieval.bm25 import (
+    Bm25RetrievalError,
+    Bm25RetrievalResult,
+    Bm25Retriever,
+)
 from adaptive_rag.retrieval.dense import (
     DenseRetrievalCitation,
     DenseRetrievalError,
@@ -29,6 +34,9 @@ from adaptive_rag.retrieval.sparse import (
 
 __all__ = [
     "DenseRetriever",
+    "Bm25RetrievalError",
+    "Bm25RetrievalResult",
+    "Bm25Retriever",
     "DenseRetrievalCitation",
     "DenseRetrievalError",
     "DenseRetrievalFilters",

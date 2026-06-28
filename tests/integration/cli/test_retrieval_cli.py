@@ -270,6 +270,22 @@ def test_retrieval_search_command_outputs_json_results(
         snippet="Alpha original evidence",
         embedding=_vector(0.1),
     )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=near,
+        indices=(1,),
+        values=(1.0,),
+        fingerprint="near-sparse",
+    )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=far,
+        indices=(2,),
+        values=(0.5,),
+        fingerprint="far-sparse",
+    )
     _wrong_type_source, _wrong_type_document, _wrong_type_version, _wrong_type = (
         _create_embedded_chunk(
             session,
@@ -285,7 +301,15 @@ def test_retrieval_search_command_outputs_json_results(
     )
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
-    _patch_retrieval_dependencies(monkeypatch, session=session, provider=provider)
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(1, 2), values=(1.0, 0.1))
+    )
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    )
 
     result = CliRunner().invoke(
         app,
@@ -309,14 +333,17 @@ def test_retrieval_search_command_outputs_json_results(
 
     assert result.exit_code == 0
     assert provider.inputs == ["alpha question"]
+    assert sparse_provider.query_inputs == ["alpha question"]
     data = json.loads(result.stdout)
     assert [item["chunk_id"] for item in data["results"]] == [
         str(near.id),
         str(far.id),
     ]
     first = data["results"][0]
-    assert first["distance"] == pytest.approx(0.1)
-    assert first["score"] == pytest.approx(1 / 1.1)
+    assert first["distance"] == pytest.approx(1 / (1 + (2 / 61)))
+    assert first["score"] == pytest.approx(2 / 61)
+    assert first["strategy"] == "dense_sparse"
+    assert first["retrieval_metadata"]["source_strategies"] == ["dense", "sparse"]
     assert "rerank_metadata" not in first
     assert first["citation"] == {
         "source_id": str(source.id),
@@ -493,6 +520,77 @@ def test_retrieval_search_command_uses_lexical_strategy(
     }
 
 
+def test_retrieval_search_command_uses_bm25_strategy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    filler = " ".join(f"filler{i}" for i in range(80))
+    _long_source, _long_document, _long_version, long_match = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="long.md",
+            stable_id="long-doc",
+            text=f"SKU 42 manual {filler}",
+            snippet=f"SKU 42 manual {filler}",
+            embedding=None,
+        )
+    )
+    _short_source, _short_document, _short_version, short_match = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="short.md",
+            stable_id="short-doc",
+            text="Header\n\nSKU 42 manual",
+            snippet="SKU 42 manual",
+            embedding=None,
+        )
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(1, 2), values=(1.0, 0.1))
+    )
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "retrieval",
+            "search",
+            "--project-id",
+            str(project.id),
+            "--query",
+            "SKU 42 manual",
+            "--limit",
+            "2",
+            "--strategy",
+            "bm25",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert provider.inputs == []
+    data = json.loads(result.stdout)
+    assert [item["chunk_id"] for item in data["results"]] == [
+        str(short_match.id),
+        str(long_match.id),
+    ]
+    assert data["results"][0]["strategy"] == "bm25"
+    assert data["results"][0]["retrieval_metadata"] == {
+        "bm25_rank": 1,
+        "bm25_score": data["results"][0]["score"],
+        "used_bm25": True,
+    }
+
+
 def test_retrieval_search_command_uses_hybrid_rrf_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -638,6 +736,84 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
         "sparse_rank": 1,
         "sparse_score": 3.0,
         "sparse_index_fingerprint": "sparse-fp:target",
+    }
+
+
+def test_retrieval_search_command_uses_sparse_strategy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    project = _create_project(session)
+    _general_source, _general_document, _general_version, _general = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="general.md",
+            stable_id="general-doc",
+            text="General installation notes",
+            snippet="General installation notes",
+            embedding=_vector(0.1),
+        )
+    )
+    _target_source, _target_document, _target_version, target = (
+        _create_embedded_chunk(
+            session,
+            project=project,
+            external_id="target.md",
+            stable_id="target-doc",
+            text="Header\n\nInstall the connector with the default path.",
+            snippet="Install the connector with the default path.",
+            embedding=_vector(0.4),
+            contextual_summary="SKU-42 connector installation reference.",
+        )
+    )
+    _create_sparse_embedding(
+        session,
+        project=project,
+        chunk=target,
+        indices=(42,),
+        values=(3.0,),
+        fingerprint="sparse-fp:target",
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(42,), values=(1.0,))
+    )
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        sparse_provider=sparse_provider,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "retrieval",
+            "search",
+            "--project-id",
+            str(project.id),
+            "--query",
+            "SKU-42 installation",
+            "--limit",
+            "2",
+            "--strategy",
+            "sparse",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert provider.inputs == []
+    assert sparse_provider.query_inputs == ["SKU-42 installation"]
+    data = json.loads(result.stdout)
+    assert [item["chunk_id"] for item in data["results"]] == [str(target.id)]
+    assert data["results"][0]["strategy"] == "sparse"
+    assert data["results"][0]["retrieval_metadata"] == {
+        "sparse_index_fingerprint": "sparse-fp:target",
+        "sparse_rank": 1,
+        "sparse_score": 3.0,
+        "used_sparse": True,
     }
 
 

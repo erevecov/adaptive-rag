@@ -19,6 +19,10 @@ from adaptive_rag.embeddings import (
     DenseEmbeddingPipeline,
     DenseEmbeddingPipelineError,
     DenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
+    SparseEmbeddingPipeline,
+    SparseEmbeddingPipelineError,
+    SparseEmbeddingProvider,
 )
 from adaptive_rag.retrieval import RetrievalService
 
@@ -63,6 +67,7 @@ def run_first_run_smoke(
     session: Session,
     *,
     dense_embedding_provider: DenseEmbeddingProvider,
+    sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     chat_runner: ChatRunner,
     project_name: str = DEFAULT_PROJECT_NAME,
     source_external_id: str = DEFAULT_SOURCE_EXTERNAL_ID,
@@ -70,6 +75,9 @@ def run_first_run_smoke(
     question: str = DEFAULT_QUESTION,
     worker_id: str = DEFAULT_WORKER_ID,
 ) -> FirstRunReport:
+    active_sparse_embedding_provider = (
+        sparse_embedding_provider or FakeSparseEmbeddingProvider()
+    )
     project = authoring.create_project(session, name=project_name)
     source = authoring.create_source(
         session,
@@ -111,10 +119,18 @@ def run_first_run_smoke(
             project_id=project.id,
             document_version_id=run.document_version_id,
         )
+        SparseEmbeddingPipeline(
+            session,
+            provider=active_sparse_embedding_provider,
+        ).embed_document_version(
+            project_id=project.id,
+            document_version_id=run.document_version_id,
+        )
     except (
         ChunkingPipelineError,
         ContextualizationPipelineError,
         DenseEmbeddingPipelineError,
+        SparseEmbeddingPipelineError,
     ) as exc:
         raise FirstRunError(str(exc)) from exc
 
@@ -123,6 +139,7 @@ def run_first_run_smoke(
         retrieval_service=RetrievalService(
             session,
             provider=dense_embedding_provider,
+            sparse_provider=active_sparse_embedding_provider,
         ),
     ).respond(
         ChatRequest(

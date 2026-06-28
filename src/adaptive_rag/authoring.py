@@ -34,13 +34,13 @@ def create_project(
     session: Session,
     *,
     name: str,
-    embedding_mode: str = "dense",
+    embedding_mode: str = "dense_sparse",
     retrieval_contextualization_enabled: bool = True,
     budget_config_json: Mapping[str, Any] | None = None,
 ) -> Project:
-    if embedding_mode != "dense":
+    if embedding_mode not in {"dense", "dense_sparse"}:
         raise AuthoringError(
-            "project embedding_mode must be dense",
+            "project embedding_mode must be dense or dense_sparse",
             status_code=422,
         )
     return ProjectRepository(session).create(

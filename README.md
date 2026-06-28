@@ -121,12 +121,30 @@ Los artefactos en `artifacts/` son locales y se pueden regenerar cuando se
 necesite evidencia fresca. Esta demo prueba el core; la demo final de v1 debe
 partir de datos creados por las superficies publicas del producto.
 
-## Retrieval strategies opt-in
+## Retrieval strategies
 
-`dense` sigue siendo el default. Para experimentos backend se puede seleccionar
-una estrategia explicita en API/CLI:
+`dense_sparse` es el default de producto. Fusiona dense + sparse con
+Reciprocal Rank Fusion cuando el proyecto ya tiene sparse embeddings; para
+proyectos sin filas sparse, primero ejecuta el backfill:
 
 ```bash
+uv run adaptive-rag sparse backfill --project-id <project-id>
+
+uv run adaptive-rag retrieval search \
+  --project-id <project-id> \
+  --query "SKU-42 installation" \
+  --strategy dense_sparse
+```
+
+Para experimentos backend se puede seleccionar una estrategia explicita en
+API/CLI:
+
+```bash
+uv run adaptive-rag retrieval search \
+  --project-id <project-id> \
+  --query "SKU-42 installation" \
+  --strategy dense
+
 uv run adaptive-rag retrieval search \
   --project-id <project-id> \
   --query "SKU-42 installation" \
@@ -136,13 +154,6 @@ uv run adaptive-rag retrieval search \
   --project-id <project-id> \
   --query "SKU-42 installation" \
   --strategy hybrid_rrf
-
-uv run adaptive-rag sparse backfill --project-id <project-id>
-
-uv run adaptive-rag retrieval search \
-  --project-id <project-id> \
-  --query "SKU-42 installation" \
-  --strategy dense_sparse
 ```
 
 Offline evals tambien aceptan la estrategia:
@@ -154,14 +165,13 @@ uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
 
 uv run adaptive-rag evals run evals/fixtures/retrieval-smoke.json \
   --mode offline \
-  --retrieval-strategy dense_sparse
+  --retrieval-strategy dense
 ```
 
 `lexical` usa full-text local y `contextual_summary` cuando existe.
 `hybrid_rrf` fusiona dense + lexical con Reciprocal Rank Fusion.
-`dense_sparse` requiere ejecutar primero `adaptive-rag sparse backfill` y
-fusiona dense + sparse con la misma constante RRF. Ninguna de estas rutas
-promueve el default del producto; esa decision queda para el gate M31.
+`dense` queda disponible como baseline explicito. El strategy gate promueve
+`dense_sparse` cuando iguala a dense sin regresiones.
 Detalles: `docs/architecture/lexical-rrf-m29.md` y
 `docs/architecture/qwen-sparse-dense-sparse-m30.md`.
 

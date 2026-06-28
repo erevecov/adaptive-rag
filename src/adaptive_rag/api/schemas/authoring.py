@@ -15,7 +15,7 @@ class ProjectCreateRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    embedding_mode: str = "dense"
+    embedding_mode: str = "dense_sparse"
     retrieval_contextualization_enabled: bool = True
     budget_config_json: dict[str, Any] | None = None
 

@@ -20,6 +20,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     GraphProjection,
@@ -202,6 +203,8 @@ def test_evals_run_command_outputs_json_report(
             "chat_passed_count": 0.0,
             "retrieval_case_count": 0.0,
             "retrieval_hit_rate": 1.0,
+            "retrieval_mrr_at_k": 1.0,
+            "retrieval_ndcg_at_k": 1.0,
             "retrieval_passed_count": 0.0,
         },
         "thresholds": {},
@@ -271,6 +274,132 @@ def test_evals_run_command_passes_retrieval_strategy_to_offline_runner(
     assert captured["session"] is session
     assert captured["suite_id"] == "cli-strategy"
     assert captured["retrieval_strategy"] == "dense_sparse"
+    assert captured["sparse_provider"] is not None
+
+
+def test_evals_run_command_passes_bm25_without_sparse_provider(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-bm25-strategy",
+            "thresholds": {},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run_eval_suite(
+        session_arg,
+        suite,
+        *,
+        provider=None,
+        sparse_provider=None,
+        chat_runner=None,
+        retrieval_strategy="dense",
+    ) -> EvalRunReport:
+        captured["session"] = session_arg
+        captured["suite_id"] = suite.suite_id
+        captured["sparse_provider"] = sparse_provider
+        captured["retrieval_strategy"] = retrieval_strategy
+        return EvalRunReport(
+            suite_id=suite.suite_id,
+            status="passed",
+            metrics={},
+            thresholds={},
+            cases=(),
+        )
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.run_eval_suite",
+        fake_run_eval_suite,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--retrieval-strategy",
+            "bm25",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["session"] is session
+    assert captured["suite_id"] == "cli-bm25-strategy"
+    assert captured["retrieval_strategy"] == "bm25"
+    assert captured["sparse_provider"] is None
+
+
+def test_evals_run_command_passes_sparse_with_sparse_provider(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-sparse-strategy",
+            "thresholds": {},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run_eval_suite(
+        session_arg,
+        suite,
+        *,
+        provider=None,
+        sparse_provider=None,
+        chat_runner=None,
+        retrieval_strategy="dense",
+    ) -> EvalRunReport:
+        captured["session"] = session_arg
+        captured["suite_id"] = suite.suite_id
+        captured["sparse_provider"] = sparse_provider
+        captured["retrieval_strategy"] = retrieval_strategy
+        return EvalRunReport(
+            suite_id=suite.suite_id,
+            status="passed",
+            metrics={},
+            thresholds={},
+            cases=(),
+        )
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.run_eval_suite",
+        fake_run_eval_suite,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--retrieval-strategy",
+            "sparse",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["session"] is session
+    assert captured["suite_id"] == "cli-sparse-strategy"
+    assert captured["retrieval_strategy"] == "sparse"
     assert captured["sparse_provider"] is not None
 
 
@@ -923,6 +1052,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             GraphProjection.__table__,
         ],
     )

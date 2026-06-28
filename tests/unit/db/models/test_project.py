@@ -20,13 +20,13 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def test_project_embedding_mode_defaults_to_dense():
+def test_project_embedding_mode_defaults_to_dense_sparse():
     session = _make_session()
     project = Project(name="demo")
     session.add(project)
     session.commit()
 
-    assert project.embedding_mode == "dense"
+    assert project.embedding_mode == "dense_sparse"
 
 
 def test_project_contextualization_enabled_defaults_to_true():

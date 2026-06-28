@@ -13,7 +13,13 @@ from adaptive_rag.chat import (
     ChatServiceError,
     RetrievalGroundedChatRunner,
 )
-from adaptive_rag.embeddings import DenseEmbeddingProvider, FakeDenseEmbeddingProvider
+from adaptive_rag.embeddings import (
+    DenseEmbeddingProvider,
+    FakeDenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
+    SparseEmbeddingPipeline,
+    SparseEmbeddingProvider,
+)
 from adaptive_rag.evals.fixtures import (
     EvalRetrievalFixtureProject,
     build_retrieval_fixture_project,
@@ -36,19 +42,34 @@ def run_chat_eval_suite(
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider | None = None,
+    sparse_provider: SparseEmbeddingProvider | None = None,
     runner: ChatRunner | None = None,
 ) -> EvalRunReport:
     """Ejecuta casos de chat de una suite sin llamar providers hosted."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
+    active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
     fixture_project = build_retrieval_fixture_project(
         session,
         suite,
         provider=active_provider,
     )
+    sparse_pipeline = SparseEmbeddingPipeline(
+        session,
+        provider=active_sparse_provider,
+    )
+    for document_version_id in fixture_project.document_version_ids:
+        sparse_pipeline.embed_document_version(
+            project_id=fixture_project.project_id,
+            document_version_id=document_version_id,
+        )
     service = ChatService(
         runner=runner or RetrievalGroundedChatRunner(),
-        retrieval_service=RetrievalService(session, provider=active_provider),
+        retrieval_service=RetrievalService(
+            session,
+            provider=active_provider,
+            sparse_provider=active_sparse_provider,
+        ),
     )
     cases = tuple(
         _run_chat_case(

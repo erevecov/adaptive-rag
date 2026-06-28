@@ -12,6 +12,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Project,
@@ -94,7 +95,7 @@ def test_run_chat_eval_suite_passes_repo_smoke_fixture() -> None:
         "evidence_id": "alpha",
         "chunk_id": case.observed_citations[0].chunk_id,
         "rank": 1,
-        "score": pytest.approx(1.0),
+        "score": pytest.approx(2 / 61),
         "source_external_id": "alpha.md",
         "snippet": "Alpha original evidence",
     }
@@ -211,6 +212,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
         ],
     )
     return create_session_factory(engine)()
