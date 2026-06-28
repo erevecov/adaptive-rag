@@ -13,6 +13,7 @@ from adaptive_rag.api.dependencies import (
     SparseEmbeddingProviderFactory,
     get_dense_embedding_provider,
     get_graph_retriever,
+    get_project_access,
     get_rerank_provider_factory,
     get_session,
     get_sparse_embedding_provider_factory,
@@ -21,6 +22,7 @@ from adaptive_rag.api.schemas.retrieval import (
     RetrievalSearchRequestBody,
     RetrievalSearchResponse,
 )
+from adaptive_rag.db.models import Project
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever
 from adaptive_rag.retrieval import RetrievalService, RetrievalServiceError
@@ -39,6 +41,7 @@ def search_retrieval(
     project_id: UUID,
     body: RetrievalSearchRequestBody,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
     provider: Annotated[DenseEmbeddingProvider, Depends(get_dense_embedding_provider)],
     rerank_provider_factory: Annotated[
         RerankProviderFactory,

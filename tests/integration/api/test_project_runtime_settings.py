@@ -12,17 +12,25 @@ from sqlalchemy.pool import StaticPool
 
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     Project,
     ProjectChatModel,
+    ProjectMembership,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderSecret,
     RuntimeSlotDefault,
+    User,
 )
-from adaptive_rag.db.repositories import ProjectRepository
+from adaptive_rag.db.models.user import UserAccessToken
+from adaptive_rag.db.repositories import (
+    ProjectMembershipRepository,
+    ProjectRepository,
+    UserRepository,
+)
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -42,6 +50,9 @@ def _make_session() -> Session:
             GlobalChatModel.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
+            ProjectMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -74,6 +85,76 @@ def _put_connection(
         },
     )
     assert response.status_code == 200
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(login=login, display_name=login, system_role="user")
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def _grant_project_role(
+    session: Session,
+    *,
+    project: Project,
+    user: User,
+    role: str,
+) -> None:
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role=role,
+    )
+
+
+def test_project_runtime_settings_override_requires_project_admin() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    session.add(
+        ProviderConnection(
+            connection_id="qwen-hosted",
+            provider="qwen",
+            connection_type="hosted",
+            base_url=None,
+            capabilities_json=["rerank"],
+            metadata_json=None,
+        )
+    )
+    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    admin = _create_user(session, login="admin@example.com", token="admin-token")
+    _grant_project_role(session, project=project, user=viewer, role="viewer")
+    _grant_project_role(session, project=project, user=admin, role="admin")
+    session.commit()
+    client = _client(session=session)
+
+    denied = client.put(
+        f"/projects/{project.id}/runtime-settings/slots/rerank",
+        headers=_bearer("viewer-token"),
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
+    )
+    allowed = client.put(
+        f"/projects/{project.id}/runtime-settings/slots/rerank",
+        headers=_bearer("admin-token"),
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
+    )
+
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project admin role required"
+    assert allowed.status_code == 200
 
 
 def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:

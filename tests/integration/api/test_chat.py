@@ -21,6 +21,7 @@ from adaptive_rag.api.dependencies import (
     get_session,
     get_sparse_embedding_provider_factory,
 )
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.chat import ChatRunnerOutput, ChatRunnerRequest
 from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.db.base import Base
@@ -33,20 +34,25 @@ from adaptive_rag.db.models import (
     Document,
     DocumentVersion,
     Project,
+    ProjectMembership,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
     Source,
     ToolCall,
+    User,
+    UserAccessToken,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChunkRepository,
     DocumentRepository,
+    ProjectMembershipRepository,
     ProjectRepository,
     ProviderUsageRepository,
     SourceRepository,
     SparseEmbeddingRepository,
+    UserRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -223,6 +229,9 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
         engine,
         tables=[
             Project.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
+            ProjectMembership.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -294,6 +303,31 @@ def _sparse_vector(value: float) -> SparseEmbeddingVector:
 
 def _create_project(session: Session, name: str = "demo") -> Project:
     return ProjectRepository(session).create(name=name)
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+    system_role: str = "user",
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(
+        login=login,
+        display_name=login,
+        system_role=system_role,
+    )
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
 
 
 def _create_embedded_chunk(
@@ -485,6 +519,37 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
         .all()
     )
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
+
+
+def test_chat_endpoint_persists_current_user_as_session_owner(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role="viewer",
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("viewer-token"),
+        json={"message": "No retrieval needed."},
+    )
+
+    assert response.status_code == 200
+    session_id = UUID(response.json()["session_id"])
+    fresh_session = session_factory()
+    chat_session = fresh_session.get(ChatSession, session_id)
+    assert chat_session is not None
+    assert chat_session.user_id == user.id
 
 
 def test_chat_stream_endpoint_returns_sse_events_and_persists_session(
@@ -1115,6 +1180,83 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     )
     assert invalid_status.status_code == 422
     assert invalid_status.json() == {"detail": "invalid chat session status"}
+
+
+def test_chat_sessions_endpoint_scopes_history_to_current_user(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session, "demo")
+    first_user = _create_user(session, login="first@example.com", token="first-token")
+    second_user = _create_user(
+        session,
+        login="second@example.com",
+        token="second-token",
+    )
+    superadmin = _create_user(
+        session,
+        login="root@example.com",
+        token="root-token",
+        system_role="superadmin",
+    )
+    membership_repo = ProjectMembershipRepository(session)
+    membership_repo.upsert_membership(
+        project_id=project.id,
+        user_id=first_user.id,
+        role="viewer",
+    )
+    membership_repo.upsert_membership(
+        project_id=project.id,
+        user_id=second_user.id,
+        role="viewer",
+    )
+    repo = ChatAuditRepository(session)
+    first_session = repo.create_session(project_id=project.id, user_id=first_user.id)
+    repo.add_message(
+        project_id=project.id,
+        session_id=first_session.id,
+        role="user",
+        content="first question",
+    )
+    repo.succeed_session(project_id=project.id, session_id=first_session.id)
+    second_session = repo.create_session(project_id=project.id, user_id=second_user.id)
+    repo.add_message(
+        project_id=project.id,
+        session_id=second_session.id,
+        role="user",
+        content="second question",
+    )
+    repo.succeed_session(project_id=project.id, session_id=second_session.id)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    first_history = client.get(
+        f"/projects/{project.id}/chat/sessions",
+        headers=_bearer("first-token"),
+    )
+    forbidden_detail = client.get(
+        f"/projects/{project.id}/chat/sessions/{second_session.id}",
+        headers=_bearer("first-token"),
+    )
+    superadmin_history = client.get(
+        f"/projects/{project.id}/chat/sessions",
+        headers=_bearer("root-token"),
+    )
+
+    assert superadmin.system_role == "superadmin"
+    assert first_history.status_code == 200
+    assert [item["session_id"] for item in first_history.json()["items"]] == [
+        str(first_session.id)
+    ]
+    assert forbidden_detail.status_code == 404
+    assert forbidden_detail.json() == {"detail": "chat session not found"}
+    assert superadmin_history.status_code == 200
+    assert {
+        item["session_id"] for item in superadmin_history.json()["items"]
+    } == {str(first_session.id), str(second_session.id)}
 
 
 def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(

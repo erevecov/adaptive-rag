@@ -26,12 +26,21 @@ class ChatSession(Base):
             name="chat_sessions_status_check",
         ),
         Index("ix_chat_sessions_project_created_at", "project_id", "created_at"),
+        Index(
+            "ix_chat_sessions_project_user_created_at",
+            "project_id",
+            "user_id",
+            "created_at",
+        ),
         Index("ix_chat_sessions_project_status", "project_id", "status"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     project_id: Mapped[UUID] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[str] = mapped_column(
         nullable=False, default="running", server_default="running"

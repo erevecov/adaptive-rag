@@ -26,11 +26,19 @@ class ProjectResponse(BaseModel):
     embedding_mode: str
     retrieval_contextualization_enabled: bool
     budget_config_json: dict[str, Any] | None
+    access_role: str | None
+    can_access: bool
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def from_project(cls, project: Project) -> ProjectResponse:
+    def from_project(
+        cls,
+        project: Project,
+        *,
+        access_role: str | None = None,
+        can_access: bool = True,
+    ) -> ProjectResponse:
         return cls(
             id=project.id,
             name=project.name,
@@ -39,6 +47,8 @@ class ProjectResponse(BaseModel):
                 project.retrieval_contextualization_enabled
             ),
             budget_config_json=project.budget_config_json,
+            access_role=access_role,
+            can_access=can_access,
             created_at=project.created_at,
             updated_at=project.updated_at,
         )

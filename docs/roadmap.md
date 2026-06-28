@@ -35,7 +35,8 @@
 - M35 Acceptance e2e post-runtime-settings: completo.
 - Post-M35 Runtime settings UX/error-state hardening: completo.
 - Post-M35 Final release gate/audit closeout: completo.
-- M36 Functional chat workspace: activo.
+- M36 Functional chat workspace: completo pendiente de cierre.
+- M37 Project RBAC/chat knowledge: completo.
 
 ## M1 Foundation
 
@@ -1529,14 +1530,14 @@ Entregado:
 - Redaccion adicional de secrets en `Settings`, `QwenHTTPEmbeddingClient` y
   `ResolvedRuntimeSlot` para evitar exposicion via `repr`.
 
-Continuacion: M36 queda activo como feature pre-v1 concreta antes de tag o
-GitHub release v1.0.
+Continuacion: M36 queda como feature pre-v1 concreta antes de tag o GitHub
+release v1.0.
 
 ## M36 Functional chat workspace
 
-Estado: activo.
+Estado: completo pendiente de cierre.
 
-Change activo:
+Change activo completo:
 
 - `openspec/changes/m36-chat-functional-workspace/`
 
@@ -1575,6 +1576,58 @@ Secuencia recomendada:
    stepper, source viewer desde citas actuales y chunks historicos, Settings /
    Appearance con temas globales Light/Dark/Purple, STT browser fallback y
    memory deferred por falta de contrato durable.
+
+Continuacion: M37 completo el cambio de arquitectura multi-user y conocimiento
+desde chat sobre el workspace funcional de M36.
+
+## M37 Project RBAC/chat knowledge
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
+
+Objetivo:
+
+- Convertir proyectos en espacios compartidos con usuarios, membresias por
+  proyecto, sesiones de chat privadas por usuario y flujo de conocimiento
+  propuesto desde chat. Todos los usuarios autenticados pueden ver nombres de
+  proyectos, pero solo `superadmin` o miembros asignados pueden acceder.
+
+Condiciones del milestone:
+
+- Auth M37 es local first-party: `users`, tokens locales y un adapter de
+  `current_user` reemplazable por JWT externo en un milestone posterior.
+- `superadmin` es rol de sistema, no membresia de proyecto.
+- `admin`, `contributor` y `viewer` son roles por proyecto.
+- `chat_sessions` debe guardar `user_id`; list/detail de sesiones debe filtrar
+  por `project_id + current_user`.
+- `viewer` puede chatear y proponer conocimiento; sus propuestas quedan
+  `pending`.
+- `contributor+` puede crear conocimiento aprobado directo y
+  aceptar/rechazar/refinar propuestas pendientes de cualquier usuario del
+  proyecto.
+- `admin` puede gestionar miembros del proyecto, pero no archivar ni eliminar
+  proyectos.
+- El conocimiento aprobado alimenta el pipeline existente de sources,
+  ingestion, chunks y embeddings; propuestas pending no son retrievables.
+
+Secuencia entregada:
+
+1. `m37-project-rbac-chat-knowledge`: OpenSpec de planificacion y validacion,
+   implementacion completa y archive.
+2. `m37-auth-schema-repositories`: users, tokens, memberships,
+   `chat_sessions.user_id`, `knowledge_proposals` y repositories.
+3. `m37-auth-dependencies-api-guards`: resolver `current_user` y proteger rutas
+   existentes por rol.
+4. `m37-private-chat-sessions`: chat create/list/detail aislado por usuario.
+5. `m37-project-admin-users`: APIs de usuarios y membresias de proyecto.
+6. `m37-knowledge-proposals`: cola pending, approve/reject/refine e ingestion
+   bridge.
+7. `m37-frontend-project-rbac`: selector buscable de proyectos, estados
+   locked, project members y knowledge review queue.
+8. `m37-quality-gate`: backend/frontend/OpenSpec/browser QA y archive.
 
 ## Politica para reducir conflictos de merge
 

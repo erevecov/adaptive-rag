@@ -74,6 +74,138 @@ function jobPayload({
 }
 
 describe('createApiClient', () => {
+  test('attaches bearer auth headers to JSON requests', async () => {
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        display_name: 'Viewer',
+        id: '11111111-1111-4111-8111-111111111111',
+        is_bootstrap: false,
+        login: 'viewer@example.com',
+        system_role: 'user',
+      }),
+    )
+    const client = createApiClient({
+      authToken: 'viewer-token',
+      baseUrl: 'http://api.local/',
+      fetch,
+    })
+
+    await client.getCurrentUser()
+
+    expect(String(calls[0].input)).toBe('http://api.local/auth/me')
+    expect(calls[0].init?.headers).toEqual({
+      Authorization: 'Bearer viewer-token',
+    })
+  })
+
+  test('manages users, memberships and knowledge proposals', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const userId = '22222222-2222-4222-8222-222222222222'
+    const proposalId = '33333333-3333-4333-8333-333333333333'
+    const createdAt = '2026-06-28T00:00:00Z'
+    const user = {
+      created_at: createdAt,
+      display_name: 'Viewer',
+      id: userId,
+      is_active: true,
+      login: 'viewer@example.com',
+      system_role: 'user',
+      updated_at: createdAt,
+    }
+    const membership = {
+      created_at: createdAt,
+      id: '44444444-4444-4444-8444-444444444444',
+      project_id: projectId,
+      role: 'viewer',
+      updated_at: createdAt,
+      user_id: userId,
+    }
+    const proposal = {
+      approved_source_id: null,
+      created_at: createdAt,
+      id: proposalId,
+      origin_message_id: null,
+      origin_session_id: null,
+      project_id: projectId,
+      proposed_text: 'New knowledge',
+      refined_text: null,
+      review_note: null,
+      reviewed_at: null,
+      reviewed_by_user_id: null,
+      status: 'pending',
+      submitted_by_user_id: userId,
+      updated_at: createdAt,
+    }
+    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+    const fetchStub: typeof fetch = async (input, init) => {
+      calls.push({ input, init })
+      const url = String(input)
+      if (url.endsWith('/admin/users')) {
+        return jsonResponse(init?.method === 'GET' ? { items: [user] } : user)
+      }
+      if (url.includes('/memberships')) {
+        return jsonResponse(
+          init?.method === 'GET' ? { items: [membership] } : membership,
+        )
+      }
+      return jsonResponse(
+        init?.method === 'GET' ? { items: [proposal] } : proposal,
+      )
+    }
+    const client = createApiClient({
+      authToken: 'root-token',
+      baseUrl: 'http://api.local',
+      fetch: fetchStub,
+    })
+
+    await client.createUser({
+      access_token: 'viewer-token',
+      display_name: 'Viewer',
+      login: 'viewer@example.com',
+    })
+    await client.listUsers()
+    await client.upsertProjectMembership(projectId, userId, { role: 'viewer' })
+    await client.listProjectMemberships(projectId)
+    await client.submitKnowledgeProposal(projectId, {
+      proposed_text: 'New knowledge',
+    })
+    await client.listKnowledgeProposals(projectId, { status: 'pending' })
+    await client.refineKnowledgeProposal(projectId, proposalId, {
+      refined_text: 'Refined knowledge',
+    })
+    await client.approveKnowledgeProposal(projectId, proposalId, {
+      review_note: 'accepted',
+    })
+    await client.rejectKnowledgeProposal(projectId, proposalId, {
+      reason: 'not supported',
+    })
+
+    expect(String(calls[0].input)).toBe('http://api.local/admin/users')
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.headers).toEqual({
+      Authorization: 'Bearer root-token',
+      'content-type': 'application/json',
+    })
+    expect(String(calls[2].input)).toBe(
+      `http://api.local/projects/${projectId}/memberships/${userId}`,
+    )
+    expect(String(calls[4].input)).toBe(
+      `http://api.local/projects/${projectId}/knowledge-proposals`,
+    )
+    expect(String(calls[5].input)).toBe(
+      `http://api.local/projects/${projectId}/knowledge-proposals?status=pending`,
+    )
+    expect(String(calls[6].input)).toBe(
+      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/refine`,
+    )
+    expect(String(calls[7].input)).toBe(
+      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/approve`,
+    )
+    expect(String(calls[8].input)).toBe(
+      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/reject`,
+    )
+  })
+
   test('creates and lists projects through the authoring API', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const createdAt = '2026-06-22T00:00:00Z'

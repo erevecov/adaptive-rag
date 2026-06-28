@@ -11,13 +11,17 @@ from sqlalchemy.pool import StaticPool
 
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     ProviderConnection,
     ProviderSecret,
     RuntimeSlotDefault,
+    User,
 )
+from adaptive_rag.db.models.user import UserAccessToken
+from adaptive_rag.db.repositories import UserRepository
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -34,6 +38,8 @@ def _make_session() -> Session:
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -68,6 +74,71 @@ def _put_connection(
         },
     )
     assert response.status_code == 200
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+    system_role: str = "user",
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(
+        login=login,
+        display_name=login,
+        system_role=system_role,
+    )
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def test_global_runtime_settings_require_superadmin_when_users_exist() -> None:
+    session = _make_session()
+    session.add(
+        ProviderConnection(
+            connection_id="qwen-hosted",
+            provider="qwen",
+            connection_type="hosted",
+            base_url=None,
+            capabilities_json=["rerank"],
+            metadata_json=None,
+        )
+    )
+    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(
+        session,
+        login="root@example.com",
+        token="root-token",
+        system_role="superadmin",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    unauthenticated = client.get("/runtime-settings/slots")
+    denied = client.put(
+        "/runtime-settings/slots/rerank",
+        headers=_bearer("viewer-token"),
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
+    )
+    allowed = client.put(
+        "/runtime-settings/slots/rerank",
+        headers=_bearer("root-token"),
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
+    )
+
+    assert unauthenticated.status_code == 401
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "superadmin role required"
+    assert allowed.status_code == 200
 
 
 def test_slot_defaults_api_upserts_lists_and_rejects_unknown_slots() -> None:

@@ -46,9 +46,15 @@ class ChatRequestBody(BaseModel):
     retrieval_limit: int = 5
     metadata_filter: RetrievalMetadataFilterRequest | None = None
 
-    def to_service_request(self, project_id: UUID) -> ChatRequest:
+    def to_service_request(
+        self,
+        project_id: UUID,
+        *,
+        user_id: UUID | None = None,
+    ) -> ChatRequest:
         return ChatRequest(
             project_id=project_id,
+            user_id=user_id,
             message=self.message,
             retrieval_limit=self.retrieval_limit,
             metadata_filter=(

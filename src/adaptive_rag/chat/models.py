@@ -15,6 +15,7 @@ class ChatRequest:
 
     project_id: UUID
     message: str
+    user_id: UUID | None = None
     retrieval_limit: int = 5
     metadata_filter: RetrievalMetadataFilter | None = None
 
@@ -27,6 +28,7 @@ class ChatRunnerRequest:
     message: str
     retrieval_limit: int
     metadata_filter: RetrievalMetadataFilter | None
+    user_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -21,6 +21,7 @@ from adaptive_rag.db.models import (
     RetrievedChunk,
     Source,
     ToolCall,
+    User,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
@@ -37,6 +38,7 @@ def _make_session():
         engine,
         tables=[
             Project.__table__,
+            User.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -130,6 +132,23 @@ def test_chat_session_persists_model_config_and_prompt_version() -> None:
     assert "model" not in columns
     assert "prompt_config_json" not in columns
     assert "metadata_json" not in columns
+
+
+def test_chat_session_can_store_owner_user_id() -> None:
+    session = _make_session()
+    project = _make_project(session)
+    user = User(login="owner@example.com", display_name="Owner")
+    session.add(user)
+    session.flush()
+    chat_session = ChatSession(project_id=project.id, user_id=user.id)
+
+    session.add(chat_session)
+    session.commit()
+    session.expunge_all()
+
+    fetched = session.execute(select(ChatSession)).scalar_one()
+
+    assert fetched.user_id == user.id
 
 
 def test_chat_message_persists_role_content_and_metadata() -> None:
@@ -441,6 +460,9 @@ def test_audit_tables_have_project_session_indexes() -> None:
     }
 
     assert ("project_id", "created_at") in indexed_columns["chat_sessions"]
+    assert ("project_id", "user_id", "created_at") in indexed_columns[
+        "chat_sessions"
+    ]
     assert ("project_id", "status") in indexed_columns["chat_sessions"]
     assert ("project_id", "session_id", "created_at") in indexed_columns[
         "chat_messages"

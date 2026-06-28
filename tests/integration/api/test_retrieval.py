@@ -18,6 +18,7 @@ from adaptive_rag.api.dependencies import (
     get_session,
     get_sparse_embedding_provider_factory,
 )
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
@@ -27,14 +28,19 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     GraphProjection,
     Project,
+    ProjectMembership,
     Source,
+    User,
 )
+from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
+    ProjectMembershipRepository,
     ProjectRepository,
     SourceRepository,
     SparseEmbeddingRepository,
+    UserRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -128,6 +134,9 @@ def _make_session() -> Session:
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
             GraphProjection.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
+            ProjectMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -182,6 +191,41 @@ def _client(
 
 def _create_project(session: Session, name: str = "demo") -> Project:
     return ProjectRepository(session).create(name=name)
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+    role: str = "user",
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(login=login, display_name=login, system_role=role)
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def _grant_project_role(
+    session: Session,
+    *,
+    project: Project,
+    user: User,
+    role: str,
+) -> None:
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role=role,
+    )
 
 
 def _create_embedded_chunk(
@@ -251,6 +295,37 @@ def _create_sparse_embedding(
         index_fingerprint=fingerprint,
         extra_metadata={"provider": "fake"},
     )
+
+
+def test_retrieval_search_endpoint_requires_project_membership() -> None:
+    session = _make_session()
+    project = _create_project(session)
+    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    outsider = _create_user(
+        session,
+        login="outsider@example.com",
+        token="outsider-token",
+    )
+    _grant_project_role(session, project=project, user=viewer, role="viewer")
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    client = _client(session=session, provider=provider)
+
+    denied = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        headers=_bearer("outsider-token"),
+        json={"query": "alpha question", "limit": 1},
+    )
+    allowed = client.post(
+        f"/projects/{project.id}/retrieval/search",
+        headers=_bearer("viewer-token"),
+        json={"query": "alpha question", "limit": 1},
+    )
+
+    assert outsider.system_role == "user"
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project access required"
+    assert allowed.status_code == 200
 
 
 def test_retrieval_search_endpoint_returns_results_with_citations() -> None:

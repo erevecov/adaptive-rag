@@ -8,7 +8,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.api.dependencies import (
+    get_current_user,
+    get_session,
+    get_superadmin_user,
+)
 from adaptive_rag.api.schemas.runtime_settings import (
     ChatModelListResponse,
     ChatModelResponse,
@@ -21,13 +25,42 @@ from adaptive_rag.api.schemas.runtime_settings import (
     RuntimeSlotDefaultResponse,
     RuntimeSlotDefaultUpsertRequestBody,
 )
+from adaptive_rag.auth import CurrentPrincipal, get_project_role, role_meets
+from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
     ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
 )
 
-router = APIRouter(prefix="/runtime-settings", tags=["runtime-settings"])
-project_router = APIRouter(tags=["runtime-settings"])
+
+def _require_project_runtime_admin_access(
+    project_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> tuple[Project, str]:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "project_not_found", "message": "project_not_found"},
+        )
+    role = get_project_role(session, principal=current, project_id=project_id)
+    if role is None:
+        raise HTTPException(status_code=403, detail="project access required")
+    if not role_meets(role, "admin"):
+        raise HTTPException(status_code=403, detail="project admin role required")
+    return project, role
+
+
+router = APIRouter(
+    prefix="/runtime-settings",
+    tags=["runtime-settings"],
+    dependencies=[Depends(get_superadmin_user)],
+)
+project_router = APIRouter(
+    tags=["runtime-settings"],
+    dependencies=[Depends(_require_project_runtime_admin_access)],
+)
 
 
 @router.get("/slots", response_model=RuntimeSlotDefaultListResponse)
