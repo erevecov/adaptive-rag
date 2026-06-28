@@ -7,7 +7,7 @@
 - [x] 1.2 Confirm current OpenSpec active changes and canonical provider/
   frontend specs.
 - [x] 1.3 Review the current Adaptive RAG provider runtime contract.
-- [x] 1.4 Review BeFlow model-settings/chat-pool/encryption patterns as
+- [x] 1.4 Review model-settings/chat-pool/encryption patterns as
   non-authoritative reference.
 
 ## 2. OpenSpec change

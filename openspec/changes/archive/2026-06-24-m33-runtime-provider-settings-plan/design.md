@@ -14,7 +14,7 @@ rotar secrets, mezclar hosted/local por slot y permitir que un proyecto
 especial overridee defaults sin convertir providers en configuracion por
 proyecto.
 
-La referencia de BeFlow aporta tres patrones utiles:
+La referencia revisada aporta tres patrones utiles:
 
 1. Slots fijos por enum, no strings libres.
 2. Un servicio de resolucion por slot con cache corta y fallback de env.

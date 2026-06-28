@@ -1,9 +1,16 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import App from './App'
 import type {
@@ -29,9 +36,79 @@ import { ApiClientError } from './lib/apiClient'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 
+function installLocalStorage() {
+  const entries = new Map<string, string>()
+  const storage = {
+    get length() {
+      return entries.size
+    },
+    clear() {
+      entries.clear()
+    },
+    getItem(key: string) {
+      return entries.get(key) ?? null
+    },
+    key(index: number) {
+      return Array.from(entries.keys())[index] ?? null
+    },
+    removeItem(key: string) {
+      entries.delete(key)
+    },
+    setItem(key: string, value: string) {
+      entries.set(key, value)
+    },
+  } satisfies Storage
+
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: storage,
+  })
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: storage,
+  })
+}
+
+beforeEach(() => {
+  installLocalStorage()
+})
+
 afterEach(() => {
   cleanup()
+  localStorage.clear()
+  document.documentElement.removeAttribute('data-theme')
+  document.documentElement.classList.remove('dark')
+  delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition
+  delete (window as unknown as { webkitSpeechRecognition?: unknown })
+    .webkitSpeechRecognition
 })
+
+class FakeSpeechRecognition {
+  static latest: FakeSpeechRecognition | null = null
+
+  continuous = false
+  interimResults = false
+  lang = ''
+  onend: (() => void) | null = null
+  onerror: ((event: { error?: string }) => void) | null = null
+  onresult:
+    | ((event: { results: Array<Array<{ transcript: string }>> }) => void)
+    | null = null
+  start = vi.fn()
+  stop = vi.fn()
+
+  constructor() {
+    FakeSpeechRecognition.latest = this
+  }
+}
+
+function installFakeSpeechRecognition() {
+  FakeSpeechRecognition.latest = null
+  Object.defineProperty(window, 'SpeechRecognition', {
+    configurable: true,
+    value: FakeSpeechRecognition,
+  })
+}
 
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
@@ -166,6 +243,26 @@ const sessionListResponse: ChatSessionListResponse = {
   next_cursor: null,
 }
 
+const failedSessionListResponse: ChatSessionListResponse = {
+  items: [
+    {
+      created_at: '2026-06-21T01:00:00Z',
+      error_message: 'runner failed',
+      message_count: 2,
+      model_config: null,
+      prompt_version: 'default',
+      provider_usage_count: 1,
+      retrieval_run_count: 0,
+      session_id: 'session-failed',
+      status: 'failed',
+      tool_call_count: 0,
+      total_estimated_cost_usd: 0,
+      updated_at: '2026-06-21T01:00:01Z',
+    },
+  ],
+  next_cursor: null,
+}
+
 const projectSummary: Project = {
   budget_config_json: null,
   created_at: '2026-06-22T00:00:00Z',
@@ -189,6 +286,17 @@ const sourceSummary: Source = {
   source_type: 'markdown',
   tags: ['docs', 'local'],
   updated_at: '2026-06-22T00:00:01Z',
+}
+
+const citationSource: Source = {
+  created_at: '2026-06-21T00:00:00Z',
+  external_id: 'https://docs.local/runbook',
+  extra_metadata: { owner: 'ops', title: 'Deployment runbook' },
+  id: 'source-1',
+  project_id: projectId,
+  source_type: 'url',
+  tags: ['runbook'],
+  updated_at: '2026-06-21T00:00:00Z',
 }
 
 const sourceListResponse: SourceListResponse = {
@@ -468,6 +576,7 @@ const sessionDetailResponse: ChatSessionDetailResponse = {
           chunk_id: 'chunk-1',
           citation: {
             snippet: 'Confirm the worker is running before retrying the import.',
+            source_id: 'source-1',
             source_external_id: 'https://docs.local/deploy',
           },
           created_at: '2026-06-21T00:00:01Z',
@@ -509,6 +618,30 @@ const sessionDetailResponse: ChatSessionDetailResponse = {
   ],
 }
 
+const unknownUsageSessionDetail: ChatSessionDetailResponse = {
+  ...sessionDetailResponse,
+  provider_usage: [
+    {
+      created_at: '2026-06-21T00:00:02Z',
+      currency: null,
+      error_message: null,
+      estimated_cost_usd: null,
+      input_count: null,
+      input_tokens: null,
+      latency_ms: null,
+      model: 'qwen-plus',
+      operation: 'chat',
+      output_tokens: null,
+      provider: 'qwen',
+      provider_request_id: null,
+      provider_usage_id: 'usage-unknown',
+      status: 'succeeded',
+      total_tokens: null,
+      usage_source: 'response',
+    },
+  ],
+}
+
 function createDeferred<T>(): {
   promise: Promise<T>
   reject(reason?: unknown): void
@@ -529,6 +662,86 @@ describe('App chat workspace', () => {
 
     expect(screen.getByLabelText('Project ID')).toBeTruthy()
     expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('opens appearance settings and applies the selected theme globally', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({})
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    expect(document.querySelector('main')?.className).toBe('app-shell')
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+    expect(screen.getByText('Choose the interface palette.')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /Light/ }).getAttribute('aria-pressed'),
+    ).toBe('false')
+    const darkThemeButton = screen.getByRole('button', { name: /Dark/ })
+    expect(darkThemeButton.getAttribute('aria-pressed')).toBe('false')
+    expect(
+      screen.getByRole('button', { name: /Purple/ }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('true')
+    expect(
+      screen.getByText('High-contrast purple workspace palette.'),
+    ).toBeTruthy()
+    expect(document.body.textContent ?? '').not.toMatch(
+      new RegExp(['be', 'flow'].join(''), 'i'),
+    )
+
+    await user.click(darkThemeButton)
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(
+      darkThemeButton.querySelector<HTMLElement>('.theme-swatch')?.style
+        .background,
+    ).toBe('rgb(0, 0, 0)')
+    expect(
+      darkThemeButton.querySelector<HTMLElement>('.theme-swatch-accent')?.style
+        .background,
+    ).toBe('rgb(245, 245, 245)')
+
+    await user.click(screen.getByRole('button', { name: /Light/ }))
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
+    expect(localStorage.getItem('adaptive-rag-theme')).toBe('light')
+
+    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.querySelector('main')?.className).toBe('app-shell')
+
+    await user.click(screen.getByRole('button', { name: /^Chat$/ }))
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.querySelector('main')?.className).toBe('app-shell')
+  })
+
+  test('hydrates the global theme from local storage', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('adaptive-rag-theme', 'dark')
+    const client = createClientStub({})
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(
+      screen.getByRole('button', { name: /Dark/ }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen.getByRole('button', { name: /Purple/ }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('false')
   })
 
   test('creates a project and source from the authoring workspace', async () => {
@@ -746,6 +959,137 @@ describe('App chat workspace', () => {
     expect(screen.getAllByText('session-123')).toHaveLength(2)
   })
 
+  test('opens source viewer from a chat citation using the citation source id', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
+      getSource: vi.fn(async () => citationSource),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    await screen.findByText(chatResponse.answer)
+
+    await user.click(screen.getByRole('tab', { name: 'Minimap' }))
+    expect(
+      screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
+    ).toBe('true')
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'View source https://docs.local/runbook',
+      }),
+    )
+
+    expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
+    expect(
+      screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
+    ).toBe('true')
+    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
+    expect(within(viewer).getByText('url')).toBeTruthy()
+    expect(within(viewer).getByText('runbook')).toBeTruthy()
+    expect(
+      within(viewer).getByText('Restart the worker before retrying the import.'),
+    ).toBeTruthy()
+    expect(within(viewer).getByText('Deployment runbook')).toBeTruthy()
+    expect(within(viewer).getByText('ops')).toBeTruthy()
+  })
+
+  test('keeps chat response visible when source lookup fails', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
+      getSource: vi.fn(async () => {
+        throw new ApiClientError('source not found', {
+          detail: 'source not found',
+          status: 404,
+        })
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    await screen.findByText(chatResponse.answer)
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'View source https://docs.local/runbook',
+      }),
+    )
+
+    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    expect(within(viewer).getByRole('alert').textContent).toContain(
+      'source not found',
+    )
+    expect(
+      within(viewer).getByText('Restart the worker before retrying the import.'),
+    ).toBeTruthy()
+    expect(screen.getByText(chatResponse.answer)).toBeTruthy()
+    expect(
+      screen.getAllByText('Restart the worker before retrying the import.')
+        .length,
+    ).toBeGreaterThanOrEqual(2)
+  })
+
+  test('shows speech input as unsupported when browser STT is unavailable', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const button = screen.getByRole('button', {
+      name: 'Speech input unavailable',
+    }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(
+      screen.getByText('Speech recognition is not supported in this browser.'),
+    ).toBeTruthy()
+  })
+
+  test('uses browser speech recognition to fill the chat question', async () => {
+    installFakeSpeechRecognition()
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Start dictation' }))
+    expect(FakeSpeechRecognition.latest?.start).toHaveBeenCalled()
+
+    await act(async () => {
+      FakeSpeechRecognition.latest?.onresult?.({
+        results: [[{ transcript: 'How do I retry from voice?' }]],
+      })
+    })
+
+    const question = screen.getByLabelText('Question') as HTMLTextAreaElement
+    expect(question.value).toBe('How do I retry from voice?')
+    expect(screen.getByText('Voice transcript added.')).toBeTruthy()
+  })
+
+  test('shows speech recognition errors without submitting chat', async () => {
+    installFakeSpeechRecognition()
+    const user = userEvent.setup()
+    const client = createClientStub({})
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Start dictation' }))
+    await act(async () => {
+      FakeSpeechRecognition.latest?.onerror?.({ error: 'not-allowed' })
+    })
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Speech recognition error: not-allowed',
+    )
+    expect(client.askChatStream).not.toHaveBeenCalled()
+  })
+
   test('renders streaming deltas before the final response resolves', async () => {
     const user = userEvent.setup()
     const finalResponse = createDeferred<ChatResponseBody>()
@@ -864,6 +1208,35 @@ describe('App chat workspace', () => {
     expect(client.listChatSessions).not.toHaveBeenCalled()
   })
 
+  test('filters session navigation by public status without archived UI', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listChatSessions: vi.fn(async (_projectId, params) =>
+        params?.status === 'failed'
+          ? failedSessionListResponse
+          : sessionListResponse,
+      ),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    const navigation = screen.getByRole('complementary', {
+      name: 'Session navigation',
+    })
+    expect(within(navigation).queryByRole('button', { name: /archived/i })).toBeNull()
+
+    await user.click(within(navigation).getByRole('button', { name: 'Failed' }))
+
+    expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
+      limit: 5,
+      status: 'failed',
+    })
+    expect(
+      await within(navigation).findByRole('button', { name: 'session-failed' }),
+    ).toBeTruthy()
+    expect(within(navigation).queryByRole('button', { name: 'session-123' })).toBeNull()
+  })
+
   test('refreshes history and renders selected session detail read-only', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -880,19 +1253,172 @@ describe('App chat workspace', () => {
       limit: 5,
     })
     expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
-    expect(screen.getByText('The import failed because the worker was not running.')).toBeTruthy()
-    expect(screen.getByText('rag_search')).toBeTruthy()
-    expect(screen.getByText('deployment import failure')).toBeTruthy()
-    expect(screen.getByText('default dense retrieval')).toBeTruthy()
-    expect(screen.getByText('latency 41 ms')).toBeTruthy()
+    const sessionMessages = await screen.findByRole('list', {
+      name: 'Session messages',
+    })
     expect(
-      screen.getByText('Confirm the worker is running before retrying the import.'),
+      within(sessionMessages).getByText(
+        'The import failed because the worker was not running.',
+      ),
     ).toBeTruthy()
-    expect(screen.getByText('rank 1')).toBeTruthy()
-    expect(screen.getByText('dense score 0.84')).toBeTruthy()
-    expect(screen.getByText('qwen / qwen-plus')).toBeTruthy()
+    const sessionDetail = screen.getByRole('region', {
+      name: 'Selected session detail',
+    })
+    expect(within(sessionDetail).getByText('rag_search')).toBeTruthy()
+    expect(within(sessionDetail).getByText('deployment import failure')).toBeTruthy()
+    expect(within(sessionDetail).getByText('default dense retrieval')).toBeTruthy()
+    expect(within(sessionDetail).getByText('latency 41 ms')).toBeTruthy()
+    expect(
+      within(sessionDetail).getByText(
+        'Confirm the worker is running before retrying the import.',
+      ),
+    ).toBeTruthy()
+    expect(within(sessionDetail).getByText('rank 1')).toBeTruthy()
+    expect(within(sessionDetail).getByText('dense score 0.84')).toBeTruthy()
+    expect(within(sessionDetail).getByText('qwen / qwen-plus')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
+
+  test('opens source viewer from a historical retrieved chunk', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      getSource: vi.fn(async () => citationSource),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    const sessionDetail = await screen.findByRole('region', {
+      name: 'Selected session detail',
+    })
+    await user.click(
+      within(sessionDetail).getByRole('button', {
+        name: 'View source https://docs.local/deploy',
+      }),
+    )
+
+    expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
+    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
+    expect(
+      within(viewer).getByText(
+        'Confirm the worker is running before retrying the import.',
+      ),
+    ).toBeTruthy()
+    expect(within(viewer).getByText('Deployment runbook')).toBeTruthy()
+    expect(within(viewer).getByText('ops')).toBeTruthy()
+  })
+
+  test('summarizes selected session context and provider usage', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    const context = await screen.findByRole('region', {
+      name: 'Session context',
+    })
+    expect(within(context).getByText('prompt default')).toBeTruthy()
+    expect(within(context).getByText('qwen-plus')).toBeTruthy()
+    expect(within(context).getByText('$0.0042')).toBeTruthy()
+    expect(within(context).getByText('168 tokens')).toBeTruthy()
+    expect(within(context).getByText('230 ms')).toBeTruthy()
+  })
+
+  test('keeps missing selected session usage values visible as unknown', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => unknownUsageSessionDetail),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    const context = await screen.findByRole('region', {
+      name: 'Session context',
+    })
+    expect(within(context).getByText('unknown cost')).toBeTruthy()
+    expect(within(context).getByText('unknown tokens')).toBeTruthy()
+    expect(within(context).getByText('unknown latency')).toBeTruthy()
+  })
+
+  test('renders conversation minimap from persisted messages and focuses messages', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('tab', { name: 'Minimap' }))
+
+    const minimap = await screen.findByRole('navigation', {
+      name: 'Conversation minimap',
+    })
+    expect(
+      within(minimap).getByRole('button', {
+        name: 'user: What failed during deployment?',
+      }),
+    ).toBeTruthy()
+
+    await user.click(
+      within(minimap).getByRole('button', {
+        name: 'assistant: The import failed because the worker was not running.',
+      }),
+    )
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('article', { name: 'assistant message' }),
+      ),
+    )
+    expect(
+      screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
+    ).toBe('true')
+  })
+
+  test('renders internal action stepper from stored audit records read-only', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    const stepper = await screen.findByRole('region', {
+      name: 'Internal action stepper',
+    })
+    expect(within(stepper).getByText('tool call succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('retrieval dense')).toBeTruthy()
+    expect(within(stepper).getByText('provider usage succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('rag_search')).toBeTruthy()
+    expect(within(stepper).getByText('deployment import failure')).toBeTruthy()
+    expect(within(stepper).getByText('qwen-plus')).toBeTruthy()
+    expect(within(stepper).getByText('39 ms')).toBeTruthy()
+    expect(within(stepper).getByText('rank 1')).toBeTruthy()
+    expect(within(stepper).getByText(/0\.0042/)).toBeTruthy()
+    expect(within(stepper).queryByRole('button', { name: /replay/i })).toBeNull()
   })
 
   test('shows session detail errors without clearing the session list', async () => {
@@ -912,9 +1438,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
 
-    expect((await screen.findByRole('status')).textContent).toContain(
-      'chat session not found',
-    )
+    expect(await screen.findByText('chat session not found')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'session-123' })).toBeTruthy()
   })
 

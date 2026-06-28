@@ -1,9 +1,80 @@
-.app-shell {
-  background:
+:root {
+  --app-page-background: #f4f6f8;
+  --app-shell-background:
     linear-gradient(135deg, rgba(21, 115, 139, 0.08), transparent 34%),
     linear-gradient(315deg, rgba(128, 93, 54, 0.08), transparent 38%),
     #f4f6f8;
-  color: #18201f;
+  --app-text: #18201f;
+  --app-text-strong: #223532;
+  --app-text-muted: #63706d;
+  --app-surface: rgba(255, 255, 255, 0.9);
+  --app-surface-solid: #ffffff;
+  --app-surface-muted: #f8faf9;
+  --app-border: #d9e0dd;
+  --app-border-strong: #c9d2cf;
+  --app-primary: #23423e;
+  --app-primary-hover: #315951;
+  --app-primary-fg: #ffffff;
+  --app-accent: #397267;
+  --app-accent-soft: #e6f1ed;
+  --app-input: #ffffff;
+  --app-input-border: #cbd6d2;
+  --app-ring: rgba(47, 125, 115, 0.16);
+  --app-error: #9b3939;
+  --app-shadow: 0 18px 46px rgba(28, 40, 39, 0.08);
+}
+
+[data-theme='dark'] {
+  --app-page-background: #000000;
+  --app-shell-background: #000000;
+  --app-text: #f4f4f5;
+  --app-text-strong: #ffffff;
+  --app-text-muted: #a3a3a3;
+  --app-surface: #080808;
+  --app-surface-solid: #101010;
+  --app-surface-muted: #151515;
+  --app-border: #2a2a2a;
+  --app-border-strong: #3a3a3a;
+  --app-primary: #f5f5f5;
+  --app-primary-hover: #d4d4d4;
+  --app-primary-fg: #050505;
+  --app-accent: #f5f5f5;
+  --app-accent-soft: #1f1f1f;
+  --app-input: #050505;
+  --app-input-border: #3a3a3a;
+  --app-ring: rgba(245, 245, 245, 0.18);
+  --app-error: #ff9d9d;
+  --app-shadow: none;
+}
+
+[data-theme='purple'] {
+  --app-page-background: #070513;
+  --app-shell-background:
+    radial-gradient(circle at top left, rgba(107, 80, 201, 0.18), transparent 32%),
+    linear-gradient(180deg, #0a0716 0%, #070513 100%);
+  --app-text: #f4f0ff;
+  --app-text-strong: #ffffff;
+  --app-text-muted: #b5acd5;
+  --app-surface: #100d1e;
+  --app-surface-solid: #17122a;
+  --app-surface-muted: #120f22;
+  --app-border: #2a2247;
+  --app-border-strong: #382e61;
+  --app-primary: #5b42d6;
+  --app-primary-hover: #6d55e8;
+  --app-primary-fg: #ffffff;
+  --app-accent: #8f7dff;
+  --app-accent-soft: #24185c;
+  --app-input: #19142d;
+  --app-input-border: #382e61;
+  --app-ring: rgba(139, 108, 255, 0.2);
+  --app-error: #ffb4b4;
+  --app-shadow: none;
+}
+
+.app-shell {
+  background: var(--app-shell-background);
+  color: var(--app-text);
   display: grid;
   min-height: 100vh;
   padding: 28px;
@@ -243,6 +314,37 @@ h3 {
   display: flex;
   gap: 14px;
   justify-content: space-between;
+}
+
+.speech-input {
+  align-items: center;
+  background: #f8faf9;
+  border: 1px solid #dfe7e3;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.speech-button {
+  background: #ffffff;
+  border: 1px solid #cbd6d2;
+  color: #23423e;
+  min-height: 38px;
+}
+
+.speech-button-active {
+  background: #7e2f2f;
+  border-color: #7e2f2f;
+  color: #ffffff;
+}
+
+.speech-feedback {
+  color: #5c6866;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .chat-retrieval-summary {
@@ -877,13 +979,35 @@ button:disabled {
   margin-top: 6px;
 }
 
-.citation-list li > span {
+.citation-score {
   background: #e6f1ed;
   border-radius: 999px;
   color: #27534d;
+  display: inline-flex;
   font-size: 12px;
   font-weight: 800;
   padding: 5px 8px;
+}
+
+.citation-actions {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.source-viewer-button {
+  background: #24413d;
+  border-color: #24413d;
+  color: #ffffff;
+  font-size: 12px;
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.source-viewer-button:hover {
+  background: #315951;
+  border-color: #315951;
 }
 
 .citation-meta,
@@ -908,8 +1032,100 @@ button:disabled {
   padding: 14px;
 }
 
+.source-viewer {
+  background: #ffffff;
+  border: 1px solid #dfe5e0;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.source-viewer-content,
+.source-viewer-block {
+  display: grid;
+  gap: 12px;
+}
+
+.source-viewer-block h4 {
+  color: #25302f;
+  font-size: 13px;
+  margin: 0;
+}
+
+.source-viewer-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.source-viewer-grid div {
+  background: #f8faf9;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.source-viewer-grid dt {
+  color: #65716f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.source-viewer-grid dd {
+  color: #25302f;
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.source-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.source-tag-list li {
+  background: #edf6f3;
+  border-radius: 999px;
+  color: #27534d;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
 .session-list {
   margin-top: 18px;
+}
+
+.session-filter-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.session-filter {
+  background: #ffffff;
+  border: 1px solid #d5dfdc;
+  color: #4f625f;
+  font-size: 12px;
+  min-height: 34px;
+  padding: 8px 6px;
+}
+
+.session-filter:hover,
+.session-filter-active {
+  background: #24413d;
+  border-color: #24413d;
+  color: #ffffff;
 }
 
 .session-list li {
@@ -963,6 +1179,29 @@ button:disabled {
   padding-top: 20px;
 }
 
+.session-context-panel {
+  border-top: 1px solid #dfe5e2;
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 20px;
+}
+
+.conversation-minimap,
+.internal-stepper {
+  border-top: 1px solid #dfe5e2;
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 20px;
+}
+
+.session-context-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
 .detail-heading {
   align-items: center;
   display: flex;
@@ -1005,6 +1244,90 @@ button:disabled {
   padding: 12px;
 }
 
+.message-article {
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  outline: none;
+}
+
+.message-article:focus-visible {
+  box-shadow: 0 0 0 3px rgba(53, 114, 103, 0.28);
+}
+
+.minimap-list,
+.action-step-list,
+.action-substep-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.minimap-list button {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #dfe5e0;
+  border-radius: 8px;
+  color: inherit;
+  display: grid;
+  gap: 4px;
+  min-height: auto;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.minimap-list button:hover {
+  background: #edf6f3;
+}
+
+.minimap-list strong,
+.action-step-list span {
+  color: #397267;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.minimap-list span,
+.action-step-list p,
+.action-step-list small,
+.action-substep-list small {
+  color: #5c6866;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.action-step-list > li {
+  background: #ffffff;
+  border: 1px solid #dfe5e0;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.action-step-list strong,
+.action-substep-list strong {
+  color: #25302f;
+  overflow-wrap: anywhere;
+}
+
+.action-substep-list {
+  margin-top: 4px;
+}
+
+.action-substep-list li {
+  background: #f8faf9;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+
 .retrieved-chunk-list {
   gap: 8px;
   margin-top: 8px;
@@ -1035,6 +1358,340 @@ button:disabled {
   margin-top: 6px;
 }
 
+.retrieved-chunk-source-button {
+  margin-top: 8px;
+  width: fit-content;
+}
+
+html,
+body,
+#root {
+  background: var(--app-page-background);
+  margin: 0;
+  min-height: 100%;
+}
+
+.workspace-chat {
+  max-width: none;
+  width: 100%;
+}
+
+.chat-workspace-grid {
+  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr) 390px;
+}
+
+.chat-workspace-grid > .panel {
+  min-width: 0;
+  overflow: auto;
+}
+
+.chat-panel {
+  display: grid;
+  gap: 16px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 18px;
+  min-height: auto;
+}
+
+.settings-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.settings-description {
+  color: var(--app-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.theme-option-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.theme-option {
+  background: var(--app-surface-solid);
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  color: var(--app-text);
+  display: grid;
+  gap: 12px;
+  min-height: auto;
+  padding: 12px;
+  text-align: left;
+}
+
+.theme-option:hover,
+.theme-option-active {
+  border-color: var(--app-accent);
+}
+
+.theme-swatch {
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 86px;
+  padding: 14px;
+  position: relative;
+}
+
+.theme-swatch-line {
+  border-radius: 999px;
+  display: block;
+  height: 9px;
+}
+
+.theme-swatch-line-strong {
+  width: 55%;
+}
+
+.theme-swatch-line-muted {
+  width: 76%;
+}
+
+.theme-swatch-accent {
+  border-radius: 999px;
+  bottom: 12px;
+  display: block;
+  height: 12px;
+  position: absolute;
+  right: 12px;
+  width: 52px;
+}
+
+.theme-option-copy,
+.theme-option-title {
+  display: grid;
+  gap: 4px;
+}
+
+.theme-option-title {
+  align-items: center;
+  color: var(--app-text-strong);
+  font-size: 15px;
+  font-weight: 800;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.theme-option-description {
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.theme-option-check {
+  background: var(--app-accent);
+  border-radius: 999px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) h1,
+:is([data-theme='dark'], [data-theme='purple']) h2,
+:is([data-theme='dark'], [data-theme='purple']) h3,
+:is([data-theme='dark'], [data-theme='purple']) .workspace-header h1,
+:is([data-theme='dark'], [data-theme='purple']) .panel-heading h2,
+:is([data-theme='dark'], [data-theme='purple']) .settings-header h2,
+:is([data-theme='dark'], [data-theme='purple']) .detail-heading h3,
+:is([data-theme='dark'], [data-theme='purple']) .detail-section h4,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-block h4,
+:is([data-theme='dark'], [data-theme='purple']) .breakdown-card h3,
+:is([data-theme='dark'], [data-theme='purple']) .runtime-section h3 {
+  color: var(--app-text-strong);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .workspace-subtitle,
+:is([data-theme='dark'], [data-theme='purple']) .settings-description,
+:is([data-theme='dark'], [data-theme='purple']) .form-feedback,
+:is([data-theme='dark'], [data-theme='purple']) .history-error,
+:is([data-theme='dark'], [data-theme='purple']) .empty-copy,
+:is([data-theme='dark'], [data-theme='purple']) .metric-card small,
+:is([data-theme='dark'], [data-theme='purple']) .breakdown-card small,
+:is([data-theme='dark'], [data-theme='purple']) .authoring-row small,
+:is([data-theme='dark'], [data-theme='purple']) .message-card p,
+:is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary p,
+:is([data-theme='dark'], [data-theme='purple']) .speech-feedback,
+:is([data-theme='dark'], [data-theme='purple']) .citation-list p,
+:is([data-theme='dark'], [data-theme='purple']) .tool-call-list span,
+:is([data-theme='dark'], [data-theme='purple']) .tool-call-list small,
+:is([data-theme='dark'], [data-theme='purple']) .session-list small,
+:is([data-theme='dark'], [data-theme='purple']) .detail-list p,
+:is([data-theme='dark'], [data-theme='purple']) .detail-list small,
+:is([data-theme='dark'], [data-theme='purple']) .retrieved-chunk-list p,
+:is([data-theme='dark'], [data-theme='purple']) .minimap-list span,
+:is([data-theme='dark'], [data-theme='purple']) .action-step-list p,
+:is([data-theme='dark'], [data-theme='purple']) .action-step-list small,
+:is([data-theme='dark'], [data-theme='purple']) .action-substep-list small,
+:is([data-theme='dark'], [data-theme='purple']) .detail-session-id,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid dt,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option-description {
+  color: var(--app-text-muted);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .project-context,
+:is([data-theme='dark'], [data-theme='purple']) .panel,
+:is([data-theme='dark'], [data-theme='purple']) .speech-input,
+:is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary,
+:is([data-theme='dark'], [data-theme='purple']) .streaming-status,
+:is([data-theme='dark'], [data-theme='purple']) .result-section,
+:is([data-theme='dark'], [data-theme='purple']) .observability-empty,
+:is([data-theme='dark'], [data-theme='purple']) .metric-card,
+:is([data-theme='dark'], [data-theme='purple']) .breakdown-card,
+:is([data-theme='dark'], [data-theme='purple']) .message-card,
+:is([data-theme='dark'], [data-theme='purple']) .message-card-muted,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer,
+:is([data-theme='dark'], [data-theme='purple']) .authoring-row,
+:is([data-theme='dark'], [data-theme='purple']) .compact-list li,
+:is([data-theme='dark'], [data-theme='purple']) .citation-list li,
+:is([data-theme='dark'], [data-theme='purple']) .tool-call-list li,
+:is([data-theme='dark'], [data-theme='purple']) .session-list li,
+:is([data-theme='dark'], [data-theme='purple']) .detail-list li,
+:is([data-theme='dark'], [data-theme='purple']) .retrieved-chunk-list li,
+:is([data-theme='dark'], [data-theme='purple']) .action-step-list > li,
+:is([data-theme='dark'], [data-theme='purple']) .action-substep-list li,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid div,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: var(--app-shadow);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .chat-form,
+:is([data-theme='dark'], [data-theme='purple']) .view-switcher,
+:is([data-theme='dark'], [data-theme='purple']) .session-filter,
+:is([data-theme='dark'], [data-theme='purple']) .speech-button,
+:is([data-theme='dark'], [data-theme='purple']) .secondary-button,
+:is([data-theme='dark'], [data-theme='purple']) .minimap-list button,
+:is([data-theme='dark'], [data-theme='purple']) .theme-swatch {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .field,
+:is([data-theme='dark'], [data-theme='purple']) .panel-label,
+:is([data-theme='dark'], [data-theme='purple']) .project-context span,
+:is([data-theme='dark'], [data-theme='purple']) .metric-card span,
+:is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary span,
+:is([data-theme='dark'], [data-theme='purple']) .citation-meta span,
+:is([data-theme='dark'], [data-theme='purple']) .retrieval-run-meta span,
+:is([data-theme='dark'], [data-theme='purple']) .message-card-muted .message-role,
+:is([data-theme='dark'], [data-theme='purple']) .message-role,
+:is([data-theme='dark'], [data-theme='purple']) .minimap-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .action-step-list span,
+:is([data-theme='dark'], [data-theme='purple']) .retrieved-chunk-list span {
+  color: var(--app-accent);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .field input,
+:is([data-theme='dark'], [data-theme='purple']) .field select,
+:is([data-theme='dark'], [data-theme='purple']) .field textarea {
+  background: var(--app-input);
+  border-color: var(--app-input-border);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .field input::placeholder,
+:is([data-theme='dark'], [data-theme='purple']) .field textarea::placeholder {
+  color: var(--app-text-muted);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .field input:focus,
+:is([data-theme='dark'], [data-theme='purple']) .field select:focus,
+:is([data-theme='dark'], [data-theme='purple']) .field textarea:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-ring);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) button,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-button,
+:is([data-theme='dark'], [data-theme='purple']) .view-tab-active,
+:is([data-theme='dark'], [data-theme='purple']) .session-filter-active {
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: var(--app-primary-fg);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .session-filter:hover,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
+  background: var(--app-primary-hover);
+  border-color: var(--app-primary-hover);
+  color: var(--app-primary-fg);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .view-tab,
+:is([data-theme='dark'], [data-theme='purple']) .inspector-tab {
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .theme-option,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .theme-option-active,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option-active:hover {
+  background: var(--app-surface-solid);
+  border-color: var(--app-accent);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .status,
+:is([data-theme='dark'], [data-theme='purple']) .status-dot,
+:is([data-theme='dark'], [data-theme='purple']) .detail-heading span,
+:is([data-theme='dark'], [data-theme='purple']) .citation-score {
+  background: var(--app-accent-soft);
+  border-color: var(--app-border-strong);
+  color: var(--app-accent);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .status-dot::before {
+  background: var(--app-accent);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary strong,
+:is([data-theme='dark'], [data-theme='purple']) .citation-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .tool-call-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .session-list span,
+:is([data-theme='dark'], [data-theme='purple']) .detail-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .action-step-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .action-substep-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .metric-card strong,
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid dd,
+:is([data-theme='dark'], [data-theme='purple']) .project-context strong,
+:is([data-theme='dark'], [data-theme='purple']) .project-context small,
+:is([data-theme='dark'], [data-theme='purple']) .theme-option-title {
+  color: var(--app-text-strong);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .citation-meta span,
+:is([data-theme='dark'], [data-theme='purple']) .retrieval-run-meta span,
+:is([data-theme='dark'], [data-theme='purple']) .source-tag-list li,
+:is([data-theme='dark'], [data-theme='purple']) .authoring-row em,
+:is([data-theme='dark'], [data-theme='purple']) .status-breakdown-list li > span {
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .form-feedback-error,
+:is([data-theme='dark'], [data-theme='purple']) .history-error,
+:is([data-theme='dark'], [data-theme='purple']) .status-dot-error {
+  color: var(--app-error);
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 20px;
@@ -1058,6 +1715,33 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .chat-workspace-grid {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .workspace-grid > .panel {
+    max-height: none;
+    min-height: auto;
+  }
+
+  .chat-workspace-grid > .panel {
+    max-height: none;
+    min-height: auto;
+  }
+
+  .chat-panel {
+    order: 1;
+  }
+
+  .session-rail {
+    order: 2;
+  }
+
+  .workspace-inspector {
+    order: 3;
+  }
+
   .project-context,
   .observability-filters,
   .metric-grid,
@@ -1079,6 +1763,34 @@ button:disabled {
   }
 }
 
+@media (max-width: 680px) {
+  .workspace-header,
+  .workspace-actions,
+  .project-context {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-chat .project-context,
+  .chat-workspace-grid,
+  .theme-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    align-items: start;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .status,
+  .status-dot {
+    justify-self: start;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 560px) {
   .app-shell {
     padding: 14px;
@@ -1090,7 +1802,8 @@ button:disabled {
 
   .panel-heading,
   .message-card-header,
-  .session-button {
+  .session-button,
+  .session-filter-list {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
@@ -1107,10 +1820,12 @@ button:disabled {
   .observability-filters,
   .authoring-grid,
   .chat-retrieval-summary,
+  .speech-input,
   .runtime-form-grid,
   .runtime-grid,
   .project-runtime-grid,
   .source-form-grid,
+  .source-viewer-grid,
   .metric-grid,
   .observability-breakdowns {
     display: grid;
