@@ -12,9 +12,12 @@ from sqlalchemy.pool import StaticPool
 
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ProviderConnection, ProviderSecret
+from adaptive_rag.db.models import ProviderConnection, ProviderSecret, User
+from adaptive_rag.db.models.user import UserAccessToken
+from adaptive_rag.db.repositories import UserRepository
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -26,7 +29,12 @@ def _make_session() -> Session:
     )
     Base.metadata.create_all(
         engine,
-        tables=[ProviderConnection.__table__, ProviderSecret.__table__],
+        tables=[
+            ProviderConnection.__table__,
+            ProviderSecret.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
+        ],
     )
     return create_session_factory(engine)()
 
@@ -40,6 +48,69 @@ def _client(*, session: Session) -> TestClient:
 
     app.dependency_overrides[get_session] = override_session
     return TestClient(app)
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+    system_role: str = "user",
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(
+        login=login,
+        display_name=login,
+        system_role=system_role,
+    )
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def test_provider_connections_require_superadmin_when_users_exist() -> None:
+    session = _make_session()
+    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(
+        session,
+        login="root@example.com",
+        token="root-token",
+        system_role="superadmin",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    unauthenticated = client.get("/runtime-settings/connections")
+    denied = client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        headers=_bearer("viewer-token"),
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "capabilities": ["chat"],
+        },
+    )
+    allowed = client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        headers=_bearer("root-token"),
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "capabilities": ["chat"],
+        },
+    )
+
+    assert unauthenticated.status_code == 401
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "superadmin role required"
+    assert allowed.status_code == 200
 
 
 def test_connection_api_lists_hosted_and_local_without_secrets() -> None:

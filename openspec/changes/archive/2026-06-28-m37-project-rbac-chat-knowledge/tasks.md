@@ -32,10 +32,10 @@
 
 ## 4. Future implementation slices
 
-- [ ] 4.1 Implement `m37-auth-schema-repositories`.
-- [ ] 4.2 Implement `m37-auth-dependencies-api-guards`.
-- [ ] 4.3 Implement `m37-private-chat-sessions`.
-- [ ] 4.4 Implement `m37-project-admin-users`.
-- [ ] 4.5 Implement `m37-knowledge-proposals`.
-- [ ] 4.6 Implement `m37-frontend-project-rbac`.
-- [ ] 4.7 Run `m37-quality-gate` and archive when complete.
+- [x] 4.1 Implement `m37-auth-schema-repositories`.
+- [x] 4.2 Implement `m37-auth-dependencies-api-guards`.
+- [x] 4.3 Implement `m37-private-chat-sessions`.
+- [x] 4.4 Implement `m37-project-admin-users`.
+- [x] 4.5 Implement `m37-knowledge-proposals`.
+- [x] 4.6 Implement `m37-frontend-project-rbac`.
+- [x] 4.7 Run `m37-quality-gate` and archive when complete.

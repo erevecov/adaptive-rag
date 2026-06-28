@@ -25,7 +25,9 @@ import {
   type IngestionJob,
   type IngestionRunResponse,
   type ChatModel,
+  type KnowledgeProposal,
   type Project,
+  type ProjectMembership,
   type ProjectRuntimeSettings,
   type ProviderConnection,
   type ProviderModel,
@@ -34,6 +36,7 @@ import {
   type RetrievalResult,
   type Source,
   type SourceCreateBody,
+  type User,
 } from './lib/apiClient'
 import {
   THEMES,
@@ -168,14 +171,37 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   )
   const [projects, setProjects] = useState<Project[]>([])
   const [sources, setSources] = useState<Source[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [projectMemberships, setProjectMemberships] = useState<
+    ProjectMembership[]
+  >([])
+  const [knowledgeProposals, setKnowledgeProposals] = useState<
+    KnowledgeProposal[]
+  >([])
   const [projectName, setProjectName] = useState('')
   const [sourceType, setSourceType] = useState('markdown')
   const [sourceExternalId, setSourceExternalId] = useState('')
   const [sourceContent, setSourceContent] = useState('')
   const [sourceTags, setSourceTags] = useState('')
+  const [userLogin, setUserLogin] = useState('')
+  const [userDisplayName, setUserDisplayName] = useState('')
+  const [userSystemRole, setUserSystemRole] = useState('user')
+  const [userAccessToken, setUserAccessToken] = useState('')
+  const [memberUserId, setMemberUserId] = useState('')
+  const [memberRole, setMemberRole] = useState('viewer')
+  const [proposalDrafts, setProposalDrafts] = useState<Record<string, string>>({})
+  const [proposalRejectReasons, setProposalRejectReasons] = useState<
+    Record<string, string>
+  >({})
   const [projectAuthoringState, setProjectAuthoringState] =
     useState<RequestState>('idle')
   const [sourceAuthoringState, setSourceAuthoringState] =
+    useState<RequestState>('idle')
+  const [accessManagementState, setAccessManagementState] =
+    useState<RequestState>('idle')
+  const [knowledgeSubmitState, setKnowledgeSubmitState] =
+    useState<RequestState>('idle')
+  const [knowledgeReviewState, setKnowledgeReviewState] =
     useState<RequestState>('idle')
   const [projectAuthoringError, setProjectAuthoringError] = useState<
     string | null
@@ -183,6 +209,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [sourceAuthoringError, setSourceAuthoringError] = useState<string | null>(
     null,
   )
+  const [accessManagementError, setAccessManagementError] = useState<
+    string | null
+  >(null)
+  const [knowledgeSubmitError, setKnowledgeSubmitError] = useState<string | null>(
+    null,
+  )
+  const [knowledgeReviewError, setKnowledgeReviewError] = useState<
+    string | null
+  >(null)
   const [ingestionJobs, setIngestionJobs] = useState<IngestionJob[]>([])
   const [ingestionRun, setIngestionRun] = useState<IngestionRunResponse | null>(
     null,
@@ -218,6 +253,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectSlotModelId, setProjectSlotModelId] = useState('')
 
   const isAsking = requestState === 'loading'
+  const isProposingKnowledge = knowledgeSubmitState === 'loading'
   const isRightDockInlineViewport = useIsRightDockInlineViewport()
   const isRightDockInline = isRightDockOpen && isRightDockInlineViewport
   const isRightDockOverlay = isRightDockOpen && !isRightDockInlineViewport
@@ -421,6 +457,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   function handleChangeProjectId(nextProjectId: string) {
     const selectedProject = projects.find((project) => project.id === nextProjectId)
     if (selectedProject !== undefined) {
+      if (selectedProject.can_access === false) {
+        return
+      }
       handleSelectProject(selectedProject)
       return
     }
@@ -659,6 +698,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionState('idle')
     setSourceAuthoringError(null)
     setSourceAuthoringState('idle')
+    setProjectMemberships([])
+    setKnowledgeProposals([])
+    setKnowledgeReviewError(null)
+    setKnowledgeReviewState('idle')
   }
 
   async function handleRefreshSources(projectIdOverride?: string) {
@@ -726,6 +769,246 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSubmitKnowledgeProposal() {
+    const trimmedProjectId = projectId.trim()
+    const proposedText = question.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setKnowledgeSubmitState('failed')
+      setKnowledgeSubmitError('Project ID is required to propose knowledge.')
+      return
+    }
+    if (proposedText.length === 0) {
+      setKnowledgeSubmitState('failed')
+      setKnowledgeSubmitError('Question text is required to propose knowledge.')
+      return
+    }
+
+    setKnowledgeSubmitState('loading')
+    setKnowledgeSubmitError(null)
+
+    try {
+      const proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+        proposed_text: proposedText,
+      })
+      setKnowledgeProposals((current) => upsertKnowledgeProposal(current, proposal))
+      setKnowledgeSubmitState('succeeded')
+    } catch (error) {
+      setKnowledgeSubmitState('failed')
+      setKnowledgeSubmitError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshAccess() {
+    const trimmedProjectId = projectId.trim()
+
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+
+    try {
+      const usersResponse = await client.listUsers()
+      setUsers(usersResponse.items)
+
+      if (trimmedProjectId.length > 0) {
+        const membershipsResponse =
+          await client.listProjectMemberships(trimmedProjectId)
+        setProjectMemberships(membershipsResponse.items)
+      }
+
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedLogin = userLogin.trim()
+    const trimmedDisplayName = userDisplayName.trim()
+    const trimmedAccessToken = userAccessToken.trim()
+
+    if (trimmedLogin.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('User login is required.')
+      return
+    }
+    if (trimmedDisplayName.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('Display name is required.')
+      return
+    }
+
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+
+    try {
+      const user = await client.createUser({
+        access_token: trimmedAccessToken.length > 0 ? trimmedAccessToken : null,
+        display_name: trimmedDisplayName,
+        login: trimmedLogin,
+        system_role: userSystemRole,
+      })
+      setUsers((current) => upsertUser(current, user))
+      setUserLogin('')
+      setUserDisplayName('')
+      setUserAccessToken('')
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSaveProjectMembership(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedProjectId = projectId.trim()
+    const trimmedUserId = memberUserId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('Project ID is required to save membership.')
+      return
+    }
+    if (trimmedUserId.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('Member user ID is required.')
+      return
+    }
+
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+
+    try {
+      const membership = await client.upsertProjectMembership(
+        trimmedProjectId,
+        trimmedUserId,
+        { role: memberRole },
+      )
+      setProjectMemberships((current) => upsertMembership(current, membership))
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshKnowledgeProposals() {
+    const trimmedProjectId = projectId.trim()
+
+    if (trimmedProjectId.length === 0) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError('Project ID is required to refresh proposals.')
+      return
+    }
+
+    setKnowledgeReviewState('loading')
+    setKnowledgeReviewError(null)
+
+    try {
+      const response = await client.listKnowledgeProposals(trimmedProjectId, {
+        status: 'pending',
+      })
+      setKnowledgeProposals(response.items)
+      setKnowledgeReviewState('succeeded')
+    } catch (error) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefineKnowledgeProposal(proposal: KnowledgeProposal) {
+    const trimmedProjectId = projectId.trim()
+    const refinedText = proposalDraftText(proposalDrafts, proposal).trim()
+
+    if (trimmedProjectId.length === 0 || refinedText.length === 0) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError('Project ID and refined text are required.')
+      return
+    }
+
+    setKnowledgeReviewState('loading')
+    setKnowledgeReviewError(null)
+
+    try {
+      const updated = await client.refineKnowledgeProposal(
+        trimmedProjectId,
+        proposal.id,
+        { refined_text: refinedText },
+      )
+      setKnowledgeProposals((current) =>
+        upsertKnowledgeProposal(current, updated),
+      )
+      setKnowledgeReviewState('succeeded')
+    } catch (error) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError(getErrorMessage(error))
+    }
+  }
+
+  async function handleApproveKnowledgeProposal(proposal: KnowledgeProposal) {
+    const trimmedProjectId = projectId.trim()
+    const refinedText = proposalDraftText(proposalDrafts, proposal).trim()
+
+    if (trimmedProjectId.length === 0) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError('Project ID is required to approve proposals.')
+      return
+    }
+
+    setKnowledgeReviewState('loading')
+    setKnowledgeReviewError(null)
+
+    try {
+      const updated = await client.approveKnowledgeProposal(
+        trimmedProjectId,
+        proposal.id,
+        {
+          refined_text: refinedText.length > 0 ? refinedText : null,
+          review_note: null,
+        },
+      )
+      setKnowledgeProposals((current) =>
+        upsertKnowledgeProposal(current, updated),
+      )
+      setKnowledgeReviewState('succeeded')
+    } catch (error) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRejectKnowledgeProposal(proposal: KnowledgeProposal) {
+    const trimmedProjectId = projectId.trim()
+    const reason = (proposalRejectReasons[proposal.id] ?? '').trim()
+
+    if (trimmedProjectId.length === 0 || reason.length === 0) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError('Project ID and rejection reason are required.')
+      return
+    }
+
+    setKnowledgeReviewState('loading')
+    setKnowledgeReviewError(null)
+
+    try {
+      const updated = await client.rejectKnowledgeProposal(
+        trimmedProjectId,
+        proposal.id,
+        { reason },
+      )
+      setKnowledgeProposals((current) =>
+        upsertKnowledgeProposal(current, updated),
+      )
+      setKnowledgeReviewState('succeeded')
+    } catch (error) {
+      setKnowledgeReviewState('failed')
+      setKnowledgeReviewError(getErrorMessage(error))
     }
   }
 
@@ -1180,6 +1463,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                       onStop={handleStopSpeechRecognition}
                       state={speechState}
                     />
+                    <button
+                      className="secondary-button composer-propose-button"
+                      disabled={isAsking || isProposingKnowledge}
+                      onClick={() => void handleSubmitKnowledgeProposal()}
+                      type="button"
+                    >
+                      {isProposingKnowledge ? 'Proposing...' : 'Propose knowledge'}
+                    </button>
                     <button className="composer-send-button" disabled={isAsking} type="submit">
                       <SendIcon />
                       <span>{isAsking ? 'Asking...' : 'Ask'}</span>
@@ -1200,6 +1491,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 {requestError ? (
                   <p className="form-feedback form-feedback-error" role="alert">
                     {requestError}
+                  </p>
+                ) : null}
+                {knowledgeSubmitError ? (
+                  <p className="form-feedback form-feedback-error" role="alert">
+                    {knowledgeSubmitError}
                   </p>
                 ) : null}
               </form>
@@ -1308,30 +1604,75 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : activeSettingsSection === 'authoring' ? (
               <AuthoringPanel
+                accessError={accessManagementError}
+                accessState={accessManagementState}
                 ingestionError={ingestionError}
                 ingestionJobs={ingestionJobs}
                 ingestionRun={ingestionRun}
                 ingestionState={ingestionState}
+                knowledgeProposals={knowledgeProposals}
+                knowledgeReviewError={knowledgeReviewError}
+                knowledgeReviewState={knowledgeReviewState}
+                memberRole={memberRole}
+                memberUserId={memberUserId}
+                memberships={projectMemberships}
                 onCreateProject={(event) => void handleCreateProject(event)}
                 onCreateSource={(event) => void handleCreateSource(event)}
+                onCreateUser={(event) => void handleCreateUser(event)}
                 onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
+                onApproveKnowledgeProposal={(proposal) =>
+                  void handleApproveKnowledgeProposal(proposal)
+                }
+                onMemberRoleChange={setMemberRole}
+                onMemberUserIdChange={setMemberUserId}
                 onProjectIdChange={setProjectId}
                 onProjectNameChange={setProjectName}
+                onProposalDraftChange={(proposalId, value) =>
+                  setProposalDrafts((current) => ({
+                    ...current,
+                    [proposalId]: value,
+                  }))
+                }
+                onProposalRejectReasonChange={(proposalId, value) =>
+                  setProposalRejectReasons((current) => ({
+                    ...current,
+                    [proposalId]: value,
+                  }))
+                }
+                onRefreshAccess={() => void handleRefreshAccess()}
                 onRefreshIngestionJobs={() => void handleRefreshIngestionJobs()}
+                onRefreshKnowledgeProposals={() =>
+                  void handleRefreshKnowledgeProposals()
+                }
                 onRefreshProjects={() => void handleRefreshProjects()}
                 onRefreshSources={() => void handleRefreshSources()}
+                onRefineKnowledgeProposal={(proposal) =>
+                  void handleRefineKnowledgeProposal(proposal)
+                }
+                onRejectKnowledgeProposal={(proposal) =>
+                  void handleRejectKnowledgeProposal(proposal)
+                }
                 onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
                 onRunNextIngestion={() => void handleRunNextIngestion()}
+                onSaveProjectMembership={(event) =>
+                  void handleSaveProjectMembership(event)
+                }
                 onSelectProject={handleSelectProject}
                 onSourceContentChange={setSourceContent}
                 onSourceExternalIdChange={setSourceExternalId}
                 onSourceTagsChange={setSourceTags}
                 onSourceTypeChange={setSourceType}
+                onUserAccessTokenChange={setUserAccessToken}
+                onUserDisplayNameChange={setUserDisplayName}
+                onUserLoginChange={setUserLogin}
+                onUserSystemRoleChange={setUserSystemRole}
                 projectError={projectAuthoringError}
                 projectId={projectId}
                 projectName={projectName}
                 projectState={projectAuthoringState}
                 projects={projects}
+                proposalDrafts={proposalDrafts}
+                proposalRejectReasons={proposalRejectReasons}
                 sourceContent={sourceContent}
                 sourceError={sourceAuthoringError}
                 sourceExternalId={sourceExternalId}
@@ -1339,6 +1680,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 sourceTags={sourceTags}
                 sourceType={sourceType}
                 sources={sources}
+                userAccessToken={userAccessToken}
+                userDisplayName={userDisplayName}
+                userLogin={userLogin}
+                userSystemRole={userSystemRole}
+                users={users}
               />
             ) : (
               <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
@@ -1494,11 +1840,30 @@ function ProjectSelectControl({
   projects: Project[]
   state: RequestState
 }) {
+  const [projectSearch, setProjectSearch] = useState('')
   const trimmedProjectId = projectId.trim()
   const hasSelectedProject = projects.some((project) => project.id === trimmedProjectId)
+  const normalizedSearch = projectSearch.trim().toLowerCase()
+  const filteredProjects =
+    normalizedSearch.length === 0
+      ? projects
+      : projects.filter((project) =>
+          `${project.name} ${project.id}`.toLowerCase().includes(normalizedSearch),
+        )
 
   return (
     <div className="project-selector">
+      <label className="field project-selector-search">
+        <span>Search projects</span>
+        <input
+          aria-label="Search projects"
+          name="project-search"
+          onChange={(event) => setProjectSearch(event.currentTarget.value)}
+          placeholder="Search projects"
+          type="search"
+          value={projectSearch}
+        />
+      </label>
       <label className="field project-selector-field">
         <span>Project</span>
         <select
@@ -1511,11 +1876,14 @@ function ProjectSelectControl({
           {trimmedProjectId.length > 0 && !hasSelectedProject ? (
             <option value={trimmedProjectId}>Last project {trimmedProjectId}</option>
           ) : null}
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
+          {filteredProjects.map((project) => {
+            const canAccess = project.can_access !== false
+            return (
+              <option disabled={!canAccess} key={project.id} value={project.id}>
+                {canAccess ? project.name : `${project.name} (no access)`}
+              </option>
+            )
+          })}
         </select>
       </label>
       <button
@@ -1529,6 +1897,52 @@ function ProjectSelectControl({
         <RefreshIcon />
       </button>
     </div>
+  )
+}
+
+function ProjectList({
+  activeProjectId,
+  onSelectProject,
+  projects,
+}: {
+  activeProjectId: string
+  onSelectProject(project: Project): void
+  projects: Project[]
+}) {
+  if (projects.length === 0) {
+    return <p className="empty-copy">No projects loaded.</p>
+  }
+
+  return (
+    <ul className="authoring-list" aria-label="Projects">
+      {projects.map((project) => {
+        const canAccess = project.can_access !== false
+        const roleLabel = canAccess ? (project.access_role ?? project.embedding_mode) : 'no access'
+        return (
+          <li key={project.id}>
+            <button
+              aria-label={`Select ${project.name}`}
+              className={[
+                'authoring-row',
+                project.id === activeProjectId ? 'authoring-row-active' : '',
+                canAccess ? '' : 'authoring-row-disabled',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              disabled={!canAccess}
+              onClick={() => onSelectProject(project)}
+              type="button"
+            >
+              <span>
+                <strong>{project.name}</strong>
+                <small>{project.id}</small>
+              </span>
+              <em>{roleLabel}</em>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -2307,30 +2721,55 @@ function ProjectRuntimeSettingsView({
 }
 
 function AuthoringPanel({
+  accessError,
+  accessState,
   ingestionError,
   ingestionJobs,
   ingestionRun,
   ingestionState,
+  knowledgeProposals,
+  knowledgeReviewError,
+  knowledgeReviewState,
+  memberRole,
+  memberUserId,
+  memberships,
   onCreateProject,
   onCreateSource,
+  onCreateUser,
   onEnqueueIngestion,
+  onApproveKnowledgeProposal,
+  onMemberRoleChange,
+  onMemberUserIdChange,
   onProjectIdChange,
   onProjectNameChange,
+  onProposalDraftChange,
+  onProposalRejectReasonChange,
+  onRefreshAccess,
   onRefreshIngestionJobs,
+  onRefreshKnowledgeProposals,
   onRefreshProjects,
   onRefreshSources,
+  onRefineKnowledgeProposal,
+  onRejectKnowledgeProposal,
   onRetryIngestionJob,
   onRunNextIngestion,
+  onSaveProjectMembership,
   onSelectProject,
   onSourceContentChange,
   onSourceExternalIdChange,
   onSourceTagsChange,
   onSourceTypeChange,
+  onUserAccessTokenChange,
+  onUserDisplayNameChange,
+  onUserLoginChange,
+  onUserSystemRoleChange,
   projectError,
   projectId,
   projectName,
   projectState,
   projects,
+  proposalDrafts,
+  proposalRejectReasons,
   sourceContent,
   sourceError,
   sourceExternalId,
@@ -2338,31 +2777,61 @@ function AuthoringPanel({
   sourceTags,
   sourceType,
   sources,
+  userAccessToken,
+  userDisplayName,
+  userLogin,
+  userSystemRole,
+  users,
 }: {
+  accessError: string | null
+  accessState: RequestState
   ingestionError: string | null
   ingestionJobs: IngestionJob[]
   ingestionRun: IngestionRunResponse | null
   ingestionState: RequestState
+  knowledgeProposals: KnowledgeProposal[]
+  knowledgeReviewError: string | null
+  knowledgeReviewState: RequestState
+  memberRole: string
+  memberUserId: string
+  memberships: ProjectMembership[]
   onCreateProject(event: FormEvent<HTMLFormElement>): void
   onCreateSource(event: FormEvent<HTMLFormElement>): void
+  onCreateUser(event: FormEvent<HTMLFormElement>): void
   onEnqueueIngestion(source: Source): void
+  onApproveKnowledgeProposal(proposal: KnowledgeProposal): void
+  onMemberRoleChange(value: string): void
+  onMemberUserIdChange(value: string): void
   onProjectIdChange(value: string): void
   onProjectNameChange(value: string): void
+  onProposalDraftChange(proposalId: string, value: string): void
+  onProposalRejectReasonChange(proposalId: string, value: string): void
+  onRefreshAccess(): void
   onRefreshIngestionJobs(): void
+  onRefreshKnowledgeProposals(): void
   onRefreshProjects(): void
   onRefreshSources(): void
+  onRefineKnowledgeProposal(proposal: KnowledgeProposal): void
+  onRejectKnowledgeProposal(proposal: KnowledgeProposal): void
   onRetryIngestionJob(job: IngestionJob): void
   onRunNextIngestion(): void
+  onSaveProjectMembership(event: FormEvent<HTMLFormElement>): void
   onSelectProject(project: Project): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
+  onUserAccessTokenChange(value: string): void
+  onUserDisplayNameChange(value: string): void
+  onUserLoginChange(value: string): void
+  onUserSystemRoleChange(value: string): void
   projectError: string | null
   projectId: string
   projectName: string
   projectState: RequestState
   projects: Project[]
+  proposalDrafts: Record<string, string>
+  proposalRejectReasons: Record<string, string>
   sourceContent: string
   sourceError: string | null
   sourceExternalId: string
@@ -2370,10 +2839,17 @@ function AuthoringPanel({
   sourceTags: string
   sourceType: string
   sources: Source[]
+  userAccessToken: string
+  userDisplayName: string
+  userLogin: string
+  userSystemRole: string
+  users: User[]
 }) {
   const isProjectBusy = projectState === 'loading'
   const isSourceBusy = sourceState === 'loading'
   const isIngestionBusy = ingestionState === 'loading'
+  const isAccessBusy = accessState === 'loading'
+  const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
     <div className="authoring-grid">
@@ -2426,6 +2902,29 @@ function AuthoringPanel({
           projects={projects}
         />
       </section>
+
+      <ProjectAccessPanel
+        error={accessError}
+        isBusy={isAccessBusy}
+        memberRole={memberRole}
+        memberUserId={memberUserId}
+        memberships={memberships}
+        onCreateUser={onCreateUser}
+        onMemberRoleChange={onMemberRoleChange}
+        onMemberUserIdChange={onMemberUserIdChange}
+        onRefresh={onRefreshAccess}
+        onSaveMembership={onSaveProjectMembership}
+        onUserAccessTokenChange={onUserAccessTokenChange}
+        onUserDisplayNameChange={onUserDisplayNameChange}
+        onUserLoginChange={onUserLoginChange}
+        onUserSystemRoleChange={onUserSystemRoleChange}
+        state={accessState}
+        userAccessToken={userAccessToken}
+        userDisplayName={userDisplayName}
+        userLogin={userLogin}
+        userSystemRole={userSystemRole}
+        users={users}
+      />
 
       <section className="panel authoring-panel" aria-labelledby="sources-title">
         <div className="panel-heading">
@@ -2529,46 +3028,366 @@ function AuthoringPanel({
           isBusy={isIngestionBusy}
         />
       </section>
+
+      <KnowledgeReviewPanel
+        drafts={proposalDrafts}
+        error={knowledgeReviewError}
+        isBusy={isKnowledgeReviewBusy}
+        onApprove={onApproveKnowledgeProposal}
+        onDraftChange={onProposalDraftChange}
+        onRefresh={onRefreshKnowledgeProposals}
+        onRefine={onRefineKnowledgeProposal}
+        onReject={onRejectKnowledgeProposal}
+        onRejectReasonChange={onProposalRejectReasonChange}
+        proposals={knowledgeProposals}
+        rejectReasons={proposalRejectReasons}
+        state={knowledgeReviewState}
+      />
     </div>
   )
 }
 
-function ProjectList({
-  activeProjectId,
-  onSelectProject,
-  projects,
+function ProjectAccessPanel({
+  error,
+  isBusy,
+  memberRole,
+  memberUserId,
+  memberships,
+  onCreateUser,
+  onMemberRoleChange,
+  onMemberUserIdChange,
+  onRefresh,
+  onSaveMembership,
+  onUserAccessTokenChange,
+  onUserDisplayNameChange,
+  onUserLoginChange,
+  onUserSystemRoleChange,
+  state,
+  userAccessToken,
+  userDisplayName,
+  userLogin,
+  userSystemRole,
+  users,
 }: {
-  activeProjectId: string
-  onSelectProject(project: Project): void
-  projects: Project[]
+  error: string | null
+  isBusy: boolean
+  memberRole: string
+  memberUserId: string
+  memberships: ProjectMembership[]
+  onCreateUser(event: FormEvent<HTMLFormElement>): void
+  onMemberRoleChange(value: string): void
+  onMemberUserIdChange(value: string): void
+  onRefresh(): void
+  onSaveMembership(event: FormEvent<HTMLFormElement>): void
+  onUserAccessTokenChange(value: string): void
+  onUserDisplayNameChange(value: string): void
+  onUserLoginChange(value: string): void
+  onUserSystemRoleChange(value: string): void
+  state: RequestState
+  userAccessToken: string
+  userDisplayName: string
+  userLogin: string
+  userSystemRole: string
+  users: User[]
 }) {
-  if (projects.length === 0) {
-    return <p className="empty-copy">No projects loaded.</p>
+  return (
+    <section className="panel authoring-panel" aria-labelledby="access-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Access</p>
+          <h2 id="access-title">Project users</h2>
+        </div>
+        <span className={statusClassName(state)}>
+          {authoringStatusLabel(state)}
+        </span>
+      </div>
+
+      <form className="authoring-form" onSubmit={onCreateUser}>
+        <div className="source-form-grid">
+          <label className="field">
+            <span>User login</span>
+            <input
+              autoComplete="off"
+              name="user-login"
+              onChange={(event) => onUserLoginChange(event.currentTarget.value)}
+              placeholder="viewer@example.com"
+              value={userLogin}
+            />
+          </label>
+          <label className="field">
+            <span>Display name</span>
+            <input
+              autoComplete="off"
+              name="user-display-name"
+              onChange={(event) =>
+                onUserDisplayNameChange(event.currentTarget.value)
+              }
+              placeholder="Viewer User"
+              value={userDisplayName}
+            />
+          </label>
+        </div>
+        <div className="source-form-grid">
+          <label className="field">
+            <span>System role</span>
+            <select
+              aria-label="System role"
+              name="user-system-role"
+              onChange={(event) =>
+                onUserSystemRoleChange(event.currentTarget.value)
+              }
+              value={userSystemRole}
+            >
+              <option value="user">user</option>
+              <option value="superadmin">superadmin</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Access token</span>
+            <input
+              autoComplete="off"
+              name="user-access-token"
+              onChange={(event) =>
+                onUserAccessTokenChange(event.currentTarget.value)
+              }
+              placeholder="token"
+              value={userAccessToken}
+            />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button disabled={isBusy} type="submit">
+            {isBusy ? 'Creating...' : 'Create user'}
+          </button>
+          <button
+            className="secondary-button"
+            disabled={isBusy}
+            onClick={onRefresh}
+            type="button"
+          >
+            {isBusy ? 'Refreshing...' : 'Refresh access'}
+          </button>
+        </div>
+      </form>
+
+      <form className="authoring-form" onSubmit={onSaveMembership}>
+        <div className="source-form-grid">
+          <label className="field">
+            <span>Member user ID</span>
+            <input
+              autoComplete="off"
+              name="member-user-id"
+              onChange={(event) => onMemberUserIdChange(event.currentTarget.value)}
+              placeholder="User UUID"
+              value={memberUserId}
+            />
+          </label>
+          <label className="field">
+            <span>Project role</span>
+            <select
+              aria-label="Project role"
+              name="member-role"
+              onChange={(event) => onMemberRoleChange(event.currentTarget.value)}
+              value={memberRole}
+            >
+              <option value="viewer">viewer</option>
+              <option value="contributor">contributor</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+        </div>
+        <div className="form-actions">
+          <button disabled={isBusy} type="submit">
+            {isBusy ? 'Saving...' : 'Save membership'}
+          </button>
+        </div>
+      </form>
+
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <UserAccessLists memberships={memberships} users={users} />
+    </section>
+  )
+}
+
+function UserAccessLists({
+  memberships,
+  users,
+}: {
+  memberships: ProjectMembership[]
+  users: User[]
+}) {
+  if (users.length === 0 && memberships.length === 0) {
+    return <p className="empty-copy">No users or memberships loaded.</p>
   }
 
   return (
-    <ul className="authoring-list" aria-label="Projects">
-      {projects.map((project) => (
-        <li key={project.id}>
-          <button
-            aria-label={`Select ${project.name}`}
-            className={
-              project.id === activeProjectId
-                ? 'authoring-row authoring-row-active'
-                : 'authoring-row'
-            }
-            onClick={() => onSelectProject(project)}
-            type="button"
-          >
-            <span>
-              <strong>{project.name}</strong>
-              <small>{project.id}</small>
-            </span>
-            <em>{project.embedding_mode}</em>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className="access-list-grid">
+      <ul className="authoring-list" aria-label="Users">
+        {users.map((user) => (
+          <li key={user.id}>
+            <div className="authoring-row authoring-row-static">
+              <span>
+                <strong>{user.login}</strong>
+                <small>{user.display_name}</small>
+                <small>{user.id}</small>
+              </span>
+              <em>{user.system_role}</em>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <ul className="authoring-list" aria-label="Project memberships">
+        {memberships.map((membership) => (
+          <li key={membership.id}>
+            <div className="authoring-row authoring-row-static">
+              <span>
+                <strong>{membership.user_id}</strong>
+                <small>{membership.project_id}</small>
+              </span>
+              <em>{membership.role}</em>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function KnowledgeReviewPanel({
+  drafts,
+  error,
+  isBusy,
+  onApprove,
+  onDraftChange,
+  onRefresh,
+  onRefine,
+  onReject,
+  onRejectReasonChange,
+  proposals,
+  rejectReasons,
+  state,
+}: {
+  drafts: Record<string, string>
+  error: string | null
+  isBusy: boolean
+  onApprove(proposal: KnowledgeProposal): void
+  onDraftChange(proposalId: string, value: string): void
+  onRefresh(): void
+  onRefine(proposal: KnowledgeProposal): void
+  onReject(proposal: KnowledgeProposal): void
+  onRejectReasonChange(proposalId: string, value: string): void
+  proposals: KnowledgeProposal[]
+  rejectReasons: Record<string, string>
+  state: RequestState
+}) {
+  return (
+    <section className="panel authoring-panel" aria-labelledby="knowledge-review-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Knowledge</p>
+          <h2 id="knowledge-review-title">Pending proposals</h2>
+        </div>
+        <span className={statusClassName(state)}>
+          {authoringStatusLabel(state)}
+        </span>
+      </div>
+
+      <div className="form-actions">
+        <button
+          className="secondary-button"
+          disabled={isBusy}
+          onClick={onRefresh}
+          type="button"
+        >
+          {isBusy ? 'Refreshing...' : 'Refresh proposals'}
+        </button>
+      </div>
+
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {proposals.length === 0 ? (
+        <p className="empty-copy">No pending knowledge proposals loaded.</p>
+      ) : (
+        <ul className="authoring-list" aria-label="Knowledge proposals">
+          {proposals.map((proposal) => {
+            const draft = proposalDraftText(drafts, proposal)
+            return (
+              <li key={proposal.id}>
+                <div className="authoring-row authoring-row-static knowledge-proposal-row">
+                  <span>
+                    <strong>{proposal.proposed_text}</strong>
+                    <small>{proposal.id}</small>
+                    <small>{proposal.status}</small>
+                  </span>
+                  <div className="knowledge-proposal-actions">
+                    <label className="field">
+                      <span>Refined text</span>
+                      <textarea
+                        name={`proposal-refined-${proposal.id}`}
+                        onChange={(event) =>
+                          onDraftChange(proposal.id, event.currentTarget.value)
+                        }
+                        rows={3}
+                        value={draft}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Reject reason</span>
+                      <input
+                        autoComplete="off"
+                        name={`proposal-reject-${proposal.id}`}
+                        onChange={(event) =>
+                          onRejectReasonChange(
+                            proposal.id,
+                            event.currentTarget.value,
+                          )
+                        }
+                        placeholder="Reason"
+                        value={rejectReasons[proposal.id] ?? ''}
+                      />
+                    </label>
+                    <div className="form-actions">
+                      <button
+                        className="secondary-button"
+                        disabled={isBusy}
+                        onClick={() => onRefine(proposal)}
+                        type="button"
+                      >
+                        Refine proposal
+                      </button>
+                      <button
+                        disabled={isBusy}
+                        onClick={() => onApprove(proposal)}
+                        type="button"
+                      >
+                        Approve proposal
+                      </button>
+                      <button
+                        className="secondary-button"
+                        disabled={isBusy}
+                        onClick={() => onReject(proposal)}
+                        type="button"
+                      >
+                        Reject proposal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 
@@ -4401,6 +5220,36 @@ function parseTags(value: string): string[] {
 function upsertProject(projects: Project[], project: Project): Project[] {
   const nextProjects = projects.filter((item) => item.id !== project.id)
   return [...nextProjects, project]
+}
+
+function upsertUser(users: User[], user: User): User[] {
+  const nextUsers = users.filter((item) => item.id !== user.id)
+  return [...nextUsers, user]
+}
+
+function upsertMembership(
+  memberships: ProjectMembership[],
+  membership: ProjectMembership,
+): ProjectMembership[] {
+  const nextMemberships = memberships.filter(
+    (item) => item.id !== membership.id && item.user_id !== membership.user_id,
+  )
+  return [...nextMemberships, membership]
+}
+
+function upsertKnowledgeProposal(
+  proposals: KnowledgeProposal[],
+  proposal: KnowledgeProposal,
+): KnowledgeProposal[] {
+  const nextProposals = proposals.filter((item) => item.id !== proposal.id)
+  return [proposal, ...nextProposals]
+}
+
+function proposalDraftText(
+  drafts: Record<string, string>,
+  proposal: KnowledgeProposal,
+): string {
+  return drafts[proposal.id] ?? proposal.refined_text ?? ''
 }
 
 function buildOptimisticSessionSummary(

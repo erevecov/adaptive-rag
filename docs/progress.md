@@ -2,8 +2,8 @@
 
 ## Milestone activo
 
-M37 Project RBAC/chat knowledge activo en
-`m37-project-rbac-chat-knowledge`.
+M37 Project RBAC/chat knowledge completado y archivado en
+`openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`.
 
 Objetivo: convertir proyectos en espacios compartidos con usuarios,
 membresias por proyecto, sesiones de chat privadas por usuario y flujo de
@@ -12,24 +12,29 @@ nombres de proyectos, pero solo `superadmin` o miembros asignados pueden
 acceder. `superadmin` administra usuarios/proyectos globales; `admin`,
 `contributor` y `viewer` operan por proyecto.
 
-Estado de planificacion: disenio aprobado para auth local first-party,
-`project_memberships`, `chat_sessions.user_id` y `knowledge_proposals`. El
-OpenSpec M37 define el contrato antes de tocar schema, rutas o UI.
+Estado de implementacion: auth local first-party, `project_memberships`,
+`chat_sessions.user_id`, `knowledge_proposals`, guards API, sesiones privadas
+por usuario, propuesta/revision de conocimiento y UI de selector/membresias/
+review queue quedaron implementados con gate backend/frontend/OpenSpec.
 
 ## Ultimo milestone completado
 
-M35 Acceptance e2e post-runtime-settings cerrado el 2026-06-24.
+M37 Project RBAC/chat knowledge cerrado el 2026-06-28.
 
-M35 agrega `adaptive-rag acceptance runtime-settings-smoke`, un gate local que
-configura provider connections fake, sincroniza model catalog, setea slots
-globales, crea un override por proyecto y ejecuta ingestion/indexing/chat citado
-resolviendo providers desde runtime settings persistidos.
 El change quedo archivado en
-`openspec/changes/archive/2026-06-24-m35-acceptance-e2e-post-runtime-settings/`
-y actualiza las specs canonicas `provider-runtime` y
-`v1-product-completion`.
+`openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
+y actualiza las specs canonicas `project-rbac`, `domain-schema`,
+`product-authoring-surface`, `chat-history`, `chat-tool-calling`,
+`chat-frontend` e `ingestion-pipeline`.
 
 ## Ultimo slice completado
+
+M37 Project RBAC/chat knowledge: proyectos compartidos con usuarios,
+membresias por proyecto, sesiones privadas por usuario, propuestas de
+conocimiento desde chat y revision contributor+ quedaron implementados en
+backend/frontend. El gate de cierre valido `uv run pytest -q`, `uv run ruff
+check src tests`, `uv run mypy src\adaptive_rag`, tests/lint/typecheck/build de
+frontend, OpenSpec strict, Alembic heads y `git diff --check`.
 
 M36 Functional chat workspace: el chat quedo reorganizado como workspace
 funcional de tres zonas: rail de sesiones, chat central e inspector derecho con
@@ -73,11 +78,10 @@ intencionalmente para permitir una feature pre-v1 adicional.
 ## Change OpenSpec activo
 
 - `openspec/changes/m36-chat-functional-workspace/`
-- `openspec/changes/m37-project-rbac-chat-knowledge/`
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-24-m35-acceptance-e2e-post-runtime-settings/`
+- `openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
 
 ## Spec canonica activa
 
@@ -105,15 +109,14 @@ intencionalmente para permitir una feature pre-v1 adicional.
 - `openspec/specs/chat-streaming/spec.md`
 - `openspec/specs/chat-observability/spec.md`
 - `openspec/specs/graph-store/spec.md`
+- `openspec/specs/project-rbac/spec.md`
 - `openspec/specs/v1-release-readiness/spec.md`
 - `openspec/specs/v1-product-completion/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Validar y revisar el OpenSpec M37. Si el contrato queda aprobado, el primer
-  slice recomendado es `m37-auth-schema-repositories`, porque usuarios,
-  membresias, ownership de sesiones y propuestas de conocimiento bloquean el
-  resto del trabajo.
+- Publicar/revisar el PR de M37 y, despues del merge, reconciliar el change
+  M36 que sigue activo pero completo antes de abrir el siguiente milestone.
 
 ## Reglas de coordinacion
 

@@ -36,7 +36,7 @@
 - Post-M35 Runtime settings UX/error-state hardening: completo.
 - Post-M35 Final release gate/audit closeout: completo.
 - M36 Functional chat workspace: completo pendiente de cierre.
-- M37 Project RBAC/chat knowledge: activo.
+- M37 Project RBAC/chat knowledge: completo.
 
 ## M1 Foundation
 
@@ -1577,16 +1577,16 @@ Secuencia recomendada:
    Appearance con temas globales Light/Dark/Purple, STT browser fallback y
    memory deferred por falta de contrato durable.
 
-Continuacion: M37 abre el cambio de arquitectura multi-user y conocimiento
-desde chat. M36 no implementa multi-user auth.
+Continuacion: M37 completo el cambio de arquitectura multi-user y conocimiento
+desde chat sobre el workspace funcional de M36.
 
 ## M37 Project RBAC/chat knowledge
 
-Estado: activo.
+Estado: completo.
 
-Change activo:
+Change archivado:
 
-- `openspec/changes/m37-project-rbac-chat-knowledge/`
+- `openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
 
 Objetivo:
 
@@ -1613,9 +1613,10 @@ Condiciones del milestone:
 - El conocimiento aprobado alimenta el pipeline existente de sources,
   ingestion, chunks y embeddings; propuestas pending no son retrievables.
 
-Secuencia recomendada:
+Secuencia entregada:
 
-1. `m37-project-rbac-chat-knowledge`: OpenSpec de planificacion y validacion.
+1. `m37-project-rbac-chat-knowledge`: OpenSpec de planificacion y validacion,
+   implementacion completa y archive.
 2. `m37-auth-schema-repositories`: users, tokens, memberships,
    `chat_sessions.user_id`, `knowledge_proposals` y repositories.
 3. `m37-auth-dependencies-api-guards`: resolver `current_user` y proteger rutas

@@ -10,7 +10,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring
-from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.api.dependencies import (
+    get_current_user,
+    get_project_access,
+    get_project_contributor_access,
+    get_session,
+    require_superadmin,
+)
 from adaptive_rag.api.schemas.authoring import (
     ProjectCreateRequestBody,
     ProjectListResponse,
@@ -19,6 +25,8 @@ from adaptive_rag.api.schemas.authoring import (
     SourceListResponse,
     SourceResponse,
 )
+from adaptive_rag.auth import CurrentPrincipal, get_project_role
+from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import SourceFilters
 
 router = APIRouter(tags=["authoring"])
@@ -28,7 +36,9 @@ router = APIRouter(tags=["authoring"])
 def create_project(
     body: ProjectCreateRequestBody,
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> ProjectResponse:
+    require_superadmin(current)
     try:
         project = authoring.create_project(
             session,
@@ -42,27 +52,38 @@ def create_project(
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectResponse.from_project(project)
+    return ProjectResponse.from_project(
+        project,
+        access_role="superadmin",
+        can_access=True,
+    )
 
 
 @router.get("/projects", response_model=ProjectListResponse)
 def list_projects(
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> ProjectListResponse:
     projects = authoring.list_projects(session)
-    return ProjectListResponse.from_projects(projects)
+    return ProjectListResponse(
+        items=[
+            _project_response_for_current_user(
+                session=session,
+                current=current,
+                project=project,
+            )
+            for project in projects
+        ]
+    )
 
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
 def get_project(
     project_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> ProjectResponse:
-    try:
-        project = authoring.get_project(session, project_id)
-    except authoring.AuthoringError as exc:
-        raise _http_error(exc) from exc
-    return ProjectResponse.from_project(project)
+    project, role = access
+    return ProjectResponse.from_project(project, access_role=role, can_access=True)
 
 
 @router.post("/projects/{project_id}/sources", response_model=SourceResponse)
@@ -70,6 +91,7 @@ def create_source(
     project_id: UUID,
     body: SourceCreateRequestBody,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_contributor_access)],
 ) -> SourceResponse:
     try:
         source = authoring.create_source(
@@ -90,6 +112,7 @@ def create_source(
 def list_sources(
     project_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
     source_type: Annotated[str | None, Query()] = None,
     external_id: Annotated[str | None, Query()] = None,
     tag: Annotated[str | None, Query()] = None,
@@ -118,6 +141,7 @@ def get_source(
     project_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> SourceResponse:
     try:
         source = authoring.get_source(
@@ -132,3 +156,17 @@ def get_source(
 
 def _http_error(error: authoring.AuthoringError) -> HTTPException:
     return HTTPException(status_code=error.status_code, detail=error.detail)
+
+
+def _project_response_for_current_user(
+    *,
+    session: Session,
+    current: CurrentPrincipal,
+    project: Project,
+) -> ProjectResponse:
+    role = get_project_role(session, principal=current, project_id=project.id)
+    return ProjectResponse.from_project(
+        project,
+        access_role=role,
+        can_access=role is not None,
+    )

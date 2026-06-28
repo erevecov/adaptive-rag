@@ -80,6 +80,7 @@ class ChatService:
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
+            user_id=request.user_id,
             retrieval_limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
         )
@@ -152,6 +153,7 @@ class ChatService:
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
+            user_id=request.user_id,
             retrieval_limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
         )

@@ -231,6 +231,8 @@ class InMemoryChatAuditWriter:
             "message": message,
             "retrieval_limit": request.retrieval_limit,
         }
+        if request.user_id is not None:
+            event["user_id"] = str(request.user_id)
         if model_config_json is not None:
             event["model_config_json"] = dict(model_config_json)
         if prompt_version is not None:
@@ -385,6 +387,7 @@ class SqlAlchemyChatAuditWriter:
     ) -> UUID | None:
         chat_session = self._chat_audit_repository.create_session(
             project_id=request.project_id,
+            user_id=request.user_id,
             model_config_json=model_config_json,
             prompt_version=prompt_version,
         )

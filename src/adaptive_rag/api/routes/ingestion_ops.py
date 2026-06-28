@@ -10,7 +10,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from adaptive_rag import ingestion_ops
-from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.api.dependencies import get_project_contributor_access, get_session
 from adaptive_rag.api.schemas.ingestion_ops import (
     EnqueueIngestionJobRequestBody,
     IngestionRunResponse,
@@ -20,6 +20,7 @@ from adaptive_rag.api.schemas.ingestion_ops import (
     RetryIngestionJobRequestBody,
     RunNextIngestionJobRequestBody,
 )
+from adaptive_rag.db.models import Project
 
 router = APIRouter(tags=["ingestion-ops"])
 
@@ -32,6 +33,10 @@ def enqueue_source_ingestion(
     project_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[
+        tuple[Project, str],
+        Depends(get_project_contributor_access),
+    ],
     body: Annotated[EnqueueIngestionJobRequestBody | None, Body()] = None,
 ) -> JobResponse:
     active_body = body or EnqueueIngestionJobRequestBody()
@@ -53,6 +58,10 @@ def enqueue_source_ingestion(
 def list_ingestion_jobs(
     project_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[
+        tuple[Project, str],
+        Depends(get_project_contributor_access),
+    ],
     source_id: Annotated[UUID | None, Query()] = None,
     status: Annotated[str | None, Query()] = None,
     job_type: Annotated[str | None, Query()] = None,
@@ -77,6 +86,10 @@ def list_ingestion_jobs(
 def run_next_ingestion_job(
     project_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[
+        tuple[Project, str],
+        Depends(get_project_contributor_access),
+    ],
     body: Annotated[RunNextIngestionJobRequestBody | None, Body()] = None,
 ) -> IngestionRunResponse:
     active_body = body or RunNextIngestionJobRequestBody()
@@ -102,6 +115,10 @@ def get_ingestion_job(
     project_id: UUID,
     job_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[
+        tuple[Project, str],
+        Depends(get_project_contributor_access),
+    ],
 ) -> JobDetailResponse:
     try:
         detail = ingestion_ops.get_ingestion_job_detail(
@@ -125,6 +142,10 @@ def retry_ingestion_job(
     project_id: UUID,
     job_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[
+        tuple[Project, str],
+        Depends(get_project_contributor_access),
+    ],
     body: Annotated[RetryIngestionJobRequestBody | None, Body()] = None,
 ) -> JobResponse:
     active_body = body or RetryIngestionJobRequestBody()

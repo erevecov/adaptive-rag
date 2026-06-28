@@ -11,6 +11,7 @@ from adaptive_rag.api.dependencies import (
     get_provider_model_lister,
     get_provider_secret_store,
     get_session,
+    get_superadmin_user,
 )
 from adaptive_rag.api.schemas.provider_connections import (
     ProviderConnectionListResponse,
@@ -34,7 +35,11 @@ from adaptive_rag.provider_secrets import (
     ProviderSecretStore,
 )
 
-router = APIRouter(prefix="/runtime-settings", tags=["runtime-settings"])
+router = APIRouter(
+    prefix="/runtime-settings",
+    tags=["runtime-settings"],
+    dependencies=[Depends(get_superadmin_user)],
+)
 
 
 @router.get("/connections", response_model=ProviderConnectionListResponse)

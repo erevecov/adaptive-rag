@@ -22,6 +22,7 @@ from adaptive_rag.db.models import (
     RetrievedChunk,
     Source,
     ToolCall,
+    User,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
@@ -42,6 +43,7 @@ def _make_session():
         engine,
         tables=[
             Project.__table__,
+            User.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -60,6 +62,13 @@ def _make_session():
 
 def _make_project(session, name: str = "demo") -> Project:
     return ProjectRepository(session).create(name=name)
+
+
+def _make_user(session, login: str) -> User:
+    user = User(login=login, display_name=login)
+    session.add(user)
+    session.flush()
+    return user
 
 
 def _make_chunk(session, *, project: Project, suffix: str = "") -> Chunk:
@@ -207,6 +216,37 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         "chunk_id": str(chunk.id),
         "snippet": "Alpha evidence",
     }
+
+
+def test_repository_scopes_session_history_to_owner_user() -> None:
+    session = _make_session()
+    project = _make_project(session, "demo")
+    first_user = _make_user(session, "first@example.com")
+    second_user = _make_user(session, "second@example.com")
+    repo = ChatAuditRepository(session)
+    first_session = repo.create_session(
+        project_id=project.id,
+        user_id=first_user.id,
+    )
+    second_session = repo.create_session(
+        project_id=project.id,
+        user_id=second_user.id,
+    )
+    session.commit()
+
+    first_page = repo.list_session_summaries(
+        project_id=project.id,
+        user_id=first_user.id,
+    )
+    second_detail = repo.get_session_detail(
+        project_id=project.id,
+        session_id=second_session.id,
+        user_id=first_user.id,
+    )
+
+    assert first_session.user_id == first_user.id
+    assert [item.session_id for item in first_page.items] == [first_session.id]
+    assert second_detail is None
 
 
 def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:

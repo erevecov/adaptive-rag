@@ -81,11 +81,13 @@ class ChatAuditRepository:
         self,
         *,
         project_id: UUID,
+        user_id: UUID | None = None,
         model_config_json: Mapping[str, Any] | None = None,
         prompt_version: str | None = None,
     ) -> ChatSession:
         chat_session = ChatSession(
             project_id=project_id,
+            user_id=user_id,
             model_config_json=(
                 dict(model_config_json) if model_config_json is not None else None
             ),
@@ -100,11 +102,14 @@ class ChatAuditRepository:
         *,
         project_id: UUID,
         session_id: UUID,
+        user_id: UUID | None = None,
     ) -> ChatSession | None:
         statement = select(ChatSession).where(
             ChatSession.id == session_id,
             ChatSession.project_id == project_id,
         )
+        if user_id is not None:
+            statement = statement.where(ChatSession.user_id == user_id)
         return self._session.scalars(statement).one_or_none()
 
     def add_message(
@@ -359,6 +364,7 @@ class ChatAuditRepository:
         self,
         *,
         project_id: UUID,
+        user_id: UUID | None = None,
         status: str | None = None,
         limit: int = DEFAULT_CHAT_SESSION_HISTORY_LIMIT,
         cursor: str | None = None,
@@ -430,6 +436,8 @@ class ChatAuditRepository:
             .order_by(ChatSession.created_at.desc(), ChatSession.id.desc())
             .limit(limit + 1)
         )
+        if user_id is not None:
+            statement = statement.where(ChatSession.user_id == user_id)
         if status is not None:
             statement = statement.where(ChatSession.status == status)
         if cursor_values is not None:
@@ -488,8 +496,13 @@ class ChatAuditRepository:
         *,
         project_id: UUID,
         session_id: UUID,
+        user_id: UUID | None = None,
     ) -> ChatSessionDetail | None:
-        chat_session = self.get_session(project_id=project_id, session_id=session_id)
+        chat_session = self.get_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
         if chat_session is None:
             return None
 

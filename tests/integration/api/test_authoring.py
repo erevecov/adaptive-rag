@@ -50,12 +50,16 @@ def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
     assert payload["embedding_mode"] == "dense_sparse"
     assert payload["retrieval_contextualization_enabled"] is True
     assert payload["budget_config_json"] is None
+    assert payload["access_role"] == "superadmin"
+    assert payload["can_access"] is True
     assert set(payload) == {
         "id",
         "name",
         "embedding_mode",
         "retrieval_contextualization_enabled",
         "budget_config_json",
+        "access_role",
+        "can_access",
         "created_at",
         "updated_at",
     }

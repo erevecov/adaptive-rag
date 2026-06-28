@@ -25,7 +25,11 @@ import type {
   IngestionJobListResponse,
   IngestionRunResponse,
   ChatModelListResponse,
+  KnowledgeProposal,
+  KnowledgeProposalListResponse,
   Project,
+  ProjectMembership,
+  ProjectMembershipListResponse,
   ProjectRuntimeSettings,
   ProviderConnectionListResponse,
   ProviderModelListResponse,
@@ -33,6 +37,8 @@ import type {
   ProjectListResponse,
   Source,
   SourceListResponse,
+  User,
+  UserListResponse,
 } from './lib/apiClient'
 import { ApiClientError } from './lib/apiClient'
 
@@ -127,9 +133,11 @@ function createClientStub(options: {
   createProject?: ApiClient['createProject']
   createProviderConnection?: ApiClient['createProviderConnection']
   createSource?: ApiClient['createSource']
+  createUser?: ApiClient['createUser']
   enqueueIngestionJob?: ApiClient['enqueueIngestionJob']
   getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
   getChatSession?: ApiClient['getChatSession']
+  getCurrentUser?: ApiClient['getCurrentUser']
   getIngestionJob?: ApiClient['getIngestionJob']
   getProject?: ApiClient['getProject']
   getProjectRuntimeSettings?: ApiClient['getProjectRuntimeSettings']
@@ -137,14 +145,22 @@ function createClientStub(options: {
   listChatModels?: ApiClient['listChatModels']
   listChatSessions?: ApiClient['listChatSessions']
   listIngestionJobs?: ApiClient['listIngestionJobs']
+  listKnowledgeProposals?: ApiClient['listKnowledgeProposals']
+  listProjectMemberships?: ApiClient['listProjectMemberships']
   listProviderConnections?: ApiClient['listProviderConnections']
   listProviderModels?: ApiClient['listProviderModels']
   listProjects?: ApiClient['listProjects']
   listRuntimeSlotDefaults?: ApiClient['listRuntimeSlotDefaults']
   listSources?: ApiClient['listSources']
+  listUsers?: ApiClient['listUsers']
+  refineKnowledgeProposal?: ApiClient['refineKnowledgeProposal']
+  approveKnowledgeProposal?: ApiClient['approveKnowledgeProposal']
+  rejectKnowledgeProposal?: ApiClient['rejectKnowledgeProposal']
   retryIngestionJob?: ApiClient['retryIngestionJob']
   runNextIngestionJob?: ApiClient['runNextIngestionJob']
+  submitKnowledgeProposal?: ApiClient['submitKnowledgeProposal']
   upsertChatModel?: ApiClient['upsertChatModel']
+  upsertProjectMembership?: ApiClient['upsertProjectMembership']
   upsertProjectChatModel?: ApiClient['upsertProjectChatModel']
   upsertProjectRuntimeSlotOverride?: ApiClient['upsertProjectRuntimeSlotOverride']
   upsertProviderConnection?: ApiClient['upsertProviderConnection']
@@ -159,7 +175,9 @@ function createClientStub(options: {
     createProject: options.createProject ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
+    createUser: options.createUser ?? vi.fn(),
     enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
+    getCurrentUser: options.getCurrentUser ?? vi.fn(),
     getChatObservabilitySummary:
       options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
@@ -170,14 +188,22 @@ function createClientStub(options: {
     listChatModels: options.listChatModels ?? vi.fn(),
     listChatSessions: options.listChatSessions ?? vi.fn(),
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
+    listKnowledgeProposals: options.listKnowledgeProposals ?? vi.fn(),
+    listProjectMemberships: options.listProjectMemberships ?? vi.fn(),
     listProviderConnections: options.listProviderConnections ?? vi.fn(),
     listProviderModels: options.listProviderModels ?? vi.fn(),
     listProjects: options.listProjects ?? vi.fn(),
     listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
+    listUsers: options.listUsers ?? vi.fn(),
+    refineKnowledgeProposal: options.refineKnowledgeProposal ?? vi.fn(),
+    approveKnowledgeProposal: options.approveKnowledgeProposal ?? vi.fn(),
+    rejectKnowledgeProposal: options.rejectKnowledgeProposal ?? vi.fn(),
     retryIngestionJob: options.retryIngestionJob ?? vi.fn(),
     runNextIngestionJob: options.runNextIngestionJob ?? vi.fn(),
+    submitKnowledgeProposal: options.submitKnowledgeProposal ?? vi.fn(),
     upsertChatModel: options.upsertChatModel ?? vi.fn(),
+    upsertProjectMembership: options.upsertProjectMembership ?? vi.fn(),
     upsertProjectChatModel: options.upsertProjectChatModel ?? vi.fn(),
     upsertProjectRuntimeSlotOverride:
       options.upsertProjectRuntimeSlotOverride ?? vi.fn(),
@@ -286,6 +312,54 @@ const projectSummary: Project = {
 
 const projectListResponse: ProjectListResponse = {
   items: [projectSummary],
+}
+
+const viewerUser: User = {
+  created_at: '2026-06-22T00:00:00Z',
+  display_name: 'Viewer User',
+  id: '44444444-4444-4444-8444-444444444444',
+  is_active: true,
+  login: 'viewer@example.com',
+  system_role: 'user',
+  updated_at: '2026-06-22T00:00:00Z',
+}
+
+const userListResponse: UserListResponse = {
+  items: [viewerUser],
+}
+
+const viewerMembership: ProjectMembership = {
+  created_at: '2026-06-22T00:00:00Z',
+  id: '55555555-5555-4555-8555-555555555555',
+  project_id: projectId,
+  role: 'viewer',
+  updated_at: '2026-06-22T00:00:00Z',
+  user_id: viewerUser.id,
+}
+
+const membershipListResponse: ProjectMembershipListResponse = {
+  items: [viewerMembership],
+}
+
+const pendingKnowledgeProposal: KnowledgeProposal = {
+  approved_source_id: null,
+  created_at: '2026-06-22T00:00:00Z',
+  id: '66666666-6666-4666-8666-666666666666',
+  origin_message_id: null,
+  origin_session_id: null,
+  project_id: projectId,
+  proposed_text: 'Document the escalation runbook from chat.',
+  refined_text: null,
+  review_note: null,
+  reviewed_at: null,
+  reviewed_by_user_id: null,
+  status: 'pending',
+  submitted_by_user_id: viewerUser.id,
+  updated_at: '2026-06-22T00:00:00Z',
+}
+
+const knowledgeProposalListResponse: KnowledgeProposalListResponse = {
+  items: [pendingKnowledgeProposal],
 }
 
 const sourceSummary: Source = {
@@ -779,6 +853,176 @@ describe('App chat workspace', () => {
       projectId,
     )
     expect(screen.getByText(`Last project ${projectId}`)).toBeTruthy()
+  })
+
+  test('filters project selector and disables inaccessible projects', async () => {
+    const user = userEvent.setup()
+    const inaccessibleProject: Project = {
+      ...projectSummary,
+      can_access: false,
+      id: '99999999-9999-4999-8999-999999999999',
+      name: 'Restricted',
+    }
+    const client = createClientStub({
+      listProjects: vi.fn(async () => ({
+        items: [
+          { ...projectSummary, access_role: 'viewer', can_access: true },
+          inaccessibleProject,
+        ],
+      })),
+    })
+
+    render(<App apiClient={client} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
+    await user.type(screen.getByLabelText('Search projects'), 'restricted')
+
+    const restrictedOption = screen.getByRole('option', {
+      name: 'Restricted (no access)',
+    }) as HTMLOptionElement
+    expect(restrictedOption.disabled).toBe(true)
+    expect(screen.queryByRole('option', { name: 'Demo' })).toBeNull()
+  })
+
+  test('submits current chat text as a knowledge proposal', async () => {
+    const user = userEvent.setup()
+    const submitKnowledgeProposal = vi.fn(async () => pendingKnowledgeProposal)
+
+    render(
+      <App
+        apiClient={createClientStub({ submitKnowledgeProposal })}
+        initialProjectId={projectId}
+      />,
+    )
+
+    await user.type(
+      screen.getByLabelText('Question'),
+      'Document this deployment exception.',
+    )
+    await user.click(screen.getByRole('button', { name: 'Propose knowledge' }))
+
+    await waitFor(() =>
+      expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
+        proposed_text: 'Document this deployment exception.',
+      }),
+    )
+  })
+
+  test('creates users and assigns project membership from authoring', async () => {
+    const user = userEvent.setup()
+    const createUser = vi.fn(async () => viewerUser)
+    const upsertProjectMembership = vi.fn(async () => viewerMembership)
+
+    render(
+      <App
+        apiClient={createClientStub({
+          createUser,
+          listProjectMemberships: vi.fn(async () => membershipListResponse),
+          listUsers: vi.fn(async () => userListResponse),
+          upsertProjectMembership,
+        })}
+        initialProjectId={projectId}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('tab', { name: 'Authoring' }))
+    await user.type(screen.getByLabelText('User login'), viewerUser.login)
+    await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
+    await user.type(screen.getByLabelText('Access token'), 'viewer-token')
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    await waitFor(() =>
+      expect(createUser).toHaveBeenCalledWith({
+        access_token: 'viewer-token',
+        display_name: viewerUser.display_name,
+        login: viewerUser.login,
+        system_role: 'user',
+      }),
+    )
+
+    await user.type(screen.getByLabelText('Member user ID'), viewerUser.id)
+    await user.selectOptions(screen.getByLabelText('Project role'), 'admin')
+    await user.click(screen.getByRole('button', { name: 'Save membership' }))
+
+    await waitFor(() =>
+      expect(upsertProjectMembership).toHaveBeenCalledWith(
+        projectId,
+        viewerUser.id,
+        { role: 'admin' },
+      ),
+    )
+  })
+
+  test('reviews pending knowledge proposals from authoring', async () => {
+    const user = userEvent.setup()
+    const refineKnowledgeProposal = vi.fn(async () => ({
+      ...pendingKnowledgeProposal,
+      refined_text: 'Refined escalation runbook.',
+    }))
+    const approveKnowledgeProposal = vi.fn(async () => ({
+      ...pendingKnowledgeProposal,
+      status: 'approved',
+    }))
+    const rejectKnowledgeProposal = vi.fn(async () => ({
+      ...pendingKnowledgeProposal,
+      status: 'rejected',
+    }))
+
+    render(
+      <App
+        apiClient={createClientStub({
+          approveKnowledgeProposal,
+          listKnowledgeProposals: vi.fn(async () => knowledgeProposalListResponse),
+          refineKnowledgeProposal,
+          rejectKnowledgeProposal,
+        })}
+        initialProjectId={projectId}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('tab', { name: 'Authoring' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh proposals' }))
+
+    expect(
+      await screen.findByText('Document the escalation runbook from chat.'),
+    ).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Refined text'), 'Refined escalation runbook.')
+    await user.click(screen.getByRole('button', { name: 'Refine proposal' }))
+
+    await waitFor(() =>
+      expect(refineKnowledgeProposal).toHaveBeenCalledWith(
+        projectId,
+        pendingKnowledgeProposal.id,
+        { refined_text: 'Refined escalation runbook.' },
+      ),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Approve proposal' }))
+
+    await waitFor(() =>
+      expect(approveKnowledgeProposal).toHaveBeenCalledWith(
+        projectId,
+        pendingKnowledgeProposal.id,
+        {
+          refined_text: 'Refined escalation runbook.',
+          review_note: null,
+        },
+      ),
+    )
+
+    await user.type(screen.getByLabelText('Reject reason'), 'Needs source owner.')
+    await user.click(screen.getByRole('button', { name: 'Reject proposal' }))
+
+    await waitFor(() =>
+      expect(rejectKnowledgeProposal).toHaveBeenCalledWith(
+        projectId,
+        pendingKnowledgeProposal.id,
+        { reason: 'Needs source owner.' },
+      ),
+    )
   })
 
   test('opens and closes the right dock from composer controls', async () => {

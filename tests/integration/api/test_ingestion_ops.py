@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
@@ -18,9 +19,17 @@ from adaptive_rag.db.models import (
     Job,
     JobEvent,
     Project,
+    ProjectMembership,
     Source,
+    User,
 )
-from adaptive_rag.db.repositories import ProjectRepository, SourceRepository
+from adaptive_rag.db.models.user import UserAccessToken
+from adaptive_rag.db.repositories import (
+    ProjectMembershipRepository,
+    ProjectRepository,
+    SourceRepository,
+    UserRepository,
+)
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -61,6 +70,46 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     assert shown.status_code == 200
     assert shown.json()["job"]["id"] == job["id"]
     assert [event["event_type"] for event in shown.json()["events"]] == ["created"]
+
+
+def test_enqueue_ingestion_job_requires_contributor_role() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="notes.md",
+        extra_metadata={"content": "# Notes"},
+    )
+    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    contributor = _create_user(
+        session,
+        login="contributor@example.com",
+        token="contributor-token",
+    )
+    _grant_project_role(session, project=project, user=viewer, role="viewer")
+    _grant_project_role(
+        session,
+        project=project,
+        user=contributor,
+        role="contributor",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    denied = client.post(
+        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        headers=_bearer("viewer-token"),
+    )
+    allowed = client.post(
+        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        headers=_bearer("contributor-token"),
+    )
+
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project contributor role required"
+    assert allowed.status_code == 200
+    assert allowed.json()["job_type"] == "ingest_source"
 
 
 def test_run_next_processes_text_source_and_updates_job_state() -> None:
@@ -182,6 +231,9 @@ def _make_session() -> Session:
             Chunk.__table__,
             Job.__table__,
             JobEvent.__table__,
+            User.__table__,
+            UserAccessToken.__table__,
+            ProjectMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -195,3 +247,37 @@ def _client(*, session: Session) -> TestClient:
 
     app.dependency_overrides[get_session] = override_session
     return TestClient(app)
+
+
+def _bearer(raw_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {raw_token}"}
+
+
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+) -> User:
+    repo = UserRepository(session)
+    user = repo.create_user(login=login, display_name=login, system_role="user")
+    repo.upsert_access_token(
+        user_id=user.id,
+        token_hash=hash_access_token(token),
+        label=f"{login} token",
+    )
+    return user
+
+
+def _grant_project_role(
+    session: Session,
+    *,
+    project: Project,
+    user: User,
+    role: str,
+) -> None:
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role=role,
+    )

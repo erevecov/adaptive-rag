@@ -7,13 +7,22 @@ from inspect import Parameter, signature
 from typing import Annotated, Any, cast
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, Header, HTTPException
 from fastapi.params import Depends as DependsMarker
 from sqlalchemy.orm import Session
 
+from adaptive_rag.auth import (
+    CurrentPrincipal,
+    get_project_role,
+    hash_access_token,
+    role_meets,
+    users_exist,
+)
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.config.settings import get_settings
+from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
+from adaptive_rag.db.repositories.users import UserRepository
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever, get_graph_store
@@ -38,6 +47,76 @@ SparseEmbeddingProviderFactory = Callable[[], SparseEmbeddingProvider]
 def get_session() -> Iterator[Session]:
     with session_scope() as session:
         yield session
+
+
+def get_current_user(
+    session: Annotated[Session, Depends(get_session)],
+    authorization: Annotated[str | None, Header()] = None,
+) -> CurrentPrincipal:
+    if authorization is None or authorization.strip() == "":
+        if not users_exist(session):
+            return CurrentPrincipal(user=None, is_bootstrap=True)
+        raise HTTPException(status_code=401, detail="authentication required")
+
+    raw_token = _parse_bearer_token(authorization)
+    user = UserRepository(session).get_user_by_token_hash(hash_access_token(raw_token))
+    if user is None:
+        raise HTTPException(status_code=401, detail="invalid access token")
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="inactive_user")
+    return CurrentPrincipal(user=user)
+
+
+def require_superadmin(current: CurrentPrincipal) -> None:
+    if not current.is_superadmin:
+        raise HTTPException(status_code=403, detail="superadmin role required")
+
+
+def get_superadmin_user(
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> CurrentPrincipal:
+    require_superadmin(current)
+    return current
+
+
+def get_project_access(
+    project_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> tuple[Project, str]:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="project not found")
+    role = get_project_role(session, principal=current, project_id=project_id)
+    if role is None:
+        raise HTTPException(status_code=403, detail="project access required")
+    return project, role
+
+
+def get_project_contributor_access(
+    access: Annotated[tuple[Project, str], Depends(get_project_access)],
+) -> tuple[Project, str]:
+    if not role_meets(access[1], "contributor"):
+        raise HTTPException(
+            status_code=403,
+            detail="project contributor role required",
+        )
+    return access
+
+
+def get_project_admin_access(
+    access: Annotated[tuple[Project, str], Depends(get_project_access)],
+) -> tuple[Project, str]:
+    if not role_meets(access[1], "admin"):
+        raise HTTPException(status_code=403, detail="project admin role required")
+    return access
+
+
+def _parse_bearer_token(authorization: str) -> str:
+    scheme, separator, token = authorization.partition(" ")
+    if separator == "" or scheme.lower() != "bearer" or token.strip() == "":
+        raise HTTPException(status_code=401, detail="invalid authorization header")
+    return token.strip()
 
 
 def get_graph_retriever() -> GraphRetriever | None:

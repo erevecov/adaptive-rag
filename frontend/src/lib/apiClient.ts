@@ -6,6 +6,8 @@ export type Project = {
   embedding_mode: string
   retrieval_contextualization_enabled: boolean
   budget_config_json: JsonObject | null
+  access_role?: string | null
+  can_access?: boolean
   created_at: string
   updated_at: string
 }
@@ -19,6 +21,53 @@ export type ProjectCreateBody = {
 
 export type ProjectListResponse = {
   items: Project[]
+}
+
+export type CurrentUser = {
+  id: string | null
+  login: string
+  display_name: string
+  system_role: string
+  is_bootstrap: boolean
+}
+
+export type User = {
+  id: string
+  login: string
+  display_name: string
+  system_role: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type UserCreateBody = {
+  login: string
+  display_name: string
+  system_role?: string
+  access_token?: string | null
+  is_active?: boolean
+}
+
+export type UserListResponse = {
+  items: User[]
+}
+
+export type ProjectMembership = {
+  id: string
+  project_id: string
+  user_id: string
+  role: string
+  created_at: string
+  updated_at: string
+}
+
+export type ProjectMembershipUpsertBody = {
+  role: string
+}
+
+export type ProjectMembershipListResponse = {
+  items: ProjectMembership[]
 }
 
 export type Source = {
@@ -389,6 +438,50 @@ export type ChatSessionDetailResponse = {
   provider_usage: ChatHistoryProviderUsage[]
 }
 
+export type KnowledgeProposal = {
+  id: string
+  project_id: string
+  submitted_by_user_id: string | null
+  origin_session_id: string | null
+  origin_message_id: string | null
+  approved_source_id: string | null
+  reviewed_by_user_id: string | null
+  status: string
+  proposed_text: string
+  refined_text: string | null
+  review_note: string | null
+  created_at: string
+  updated_at: string
+  reviewed_at: string | null
+}
+
+export type KnowledgeProposalSubmitBody = {
+  proposed_text: string
+  origin_session_id?: string | null
+  origin_message_id?: string | null
+}
+
+export type KnowledgeProposalListParams = {
+  status?: string | null
+}
+
+export type KnowledgeProposalListResponse = {
+  items: KnowledgeProposal[]
+}
+
+export type KnowledgeProposalRefineBody = {
+  refined_text: string
+}
+
+export type KnowledgeProposalApproveBody = {
+  refined_text?: string | null
+  review_note?: string | null
+}
+
+export type KnowledgeProposalRejectBody = {
+  reason: string
+}
+
 export type ProviderSecretStatus = {
   connection_id: string
   secret_name: string
@@ -530,6 +623,17 @@ export class ApiClientError extends Error {
 }
 
 export type ApiClient = {
+  getCurrentUser(): Promise<CurrentUser>
+  createUser(body: UserCreateBody): Promise<User>
+  listUsers(): Promise<UserListResponse>
+  listProjectMemberships(
+    projectId: string,
+  ): Promise<ProjectMembershipListResponse>
+  upsertProjectMembership(
+    projectId: string,
+    userId: string,
+    body: ProjectMembershipUpsertBody,
+  ): Promise<ProjectMembership>
   createProject(body: ProjectCreateBody): Promise<Project>
   listProjects(): Promise<ProjectListResponse>
   getProject(projectId: string): Promise<Project>
@@ -580,6 +684,29 @@ export type ApiClient = {
     projectId: string,
     params?: ChatObservabilitySummaryParams,
   ): Promise<ChatObservabilitySummary>
+  submitKnowledgeProposal(
+    projectId: string,
+    body: KnowledgeProposalSubmitBody,
+  ): Promise<KnowledgeProposal>
+  listKnowledgeProposals(
+    projectId: string,
+    params?: KnowledgeProposalListParams,
+  ): Promise<KnowledgeProposalListResponse>
+  refineKnowledgeProposal(
+    projectId: string,
+    proposalId: string,
+    body: KnowledgeProposalRefineBody,
+  ): Promise<KnowledgeProposal>
+  approveKnowledgeProposal(
+    projectId: string,
+    proposalId: string,
+    body: KnowledgeProposalApproveBody,
+  ): Promise<KnowledgeProposal>
+  rejectKnowledgeProposal(
+    projectId: string,
+    proposalId: string,
+    body: KnowledgeProposalRejectBody,
+  ): Promise<KnowledgeProposal>
   listProviderConnections(): Promise<ProviderConnectionListResponse>
   createProviderConnection(
     body: ProviderConnectionUpsertBody,
@@ -639,15 +766,53 @@ export type ApiClient = {
 }
 
 export type ApiClientOptions = {
+  authToken?: string | null
   baseUrl: string
   fetch?: typeof fetch
 }
 
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = options.baseUrl.replace(/\/+$/, '')
-  const fetchImpl = options.fetch ?? globalThis.fetch
+  const fetchImpl = withAuthToken(
+    options.fetch ?? globalThis.fetch,
+    options.authToken ?? null,
+  )
 
   return {
+    getCurrentUser() {
+      return requestJson<CurrentUser>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/auth/me`,
+      })
+    },
+    createUser(body) {
+      return requestJson<User>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/users`,
+      })
+    },
+    listUsers() {
+      return requestJson<UserListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/users`,
+      })
+    },
+    listProjectMemberships(projectId) {
+      return requestJson<ProjectMembershipListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/memberships`,
+      })
+    },
+    upsertProjectMembership(projectId, userId, body) {
+      return requestJson<ProjectMembership>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/memberships/${encodePathSegment(userId)}`,
+      })
+    },
     createProject(body) {
       return requestJson<Project>(fetchImpl, {
         body,
@@ -792,6 +957,53 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       return requestJson<ChatSessionListResponse>(fetchImpl, {
         method: 'GET',
         url: url.toString(),
+      })
+    },
+    submitKnowledgeProposal(projectId, body) {
+      return requestJson<KnowledgeProposal>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/knowledge-proposals`,
+      })
+    },
+    listKnowledgeProposals(projectId, params = {}) {
+      const url = new URL(
+        `${baseUrl}/projects/${encodePathSegment(projectId)}/knowledge-proposals`,
+      )
+      appendSearchParam(url, 'status', params.status)
+
+      return requestJson<KnowledgeProposalListResponse>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    refineKnowledgeProposal(projectId, proposalId, body) {
+      return requestJson<KnowledgeProposal>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/knowledge-proposals/${encodePathSegment(proposalId)}/refine`,
+      })
+    },
+    approveKnowledgeProposal(projectId, proposalId, body) {
+      return requestJson<KnowledgeProposal>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/knowledge-proposals/${encodePathSegment(proposalId)}/approve`,
+      })
+    },
+    rejectKnowledgeProposal(projectId, proposalId, body) {
+      return requestJson<KnowledgeProposal>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/knowledge-proposals/${encodePathSegment(proposalId)}/reject`,
       })
     },
     listProviderConnections() {
@@ -980,6 +1192,34 @@ function appendSearchParam(
 
 function encodePathSegment(value: string): string {
   return encodeURIComponent(value)
+}
+
+function withAuthToken(fetchImpl: typeof fetch, authToken: string | null): typeof fetch {
+  const token = authToken?.trim() ?? ''
+  if (token.length === 0) {
+    return fetchImpl
+  }
+  return (input, init) =>
+    fetchImpl(input, {
+      ...init,
+      headers: {
+        ...headersToRecord(init?.headers),
+        Authorization: `Bearer ${token}`,
+      },
+    })
+}
+
+function headersToRecord(headers: HeadersInit | undefined): Record<string, string> {
+  if (headers === undefined) {
+    return {}
+  }
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries())
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers)
+  }
+  return { ...headers }
 }
 
 async function requestJson<T>(

@@ -11,7 +11,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from adaptive_rag.api.dependencies import get_chat_service, get_session
+from adaptive_rag.api.dependencies import (
+    get_chat_service,
+    get_current_user,
+    get_project_access,
+    get_project_admin_access,
+    get_session,
+)
 from adaptive_rag.api.schemas.chat import (
     ChatObservabilitySummaryResponse,
     ChatRequestBody,
@@ -19,8 +25,10 @@ from adaptive_rag.api.schemas.chat import (
     ChatSessionDetailResponse,
     ChatSessionListResponse,
 )
+from adaptive_rag.auth import CurrentPrincipal
 from adaptive_rag.chat import ChatService, ChatServiceError
 from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
+from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatObservabilityRepository,
@@ -36,6 +44,7 @@ router = APIRouter(
 def get_chat_observability_summary(
     project_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_admin_access)],
     created_at_from: Annotated[datetime | None, Query()] = None,
     created_at_to: Annotated[datetime | None, Query()] = None,
     status: Annotated[str | None, Query()] = None,
@@ -56,6 +65,8 @@ def get_chat_observability_summary(
 def list_chat_sessions(
     project_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
     status: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query()] = 20,
     cursor: Annotated[str | None, Query()] = None,
@@ -63,6 +74,7 @@ def list_chat_sessions(
     try:
         page = ChatAuditRepository(session).list_session_summaries(
             project_id=project_id,
+            user_id=_history_user_id(current),
             status=status,
             limit=limit,
             cursor=cursor,
@@ -77,10 +89,13 @@ def get_chat_session(
     project_id: UUID,
     session_id: UUID,
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> ChatSessionDetailResponse:
     detail = ChatAuditRepository(session).get_session_detail(
         project_id=project_id,
         session_id=session_id,
+        user_id=_history_user_id(current),
     )
     if detail is None:
         raise HTTPException(status_code=404, detail="chat session not found")
@@ -93,9 +108,13 @@ def stream_chat(
     body: ChatRequestBody,
     service: Annotated[ChatService, Depends(get_chat_service)],
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> StreamingResponse:
     try:
-        events = service.stream(body.to_service_request(project_id))
+        events = service.stream(
+            body.to_service_request(project_id, user_id=current.user_id)
+        )
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
@@ -114,9 +133,13 @@ def chat(
     body: ChatRequestBody,
     service: Annotated[ChatService, Depends(get_chat_service)],
     session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> ChatResponseBody:
     try:
-        response = service.respond(body.to_service_request(project_id))
+        response = service.respond(
+            body.to_service_request(project_id, user_id=current.user_id)
+        )
         session.commit()
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
@@ -148,3 +171,7 @@ def _commit_or_rollback_chat_error(session: Session) -> None:
         session.commit()
     except Exception:
         session.rollback()
+
+
+def _history_user_id(current: CurrentPrincipal) -> UUID | None:
+    return None if current.is_superadmin else current.user_id

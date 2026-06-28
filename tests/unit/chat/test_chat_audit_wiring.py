@@ -140,6 +140,23 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
     assert serialize_chat_response(response)["session_id"] == str(audit.session_id)
 
 
+def test_chat_service_passes_user_id_to_audit_session() -> None:
+    project_id = uuid4()
+    user_id = uuid4()
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    service = ChatService(
+        runner=ToolCallingRunner(query="alpha", cited_chunk_ids=()),
+        retrieval_service=RecordingRetrievalService([]),
+        audit_writer=audit,
+    )
+
+    service.respond(
+        ChatRequest(project_id=project_id, user_id=user_id, message="alpha")
+    )
+
+    assert audit.events[0]["user_id"] == str(user_id)
+
+
 def test_chat_service_records_graph_retrieval_strategy_from_results() -> None:
     project_id = uuid4()
     chunk_id = uuid4()

@@ -142,7 +142,6 @@ class UserRepository:
             .where(
                 UserAccessToken.token_hash == normalized_hash,
                 UserAccessToken.revoked_at.is_(None),
-                User.is_active.is_(True),
             )
         )
         users = list(self._session.scalars(statement))
@@ -247,4 +246,3 @@ def _normalize_supported_value(
     if normalized not in supported:
         raise ValueError(f"unsupported {label}: {normalized}")
     return normalized
-
