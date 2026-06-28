@@ -24,6 +24,14 @@ class Settings(BaseSettings):
         "postgresql+psycopg://adaptive_rag:adaptive_rag"
         "@localhost:5432/adaptive_rag"
     )
+    cors_allowed_origins: tuple[str, ...] = (
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:5173",
+    )
     api_key: SecretStr | None = Field(default=None)
     vector_store: VectorStoreName = "pgvector"
     graph_store: GraphStoreName = "disabled"
