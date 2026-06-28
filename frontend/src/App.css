@@ -2438,6 +2438,56 @@ body,
   width: 100%;
 }
 
+.new-session-button,
+:is([data-theme='dark'], [data-theme='purple']) .new-session-button {
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: var(--app-primary-fg);
+  min-height: 38px;
+  width: 100%;
+}
+
+.new-session-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .new-session-button:hover {
+  background: var(--app-primary-hover);
+  border-color: var(--app-primary-hover);
+  color: var(--app-primary-fg);
+}
+
+.session-button,
+:is([data-theme='dark'], [data-theme='purple']) .session-button {
+  background: var(--app-surface-solid);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.session-button:hover,
+.session-button-selected,
+:is([data-theme='dark'], [data-theme='purple']) .session-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .session-button-selected {
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent);
+  color: var(--app-text-strong);
+}
+
+.session-button small,
+:is([data-theme='dark'], [data-theme='purple']) .session-button small {
+  color: var(--app-text-muted);
+}
+
+.session-button > span,
+.session-button > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-button > strong {
+  justify-self: start;
+}
+
 .composer-toolbar {
   grid-template-columns: minmax(220px, 1fr) minmax(112px, 132px) auto;
 }
@@ -2548,6 +2598,48 @@ body,
   .inspector-close-button,
   .composer-icon-button,
   .composer-send-button {
+    width: auto;
+  }
+}
+
+.workspace-inspector-inline {
+  position: relative;
+  z-index: 1;
+}
+
+.workspace-inspector-overlay {
+  bottom: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  max-height: none;
+  min-height: 0;
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  width: min(420px, calc(100vw - 48px));
+  z-index: 70;
+}
+
+.workspace-inspector-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  border: 0;
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  padding: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 60;
+}
+
+@media (max-width: 680px) {
+  .workspace-chat .workspace-inspector-overlay {
+    bottom: 12px;
+    left: 12px;
+    max-height: none;
+    min-height: 0;
+    right: 12px;
+    top: 12px;
     width: auto;
   }
 }

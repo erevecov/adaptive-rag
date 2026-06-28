@@ -71,7 +71,16 @@ function installLocalStorage() {
   })
 }
 
+function setViewportWidth(width: number) {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: width,
+  })
+  window.dispatchEvent(new Event('resize'))
+}
+
 beforeEach(() => {
+  setViewportWidth(1400)
   installLocalStorage()
 })
 
@@ -808,6 +817,43 @@ describe('App chat workspace', () => {
     ).toBeNull()
   })
 
+  test('renders the right dock inline on xl viewports and as an overlay below xl', async () => {
+    const user = userEvent.setup()
+
+    setViewportWidth(1400)
+    const { unmount } = render(
+      <App apiClient={createClientStub({})} initialProjectId={projectId} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+
+    expect(
+      screen
+        .getByRole('complementary', { name: 'Workspace inspector' })
+        .className,
+    ).toContain('workspace-inspector-inline')
+    expect(screen.queryByTestId('workspace-inspector-backdrop')).toBeNull()
+    expect(document.querySelector('.chat-workspace-grid')?.className).toContain(
+      'chat-workspace-grid-docked',
+    )
+
+    unmount()
+    setViewportWidth(900)
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+
+    expect(
+      screen
+        .getByRole('complementary', { name: 'Workspace inspector' })
+        .className,
+    ).toContain('workspace-inspector-overlay')
+    expect(screen.getByTestId('workspace-inspector-backdrop')).toBeTruthy()
+    expect(document.querySelector('.chat-workspace-grid')?.className).not.toContain(
+      'chat-workspace-grid-docked',
+    )
+  })
+
   test('auto-follows streaming chat until the user scrolls away from the bottom', async () => {
     const user = userEvent.setup()
     const finalResponse = createDeferred<ChatResponseBody>()
@@ -1167,6 +1213,36 @@ describe('App chat workspace', () => {
     expect(screen.getByText('chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getAllByText('session-123')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'session-123' }).className).toContain(
+      'session-button-selected',
+    )
+  })
+
+  test('adds a streaming session to the sidebar as soon as it starts', async () => {
+    const user = userEvent.setup()
+    const finalResponse = createDeferred<ChatResponseBody>()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async (_projectId, _body, handlers) => {
+        handlers.onSessionStarted?.('session-stream')
+        return finalResponse.promise
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'Start a fresh session')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    const sessionButton = await screen.findByRole('button', {
+      name: 'session-stream',
+    })
+    expect(sessionButton.className).toContain('session-button-selected')
+
+    await act(async () => {
+      finalResponse.resolve({ ...chatResponse, session_id: 'session-stream' })
+    })
   })
 
   test('opens source viewer from a chat citation using the citation source id', async () => {
@@ -1447,6 +1523,60 @@ describe('App chat workspace', () => {
     expect(within(navigation).queryByRole('button', { name: 'session-123' })).toBeNull()
   })
 
+  test('selects a history session as the active chat without opening the inspector', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+
+    expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
+      limit: 5,
+    })
+    expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
+    expect(
+      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeNull()
+    expect(screen.getByLabelText('Question')).toBeTruthy()
+    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    expect(
+      await within(transcript).findByText(
+        'The import failed because the worker was not running.',
+      ),
+    ).toBeTruthy()
+    expect(within(transcript).getByText('session-123')).toBeTruthy()
+  })
+
+  test('starts a blank chat session from the sidebar', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
+    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await screen.findByText('The import failed because the worker was not running.')
+
+    await user.click(screen.getByRole('button', { name: 'New session' }))
+
+    expect(screen.getByRole('button', { name: 'session-123' }).className).not.toContain(
+      'session-button-selected',
+    )
+    expect(screen.getByText('No response yet.')).toBeTruthy()
+    expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
+      '',
+    )
+  })
+
   test('refreshes history and renders selected session detail read-only', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -1458,11 +1588,8 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
-      limit: 5,
-    })
-    expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
     const sessionMessages = await screen.findByRole('list', {
       name: 'Session messages',
     })
@@ -1502,6 +1629,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionDetail = await screen.findByRole('region', {
       name: 'Selected session detail',
@@ -1535,6 +1663,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
       name: 'Session context',
@@ -1557,6 +1686,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
       name: 'Session context',
@@ -1577,7 +1707,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
-    await user.click(screen.getByRole('tab', { name: 'Minimap' }))
+    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
 
     const minimap = await screen.findByRole('navigation', {
       name: 'Conversation minimap',
@@ -1615,6 +1745,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const stepper = await screen.findByRole('region', {
       name: 'Internal action stepper',
@@ -1647,6 +1778,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh history' }))
     await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     expect(await screen.findByText('chat session not found')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'session-123' })).toBeTruthy()

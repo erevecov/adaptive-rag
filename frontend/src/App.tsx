@@ -31,6 +31,7 @@ import {
   type ProviderModel,
   type ProviderSecretStatus,
   type RuntimeSlotDefault,
+  type RetrievalResult,
   type Source,
   type SourceCreateBody,
 } from './lib/apiClient'
@@ -46,6 +47,7 @@ const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
+const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
 const SESSION_FILTERS = [
@@ -216,6 +218,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectSlotModelId, setProjectSlotModelId] = useState('')
 
   const isAsking = requestState === 'loading'
+  const isRightDockInlineViewport = useIsRightDockInlineViewport()
+  const isRightDockInline = isRightDockOpen && isRightDockInlineViewport
+  const isRightDockOverlay = isRightDockOpen && !isRightDockInlineViewport
   const speechRecognitionConstructor = getSpeechRecognitionConstructor()
   const isSpeechSupported = speechRecognitionConstructor !== null
 
@@ -278,6 +283,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHistoryError(null)
     setResponse(null)
+    setSessionDetail(null)
+    setDetailState('idle')
+    setDetailError(null)
+    setSelectedSessionId(null)
+    setHistoryStatusFilter('all')
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
@@ -304,6 +314,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           onSessionStarted: (sessionId) => {
             markStreamOpened()
             setResponse((current) => setResponseSessionId(current, sessionId))
+            setSelectedSessionId(sessionId)
+            setSessions((current) =>
+              upsertSessionSummary(
+                current,
+                buildOptimisticSessionSummary(sessionId, 'running'),
+              ),
+            )
           },
           onToolCall: (toolCall) => {
             markStreamOpened()
@@ -313,8 +330,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         { signal: controller.signal },
       )
       setResponse(nextResponse)
+      const nextSessionId = nextResponse.session_id
+      if (nextSessionId !== null) {
+        setSelectedSessionId(nextSessionId)
+      }
       setRequestState('succeeded')
-      await handleRefreshHistory(trimmedProjectId)
+      await handleRefreshHistory(trimmedProjectId, 'all')
+      if (nextSessionId !== null) {
+        setSessions((current) =>
+          ensureSessionSummary(
+            current,
+            buildOptimisticSessionSummary(nextSessionId, 'succeeded'),
+          ),
+        )
+      }
     } catch (error) {
       if (isAbortError(error)) {
         setRequestState('canceled')
@@ -325,8 +354,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         try {
           const nextResponse = await client.askChat(trimmedProjectId, requestBody)
           setResponse(nextResponse)
+          const nextSessionId = nextResponse.session_id
+          if (nextSessionId !== null) {
+            setSelectedSessionId(nextSessionId)
+          }
           setRequestState('succeeded')
-          await handleRefreshHistory(trimmedProjectId)
+          await handleRefreshHistory(trimmedProjectId, 'all')
+          if (nextSessionId !== null) {
+            setSessions((current) =>
+              ensureSessionSummary(
+                current,
+                buildOptimisticSessionSummary(nextSessionId, 'succeeded'),
+              ),
+            )
+          }
           return
         } catch (fallbackError) {
           setRequestState('failed')
@@ -389,6 +430,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   function handleOpenInspectorTab(tab: InspectorTab) {
     setInspectorTab(tab)
     setIsRightDockOpen(true)
+  }
+
+  function handleStartNewSession() {
+    setActiveView('chat')
+    setQuestion('')
+    setResponse(null)
+    setSelectedSessionId(null)
+    setSessionDetail(null)
+    setRequestState('idle')
+    setRequestError(null)
+    setDetailState('idle')
+    setDetailError(null)
+    resetSourceViewer()
+    chatAutoFollowRef.current = true
   }
 
   function handleNavigateToMessage(messageId: string) {
@@ -507,14 +562,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
+    setActiveView('chat')
+    setQuestion('')
     setSelectedSessionId(sessionId)
-    handleOpenInspectorTab('context')
+    setRequestState('idle')
+    setRequestError(null)
+    resetSourceViewer()
     setDetailState('loading')
     setDetailError(null)
 
     try {
       const detail = await client.getChatSession(trimmedProjectId, sessionId)
       setSessionDetail(detail)
+      setResponse(chatResponseFromSessionDetail(detail))
       setDetailState('succeeded')
     } catch (error) {
       setDetailState('failed')
@@ -993,6 +1053,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         isOpen={isLeftSidebarOpen}
         onRefreshSessions={() => void handleRefreshHistory()}
         onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+        onStartNewSession={handleStartNewSession}
         onStatusFilterChange={handleChangeHistoryStatusFilter}
         onToggle={() => setIsLeftSidebarOpen((current) => !current)}
         onViewChange={setActiveView}
@@ -1024,7 +1085,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         {activeView === 'chat' ? (
           <div
             className={
-              isRightDockOpen
+              isRightDockInline
                 ? 'workspace-grid chat-workspace-grid chat-workspace-grid-docked'
                 : 'workspace-grid chat-workspace-grid'
             }
@@ -1144,12 +1205,22 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               </form>
             </section>
 
+            {isRightDockOverlay ? (
+              <div
+                aria-hidden="true"
+                className="workspace-inspector-backdrop"
+                data-testid="workspace-inspector-backdrop"
+                onClick={() => setIsRightDockOpen(false)}
+              />
+            ) : null}
+
             {isRightDockOpen ? (
               <WorkspaceInspectorPanel
                 activeTab={inspectorTab}
                 detail={sessionDetail}
                 detailError={detailError}
                 detailState={detailState}
+                layout={isRightDockInline ? 'inline' : 'overlay'}
                 onClose={() => setIsRightDockOpen(false)}
                 onNavigateMessage={handleNavigateToMessage}
                 onActiveTabChange={handleOpenInspectorTab}
@@ -1314,6 +1385,7 @@ function AppSidebar({
   isOpen,
   onRefreshSessions,
   onSelectSession,
+  onStartNewSession,
   onStatusFilterChange,
   onToggle,
   onViewChange,
@@ -1327,6 +1399,7 @@ function AppSidebar({
   isOpen: boolean
   onRefreshSessions(): void
   onSelectSession(sessionId: string): void
+  onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   onToggle(): void
   onViewChange(view: ActiveView): void
@@ -1375,6 +1448,7 @@ function AppSidebar({
           error={error}
           onRefresh={onRefreshSessions}
           onSelectSession={onSelectSession}
+          onStartNewSession={onStartNewSession}
           onStatusFilterChange={onStatusFilterChange}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
@@ -3284,6 +3358,7 @@ function SessionNavigationPanel({
   error,
   onRefresh,
   onSelectSession,
+  onStartNewSession,
   onStatusFilterChange,
   selectedSessionId,
   sessions,
@@ -3293,6 +3368,7 @@ function SessionNavigationPanel({
   error: string | null
   onRefresh(): void
   onSelectSession(sessionId: string): void
+  onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
@@ -3309,6 +3385,14 @@ function SessionNavigationPanel({
           {historyStatusLabel(state)}
         </span>
       </div>
+
+      <button
+        className="new-session-button"
+        onClick={onStartNewSession}
+        type="button"
+      >
+        New session
+      </button>
 
       <div className="session-filter-list" aria-label="Session status filters">
         {SESSION_FILTERS.map((filter) => (
@@ -3382,6 +3466,7 @@ function WorkspaceInspectorPanel({
   detail,
   detailError,
   detailState,
+  layout,
   onActiveTabChange,
   onClose,
   onNavigateMessage,
@@ -3392,6 +3477,7 @@ function WorkspaceInspectorPanel({
   detail: ChatSessionDetailResponse | null
   detailError: string | null
   detailState: RequestState
+  layout: 'inline' | 'overlay'
   onActiveTabChange(tab: InspectorTab): void
   onClose(): void
   onNavigateMessage(messageId: string): void
@@ -3399,7 +3485,10 @@ function WorkspaceInspectorPanel({
   sourceViewer: SourceViewerState
 }) {
   return (
-    <aside className="panel workspace-inspector" aria-label="Workspace inspector">
+    <aside
+      className={`panel workspace-inspector workspace-inspector-${layout}`}
+      aria-label="Workspace inspector"
+    >
       <div className="inspector-header">
         <div className="inspector-tabs" role="tablist" aria-label="Inspector panels">
           <button
@@ -3900,6 +3989,25 @@ function readInitialLeftSidebarOpen(): boolean {
   return window.innerWidth > 680
 }
 
+function readIsRightDockInlineViewport(): boolean {
+  if (typeof window === 'undefined') {
+    return true
+  }
+  return window.innerWidth >= RIGHT_DOCK_INLINE_WIDTH_PX
+}
+
+function useIsRightDockInlineViewport(): boolean {
+  const [isInline, setIsInline] = useState(readIsRightDockInlineViewport)
+
+  useEffect(() => {
+    const onResize = () => setIsInline(readIsRightDockInlineViewport())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  return isInline
+}
+
 function readPersistedProjectId(): string {
   try {
     return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
@@ -3959,6 +4067,88 @@ function emptyChatResponse(): ChatResponseBody {
     citations: [],
     session_id: null,
     tool_calls: [],
+  }
+}
+
+function chatResponseFromSessionDetail(
+  detail: ChatSessionDetailResponse,
+): ChatResponseBody {
+  const assistantMessage =
+    [...detail.messages].reverse().find((message) => message.role === 'assistant') ??
+    detail.messages[detail.messages.length - 1]
+
+  return {
+    answer: assistantMessage?.content ?? '',
+    citations: detail.retrieval_runs.flatMap((run) =>
+      run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
+    ),
+    session_id: detail.session.session_id,
+    tool_calls: detail.tool_calls.map((call) =>
+      chatToolCallFromHistory(call, detail.retrieval_runs),
+    ),
+  }
+}
+
+function retrievalResultFromHistory(
+  chunk: ChatHistoryRetrievedChunk,
+): RetrievalResult {
+  const citation = chunk.citation
+  const sourceId =
+    getCitationString(citation, 'source_id') ??
+    getCitationString(citation, 'source_external_id') ??
+    chunk.chunk_id
+  const sourceExternalId =
+    getCitationString(citation, 'source_external_id') ?? sourceId
+
+  return {
+    chunk_id: chunk.chunk_id,
+    citation: {
+      char_end: getJsonNumber(citation, 'char_end') ?? 0,
+      char_start: getJsonNumber(citation, 'char_start') ?? 0,
+      chunk_id: getCitationString(citation, 'chunk_id') ?? chunk.chunk_id,
+      document_id: getCitationString(citation, 'document_id') ?? '',
+      document_stable_id:
+        getCitationString(citation, 'document_stable_id') ?? sourceExternalId,
+      document_version_id: getCitationString(citation, 'document_version_id') ?? '',
+      document_version_number:
+        getJsonNumber(citation, 'document_version_number') ?? 0,
+      section_metadata: null,
+      snippet:
+        getCitationString(citation, 'snippet') ?? 'No citation text stored.',
+      source_external_id: sourceExternalId,
+      source_extra_metadata: null,
+      source_id: sourceId,
+      source_tags: [],
+      source_type: getCitationString(citation, 'source_type') ?? 'source',
+    },
+    distance: chunk.dense_score ?? chunk.rrf_score ?? chunk.rerank_score ?? 0,
+    embedding_metadata: null,
+    score: chunk.rerank_score ?? chunk.rrf_score ?? chunk.dense_score ?? 0,
+  }
+}
+
+function chatToolCallFromHistory(
+  call: ChatHistoryToolCall,
+  retrievalRuns: ChatHistoryRetrievalRun[],
+): ChatToolCall {
+  const matchingRun =
+    retrievalRuns.find((run) => run.tool_call_id === call.tool_call_id) ?? null
+
+  return {
+    limit:
+      getJsonNumber(call.arguments, 'limit') ??
+      getJsonNumber(call.arguments, 'top_k') ??
+      matchingRun?.top_k ??
+      0,
+    name: call.tool_name,
+    query:
+      getCitationString(call.arguments, 'query') ??
+      matchingRun?.query ??
+      call.tool_name,
+    result_count:
+      getJsonNumber(call.result_summary, 'result_count') ??
+      matchingRun?.retrieved_chunks.length ??
+      0,
   }
 }
 
@@ -4051,6 +4241,17 @@ function getCitationString(value: unknown, key: string): string | null {
 
   const nextValue = (value as Record<string, unknown>)[key]
   return typeof nextValue === 'string' && nextValue.length > 0
+    ? nextValue
+    : null
+}
+
+function getJsonNumber(value: unknown, key: string): number | null {
+  if (value === null || typeof value !== 'object' || !(key in value)) {
+    return null
+  }
+
+  const nextValue = (value as Record<string, unknown>)[key]
+  return typeof nextValue === 'number' && Number.isFinite(nextValue)
     ? nextValue
     : null
 }
@@ -4200,6 +4401,46 @@ function parseTags(value: string): string[] {
 function upsertProject(projects: Project[], project: Project): Project[] {
   const nextProjects = projects.filter((item) => item.id !== project.id)
   return [...nextProjects, project]
+}
+
+function buildOptimisticSessionSummary(
+  sessionId: string,
+  status: ChatSessionStatus,
+): ChatSessionSummary {
+  const timestamp = new Date().toISOString()
+  return {
+    created_at: timestamp,
+    error_message: null,
+    message_count: 0,
+    model_config: null,
+    prompt_version: null,
+    provider_usage_count: 0,
+    retrieval_run_count: 0,
+    session_id: sessionId,
+    status,
+    tool_call_count: 0,
+    total_estimated_cost_usd: 0,
+    updated_at: timestamp,
+  }
+}
+
+function upsertSessionSummary(
+  sessions: ChatSessionSummary[],
+  session: ChatSessionSummary,
+): ChatSessionSummary[] {
+  const nextSessions = sessions.filter(
+    (item) => item.session_id !== session.session_id,
+  )
+  return [session, ...nextSessions]
+}
+
+function ensureSessionSummary(
+  sessions: ChatSessionSummary[],
+  session: ChatSessionSummary,
+): ChatSessionSummary[] {
+  return sessions.some((item) => item.session_id === session.session_id)
+    ? sessions
+    : [session, ...sessions]
 }
 
 function upsertSource(sources: Source[], source: Source): Source[] {
