@@ -9,13 +9,16 @@ import pytest
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     Project,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
     RuntimeSlotDefault,
 )
 from adaptive_rag.db.repositories import (
+    ChatRetrievalSettingsRepository,
     ProjectRepository,
     ProjectRuntimeSettingsRepository,
     ProviderConnectionRepository,
@@ -35,6 +38,8 @@ def _make_session():
             GlobalChatModel.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
+            ProjectChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -214,3 +219,44 @@ def test_project_chat_pool_rejects_deleting_last_or_default_model() -> None:
             connection_id="qwen-hosted",
             model_id="qwen-plus",
         )
+
+
+def test_project_chat_retrieval_settings_inherit_override_and_reset() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    repository = ChatRetrievalSettingsRepository(session)
+    repository.upsert_global_settings(
+        retrieval_limit=6,
+        rerank_enabled=True,
+        rerank_candidate_limit=10,
+    )
+
+    inherited = repository.get_effective_project_settings(project.id)
+
+    assert inherited.source == "global"
+    assert inherited.retrieval_limit == 6
+    assert inherited.rerank_enabled is True
+    assert inherited.rerank_candidate_limit == 10
+
+    override = repository.upsert_project_settings(
+        project_id=project.id,
+        retrieval_limit=8,
+        rerank_enabled=False,
+        rerank_candidate_limit=12,
+    )
+    session.commit()
+
+    effective = repository.get_effective_project_settings(project.id)
+
+    assert override.retrieval_limit == 8
+    assert effective.source == "project"
+    assert effective.retrieval_limit == 8
+    assert effective.rerank_enabled is False
+    assert effective.rerank_candidate_limit == 12
+
+    assert repository.delete_project_settings(project_id=project.id) is True
+    session.commit()
+    reset = repository.get_effective_project_settings(project.id)
+
+    assert reset.source == "global"
+    assert reset.retrieval_limit == 6

@@ -18,6 +18,7 @@ from adaptive_rag.api.dependencies import (
     get_chat_runner,
     get_dense_embedding_provider,
     get_provider_usage_tracker,
+    get_rerank_provider_factory,
     get_session,
     get_sparse_embedding_provider_factory,
 )
@@ -33,8 +34,10 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
+    GlobalChatRetrievalSettings,
     KnowledgeProposal,
     Project,
+    ProjectChatRetrievalSettings,
     ProjectMembership,
     ProviderUsage,
     RetrievalRun,
@@ -63,6 +66,7 @@ from adaptive_rag.provider_usage import (
     ProviderOperation,
     ProviderTokenUsage,
 )
+from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
 class StaticQueryEmbeddingProvider:
@@ -93,6 +97,58 @@ class StaticSparseEmbeddingProvider:
     def embed_query(self, text: str) -> SparseEmbeddingVector:
         self.query_inputs.append(text)
         return _sparse_vector(1.0)
+
+
+class PreservingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "preserving-rerank-v1"
+
+    def __init__(self) -> None:
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 / original_rank,
+                    original_rank=original_rank,
+                    rerank_rank=original_rank,
+                )
+                for original_rank, candidate in enumerate(
+                    request.candidates[: request.top_k],
+                    start=1,
+                )
+            ),
+        )
+
+
+class ReversingRerankProvider(PreservingRerankProvider):
+    model_name = "reversing-rerank-v1"
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        selected = tuple(reversed(request.candidates))[: request.top_k]
+        original_ranks = {
+            candidate.candidate_id: original_rank
+            for original_rank, candidate in enumerate(request.candidates, start=1)
+        }
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 / rerank_rank,
+                    original_rank=original_ranks[candidate.candidate_id],
+                    rerank_rank=rerank_rank,
+                )
+                for rerank_rank, candidate in enumerate(selected, start=1)
+            ),
+        )
 
 
 class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
@@ -149,9 +205,7 @@ class ToolCallingChatRunner:
         )
         return ChatRunnerOutput(
             answer="Alpha is backed by retrieved evidence.",
-            cited_chunk_ids=tuple(
-                UUID(item["chunk_id"]) for item in result.results
-            ),
+            cited_chunk_ids=tuple(UUID(item["chunk_id"]) for item in result.results),
         )
 
 
@@ -238,6 +292,8 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
+            GlobalChatRetrievalSettings.__table__,
+            ProjectChatRetrievalSettings.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
             KnowledgeProposal.__table__,
@@ -256,6 +312,7 @@ def _client(
     provider: StaticQueryEmbeddingProvider,
     runner: ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
+    reranker: PreservingRerankProvider | None = None,
 ) -> TestClient:
     app = create_app()
 
@@ -267,15 +324,20 @@ def _client(
 
     sparse_provider = StaticSparseEmbeddingProvider()
 
-    def override_sparse_provider_factory() -> (
-        Callable[[], StaticSparseEmbeddingProvider]
-    ):
+    def override_sparse_provider_factory() -> Callable[
+        [], StaticSparseEmbeddingProvider
+    ]:
         return lambda: sparse_provider
 
     def override_runner() -> (
         ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner
     ):
         return runner
+
+    active_reranker = reranker if reranker is not None else PreservingRerankProvider()
+
+    def override_rerank_provider_factory() -> Callable[[], PreservingRerankProvider]:
+        return lambda: active_reranker
 
     def override_usage_tracker() -> InMemoryProviderUsageTracker:
         assert usage_tracker is not None
@@ -285,6 +347,9 @@ def _client(
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
     app.dependency_overrides[get_sparse_embedding_provider_factory] = (
         override_sparse_provider_factory
+    )
+    app.dependency_overrides[get_rerank_provider_factory] = (
+        override_rerank_provider_factory
     )
     app.dependency_overrides[get_chat_runner] = override_runner
     if usage_tracker is not None:
@@ -523,6 +588,74 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
+def test_chat_endpoint_uses_project_retrieval_settings_for_rerank_window(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    _source, _document, _version, first = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="first.md",
+        stable_id="first-doc",
+        text="Header\n\nAlpha first evidence",
+        snippet="Alpha first evidence",
+        embedding=_vector(0.1),
+    )
+    _source, _document, _version, second = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="second.md",
+        stable_id="second-doc",
+        text="Header\n\nAlpha second evidence",
+        snippet="Alpha second evidence",
+        embedding=_vector(0.2),
+    )
+    from adaptive_rag.db.repositories import ChatRetrievalSettingsRepository
+
+    ChatRetrievalSettingsRepository(session).upsert_project_settings(
+        project_id=project.id,
+        retrieval_limit=1,
+        rerank_enabled=True,
+        rerank_candidate_limit=2,
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    reranker = ReversingRerankProvider()
+    client = _client(
+        session=session,
+        provider=provider,
+        runner=runner,
+        reranker=reranker,
+    )
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "What supports alpha?"},
+    )
+
+    assert response.status_code == 200
+    assert len(runner.requests) == 1
+    assert runner.requests[0].retrieval_limit == 1
+    assert len(reranker.requests) == 1
+    rerank_request = reranker.requests[0]
+    assert rerank_request.top_k == 1
+    assert len(rerank_request.candidates) == 2
+    data = response.json()
+    assert [citation["chunk_id"] for citation in data["citations"]] == [str(second.id)]
+    assert data["citations"][0]["rerank_metadata"]["candidate_limit"] == 2
+    fresh_session = session_factory()
+    retrieval_run = fresh_session.query(RetrievalRun).one()
+    assert retrieval_run.top_k == 1
+    assert retrieval_run.used_rerank is True
+    assert retrieval_run.strategy == "dense_sparse"
+    retrieved_chunk = fresh_session.query(RetrievedChunk).one()
+    assert retrieved_chunk.chunk_id == second.id
+    assert first.id != second.id
+
+
 def test_chat_endpoint_persists_current_user_as_session_owner(
     tmp_path: Path,
 ) -> None:
@@ -625,10 +758,7 @@ def test_chat_stream_endpoint_yields_error_event_after_session_failure(
     )
 
     assert response.status_code == 200
-    assert (
-        'event: error\ndata: {"detail":"runner exploded"}\n\n'
-        in response.text
-    )
+    assert 'event: error\ndata: {"detail":"runner exploded"}\n\n' in response.text
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
@@ -719,8 +849,7 @@ def test_chat_endpoint_provider_usage_failure_does_not_block_success(
     assert chat_session is not None
     assert chat_session.status == "succeeded"
     assert (
-        fresh_session.query(ProviderUsage).filter_by(session_id=session_id).count()
-        == 0
+        fresh_session.query(ProviderUsage).filter_by(session_id=session_id).count() == 0
     )
 
 
@@ -755,9 +884,9 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
     def override_provider() -> StaticQueryEmbeddingProvider:
         return provider
 
-    def override_sparse_provider_factory() -> (
-        Callable[[], StaticSparseEmbeddingProvider]
-    ):
+    def override_sparse_provider_factory() -> Callable[
+        [], StaticSparseEmbeddingProvider
+    ]:
         sparse_provider = StaticSparseEmbeddingProvider()
         return lambda: sparse_provider
 
@@ -832,15 +961,18 @@ def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
     def override_session() -> Iterator[Session]:
         yield session
 
-    def override_sparse_provider_factory() -> (
-        Callable[[], StaticSparseEmbeddingProvider]
-    ):
+    def override_sparse_provider_factory() -> Callable[
+        [], StaticSparseEmbeddingProvider
+    ]:
         sparse_provider = StaticSparseEmbeddingProvider()
         return lambda: sparse_provider
 
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_sparse_embedding_provider_factory] = (
         override_sparse_provider_factory
+    )
+    app.dependency_overrides[get_rerank_provider_factory] = lambda: (
+        lambda: PreservingRerankProvider()
     )
     app.dependency_overrides[get_chat_runner] = lambda: ToolCallingChatRunner(
         retrieval_query="alpha evidence"
@@ -893,9 +1025,9 @@ def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
     assert chat_session.error_message == expected_error
-    tool_call = fresh_session.query(ToolCall).filter_by(
-        session_id=chat_session.id
-    ).one()
+    tool_call = (
+        fresh_session.query(ToolCall).filter_by(session_id=chat_session.id).one()
+    )
     assert tool_call.status == "failed"
     assert tool_call.tool_name == "retrieval.search"
     assert tool_call.arguments_json == {
@@ -934,9 +1066,9 @@ def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
     assert chat_session.error_message == "embedding transport unavailable"
-    tool_call = fresh_session.query(ToolCall).filter_by(
-        session_id=chat_session.id
-    ).one()
+    tool_call = (
+        fresh_session.query(ToolCall).filter_by(session_id=chat_session.id).one()
+    )
     assert tool_call.status == "failed"
     assert tool_call.tool_name == "retrieval.search"
     assert tool_call.arguments_json == {
@@ -1000,9 +1132,7 @@ def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
     assert chat_session.project_id == project.id
     assert chat_session.status == "failed"
     assert chat_session.error_message == "runner exploded"
-    messages = fresh_session.query(ChatMessage).filter_by(
-        session_id=chat_session.id
-    )
+    messages = fresh_session.query(ChatMessage).filter_by(session_id=chat_session.id)
     assert [(message.role, message.content) for message in messages] == [
         ("user", "Please answer.")
     ]
@@ -1369,9 +1499,10 @@ def test_chat_sessions_endpoint_scopes_history_to_current_user(
     assert forbidden_detail.status_code == 404
     assert forbidden_detail.json() == {"detail": "chat session not found"}
     assert superadmin_history.status_code == 200
-    assert {
-        item["session_id"] for item in superadmin_history.json()["items"]
-    } == {str(first_session.id), str(second_session.id)}
+    assert {item["session_id"] for item in superadmin_history.json()["items"]} == {
+        str(first_session.id),
+        str(second_session.id),
+    }
 
 
 def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(

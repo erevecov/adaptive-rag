@@ -24,6 +24,7 @@ from adaptive_rag.chat.streaming import (
     chat_stream_tool_call_event,
 )
 from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
+from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
 from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
@@ -88,6 +89,8 @@ class ChatService:
             retrieval_service=self._retrieval_service,
             project_id=request.project_id,
             default_limit=request.retrieval_limit,
+            rerank_enabled=request.rerank_enabled,
+            rerank_candidate_limit=request.rerank_candidate_limit,
             default_metadata_filter=request.metadata_filter,
             audit_writer=self._audit_writer,
             audit_session_id=session_id,
@@ -161,6 +164,8 @@ class ChatService:
             retrieval_service=self._retrieval_service,
             project_id=request.project_id,
             default_limit=request.retrieval_limit,
+            rerank_enabled=request.rerank_enabled,
+            rerank_candidate_limit=request.rerank_candidate_limit,
             default_metadata_filter=request.metadata_filter,
             audit_writer=self._audit_writer,
             audit_session_id=session_id,
@@ -287,6 +292,23 @@ def _validate_request(request: ChatRequest) -> str:
     message = _validate_message(request.message)
     if request.retrieval_limit <= 0:
         raise ChatServiceError("retrieval_limit must be positive")
+    if request.retrieval_limit > CHAT_RETRIEVAL_MAX_LIMIT:
+        raise ChatServiceError(
+            f"retrieval_limit must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}"
+        )
+    if request.rerank_candidate_limit <= 0:
+        raise ChatServiceError("rerank_candidate_limit must be positive")
+    if request.rerank_candidate_limit > CHAT_RETRIEVAL_MAX_LIMIT:
+        raise ChatServiceError(
+            f"rerank_candidate_limit must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}"
+        )
+    if (
+        request.rerank_enabled
+        and request.rerank_candidate_limit < request.retrieval_limit
+    ):
+        raise ChatServiceError(
+            "rerank_candidate_limit must be greater than or equal to retrieval_limit"
+        )
     return message
 
 

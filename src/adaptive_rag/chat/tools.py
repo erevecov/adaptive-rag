@@ -16,6 +16,7 @@ from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import ChatToolCall
 from adaptive_rag.retrieval import (
     RetrievalMetadataFilter,
+    RetrievalRerankOptions,
     RetrievalSearchRequest,
     RetrievalSearchResult,
     RetrievalServiceError,
@@ -61,6 +62,8 @@ class ChatRetrievalTool:
         retrieval_service: RetrievalSearcher,
         project_id: UUID,
         default_limit: int,
+        rerank_enabled: bool = False,
+        rerank_candidate_limit: int | None = None,
         default_metadata_filter: RetrievalMetadataFilter | None,
         audit_writer: ChatAuditWriter | None = None,
         audit_session_id: UUID | None = None,
@@ -68,6 +71,8 @@ class ChatRetrievalTool:
         self._retrieval_service = retrieval_service
         self._project_id = project_id
         self._default_limit = default_limit
+        self._rerank_enabled = rerank_enabled
+        self._rerank_candidate_limit = rerank_candidate_limit
         self._default_metadata_filter = default_metadata_filter
         self._audit_writer = (
             audit_writer if audit_writer is not None else NullChatAuditWriter()
@@ -116,6 +121,8 @@ class ChatRetrievalTool:
                     query=query,
                     limit=active_limit,
                     metadata_filter=active_filter,
+                    rerank=self._rerank_options(),
+                    strategy="dense_sparse",
                 )
             )
         except RetrievalServiceError as exc:
@@ -164,6 +171,15 @@ class ChatRetrievalTool:
                 _strategy_for_results(results),
             )
         return ChatRetrievalToolResult(results=payloads)
+
+    def _rerank_options(self) -> RetrievalRerankOptions | None:
+        if not self._rerank_enabled:
+            return None
+        if self._rerank_candidate_limit is None:
+            raise ChatServiceError(
+                "rerank_candidate_limit is required when rerank is enabled"
+            )
+        return RetrievalRerankOptions(candidate_limit=self._rerank_candidate_limit)
 
 
 def _strategy_for_results(results: list[RetrievalSearchResult]) -> str:

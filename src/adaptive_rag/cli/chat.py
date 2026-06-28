@@ -27,18 +27,25 @@ from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
+    get_cli_rerank_provider,
     get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter, parse_cli_datetime
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatObservabilityRepository,
+    ChatRetrievalSettingsRepository,
     ProviderUsageRepository,
 )
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
-from adaptive_rag.retrieval import RetrievalService
+from adaptive_rag.rerank import RerankProvider
+from adaptive_rag.retrieval import (
+    RetrievalSearchRequest,
+    RetrievalSearchResult,
+    RetrievalService,
+)
 
 app = typer.Typer(no_args_is_help=True)
 sessions_app = typer.Typer(no_args_is_help=True)
@@ -51,7 +58,7 @@ app.add_typer(observability_app, name="observability")
 def ask(
     project_id: Annotated[UUID, typer.Option("--project-id")],
     message: Annotated[str, typer.Option("--message")],
-    retrieval_limit: Annotated[int, typer.Option("--retrieval-limit")] = 5,
+    retrieval_limit: Annotated[int | None, typer.Option("--retrieval-limit")] = None,
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
     document_id: Annotated[UUID | None, typer.Option("--document-id")] = None,
     source_type: Annotated[str | None, typer.Option("--source-type")] = None,
@@ -83,28 +90,41 @@ def ask(
         document_created_at_from=document_created_at_from,
         document_created_at_to=document_created_at_to,
     )
-    request = ChatRequest(
-        project_id=project_id,
-        message=message,
-        retrieval_limit=retrieval_limit,
-        metadata_filter=metadata_filter,
-    )
-
     with session_scope() as session:
         usage_tracker = InMemoryProviderUsageTracker()
+        chat_retrieval_settings = ChatRetrievalSettingsRepository(
+            session
+        ).get_effective_project_settings(project_id)
+        request = ChatRequest(
+            project_id=project_id,
+            message=message,
+            retrieval_limit=(
+                retrieval_limit
+                if retrieval_limit is not None
+                else chat_retrieval_settings.retrieval_limit
+            ),
+            rerank_enabled=chat_retrieval_settings.rerank_enabled,
+            rerank_candidate_limit=chat_retrieval_settings.rerank_candidate_limit,
+            metadata_filter=metadata_filter,
+        )
         audit_writer = SqlAlchemyChatAuditWriter(
             session=session,
             chat_audit_repository=ChatAuditRepository(session),
             provider_usage_repository=ProviderUsageRepository(session),
         )
-        retrieval_service = RetrievalService(
-            session,
+        retrieval_service = _LazyCliChatRetrievalSearcher(
+            session=session,
             provider=_get_chat_dense_embedding_provider(
                 project_id=project_id,
                 session=session,
                 usage_tracker=usage_tracker,
             ),
             sparse_provider=_get_chat_sparse_embedding_provider(
+                project_id=project_id,
+                session=session,
+                usage_tracker=usage_tracker,
+            ),
+            rerank_provider_factory=lambda: _get_chat_rerank_provider(
                 project_id=project_id,
                 session=session,
                 usage_tracker=usage_tracker,
@@ -253,6 +273,21 @@ def _get_chat_sparse_embedding_provider(
     )
 
 
+def _get_chat_rerank_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> RerankProvider:
+    kwargs = _runtime_factory_kwargs(
+        get_cli_rerank_provider,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+
+
 def _get_chat_runner(
     *,
     project_id: UUID,
@@ -284,3 +319,36 @@ def _runtime_factory_kwargs(
     if "usage_tracker" in parameters:
         kwargs["usage_tracker"] = usage_tracker
     return kwargs
+
+
+class _LazyCliChatRetrievalSearcher:
+    def __init__(
+        self,
+        *,
+        session: Session,
+        provider: DenseEmbeddingProvider,
+        sparse_provider: SparseEmbeddingProvider,
+        rerank_provider_factory: Callable[[], RerankProvider],
+    ) -> None:
+        self._session = session
+        self._provider = provider
+        self._sparse_provider = sparse_provider
+        self._rerank_provider_factory = rerank_provider_factory
+
+    def search(
+        self,
+        request: RetrievalSearchRequest,
+    ) -> list[RetrievalSearchResult]:
+        service = RetrievalService(
+            self._session,
+            provider=self._provider,
+            sparse_provider=(
+                self._sparse_provider
+                if request.strategy in ("sparse", "dense_sparse")
+                else None
+            ),
+            reranker=(
+                self._rerank_provider_factory() if request.rerank is not None else None
+            ),
+        )
+        return service.search(request)

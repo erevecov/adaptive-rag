@@ -8,6 +8,9 @@ from sqlalchemy.exc import IntegrityError
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
+    Project,
+    ProjectChatRetrievalSettings,
     ProviderConnection,
     RuntimeSlotDefault,
 )
@@ -19,9 +22,12 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
+            Project.__table__,
             ProviderConnection.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
+            ProjectChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -87,3 +93,50 @@ def test_global_chat_model_has_composite_identity_and_default_flag() -> None:
     assert columns["connection_id"].primary_key
     assert columns["model_id"].primary_key
     assert columns["is_default"].nullable is False
+
+
+def test_global_chat_retrieval_settings_persist_defaults_and_limits() -> None:
+    session = _make_session()
+    settings = GlobalChatRetrievalSettings(
+        id=1,
+        retrieval_limit=5,
+        rerank_enabled=True,
+        rerank_candidate_limit=10,
+        max_limit=50,
+    )
+
+    session.add(settings)
+    session.commit()
+    session.expunge_all()
+
+    fetched = session.get(GlobalChatRetrievalSettings, 1)
+
+    assert fetched is not None
+    assert fetched.retrieval_limit == 5
+    assert fetched.rerank_enabled is True
+    assert fetched.rerank_candidate_limit == 10
+    assert fetched.max_limit == 50
+
+
+def test_project_chat_retrieval_settings_are_project_scoped() -> None:
+    session = _make_session()
+    project = Project(name="demo")
+    session.add(project)
+    session.flush()
+    override = ProjectChatRetrievalSettings(
+        project_id=project.id,
+        retrieval_limit=8,
+        rerank_enabled=False,
+        rerank_candidate_limit=12,
+    )
+
+    session.add(override)
+    session.commit()
+    session.expunge_all()
+
+    fetched = session.get(ProjectChatRetrievalSettings, project.id)
+
+    assert fetched is not None
+    assert fetched.retrieval_limit == 8
+    assert fetched.rerank_enabled is False
+    assert fetched.rerank_candidate_limit == 12

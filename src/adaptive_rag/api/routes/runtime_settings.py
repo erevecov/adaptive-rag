@@ -17,8 +17,11 @@ from adaptive_rag.api.schemas.runtime_settings import (
     ChatModelListResponse,
     ChatModelResponse,
     ChatModelUpsertRequestBody,
+    ChatRetrievalSettingsRequestBody,
     DeleteResponse,
+    GlobalChatRetrievalSettingsResponse,
     ProjectChatModelResponse,
+    ProjectChatRetrievalSettingsResponse,
     ProjectRuntimeSettingsResponse,
     ProjectRuntimeSlotResponse,
     RuntimeSlotDefaultListResponse,
@@ -28,6 +31,7 @@ from adaptive_rag.api.schemas.runtime_settings import (
 from adaptive_rag.auth import CurrentPrincipal, get_project_role, role_meets
 from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
+    ChatRetrievalSettingsRepository,
     ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
 )
@@ -170,6 +174,37 @@ def delete_chat_model(
     return DeleteResponse(deleted=deleted)
 
 
+@router.get(
+    "/chat/retrieval",
+    response_model=GlobalChatRetrievalSettingsResponse,
+)
+def get_chat_retrieval_settings(
+    session: Annotated[Session, Depends(get_session)],
+) -> GlobalChatRetrievalSettingsResponse:
+    settings = ChatRetrievalSettingsRepository(session).get_global_settings()
+    return GlobalChatRetrievalSettingsResponse.from_model(settings)
+
+
+@router.put(
+    "/chat/retrieval",
+    response_model=GlobalChatRetrievalSettingsResponse,
+)
+def update_chat_retrieval_settings(
+    body: ChatRetrievalSettingsRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+) -> GlobalChatRetrievalSettingsResponse:
+    try:
+        settings = ChatRetrievalSettingsRepository(session).upsert_global_settings(
+            retrieval_limit=body.retrieval_limit,
+            rerank_enabled=body.rerank_enabled,
+            rerank_candidate_limit=body.rerank_candidate_limit,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return GlobalChatRetrievalSettingsResponse.from_model(settings)
+
+
 @project_router.get(
     "/projects/{project_id}/runtime-settings",
     response_model=ProjectRuntimeSettingsResponse,
@@ -185,6 +220,46 @@ def get_project_runtime_settings(
     except ValueError as exc:
         raise _http_error(exc) from exc
     return ProjectRuntimeSettingsResponse.from_settings(settings)
+
+
+@project_router.put(
+    "/projects/{project_id}/runtime-settings/chat/retrieval",
+    response_model=ProjectChatRetrievalSettingsResponse,
+)
+def update_project_chat_retrieval_settings(
+    project_id: UUID,
+    body: ChatRetrievalSettingsRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+) -> ProjectChatRetrievalSettingsResponse:
+    try:
+        settings = ChatRetrievalSettingsRepository(session).upsert_project_settings(
+            project_id=project_id,
+            retrieval_limit=body.retrieval_limit,
+            rerank_enabled=body.rerank_enabled,
+            rerank_candidate_limit=body.rerank_candidate_limit,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return ProjectChatRetrievalSettingsResponse.from_model(settings)
+
+
+@project_router.delete(
+    "/projects/{project_id}/runtime-settings/chat/retrieval",
+    response_model=DeleteResponse,
+)
+def delete_project_chat_retrieval_settings(
+    project_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+) -> DeleteResponse:
+    try:
+        deleted = ChatRetrievalSettingsRepository(session).delete_project_settings(
+            project_id=project_id,
+        )
+    except ValueError as exc:
+        raise _http_error(exc) from exc
+    session.commit()
+    return DeleteResponse(deleted=deleted)
 
 
 @project_router.put(

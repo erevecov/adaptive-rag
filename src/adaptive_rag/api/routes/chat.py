@@ -34,6 +34,7 @@ from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatObservabilityRepository,
+    ChatRetrievalSettingsRepository,
 )
 
 router = APIRouter(
@@ -186,8 +187,15 @@ def stream_chat(
     _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> StreamingResponse:
     try:
+        chat_retrieval_settings = ChatRetrievalSettingsRepository(
+            session
+        ).get_effective_project_settings(project_id)
         events = service.stream(
-            body.to_service_request(project_id, user_id=current.user_id)
+            body.to_service_request(
+                project_id,
+                chat_retrieval_settings=chat_retrieval_settings,
+                user_id=current.user_id,
+            )
         )
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
@@ -211,8 +219,15 @@ def chat(
     _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> ChatResponseBody:
     try:
+        chat_retrieval_settings = ChatRetrievalSettingsRepository(
+            session
+        ).get_effective_project_settings(project_id)
         response = service.respond(
-            body.to_service_request(project_id, user_id=current.user_id)
+            body.to_service_request(
+                project_id,
+                chat_retrieval_settings=chat_retrieval_settings,
+                user_id=current.user_id,
+            )
         )
         session.commit()
     except ChatServiceError as exc:

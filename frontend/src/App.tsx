@@ -11,6 +11,7 @@ import {
   ApiClientError,
   createApiClient,
   type ApiClient,
+  type ChatRetrievalSettings,
   type ChatObservabilityProviderUsageGroup,
   type ChatObservabilitySummary,
   type ChatHistoryProviderUsage,
@@ -48,6 +49,8 @@ import {
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
+const DEFAULT_RERANK_CANDIDATE_LIMIT = 10
+const CHAT_RETRIEVAL_MAX_LIMIT = 50
 const SESSION_PAGE_SIZE = 15
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
@@ -69,15 +72,14 @@ const RUNTIME_SLOTS = [
   'contextualization',
 ]
 const SETTINGS_SECTIONS = [
-  { id: 'settings', label: 'Appearance' },
   { id: 'authoring', label: 'Authoring' },
   { id: 'observability', label: 'Observability' },
   { id: 'runtime', label: 'Runtime' },
 ] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime' | 'settings'
-type SettingsSection = Exclude<ActiveView, 'chat'>
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
+type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -125,7 +127,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     initialProjectId.trim() || readPersistedProjectId(),
   )
   const [question, setQuestion] = useState('')
-  const [retrievalLimit, setRetrievalLimit] = useState(DEFAULT_RETRIEVAL_LIMIT)
+  const [retrievalLimitOverride, setRetrievalLimitOverride] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
@@ -200,7 +202,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     Record<string, string>
   >({})
   const [projectAuthoringState, setProjectAuthoringState] =
-    useState<RequestState>('idle')
+    useState<RequestState>('loading')
   const [sourceAuthoringState, setSourceAuthoringState] =
     useState<RequestState>('idle')
   const [accessManagementState, setAccessManagementState] =
@@ -235,6 +237,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   >([])
   const [runtimeSlots, setRuntimeSlots] = useState<RuntimeSlotDefault[]>([])
   const [runtimeChatModels, setRuntimeChatModels] = useState<ChatModel[]>([])
+  const [runtimeChatRetrieval, setRuntimeChatRetrieval] =
+    useState<ChatRetrievalSettings | null>(null)
   const [runtimeProviderModels, setRuntimeProviderModels] = useState<
     ProviderModel[]
   >([])
@@ -254,9 +258,21 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [globalSlotModelId, setGlobalSlotModelId] = useState('')
   const [globalChatConnectionId, setGlobalChatConnectionId] = useState('')
   const [globalChatModelId, setGlobalChatModelId] = useState('')
+  const [globalChatRetrievalLimit, setGlobalChatRetrievalLimit] = useState(
+    DEFAULT_RETRIEVAL_LIMIT,
+  )
+  const [globalChatRerankEnabled, setGlobalChatRerankEnabled] = useState(true)
+  const [globalChatRerankCandidateLimit, setGlobalChatRerankCandidateLimit] =
+    useState(DEFAULT_RERANK_CANDIDATE_LIMIT)
   const [projectSlot, setProjectSlot] = useState('chat')
   const [projectSlotConnectionId, setProjectSlotConnectionId] = useState('')
   const [projectSlotModelId, setProjectSlotModelId] = useState('')
+  const [projectChatRetrievalLimit, setProjectChatRetrievalLimit] = useState(
+    DEFAULT_RETRIEVAL_LIMIT,
+  )
+  const [projectChatRerankEnabled, setProjectChatRerankEnabled] = useState(true)
+  const [projectChatRerankCandidateLimit, setProjectChatRerankCandidateLimit] =
+    useState(DEFAULT_RERANK_CANDIDATE_LIMIT)
 
   const isAsking = requestState === 'loading'
   const isProposingKnowledge = knowledgeSubmitState === 'loading'
@@ -285,6 +301,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         if (ignore) return
         const lastProjectId = currentUser.last_project_id?.trim() ?? ''
         if (lastProjectId.length > 0) {
+          setVisibleSessionCount(SESSION_PAGE_SIZE)
+          setSessions([])
+          setHasMoreSessions(false)
+          setSelectedSessionId(null)
+          setSessionDetail(null)
+          setHistoryError(null)
+          setHistoryState('loading')
           setProjectId(lastProjectId)
         }
       })
@@ -299,9 +322,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   useEffect(() => {
     let ignore = false
-    setProjectAuthoringState('loading')
-    setProjectAuthoringError(null)
-
     void client
       .listProjects()
       .then((response) => {
@@ -321,16 +341,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [client])
 
   useEffect(() => {
-    setVisibleSessionCount(SESSION_PAGE_SIZE)
-  }, [projectId])
-
-  useEffect(() => {
     const trimmedProjectId = projectId.trim()
     if (trimmedProjectId.length === 0) {
-      setSessions([])
-      setHasMoreSessions(false)
-      setHistoryState('idle')
-      setHistoryError(null)
       return
     }
 
@@ -420,9 +432,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
-    const requestBody = {
+    const requestBody: {
+      message: string
+      retrieval_limit?: number
+    } = {
       message: trimmedQuestion,
-      retrieval_limit: retrievalLimit,
+    }
+    const parsedRetrievalLimitOverride = parseOptionalChatRetrievalLimit(
+      retrievalLimitOverride,
+    )
+    if (parsedRetrievalLimitOverride !== null) {
+      requestBody.retrieval_limit = parsedRetrievalLimitOverride
     }
     const controller = new AbortController()
     let streamOpened = false
@@ -861,6 +881,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function setSelectedProjectId(nextProjectId: string) {
     const trimmedProjectId = nextProjectId.trim()
+    setVisibleSessionCount(SESSION_PAGE_SIZE)
+    setSessions([])
+    setHasMoreSessions(false)
+    setSelectedSessionId(null)
+    setSessionDetail(null)
+    setHistoryError(null)
+    setHistoryState(trimmedProjectId.length === 0 ? 'idle' : 'loading')
     setProjectId(trimmedProjectId)
     if (trimmedProjectId.length === 0) {
       return
@@ -1278,23 +1305,27 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
 
     try {
-      const [connections, slots, chatModels, providerModels] = await Promise.all([
-        client.listProviderConnections(),
-        client.listRuntimeSlotDefaults(),
-        client.listChatModels(),
-        client.listProviderModels(),
-      ])
+      const [connections, slots, chatModels, providerModels, chatRetrieval] =
+        await Promise.all([
+          client.listProviderConnections(),
+          client.listRuntimeSlotDefaults(),
+          client.listChatModels(),
+          client.listProviderModels(),
+          client.getChatRetrievalSettings(),
+        ])
       setRuntimeConnections(connections.items)
       setRuntimeSlots(slots.items)
       setRuntimeChatModels(chatModels.items)
       setRuntimeProviderModels(providerModels.items)
+      setRuntimeChatRetrieval(chatRetrieval)
+      syncGlobalChatRetrievalFields(chatRetrieval)
       const trimmedProjectId = projectId.trim()
       if (trimmedProjectId.length > 0) {
-        setProjectRuntimeSettings(
+        syncProjectRuntimeSettings(
           await client.getProjectRuntimeSettings(trimmedProjectId),
         )
       } else {
-        setProjectRuntimeSettings(null)
+        syncProjectRuntimeSettings(null)
       }
       setRuntimeState('succeeded')
     } catch (error) {
@@ -1431,6 +1462,42 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const validationError = validateChatRetrievalSettings({
+      candidateLimit: globalChatRerankCandidateLimit,
+      rerankEnabled: globalChatRerankEnabled,
+      retrievalLimit: globalChatRetrievalLimit,
+    })
+    if (validationError !== null) {
+      setRuntimeState('failed')
+      setRuntimeError(validationError)
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const settings = await client.updateChatRetrievalSettings({
+        retrieval_limit: globalChatRetrievalLimit,
+        rerank_enabled: globalChatRerankEnabled,
+        rerank_candidate_limit: globalChatRerankCandidateLimit,
+      })
+      setRuntimeChatRetrieval(settings)
+      syncGlobalChatRetrievalFields(settings)
+      const trimmedProjectId = projectId.trim()
+      if (trimmedProjectId.length > 0) {
+        syncProjectRuntimeSettings(
+          await client.getProjectRuntimeSettings(trimmedProjectId),
+        )
+      }
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
   async function handleSaveProjectOverride(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmedProjectId = projectId.trim()
@@ -1485,8 +1552,89 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleSaveProjectChatRetrieval(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Project ID is required for project retrieval settings.')
+      return
+    }
+    const validationError = validateChatRetrievalSettings({
+      candidateLimit: projectChatRerankCandidateLimit,
+      rerankEnabled: projectChatRerankEnabled,
+      retrievalLimit: projectChatRetrievalLimit,
+    })
+    if (validationError !== null) {
+      setRuntimeState('failed')
+      setRuntimeError(validationError)
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      await client.upsertProjectChatRetrievalSettings(trimmedProjectId, {
+        retrieval_limit: projectChatRetrievalLimit,
+        rerank_enabled: projectChatRerankEnabled,
+        rerank_candidate_limit: projectChatRerankCandidateLimit,
+      })
+      syncProjectRuntimeSettings(
+        await client.getProjectRuntimeSettings(trimmedProjectId),
+      )
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleResetProjectChatRetrieval() {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Project ID is required to reset chat retrieval.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      await client.deleteProjectChatRetrievalSettings(trimmedProjectId)
+      syncProjectRuntimeSettings(
+        await client.getProjectRuntimeSettings(trimmedProjectId),
+      )
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  function syncGlobalChatRetrievalFields(settings: ChatRetrievalSettings) {
+    setGlobalChatRetrievalLimit(settings.retrieval_limit)
+    setGlobalChatRerankEnabled(settings.rerank_enabled)
+    setGlobalChatRerankCandidateLimit(settings.rerank_candidate_limit)
+  }
+
+  function syncProjectRuntimeSettings(settings: ProjectRuntimeSettings | null) {
+    setProjectRuntimeSettings(settings)
+    if (settings === null) {
+      return
+    }
+    setProjectChatRetrievalLimit(settings.chat_retrieval.retrieval_limit)
+    setProjectChatRerankEnabled(settings.chat_retrieval.rerank_enabled)
+    setProjectChatRerankCandidateLimit(
+      settings.chat_retrieval.rerank_candidate_limit,
+    )
+  }
+
   const activeSettingsSection: SettingsSection =
-    activeView === 'chat' ? 'settings' : activeView
+    activeView === 'observability' || activeView === 'runtime'
+      ? activeView
+      : 'authoring'
 
   return (
     <main
@@ -1579,14 +1727,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   <label className="field field-compact">
                     <span>Retrieval limit</span>
                     <input
-                      max={20}
+                      max={CHAT_RETRIEVAL_MAX_LIMIT}
                       min={1}
                       name="retrieval-limit"
                       onChange={(event) =>
-                        setRetrievalLimit(normalizeLimit(event.currentTarget.value))
+                        setRetrievalLimitOverride(
+                          normalizeOptionalChatRetrievalLimit(
+                            event.currentTarget.value,
+                          ),
+                        )
                       }
+                      placeholder="Default"
                       type="number"
-                      value={retrievalLimit}
+                      value={retrievalLimitOverride}
                     />
                   </label>
 
@@ -1682,6 +1835,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : null}
           </div>
+        ) : activeView === 'account' ? (
+          <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
         ) : (
           <SettingsPanel
             activeSection={activeSettingsSection}
@@ -1694,7 +1849,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 error={observabilityError}
                 onCreatedAtFromChange={setCreatedAtFrom}
                 onCreatedAtToChange={setCreatedAtTo}
-                onProjectIdChange={setProjectId}
+                onProjectIdChange={handleChangeProjectId}
                 onRefresh={() => void handleRefreshObservability()}
                 onStatusChange={setObservabilityStatus}
                 projectId={projectId}
@@ -1707,12 +1862,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 chatConnectionId={globalChatConnectionId}
                 chatModelId={globalChatModelId}
                 chatModels={runtimeChatModels}
+                chatRetrievalSettings={runtimeChatRetrieval}
                 connectionBaseUrl={connectionBaseUrl}
                 connectionCapabilities={connectionCapabilities}
                 connectionProvider={connectionProvider}
                 connectionType={connectionType}
                 connections={runtimeConnections}
                 error={runtimeError}
+                globalChatRerankCandidateLimit={
+                  globalChatRerankCandidateLimit
+                }
+                globalChatRerankEnabled={globalChatRerankEnabled}
+                globalChatRetrievalLimit={globalChatRetrievalLimit}
                 globalSlot={globalSlot}
                 globalSlotConnectionId={globalSlotConnectionId}
                 globalSlotModelId={globalSlotModelId}
@@ -1722,19 +1883,38 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onConnectionCapabilitiesChange={setConnectionCapabilities}
                 onConnectionProviderChange={setConnectionProvider}
                 onConnectionTypeChange={setConnectionType}
+                onGlobalChatRerankCandidateLimitChange={
+                  setGlobalChatRerankCandidateLimit
+                }
+                onGlobalChatRerankEnabledChange={setGlobalChatRerankEnabled}
+                onGlobalChatRetrievalLimitChange={setGlobalChatRetrievalLimit}
                 onGlobalSlotChange={setGlobalSlot}
                 onGlobalSlotConnectionIdChange={setGlobalSlotConnectionId}
                 onGlobalSlotModelIdChange={setGlobalSlotModelId}
+                onProjectChatRerankCandidateLimitChange={
+                  setProjectChatRerankCandidateLimit
+                }
+                onProjectChatRerankEnabledChange={setProjectChatRerankEnabled}
+                onProjectChatRetrievalLimitChange={setProjectChatRetrievalLimit}
                 onProjectSlotChange={setProjectSlot}
                 onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
                 onProjectSlotModelIdChange={setProjectSlotModelId}
                 onRefresh={() => void handleRefreshRuntime()}
+                onResetProjectChatRetrieval={() =>
+                  void handleResetProjectChatRetrieval()
+                }
                 onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
                 onSaveConnection={(event) => void handleSaveConnection(event)}
                 onSaveGlobalChatModel={(event) =>
                   void handleSaveGlobalChatModel(event)
                 }
+                onSaveGlobalChatRetrieval={(event) =>
+                  void handleSaveGlobalChatRetrieval(event)
+                }
                 onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
+                onSaveProjectChatRetrieval={(event) =>
+                  void handleSaveProjectChatRetrieval(event)
+                }
                 onSaveProjectOverride={(event) =>
                   void handleSaveProjectOverride(event)
                 }
@@ -1744,6 +1924,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onModelSyncConnectionIdChange={setModelSyncConnectionId}
                 projectId={projectId}
+                projectChatRerankCandidateLimit={
+                  projectChatRerankCandidateLimit
+                }
+                projectChatRerankEnabled={projectChatRerankEnabled}
+                projectChatRetrievalLimit={projectChatRetrievalLimit}
                 projectRuntimeSettings={projectRuntimeSettings}
                 projectSlot={projectSlot}
                 projectSlotConnectionId={projectSlotConnectionId}
@@ -1757,7 +1942,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSecretConnectionIdChange={setSecretConnectionId}
                 onSecretValueChange={setSecretValue}
               />
-            ) : activeSettingsSection === 'authoring' ? (
+            ) : (
               <AuthoringPanel
                 accessError={accessManagementError}
                 accessState={accessManagementState}
@@ -1780,7 +1965,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onMemberRoleChange={setMemberRole}
                 onMemberUserIdChange={setMemberUserId}
-                onProjectIdChange={setProjectId}
+                onProjectIdChange={handleChangeProjectId}
                 onProjectNameChange={setProjectName}
                 onProposalDraftChange={(proposalId, value) =>
                   setProposalDrafts((current) => ({
@@ -1840,8 +2025,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 userSystemRole={userSystemRole}
                 users={users}
               />
-            ) : (
-              <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
             )}
           </SettingsPanel>
         )}
@@ -1967,7 +2150,12 @@ function AppSidebar({
             onClick={() => onViewChange('chat')}
           />
           <SidebarNavButton
-            active={activeView !== 'chat'}
+            active={activeView === 'account'}
+            label="My account"
+            onClick={() => onViewChange('account')}
+          />
+          <SidebarNavButton
+            active={activeView !== 'chat' && activeView !== 'account'}
             label="Settings"
             onClick={() => onViewChange('settings')}
           />
@@ -2257,7 +2445,7 @@ function AppearanceSettingsPanel({
     >
       <header className="settings-header">
         <div>
-          <p className="panel-label">Settings</p>
+          <p className="panel-label">My account</p>
           <h2 id="appearance-settings-title">Appearance</h2>
         </div>
         <span className="status">{theme}</span>
@@ -2319,12 +2507,16 @@ function RuntimeSettingsPanel({
   chatConnectionId,
   chatModelId,
   chatModels,
+  chatRetrievalSettings,
   connectionBaseUrl,
   connectionCapabilities,
   connectionProvider,
   connectionType,
   connections,
   error,
+  globalChatRerankCandidateLimit,
+  globalChatRerankEnabled,
+  globalChatRetrievalLimit,
   globalSlot,
   globalSlotConnectionId,
   globalSlotModelId,
@@ -2334,17 +2526,26 @@ function RuntimeSettingsPanel({
   onConnectionCapabilitiesChange,
   onConnectionProviderChange,
   onConnectionTypeChange,
+  onGlobalChatRerankCandidateLimitChange,
+  onGlobalChatRerankEnabledChange,
+  onGlobalChatRetrievalLimitChange,
   onGlobalSlotChange,
   onGlobalSlotConnectionIdChange,
   onGlobalSlotModelIdChange,
+  onProjectChatRerankCandidateLimitChange,
+  onProjectChatRerankEnabledChange,
+  onProjectChatRetrievalLimitChange,
   onProjectSlotChange,
   onProjectSlotConnectionIdChange,
   onProjectSlotModelIdChange,
   onRefresh,
+  onResetProjectChatRetrieval,
   onResetProjectSlot,
   onSaveConnection,
   onSaveGlobalChatModel,
+  onSaveGlobalChatRetrieval,
   onSaveGlobalSlot,
+  onSaveProjectChatRetrieval,
   onSaveProjectOverride,
   onSaveSecret,
   onSyncProviderModels,
@@ -2354,6 +2555,9 @@ function RuntimeSettingsPanel({
   modelSyncConnectionId,
   providerModels,
   projectId,
+  projectChatRerankCandidateLimit,
+  projectChatRerankEnabled,
+  projectChatRetrievalLimit,
   projectRuntimeSettings,
   projectSlot,
   projectSlotConnectionId,
@@ -2366,12 +2570,16 @@ function RuntimeSettingsPanel({
   chatConnectionId: string
   chatModelId: string
   chatModels: ChatModel[]
+  chatRetrievalSettings: ChatRetrievalSettings | null
   connectionBaseUrl: string
   connectionCapabilities: string
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
   error: string | null
+  globalChatRerankCandidateLimit: number
+  globalChatRerankEnabled: boolean
+  globalChatRetrievalLimit: number
   globalSlot: string
   globalSlotConnectionId: string
   globalSlotModelId: string
@@ -2381,17 +2589,26 @@ function RuntimeSettingsPanel({
   onConnectionCapabilitiesChange(value: string): void
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
+  onGlobalChatRerankCandidateLimitChange(value: number): void
+  onGlobalChatRerankEnabledChange(value: boolean): void
+  onGlobalChatRetrievalLimitChange(value: number): void
   onGlobalSlotChange(value: string): void
   onGlobalSlotConnectionIdChange(value: string): void
   onGlobalSlotModelIdChange(value: string): void
+  onProjectChatRerankCandidateLimitChange(value: number): void
+  onProjectChatRerankEnabledChange(value: boolean): void
+  onProjectChatRetrievalLimitChange(value: number): void
   onProjectSlotChange(value: string): void
   onProjectSlotConnectionIdChange(value: string): void
   onProjectSlotModelIdChange(value: string): void
   onRefresh(): void
+  onResetProjectChatRetrieval(): void
   onResetProjectSlot(slot: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
+  onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
   onSaveSecret(event: FormEvent<HTMLFormElement>): void
   onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
@@ -2401,6 +2618,9 @@ function RuntimeSettingsPanel({
   modelSyncConnectionId: string
   providerModels: ProviderModel[]
   projectId: string
+  projectChatRerankCandidateLimit: number
+  projectChatRerankEnabled: boolean
+  projectChatRetrievalLimit: number
   projectRuntimeSettings: ProjectRuntimeSettings | null
   projectSlot: string
   projectSlotConnectionId: string
@@ -2699,6 +2919,73 @@ function RuntimeSettingsPanel({
             Save chat default
           </button>
         </form>
+
+        <section className="runtime-section" aria-label="Global chat retrieval">
+          <h3>Chat retrieval</h3>
+          {chatRetrievalSettings ? (
+            <ul className="authoring-list">
+              <li className="authoring-row authoring-row-static">
+                <span>
+                  <strong>global defaults</strong>
+                  <small>
+                    limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
+                    {chatRetrievalSettings.rerank_candidate_limit}
+                  </small>
+                </span>
+                <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
+              </li>
+            </ul>
+          ) : (
+            <p className="empty-copy">No chat retrieval defaults loaded.</p>
+          )}
+          <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
+            <div className="runtime-form-grid">
+              <label className="field">
+                <span>Retrieval limit</span>
+                <input
+                  max={CHAT_RETRIEVAL_MAX_LIMIT}
+                  min={1}
+                  onChange={(event) =>
+                    onGlobalChatRetrievalLimitChange(
+                      normalizeChatRetrievalLimit(event.currentTarget.value),
+                    )
+                  }
+                  type="number"
+                  value={globalChatRetrievalLimit}
+                />
+              </label>
+              <label className="field">
+                <span>Rerank</span>
+                <select
+                  onChange={(event) =>
+                    onGlobalChatRerankEnabledChange(
+                      event.currentTarget.value === 'true',
+                    )
+                  }
+                  value={String(globalChatRerankEnabled)}
+                >
+                  <option value="true">on</option>
+                  <option value="false">off</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Candidate limit</span>
+                <input
+                  max={CHAT_RETRIEVAL_MAX_LIMIT}
+                  min={1}
+                  onChange={(event) =>
+                    onGlobalChatRerankCandidateLimitChange(
+                      normalizeChatRetrievalLimit(event.currentTarget.value),
+                    )
+                  }
+                  type="number"
+                  value={globalChatRerankCandidateLimit}
+                />
+              </label>
+            </div>
+            <button type="submit">Save chat retrieval</button>
+          </form>
+        </section>
       </section>
 
       <section
@@ -2717,6 +3004,65 @@ function RuntimeSettingsPanel({
           onResetProjectSlot={onResetProjectSlot}
           settings={projectRuntimeSettings}
         />
+
+        <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
+          <div className="runtime-form-grid">
+            <label className="field">
+              <span>Retrieval limit</span>
+              <input
+                max={CHAT_RETRIEVAL_MAX_LIMIT}
+                min={1}
+                onChange={(event) =>
+                  onProjectChatRetrievalLimitChange(
+                    normalizeChatRetrievalLimit(event.currentTarget.value),
+                  )
+                }
+                type="number"
+                value={projectChatRetrievalLimit}
+              />
+            </label>
+            <label className="field">
+              <span>Rerank</span>
+              <select
+                onChange={(event) =>
+                  onProjectChatRerankEnabledChange(
+                    event.currentTarget.value === 'true',
+                  )
+                }
+                value={String(projectChatRerankEnabled)}
+              >
+                <option value="true">on</option>
+                <option value="false">off</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Candidate limit</span>
+              <input
+                max={CHAT_RETRIEVAL_MAX_LIMIT}
+                min={1}
+                onChange={(event) =>
+                  onProjectChatRerankCandidateLimitChange(
+                    normalizeChatRetrievalLimit(event.currentTarget.value),
+                  )
+                }
+                type="number"
+                value={projectChatRerankCandidateLimit}
+              />
+            </label>
+          </div>
+          <div className="authoring-row-actions">
+            <button type="submit">Save project retrieval override</button>
+            {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
+              <button
+                className="secondary-button"
+                onClick={onResetProjectChatRetrieval}
+                type="button"
+              >
+                Reset chat retrieval to global
+              </button>
+            ) : null}
+          </div>
+        </form>
 
         <form className="authoring-form" onSubmit={onSaveProjectOverride}>
           <div className="runtime-form-grid">
@@ -2962,6 +3308,23 @@ function ProjectRuntimeSettingsView({
               </div>
             </li>
           ))}
+        </ul>
+      </section>
+      <section className="runtime-section">
+        <h3>Chat retrieval</h3>
+        <ul className="authoring-list">
+          <li className="authoring-row authoring-row-static">
+            <span>
+              <strong>
+                limit {settings.chat_retrieval.retrieval_limit}
+              </strong>
+              <small>
+                candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
+                {settings.chat_retrieval.rerank_enabled ? 'rerank on' : 'rerank off'}
+              </small>
+            </span>
+            <em>{settings.chat_retrieval.source}</em>
+          </li>
         </ul>
       </section>
     </div>
@@ -5477,12 +5840,59 @@ function shouldFallbackToJsonChat(error: unknown): boolean {
   return true
 }
 
-function normalizeLimit(value: string): number {
+function normalizeOptionalChatRetrievalLimit(value: string): string {
+  if (value.trim().length === 0) {
+    return ''
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return ''
+  }
+  return String(
+    Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed))),
+  )
+}
+
+function parseOptionalChatRetrievalLimit(value: string): number | null {
+  if (value.trim().length === 0) {
+    return null
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+  return Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed)))
+}
+
+function normalizeChatRetrievalLimit(value: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
     return DEFAULT_RETRIEVAL_LIMIT
   }
-  return Math.min(20, Math.max(1, Math.trunc(parsed)))
+  return Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed)))
+}
+
+function validateChatRetrievalSettings({
+  candidateLimit,
+  rerankEnabled,
+  retrievalLimit,
+}: {
+  candidateLimit: number
+  rerankEnabled: boolean
+  retrievalLimit: number
+}): string | null {
+  if (
+    retrievalLimit < 1 ||
+    retrievalLimit > CHAT_RETRIEVAL_MAX_LIMIT ||
+    candidateLimit < 1 ||
+    candidateLimit > CHAT_RETRIEVAL_MAX_LIMIT
+  ) {
+    return `Chat retrieval limits must be between 1 and ${CHAT_RETRIEVAL_MAX_LIMIT}.`
+  }
+  if (rerankEnabled && candidateLimit < retrievalLimit) {
+    return 'Candidate limit must be greater than or equal to retrieval limit.'
+  }
+  return null
 }
 
 function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor | null {

@@ -26,8 +26,10 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
+    GlobalChatRetrievalSettings,
     KnowledgeProposal,
     Project,
+    ProjectChatRetrievalSettings,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
@@ -36,6 +38,7 @@ from adaptive_rag.db.models import (
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
+    ChatRetrievalSettingsRepository,
     ChunkRepository,
     DocumentRepository,
     ProjectRepository,
@@ -50,6 +53,7 @@ from adaptive_rag.provider_usage import (
     ProviderCallRecord,
     ProviderTokenUsage,
 )
+from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
 class StaticQueryEmbeddingProvider:
@@ -80,6 +84,33 @@ class StaticSparseEmbeddingProvider:
     def embed_query(self, text: str) -> SparseEmbeddingVector:
         self.query_inputs.append(text)
         return _sparse_vector(1.0)
+
+
+class PreservingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "preserving-rerank-v1"
+
+    def __init__(self) -> None:
+        self.requests: list[RerankRequest] = []
+
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        return RerankResult(
+            provider_name=self.provider_name,
+            model_name=self.model_name,
+            scores=tuple(
+                RerankScore(
+                    candidate_id=candidate.candidate_id,
+                    score=1.0 / original_rank,
+                    original_rank=original_rank,
+                    rerank_rank=original_rank,
+                )
+                for original_rank, candidate in enumerate(
+                    request.candidates[: request.top_k],
+                    start=1,
+                )
+            ),
+        )
 
 
 class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
@@ -126,9 +157,7 @@ class ToolCallingChatRunner:
         )
         return ChatRunnerOutput(
             answer="Alpha is backed by retrieved evidence.",
-            cited_chunk_ids=tuple(
-                UUID(item["chunk_id"]) for item in result.results
-            ),
+            cited_chunk_ids=tuple(UUID(item["chunk_id"]) for item in result.results),
         )
 
 
@@ -211,6 +240,8 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
+            GlobalChatRetrievalSettings.__table__,
+            ProjectChatRetrievalSettings.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
             KnowledgeProposal.__table__,
@@ -385,6 +416,7 @@ def _patch_chat_dependencies(
     session: Session,
     provider: StaticQueryEmbeddingProvider,
     runner: ToolCallingChatRunner | RecordingNoToolChatRunner | ExplodingChatRunner,
+    reranker: PreservingRerankProvider | None = None,
 ) -> None:
     @contextmanager
     def override_session_scope() -> Iterator[Session]:
@@ -401,6 +433,10 @@ def _patch_chat_dependencies(
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_sparse_embedding_provider",
         lambda: StaticSparseEmbeddingProvider(),
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_rerank_provider",
+        lambda: reranker if reranker is not None else PreservingRerankProvider(),
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
@@ -540,6 +576,72 @@ def test_chat_ask_command_outputs_api_compatible_json(
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
+def test_chat_ask_command_uses_project_retrieval_settings(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    _source, _document, _version, _first = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="first.md",
+        stable_id="first-doc",
+        text="Alpha first evidence",
+        snippet="Alpha first evidence",
+        embedding=_vector(0.1),
+    )
+    _source, _document, _version, _second = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="second.md",
+        stable_id="second-doc",
+        text="Alpha second evidence",
+        snippet="Alpha second evidence",
+        embedding=_vector(0.2),
+    )
+    ChatRetrievalSettingsRepository(session).upsert_project_settings(
+        project_id=project.id,
+        retrieval_limit=1,
+        rerank_enabled=True,
+        rerank_candidate_limit=2,
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    reranker = PreservingRerankProvider()
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=provider,
+        runner=runner,
+        reranker=reranker,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--project-id",
+            str(project.id),
+            "--message",
+            "What supports alpha?",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert len(runner.requests) == 1
+    assert runner.requests[0].retrieval_limit == 1
+    assert len(reranker.requests) == 1
+    assert reranker.requests[0].top_k == 1
+    assert len(reranker.requests[0].candidates) == 2
+    data = json.loads(result.stdout)
+    assert len(data["citations"]) == 1
+    assert data["citations"][0]["rerank_metadata"]["candidate_limit"] == 2
+
+
 def test_chat_ask_command_reports_service_errors(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -609,6 +711,10 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_sparse_embedding_provider",
         lambda: StaticSparseEmbeddingProvider(),
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_rerank_provider",
+        lambda: PreservingRerankProvider(),
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
@@ -703,6 +809,10 @@ def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
         lambda: StaticSparseEmbeddingProvider(),
     )
     monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_rerank_provider",
+        lambda: PreservingRerankProvider(),
+    )
+    monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
         runner_factory,
     )
@@ -775,9 +885,7 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
     assert chat_session.project_id == project.id
     assert chat_session.status == "failed"
     assert chat_session.error_message == "runner exploded"
-    messages = fresh_session.query(ChatMessage).filter_by(
-        session_id=chat_session.id
-    )
+    messages = fresh_session.query(ChatMessage).filter_by(session_id=chat_session.id)
     assert [(message.role, message.content) for message in messages] == [
         ("user", "Please answer.")
     ]
