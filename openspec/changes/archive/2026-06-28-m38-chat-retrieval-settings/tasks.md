@@ -34,11 +34,11 @@
   - [x] 4.3 Cubrir estados disabled, inherited/overridden, validacion max 50 y
     candidate limit menor que retrieval limit.
 
-- [ ] 5. Medicion y cierre
+- [x] 5. Medicion y cierre
   - [x] 5.1 Agregar smoke offline para chat con rerank efectivo via tests
     API/CLI deterministas.
   - [x] 5.2 Ejecutar tests backend relevantes.
   - [x] 5.3 Ejecutar tests frontend relevantes.
   - [x] 5.4 Ejecutar `uv run ruff check src tests`, `uv run mypy
     src\adaptive_rag`, OpenSpec strict y `git diff --check`.
-  - [ ] 5.5 Actualizar docs/progress.md y docs/roadmap.md al cerrar el change.
+  - [x] 5.5 Actualizar docs/progress.md y docs/roadmap.md al cerrar el change.
