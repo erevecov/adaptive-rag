@@ -45,6 +45,7 @@ import {
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
+const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
 const SESSION_FILTERS = [
@@ -60,9 +61,16 @@ const RUNTIME_SLOTS = [
   'rerank',
   'contextualization',
 ]
+const SETTINGS_SECTIONS = [
+  { id: 'settings', label: 'Appearance' },
+  { id: 'authoring', label: 'Authoring' },
+  { id: 'observability', label: 'Observability' },
+  { id: 'runtime', label: 'Runtime' },
+] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime' | 'settings'
+type SettingsSection = Exclude<ActiveView, 'chat'>
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -105,7 +113,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       }),
     [apiClient],
   )
-  const [projectId, setProjectId] = useState(initialProjectId)
+  const [projectId, setProjectId] = useState(() =>
+    initialProjectId.trim() || readPersistedProjectId(),
+  )
   const [question, setQuestion] = useState('')
   const [retrievalLimit, setRetrievalLimit] = useState(DEFAULT_RETRIEVAL_LIMIT)
   const [speechState, setSpeechState] = useState<RequestState>('idle')
@@ -129,6 +139,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [historyStatusFilter, setHistoryStatusFilter] =
     useState<SessionNavigationFilter>('all')
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('context')
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true)
+  const [isRightDockOpen, setIsRightDockOpen] = useState(true)
   const pendingFocusMessageIdRef = useRef<string | null>(null)
   const [detailState, setDetailState] = useState<RequestState>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
@@ -207,6 +219,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    persistProjectId(projectId)
+  }, [projectId])
 
   useEffect(() => {
     if (inspectorTab !== 'context' || pendingFocusMessageIdRef.current === null) {
@@ -332,9 +348,23 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     void handleRefreshHistory(undefined, filter)
   }
 
+  function handleChangeProjectId(nextProjectId: string) {
+    const selectedProject = projects.find((project) => project.id === nextProjectId)
+    if (selectedProject !== undefined) {
+      handleSelectProject(selectedProject)
+      return
+    }
+    setProjectId(nextProjectId)
+  }
+
+  function handleOpenInspectorTab(tab: InspectorTab) {
+    setInspectorTab(tab)
+    setIsRightDockOpen(true)
+  }
+
   function handleNavigateToMessage(messageId: string) {
     pendingFocusMessageIdRef.current = messageId
-    setInspectorTab('context')
+    handleOpenInspectorTab('context')
   }
 
   function resetSourceViewer() {
@@ -349,7 +379,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleOpenSource(sourceId: string, citationSnippet: string | null) {
     const trimmedProjectId = projectId.trim()
-    setInspectorTab('context')
+    handleOpenInspectorTab('context')
     setSourceViewer({
       citationSnippet,
       error: null,
@@ -436,7 +466,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     activeSpeechRecognition?.stop()
     setActiveSpeechRecognition(null)
     setSpeechState('idle')
-    setSpeechFeedback('Dictation stopped.')
+    setSpeechFeedback('Transcript stopped.')
   }
 
   async function handleSelectSession(sessionId: string) {
@@ -914,8 +944,34 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  const activeSettingsSection: SettingsSection =
+    activeView === 'chat' ? 'settings' : activeView
+
   return (
-    <main className="app-shell">
+    <main
+      className={[
+        'app-shell',
+        isLeftSidebarOpen
+          ? 'app-shell-sidebar-open'
+          : 'app-shell-sidebar-closed',
+        isRightDockOpen ? 'app-shell-right-dock-open' : 'app-shell-right-dock-closed',
+      ].join(' ')}
+    >
+      <AppSidebar
+        activeView={activeView}
+        error={historyError}
+        isOpen={isLeftSidebarOpen}
+        onRefreshSessions={() => void handleRefreshHistory()}
+        onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+        onStatusFilterChange={handleChangeHistoryStatusFilter}
+        onToggle={() => setIsLeftSidebarOpen((current) => !current)}
+        onViewChange={setActiveView}
+        selectedSessionId={selectedSessionId}
+        sessions={sessions}
+        sessionState={historyState}
+        statusFilter={historyStatusFilter}
+      />
+
       <section
         className={activeView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
         aria-labelledby="workspace-title"
@@ -929,7 +985,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             </p>
           </div>
           <div className="workspace-actions">
-            <ViewSwitcher activeView={activeView} onChange={setActiveView} />
             <span className="status">Local API</span>
           </div>
         </header>
@@ -937,18 +992,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         <ProjectContextBar projectId={projectId} projects={projects} />
 
         {activeView === 'chat' ? (
-          <div className="workspace-grid chat-workspace-grid">
-            <SessionNavigationPanel
-              error={historyError}
-              onRefresh={() => void handleRefreshHistory()}
-              onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
-              onStatusFilterChange={handleChangeHistoryStatusFilter}
-              selectedSessionId={selectedSessionId}
-              sessions={sessions}
-              statusFilter={historyStatusFilter}
-              state={historyState}
-            />
-
+          <div
+            className={
+              isRightDockOpen
+                ? 'workspace-grid chat-workspace-grid chat-workspace-grid-docked'
+                : 'workspace-grid chat-workspace-grid'
+            }
+          >
             <section className="panel panel-primary chat-panel" aria-labelledby="chat-title">
               <div className="panel-heading">
                 <div>
@@ -960,30 +1010,35 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 </span>
               </div>
 
-              <form className="chat-form" onSubmit={handleSubmit}>
-                <label className="field">
-                  <span>Project ID</span>
-                  <input
-                    autoComplete="off"
-                    name="project-id"
-                    onChange={(event) => setProjectId(event.currentTarget.value)}
-                    placeholder="Project UUID"
-                    value={projectId}
-                  />
-                </label>
+              <ResponsePanel
+                onOpenSource={(sourceId, citationSnippet) =>
+                  void handleOpenSource(sourceId, citationSnippet)
+                }
+                response={response}
+                state={requestState}
+              />
 
+              <form className="chat-form" onSubmit={handleSubmit}>
                 <label className="field">
                   <span>Question</span>
                   <textarea
                     name="question"
                     onChange={(event) => setQuestion(event.currentTarget.value)}
                     placeholder="Ask a question about indexed sources"
-                    rows={4}
+                    rows={3}
                     value={question}
                   />
                 </label>
 
-                <div className="form-actions">
+                <div className="composer-toolbar">
+                  <ProjectSelectControl
+                    onProjectIdChange={handleChangeProjectId}
+                    onRefreshProjects={() => void handleRefreshProjects()}
+                    projectId={projectId}
+                    projects={projects}
+                    state={projectAuthoringState}
+                  />
+
                   <label className="field field-compact">
                     <span>Retrieval limit</span>
                     <input
@@ -997,9 +1052,41 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                       value={retrievalLimit}
                     />
                   </label>
-                  <button disabled={isAsking} type="submit">
-                    {isAsking ? 'Asking...' : 'Ask'}
-                  </button>
+
+                  <div className="composer-icon-actions">
+                    <button
+                      aria-label="Open context sidebar"
+                      aria-pressed={isRightDockOpen && inspectorTab === 'context'}
+                      className="composer-icon-button context-toggle"
+                      onClick={() => handleOpenInspectorTab('context')}
+                      title="Context"
+                      type="button"
+                    >
+                      <ContextRingIcon />
+                    </button>
+                    <button
+                      aria-label="Open minimap sidebar"
+                      aria-pressed={isRightDockOpen && inspectorTab === 'minimap'}
+                      className="composer-icon-button"
+                      onClick={() => handleOpenInspectorTab('minimap')}
+                      title="Minimap"
+                      type="button"
+                    >
+                      <MinimapIcon />
+                    </button>
+                    <SpeechInputControl
+                      feedback={speechFeedback}
+                      isSupported={isSpeechSupported}
+                      onStart={handleStartSpeechRecognition}
+                      onStop={handleStopSpeechRecognition}
+                      state={speechState}
+                    />
+                    <button className="composer-send-button" disabled={isAsking} type="submit">
+                      <SendIcon />
+                      <span>{isAsking ? 'Asking...' : 'Ask'}</span>
+                    </button>
+                  </div>
+
                   {isAsking ? (
                     <button
                       className="secondary-button"
@@ -1011,14 +1098,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   ) : null}
                 </div>
 
-                <SpeechInputControl
-                  feedback={speechFeedback}
-                  isSupported={isSpeechSupported}
-                  onStart={handleStartSpeechRecognition}
-                  onStop={handleStopSpeechRecognition}
-                  state={speechState}
-                />
-
                 <ChatRetrievalSummary retrievalLimit={retrievalLimit} />
 
                 {requestError ? (
@@ -1027,129 +1106,137 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   </p>
                 ) : null}
               </form>
+            </section>
 
-              <ResponsePanel
+            {isRightDockOpen ? (
+              <WorkspaceInspectorPanel
+                activeTab={inspectorTab}
+                detail={sessionDetail}
+                detailError={detailError}
+                detailState={detailState}
+                onClose={() => setIsRightDockOpen(false)}
+                onNavigateMessage={handleNavigateToMessage}
+                onActiveTabChange={handleOpenInspectorTab}
                 onOpenSource={(sourceId, citationSnippet) =>
                   void handleOpenSource(sourceId, citationSnippet)
                 }
-                response={response}
-                state={requestState}
+                sourceViewer={sourceViewer}
               />
-            </section>
-
-            <WorkspaceInspectorPanel
-              activeTab={inspectorTab}
-              detail={sessionDetail}
-              detailError={detailError}
-              detailState={detailState}
-              onNavigateMessage={handleNavigateToMessage}
-              onActiveTabChange={setInspectorTab}
-              onOpenSource={(sourceId, citationSnippet) =>
-                void handleOpenSource(sourceId, citationSnippet)
-              }
-              sourceViewer={sourceViewer}
-            />
+            ) : null}
           </div>
-        ) : activeView === 'observability' ? (
-          <ObservabilityPanel
-            createdAtFrom={createdAtFrom}
-            createdAtTo={createdAtTo}
-            error={observabilityError}
-            onCreatedAtFromChange={setCreatedAtFrom}
-            onCreatedAtToChange={setCreatedAtTo}
-            onProjectIdChange={setProjectId}
-            onRefresh={() => void handleRefreshObservability()}
-            onStatusChange={setObservabilityStatus}
-            projectId={projectId}
-            state={observabilityState}
-            status={observabilityStatus}
-            summary={observabilitySummary}
-          />
-        ) : activeView === 'runtime' ? (
-          <RuntimeSettingsPanel
-            chatConnectionId={globalChatConnectionId}
-            chatModelId={globalChatModelId}
-            chatModels={runtimeChatModels}
-            connectionBaseUrl={connectionBaseUrl}
-            connectionCapabilities={connectionCapabilities}
-            connectionProvider={connectionProvider}
-            connectionType={connectionType}
-            connections={runtimeConnections}
-            error={runtimeError}
-            globalSlot={globalSlot}
-            globalSlotConnectionId={globalSlotConnectionId}
-            globalSlotModelId={globalSlotModelId}
-            onChatConnectionIdChange={setGlobalChatConnectionId}
-            onChatModelIdChange={setGlobalChatModelId}
-            onConnectionBaseUrlChange={setConnectionBaseUrl}
-            onConnectionCapabilitiesChange={setConnectionCapabilities}
-            onConnectionProviderChange={setConnectionProvider}
-            onConnectionTypeChange={setConnectionType}
-            onGlobalSlotChange={setGlobalSlot}
-            onGlobalSlotConnectionIdChange={setGlobalSlotConnectionId}
-            onGlobalSlotModelIdChange={setGlobalSlotModelId}
-            onProjectSlotChange={setProjectSlot}
-            onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
-            onProjectSlotModelIdChange={setProjectSlotModelId}
-            onRefresh={() => void handleRefreshRuntime()}
-            onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
-            onSaveConnection={(event) => void handleSaveConnection(event)}
-            onSaveGlobalChatModel={(event) => void handleSaveGlobalChatModel(event)}
-            onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
-            onSaveProjectOverride={(event) => void handleSaveProjectOverride(event)}
-            onSaveSecret={(event) => void handleSaveSecret(event)}
-            onSyncProviderModels={(event) => void handleSyncProviderModels(event)}
-            onModelSyncConnectionIdChange={setModelSyncConnectionId}
-            projectId={projectId}
-            projectRuntimeSettings={projectRuntimeSettings}
-            projectSlot={projectSlot}
-            projectSlotConnectionId={projectSlotConnectionId}
-            projectSlotModelId={projectSlotModelId}
-            secretConnectionId={secretConnectionId}
-            secretValue={secretValue}
-            modelSyncConnectionId={modelSyncConnectionId}
-            providerModels={runtimeProviderModels}
-            slots={runtimeSlots}
-            state={runtimeState}
-            onSecretConnectionIdChange={setSecretConnectionId}
-            onSecretValueChange={setSecretValue}
-          />
-        ) : activeView === 'settings' ? (
-          <SettingsPanel onThemeChange={setTheme} theme={theme} />
         ) : (
-          <AuthoringPanel
-            ingestionError={ingestionError}
-            ingestionJobs={ingestionJobs}
-            ingestionRun={ingestionRun}
-            ingestionState={ingestionState}
-            onCreateProject={(event) => void handleCreateProject(event)}
-            onCreateSource={(event) => void handleCreateSource(event)}
-            onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
-            onProjectIdChange={setProjectId}
-            onProjectNameChange={setProjectName}
-            onRefreshIngestionJobs={() => void handleRefreshIngestionJobs()}
-            onRefreshProjects={() => void handleRefreshProjects()}
-            onRefreshSources={() => void handleRefreshSources()}
-            onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
-            onRunNextIngestion={() => void handleRunNextIngestion()}
-            onSelectProject={handleSelectProject}
-            onSourceContentChange={setSourceContent}
-            onSourceExternalIdChange={setSourceExternalId}
-            onSourceTagsChange={setSourceTags}
-            onSourceTypeChange={setSourceType}
-            projectError={projectAuthoringError}
-            projectId={projectId}
-            projectName={projectName}
-            projectState={projectAuthoringState}
-            projects={projects}
-            sourceContent={sourceContent}
-            sourceError={sourceAuthoringError}
-            sourceExternalId={sourceExternalId}
-            sourceState={sourceAuthoringState}
-            sourceTags={sourceTags}
-            sourceType={sourceType}
-            sources={sources}
-          />
+          <SettingsPanel
+            activeSection={activeSettingsSection}
+            onSectionChange={setActiveView}
+          >
+            {activeSettingsSection === 'observability' ? (
+              <ObservabilityPanel
+                createdAtFrom={createdAtFrom}
+                createdAtTo={createdAtTo}
+                error={observabilityError}
+                onCreatedAtFromChange={setCreatedAtFrom}
+                onCreatedAtToChange={setCreatedAtTo}
+                onProjectIdChange={setProjectId}
+                onRefresh={() => void handleRefreshObservability()}
+                onStatusChange={setObservabilityStatus}
+                projectId={projectId}
+                state={observabilityState}
+                status={observabilityStatus}
+                summary={observabilitySummary}
+              />
+            ) : activeSettingsSection === 'runtime' ? (
+              <RuntimeSettingsPanel
+                chatConnectionId={globalChatConnectionId}
+                chatModelId={globalChatModelId}
+                chatModels={runtimeChatModels}
+                connectionBaseUrl={connectionBaseUrl}
+                connectionCapabilities={connectionCapabilities}
+                connectionProvider={connectionProvider}
+                connectionType={connectionType}
+                connections={runtimeConnections}
+                error={runtimeError}
+                globalSlot={globalSlot}
+                globalSlotConnectionId={globalSlotConnectionId}
+                globalSlotModelId={globalSlotModelId}
+                onChatConnectionIdChange={setGlobalChatConnectionId}
+                onChatModelIdChange={setGlobalChatModelId}
+                onConnectionBaseUrlChange={setConnectionBaseUrl}
+                onConnectionCapabilitiesChange={setConnectionCapabilities}
+                onConnectionProviderChange={setConnectionProvider}
+                onConnectionTypeChange={setConnectionType}
+                onGlobalSlotChange={setGlobalSlot}
+                onGlobalSlotConnectionIdChange={setGlobalSlotConnectionId}
+                onGlobalSlotModelIdChange={setGlobalSlotModelId}
+                onProjectSlotChange={setProjectSlot}
+                onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
+                onProjectSlotModelIdChange={setProjectSlotModelId}
+                onRefresh={() => void handleRefreshRuntime()}
+                onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
+                onSaveConnection={(event) => void handleSaveConnection(event)}
+                onSaveGlobalChatModel={(event) =>
+                  void handleSaveGlobalChatModel(event)
+                }
+                onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
+                onSaveProjectOverride={(event) =>
+                  void handleSaveProjectOverride(event)
+                }
+                onSaveSecret={(event) => void handleSaveSecret(event)}
+                onSyncProviderModels={(event) =>
+                  void handleSyncProviderModels(event)
+                }
+                onModelSyncConnectionIdChange={setModelSyncConnectionId}
+                projectId={projectId}
+                projectRuntimeSettings={projectRuntimeSettings}
+                projectSlot={projectSlot}
+                projectSlotConnectionId={projectSlotConnectionId}
+                projectSlotModelId={projectSlotModelId}
+                secretConnectionId={secretConnectionId}
+                secretValue={secretValue}
+                modelSyncConnectionId={modelSyncConnectionId}
+                providerModels={runtimeProviderModels}
+                slots={runtimeSlots}
+                state={runtimeState}
+                onSecretConnectionIdChange={setSecretConnectionId}
+                onSecretValueChange={setSecretValue}
+              />
+            ) : activeSettingsSection === 'authoring' ? (
+              <AuthoringPanel
+                ingestionError={ingestionError}
+                ingestionJobs={ingestionJobs}
+                ingestionRun={ingestionRun}
+                ingestionState={ingestionState}
+                onCreateProject={(event) => void handleCreateProject(event)}
+                onCreateSource={(event) => void handleCreateSource(event)}
+                onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
+                onProjectIdChange={setProjectId}
+                onProjectNameChange={setProjectName}
+                onRefreshIngestionJobs={() => void handleRefreshIngestionJobs()}
+                onRefreshProjects={() => void handleRefreshProjects()}
+                onRefreshSources={() => void handleRefreshSources()}
+                onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
+                onRunNextIngestion={() => void handleRunNextIngestion()}
+                onSelectProject={handleSelectProject}
+                onSourceContentChange={setSourceContent}
+                onSourceExternalIdChange={setSourceExternalId}
+                onSourceTagsChange={setSourceTags}
+                onSourceTypeChange={setSourceType}
+                projectError={projectAuthoringError}
+                projectId={projectId}
+                projectName={projectName}
+                projectState={projectAuthoringState}
+                projects={projects}
+                sourceContent={sourceContent}
+                sourceError={sourceAuthoringError}
+                sourceExternalId={sourceExternalId}
+                sourceState={sourceAuthoringState}
+                sourceTags={sourceTags}
+                sourceType={sourceType}
+                sources={sources}
+              />
+            ) : (
+              <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+            )}
+          </SettingsPanel>
         )}
       </section>
     </main>
@@ -1185,68 +1272,204 @@ function ProjectContextBar({
   )
 }
 
-function ViewSwitcher({
+function AppSidebar({
   activeView,
-  onChange,
+  error,
+  isOpen,
+  onRefreshSessions,
+  onSelectSession,
+  onStatusFilterChange,
+  onToggle,
+  onViewChange,
+  selectedSessionId,
+  sessions,
+  sessionState,
+  statusFilter,
 }: {
   activeView: ActiveView
-  onChange(view: ActiveView): void
+  error: string | null
+  isOpen: boolean
+  onRefreshSessions(): void
+  onSelectSession(sessionId: string): void
+  onStatusFilterChange(filter: SessionNavigationFilter): void
+  onToggle(): void
+  onViewChange(view: ActiveView): void
+  selectedSessionId: string | null
+  sessions: ChatSessionSummary[]
+  sessionState: RequestState
+  statusFilter: SessionNavigationFilter
 }) {
   return (
-    <nav className="view-switcher" aria-label="Workspace views">
+    <aside
+      aria-label="Primary sidebar"
+      className={isOpen ? 'app-sidebar app-sidebar-open' : 'app-sidebar app-sidebar-closed'}
+    >
+      <div className="app-sidebar-chrome">
+        <button
+          aria-expanded={isOpen}
+          aria-label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
+          className="sidebar-burger"
+          onClick={onToggle}
+          title={isOpen ? 'Collapse menu' : 'Open menu'}
+          type="button"
+        >
+          <MenuIcon />
+        </button>
+        <div className="sidebar-brand" aria-hidden={!isOpen}>
+          <strong>Adaptive RAG</strong>
+          <span>Workspace</span>
+        </div>
+      </div>
+
+      <div className="app-sidebar-content">
+        <nav className="sidebar-navigation" aria-label="Primary navigation">
+          <SidebarNavButton
+            active={activeView === 'chat'}
+            label="Chat"
+            onClick={() => onViewChange('chat')}
+          />
+          <SidebarNavButton
+            active={activeView !== 'chat'}
+            label="Settings"
+            onClick={() => onViewChange('settings')}
+          />
+        </nav>
+
+        <SessionNavigationPanel
+          error={error}
+          onRefresh={onRefreshSessions}
+          onSelectSession={onSelectSession}
+          onStatusFilterChange={onStatusFilterChange}
+          selectedSessionId={selectedSessionId}
+          sessions={sessions}
+          statusFilter={statusFilter}
+          state={sessionState}
+        />
+      </div>
+    </aside>
+  )
+}
+
+function SidebarNavButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick(): void
+}) {
+  return (
+    <button
+      aria-pressed={active}
+      className={active ? 'sidebar-nav-button sidebar-nav-button-active' : 'sidebar-nav-button'}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  )
+}
+
+function ProjectSelectControl({
+  onProjectIdChange,
+  onRefreshProjects,
+  projectId,
+  projects,
+  state,
+}: {
+  onProjectIdChange(projectId: string): void
+  onRefreshProjects(): void
+  projectId: string
+  projects: Project[]
+  state: RequestState
+}) {
+  const trimmedProjectId = projectId.trim()
+  const hasSelectedProject = projects.some((project) => project.id === trimmedProjectId)
+
+  return (
+    <div className="project-selector">
+      <label className="field project-selector-field">
+        <span>Project</span>
+        <select
+          aria-label="Project"
+          name="project-id"
+          onChange={(event) => onProjectIdChange(event.currentTarget.value)}
+          value={trimmedProjectId}
+        >
+          <option value="">Select project</option>
+          {trimmedProjectId.length > 0 && !hasSelectedProject ? (
+            <option value={trimmedProjectId}>Last project {trimmedProjectId}</option>
+          ) : null}
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </label>
       <button
-        aria-pressed={activeView === 'chat'}
-        className={activeView === 'chat' ? 'view-tab view-tab-active' : 'view-tab'}
-        onClick={() => onChange('chat')}
+        className="secondary-button project-refresh-button"
+        disabled={state === 'loading'}
+        onClick={onRefreshProjects}
         type="button"
       >
-        Chat
+        {state === 'loading' ? 'Refreshing...' : 'Refresh projects'}
       </button>
-      <button
-        aria-pressed={activeView === 'observability'}
-        className={
-          activeView === 'observability' ? 'view-tab view-tab-active' : 'view-tab'
-        }
-        onClick={() => onChange('observability')}
-        type="button"
-      >
-        Observability
-      </button>
-      <button
-        aria-pressed={activeView === 'authoring'}
-        className={
-          activeView === 'authoring' ? 'view-tab view-tab-active' : 'view-tab'
-        }
-        onClick={() => onChange('authoring')}
-        type="button"
-      >
-        Authoring
-      </button>
-      <button
-        aria-pressed={activeView === 'runtime'}
-        className={
-          activeView === 'runtime' ? 'view-tab view-tab-active' : 'view-tab'
-        }
-        onClick={() => onChange('runtime')}
-        type="button"
-      >
-        Runtime
-      </button>
-      <button
-        aria-pressed={activeView === 'settings'}
-        className={
-          activeView === 'settings' ? 'view-tab view-tab-active' : 'view-tab'
-        }
-        onClick={() => onChange('settings')}
-        type="button"
-      >
-        Settings
-      </button>
-    </nav>
+    </div>
   )
 }
 
 function SettingsPanel({
+  activeSection,
+  children,
+  onSectionChange,
+}: {
+  activeSection: SettingsSection
+  children: ReactNode
+  onSectionChange(section: SettingsSection): void
+}) {
+  return (
+    <section className="settings-shell" aria-labelledby="settings-title">
+      <header className="settings-shell-header">
+        <div>
+          <p className="panel-label">Settings</p>
+          <h2 id="settings-title">Settings</h2>
+        </div>
+      </header>
+
+      <div
+        className="settings-section-tabs"
+        role="tablist"
+        aria-label="Settings sections"
+      >
+        {SETTINGS_SECTIONS.map((section) => {
+          const active = section.id === activeSection
+          return (
+            <button
+              aria-selected={active}
+              className={
+                active
+                  ? 'settings-section-tab settings-section-tab-active'
+                  : 'settings-section-tab'
+              }
+              key={section.id}
+              onClick={() => onSectionChange(section.id)}
+              role="tab"
+              type="button"
+            >
+              {section.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="settings-section-body">{children}</div>
+    </section>
+  )
+}
+
+function AppearanceSettingsPanel({
   onThemeChange,
   theme,
 }: {
@@ -1254,11 +1477,14 @@ function SettingsPanel({
   theme: Theme
 }) {
   return (
-    <section className="panel settings-panel" aria-labelledby="settings-title">
+    <section
+      className="panel settings-panel"
+      aria-labelledby="appearance-settings-title"
+    >
       <header className="settings-header">
         <div>
           <p className="panel-label">Settings</p>
-          <h2 id="settings-title">Appearance</h2>
+          <h2 id="appearance-settings-title">Appearance</h2>
         </div>
         <span className="status">{theme}</span>
       </header>
@@ -2750,10 +2976,10 @@ function SpeechInputControl({
 }) {
   const isListening = state === 'loading'
   const buttonLabel = !isSupported
-    ? 'Speech input unavailable'
+    ? 'Transcript unavailable'
     : isListening
-      ? 'Stop dictation'
-      : 'Start dictation'
+      ? 'Stop transcript'
+      : 'Start transcript'
   const message =
     feedback ??
     (isSupported
@@ -2761,15 +2987,20 @@ function SpeechInputControl({
       : 'Speech recognition is not supported in this browser.')
 
   return (
-    <section className="speech-input" aria-label="Speech input">
+    <section className="speech-input" aria-label="Transcript input">
       <button
         aria-label={buttonLabel}
-        className={isListening ? 'speech-button speech-button-active' : 'speech-button'}
+        className={
+          isListening
+            ? 'composer-icon-button speech-button speech-button-active'
+            : 'composer-icon-button speech-button'
+        }
         disabled={!isSupported}
         onClick={isListening ? onStop : onStart}
+        title="Transcript"
         type="button"
       >
-        {isListening ? 'Stop dictation' : 'Dictate'}
+        <TranscriptIcon active={isListening} />
       </button>
       <p
         className={
@@ -3130,6 +3361,7 @@ function WorkspaceInspectorPanel({
   detailError,
   detailState,
   onActiveTabChange,
+  onClose,
   onNavigateMessage,
   onOpenSource,
   sourceViewer,
@@ -3139,42 +3371,54 @@ function WorkspaceInspectorPanel({
   detailError: string | null
   detailState: RequestState
   onActiveTabChange(tab: InspectorTab): void
+  onClose(): void
   onNavigateMessage(messageId: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   sourceViewer: SourceViewerState
 }) {
   return (
     <aside className="panel workspace-inspector" aria-label="Workspace inspector">
-      <div className="inspector-tabs" role="tablist" aria-label="Inspector panels">
+      <div className="inspector-header">
+        <div className="inspector-tabs" role="tablist" aria-label="Inspector panels">
+          <button
+            aria-controls="context-panel"
+            aria-selected={activeTab === 'context'}
+            className={
+              activeTab === 'context'
+                ? 'inspector-tab inspector-tab-active'
+                : 'inspector-tab'
+            }
+            id="context-tab"
+            onClick={() => onActiveTabChange('context')}
+            role="tab"
+            type="button"
+          >
+            Context
+          </button>
+          <button
+            aria-controls="minimap-panel"
+            aria-selected={activeTab === 'minimap'}
+            className={
+              activeTab === 'minimap'
+                ? 'inspector-tab inspector-tab-active'
+                : 'inspector-tab'
+            }
+            id="minimap-tab"
+            onClick={() => onActiveTabChange('minimap')}
+            role="tab"
+            type="button"
+          >
+            Minimap
+          </button>
+        </div>
         <button
-          aria-controls="context-panel"
-          aria-selected={activeTab === 'context'}
-          className={
-            activeTab === 'context'
-              ? 'inspector-tab inspector-tab-active'
-              : 'inspector-tab'
-          }
-          id="context-tab"
-          onClick={() => onActiveTabChange('context')}
-          role="tab"
+          aria-label="Close right sidebar"
+          className="inspector-close-button"
+          onClick={onClose}
+          title="Close sidebar"
           type="button"
         >
-          Context
-        </button>
-        <button
-          aria-controls="minimap-panel"
-          aria-selected={activeTab === 'minimap'}
-          className={
-            activeTab === 'minimap'
-              ? 'inspector-tab inspector-tab-active'
-              : 'inspector-tab'
-          }
-          id="minimap-tab"
-          onClick={() => onActiveTabChange('minimap')}
-          role="tab"
-          type="button"
-        >
-          Minimap
+          <XIcon />
         </button>
       </div>
 
@@ -3620,6 +3864,27 @@ function getDefaultApiBaseUrl(): string {
     import.meta.env.VITE_ADAPTIVE_RAG_API_BASE_URL ?? ''
   ).trim()
   return configured.length > 0 ? configured : DEFAULT_API_BASE_URL
+}
+
+function readPersistedProjectId(): string {
+  try {
+    return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function persistProjectId(projectId: string): void {
+  const trimmedProjectId = projectId.trim()
+  try {
+    if (trimmedProjectId.length === 0) {
+      localStorage.removeItem(PROJECT_STORAGE_KEY)
+      return
+    }
+    localStorage.setItem(PROJECT_STORAGE_KEY, trimmedProjectId)
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
 }
 
 function getErrorMessage(error: unknown): string {
@@ -4272,6 +4537,70 @@ function getSlowestP95Group(
     }
   }
   return slowest
+}
+
+function MenuIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  )
+}
+
+function ContextRingIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="ui-icon context-ring-icon"
+      focusable="false"
+      viewBox="0 0 24 24"
+    >
+      <circle className="context-ring-track" cx="12" cy="12" r="8" />
+      <path className="context-ring-fill" d="M12 4a8 8 0 0 1 7.6 5.5" />
+      <circle cx="12" cy="12" r="2.8" />
+    </svg>
+  )
+}
+
+function MinimapIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <rect height="14" rx="2" width="14" x="5" y="5" />
+      <path d="M8 9h3M8 12h5M8 15h2M15 9h1M15 15h1" />
+    </svg>
+  )
+}
+
+function TranscriptIcon({ active }: { active: boolean }) {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      {active ? (
+        <rect height="10" rx="1.5" width="10" x="7" y="7" />
+      ) : (
+        <>
+          <path d="M12 5a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V8a3 3 0 0 0-3-3Z" />
+          <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+        </>
+      )}
+    </svg>
+  )
+}
+
+function SendIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="m5 12 14-7-5 14-3-6-6-1Z" />
+      <path d="m11 13 8-8" />
+    </svg>
+  )
 }
 
 export default App

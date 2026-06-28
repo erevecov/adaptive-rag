@@ -656,12 +656,156 @@ function createDeferred<T>(): {
   return { promise, reject, resolve }
 }
 
+async function openSettingsSection(
+  user: { click(element: Element): Promise<void> },
+  sectionName: 'Appearance' | 'Authoring' | 'Observability' | 'Runtime',
+) {
+  await user.click(screen.getByRole('button', { name: 'Settings' }))
+  if (sectionName !== 'Appearance') {
+    await user.click(screen.getByRole('tab', { name: sectionName }))
+  }
+}
+
 describe('App chat workspace', () => {
   test('renders with the local API fallback when no API base URL is configured', () => {
     render(<App />)
 
-    expect(screen.getByLabelText('Project ID')).toBeTruthy()
+    expect(screen.getByLabelText('Project')).toBeTruthy()
     expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('keeps primary navigation to chat and settings in the left sidebar', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    const navigation = within(sidebar).getByRole('navigation', {
+      name: 'Primary navigation',
+    })
+
+    expect(within(navigation).getByRole('button', { name: 'Chat' })).toBeTruthy()
+    expect(
+      within(navigation).getByRole('button', { name: 'Settings' }),
+    ).toBeTruthy()
+    expect(
+      within(navigation)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Chat', 'Settings'])
+    expect(
+      within(navigation).queryByRole('button', { name: 'Authoring' }),
+    ).toBeNull()
+    expect(
+      within(navigation).queryByRole('button', { name: 'Observability' }),
+    ).toBeNull()
+    expect(within(navigation).queryByRole('button', { name: 'Runtime' })).toBeNull()
+    expect(
+      within(sidebar).queryByRole('navigation', { name: 'Workspace tools' }),
+    ).toBeNull()
+  })
+
+  test('keeps workspace tools inside settings tabs', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    const settingsTabs = screen.getByRole('tablist', {
+      name: 'Settings sections',
+    })
+
+    expect(
+      within(settingsTabs)
+        .getAllByRole('tab')
+        .map((tab) => tab.textContent),
+    ).toEqual(['Appearance', 'Authoring', 'Observability', 'Runtime'])
+
+    await user.click(within(settingsTabs).getByRole('tab', { name: 'Authoring' }))
+
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+  })
+
+  test('opens and closes the left sidebar with the burger control', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const toggle = screen.getByRole('button', { name: 'Collapse left sidebar' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      screen.getByRole('complementary', { name: 'Primary sidebar' }).className,
+    ).toContain('app-sidebar-open')
+
+    await user.click(toggle)
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(toggle.getAttribute('aria-label')).toBe('Open left sidebar')
+    expect(
+      screen.getByRole('complementary', { name: 'Primary sidebar' }).className,
+    ).toContain('app-sidebar-closed')
+  })
+
+  test('uses a project selector and restores the last selected project', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listProjects: vi.fn(async () => projectListResponse),
+    })
+
+    const { unmount } = render(<App apiClient={client} />)
+
+    expect(screen.queryByLabelText('Project ID')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
+    await user.selectOptions(screen.getByLabelText('Project'), projectId)
+
+    expect(localStorage.getItem('adaptive-rag:last-project-id')).toBe(projectId)
+
+    unmount()
+    render(<App apiClient={createClientStub({})} />)
+
+    expect((screen.getByLabelText('Project') as HTMLSelectElement).value).toBe(
+      projectId,
+    )
+    expect(screen.getByText(`Last project ${projectId}`)).toBeTruthy()
+  })
+
+  test('opens and closes the right dock from composer controls', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+
+    expect(
+      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+
+    expect(
+      screen.getByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
+    ).toBe('true')
+
+    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
+
+    expect(
+      screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
+    ).toBe('true')
+  })
+
+  test('renders the transcript action as an icon-only composer button', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const transcriptButton = screen.getByRole('button', {
+      name: 'Transcript unavailable',
+    })
+
+    expect(transcriptButton.querySelector('svg')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Dictate' })).toBeNull()
   })
 
   test('opens appearance settings and applies the selected theme globally', async () => {
@@ -672,7 +816,7 @@ describe('App chat workspace', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
-    expect(document.querySelector('main')?.className).toBe('app-shell')
+    expect(document.querySelector('main')?.className).toContain('app-shell')
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
@@ -713,13 +857,13 @@ describe('App chat workspace', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(localStorage.getItem('adaptive-rag-theme')).toBe('light')
 
-    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await openSettingsSection(user, 'Authoring')
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-    expect(document.querySelector('main')?.className).toBe('app-shell')
+    expect(document.querySelector('main')?.className).toContain('app-shell')
 
     await user.click(screen.getByRole('button', { name: /^Chat$/ }))
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-    expect(document.querySelector('main')?.className).toBe('app-shell')
+    expect(document.querySelector('main')?.className).toContain('app-shell')
   })
 
   test('hydrates the global theme from local storage', async () => {
@@ -755,7 +899,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} />)
 
-    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await openSettingsSection(user, 'Authoring')
     await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
     expect(await screen.findByText('Demo')).toBeTruthy()
 
@@ -780,7 +924,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Chat' }))
-    expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('Project') as HTMLSelectElement).value).toBe(
       projectId,
     )
   })
@@ -805,7 +949,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await openSettingsSection(user, 'Authoring')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
@@ -853,13 +997,13 @@ describe('App chat workspace', () => {
     expect(screen.getByText(projectId)).toBeTruthy()
     expect(screen.getByText('dense default')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await openSettingsSection(user, 'Authoring')
     await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
     await user.click(await screen.findByRole('button', { name: 'Select Demo' }))
 
     expect(screen.getAllByText(projectId).length).toBeGreaterThanOrEqual(2)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
       projectId,
     )
@@ -903,7 +1047,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Authoring' }))
+    await openSettingsSection(user, 'Authoring')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
 
     expect(await screen.findByText('Ready to queue ingestion')).toBeTruthy()
@@ -1044,7 +1188,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const button = screen.getByRole('button', {
-      name: 'Speech input unavailable',
+      name: 'Transcript unavailable',
     }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     expect(
@@ -1058,7 +1202,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Start dictation' }))
+    await user.click(screen.getByRole('button', { name: 'Start transcript' }))
     expect(FakeSpeechRecognition.latest?.start).toHaveBeenCalled()
 
     await act(async () => {
@@ -1079,7 +1223,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Start dictation' }))
+    await user.click(screen.getByRole('button', { name: 'Start transcript' }))
     await act(async () => {
       FakeSpeechRecognition.latest?.onerror?.({ error: 'not-allowed' })
     })
@@ -1450,7 +1594,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     await user.type(
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
@@ -1483,7 +1627,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
@@ -1502,7 +1646,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     const statusSection = await screen.findByRole('region', {
@@ -1553,7 +1697,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(await screen.findByText('No status data yet.')).toBeTruthy()
@@ -1575,7 +1719,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Observability' }))
+    await openSettingsSection(user, 'Observability')
     await user.type(
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
@@ -1623,7 +1767,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await openSettingsSection(user, 'Runtime')
     await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
 
     expect(client.listProviderConnections).toHaveBeenCalled()
@@ -1702,7 +1846,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await openSettingsSection(user, 'Runtime')
     await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
 
     const projectSettings = await screen.findByRole('region', {
@@ -1758,7 +1902,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Runtime' }))
+    await openSettingsSection(user, 'Runtime')
     await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
 
     await screen.findByText('qwen-hosted')
