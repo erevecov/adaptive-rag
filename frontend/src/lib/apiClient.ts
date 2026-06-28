@@ -29,6 +29,11 @@ export type CurrentUser = {
   display_name: string
   system_role: string
   is_bootstrap: boolean
+  last_project_id: string | null
+}
+
+export type CurrentUserPreferencesBody = {
+  last_project_id: string | null
 }
 
 export type User = {
@@ -37,6 +42,7 @@ export type User = {
   display_name: string
   system_role: string
   is_active: boolean
+  last_project_id: string | null
   created_at: string
   updated_at: string
 }
@@ -269,6 +275,9 @@ export type ChatSessionSummary = {
   status: ChatSessionStatus
   created_at: string
   updated_at: string
+  title: string | null
+  title_is_custom: boolean
+  archived_at: string | null
   model_config: JsonObject | null
   prompt_version: string | null
   message_count: number
@@ -277,6 +286,8 @@ export type ChatSessionSummary = {
   provider_usage_count: number
   total_estimated_cost_usd: number
   error_message: string | null
+  has_pending_training: boolean
+  has_approved_training: boolean
 }
 
 export type ChatSessionListResponse = {
@@ -286,6 +297,7 @@ export type ChatSessionListResponse = {
 
 export type ChatSessionListParams = {
   status?: ChatSessionStatus
+  archived?: boolean
   limit?: number
   cursor?: string | null
 }
@@ -360,6 +372,9 @@ export type ChatSessionMetadata = {
   status: ChatSessionStatus
   created_at: string
   updated_at: string
+  title: string | null
+  title_is_custom: boolean
+  archived_at: string | null
   model_config: JsonObject | null
   prompt_version: string | null
   error_message: string | null
@@ -624,6 +639,9 @@ export class ApiClientError extends Error {
 
 export type ApiClient = {
   getCurrentUser(): Promise<CurrentUser>
+  updateCurrentUserPreferences(
+    body: CurrentUserPreferencesBody,
+  ): Promise<CurrentUser>
   createUser(body: UserCreateBody): Promise<User>
   listUsers(): Promise<UserListResponse>
   listProjectMemberships(
@@ -680,6 +698,13 @@ export type ApiClient = {
     projectId: string,
     sessionId: string,
   ): Promise<ChatSessionDetailResponse>
+  updateChatSessionTitle(
+    projectId: string,
+    sessionId: string,
+    title: string,
+  ): Promise<{ session_id: string; title: string; title_is_custom: boolean }>
+  archiveChatSession(projectId: string, sessionId: string): Promise<void>
+  unarchiveChatSession(projectId: string, sessionId: string): Promise<void>
   getChatObservabilitySummary(
     projectId: string,
     params?: ChatObservabilitySummaryParams,
@@ -783,6 +808,13 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       return requestJson<CurrentUser>(fetchImpl, {
         method: 'GET',
         url: `${baseUrl}/auth/me`,
+      })
+    },
+    updateCurrentUserPreferences(body) {
+      return requestJson<CurrentUser>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/auth/me/preferences`,
       })
     },
     createUser(body) {
@@ -931,6 +963,34 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}/chat/sessions/${encodePathSegment(sessionId)}`,
       })
     },
+    updateChatSessionTitle(projectId, sessionId, title) {
+      return requestJson<{ session_id: string; title: string; title_is_custom: boolean }>(
+        fetchImpl,
+        {
+          body: { title },
+          method: 'PATCH',
+          url: `${baseUrl}/projects/${encodePathSegment(
+            projectId,
+          )}/chat/sessions/${encodePathSegment(sessionId)}/title`,
+        },
+      )
+    },
+    archiveChatSession(projectId, sessionId) {
+      return requestVoid(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/chat/sessions/${encodePathSegment(sessionId)}/archive`,
+      })
+    },
+    unarchiveChatSession(projectId, sessionId) {
+      return requestVoid(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/chat/sessions/${encodePathSegment(sessionId)}/unarchive`,
+      })
+    },
     getChatObservabilitySummary(projectId, params = {}) {
       const url = new URL(
         `${baseUrl}/projects/${encodePathSegment(
@@ -951,6 +1011,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         `${baseUrl}/projects/${encodePathSegment(projectId)}/chat/sessions`,
       )
       appendSearchParam(url, 'status', params.status)
+      appendSearchParam(url, 'archived', params.archived)
       appendSearchParam(url, 'limit', params.limit)
       appendSearchParam(url, 'cursor', params.cursor)
 
@@ -1179,7 +1240,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
 function appendSearchParam(
   url: URL,
   key: string,
-  value: number | string | null | undefined,
+  value: boolean | number | string | null | undefined,
 ): void {
   if (value === undefined || value === null) {
     return
@@ -1226,7 +1287,7 @@ async function requestJson<T>(
   fetchImpl: typeof fetch,
   options: {
     body?: unknown
-    method: 'DELETE' | 'GET' | 'POST' | 'PUT'
+    method: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
     url: string
   },
 ): Promise<T> {
@@ -1252,6 +1313,36 @@ async function requestJson<T>(
   }
 
   return payload as T
+}
+
+async function requestVoid(
+  fetchImpl: typeof fetch,
+  options: {
+    body?: unknown
+    method: 'DELETE' | 'PATCH' | 'POST' | 'PUT'
+    url: string
+  },
+): Promise<void> {
+  const response = await fetchImpl(options.url, {
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    headers:
+      options.body === undefined ? undefined : { 'content-type': 'application/json' },
+    method: options.method,
+  })
+
+  if (!response.ok) {
+    const payload = await readJson(response)
+    const detail = getErrorDetail(payload)
+    throw new ApiClientError(
+      typeof detail === 'string'
+        ? detail
+        : `Request failed with status ${response.status}`,
+      {
+        detail,
+        status: response.status,
+      },
+    )
+  }
 }
 
 async function requestChatStream(

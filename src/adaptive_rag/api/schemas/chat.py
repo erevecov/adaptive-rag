@@ -93,6 +93,9 @@ class ChatSessionSummaryResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    title: str | None
+    title_is_custom: bool
+    archived_at: datetime | None
     model_config_: dict[str, Any] | None = Field(alias="model_config")
     prompt_version: str | None
     message_count: int
@@ -101,6 +104,8 @@ class ChatSessionSummaryResponse(BaseModel):
     provider_usage_count: int
     total_estimated_cost_usd: float
     error_message: str | None
+    has_pending_training: bool
+    has_approved_training: bool
 
     @classmethod
     def from_summary(
@@ -113,6 +118,9 @@ class ChatSessionSummaryResponse(BaseModel):
                 "status": summary.status,
                 "created_at": summary.created_at,
                 "updated_at": summary.updated_at,
+                "title": summary.title,
+                "title_is_custom": summary.title_is_custom,
+                "archived_at": summary.archived_at,
                 "model_config": summary.model_config,
                 "prompt_version": summary.prompt_version,
                 "message_count": summary.message_count,
@@ -121,6 +129,8 @@ class ChatSessionSummaryResponse(BaseModel):
                 "provider_usage_count": summary.provider_usage_count,
                 "total_estimated_cost_usd": summary.total_estimated_cost_usd,
                 "error_message": summary.error_message,
+                "has_pending_training": summary.has_pending_training,
+                "has_approved_training": summary.has_approved_training,
             }
         )
 
@@ -317,6 +327,9 @@ class ChatSessionMetadataResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    title: str | None
+    title_is_custom: bool
+    archived_at: datetime | None
     model_config_: dict[str, Any] | None = Field(alias="model_config")
     prompt_version: str | None
     error_message: str | None
@@ -332,6 +345,9 @@ class ChatSessionMetadataResponse(BaseModel):
                 "status": session.status,
                 "created_at": session.created_at,
                 "updated_at": session.updated_at,
+                "title": session.title,
+                "title_is_custom": session.title_is_custom,
+                "archived_at": session.archived_at,
                 "model_config": (
                     dict(session.model_config_json)
                     if session.model_config_json is not None
@@ -340,6 +356,27 @@ class ChatSessionMetadataResponse(BaseModel):
                 "prompt_version": session.prompt_version,
                 "error_message": session.error_message,
             }
+        )
+
+
+class ChatSessionTitleUpdateBody(BaseModel):
+    title: str = Field(min_length=1, max_length=60)
+
+
+class ChatSessionTitleUpdateResponse(BaseModel):
+    session_id: UUID
+    title: str
+    title_is_custom: bool
+
+    @classmethod
+    def from_session(
+        cls,
+        session: ChatSession,
+    ) -> ChatSessionTitleUpdateResponse:
+        return cls(
+            session_id=session.id,
+            title=session.title or "",
+            title_is_custom=session.title_is_custom,
         )
 
 

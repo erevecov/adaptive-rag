@@ -91,6 +91,7 @@ def test_me_resolves_bearer_token_user() -> None:
     assert payload["id"] == str(user.id)
     assert payload["login"] == "viewer@example.com"
     assert payload["system_role"] == "user"
+    assert payload["last_project_id"] is None
 
 
 def test_auth_required_when_users_exist() -> None:
@@ -235,6 +236,47 @@ def test_project_list_shows_all_names_but_detail_requires_access() -> None:
     assert projects["Denied"]["access_role"] is None
     assert denied_detail.status_code == 403
     assert denied_detail.json()["detail"] == "project access required"
+
+
+def test_user_can_store_accessible_last_project_preference() -> None:
+    session = _make_session()
+    allowed_project = ProjectRepository(session).create(name="Allowed")
+    denied_project = ProjectRepository(session).create(name="Denied")
+    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=allowed_project.id,
+        user_id=viewer.id,
+        role="viewer",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    allowed = client.patch(
+        "/auth/me/preferences",
+        headers=_bearer("viewer-token"),
+        json={"last_project_id": str(allowed_project.id)},
+    )
+    me = client.get("/auth/me", headers=_bearer("viewer-token"))
+    denied = client.patch(
+        "/auth/me/preferences",
+        headers=_bearer("viewer-token"),
+        json={"last_project_id": str(denied_project.id)},
+    )
+    cleared = client.patch(
+        "/auth/me/preferences",
+        headers=_bearer("viewer-token"),
+        json={"last_project_id": None},
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.json()["last_project_id"] == str(allowed_project.id)
+    assert me.json()["last_project_id"] == str(allowed_project.id)
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project access required"
+    assert cleared.status_code == 200
+    assert cleared.json()["last_project_id"] is None
+    session.refresh(viewer)
+    assert viewer.last_project_id is None
 
 
 def test_source_create_requires_contributor_or_project_admin() -> None:

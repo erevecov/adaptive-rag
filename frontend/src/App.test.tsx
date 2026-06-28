@@ -130,6 +130,7 @@ function installFakeSpeechRecognition() {
 function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
+  archiveChatSession?: ApiClient['archiveChatSession']
   createProject?: ApiClient['createProject']
   createProviderConnection?: ApiClient['createProviderConnection']
   createSource?: ApiClient['createSource']
@@ -153,6 +154,9 @@ function createClientStub(options: {
   listRuntimeSlotDefaults?: ApiClient['listRuntimeSlotDefaults']
   listSources?: ApiClient['listSources']
   listUsers?: ApiClient['listUsers']
+  unarchiveChatSession?: ApiClient['unarchiveChatSession']
+  updateChatSessionTitle?: ApiClient['updateChatSessionTitle']
+  updateCurrentUserPreferences?: ApiClient['updateCurrentUserPreferences']
   refineKnowledgeProposal?: ApiClient['refineKnowledgeProposal']
   approveKnowledgeProposal?: ApiClient['approveKnowledgeProposal']
   rejectKnowledgeProposal?: ApiClient['rejectKnowledgeProposal']
@@ -172,12 +176,22 @@ function createClientStub(options: {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
+    archiveChatSession: options.archiveChatSession ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
     createUser: options.createUser ?? vi.fn(),
     enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
-    getCurrentUser: options.getCurrentUser ?? vi.fn(),
+    getCurrentUser:
+      options.getCurrentUser ??
+      vi.fn(async () => ({
+        display_name: 'Bootstrap Superadmin',
+        id: null,
+        is_bootstrap: true,
+        last_project_id: null,
+        login: 'bootstrap',
+        system_role: 'superadmin',
+      })),
     getChatObservabilitySummary:
       options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
@@ -186,13 +200,16 @@ function createClientStub(options: {
     getProjectRuntimeSettings: options.getProjectRuntimeSettings ?? vi.fn(),
     getSource: options.getSource ?? vi.fn(),
     listChatModels: options.listChatModels ?? vi.fn(),
-    listChatSessions: options.listChatSessions ?? vi.fn(),
+    listChatSessions:
+      options.listChatSessions ??
+      vi.fn(async () => ({ items: [], next_cursor: null })),
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
     listKnowledgeProposals: options.listKnowledgeProposals ?? vi.fn(),
     listProjectMemberships: options.listProjectMemberships ?? vi.fn(),
     listProviderConnections: options.listProviderConnections ?? vi.fn(),
     listProviderModels: options.listProviderModels ?? vi.fn(),
-    listProjects: options.listProjects ?? vi.fn(),
+    listProjects:
+      options.listProjects ?? vi.fn(async () => ({ items: [] })),
     listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
     listUsers: options.listUsers ?? vi.fn(),
@@ -202,6 +219,18 @@ function createClientStub(options: {
     retryIngestionJob: options.retryIngestionJob ?? vi.fn(),
     runNextIngestionJob: options.runNextIngestionJob ?? vi.fn(),
     submitKnowledgeProposal: options.submitKnowledgeProposal ?? vi.fn(),
+    unarchiveChatSession: options.unarchiveChatSession ?? vi.fn(),
+    updateChatSessionTitle: options.updateChatSessionTitle ?? vi.fn(),
+    updateCurrentUserPreferences:
+      options.updateCurrentUserPreferences ??
+      vi.fn(async () => ({
+        display_name: 'Bootstrap Superadmin',
+        id: null,
+        is_bootstrap: true,
+        last_project_id: null,
+        login: 'bootstrap',
+        system_role: 'superadmin',
+      })),
     upsertChatModel: options.upsertChatModel ?? vi.fn(),
     upsertProjectMembership: options.upsertProjectMembership ?? vi.fn(),
     upsertProjectChatModel: options.upsertProjectChatModel ?? vi.fn(),
@@ -263,8 +292,11 @@ const chatResponse: ChatResponseBody = {
 const sessionListResponse: ChatSessionListResponse = {
   items: [
     {
+      archived_at: null,
       created_at: '2026-06-21T00:00:00Z',
       error_message: null,
+      has_approved_training: true,
+      has_pending_training: false,
       message_count: 2,
       model_config: null,
       prompt_version: 'default',
@@ -272,29 +304,11 @@ const sessionListResponse: ChatSessionListResponse = {
       retrieval_run_count: 1,
       session_id: 'session-123',
       status: 'succeeded',
+      title: 'Deployment question',
+      title_is_custom: false,
       tool_call_count: 1,
       total_estimated_cost_usd: 0.0025,
       updated_at: '2026-06-21T00:00:01Z',
-    },
-  ],
-  next_cursor: null,
-}
-
-const failedSessionListResponse: ChatSessionListResponse = {
-  items: [
-    {
-      created_at: '2026-06-21T01:00:00Z',
-      error_message: 'runner failed',
-      message_count: 2,
-      model_config: null,
-      prompt_version: 'default',
-      provider_usage_count: 1,
-      retrieval_run_count: 0,
-      session_id: 'session-failed',
-      status: 'failed',
-      tool_call_count: 0,
-      total_estimated_cost_usd: 0,
-      updated_at: '2026-06-21T01:00:01Z',
     },
   ],
   next_cursor: null,
@@ -319,6 +333,7 @@ const viewerUser: User = {
   display_name: 'Viewer User',
   id: '44444444-4444-4444-8444-444444444444',
   is_active: true,
+  last_project_id: null,
   login: 'viewer@example.com',
   system_role: 'user',
   updated_at: '2026-06-22T00:00:00Z',
@@ -600,12 +615,15 @@ const emptySessionDetail: ChatSessionDetailResponse = {
   provider_usage: [],
   retrieval_runs: [],
   session: {
+    archived_at: null,
     created_at: '2026-06-21T00:00:00Z',
     error_message: null,
     model_config: null,
     prompt_version: null,
     session_id: 'session-123',
     status: 'succeeded',
+    title: null,
+    title_is_custom: false,
     updated_at: '2026-06-21T00:00:01Z',
   },
   tool_calls: [],
@@ -680,12 +698,15 @@ const sessionDetailResponse: ChatSessionDetailResponse = {
     },
   ],
   session: {
+    archived_at: null,
     created_at: '2026-06-21T00:00:00Z',
     error_message: null,
     model_config: { chat_provider: 'qwen' },
     prompt_version: 'default',
     session_id: 'session-123',
     status: 'succeeded',
+    title: 'Deployment question',
+    title_is_custom: false,
     updated_at: '2026-06-21T00:00:02Z',
   },
   tool_calls: [
@@ -755,7 +776,7 @@ describe('App chat workspace', () => {
   test('renders with the local API fallback when no API base URL is configured', () => {
     render(<App />)
 
-    expect(screen.getByLabelText('Project')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Project selector/i })).toBeTruthy()
     expect(screen.getByLabelText('Question')).toBeTruthy()
   })
 
@@ -832,7 +853,127 @@ describe('App chat workspace', () => {
     ).toContain('app-sidebar-closed')
   })
 
-  test('uses a project selector and restores the last selected project', async () => {
+  test('moves project selection into the sidebar above primary navigation', async () => {
+    const user = userEvent.setup()
+    const updateCurrentUserPreferences = vi.fn(async () => ({
+      display_name: 'Viewer',
+      id: '22222222-2222-4222-8222-222222222222',
+      is_bootstrap: false,
+      last_project_id: projectId,
+      login: 'viewer@example.com',
+      system_role: 'user',
+    }))
+    const client = createClientStub({
+      listProjects: vi.fn(async () => projectListResponse),
+      updateCurrentUserPreferences,
+    })
+
+    render(<App apiClient={client} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    const selector = await within(sidebar).findByRole('button', {
+      name: /Project selector/i,
+    })
+    const navigation = within(sidebar).getByRole('navigation', {
+      name: 'Primary navigation',
+    })
+
+    expect(
+      selector.compareDocumentPosition(navigation) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'Project' })).toBeNull()
+
+    await user.click(selector)
+    await user.click(screen.getByRole('option', { name: /Select project Demo/ }))
+
+    expect(localStorage.getItem('adaptive-rag:last-project-id')).toBe(projectId)
+    expect(updateCurrentUserPreferences).toHaveBeenCalledWith({
+      last_project_id: projectId,
+    })
+    expect(screen.getByRole('button', { name: /Project selector: Demo/ })).toBeTruthy()
+  })
+
+  test('orders, filters and disables sidebar project options', async () => {
+    const user = userEvent.setup()
+    const inaccessibleAlpha: Project = {
+      ...projectSummary,
+      can_access: false,
+      id: '99999999-9999-4999-8999-999999999999',
+      name: 'Alpha Restricted',
+    }
+    const accessibleZulu: Project = {
+      ...projectSummary,
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Zulu Enabled',
+    }
+    const accessibleBeta: Project = {
+      ...projectSummary,
+      access_role: 'admin',
+      id: '33333333-3333-4333-8333-333333333333',
+      name: 'Beta Enabled',
+    }
+    const inaccessibleOmega: Project = {
+      ...projectSummary,
+      can_access: false,
+      id: '88888888-8888-4888-8888-888888888888',
+      name: 'Omega Restricted',
+    }
+    const client = createClientStub({
+      listProjects: vi.fn(async () => ({
+        items: [
+          inaccessibleOmega,
+          accessibleZulu,
+          inaccessibleAlpha,
+          accessibleBeta,
+        ],
+      })),
+    })
+
+    render(<App apiClient={client} />)
+
+    await user.click(
+      await screen.findByRole('button', { name: /Project selector/i }),
+    )
+
+    expect(
+      within(screen.getByRole('listbox', { name: 'Projects' }))
+        .getAllByRole('option')
+        .map((option) => option.getAttribute('aria-label')),
+    ).toEqual([
+      'Select project Beta Enabled',
+      'Select project Zulu Enabled',
+      'Project Alpha Restricted. No tienes acceso para ese proyecto',
+      'Project Omega Restricted. No tienes acceso para ese proyecto',
+    ])
+
+    const betaOption = screen.getByRole('option', {
+      name: /Select project Beta Enabled/,
+    })
+    expect(betaOption.textContent).toBe('Beta Enabled')
+    expect(betaOption.textContent).not.toContain(accessibleBeta.id)
+    expect(betaOption.textContent).not.toContain('admin')
+
+    const restrictedOption = screen.getByRole('option', {
+      name: /Project Alpha Restricted\. No tienes acceso para ese proyecto/,
+    }) as HTMLButtonElement
+    expect(restrictedOption.disabled).toBe(true)
+    expect(restrictedOption.textContent).toBe('Alpha Restricted')
+    expect(restrictedOption.textContent).not.toContain(inaccessibleAlpha.id)
+    expect(
+      within(restrictedOption).getByLabelText(
+        'No tienes acceso para ese proyecto',
+      ),
+    ).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Search projects'), 'omega')
+    expect(screen.queryByRole('option', { name: /Beta Enabled/ })).toBeNull()
+    expect(screen.getByRole('option', { name: /Omega Restricted/ })).toBeTruthy()
+  })
+
+  test('restores the last selected sidebar project for the returning user', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
       listProjects: vi.fn(async () => projectListResponse),
@@ -840,48 +981,49 @@ describe('App chat workspace', () => {
 
     const { unmount } = render(<App apiClient={client} />)
 
-    expect(screen.queryByLabelText('Project ID')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
-    await user.selectOptions(screen.getByLabelText('Project'), projectId)
-
+    await user.click(
+      await screen.findByRole('button', { name: /Project selector/i }),
+    )
+    await user.click(screen.getByRole('option', { name: /Select project Demo/ }))
     expect(localStorage.getItem('adaptive-rag:last-project-id')).toBe(projectId)
 
     unmount()
-    render(<App apiClient={createClientStub({})} />)
+    render(<App apiClient={client} />)
 
-    expect((screen.getByLabelText('Project') as HTMLSelectElement).value).toBe(
-      projectId,
-    )
-    expect(screen.getByText(`Last project ${projectId}`)).toBeTruthy()
+    expect(
+      await screen.findByRole('button', { name: /Project selector: Demo/ }),
+    ).toBeTruthy()
   })
 
-  test('filters project selector and disables inaccessible projects', async () => {
-    const user = userEvent.setup()
-    const inaccessibleProject: Project = {
-      ...projectSummary,
-      can_access: false,
-      id: '99999999-9999-4999-8999-999999999999',
-      name: 'Restricted',
-    }
+  test('hydrates the last sidebar project from the authenticated account', async () => {
+    const getCurrentUser = vi.fn(async () => ({
+      display_name: 'Viewer',
+      id: '22222222-2222-4222-8222-222222222222',
+      is_bootstrap: false,
+      last_project_id: projectId,
+      login: 'viewer@example.com',
+      system_role: 'user',
+    }))
+    const updateCurrentUserPreferences = vi.fn(async () => ({
+      display_name: 'Viewer',
+      id: '22222222-2222-4222-8222-222222222222',
+      is_bootstrap: false,
+      last_project_id: projectId,
+      login: 'viewer@example.com',
+      system_role: 'user',
+    }))
     const client = createClientStub({
-      listProjects: vi.fn(async () => ({
-        items: [
-          { ...projectSummary, access_role: 'viewer', can_access: true },
-          inaccessibleProject,
-        ],
-      })),
+      getCurrentUser,
+      listProjects: vi.fn(async () => projectListResponse),
+      updateCurrentUserPreferences,
     })
 
     render(<App apiClient={client} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
-    await user.type(screen.getByLabelText('Search projects'), 'restricted')
-
-    const restrictedOption = screen.getByRole('option', {
-      name: 'Restricted (no access)',
-    }) as HTMLOptionElement
-    expect(restrictedOption.disabled).toBe(true)
-    expect(screen.queryByRole('option', { name: 'Demo' })).toBeNull()
+    expect(
+      await screen.findByRole('button', { name: /Project selector: Demo/ }),
+    ).toBeTruthy()
+    expect(updateCurrentUserPreferences).not.toHaveBeenCalled()
   })
 
   test('submits current chat text as a knowledge proposal', async () => {
@@ -1257,7 +1399,6 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} />)
 
     await openSettingsSection(user, 'Authoring')
-    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
     expect(await screen.findByText('Demo')).toBeTruthy()
 
     await user.type(screen.getByLabelText('Project name'), 'Demo')
@@ -1281,9 +1422,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Chat' }))
-    expect((screen.getByLabelText('Project') as HTMLSelectElement).value).toBe(
-      projectId,
-    )
+    expect(screen.getByRole('button', { name: /Project selector: Demo/ })).toBeTruthy()
   })
 
   test('runs ingestion operations from the authoring workspace', async () => {
@@ -1342,7 +1481,7 @@ describe('App chat workspace', () => {
     expect(client.retryIngestionJob).toHaveBeenCalledWith(projectId, ingestionJob.id)
   })
 
-  test('keeps selected project context visible across workspace views', async () => {
+  test('keeps compact workspace context visible across workspace views', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
       listProjects: vi.fn(async () => projectListResponse),
@@ -1350,21 +1489,22 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    expect(screen.getByText('Selected project')).toBeTruthy()
-    expect(screen.getByText(projectId)).toBeTruthy()
-    expect(screen.getByText('dense default')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Nuevo chat' })).toBeTruthy()
+    expect(screen.queryByText('Selected project')).toBeNull()
+    expect(screen.queryByText('dense default')).toBeNull()
 
     await openSettingsSection(user, 'Authoring')
-    await user.click(screen.getByRole('button', { name: 'Refresh projects' }))
     await user.click(await screen.findByRole('button', { name: 'Select Demo' }))
 
-    expect(screen.getAllByText(projectId).length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByRole('heading', { name: 'Nuevo chat' })).toBeTruthy()
+    expect(screen.getAllByText('Demo').length).toBeGreaterThanOrEqual(1)
 
     await openSettingsSection(user, 'Observability')
     expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
       projectId,
     )
-    expect(screen.getByText('Selected project')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Nuevo chat' })).toBeTruthy()
+    expect(screen.queryByText('Selected project')).toBeNull()
   })
 
   test('frames chat as dense retrieval without advanced mode controls', () => {
@@ -1446,7 +1586,8 @@ describe('App chat workspace', () => {
     )
     expect(client.askChat).not.toHaveBeenCalled()
     expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
-      limit: 5,
+      archived: false,
+      limit: 15,
     })
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
@@ -1456,10 +1597,14 @@ describe('App chat workspace', () => {
     expect(screen.getByText('version 2')).toBeTruthy()
     expect(screen.getByText('chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
-    expect(screen.getAllByText('session-123')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: 'session-123' }).className).toContain(
-      'session-button-selected',
-    )
+    expect(
+      screen.getByRole('heading', { name: 'Deployment question' }),
+    ).toBeTruthy()
+    expect(
+      screen
+        .getByRole('button', { name: 'Abrir sesión Deployment question' })
+        .closest('.session-row')?.className,
+    ).toContain('session-row-selected')
   })
 
   test('adds a streaming session to the sidebar as soon as it starts', async () => {
@@ -1480,9 +1625,11 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     const sessionButton = await screen.findByRole('button', {
-      name: 'session-stream',
+      name: 'Abrir sesión Start a fresh session',
     })
-    expect(sessionButton.className).toContain('session-button-selected')
+    expect(sessionButton.closest('.session-row')?.className).toContain(
+      'session-row-selected',
+    )
 
     await act(async () => {
       finalResponse.resolve({ ...chatResponse, session_id: 'session-stream' })
@@ -1705,7 +1852,7 @@ describe('App chat workspace', () => {
     await user.click(await screen.findByRole('button', { name: 'Cancel' }))
 
     expect(capturedSignal?.aborted).toBe(true)
-    expect(await screen.findByText('Canceled')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Ask' })).toBeTruthy()
     expect(screen.queryByText(chatResponse.answer)).toBeNull()
     expect(client.askChat).not.toHaveBeenCalled()
   })
@@ -1735,36 +1882,137 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
     )
-    expect(client.listChatSessions).not.toHaveBeenCalled()
+    expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
+      archived: false,
+      limit: 15,
+    })
   })
 
-  test('filters session navigation by public status without archived UI', async () => {
+  test('filters project sessions by active training and archived tabs', async () => {
     const user = userEvent.setup()
+    const archivedResponse: ChatSessionListResponse = {
+      items: [
+        {
+          ...sessionListResponse.items[0],
+          archived_at: '2026-06-21T00:05:00Z',
+          has_approved_training: false,
+          session_id: 'session-archived',
+          title: 'Archived question',
+        },
+      ],
+      next_cursor: null,
+    }
     const client = createClientStub({
       listChatSessions: vi.fn(async (_projectId, params) =>
-        params?.status === 'failed'
-          ? failedSessionListResponse
-          : sessionListResponse,
+        params?.archived === true ? archivedResponse : sessionListResponse,
       ),
     })
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     const navigation = screen.getByRole('complementary', {
-      name: 'Session navigation',
-    })
-    expect(within(navigation).queryByRole('button', { name: /archived/i })).toBeNull()
-
-    await user.click(within(navigation).getByRole('button', { name: 'Failed' }))
-
-    expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
-      limit: 5,
-      status: 'failed',
+      name: 'Sesiones',
     })
     expect(
-      await within(navigation).findByRole('button', { name: 'session-failed' }),
+      await within(navigation).findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
     ).toBeTruthy()
-    expect(within(navigation).queryByRole('button', { name: 'session-123' })).toBeNull()
+    expect(within(navigation).getByTitle('Training')).toBeTruthy()
+    expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
+      archived: false,
+      limit: 15,
+    })
+
+    await user.click(within(navigation).getByRole('button', { name: 'TRAIN' }))
+    expect(
+      await within(navigation).findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    ).toBeTruthy()
+
+    await user.click(within(navigation).getByRole('button', { name: 'ARCHIVADOS' }))
+    await waitFor(() =>
+      expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
+        archived: true,
+        limit: 15,
+      }),
+    )
+    expect(
+      await within(navigation).findByRole('button', {
+        name: 'Abrir sesión Archived question',
+      }),
+    ).toBeTruthy()
+    expect(
+      within(navigation).queryByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    ).toBeNull()
+  })
+
+  test('loads more sessions in windows of fifteen', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listChatSessions: vi.fn(async (_projectId, params) => ({
+        ...sessionListResponse,
+        next_cursor: params?.limit === 15 ? 'next-page' : null,
+      })),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await screen.findByRole('button', {
+      name: 'Abrir sesión Deployment question',
+    })
+    await user.click(screen.getByRole('button', { name: 'ver más' }))
+
+    await waitFor(() =>
+      expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
+        archived: false,
+        limit: 30,
+      }),
+    )
+  })
+
+  test('renames and archives a session from the hover menu actions', async () => {
+    const user = userEvent.setup()
+    const updateChatSessionTitle = vi.fn(async () => ({
+      session_id: 'session-123',
+      title: 'Renamed session',
+      title_is_custom: true,
+    }))
+    const archiveChatSession = vi.fn(async () => undefined)
+    const client = createClientStub({
+      archiveChatSession,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+      updateChatSessionTitle,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await screen.findByRole('button', {
+      name: 'Abrir sesión Deployment question',
+    })
+    await user.click(
+      screen.getByRole('button', { name: 'Opciones de Deployment question' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'renombrar' }))
+    const input = screen.getByLabelText('Nuevo nombre de sesión')
+    await user.clear(input)
+    await user.type(input, 'Renamed session{Enter}')
+
+    expect(updateChatSessionTitle).toHaveBeenCalledWith(
+      projectId,
+      'session-123',
+      'Renamed session',
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Opciones de Deployment question' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Archivar' }))
+
+    expect(archiveChatSession).toHaveBeenCalledWith(projectId, 'session-123')
   })
 
   test('selects a history session as the active chat without opening the inspector', async () => {
@@ -1777,11 +2025,15 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
 
     expect(client.listChatSessions).toHaveBeenCalledWith(projectId, {
-      limit: 5,
+      archived: false,
+      limit: 15,
     })
     expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
     expect(
@@ -1806,14 +2058,21 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await screen.findByText('The import failed because the worker was not running.')
 
-    await user.click(screen.getByRole('button', { name: 'New session' }))
+    await user.click(screen.getByRole('button', { name: 'nuevo chat' }))
 
-    expect(screen.getByRole('button', { name: 'session-123' }).className).not.toContain(
-      'session-button-selected',
+    expect(
+      screen
+        .getByRole('button', { name: 'Abrir sesión Deployment question' })
+        .closest('.session-row')?.className,
+    ).not.toContain(
+      'session-row-selected',
     )
     expect(screen.getByText('No response yet.')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
@@ -1830,8 +2089,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionMessages = await screen.findByRole('list', {
@@ -1871,8 +2133,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionDetail = await screen.findByRole('region', {
@@ -1905,8 +2170,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
@@ -1928,8 +2196,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
@@ -1949,8 +2220,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
 
     const minimap = await screen.findByRole('navigation', {
@@ -1987,8 +2261,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const stepper = await screen.findByRole('region', {
@@ -2020,12 +2297,19 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh history' }))
-    await user.click(await screen.findByRole('button', { name: 'session-123' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     expect(await screen.findByText('chat session not found')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'session-123' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    ).toBeTruthy()
   })
 
   test('refreshes observability with filters and renders metric cards', async () => {

@@ -48,16 +48,18 @@ import {
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
-const HISTORY_LIMIT = 5
+const SESSION_PAGE_SIZE = 15
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
+const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
+  sensitivity: 'base',
+})
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
 const SESSION_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Running', value: 'running' },
-  { label: 'Done', value: 'succeeded' },
-  { label: 'Failed', value: 'failed' },
+  { label: 'ACTIVOS', value: 'active' },
+  { label: 'TRAIN', value: 'training' },
+  { label: 'ARCHIVADOS', value: 'archived' },
 ] as const
 const RUNTIME_SLOTS = [
   'chat',
@@ -114,6 +116,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     () =>
       apiClient ??
       createApiClient({
+        authToken: getDefaultApiAuthToken(),
         baseUrl: getDefaultApiBaseUrl(),
       }),
     [apiClient],
@@ -142,7 +145,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [requestState, setRequestState] = useState<RequestState>('idle')
   const [historyState, setHistoryState] = useState<RequestState>('idle')
   const [historyStatusFilter, setHistoryStatusFilter] =
-    useState<SessionNavigationFilter>('all')
+    useState<SessionNavigationFilter>('active')
+  const [visibleSessionCount, setVisibleSessionCount] =
+    useState(SESSION_PAGE_SIZE)
+  const [hasMoreSessions, setHasMoreSessions] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('context')
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() =>
     readInitialLeftSidebarOpen(),
@@ -270,6 +276,92 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [projectId])
 
   useEffect(() => {
+    if (initialProjectId.trim().length > 0) return
+
+    let ignore = false
+    void client
+      .getCurrentUser()
+      .then((currentUser) => {
+        if (ignore) return
+        const lastProjectId = currentUser.last_project_id?.trim() ?? ''
+        if (lastProjectId.length > 0) {
+          setProjectId(lastProjectId)
+        }
+      })
+      .catch(() => {
+        // Local/bootstrap sessions may not have an authenticated account yet.
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [client, initialProjectId])
+
+  useEffect(() => {
+    let ignore = false
+    setProjectAuthoringState('loading')
+    setProjectAuthoringError(null)
+
+    void client
+      .listProjects()
+      .then((response) => {
+        if (ignore) return
+        setProjects(response.items)
+        setProjectAuthoringState('succeeded')
+      })
+      .catch((error: unknown) => {
+        if (ignore) return
+        setProjectAuthoringState('failed')
+        setProjectAuthoringError(getErrorMessage(error))
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [client])
+
+  useEffect(() => {
+    setVisibleSessionCount(SESSION_PAGE_SIZE)
+  }, [projectId])
+
+  useEffect(() => {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setSessions([])
+      setHasMoreSessions(false)
+      setHistoryState('idle')
+      setHistoryError(null)
+      return
+    }
+
+    let ignore = false
+    void refreshHistory(
+      client,
+      trimmedProjectId,
+      historyStatusFilter,
+      visibleSessionCount,
+      {
+        onError: (error) => {
+          if (!ignore) setHistoryError(error)
+        },
+        onHasMore: (hasMore) => {
+          if (!ignore) setHasMoreSessions(hasMore)
+        },
+        onItems: (items) => {
+          if (!ignore) setSessions(items)
+        },
+        onState: (state) => {
+          if (!ignore) setHistoryState(state)
+        },
+      },
+    )
+
+    return () => {
+      ignore = true
+    }
+  }, [client, historyStatusFilter, projectId, visibleSessionCount])
+
+  useEffect(() => {
     if (inspectorTab !== 'context' || pendingFocusMessageIdRef.current === null) {
       return
     }
@@ -323,7 +415,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setDetailState('idle')
     setDetailError(null)
     setSelectedSessionId(null)
-    setHistoryStatusFilter('all')
+    setHistoryStatusFilter('active')
+    setVisibleSessionCount(SESSION_PAGE_SIZE)
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
@@ -354,7 +447,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setSessions((current) =>
               upsertSessionSummary(
                 current,
-                buildOptimisticSessionSummary(sessionId, 'running'),
+                buildOptimisticSessionSummary(sessionId, 'running', trimmedQuestion),
               ),
             )
           },
@@ -371,12 +464,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         setSelectedSessionId(nextSessionId)
       }
       setRequestState('succeeded')
-      await handleRefreshHistory(trimmedProjectId, 'all')
+      await handleRefreshHistory(trimmedProjectId, 'active')
       if (nextSessionId !== null) {
         setSessions((current) =>
           ensureSessionSummary(
             current,
-            buildOptimisticSessionSummary(nextSessionId, 'succeeded'),
+            buildOptimisticSessionSummary(
+              nextSessionId,
+              'succeeded',
+              trimmedQuestion,
+            ),
           ),
         )
       }
@@ -395,12 +492,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setSelectedSessionId(nextSessionId)
           }
           setRequestState('succeeded')
-          await handleRefreshHistory(trimmedProjectId, 'all')
+          await handleRefreshHistory(trimmedProjectId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
               ensureSessionSummary(
                 current,
-                buildOptimisticSessionSummary(nextSessionId, 'succeeded'),
+                buildOptimisticSessionSummary(
+                  nextSessionId,
+                  'succeeded',
+                  trimmedQuestion,
+                ),
               ),
             )
           }
@@ -427,12 +528,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   async function handleRefreshHistory(
     projectIdOverride?: string,
     statusFilterOverride: SessionNavigationFilter = historyStatusFilter,
+    limitOverride: number = visibleSessionCount,
   ) {
     const trimmedProjectId = (projectIdOverride ?? projectId).trim()
 
     if (trimmedProjectId.length === 0) {
       setHistoryState('failed')
       setHistoryError('Project ID is required to refresh history.')
+      setHasMoreSessions(false)
       return
     }
 
@@ -441,8 +544,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       client,
       trimmedProjectId,
       statusFilterOverride,
+      limitOverride,
       {
         onError: setHistoryError,
+        onHasMore: setHasMoreSessions,
         onItems: setSessions,
         onState: setHistoryState,
       },
@@ -451,7 +556,68 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function handleChangeHistoryStatusFilter(filter: SessionNavigationFilter) {
     setHistoryStatusFilter(filter)
-    void handleRefreshHistory(undefined, filter)
+    setVisibleSessionCount(SESSION_PAGE_SIZE)
+  }
+
+  function handleLoadMoreSessions() {
+    setVisibleSessionCount((current) => current + SESSION_PAGE_SIZE)
+  }
+
+  async function handleRenameSession(sessionId: string, title: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to rename a session.')
+      return
+    }
+
+    setHistoryError(null)
+    setHistoryState('loading')
+    try {
+      await client.updateChatSessionTitle(trimmedProjectId, sessionId, title)
+      await handleRefreshHistory(trimmedProjectId)
+    } catch (error) {
+      setHistoryError(getErrorMessage(error))
+      setHistoryState('failed')
+    }
+  }
+
+  async function handleArchiveSession(sessionId: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to archive a session.')
+      return
+    }
+
+    setHistoryError(null)
+    setHistoryState('loading')
+    try {
+      await client.archiveChatSession(trimmedProjectId, sessionId)
+      await handleRefreshHistory(trimmedProjectId)
+    } catch (error) {
+      setHistoryError(getErrorMessage(error))
+      setHistoryState('failed')
+    }
+  }
+
+  async function handleUnarchiveSession(sessionId: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to unarchive a session.')
+      return
+    }
+
+    setHistoryError(null)
+    setHistoryState('loading')
+    try {
+      await client.unarchiveChatSession(trimmedProjectId, sessionId)
+      await handleRefreshHistory(trimmedProjectId)
+    } catch (error) {
+      setHistoryError(getErrorMessage(error))
+      setHistoryState('failed')
+    }
   }
 
   function handleChangeProjectId(nextProjectId: string) {
@@ -463,7 +629,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       handleSelectProject(selectedProject)
       return
     }
-    setProjectId(nextProjectId)
+    setSelectedProjectId(nextProjectId)
   }
 
   function handleOpenInspectorTab(tab: InspectorTab) {
@@ -647,20 +813,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshProjects() {
-    setProjectAuthoringState('loading')
-    setProjectAuthoringError(null)
-
-    try {
-      const response = await client.listProjects()
-      setProjects(response.items)
-      setProjectAuthoringState('succeeded')
-    } catch (error) {
-      setProjectAuthoringState('failed')
-      setProjectAuthoringError(getErrorMessage(error))
-    }
-  }
-
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -677,7 +829,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     try {
       const project = await client.createProject({ name: trimmedName })
       setProjects((current) => upsertProject(current, project))
-      setProjectId(project.id)
+      setSelectedProjectId(project.id)
       setProjectName('')
       setSources([])
       setIngestionJobs([])
@@ -690,7 +842,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handleSelectProject(project: Project) {
-    setProjectId(project.id)
+    if (project.can_access === false) {
+      return
+    }
+    setSelectedProjectId(project.id)
     setSources([])
     setIngestionJobs([])
     setIngestionRun(null)
@@ -702,6 +857,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setKnowledgeProposals([])
     setKnowledgeReviewError(null)
     setKnowledgeReviewState('idle')
+  }
+
+  function setSelectedProjectId(nextProjectId: string) {
+    const trimmedProjectId = nextProjectId.trim()
+    setProjectId(trimmedProjectId)
+    if (trimmedProjectId.length === 0) {
+      return
+    }
+    void client
+      .updateCurrentUserPreferences({ last_project_id: trimmedProjectId })
+      .catch(() => {
+        // Local storage remains the fallback when there is no authenticated account.
+      })
   }
 
   async function handleRefreshSources(projectIdOverride?: string) {
@@ -1332,14 +1500,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     >
       <AppSidebar
         activeView={activeView}
+        canLoadMoreSessions={hasMoreSessions}
         error={historyError}
         isOpen={isLeftSidebarOpen}
-        onRefreshSessions={() => void handleRefreshHistory()}
+        onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
+        onLoadMoreSessions={handleLoadMoreSessions}
+        onProjectIdChange={handleChangeProjectId}
+        onRenameSession={(sessionId, title) =>
+          void handleRenameSession(sessionId, title)
+        }
         onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
         onStartNewSession={handleStartNewSession}
         onStatusFilterChange={handleChangeHistoryStatusFilter}
         onToggle={() => setIsLeftSidebarOpen((current) => !current)}
+        onUnarchiveSession={(sessionId) =>
+          void handleUnarchiveSession(sessionId)
+        }
         onViewChange={setActiveView}
+        projectId={projectId}
+        projectState={projectAuthoringState}
+        projects={projects}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
         sessionState={historyState}
@@ -1350,20 +1530,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         className={activeView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
         aria-labelledby="workspace-title"
       >
-        <header className="workspace-header">
-          <div>
-            <h1 id="workspace-title">Adaptive RAG</h1>
-            <p className="workspace-subtitle">
-              Work through project setup, ingestion and cited chat from one
-              local workspace.
-            </p>
-          </div>
-          <div className="workspace-actions">
-            <span className="status">Local API</span>
-          </div>
-        </header>
-
-        <ProjectContextBar projectId={projectId} projects={projects} />
+        <WorkspaceTopline
+          projectId={projectId}
+          projects={projects}
+          selectedSessionId={selectedSessionId}
+          sessionDetail={sessionDetail}
+          sessions={sessions}
+        />
 
         {activeView === 'chat' ? (
           <div
@@ -1373,17 +1546,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 : 'workspace-grid chat-workspace-grid'
             }
           >
-            <section className="panel panel-primary chat-panel" aria-labelledby="chat-title">
-              <div className="panel-heading">
-                <div>
-                  <p className="panel-label">Chat</p>
-                  <h2 id="chat-title">Workspace</h2>
-                </div>
-                <span className={statusClassName(requestState)}>
-                  {requestStatusLabel(requestState)}
-                </span>
-              </div>
-
+            <section className="panel panel-primary chat-panel" aria-label="Chat workspace">
               <div
                 aria-label="Chat transcript"
                 className="chat-transcript"
@@ -1413,14 +1576,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 </label>
 
                 <div className="composer-toolbar">
-                  <ProjectSelectControl
-                    onProjectIdChange={handleChangeProjectId}
-                    onRefreshProjects={() => void handleRefreshProjects()}
-                    projectId={projectId}
-                    projects={projects}
-                    state={projectAuthoringState}
-                  />
-
                   <label className="field field-compact">
                     <span>Retrieval limit</span>
                     <input
@@ -1644,7 +1799,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onRefreshKnowledgeProposals={() =>
                   void handleRefreshKnowledgeProposals()
                 }
-                onRefreshProjects={() => void handleRefreshProjects()}
                 onRefreshSources={() => void handleRefreshSources()}
                 onRefineKnowledgeProposal={(proposal) =>
                   void handleRefineKnowledgeProposal(proposal)
@@ -1696,59 +1850,81 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   )
 }
 
-function ProjectContextBar({
+function WorkspaceTopline({
   projectId,
   projects,
+  selectedSessionId,
+  sessionDetail,
+  sessions,
 }: {
   projectId: string
   projects: Project[]
+  selectedSessionId: string | null
+  sessionDetail: ChatSessionDetailResponse | null
+  sessions: ChatSessionSummary[]
 }) {
-  const trimmedProjectId = projectId.trim()
-  const selectedProject = projects.find((project) => project.id === trimmedProjectId)
-  const contextLabel = selectedProject?.name ?? 'Project ID entered'
-  const contextValue =
-    trimmedProjectId.length > 0 ? trimmedProjectId : 'No project selected'
+  const projectName = getWorkspaceProjectName(projectId, projects)
+  const sessionName = getWorkspaceSessionName({
+    selectedSessionId,
+    sessionDetail,
+    sessions,
+  })
 
   return (
-    <section className="project-context" aria-label="Selected project context">
-      <div>
-        <span>Selected project</span>
-        <strong>{contextLabel}</strong>
-        <small>{contextValue}</small>
-      </div>
-      <div>
-        <span>Retrieval path</span>
-        <strong>dense default</strong>
-        <small>Advanced modes stay opt-in after M31.</small>
-      </div>
-    </section>
+    <header
+      aria-label={`Current session ${sessionName}, project ${projectName}`}
+      className="workspace-topline"
+    >
+      <h1 id="workspace-title" title={sessionName}>
+        {sessionName}
+      </h1>
+      <span className="workspace-project-chip" title={projectName}>
+        {projectName}
+      </span>
+    </header>
   )
 }
 
 function AppSidebar({
   activeView,
+  canLoadMoreSessions,
   error,
   isOpen,
-  onRefreshSessions,
+  onArchiveSession,
+  onLoadMoreSessions,
+  onProjectIdChange,
+  onRenameSession,
   onSelectSession,
   onStartNewSession,
   onStatusFilterChange,
   onToggle,
+  onUnarchiveSession,
   onViewChange,
+  projectId,
+  projectState,
+  projects,
   selectedSessionId,
   sessions,
   sessionState,
   statusFilter,
 }: {
   activeView: ActiveView
+  canLoadMoreSessions: boolean
   error: string | null
   isOpen: boolean
-  onRefreshSessions(): void
+  onArchiveSession(sessionId: string): void
+  onLoadMoreSessions(): void
+  onProjectIdChange(projectId: string): void
+  onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
   onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   onToggle(): void
+  onUnarchiveSession(sessionId: string): void
   onViewChange(view: ActiveView): void
+  projectId: string
+  projectState: RequestState
+  projects: Project[]
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   sessionState: RequestState
@@ -1777,6 +1953,13 @@ function AppSidebar({
       </div>
 
       <div className="app-sidebar-content">
+        <SidebarProjectSelector
+          onProjectIdChange={onProjectIdChange}
+          projectId={projectId}
+          projects={projects}
+          state={projectState}
+        />
+
         <nav className="sidebar-navigation" aria-label="Primary navigation">
           <SidebarNavButton
             active={activeView === 'chat'}
@@ -1791,11 +1974,15 @@ function AppSidebar({
         </nav>
 
         <SessionNavigationPanel
+          canLoadMore={canLoadMoreSessions}
           error={error}
-          onRefresh={onRefreshSessions}
+          onArchiveSession={onArchiveSession}
+          onLoadMore={onLoadMoreSessions}
+          onRenameSession={onRenameSession}
           onSelectSession={onSelectSession}
           onStartNewSession={onStartNewSession}
           onStatusFilterChange={onStatusFilterChange}
+          onUnarchiveSession={onUnarchiveSession}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
           statusFilter={statusFilter}
@@ -1827,75 +2014,136 @@ function SidebarNavButton({
   )
 }
 
-function ProjectSelectControl({
+function SidebarProjectSelector({
   onProjectIdChange,
-  onRefreshProjects,
   projectId,
   projects,
   state,
 }: {
   onProjectIdChange(projectId: string): void
-  onRefreshProjects(): void
   projectId: string
   projects: Project[]
   state: RequestState
 }) {
+  const [isOpen, setIsOpen] = useState(false)
   const [projectSearch, setProjectSearch] = useState('')
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const trimmedProjectId = projectId.trim()
-  const hasSelectedProject = projects.some((project) => project.id === trimmedProjectId)
-  const normalizedSearch = projectSearch.trim().toLowerCase()
-  const filteredProjects =
-    normalizedSearch.length === 0
-      ? projects
-      : projects.filter((project) =>
-          `${project.name} ${project.id}`.toLowerCase().includes(normalizedSearch),
-        )
+  const selectedProject = projects.find((project) => project.id === trimmedProjectId)
+  const selectedLabel =
+    selectedProject?.name ??
+    (trimmedProjectId.length > 0 ? 'Project selected' : 'Select project')
+  const visibleProjects = useMemo(
+    () => getVisibleProjectOptions(projects, projectSearch),
+    [projectSearch, projects],
+  )
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node) === true) {
+        return
+      }
+      setIsOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [isOpen])
+
+  function handleSelectProject(nextProjectId: string) {
+    onProjectIdChange(nextProjectId)
+    setIsOpen(false)
+    setProjectSearch('')
+  }
 
   return (
-    <div className="project-selector">
-      <label className="field project-selector-search">
-        <span>Search projects</span>
-        <input
-          aria-label="Search projects"
-          name="project-search"
-          onChange={(event) => setProjectSearch(event.currentTarget.value)}
-          placeholder="Search projects"
-          type="search"
-          value={projectSearch}
-        />
-      </label>
-      <label className="field project-selector-field">
-        <span>Project</span>
-        <select
-          aria-label="Project"
-          name="project-id"
-          onChange={(event) => onProjectIdChange(event.currentTarget.value)}
-          value={trimmedProjectId}
-        >
-          <option value="">Select project</option>
-          {trimmedProjectId.length > 0 && !hasSelectedProject ? (
-            <option value={trimmedProjectId}>Last project {trimmedProjectId}</option>
-          ) : null}
-          {filteredProjects.map((project) => {
-            const canAccess = project.can_access !== false
-            return (
-              <option disabled={!canAccess} key={project.id} value={project.id}>
-                {canAccess ? project.name : `${project.name} (no access)`}
-              </option>
-            )
-          })}
-        </select>
-      </label>
+    <div className="sidebar-project-selector" ref={rootRef}>
       <button
-        aria-label="Refresh projects"
-        className="secondary-button project-refresh-button"
-        disabled={state === 'loading'}
-        onClick={onRefreshProjects}
-        title={state === 'loading' ? 'Refreshing projects' : 'Refresh projects'}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`Project selector: ${selectedLabel}`}
+        className="project-selector-trigger"
+        onClick={() => setIsOpen((current) => !current)}
         type="button"
       >
-        <RefreshIcon />
+        <span>
+          <small>Project</small>
+          <strong>{selectedLabel}</strong>
+        </span>
+        <ChevronDownIcon />
       </button>
+
+      {isOpen ? (
+        <div className="project-selector-popover">
+          <label className="project-selector-search">
+            <span>Search projects</span>
+            <input
+              aria-label="Search projects"
+              autoComplete="off"
+              autoFocus
+              name="project-search"
+              onChange={(event) => setProjectSearch(event.currentTarget.value)}
+              placeholder="Search projects"
+              type="search"
+              value={projectSearch}
+            />
+          </label>
+
+          <div className="project-selector-popover-header">
+            <span>{state === 'loading' ? 'Loading projects...' : 'All projects'}</span>
+          </div>
+
+          <div className="project-selector-list" role="listbox" aria-label="Projects">
+            {visibleProjects.length > 0 ? (
+              visibleProjects.map((project) => {
+                const canAccess = project.can_access !== false
+                const isSelected = project.id === trimmedProjectId
+
+                return (
+                  <button
+                    aria-label={
+                      canAccess
+                        ? `Select project ${project.name}`
+                        : `Project ${project.name}. No tienes acceso para ese proyecto`
+                    }
+                    aria-selected={isSelected}
+                    className={[
+                      'project-selector-option',
+                      isSelected ? 'project-selector-option-active' : '',
+                      canAccess ? '' : 'project-selector-option-disabled',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    disabled={!canAccess}
+                    key={project.id}
+                    onClick={() => handleSelectProject(project.id)}
+                    role="option"
+                    title={canAccess ? undefined : 'No tienes acceso para ese proyecto'}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{project.name}</strong>
+                    </span>
+                    {!canAccess ? (
+                      <span
+                        aria-label="No tienes acceso para ese proyecto"
+                        className="project-selector-lock"
+                        title="No tienes acceso para ese proyecto"
+                      >
+                        <LockIcon />
+                      </span>
+                    ) : null}
+                  </button>
+                )
+              })
+            ) : (
+              <p className="project-selector-empty">No projects match.</p>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -2747,7 +2995,6 @@ function AuthoringPanel({
   onRefreshAccess,
   onRefreshIngestionJobs,
   onRefreshKnowledgeProposals,
-  onRefreshProjects,
   onRefreshSources,
   onRefineKnowledgeProposal,
   onRejectKnowledgeProposal,
@@ -2809,7 +3056,6 @@ function AuthoringPanel({
   onRefreshAccess(): void
   onRefreshIngestionJobs(): void
   onRefreshKnowledgeProposals(): void
-  onRefreshProjects(): void
   onRefreshSources(): void
   onRefineKnowledgeProposal(proposal: KnowledgeProposal): void
   onRejectKnowledgeProposal(proposal: KnowledgeProposal): void
@@ -2878,14 +3124,6 @@ function AuthoringPanel({
           <div className="form-actions">
             <button disabled={isProjectBusy} type="submit">
               {isProjectBusy ? 'Creating...' : 'Create project'}
-            </button>
-            <button
-              className="secondary-button"
-              disabled={isProjectBusy}
-              onClick={onRefreshProjects}
-              type="button"
-            >
-              {isProjectBusy ? 'Refreshing...' : 'Refresh projects'}
             </button>
           </div>
         </form>
@@ -4173,36 +4411,66 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 }
 
 function SessionNavigationPanel({
+  canLoadMore,
   statusFilter,
   error,
-  onRefresh,
+  onArchiveSession,
+  onLoadMore,
+  onRenameSession,
   onSelectSession,
   onStartNewSession,
   onStatusFilterChange,
+  onUnarchiveSession,
   selectedSessionId,
   sessions,
   state,
 }: {
+  canLoadMore: boolean
   statusFilter: SessionNavigationFilter
   error: string | null
-  onRefresh(): void
+  onArchiveSession(sessionId: string): void
+  onLoadMore(): void
+  onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
   onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
+  onUnarchiveSession(sessionId: string): void
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   state: RequestState
 }) {
+  const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null)
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
+  const renameInputRef = useRef<HTMLInputElement | null>(null)
+  const isLoading = state === 'loading'
+
+  useEffect(() => {
+    if (renamingSessionId !== null) {
+      renameInputRef.current?.focus()
+      renameInputRef.current?.select()
+    }
+  }, [renamingSessionId])
+
+  useEffect(() => {
+    if (openMenuSessionId === null) {
+      return
+    }
+
+    const closeMenu = (event: MouseEvent) => {
+      if ((event.target as HTMLElement).closest('[data-session-menu-root]')) {
+        return
+      }
+      setOpenMenuSessionId(null)
+    }
+    document.addEventListener('mousedown', closeMenu)
+    return () => document.removeEventListener('mousedown', closeMenu)
+  }, [openMenuSessionId])
+
   return (
     <aside className="panel session-rail" aria-labelledby="history-title">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Sessions</p>
-          <h2 id="history-title">Session navigation</h2>
-        </div>
-        <span className={statusClassName(state)}>
-          {historyStatusLabel(state)}
-        </span>
+      <div className="session-rail-heading">
+        <h2 id="history-title">Sesiones</h2>
       </div>
 
       <button
@@ -4210,10 +4478,11 @@ function SessionNavigationPanel({
         onClick={onStartNewSession}
         type="button"
       >
-        New session
+        <PlusIcon />
+        nuevo chat
       </button>
 
-      <div className="session-filter-list" aria-label="Session status filters">
+      <div className="session-filter-list" aria-label="Session filters">
         {SESSION_FILTERS.map((filter) => (
           <button
             aria-pressed={statusFilter === filter.value}
@@ -4231,51 +4500,156 @@ function SessionNavigationPanel({
         ))}
       </div>
 
-      <button
-        className="secondary-button"
-        disabled={state === 'loading'}
-        onClick={onRefresh}
-        type="button"
-      >
-        {state === 'loading' ? 'Refreshing...' : 'Refresh history'}
-      </button>
-
       {error ? (
         <p className="history-error" role="status">
           {error}
         </p>
       ) : null}
 
-      <ul className="session-list" aria-label="Recent sessions">
-        {sessions.length === 0 ? (
+      <ul className="session-list" aria-label="Project sessions">
+        {isLoading && sessions.length === 0 ? (
+          <li className="session-empty">
+            <span>Cargando...</span>
+          </li>
+        ) : sessions.length === 0 ? (
           <li>
-            <span>No refreshed sessions yet</span>
-            <strong>Empty</strong>
+            <span>{sessionEmptyCopy(statusFilter)}</span>
           </li>
         ) : (
-          sessions.map((session) => (
-            <li key={session.session_id}>
-              <button
-                aria-label={session.session_id}
-                className={
-                  session.session_id === selectedSessionId
-                    ? 'session-button session-button-selected'
-                    : 'session-button'
-                }
-                onClick={() => onSelectSession(session.session_id)}
-                type="button"
-              >
-                <span>{session.session_id}</span>
-                <small>
-                  {session.message_count} messages / {session.tool_call_count}{' '}
-                  tool calls
-                </small>
-                <strong>{session.status}</strong>
-              </button>
-            </li>
-          ))
+          sessions.map((session) => {
+            const title = sessionDisplayTitle(session)
+            const isSelected = session.session_id === selectedSessionId
+            const isArchived = session.archived_at !== null
+            const hasTraining = sessionHasTraining(session)
+            const isRenaming = renamingSessionId === session.session_id
+            const menuOpen = openMenuSessionId === session.session_id
+            return (
+              <li key={session.session_id}>
+                <div
+                  className={
+                    isSelected
+                      ? 'session-row session-row-selected'
+                      : 'session-row'
+                  }
+                  data-session-menu-root
+                >
+                  <span
+                    aria-hidden={!hasTraining}
+                    className={
+                      hasTraining
+                        ? 'session-training-icon session-training-icon-visible'
+                        : 'session-training-icon'
+                    }
+                    title={hasTraining ? 'Training' : undefined}
+                  >
+                    {hasTraining ? (
+                      <BrainIcon approved={session.has_approved_training} />
+                    ) : null}
+                  </span>
+                  {isRenaming ? (
+                    <form
+                      className="session-rename-form"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        const trimmedTitle = renameDraft.trim()
+                        if (trimmedTitle.length === 0) {
+                          return
+                        }
+                        onRenameSession(session.session_id, trimmedTitle)
+                        setRenamingSessionId(null)
+                        setRenameDraft('')
+                      }}
+                    >
+                      <input
+                        aria-label="Nuevo nombre de sesión"
+                        className="session-rename-input"
+                        maxLength={60}
+                        onBlur={() => {
+                          setRenamingSessionId(null)
+                          setRenameDraft('')
+                        }}
+                        onChange={(event) => setRenameDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            setRenamingSessionId(null)
+                            setRenameDraft('')
+                          }
+                        }}
+                        ref={renameInputRef}
+                        value={renameDraft}
+                      />
+                    </form>
+                  ) : (
+                    <button
+                      aria-label={`Abrir sesión ${title}`}
+                      className="session-button"
+                      onClick={() => onSelectSession(session.session_id)}
+                      title={title}
+                      type="button"
+                    >
+                      <span className="session-title">{title}</span>
+                    </button>
+                  )}
+                  <span className={menuOpen ? 'session-age session-age-hidden' : 'session-age'}>
+                    {formatRelativeSessionAge(session.created_at)}
+                  </span>
+                  <div className="session-menu" data-session-menu-root>
+                    <button
+                      aria-label={`Opciones de ${title}`}
+                      className="session-menu-button"
+                      onClick={() =>
+                        setOpenMenuSessionId((current) =>
+                          current === session.session_id ? null : session.session_id,
+                        )
+                      }
+                      type="button"
+                    >
+                      <MoreVerticalIcon />
+                    </button>
+                    {menuOpen ? (
+                      <div className="session-menu-popover">
+                        <button
+                          onClick={() => {
+                            setRenamingSessionId(session.session_id)
+                            setRenameDraft(title)
+                            setOpenMenuSessionId(null)
+                          }}
+                          type="button"
+                        >
+                          renombrar
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (isArchived) {
+                              onUnarchiveSession(session.session_id)
+                            } else {
+                              onArchiveSession(session.session_id)
+                            }
+                            setOpenMenuSessionId(null)
+                          }}
+                          type="button"
+                        >
+                          {isArchived ? 'Desarchivar' : 'Archivar'}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            )
+          })
         )}
       </ul>
+      {canLoadMore ? (
+        <button
+          className="session-load-more"
+          disabled={isLoading}
+          onClick={onLoadMore}
+          type="button"
+        >
+          {isLoading ? 'cargando...' : 'ver más'}
+        </button>
+      ) : null}
     </aside>
   )
 }
@@ -4759,34 +5133,118 @@ async function refreshHistory(
   client: ApiClient,
   projectId: string,
   statusFilter: SessionNavigationFilter,
+  limit: number,
   callbacks: {
     onError(error: string | null): void
+    onHasMore(hasMore: boolean): void
     onItems(items: ChatSessionSummary[]): void
     onState(state: RequestState): void
   },
 ) {
   callbacks.onState('loading')
   try {
-    const params: { limit: number; status?: ChatSessionStatus } = {
-      limit: HISTORY_LIMIT,
-    }
-    const status = chatSessionStatusForFilter(statusFilter)
-    if (status !== null) {
-      params.status = status
-    }
-    const history = await client.listChatSessions(projectId, params)
-    callbacks.onItems(history.items)
+    const history = await client.listChatSessions(projectId, {
+      archived: statusFilter === 'archived',
+      limit,
+    })
+    const items =
+      statusFilter === 'training'
+        ? history.items.filter(sessionHasTraining)
+        : history.items
+    callbacks.onError(null)
+    callbacks.onItems(items)
+    callbacks.onHasMore(history.next_cursor !== null)
     callbacks.onState('succeeded')
   } catch (error) {
     callbacks.onError(getErrorMessage(error))
+    callbacks.onHasMore(false)
     callbacks.onState('failed')
   }
 }
 
-function chatSessionStatusForFilter(
-  filter: SessionNavigationFilter,
-): ChatSessionStatus | null {
-  return filter === 'all' ? null : filter
+function sessionHasTraining(session: ChatSessionSummary): boolean {
+  return session.has_pending_training || session.has_approved_training
+}
+
+function sessionDisplayTitle(session: ChatSessionSummary): string {
+  const title = session.title?.trim()
+  if (title !== undefined && title.length > 0) {
+    return title
+  }
+  return shortSessionId(session.session_id)
+}
+
+function getWorkspaceProjectName(projectId: string, projects: Project[]): string {
+  const trimmedProjectId = projectId.trim()
+  const project = projects.find((item) => item.id === trimmedProjectId)
+  const name = project?.name.trim()
+  if (name !== undefined && name.length > 0) {
+    return name
+  }
+  return trimmedProjectId.length > 0 ? 'Proyecto seleccionado' : 'Sin proyecto'
+}
+
+function getWorkspaceSessionName({
+  selectedSessionId,
+  sessionDetail,
+  sessions,
+}: {
+  selectedSessionId: string | null
+  sessionDetail: ChatSessionDetailResponse | null
+  sessions: ChatSessionSummary[]
+}): string {
+  if (selectedSessionId === null) {
+    return 'Nuevo chat'
+  }
+
+  if (sessionDetail?.session.session_id === selectedSessionId) {
+    const detailTitle = sessionDetail.session.title?.trim()
+    if (detailTitle !== undefined && detailTitle.length > 0) {
+      return detailTitle
+    }
+  }
+
+  const session = sessions.find((item) => item.session_id === selectedSessionId)
+  if (session !== undefined) {
+    return sessionDisplayTitle(session)
+  }
+
+  return shortSessionId(selectedSessionId)
+}
+
+function sessionEmptyCopy(filter: SessionNavigationFilter): string {
+  if (filter === 'training') {
+    return 'Sin sesiones con entrenamiento.'
+  }
+  if (filter === 'archived') {
+    return 'Sin sesiones archivadas.'
+  }
+  return 'Sin sesiones activas.'
+}
+
+function formatRelativeSessionAge(iso: string): string {
+  const createdAt = new Date(iso).getTime()
+  if (!Number.isFinite(createdAt)) {
+    return ''
+  }
+  const diffMs = Math.max(0, Date.now() - createdAt)
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diffMs < hour) {
+    return `${Math.max(1, Math.floor(diffMs / minute))}m`
+  }
+  if (diffMs < day) {
+    return `${Math.floor(diffMs / hour)}hr`
+  }
+  return `${Math.floor(diffMs / day)}d`
+}
+
+function shortSessionId(sessionId: string): string {
+  if (sessionId.length <= 12) {
+    return sessionId
+  }
+  return sessionId.slice(0, 8)
 }
 
 function getDefaultApiBaseUrl(): string {
@@ -4794,6 +5252,11 @@ function getDefaultApiBaseUrl(): string {
     import.meta.env.VITE_ADAPTIVE_RAG_API_BASE_URL ?? ''
   ).trim()
   return configured.length > 0 ? configured : DEFAULT_API_BASE_URL
+}
+
+function getDefaultApiAuthToken(): string | null {
+  const configured = (import.meta.env.VITE_ADAPTIVE_RAG_AUTH_TOKEN ?? '').trim()
+  return configured.length > 0 ? configured : null
 }
 
 function readInitialLeftSidebarOpen(): boolean {
@@ -4846,6 +5309,27 @@ function persistProjectId(projectId: string): void {
   } catch {
     // Storage can be unavailable in restricted browser contexts.
   }
+}
+
+function getVisibleProjectOptions(projects: Project[], search: string): Project[] {
+  const normalizedSearch = search.trim().toLowerCase()
+  const filteredProjects =
+    normalizedSearch.length === 0
+      ? projects
+      : projects.filter((project) =>
+          project.name.toLowerCase().includes(normalizedSearch),
+        )
+
+  return [...filteredProjects].sort((left, right) => {
+    const leftCanAccess = left.can_access !== false
+    const rightCanAccess = right.can_access !== false
+    if (leftCanAccess !== rightCanAccess) {
+      return leftCanAccess ? -1 : 1
+    }
+
+    const nameComparison = PROJECT_NAME_COLLATOR.compare(left.name, right.name)
+    return nameComparison === 0 ? left.id.localeCompare(right.id) : nameComparison
+  })
 }
 
 function getErrorMessage(error: unknown): string {
@@ -5086,22 +5570,6 @@ function statusClassName(state: RequestState): string {
   return state === 'failed' ? 'status-dot status-dot-error' : 'status-dot'
 }
 
-function requestStatusLabel(state: RequestState): string {
-  if (state === 'loading') {
-    return 'Asking'
-  }
-  if (state === 'canceled') {
-    return 'Canceled'
-  }
-  if (state === 'failed') {
-    return 'Error'
-  }
-  if (state === 'succeeded') {
-    return 'Answered'
-  }
-  return 'Ready'
-}
-
 function sourceViewerStatusLabel(state: RequestState): string {
   if (state === 'loading') {
     return 'Loading'
@@ -5116,16 +5584,6 @@ function sourceViewerStatusLabel(state: RequestState): string {
     return 'Canceled'
   }
   return 'Idle'
-}
-
-function historyStatusLabel(state: RequestState): string {
-  if (state === 'loading') {
-    return 'Refreshing'
-  }
-  if (state === 'failed') {
-    return 'Error'
-  }
-  return 'Latest'
 }
 
 function observabilityStatusLabel(state: RequestState): string {
@@ -5255,11 +5713,15 @@ function proposalDraftText(
 function buildOptimisticSessionSummary(
   sessionId: string,
   status: ChatSessionStatus,
+  title?: string,
 ): ChatSessionSummary {
   const timestamp = new Date().toISOString()
   return {
+    archived_at: null,
     created_at: timestamp,
     error_message: null,
+    has_approved_training: false,
+    has_pending_training: false,
     message_count: 0,
     model_config: null,
     prompt_version: null,
@@ -5267,6 +5729,8 @@ function buildOptimisticSessionSummary(
     retrieval_run_count: 0,
     session_id: sessionId,
     status,
+    title: title?.slice(0, 60) ?? null,
+    title_is_custom: false,
     tool_call_count: 0,
     total_estimated_cost_usd: 0,
     updated_at: timestamp,
@@ -5679,13 +6143,50 @@ function XIcon() {
   )
 }
 
-function RefreshIcon() {
+function PlusIcon() {
   return (
     <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="M20 6v5h-5" />
-      <path d="M4 18v-5h5" />
-      <path d="M18.5 9A7 7 0 0 0 6.6 6.6L4 9" />
-      <path d="M5.5 15a7 7 0 0 0 11.9 2.4L20 15" />
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function MoreVerticalIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="M12 5h.01M12 12h.01M12 19h.01" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <rect height="10" rx="2" width="14" x="5" y="10" />
+      <path d="M8 10V8a4 4 0 0 1 8 0v2" />
+    </svg>
+  )
+}
+
+function BrainIcon({ approved }: { approved: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={approved ? 'ui-icon brain-icon brain-icon-approved' : 'ui-icon brain-icon'}
+      focusable="false"
+      viewBox="0 0 24 24"
+    >
+      <path d="M9.5 4.5A3.5 3.5 0 0 0 6 8v.2A3.2 3.2 0 0 0 4 11.2c0 1.2.7 2.3 1.7 2.8A3.8 3.8 0 0 0 9.5 19H11V5.7a3.4 3.4 0 0 0-1.5-1.2Z" />
+      <path d="M14.5 4.5A3.5 3.5 0 0 1 18 8v.2a3.2 3.2 0 0 1 2 3c0 1.2-.7 2.3-1.7 2.8a3.8 3.8 0 0 1-3.8 5H13V5.7a3.4 3.4 0 0 1 1.5-1.2Z" />
+      <path d="M8 10h3M13 10h3M8.5 14H11M13 14h2.5" />
     </svg>
   )
 }

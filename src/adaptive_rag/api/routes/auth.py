@@ -15,6 +15,7 @@ from adaptive_rag.api.dependencies import (
     require_superadmin,
 )
 from adaptive_rag.api.schemas.auth import (
+    CurrentUserPreferencesRequestBody,
     CurrentUserResponse,
     ProjectMembershipListResponse,
     ProjectMembershipResponse,
@@ -23,7 +24,8 @@ from adaptive_rag.api.schemas.auth import (
     UserListResponse,
     UserResponse,
 )
-from adaptive_rag.auth import CurrentPrincipal, hash_access_token
+from adaptive_rag.auth import CurrentPrincipal, get_project_role, hash_access_token
+from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import ProjectMembershipRepository, UserRepository
 
 router = APIRouter(tags=["auth"])
@@ -34,6 +36,38 @@ def get_me(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> CurrentUserResponse:
     return CurrentUserResponse.from_principal(current)
+
+
+@router.patch("/auth/me/preferences", response_model=CurrentUserResponse)
+def update_me_preferences(
+    body: CurrentUserPreferencesRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> CurrentUserResponse:
+    if current.user_id is None:
+        raise HTTPException(status_code=401, detail="authenticated user required")
+
+    if body.last_project_id is not None:
+        if session.get(Project, body.last_project_id) is None:
+            raise HTTPException(status_code=404, detail="project not found")
+        if (
+            get_project_role(
+                session,
+                principal=current,
+                project_id=body.last_project_id,
+            )
+            is None
+        ):
+            raise HTTPException(status_code=403, detail="project access required")
+
+    user = UserRepository(session).update_last_project_id(
+        current.user_id,
+        last_project_id=body.last_project_id,
+    )
+    if user is None:
+        raise HTTPException(status_code=404, detail="user not found")
+    session.commit()
+    return CurrentUserResponse.from_principal(CurrentPrincipal(user=user))
 
 
 @router.get("/admin/users", response_model=UserListResponse)

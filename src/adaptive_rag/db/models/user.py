@@ -43,6 +43,9 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(
         nullable=False, default=True, server_default="true"
     )
+    last_project_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utc_now,

@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     display_name: str
     system_role: str
     is_active: bool
+    last_project_id: UUID | None
     created_at: datetime
     updated_at: datetime
 
@@ -38,9 +39,16 @@ class UserResponse(BaseModel):
             display_name=user.display_name,
             system_role=user.system_role,
             is_active=user.is_active,
+            last_project_id=user.last_project_id,
             created_at=user.created_at,
             updated_at=user.updated_at,
         )
+
+
+class CurrentUserPreferencesRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    last_project_id: UUID | None = None
 
 
 class CurrentUserResponse(BaseModel):
@@ -49,6 +57,7 @@ class CurrentUserResponse(BaseModel):
     display_name: str
     system_role: str
     is_bootstrap: bool
+    last_project_id: UUID | None
 
     @classmethod
     def from_principal(cls, principal: CurrentPrincipal) -> CurrentUserResponse:
@@ -58,6 +67,9 @@ class CurrentUserResponse(BaseModel):
             display_name=principal.display_name,
             system_role=principal.system_role,
             is_bootstrap=principal.is_bootstrap,
+            last_project_id=(
+                None if principal.user is None else principal.user.last_project_id
+            ),
         )
 
 

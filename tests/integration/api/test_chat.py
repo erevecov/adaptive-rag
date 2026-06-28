@@ -33,6 +33,7 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
+    KnowledgeProposal,
     Project,
     ProjectMembership,
     ProviderUsage,
@@ -239,6 +240,7 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
             ChunkSparseEmbedding.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
+            KnowledgeProposal.__table__,
             ToolCall.__table__,
             RetrievalRun.__table__,
             RetrievedChunk.__table__,
@@ -1056,6 +1058,8 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
         model_config_json={"provider": "fake", "model": "middle"},
         prompt_version="history-v1",
     )
+    middle.title = "Middle custom title"
+    middle.title_is_custom = True
     _set_session_timestamp(middle, base_time + timedelta(minutes=1))
     middle_tool = repo.start_tool_call(
         project_id=project.id,
@@ -1091,6 +1095,14 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
         session_id=middle.id,
         error_message="runner failed",
     )
+    session.add(
+        KnowledgeProposal(
+            project_id=project.id,
+            origin_session_id=middle.id,
+            proposed_text="Pending chat learning",
+            status="pending",
+        )
+    )
 
     newest = repo.create_session(
         project_id=project.id,
@@ -1098,9 +1110,27 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     )
     _set_session_timestamp(newest, base_time + timedelta(minutes=2))
     repo.succeed_session(project_id=project.id, session_id=newest.id)
+    session.add(
+        KnowledgeProposal(
+            project_id=project.id,
+            origin_session_id=newest.id,
+            proposed_text="Approved chat learning",
+            status="approved",
+        )
+    )
+
+    archived = repo.create_session(project_id=project.id)
+    _set_session_timestamp(archived, base_time + timedelta(minutes=3))
+    repo.add_message(
+        project_id=project.id,
+        session_id=archived.id,
+        role="user",
+        content="archived question",
+    )
+    repo.archive_session(project_id=project.id, session_id=archived.id)
 
     other_session = repo.create_session(project_id=other_project.id)
-    _set_session_timestamp(other_session, base_time + timedelta(minutes=3))
+    _set_session_timestamp(other_session, base_time + timedelta(minutes=4))
     other_run = repo.create_retrieval_run(
         project_id=other_project.id,
         session_id=other_session.id,
@@ -1136,10 +1166,17 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     assert data["next_cursor"] is not None
     middle_item = data["items"][1]
     assert middle_item["status"] == "failed"
+    assert middle_item["title"] == "Middle custom title"
+    assert middle_item["title_is_custom"] is True
+    assert middle_item["archived_at"] is None
+    assert middle_item["has_pending_training"] is True
+    assert middle_item["has_approved_training"] is False
     assert middle_item["model_config"] == {
         "provider": "fake",
         "model": "middle",
     }
+    assert data["items"][0]["has_pending_training"] is False
+    assert data["items"][0]["has_approved_training"] is True
     assert middle_item["prompt_version"] == "history-v1"
     assert middle_item["message_count"] == 0
     assert middle_item["tool_call_count"] == 1
@@ -1156,7 +1193,18 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     assert [item["session_id"] for item in second_page.json()["items"]] == [
         str(older.id)
     ]
+    assert second_page.json()["items"][0]["title"] == "older question"
     assert second_page.json()["next_cursor"] is None
+
+    archived_page = client.get(
+        f"/projects/{project.id}/chat/sessions",
+        params={"archived": True, "limit": 10},
+    )
+    assert archived_page.status_code == 200
+    assert [item["session_id"] for item in archived_page.json()["items"]] == [
+        str(archived.id)
+    ]
+    assert archived_page.json()["items"][0]["archived_at"] is not None
 
     failed_page = client.get(
         f"/projects/{project.id}/chat/sessions",
@@ -1180,6 +1228,73 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     )
     assert invalid_status.status_code == 422
     assert invalid_status.json() == {"detail": "invalid chat session status"}
+
+
+def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session, "demo")
+    repo = ChatAuditRepository(session)
+    chat_session = repo.create_session(project_id=project.id)
+    repo.add_message(
+        project_id=project.id,
+        session_id=chat_session.id,
+        role="user",
+        content="original title",
+    )
+    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    rename = client.patch(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}/title",
+        json={"title": "  Renamed session  "},
+    )
+
+    assert rename.status_code == 200
+    assert rename.json() == {
+        "session_id": str(chat_session.id),
+        "title": "Renamed session",
+        "title_is_custom": True,
+    }
+
+    blank_rename = client.patch(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}/title",
+        json={"title": "   "},
+    )
+    assert blank_rename.status_code == 422
+    assert blank_rename.json() == {"detail": "session title must not be empty"}
+
+    archive = client.post(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}/archive"
+    )
+    active_list = client.get(f"/projects/{project.id}/chat/sessions")
+    archived_list = client.get(
+        f"/projects/{project.id}/chat/sessions",
+        params={"archived": True},
+    )
+
+    assert archive.status_code == 204
+    assert active_list.json()["items"] == []
+    assert [item["session_id"] for item in archived_list.json()["items"]] == [
+        str(chat_session.id)
+    ]
+    assert archived_list.json()["items"][0]["title"] == "Renamed session"
+    assert archived_list.json()["items"][0]["archived_at"] is not None
+
+    unarchive = client.post(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}/unarchive"
+    )
+    active_again = client.get(f"/projects/{project.id}/chat/sessions")
+
+    assert unarchive.status_code == 204
+    assert [item["session_id"] for item in active_again.json()["items"]] == [
+        str(chat_session.id)
+    ]
 
 
 def test_chat_sessions_endpoint_scopes_history_to_current_user(
