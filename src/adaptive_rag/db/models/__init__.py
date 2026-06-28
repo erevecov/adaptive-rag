@@ -13,6 +13,10 @@ from adaptive_rag.db.models.graph_projection import (
 )
 from adaptive_rag.db.models.job import JOB_STATUS_VALUES, Job
 from adaptive_rag.db.models.job_event import JOB_EVENT_TYPE_VALUES, JobEvent
+from adaptive_rag.db.models.knowledge_proposal import (
+    KNOWLEDGE_PROPOSAL_STATUS_VALUES,
+    KnowledgeProposal,
+)
 from adaptive_rag.db.models.project import JSONWithJSONB, Project
 from adaptive_rag.db.models.provider_connection import (
     PROVIDER_CONNECTION_CAPABILITY_VALUES,
@@ -40,6 +44,13 @@ from adaptive_rag.db.models.runtime_settings import (
 )
 from adaptive_rag.db.models.source import Source
 from adaptive_rag.db.models.tool_call import TOOL_CALL_STATUS_VALUES, ToolCall
+from adaptive_rag.db.models.user import (
+    PROJECT_ROLE_VALUES,
+    SYSTEM_ROLE_VALUES,
+    ProjectMembership,
+    User,
+    UserAccessToken,
+)
 
 __all__ = [
     "CHAT_MESSAGE_ROLE_VALUES",
@@ -60,6 +71,8 @@ __all__ = [
     "Job",
     "JobEvent",
     "JSONWithJSONB",
+    "KNOWLEDGE_PROPOSAL_STATUS_VALUES",
+    "KnowledgeProposal",
     "PROVIDER_USAGE_OPERATION_VALUES",
     "PROVIDER_CONNECTION_CAPABILITY_VALUES",
     "PROVIDER_CONNECTION_PROVIDER_VALUES",
@@ -67,8 +80,10 @@ __all__ = [
     "PROVIDER_SECRET_NAME_VALUES",
     "PROVIDER_USAGE_SOURCE_VALUES",
     "PROVIDER_USAGE_STATUS_VALUES",
+    "PROJECT_ROLE_VALUES",
     "Project",
     "ProjectChatModel",
+    "ProjectMembership",
     "ProjectRuntimeSlotOverride",
     "ProviderConnection",
     "ProviderModelCatalog",
@@ -81,4 +96,7 @@ __all__ = [
     "Source",
     "TOOL_CALL_STATUS_VALUES",
     "ToolCall",
+    "SYSTEM_ROLE_VALUES",
+    "User",
+    "UserAccessToken",
 ]

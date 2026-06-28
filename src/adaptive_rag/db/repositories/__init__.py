@@ -23,6 +23,7 @@ from adaptive_rag.db.repositories.documents import DocumentRepository
 from adaptive_rag.db.repositories.filters import DocumentFilters, SourceFilters
 from adaptive_rag.db.repositories.graph_projection import GraphProjectionRepository
 from adaptive_rag.db.repositories.jobs import JobRepository
+from adaptive_rag.db.repositories.knowledge_proposals import KnowledgeProposalRepository
 from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.provider_connections import (
     ProviderConnectionRepository,
@@ -38,6 +39,10 @@ from adaptive_rag.db.repositories.runtime_settings import (
 )
 from adaptive_rag.db.repositories.sources import SourceRepository
 from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingRepository
+from adaptive_rag.db.repositories.users import (
+    ProjectMembershipRepository,
+    UserRepository,
+)
 
 __all__ = [
     "ChatAuditRepository",
@@ -58,6 +63,8 @@ __all__ = [
     "DocumentRepository",
     "GraphProjectionRepository",
     "JobRepository",
+    "KnowledgeProposalRepository",
+    "ProjectMembershipRepository",
     "ProjectRepository",
     "ProviderConnectionRepository",
     "ProviderModelCatalogRepository",
@@ -71,4 +78,5 @@ __all__ = [
     "SourceFilters",
     "SourceRepository",
     "SparseEmbeddingRepository",
+    "UserRepository",
 ]
