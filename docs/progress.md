@@ -4,23 +4,33 @@
 
 No hay milestone activo ni changes OpenSpec pendientes de archivar.
 
-Estado post-housekeeping: M36 Functional chat workspace y M37 Project
-RBAC/chat knowledge quedaron implementados, validados y archivados. La rama
-`main` ya contiene el merge de M37 y el unico change activo que quedaba, M36,
-fue archivado en
-`openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/`.
+Estado post-M38: M36 Functional chat workspace, M37 Project RBAC/chat
+knowledge y M38 Chat retrieval/rerank settings quedaron implementados,
+validados y archivados. La rama `main` ya contiene el merge funcional de M38 y
+este cierre archiva el change en
+`openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`.
 
 ## Ultimo milestone completado
 
-M37 Project RBAC/chat knowledge cerrado el 2026-06-28.
+M38 Chat retrieval/rerank settings cerrado el 2026-06-28.
 
 El change quedo archivado en
-`openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
-y actualiza las specs canonicas `project-rbac`, `domain-schema`,
-`product-authoring-surface`, `chat-history`, `chat-tool-calling`,
-`chat-frontend` e `ingestion-pipeline`.
+`openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
+y actualiza las specs canonicas `chat-tool-calling` y `provider-runtime`.
 
 ## Ultimo slice completado
+
+M38 Chat retrieval/rerank settings: settings efectivos globales y por proyecto
+para `retrieval_limit`, `rerank_enabled` y `rerank_candidate_limit` quedaron
+persistidos, expuestos por API/frontend y conectados al flujo de chat API/CLI.
+Los defaults iniciales son `retrieval_limit=5`, `rerank_enabled=true` y
+`rerank_candidate_limit=10`; ambos limites aceptan maximo `50` y el candidate
+limit no puede ser menor que el retrieval limit cuando rerank esta activo. El
+chat audita la configuracion efectiva sin secretos y construye reranker lazy
+solo cuando corresponde. En frontend, Runtime settings maneja defaults globales
+y overrides por proyecto; Appearance se movio a `My account` como preferencia
+de usuario y ya no vive en settings globales/proyecto. El gate valido backend,
+frontend, lint/typecheck, OpenSpec strict, `git diff --check` y QA browser.
 
 M36 Functional chat workspace fue archivado como housekeeping el 2026-06-28.
 El archive movio el change a
@@ -40,7 +50,8 @@ tabs Context/Minimap. La paleta ya no esta acoplada a Chat: Settings incluye
 Appearance con temas globales Light, Dark y Purple, aplicados via `data-theme`,
 `.dark` y `localStorage`. Session navigation, context/usage, minimap, action
 stepper, source viewer desde citas actuales y chunks historicos, y STT browser
-fallback quedaron implementados con tests. Qwen STT queda deferred porque la
+fallback quedaron implementados con tests. M38 movio Appearance a `My account`
+como configuracion de usuario. Qwen STT queda deferred porque la
 documentacion actual de DashScope requiere ASR con `file_urls`/polling y no
 existe contrato backend local de audio. Memory queda deferred tras verificar
 que no hay tabla, repositorio ni ruta API durable.
@@ -79,7 +90,7 @@ No active changes found.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/`
+- `openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
 
 ## Spec canonica activa
 

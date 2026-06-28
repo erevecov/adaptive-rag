@@ -37,6 +37,7 @@
 - Post-M35 Final release gate/audit closeout: completo.
 - M36 Functional chat workspace: completo.
 - M37 Project RBAC/chat knowledge: completo.
+- M38 Chat retrieval/rerank settings: completo.
 
 ## M1 Foundation
 
@@ -1627,6 +1628,47 @@ Secuencia entregada:
 7. `m37-frontend-project-rbac`: selector buscable de proyectos, estados
    locked, project members y knowledge review queue.
 8. `m37-quality-gate`: backend/frontend/OpenSpec/browser QA y archive.
+
+Continuacion: M38 completo settings efectivos de retrieval/rerank para chat y
+reubico Appearance en `My account` como configuracion de usuario.
+
+## M38 Chat retrieval/rerank settings
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
+
+Objetivo:
+
+- Hacer configurable el uso de reranker y los limites de retrieval de chat con
+  defaults globales y overrides por proyecto, dejando la apariencia como
+  preferencia de usuario fuera de settings globales/proyecto.
+
+Condiciones del milestone:
+
+- Los defaults globales iniciales son `retrieval_limit=5`,
+  `rerank_enabled=true` y `rerank_candidate_limit=10`.
+- Los proyectos heredan defaults globales al crearse y pueden pisarlos despues.
+- `retrieval_limit` y `rerank_candidate_limit` son configurables entre `1` y
+  `50`.
+- Si rerank esta activo, `rerank_candidate_limit` debe ser mayor o igual que
+  `retrieval_limit`.
+- El chat API/CLI resuelve settings efectivos antes de llamar retrieval y
+  audita la configuracion sin secretos.
+- La UI expone defaults globales y overrides de proyecto en Runtime settings.
+- Appearance vive en `My account` como configuracion de usuario.
+
+Secuencia entregada:
+
+1. `m38-chat-retrieval-settings`: OpenSpec de planificacion, migracion/modelos,
+   repository, API schemas/routes, frontend settings, wiring de chat API/CLI,
+   audit de configuracion efectiva, reranker lazy y archive.
+2. Closeout de UI: navegacion lateral `Chat | My account | Settings`, con
+   Appearance removido de Settings y renderizado desde `My account`.
+3. `m38-quality-gate`: backend/frontend relevantes, lint/typecheck, OpenSpec
+   strict, `git diff --check` y QA browser.
 
 Continuacion: no quedan active changes OpenSpec. La siguiente decision
 recomendada es re-ejecutar el release gate final desde `origin/main` y decidir
