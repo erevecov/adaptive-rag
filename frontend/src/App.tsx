@@ -51,7 +51,7 @@ const STATUS_ORDER = ['failed', 'running', 'succeeded']
 const SESSION_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Running', value: 'running' },
-  { label: 'Succeeded', value: 'succeeded' },
+  { label: 'Done', value: 'succeeded' },
   { label: 'Failed', value: 'failed' },
 ] as const
 const RUNTIME_SLOTS = [
@@ -139,8 +139,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [historyStatusFilter, setHistoryStatusFilter] =
     useState<SessionNavigationFilter>('all')
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('context')
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true)
-  const [isRightDockOpen, setIsRightDockOpen] = useState(true)
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() =>
+    readInitialLeftSidebarOpen(),
+  )
+  const [isRightDockOpen, setIsRightDockOpen] = useState(false)
+  const chatTranscriptRef = useRef<HTMLDivElement | null>(null)
+  const chatAutoFollowRef = useRef(true)
   const pendingFocusMessageIdRef = useRef<string | null>(null)
   const [detailState, setDetailState] = useState<RequestState>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
@@ -234,6 +238,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     focusMessage(messageId)
   }, [inspectorTab])
 
+  useEffect(() => {
+    if (activeView !== 'chat' || !chatAutoFollowRef.current) {
+      return
+    }
+
+    const transcript = chatTranscriptRef.current
+    if (transcript === null) {
+      return
+    }
+
+    transcript.scrollTop = transcript.scrollHeight
+  }, [activeView, requestState, response])
+
+  function handleChatTranscriptScroll() {
+    const transcript = chatTranscriptRef.current
+    if (transcript === null) {
+      return
+    }
+
+    const distanceFromBottom =
+      transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight
+    chatAutoFollowRef.current = distanceFromBottom <= 48
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -251,6 +279,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setHistoryError(null)
     setResponse(null)
     resetSourceViewer()
+    chatAutoFollowRef.current = true
 
     const requestBody = {
       message: trimmedQuestion,
@@ -479,6 +508,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     setSelectedSessionId(sessionId)
+    handleOpenInspectorTab('context')
     setDetailState('loading')
     setDetailError(null)
 
@@ -1010,13 +1040,21 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 </span>
               </div>
 
-              <ResponsePanel
-                onOpenSource={(sourceId, citationSnippet) =>
-                  void handleOpenSource(sourceId, citationSnippet)
-                }
-                response={response}
-                state={requestState}
-              />
+              <div
+                aria-label="Chat transcript"
+                className="chat-transcript"
+                onScroll={handleChatTranscriptScroll}
+                ref={chatTranscriptRef}
+                role="region"
+              >
+                <ResponsePanel
+                  onOpenSource={(sourceId, citationSnippet) =>
+                    void handleOpenSource(sourceId, citationSnippet)
+                  }
+                  response={response}
+                  state={requestState}
+                />
+              </div>
 
               <form className="chat-form" onSubmit={handleSubmit}>
                 <label className="field">
@@ -1097,8 +1135,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                     </button>
                   ) : null}
                 </div>
-
-                <ChatRetrievalSummary retrievalLimit={retrievalLimit} />
 
                 {requestError ? (
                   <p className="form-feedback form-feedback-error" role="alert">
@@ -1409,12 +1445,14 @@ function ProjectSelectControl({
         </select>
       </label>
       <button
+        aria-label="Refresh projects"
         className="secondary-button project-refresh-button"
         disabled={state === 'loading'}
         onClick={onRefreshProjects}
+        title={state === 'loading' ? 'Refreshing projects' : 'Refresh projects'}
         type="button"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Refresh projects'}
+        <RefreshIcon />
       </button>
     </div>
   )
@@ -3016,22 +3054,6 @@ function SpeechInputControl({
   )
 }
 
-function ChatRetrievalSummary({
-  retrievalLimit,
-}: {
-  retrievalLimit: number
-}) {
-  return (
-    <section className="chat-retrieval-summary" aria-label="Chat retrieval mode">
-      <div>
-        <span>Dense retrieval default</span>
-        <strong>Top {retrievalLimit} cited chunks</strong>
-      </div>
-      <p>Backend default retrieval stays dense for product chat.</p>
-    </section>
-  )
-}
-
 function ResponsePanel({
   onOpenSource,
   response,
@@ -3866,6 +3888,18 @@ function getDefaultApiBaseUrl(): string {
   return configured.length > 0 ? configured : DEFAULT_API_BASE_URL
 }
 
+function readInitialLeftSidebarOpen(): boolean {
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia('(min-width: 681px)').matches
+  }
+
+  return window.innerWidth > 680
+}
+
 function readPersistedProjectId(): string {
   try {
     return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
@@ -4551,6 +4585,17 @@ function XIcon() {
   return (
     <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
       <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  )
+}
+
+function RefreshIcon() {
+  return (
+    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
+      <path d="M20 6v5h-5" />
+      <path d="M4 18v-5h5" />
+      <path d="M18.5 9A7 7 0 0 0 6.6 6.6L4 9" />
+      <path d="M5.5 15a7 7 0 0 0 11.9 2.4L20 15" />
     </svg>
   )
 }

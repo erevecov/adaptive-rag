@@ -4,6 +4,7 @@
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -19,6 +20,7 @@ import type {
   ChatResponseBody,
   ChatSessionDetailResponse,
   ChatSessionListResponse,
+  ChatStreamHandlers,
   IngestionJob,
   IngestionJobListResponse,
   IngestionRunResponse,
@@ -775,8 +777,6 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
-
     expect(
       screen.queryByRole('complementary', { name: 'Workspace inspector' }),
     ).toBeNull()
@@ -795,6 +795,73 @@ describe('App chat workspace', () => {
     expect(
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
+    expect(
+      screen
+        .getByRole('button', { name: 'Open minimap sidebar' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+
+    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+
+    expect(
+      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeNull()
+  })
+
+  test('auto-follows streaming chat until the user scrolls away from the bottom', async () => {
+    const user = userEvent.setup()
+    const finalResponse = createDeferred<ChatResponseBody>()
+    let streamHandlers: ChatStreamHandlers | undefined
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async (_projectId, _body, handlers) => {
+        streamHandlers = handlers
+        handlers.onSessionStarted?.('session-stream')
+        return finalResponse.promise
+      }),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    Object.defineProperty(transcript, 'clientHeight', {
+      configurable: true,
+      value: 240,
+    })
+    Object.defineProperty(transcript, 'scrollHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    transcript.scrollTop = 360
+    fireEvent.scroll(transcript)
+
+    await act(async () => {
+      streamHandlers?.onAnswerDelta?.('Partial streaming answer')
+    })
+
+    expect(transcript.scrollTop).toBe(600)
+
+    transcript.scrollTop = 80
+    fireEvent.scroll(transcript)
+    Object.defineProperty(transcript, 'scrollHeight', {
+      configurable: true,
+      value: 700,
+    })
+
+    await act(async () => {
+      streamHandlers?.onAnswerDelta?.(' while reading earlier context')
+    })
+
+    expect(transcript.scrollTop).toBe(80)
+
+    await act(async () => {
+      finalResponse.resolve(chatResponse)
+    })
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
   })
 
   test('renders the transcript action as an icon-only composer button', () => {
@@ -814,7 +881,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.querySelector('main')?.className).toContain('app-shell')
 
@@ -826,12 +893,11 @@ describe('App chat workspace', () => {
       screen.getByRole('button', { name: /Light/ }).getAttribute('aria-pressed'),
     ).toBe('false')
     const darkThemeButton = screen.getByRole('button', { name: /Dark/ })
-    expect(darkThemeButton.getAttribute('aria-pressed')).toBe('false')
+    expect(darkThemeButton.getAttribute('aria-pressed')).toBe('true')
+    const purpleThemeButton = screen.getByRole('button', { name: /Purple/ })
     expect(
-      screen.getByRole('button', { name: /Purple/ }).getAttribute(
-        'aria-pressed',
-      ),
-    ).toBe('true')
+      purpleThemeButton.getAttribute('aria-pressed'),
+    ).toBe('false')
     expect(
       screen.getByText('High-contrast purple workspace palette.'),
     ).toBeTruthy()
@@ -839,9 +905,10 @@ describe('App chat workspace', () => {
       new RegExp(['be', 'flow'].join(''), 'i'),
     )
 
-    await user.click(darkThemeButton)
+    await user.click(purpleThemeButton)
 
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
+    expect(purpleThemeButton.getAttribute('aria-pressed')).toBe('true')
     expect(
       darkThemeButton.querySelector<HTMLElement>('.theme-swatch')?.style
         .background,
@@ -1013,11 +1080,10 @@ describe('App chat workspace', () => {
   test('frames chat as dense retrieval without advanced mode controls', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.getByText('Dense retrieval default')).toBeTruthy()
+    expect(screen.getByLabelText('Retrieval limit')).toBeTruthy()
     expect(
-      screen.getByText('Backend default retrieval stays dense for product chat.'),
-    ).toBeTruthy()
-    expect(screen.getByText('Top 5 cited chunks')).toBeTruthy()
+      screen.queryByRole('region', { name: 'Chat retrieval mode' }),
+    ).toBeNull()
     expect(
       screen.queryByRole('combobox', { name: /retrieval strategy/i }),
     ).toBeNull()
@@ -1118,7 +1184,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
     await screen.findByText(chatResponse.answer)
 
-    await user.click(screen.getByRole('tab', { name: 'Minimap' }))
+    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
     expect(
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
