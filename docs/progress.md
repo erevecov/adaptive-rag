@@ -2,7 +2,25 @@
 
 ## Milestone activo
 
-No hay OpenSpec changes activos.
+M36 Functional chat workspace activo en `m36-chat-functional-workspace`.
+
+Objetivo: convertir el chat frontend en un workspace funcional de investigacion,
+usando contratos publicos reales para sesiones, detalle de audit trail,
+observability, citations y sources. Cada feature debe cerrar con pruebas o QA
+antes de avanzar. No se deben mostrar archive, memory ni STT Qwen como UI falsa
+si no hay contrato backend verificado.
+
+Estado de implementacion: el chat quedo reorganizado como workspace funcional de
+tres zonas: rail de sesiones, chat central e inspector derecho con tabs
+Context/Minimap. La paleta ya no esta acoplada a Chat: Settings
+incluye Appearance con temas globales Light, Dark y Purple, aplicados via
+`data-theme`, `.dark` y `localStorage`. Session navigation,
+context/usage, minimap, action stepper, source viewer desde citas actuales y
+chunks historicos, y STT browser fallback quedaron implementados con tests.
+Qwen STT queda deferred
+porque la documentacion actual de DashScope requiere ASR con `file_urls`/polling
+y no existe contrato backend local de audio. Memory queda deferred tras verificar
+que no hay tabla, repositorio ni ruta API durable.
 
 ## Ultimo milestone completado
 
@@ -49,7 +67,7 @@ intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Change OpenSpec activo
 
-- Ninguno.
+- `openspec/changes/m36-chat-functional-workspace/`
 
 ## Ultimo change archivado
 
@@ -86,12 +104,8 @@ intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Siguiente tarea recomendada
 
-- Elegir la proxima feature pre-v1 mediante un nuevo OpenSpec antes de
-  implementar. Opcion recomendada: hardening opt-in de auth/API key para la API
-  antes de exponer el producto fuera de localhost, reutilizando
-  `ADAPTIVE_RAG_API_KEY` ya redacted y manteniendo el default local sin auth
-  segun el contrato actual. No crear tag ni GitHub release v1.0 hasta cerrar
-  esa feature y re-ejecutar el gate final.
+- Revisar el diff de M36, preparar PR y decidir si se quiere agregar un contrato
+  backend real para Qwen STT o memoria durable en un milestone posterior.
 
 ## Reglas de coordinacion
 

@@ -19,7 +19,7 @@ evals hosted, pero queda corto para una app local-first con UI:
 
 M33 abre un plan para convertir el runtime de providers en configuracion
 persistida y operable, inspirada en el patron global de `model_settings` y
-`chat_allowed_models` usado en BeFlow, pero adaptada a Adaptive RAG porque aqui
+`chat_allowed_models`, pero adaptada a Adaptive RAG porque aqui
 si existen proyectos y overrides por proyecto.
 
 ## What Changes

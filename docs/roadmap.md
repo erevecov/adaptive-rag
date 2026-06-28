@@ -35,6 +35,7 @@
 - M35 Acceptance e2e post-runtime-settings: completo.
 - Post-M35 Runtime settings UX/error-state hardening: completo.
 - Post-M35 Final release gate/audit closeout: completo.
+- M36 Functional chat workspace: activo.
 
 ## M1 Foundation
 
@@ -1527,13 +1528,52 @@ Entregado:
 - Redaccion adicional de secrets en `Settings`, `QwenHTTPEmbeddingClient` y
   `ResolvedRuntimeSlot` para evitar exposicion via `repr`.
 
-Continuacion: no hay OpenSpec activo. La siguiente tarea recomendada es abrir
-un nuevo change OpenSpec para una feature pre-v1 concreta antes de implementar.
-Opcion recomendada: hardening opt-in de auth/API key para la API antes de
-exponer el producto fuera de localhost, reutilizando `ADAPTIVE_RAG_API_KEY` ya
-redacted y manteniendo el default local sin auth segun el contrato actual. No
-crear tag ni GitHub release v1.0 hasta cerrar esa feature y re-ejecutar el gate
-final.
+Continuacion: M36 queda activo como feature pre-v1 concreta antes de tag o
+GitHub release v1.0.
+
+## M36 Functional chat workspace
+
+Estado: activo.
+
+Change activo:
+
+- `openspec/changes/m36-chat-functional-workspace/`
+
+Objetivo:
+
+- Convertir el chat frontend en un workspace funcional de investigacion,
+  usando contratos publicos reales para navegar sesiones, inspeccionar audit
+  trail interno, revisar context/usage y abrir fuentes/citations sin simular
+  features que todavia no tienen backend.
+
+Condiciones del milestone:
+
+- Cada feature debe empezar con tests fallando y cerrar con verificacion
+  ciblada antes de avanzar.
+- Session navigation usa `listChatSessions` con filtros publicos reales; no se
+  muestra archive si no existe contrato.
+- Context/usage usa `ChatSessionDetailResponse.provider_usage` y
+  observability; valores ausentes se muestran como unknown.
+- Minimap, stepper y source viewer son read-only sobre datos persistidos.
+- UI/UX sigue una anatomia de workspace de chat: rail de sesiones,
+  centro conversacional e inspector derecho con tabs Context/Minimap, con
+  colapso responsive sin overflow horizontal.
+- Los temas son globales, no por tab: Settings / Appearance permite elegir
+  Light, Dark o Purple y aplica la seleccion via `data-theme`, `.dark` y
+  `localStorage`.
+- STT Qwen requiere docs actuales y contrato backend; browser STT puede ser
+  fallback progresivo si se verifica.
+- Memory se implementa solo con almacenamiento durable o fuente verificada; si
+  no, queda deferred.
+
+Secuencia recomendada:
+
+1. `m36-chat-functional-workspace`: implementado en worktree
+   `codex/chat-functional-workspace`; queda review/PR. Incluye shell UI/UX
+   con session navigation, context/usage, minimap, action
+   stepper, source viewer desde citas actuales y chunks historicos, Settings /
+   Appearance con temas globales Light/Dark/Purple, STT browser fallback y
+   memory deferred por falta de contrato durable.
 
 ## Politica para reducir conflictos de merge
 

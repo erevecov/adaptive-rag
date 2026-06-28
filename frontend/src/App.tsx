@@ -1,4 +1,11 @@
-import { type FormEvent, type ReactNode, useMemo, useState } from 'react'
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import './App.css'
 import {
   ApiClientError,
@@ -12,6 +19,7 @@ import {
   type ChatHistoryToolCall,
   type ChatResponseBody,
   type ChatSessionDetailResponse,
+  type ChatSessionStatus,
   type ChatSessionSummary,
   type ChatToolCall,
   type IngestionJob,
@@ -26,12 +34,25 @@ import {
   type Source,
   type SourceCreateBody,
 } from './lib/apiClient'
+import {
+  THEMES,
+  THEME_STORAGE_KEY,
+  type Theme,
+  applyTheme,
+  readPersistedTheme,
+} from './lib/theme'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
 const HISTORY_LIMIT = 5
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const STATUS_ORDER = ['failed', 'running', 'succeeded']
+const SESSION_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Running', value: 'running' },
+  { label: 'Succeeded', value: 'succeeded' },
+  { label: 'Failed', value: 'failed' },
+] as const
 const RUNTIME_SLOTS = [
   'chat',
   'dense_embedding',
@@ -41,10 +62,33 @@ const RUNTIME_SLOTS = [
 ]
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime'
+type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime' | 'settings'
+type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
+type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
   connection_id: string
   model_id: string
+}
+type SourceViewerState = {
+  citationSnippet: string | null
+  error: string | null
+  source: Source | null
+  sourceId: string | null
+  state: RequestState
+}
+type BrowserSpeechRecognition = {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onend: (() => void) | null
+  onerror: ((event: { error?: string }) => void) | null
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null
+  start(): void
+  stop(): void
+}
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition
+type SpeechRecognitionResultEventLike = {
+  results: ArrayLike<ArrayLike<{ transcript?: string }>>
 }
 
 type AppProps = {
@@ -64,13 +108,28 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectId, setProjectId] = useState(initialProjectId)
   const [question, setQuestion] = useState('')
   const [retrievalLimit, setRetrievalLimit] = useState(DEFAULT_RETRIEVAL_LIMIT)
+  const [speechState, setSpeechState] = useState<RequestState>('idle')
+  const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
+  const [activeSpeechRecognition, setActiveSpeechRecognition] =
+    useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [sourceViewer, setSourceViewer] = useState<SourceViewerState>({
+    citationSnippet: null,
+    error: null,
+    source: null,
+    sourceId: null,
+    state: 'idle',
+  })
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([])
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [sessionDetail, setSessionDetail] =
     useState<ChatSessionDetailResponse | null>(null)
   const [requestState, setRequestState] = useState<RequestState>('idle')
   const [historyState, setHistoryState] = useState<RequestState>('idle')
+  const [historyStatusFilter, setHistoryStatusFilter] =
+    useState<SessionNavigationFilter>('all')
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('context')
+  const pendingFocusMessageIdRef = useRef<string | null>(null)
   const [detailState, setDetailState] = useState<RequestState>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
@@ -78,6 +137,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
   const [activeView, setActiveView] = useState<ActiveView>('chat')
+  const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
   const [observabilityStatus, setObservabilityStatus] = useState('')
@@ -140,6 +200,23 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectSlotModelId, setProjectSlotModelId] = useState('')
 
   const isAsking = requestState === 'loading'
+  const speechRecognitionConstructor = getSpeechRecognitionConstructor()
+  const isSpeechSupported = speechRecognitionConstructor !== null
+
+  useEffect(() => {
+    applyTheme(theme)
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
+
+  useEffect(() => {
+    if (inspectorTab !== 'context' || pendingFocusMessageIdRef.current === null) {
+      return
+    }
+
+    const messageId = pendingFocusMessageIdRef.current
+    pendingFocusMessageIdRef.current = null
+    focusMessage(messageId)
+  }, [inspectorTab])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -157,6 +234,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHistoryError(null)
     setResponse(null)
+    resetSourceViewer()
 
     const requestBody = {
       message: trimmedQuestion,
@@ -224,7 +302,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     activeRequestController?.abort()
   }
 
-  async function handleRefreshHistory(projectIdOverride?: string) {
+  async function handleRefreshHistory(
+    projectIdOverride?: string,
+    statusFilterOverride: SessionNavigationFilter = historyStatusFilter,
+  ) {
     const trimmedProjectId = (projectIdOverride ?? projectId).trim()
 
     if (trimmedProjectId.length === 0) {
@@ -234,11 +315,128 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     setHistoryError(null)
-    await refreshHistory(client, trimmedProjectId, {
-      onError: setHistoryError,
-      onItems: setSessions,
-      onState: setHistoryState,
+    await refreshHistory(
+      client,
+      trimmedProjectId,
+      statusFilterOverride,
+      {
+        onError: setHistoryError,
+        onItems: setSessions,
+        onState: setHistoryState,
+      },
+    )
+  }
+
+  function handleChangeHistoryStatusFilter(filter: SessionNavigationFilter) {
+    setHistoryStatusFilter(filter)
+    void handleRefreshHistory(undefined, filter)
+  }
+
+  function handleNavigateToMessage(messageId: string) {
+    pendingFocusMessageIdRef.current = messageId
+    setInspectorTab('context')
+  }
+
+  function resetSourceViewer() {
+    setSourceViewer({
+      citationSnippet: null,
+      error: null,
+      source: null,
+      sourceId: null,
+      state: 'idle',
     })
+  }
+
+  async function handleOpenSource(sourceId: string, citationSnippet: string | null) {
+    const trimmedProjectId = projectId.trim()
+    setInspectorTab('context')
+    setSourceViewer({
+      citationSnippet,
+      error: null,
+      source: null,
+      sourceId,
+      state: 'loading',
+    })
+
+    if (trimmedProjectId.length === 0) {
+      setSourceViewer({
+        citationSnippet,
+        error: 'Project ID is required to load source details.',
+        source: null,
+        sourceId,
+        state: 'failed',
+      })
+      return
+    }
+
+    try {
+      const source = await client.getSource(trimmedProjectId, sourceId)
+      setSourceViewer({
+        citationSnippet,
+        error: null,
+        source,
+        sourceId,
+        state: 'succeeded',
+      })
+    } catch (error) {
+      setSourceViewer({
+        citationSnippet,
+        error: getErrorMessage(error),
+        source: null,
+        sourceId,
+        state: 'failed',
+      })
+    }
+  }
+
+  function handleStartSpeechRecognition() {
+    const Recognition = getSpeechRecognitionConstructor()
+    if (Recognition === null) {
+      setSpeechState('failed')
+      setSpeechFeedback('Speech recognition is not supported in this browser.')
+      return
+    }
+
+    const recognition = new Recognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = navigator.language || 'en-US'
+    recognition.onresult = (event) => {
+      const transcript = extractSpeechTranscript(event)
+      if (transcript.length === 0) {
+        setSpeechState('failed')
+        setSpeechFeedback('Speech recognition returned an empty transcript.')
+        return
+      }
+      setQuestion((current) => appendTranscript(current, transcript))
+      setSpeechState('succeeded')
+      setSpeechFeedback('Voice transcript added.')
+    }
+    recognition.onerror = (event) => {
+      setSpeechState('failed')
+      setSpeechFeedback(`Speech recognition error: ${event.error ?? 'unknown'}`)
+    }
+    recognition.onend = () => {
+      setActiveSpeechRecognition(null)
+      setSpeechState((current) => (current === 'loading' ? 'idle' : current))
+    }
+
+    try {
+      recognition.start()
+      setActiveSpeechRecognition(recognition)
+      setSpeechState('loading')
+      setSpeechFeedback('Listening...')
+    } catch (error) {
+      setSpeechState('failed')
+      setSpeechFeedback(getErrorMessage(error))
+    }
+  }
+
+  function handleStopSpeechRecognition() {
+    activeSpeechRecognition?.stop()
+    setActiveSpeechRecognition(null)
+    setSpeechState('idle')
+    setSpeechFeedback('Dictation stopped.')
   }
 
   async function handleSelectSession(sessionId: string) {
@@ -718,7 +916,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   return (
     <main className="app-shell">
-      <section className="workspace" aria-labelledby="workspace-title">
+      <section
+        className={activeView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
+        aria-labelledby="workspace-title"
+      >
         <header className="workspace-header">
           <div>
             <h1 id="workspace-title">Adaptive RAG</h1>
@@ -736,8 +937,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         <ProjectContextBar projectId={projectId} projects={projects} />
 
         {activeView === 'chat' ? (
-          <div className="workspace-grid">
-            <section className="panel panel-primary" aria-labelledby="chat-title">
+          <div className="workspace-grid chat-workspace-grid">
+            <SessionNavigationPanel
+              error={historyError}
+              onRefresh={() => void handleRefreshHistory()}
+              onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+              onStatusFilterChange={handleChangeHistoryStatusFilter}
+              selectedSessionId={selectedSessionId}
+              sessions={sessions}
+              statusFilter={historyStatusFilter}
+              state={historyState}
+            />
+
+            <section className="panel panel-primary chat-panel" aria-labelledby="chat-title">
               <div className="panel-heading">
                 <div>
                   <p className="panel-label">Chat</p>
@@ -799,6 +1011,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   ) : null}
                 </div>
 
+                <SpeechInputControl
+                  feedback={speechFeedback}
+                  isSupported={isSpeechSupported}
+                  onStart={handleStartSpeechRecognition}
+                  onStop={handleStopSpeechRecognition}
+                  state={speechState}
+                />
+
                 <ChatRetrievalSummary retrievalLimit={retrievalLimit} />
 
                 {requestError ? (
@@ -808,19 +1028,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 ) : null}
               </form>
 
-              <ResponsePanel response={response} state={requestState} />
+              <ResponsePanel
+                onOpenSource={(sourceId, citationSnippet) =>
+                  void handleOpenSource(sourceId, citationSnippet)
+                }
+                response={response}
+                state={requestState}
+              />
             </section>
 
-            <HistoryPanel
+            <WorkspaceInspectorPanel
+              activeTab={inspectorTab}
               detail={sessionDetail}
               detailError={detailError}
               detailState={detailState}
-              error={historyError}
-              onRefresh={() => void handleRefreshHistory()}
-              onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
-              selectedSessionId={selectedSessionId}
-              sessions={sessions}
-              state={historyState}
+              onNavigateMessage={handleNavigateToMessage}
+              onActiveTabChange={setInspectorTab}
+              onOpenSource={(sourceId, citationSnippet) =>
+                void handleOpenSource(sourceId, citationSnippet)
+              }
+              sourceViewer={sourceViewer}
             />
           </div>
         ) : activeView === 'observability' ? (
@@ -887,6 +1114,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             onSecretConnectionIdChange={setSecretConnectionId}
             onSecretValueChange={setSecretValue}
           />
+        ) : activeView === 'settings' ? (
+          <SettingsPanel onThemeChange={setTheme} theme={theme} />
         ) : (
           <AuthoringPanel
             ingestionError={ingestionError}
@@ -1003,7 +1232,86 @@ function ViewSwitcher({
       >
         Runtime
       </button>
+      <button
+        aria-pressed={activeView === 'settings'}
+        className={
+          activeView === 'settings' ? 'view-tab view-tab-active' : 'view-tab'
+        }
+        onClick={() => onChange('settings')}
+        type="button"
+      >
+        Settings
+      </button>
     </nav>
+  )
+}
+
+function SettingsPanel({
+  onThemeChange,
+  theme,
+}: {
+  onThemeChange(theme: Theme): void
+  theme: Theme
+}) {
+  return (
+    <section className="panel settings-panel" aria-labelledby="settings-title">
+      <header className="settings-header">
+        <div>
+          <p className="panel-label">Settings</p>
+          <h2 id="settings-title">Appearance</h2>
+        </div>
+        <span className="status">{theme}</span>
+      </header>
+
+      <p className="settings-description">Choose the interface palette.</p>
+
+      <div className="theme-option-grid">
+        {THEMES.map((option) => {
+          const active = option.id === theme
+          return (
+            <button
+              aria-pressed={active}
+              className={
+                active ? 'theme-option theme-option-active' : 'theme-option'
+              }
+              key={option.id}
+              onClick={() => onThemeChange(option.id)}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="theme-swatch"
+                style={{ background: option.swatch.bg }}
+              >
+                <span
+                  className="theme-swatch-line theme-swatch-line-strong"
+                  style={{ background: option.swatch.fg }}
+                />
+                <span
+                  className="theme-swatch-line theme-swatch-line-muted"
+                  style={{ background: option.swatch.muted }}
+                />
+                <span
+                  className="theme-swatch-accent"
+                  style={{ background: option.swatch.accent }}
+                />
+              </span>
+              <span className="theme-option-copy">
+                <span className="theme-option-title">
+                  {option.label}
+                  {active ? (
+                    <span className="theme-option-check" aria-hidden="true" />
+                  ) : null}
+                </span>
+                <span className="theme-option-description">
+                  {option.description}
+                </span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -2427,6 +2735,56 @@ function MetricCard({
   )
 }
 
+function SpeechInputControl({
+  feedback,
+  isSupported,
+  onStart,
+  onStop,
+  state,
+}: {
+  feedback: string | null
+  isSupported: boolean
+  onStart(): void
+  onStop(): void
+  state: RequestState
+}) {
+  const isListening = state === 'loading'
+  const buttonLabel = !isSupported
+    ? 'Speech input unavailable'
+    : isListening
+      ? 'Stop dictation'
+      : 'Start dictation'
+  const message =
+    feedback ??
+    (isSupported
+      ? 'Speech input ready.'
+      : 'Speech recognition is not supported in this browser.')
+
+  return (
+    <section className="speech-input" aria-label="Speech input">
+      <button
+        aria-label={buttonLabel}
+        className={isListening ? 'speech-button speech-button-active' : 'speech-button'}
+        disabled={!isSupported}
+        onClick={isListening ? onStop : onStart}
+        type="button"
+      >
+        {isListening ? 'Stop dictation' : 'Dictate'}
+      </button>
+      <p
+        className={
+          state === 'failed'
+            ? 'form-feedback form-feedback-error'
+            : 'speech-feedback'
+        }
+        role={state === 'failed' ? 'alert' : 'status'}
+      >
+        {message}
+      </p>
+    </section>
+  )
+}
+
 function ChatRetrievalSummary({
   retrievalLimit,
 }: {
@@ -2444,15 +2802,23 @@ function ChatRetrievalSummary({
 }
 
 function ResponsePanel({
+  onOpenSource,
   response,
   state,
 }: {
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
   response: ChatResponseBody | null
   state: RequestState
 }) {
   if (state === 'loading') {
     if (response !== null) {
-      return <ResponseContent response={response} state={state} />
+      return (
+        <ResponseContent
+          onOpenSource={onOpenSource}
+          response={response}
+          state={state}
+        />
+      )
     }
     return (
       <div className="message-card message-card-muted" aria-live="polite">
@@ -2472,14 +2838,20 @@ function ResponsePanel({
   }
 
   return (
-    <ResponseContent response={response} state={state} />
+    <ResponseContent
+      onOpenSource={onOpenSource}
+      response={response}
+      state={state}
+    />
   )
 }
 
 function ResponseContent({
+  onOpenSource,
   response,
   state,
 }: {
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
   response: ChatResponseBody
   state: RequestState
 }) {
@@ -2525,7 +2897,21 @@ function ResponseContent({
                     </span>
                   </div>
                 </div>
-                <span>score {formatScore(result.score)}</span>
+                <div className="citation-actions">
+                  <span className="citation-score">
+                    score {formatScore(result.score)}
+                  </span>
+                  <button
+                    aria-label={`View source ${result.citation.source_external_id}`}
+                    className="source-viewer-button"
+                    onClick={() =>
+                      onOpenSource(result.citation.source_id, result.citation.snippet)
+                    }
+                    type="button"
+                  >
+                    View source
+                  </button>
+                </div>
               </li>
             ))}
           </ol>
@@ -2554,37 +2940,139 @@ function ResponseContent({
   )
 }
 
-function HistoryPanel({
-  detail,
-  detailError,
-  detailState,
+function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
+  if (viewer.state === 'idle' && viewer.sourceId === null) {
+    return null
+  }
+
+  return (
+    <section className="source-viewer" aria-label="Source viewer">
+      <div className="detail-heading">
+        <h3>Source viewer</h3>
+        <span>{sourceViewerStatusLabel(viewer.state)}</span>
+      </div>
+
+      {viewer.state === 'loading' ? (
+        <p className="empty-copy">Loading source {viewer.sourceId}...</p>
+      ) : null}
+
+      {viewer.error ? (
+        <p className="history-error" role="alert">
+          {viewer.error}
+        </p>
+      ) : null}
+
+      {viewer.citationSnippet === null ? null : (
+        <div className="source-viewer-block">
+          <h4>Citation snippet</h4>
+          <p>{viewer.citationSnippet}</p>
+        </div>
+      )}
+
+      {viewer.source ? (
+        <div className="source-viewer-content">
+          <p className="detail-session-id">{viewer.source.external_id}</p>
+          <dl className="source-viewer-grid">
+            <div>
+              <dt>ID</dt>
+              <dd>{viewer.source.id}</dd>
+            </div>
+            <div>
+              <dt>Type</dt>
+              <dd>{viewer.source.source_type}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{viewer.source.created_at}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{viewer.source.updated_at}</dd>
+            </div>
+          </dl>
+
+          <div className="source-viewer-block">
+            <h4>Tags</h4>
+            {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
+              <p className="empty-copy">No tags stored.</p>
+            ) : (
+              <ul className="source-tag-list">
+                {viewer.source.tags.map((tag) => (
+                  <li key={tag}>{tag}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="source-viewer-block">
+            <h4>Metadata</h4>
+            {viewer.source.extra_metadata === null ||
+            Object.keys(viewer.source.extra_metadata).length === 0 ? (
+              <p className="empty-copy">No metadata stored.</p>
+            ) : (
+              <dl className="source-viewer-grid">
+                {Object.entries(viewer.source.extra_metadata).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{key}</dt>
+                    <dd>{formatJsonValue(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function SessionNavigationPanel({
+  statusFilter,
   error,
   onRefresh,
   onSelectSession,
+  onStatusFilterChange,
   selectedSessionId,
   sessions,
   state,
 }: {
-  detail: ChatSessionDetailResponse | null
-  detailError: string | null
-  detailState: RequestState
+  statusFilter: SessionNavigationFilter
   error: string | null
   onRefresh(): void
   onSelectSession(sessionId: string): void
+  onStatusFilterChange(filter: SessionNavigationFilter): void
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   state: RequestState
 }) {
   return (
-    <aside className="panel" aria-labelledby="history-title">
+    <aside className="panel session-rail" aria-labelledby="history-title">
       <div className="panel-heading">
         <div>
-          <p className="panel-label">History</p>
-          <h2 id="history-title">Recent sessions</h2>
+          <p className="panel-label">Sessions</p>
+          <h2 id="history-title">Session navigation</h2>
         </div>
         <span className={statusClassName(state)}>
           {historyStatusLabel(state)}
         </span>
+      </div>
+
+      <div className="session-filter-list" aria-label="Session status filters">
+        {SESSION_FILTERS.map((filter) => (
+          <button
+            aria-pressed={statusFilter === filter.value}
+            className={
+              statusFilter === filter.value
+                ? 'session-filter session-filter-active'
+                : 'session-filter'
+            }
+            key={filter.value}
+            onClick={() => onStatusFilterChange(filter.value)}
+            type="button"
+          >
+            {filter.label}
+          </button>
+        ))}
       </div>
 
       <button
@@ -2632,23 +3120,257 @@ function HistoryPanel({
           ))
         )}
       </ul>
-
-      <SessionDetailPanel
-        detail={detail}
-        error={detailError}
-        state={detailState}
-      />
     </aside>
+  )
+}
+
+function WorkspaceInspectorPanel({
+  activeTab,
+  detail,
+  detailError,
+  detailState,
+  onActiveTabChange,
+  onNavigateMessage,
+  onOpenSource,
+  sourceViewer,
+}: {
+  activeTab: InspectorTab
+  detail: ChatSessionDetailResponse | null
+  detailError: string | null
+  detailState: RequestState
+  onActiveTabChange(tab: InspectorTab): void
+  onNavigateMessage(messageId: string): void
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  sourceViewer: SourceViewerState
+}) {
+  return (
+    <aside className="panel workspace-inspector" aria-label="Workspace inspector">
+      <div className="inspector-tabs" role="tablist" aria-label="Inspector panels">
+        <button
+          aria-controls="context-panel"
+          aria-selected={activeTab === 'context'}
+          className={
+            activeTab === 'context'
+              ? 'inspector-tab inspector-tab-active'
+              : 'inspector-tab'
+          }
+          id="context-tab"
+          onClick={() => onActiveTabChange('context')}
+          role="tab"
+          type="button"
+        >
+          Context
+        </button>
+        <button
+          aria-controls="minimap-panel"
+          aria-selected={activeTab === 'minimap'}
+          className={
+            activeTab === 'minimap'
+              ? 'inspector-tab inspector-tab-active'
+              : 'inspector-tab'
+          }
+          id="minimap-tab"
+          onClick={() => onActiveTabChange('minimap')}
+          role="tab"
+          type="button"
+        >
+          Minimap
+        </button>
+      </div>
+
+      {activeTab === 'context' ? (
+        <div
+          aria-labelledby="context-tab"
+          className="inspector-panel"
+          id="context-panel"
+          role="tabpanel"
+        >
+          <SourceViewerPanel viewer={sourceViewer} />
+          <SessionContextPanel detail={detail} />
+          <InternalActionStepper detail={detail} />
+          <SessionDetailPanel
+            detail={detail}
+            error={detailError}
+            onOpenSource={onOpenSource}
+            state={detailState}
+          />
+        </div>
+      ) : (
+        <div
+          aria-labelledby="minimap-tab"
+          className="inspector-panel"
+          id="minimap-panel"
+          role="tabpanel"
+        >
+          <ConversationMinimap
+            detail={detail}
+            onNavigateMessage={onNavigateMessage}
+          />
+        </div>
+      )}
+    </aside>
+  )
+}
+
+function ConversationMinimap({
+  detail,
+  onNavigateMessage,
+}: {
+  detail: ChatSessionDetailResponse | null
+  onNavigateMessage(messageId: string): void
+}) {
+  return (
+    <nav className="conversation-minimap" aria-label="Conversation minimap">
+      <div className="detail-heading">
+        <h3>Minimap</h3>
+        <span>{detail?.messages.length ?? 0} turns</span>
+      </div>
+
+      {detail === null || detail.messages.length === 0 ? (
+        <p className="empty-copy">Select a session to navigate messages.</p>
+      ) : (
+        <ol className="minimap-list">
+          {detail.messages.map((message) => (
+            <li key={message.message_id}>
+              <button
+                aria-label={`${message.role}: ${message.content}`}
+                onClick={() => onNavigateMessage(message.message_id)}
+                type="button"
+              >
+                <strong>{message.role}</strong>
+                <span>{message.content}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </nav>
+  )
+}
+
+function SessionContextPanel({
+  detail,
+}: {
+  detail: ChatSessionDetailResponse | null
+}) {
+  const firstUsage = detail?.provider_usage[0] ?? null
+
+  return (
+    <section className="session-context-panel" aria-label="Session context">
+      <div className="detail-heading">
+        <h3>Session context</h3>
+        <span>{detail?.session.status ?? 'empty'}</span>
+      </div>
+
+      {detail === null ? (
+        <p className="empty-copy">
+          Select a session to inspect model, prompt and usage context.
+        </p>
+      ) : (
+        <div className="session-context-grid">
+          <MetricCard
+            detail={detail.session.session_id}
+            label="Prompt"
+            value={`prompt ${detail.session.prompt_version ?? 'unknown'}`}
+          />
+          <MetricCard
+            detail={
+              firstUsage === null
+                ? 'unknown provider'
+                : `${firstUsage.provider} ${firstUsage.operation} ${firstUsage.status}`
+            }
+            label="Model"
+            value={firstUsage?.model ?? 'unknown model'}
+          />
+          <MetricCard
+            detail={`${detail.provider_usage.length} provider records`}
+            label="Cost"
+            value={formatSessionCost(detail.provider_usage)}
+          />
+          <MetricCard
+            detail="Known usage only"
+            label="Tokens"
+            value={formatSessionTokens(detail.provider_usage)}
+          />
+          <MetricCard
+            detail="Average known latency"
+            label="Latency"
+            value={formatSessionLatency(detail.provider_usage)}
+          />
+        </div>
+      )}
+    </section>
+  )
+}
+
+function InternalActionStepper({
+  detail,
+}: {
+  detail: ChatSessionDetailResponse | null
+}) {
+  return (
+    <section className="internal-stepper" aria-label="Internal action stepper">
+      <div className="detail-heading">
+        <h3>Action stepper</h3>
+        <span>{countInternalSteps(detail)} steps</span>
+      </div>
+
+      {detail === null || countInternalSteps(detail) === 0 ? (
+        <p className="empty-copy">No stored internal actions for this session.</p>
+      ) : (
+        <ol className="action-step-list">
+          {detail.tool_calls.map((call) => (
+            <li key={`tool-${call.tool_call_id}`}>
+              <span>tool call {call.status}</span>
+              <strong>{call.tool_name}</strong>
+              <p>{formatJsonValue(call.arguments)}</p>
+              <small>{formatUnknownMs(call.latency_ms)}</small>
+            </li>
+          ))}
+          {detail.retrieval_runs.map((run) => (
+            <li key={`retrieval-${run.retrieval_run_id}`}>
+              <span>retrieval {run.strategy}</span>
+              <strong>{run.query}</strong>
+              <p>
+                top {run.top_k} / {formatUnknownMs(run.latency_ms)}
+              </p>
+              <ul className="action-substep-list">
+                {run.retrieved_chunks.map((chunk) => (
+                  <li key={chunk.retrieved_chunk_id}>
+                    <strong>rank {chunk.rank}</strong>
+                    <small>{formatStepperScores(chunk)}</small>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+          {detail.provider_usage.map((usage) => (
+            <li key={`provider-${usage.provider_usage_id}`}>
+              <span>provider usage {usage.status}</span>
+              <strong>{usage.model}</strong>
+              <p>
+                {usage.provider} {usage.operation} /{' '}
+                {formatUnknownTokens(usage.total_tokens)} /{' '}
+                {formatUnknownCost(usage.estimated_cost_usd)}
+              </p>
+              <small>{formatUnknownMs(usage.latency_ms)}</small>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }
 
 function SessionDetailPanel({
   detail,
   error,
+  onOpenSource,
   state,
 }: {
   detail: ChatSessionDetailResponse | null
   error: string | null
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
   state: RequestState
 }) {
   if (state === 'loading') {
@@ -2690,11 +3412,18 @@ function SessionDetailPanel({
 
       <section className="detail-section" aria-labelledby="messages-title">
         <h4 id="messages-title">Messages</h4>
-        <ol className="detail-list">
+        <ol aria-label="Session messages" className="detail-list">
           {detail.messages.map((message) => (
             <li key={message.message_id}>
-              <strong>{message.role}</strong>
-              <p>{message.content}</p>
+              <article
+                aria-label={`${message.role} message`}
+                className="message-article"
+                id={messageElementId(message.message_id)}
+                tabIndex={-1}
+              >
+                <strong>{message.role}</strong>
+                <p>{message.content}</p>
+              </article>
             </li>
           ))}
         </ol>
@@ -2717,7 +3446,11 @@ function SessionDetailPanel({
           emptyLabel="No stored retrieval runs."
           items={detail.retrieval_runs}
           renderItem={(run) => (
-            <RetrievalRunDetail key={run.retrieval_run_id} run={run} />
+            <RetrievalRunDetail
+              key={run.retrieval_run_id}
+              onOpenSource={onOpenSource}
+              run={run}
+            />
           )}
         />
       </section>
@@ -2762,7 +3495,13 @@ function ToolCallDetail({ call }: { call: ChatHistoryToolCall }) {
   )
 }
 
-function RetrievalRunDetail({ run }: { run: ChatHistoryRetrievalRun }) {
+function RetrievalRunDetail({
+  onOpenSource,
+  run,
+}: {
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  run: ChatHistoryRetrievalRun
+}) {
   return (
     <li key={run.retrieval_run_id}>
       <strong>{run.query}</strong>
@@ -2773,20 +3512,34 @@ function RetrievalRunDetail({ run }: { run: ChatHistoryRetrievalRun }) {
       </div>
       <ul className="retrieved-chunk-list">
         {run.retrieved_chunks.map((chunk) => (
-          <RetrievedChunkDetail chunk={chunk} key={chunk.retrieved_chunk_id} />
+          <RetrievedChunkDetail
+            chunk={chunk}
+            key={chunk.retrieved_chunk_id}
+            onOpenSource={onOpenSource}
+          />
         ))}
       </ul>
     </li>
   )
 }
 
-function RetrievedChunkDetail({ chunk }: { chunk: ChatHistoryRetrievedChunk }) {
+function RetrievedChunkDetail({
+  chunk,
+  onOpenSource,
+}: {
+  chunk: ChatHistoryRetrievedChunk
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+}) {
   const scores = [
     formatOptionalScore('dense score', chunk.dense_score),
     formatOptionalScore('lexical score', chunk.lexical_score),
     formatOptionalScore('rrf score', chunk.rrf_score),
     formatOptionalScore('rerank score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
+  const sourceId = getCitationString(chunk.citation, 'source_id')
+  const citationSnippet = getCitationString(chunk.citation, 'snippet')
+  const sourceLabel =
+    getCitationString(chunk.citation, 'source_external_id') ?? sourceId
 
   return (
     <li>
@@ -2795,6 +3548,16 @@ function RetrievedChunkDetail({ chunk }: { chunk: ChatHistoryRetrievedChunk }) {
         <p>{getCitationText(chunk.citation, 'snippet')}</p>
         {scores.length > 0 ? (
           <small className="retrieved-chunk-scores">{scores.join(' / ')}</small>
+        ) : null}
+        {sourceId !== null ? (
+          <button
+            aria-label={`View source ${sourceLabel}`}
+            className="source-viewer-button retrieved-chunk-source-button"
+            onClick={() => onOpenSource(sourceId, citationSnippet)}
+            type="button"
+          >
+            View source
+          </button>
         ) : null}
       </div>
     </li>
@@ -2821,6 +3584,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 async function refreshHistory(
   client: ApiClient,
   projectId: string,
+  statusFilter: SessionNavigationFilter,
   callbacks: {
     onError(error: string | null): void
     onItems(items: ChatSessionSummary[]): void
@@ -2829,15 +3593,26 @@ async function refreshHistory(
 ) {
   callbacks.onState('loading')
   try {
-    const history = await client.listChatSessions(projectId, {
+    const params: { limit: number; status?: ChatSessionStatus } = {
       limit: HISTORY_LIMIT,
-    })
+    }
+    const status = chatSessionStatusForFilter(statusFilter)
+    if (status !== null) {
+      params.status = status
+    }
+    const history = await client.listChatSessions(projectId, params)
     callbacks.onItems(history.items)
     callbacks.onState('succeeded')
   } catch (error) {
     callbacks.onError(getErrorMessage(error))
     callbacks.onState('failed')
   }
+}
+
+function chatSessionStatusForFilter(
+  filter: SessionNavigationFilter,
+): ChatSessionStatus | null {
+  return filter === 'all' ? null : filter
 }
 
 function getDefaultApiBaseUrl(): string {
@@ -2918,6 +3693,29 @@ function normalizeLimit(value: string): number {
   return Math.min(20, Math.max(1, Math.trunc(parsed)))
 }
 
+function getSpeechRecognitionConstructor(): BrowserSpeechRecognitionConstructor | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  const host = window as unknown as {
+    SpeechRecognition?: BrowserSpeechRecognitionConstructor
+    webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor
+  }
+  return host.SpeechRecognition ?? host.webkitSpeechRecognition ?? null
+}
+
+function extractSpeechTranscript(event: SpeechRecognitionResultEventLike): string {
+  return Array.from(event.results)
+    .map((result) => result[0]?.transcript?.trim() ?? '')
+    .filter((transcript) => transcript.length > 0)
+    .join(' ')
+}
+
+function appendTranscript(current: string, transcript: string): string {
+  const trimmedCurrent = current.trim()
+  return trimmedCurrent.length === 0 ? transcript : `${trimmedCurrent} ${transcript}`
+}
+
 function formatScore(score: number): string {
   return score.toFixed(2)
 }
@@ -2947,6 +3745,17 @@ function getCitationText(value: unknown, key: string): string {
     : 'No citation text stored.'
 }
 
+function getCitationString(value: unknown, key: string): string | null {
+  if (value === null || typeof value !== 'object' || !(key in value)) {
+    return null
+  }
+
+  const nextValue = (value as Record<string, unknown>)[key]
+  return typeof nextValue === 'string' && nextValue.length > 0
+    ? nextValue
+    : null
+}
+
 function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
   if (run.strategy === 'dense' && !run.used_rerank) {
     return 'default dense retrieval'
@@ -2972,6 +3781,22 @@ function requestStatusLabel(state: RequestState): string {
     return 'Answered'
   }
   return 'Ready'
+}
+
+function sourceViewerStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Loading'
+  }
+  if (state === 'failed') {
+    return 'Unavailable'
+  }
+  if (state === 'succeeded') {
+    return 'Loaded'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
+  }
+  return 'Idle'
 }
 
 function historyStatusLabel(state: RequestState): string {
@@ -3299,6 +4124,80 @@ function ingestionRunMessage(run: IngestionRunResponse): string {
 
 function jobStatusClassName(status: string): string {
   return `job-status job-status-${status.replace(/[^a-z0-9_-]/gi, '-').toLowerCase()}`
+}
+
+function countInternalSteps(detail: ChatSessionDetailResponse | null): number {
+  if (detail === null) {
+    return 0
+  }
+  return (
+    detail.tool_calls.length +
+    detail.retrieval_runs.length +
+    detail.provider_usage.length
+  )
+}
+
+function focusMessage(messageId: string): void {
+  document.getElementById(messageElementId(messageId))?.focus()
+}
+
+function messageElementId(messageId: string): string {
+  return `chat-message-${messageId}`
+}
+
+function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {
+  const scores = [
+    formatOptionalScore('dense score', chunk.dense_score),
+    formatOptionalScore('lexical score', chunk.lexical_score),
+    formatOptionalScore('rrf score', chunk.rrf_score),
+    formatOptionalScore('rerank score', chunk.rerank_score),
+  ].filter((score): score is string => score !== null)
+  return scores.length > 0 ? scores.join(' / ') : 'unknown score'
+}
+
+function formatSessionCost(usages: ChatHistoryProviderUsage[]): string {
+  const knownCosts = usages
+    .map((usage) => usage.estimated_cost_usd)
+    .filter((value): value is number => value !== null)
+  if (knownCosts.length === 0) {
+    return 'unknown cost'
+  }
+  return formatUsd(knownCosts.reduce((total, value) => total + value, 0))
+}
+
+function formatSessionTokens(usages: ChatHistoryProviderUsage[]): string {
+  const knownTokens = usages
+    .map((usage) => usage.total_tokens)
+    .filter((value): value is number => value !== null)
+  if (knownTokens.length === 0) {
+    return 'unknown tokens'
+  }
+  return `${formatNumber(knownTokens.reduce((total, value) => total + value, 0))} tokens`
+}
+
+function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
+  const knownLatencies = usages
+    .map((usage) => usage.latency_ms)
+    .filter((value): value is number => value !== null)
+  if (knownLatencies.length === 0) {
+    return 'unknown latency'
+  }
+  const average =
+    knownLatencies.reduce((total, value) => total + value, 0) /
+    knownLatencies.length
+  return `${Math.round(average)} ms`
+}
+
+function formatUnknownCost(value: number | null): string {
+  return value === null ? 'unknown cost' : formatUsd(value)
+}
+
+function formatUnknownTokens(value: number | null): string {
+  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+}
+
+function formatUnknownMs(value: number | null): string {
+  return value === null ? 'unknown latency' : `${value} ms`
 }
 
 function formatUsd(value: number): string {
