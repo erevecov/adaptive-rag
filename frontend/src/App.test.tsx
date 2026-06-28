@@ -789,12 +789,10 @@ function createDeferred<T>(): {
 
 async function openSettingsSection(
   user: { click(element: Element): Promise<void> },
-  sectionName: 'Appearance' | 'Authoring' | 'Observability' | 'Runtime',
+  sectionName: 'Authoring' | 'Observability' | 'Runtime',
 ) {
   await user.click(screen.getByRole('button', { name: 'Settings' }))
-  if (sectionName !== 'Appearance') {
-    await user.click(screen.getByRole('tab', { name: sectionName }))
-  }
+  await user.click(screen.getByRole('tab', { name: sectionName }))
 }
 
 describe('App chat workspace', () => {
@@ -805,7 +803,7 @@ describe('App chat workspace', () => {
     expect(screen.getByLabelText('Question')).toBeTruthy()
   })
 
-  test('keeps primary navigation to chat and settings in the left sidebar', () => {
+  test('keeps primary navigation to chat, my account, and settings in the left sidebar', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
@@ -817,13 +815,16 @@ describe('App chat workspace', () => {
 
     expect(within(navigation).getByRole('button', { name: 'Chat' })).toBeTruthy()
     expect(
+      within(navigation).getByRole('button', { name: 'My account' }),
+    ).toBeTruthy()
+    expect(
       within(navigation).getByRole('button', { name: 'Settings' }),
     ).toBeTruthy()
     expect(
       within(navigation)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Chat', 'Settings'])
+    ).toEqual(['Chat', 'My account', 'Settings'])
     expect(
       within(navigation).queryByRole('button', { name: 'Authoring' }),
     ).toBeNull()
@@ -851,7 +852,10 @@ describe('App chat workspace', () => {
       within(settingsTabs)
         .getAllByRole('tab')
         .map((tab) => tab.textContent),
-    ).toEqual(['Appearance', 'Authoring', 'Observability', 'Runtime'])
+    ).toEqual(['Authoring', 'Observability', 'Runtime'])
+    expect(
+      within(settingsTabs).queryByRole('tab', { name: 'Appearance' }),
+    ).toBeNull()
 
     await user.click(within(settingsTabs).getByRole('tab', { name: 'Authoring' }))
 
@@ -1332,7 +1336,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByRole('button', { name: 'Dictate' })).toBeNull()
   })
 
-  test('opens appearance settings and applies the selected theme globally', async () => {
+  test('opens appearance from my account and applies the selected theme globally', async () => {
     const user = userEvent.setup()
     const client = createClientStub({})
 
@@ -1342,9 +1346,11 @@ describe('App chat workspace', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.querySelector('main')?.className).toContain('app-shell')
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
 
-    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+    const appearancePanel = screen.getByRole('region', { name: 'Appearance' })
+    expect(within(appearancePanel).getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+    expect(within(appearancePanel).getByText('My account')).toBeTruthy()
     expect(screen.getByText('Choose the interface palette.')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: /Light/ }).getAttribute('aria-pressed'),
@@ -1400,7 +1406,7 @@ describe('App chat workspace', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
 
     expect(
       screen.getByRole('button', { name: /Dark/ }).getAttribute('aria-pressed'),

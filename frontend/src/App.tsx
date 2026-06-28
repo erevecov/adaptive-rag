@@ -72,15 +72,14 @@ const RUNTIME_SLOTS = [
   'contextualization',
 ]
 const SETTINGS_SECTIONS = [
-  { id: 'settings', label: 'Appearance' },
   { id: 'authoring', label: 'Authoring' },
   { id: 'observability', label: 'Observability' },
   { id: 'runtime', label: 'Runtime' },
 ] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type ActiveView = 'chat' | 'observability' | 'authoring' | 'runtime' | 'settings'
-type SettingsSection = Exclude<ActiveView, 'chat'>
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
+type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -1633,7 +1632,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   const activeSettingsSection: SettingsSection =
-    activeView === 'chat' ? 'settings' : activeView
+    activeView === 'observability' || activeView === 'runtime'
+      ? activeView
+      : 'authoring'
 
   return (
     <main
@@ -1834,6 +1835,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : null}
           </div>
+        ) : activeView === 'account' ? (
+          <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
         ) : (
           <SettingsPanel
             activeSection={activeSettingsSection}
@@ -1939,7 +1942,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSecretConnectionIdChange={setSecretConnectionId}
                 onSecretValueChange={setSecretValue}
               />
-            ) : activeSettingsSection === 'authoring' ? (
+            ) : (
               <AuthoringPanel
                 accessError={accessManagementError}
                 accessState={accessManagementState}
@@ -2022,8 +2025,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 userSystemRole={userSystemRole}
                 users={users}
               />
-            ) : (
-              <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
             )}
           </SettingsPanel>
         )}
@@ -2149,7 +2150,12 @@ function AppSidebar({
             onClick={() => onViewChange('chat')}
           />
           <SidebarNavButton
-            active={activeView !== 'chat'}
+            active={activeView === 'account'}
+            label="My account"
+            onClick={() => onViewChange('account')}
+          />
+          <SidebarNavButton
+            active={activeView !== 'chat' && activeView !== 'account'}
             label="Settings"
             onClick={() => onViewChange('settings')}
           />
@@ -2439,7 +2445,7 @@ function AppearanceSettingsPanel({
     >
       <header className="settings-header">
         <div>
-          <p className="panel-label">Settings</p>
+          <p className="panel-label">My account</p>
           <h2 id="appearance-settings-title">Appearance</h2>
         </div>
         <span className="status">{theme}</span>
