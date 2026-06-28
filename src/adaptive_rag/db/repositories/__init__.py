@@ -31,7 +31,9 @@ from adaptive_rag.db.repositories.provider_connections import (
     ProviderSecretStatus,
 )
 from adaptive_rag.db.repositories.runtime_settings import (
+    ChatRetrievalSettingsRepository,
     EffectiveChatModel,
+    EffectiveChatRetrievalSettings,
     EffectiveRuntimeSlot,
     ProjectRuntimeSettings,
     ProjectRuntimeSettingsRepository,
@@ -53,6 +55,7 @@ __all__ = [
     "ChatObservabilityProviderUsageGroup",
     "ChatObservabilityProviderUsageSummary",
     "ChatObservabilityRepository",
+    "ChatRetrievalSettingsRepository",
     "ChatObservabilitySessionSummary",
     "ChatObservabilitySummary",
     "ChatSessionDetail",
@@ -70,6 +73,7 @@ __all__ = [
     "ProviderModelCatalogRepository",
     "ProviderSecretStatus",
     "ProviderUsageRepository",
+    "EffectiveChatRetrievalSettings",
     "EffectiveChatModel",
     "EffectiveRuntimeSlot",
     "ProjectRuntimeSettings",

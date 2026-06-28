@@ -21,6 +21,7 @@ from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.retrieval import (
     DenseRetrievalCitation,
     RetrievalMetadataFilter,
+    RetrievalRerankOptions,
     RetrievalSearchRequest,
     RetrievalSearchResult,
     RetrievalServiceError,
@@ -179,6 +180,39 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
     }
 
 
+def test_chat_service_passes_rerank_options_to_retrieval_tool() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    retrieval = RecordingRetrievalService(
+        [_retrieval_result(chunk_id=chunk_id, snippet="Alpha original evidence")]
+    )
+    runner = ToolCallingRunner(
+        retrieval_query="alpha evidence",
+        cited_chunk_ids=(chunk_id,),
+    )
+
+    ChatService(runner=runner, retrieval_service=retrieval).respond(
+        ChatRequest(
+            project_id=project_id,
+            message="What supports alpha?",
+            retrieval_limit=3,
+            rerank_enabled=True,
+            rerank_candidate_limit=10,
+        )
+    )
+
+    assert retrieval.requests == [
+        RetrievalSearchRequest(
+            project_id=project_id,
+            query="alpha evidence",
+            limit=3,
+            metadata_filter=None,
+            rerank=RetrievalRerankOptions(candidate_limit=10),
+            strategy="dense_sparse",
+        )
+    ]
+
+
 def test_chat_service_can_answer_without_retrieval_tool_call() -> None:
     project_id = uuid4()
     retrieval = RecordingRetrievalService([])
@@ -313,6 +347,20 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
         (
             ChatRequest(project_id=uuid4(), message="hello", retrieval_limit=0),
             "retrieval_limit must be positive",
+        ),
+        (
+            ChatRequest(project_id=uuid4(), message="hello", retrieval_limit=51),
+            "retrieval_limit must be between 1 and 50",
+        ),
+        (
+            ChatRequest(
+                project_id=uuid4(),
+                message="hello",
+                retrieval_limit=11,
+                rerank_enabled=True,
+                rerank_candidate_limit=10,
+            ),
+            "rerank_candidate_limit must be greater than or equal to retrieval_limit",
         ),
     ],
 )

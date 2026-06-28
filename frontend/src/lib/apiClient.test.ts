@@ -930,6 +930,12 @@ describe('createApiClient', () => {
       parameters: null,
       slot: 'dense_embedding',
     }
+    const chatRetrieval = {
+      max_limit: 50,
+      rerank_candidate_limit: 10,
+      rerank_enabled: true,
+      retrieval_limit: 5,
+    }
     const projectSettings = {
       chat_models: [
         {
@@ -940,6 +946,10 @@ describe('createApiClient', () => {
           source: 'overridden',
         },
       ],
+      chat_retrieval: {
+        ...chatRetrieval,
+        source: 'project',
+      },
       project_id: projectId,
       slots: [
         {
@@ -961,6 +971,28 @@ describe('createApiClient', () => {
           parameters: null,
           updated_at: '2026-06-24T00:00:00Z',
         })
+      }
+      if (
+        value.includes('/projects/') &&
+        value.endsWith('/runtime-settings/chat/retrieval')
+      ) {
+        return init?.method === 'DELETE'
+          ? jsonResponse({ deleted: true })
+          : jsonResponse({
+              ...(JSON.parse(String(init?.body)) as object),
+              max_limit: 50,
+              source: 'project',
+            })
+      }
+      if (value.endsWith('/runtime-settings/chat/retrieval')) {
+        return jsonResponse(
+          init?.method === 'PUT'
+            ? {
+                ...chatRetrieval,
+                ...(JSON.parse(String(init.body)) as object),
+              }
+            : chatRetrieval,
+        )
       }
       if (value.includes('/projects/')) {
         return init?.method === 'DELETE'
@@ -990,6 +1022,12 @@ describe('createApiClient', () => {
       make_default: true,
       model_id: 'llama3.1:8b',
     })
+    const globalRetrieval = await client.getChatRetrievalSettings()
+    await client.updateChatRetrievalSettings({
+      retrieval_limit: 7,
+      rerank_enabled: true,
+      rerank_candidate_limit: 12,
+    })
     const effective = await client.getProjectRuntimeSettings(projectId)
     await client.upsertProjectRuntimeSlotOverride(projectId, 'chat', {
       connection_id: 'local-chat',
@@ -999,10 +1037,25 @@ describe('createApiClient', () => {
       projectId,
       'chat',
     )
+    const projectRetrieval = await client.upsertProjectChatRetrievalSettings(
+      projectId,
+      {
+        retrieval_limit: 4,
+        rerank_enabled: false,
+        rerank_candidate_limit: 8,
+      },
+    )
+    const deletedProjectRetrieval =
+      await client.deleteProjectChatRetrievalSettings(projectId)
 
     expect(globalSlots.items[0].slot).toBe('dense_embedding')
+    expect(globalRetrieval.rerank_candidate_limit).toBe(10)
     expect(effective.chat_models[0].source).toBe('overridden')
+    expect(effective.chat_retrieval.source).toBe('project')
     expect(deleted.deleted).toBe(true)
+    expect(projectRetrieval.source).toBe('project')
+    expect(projectRetrieval.retrieval_limit).toBe(4)
+    expect(deletedProjectRetrieval.deleted).toBe(true)
     expect(String(calls[1].input)).toBe(
       'http://api.local/runtime-settings/slots/dense_embedding',
     )
@@ -1012,13 +1065,26 @@ describe('createApiClient', () => {
     )
     expect(calls[2].init?.method).toBe('POST')
     expect(String(calls[3].input)).toBe(
-      `http://api.local/projects/${projectId}/runtime-settings`,
+      'http://api.local/runtime-settings/chat/retrieval',
     )
+    expect(calls[3].init?.method).toBe('GET')
     expect(String(calls[4].input)).toBe(
-      `http://api.local/projects/${projectId}/runtime-settings/slots/chat`,
+      'http://api.local/runtime-settings/chat/retrieval',
     )
     expect(calls[4].init?.method).toBe('PUT')
-    expect(calls[5].init?.method).toBe('DELETE')
+    expect(String(calls[5].input)).toBe(
+      `http://api.local/projects/${projectId}/runtime-settings`,
+    )
+    expect(String(calls[6].input)).toBe(
+      `http://api.local/projects/${projectId}/runtime-settings/slots/chat`,
+    )
+    expect(calls[6].init?.method).toBe('PUT')
+    expect(calls[7].init?.method).toBe('DELETE')
+    expect(String(calls[8].input)).toBe(
+      `http://api.local/projects/${projectId}/runtime-settings/chat/retrieval`,
+    )
+    expect(calls[8].init?.method).toBe('PUT')
+    expect(calls[9].init?.method).toBe('DELETE')
   })
 
   test('raises structured errors for non-success responses', async () => {

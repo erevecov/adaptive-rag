@@ -16,8 +16,10 @@ from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     Project,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectMembership,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
@@ -48,8 +50,10 @@ def _make_session() -> Session:
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
+            ProjectChatRetrievalSettings.__table__,
             User.__table__,
             UserAccessToken.__table__,
             ProjectMembership.__table__,
@@ -207,6 +211,57 @@ def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
     assert reset.json() == {"deleted": True}
     assert inherited.json()["slots"][0]["source"] == "inherited"
     assert inherited.json()["slots"][0]["connection_id"] == "qwen-hosted"
+
+
+def test_project_chat_retrieval_settings_api_overrides_and_resets() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    session.commit()
+    client = _client(session=session)
+    client.put(
+        "/runtime-settings/chat/retrieval",
+        json={
+            "retrieval_limit": 6,
+            "rerank_enabled": True,
+            "rerank_candidate_limit": 11,
+        },
+    )
+
+    inherited = client.get(f"/projects/{project.id}/runtime-settings")
+    override = client.put(
+        f"/projects/{project.id}/runtime-settings/chat/retrieval",
+        json={
+            "retrieval_limit": 4,
+            "rerank_enabled": False,
+            "rerank_candidate_limit": 8,
+        },
+    )
+    effective = client.get(f"/projects/{project.id}/runtime-settings")
+    reset = client.delete(f"/projects/{project.id}/runtime-settings/chat/retrieval")
+    inherited_again = client.get(f"/projects/{project.id}/runtime-settings")
+
+    assert inherited.status_code == 200
+    assert inherited.json()["chat_retrieval"] == {
+        "source": "global",
+        "retrieval_limit": 6,
+        "rerank_enabled": True,
+        "rerank_candidate_limit": 11,
+        "max_limit": 50,
+    }
+    assert override.status_code == 200
+    assert override.json() == {
+        "source": "project",
+        "retrieval_limit": 4,
+        "rerank_enabled": False,
+        "rerank_candidate_limit": 8,
+        "max_limit": 50,
+    }
+    assert effective.json()["chat_retrieval"]["source"] == "project"
+    assert effective.json()["chat_retrieval"]["retrieval_limit"] == 4
+    assert reset.status_code == 200
+    assert reset.json() == {"deleted": True}
+    assert inherited_again.json()["chat_retrieval"]["source"] == "global"
+    assert inherited_again.json()["chat_retrieval"]["retrieval_limit"] == 6
 
 
 def test_project_chat_model_api_overrides_pool_and_rejects_default_delete() -> None:

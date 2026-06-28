@@ -599,6 +599,19 @@ export type ChatModelUpsertBody = {
   parameters?: JsonObject | null
 }
 
+export type ChatRetrievalSettings = {
+  retrieval_limit: number
+  rerank_enabled: boolean
+  rerank_candidate_limit: number
+  max_limit: number
+}
+
+export type ChatRetrievalSettingsUpsertBody = {
+  retrieval_limit: number
+  rerank_enabled: boolean
+  rerank_candidate_limit: number
+}
+
 export type DeleteResponse = {
   deleted: boolean
 }
@@ -619,10 +632,15 @@ export type ProjectChatModel = {
   parameters: JsonObject | null
 }
 
+export type ProjectChatRetrievalSettings = ChatRetrievalSettings & {
+  source: string
+}
+
 export type ProjectRuntimeSettings = {
   project_id: string
   slots: ProjectRuntimeSlot[]
   chat_models: ProjectChatModel[]
+  chat_retrieval: ProjectChatRetrievalSettings
 }
 
 export class ApiClientError extends Error {
@@ -764,6 +782,10 @@ export type ApiClient = {
   upsertChatModel(body: ChatModelUpsertBody): Promise<ChatModel>
   setDefaultChatModel(connectionId: string, modelId: string): Promise<ChatModel>
   deleteChatModel(connectionId: string, modelId: string): Promise<DeleteResponse>
+  getChatRetrievalSettings(): Promise<ChatRetrievalSettings>
+  updateChatRetrievalSettings(
+    body: ChatRetrievalSettingsUpsertBody,
+  ): Promise<ChatRetrievalSettings>
   getProjectRuntimeSettings(projectId: string): Promise<ProjectRuntimeSettings>
   upsertProjectRuntimeSlotOverride(
     projectId: string,
@@ -788,6 +810,11 @@ export type ApiClient = {
     connectionId: string,
     modelId: string,
   ): Promise<DeleteResponse>
+  upsertProjectChatRetrievalSettings(
+    projectId: string,
+    body: ChatRetrievalSettingsUpsertBody,
+  ): Promise<ProjectChatRetrievalSettings>
+  deleteProjectChatRetrievalSettings(projectId: string): Promise<DeleteResponse>
 }
 
 export type ApiClientOptions = {
@@ -1180,6 +1207,19 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}/${encodePathSegment(modelId)}`,
       })
     },
+    getChatRetrievalSettings() {
+      return requestJson<ChatRetrievalSettings>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/runtime-settings/chat/retrieval`,
+      })
+    },
+    updateChatRetrievalSettings(body) {
+      return requestJson<ChatRetrievalSettings>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/runtime-settings/chat/retrieval`,
+      })
+    },
     getProjectRuntimeSettings(projectId) {
       return requestJson<ProjectRuntimeSettings>(fetchImpl, {
         method: 'GET',
@@ -1232,6 +1272,23 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}/runtime-settings/chat/models/${encodePathSegment(
           connectionId,
         )}/${encodePathSegment(modelId)}`,
+      })
+    },
+    upsertProjectChatRetrievalSettings(projectId, body) {
+      return requestJson<ProjectChatRetrievalSettings>(fetchImpl, {
+        body,
+        method: 'PUT',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/chat/retrieval`,
+      })
+    },
+    deleteProjectChatRetrievalSettings(projectId) {
+      return requestJson<DeleteResponse>(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/runtime-settings/chat/retrieval`,
       })
     },
   }

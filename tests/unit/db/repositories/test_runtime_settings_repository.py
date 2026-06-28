@@ -7,10 +7,12 @@ import pytest
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     ProviderConnection,
     RuntimeSlotDefault,
 )
 from adaptive_rag.db.repositories import (
+    ChatRetrievalSettingsRepository,
     ProviderConnectionRepository,
     RuntimeSettingsRepository,
 )
@@ -25,6 +27,7 @@ def _make_session():
             ProviderConnection.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -178,3 +181,49 @@ def test_chat_model_pool_rejects_deleting_last_or_default_model() -> None:
     )
 
     assert deleted is True
+
+
+def test_chat_retrieval_repository_returns_and_updates_global_defaults() -> None:
+    session = _make_session()
+    repository = ChatRetrievalSettingsRepository(session)
+
+    defaults = repository.get_global_settings()
+
+    assert defaults.retrieval_limit == 5
+    assert defaults.rerank_enabled is True
+    assert defaults.rerank_candidate_limit == 10
+    assert defaults.max_limit == 50
+
+    updated = repository.upsert_global_settings(
+        retrieval_limit=7,
+        rerank_enabled=False,
+        rerank_candidate_limit=12,
+    )
+    session.commit()
+
+    assert updated.retrieval_limit == 7
+    assert updated.rerank_enabled is False
+    assert updated.rerank_candidate_limit == 12
+    assert repository.get_global_settings().retrieval_limit == 7
+
+
+def test_chat_retrieval_repository_rejects_invalid_global_limits() -> None:
+    session = _make_session()
+    repository = ChatRetrievalSettingsRepository(session)
+
+    with pytest.raises(ValueError, match="retrieval_limit must be between 1 and 50"):
+        repository.upsert_global_settings(
+            retrieval_limit=0,
+            rerank_enabled=True,
+            rerank_candidate_limit=10,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="rerank_candidate_limit must be greater than or equal to retrieval_limit",
+    ):
+        repository.upsert_global_settings(
+            retrieval_limit=11,
+            rerank_enabled=True,
+            rerank_candidate_limit=10,
+        )

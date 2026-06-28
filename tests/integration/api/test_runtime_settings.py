@@ -15,6 +15,7 @@ from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     ProviderConnection,
     ProviderSecret,
     RuntimeSlotDefault,
@@ -38,6 +39,7 @@ def _make_session() -> Session:
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
             User.__table__,
             UserAccessToken.__table__,
         ],
@@ -171,6 +173,46 @@ def test_slot_defaults_api_upserts_lists_and_rejects_unknown_slots() -> None:
 
     assert unsupported.status_code == 422
     assert unsupported.json()["detail"]["code"] == "unsupported_slot"
+
+
+def test_chat_retrieval_settings_api_returns_defaults_and_updates_limits() -> None:
+    session = _make_session()
+    client = _client(session=session)
+
+    defaults = client.get("/runtime-settings/chat/retrieval")
+    update = client.put(
+        "/runtime-settings/chat/retrieval",
+        json={
+            "retrieval_limit": 7,
+            "rerank_enabled": True,
+            "rerank_candidate_limit": 12,
+        },
+    )
+    invalid = client.put(
+        "/runtime-settings/chat/retrieval",
+        json={
+            "retrieval_limit": 51,
+            "rerank_enabled": True,
+            "rerank_candidate_limit": 51,
+        },
+    )
+
+    assert defaults.status_code == 200
+    assert defaults.json() == {
+        "retrieval_limit": 5,
+        "rerank_enabled": True,
+        "rerank_candidate_limit": 10,
+        "max_limit": 50,
+    }
+    assert update.status_code == 200
+    assert update.json() == {
+        "retrieval_limit": 7,
+        "rerank_enabled": True,
+        "rerank_candidate_limit": 12,
+        "max_limit": 50,
+    }
+    assert invalid.status_code == 422
+    assert invalid.json()["detail"]["code"] == "invalid_runtime_settings"
 
 
 def test_chat_model_api_manages_pool_default_and_delete_invariants() -> None:

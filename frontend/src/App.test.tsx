@@ -142,6 +142,7 @@ function createClientStub(options: {
   getIngestionJob?: ApiClient['getIngestionJob']
   getProject?: ApiClient['getProject']
   getProjectRuntimeSettings?: ApiClient['getProjectRuntimeSettings']
+  getChatRetrievalSettings?: ApiClient['getChatRetrievalSettings']
   getSource?: ApiClient['getSource']
   listChatModels?: ApiClient['listChatModels']
   listChatSessions?: ApiClient['listChatSessions']
@@ -156,6 +157,7 @@ function createClientStub(options: {
   listUsers?: ApiClient['listUsers']
   unarchiveChatSession?: ApiClient['unarchiveChatSession']
   updateChatSessionTitle?: ApiClient['updateChatSessionTitle']
+  updateChatRetrievalSettings?: ApiClient['updateChatRetrievalSettings']
   updateCurrentUserPreferences?: ApiClient['updateCurrentUserPreferences']
   refineKnowledgeProposal?: ApiClient['refineKnowledgeProposal']
   approveKnowledgeProposal?: ApiClient['approveKnowledgeProposal']
@@ -164,12 +166,14 @@ function createClientStub(options: {
   runNextIngestionJob?: ApiClient['runNextIngestionJob']
   submitKnowledgeProposal?: ApiClient['submitKnowledgeProposal']
   upsertChatModel?: ApiClient['upsertChatModel']
+  upsertProjectChatRetrievalSettings?: ApiClient['upsertProjectChatRetrievalSettings']
   upsertProjectMembership?: ApiClient['upsertProjectMembership']
   upsertProjectChatModel?: ApiClient['upsertProjectChatModel']
   upsertProjectRuntimeSlotOverride?: ApiClient['upsertProjectRuntimeSlotOverride']
   upsertProviderConnection?: ApiClient['upsertProviderConnection']
   upsertProviderSecret?: ApiClient['upsertProviderSecret']
   upsertRuntimeSlotDefault?: ApiClient['upsertRuntimeSlotDefault']
+  deleteProjectChatRetrievalSettings?: ApiClient['deleteProjectChatRetrievalSettings']
   deleteProjectRuntimeSlotOverride?: ApiClient['deleteProjectRuntimeSlotOverride']
   syncProviderModels?: ApiClient['syncProviderModels']
 }): ApiClient {
@@ -198,6 +202,14 @@ function createClientStub(options: {
     getIngestionJob: options.getIngestionJob ?? vi.fn(),
     getProject: options.getProject ?? vi.fn(),
     getProjectRuntimeSettings: options.getProjectRuntimeSettings ?? vi.fn(),
+    getChatRetrievalSettings:
+      options.getChatRetrievalSettings ??
+      vi.fn(async () => ({
+        max_limit: 50,
+        rerank_candidate_limit: 10,
+        rerank_enabled: true,
+        retrieval_limit: 5,
+      })),
     getSource: options.getSource ?? vi.fn(),
     listChatModels: options.listChatModels ?? vi.fn(),
     listChatSessions:
@@ -221,6 +233,8 @@ function createClientStub(options: {
     submitKnowledgeProposal: options.submitKnowledgeProposal ?? vi.fn(),
     unarchiveChatSession: options.unarchiveChatSession ?? vi.fn(),
     updateChatSessionTitle: options.updateChatSessionTitle ?? vi.fn(),
+    updateChatRetrievalSettings:
+      options.updateChatRetrievalSettings ?? vi.fn(),
     updateCurrentUserPreferences:
       options.updateCurrentUserPreferences ??
       vi.fn(async () => ({
@@ -230,8 +244,10 @@ function createClientStub(options: {
         last_project_id: null,
         login: 'bootstrap',
         system_role: 'superadmin',
-      })),
+    })),
     upsertChatModel: options.upsertChatModel ?? vi.fn(),
+    upsertProjectChatRetrievalSettings:
+      options.upsertProjectChatRetrievalSettings ?? vi.fn(),
     upsertProjectMembership: options.upsertProjectMembership ?? vi.fn(),
     upsertProjectChatModel: options.upsertProjectChatModel ?? vi.fn(),
     upsertProjectRuntimeSlotOverride:
@@ -241,6 +257,8 @@ function createClientStub(options: {
     upsertRuntimeSlotDefault: options.upsertRuntimeSlotDefault ?? vi.fn(),
     deleteChatModel: vi.fn(),
     deleteProjectChatModel: vi.fn(),
+    deleteProjectChatRetrievalSettings:
+      options.deleteProjectChatRetrievalSettings ?? vi.fn(),
     deleteProjectRuntimeSlotOverride:
       options.deleteProjectRuntimeSlotOverride ?? vi.fn(),
     deleteProviderConnection: vi.fn(),
@@ -591,6 +609,13 @@ const projectRuntimeSettings: ProjectRuntimeSettings = {
       source: 'overridden',
     },
   ],
+  chat_retrieval: {
+    max_limit: 50,
+    rerank_candidate_limit: 10,
+    rerank_enabled: true,
+    retrieval_limit: 5,
+    source: 'project',
+  },
   project_id: projectId,
   slots: [
     {
@@ -1579,7 +1604,6 @@ describe('App chat workspace', () => {
       projectId,
       {
         message: 'How do I retry?',
-        retrieval_limit: 5,
       },
       expect.any(Object),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -1605,6 +1629,34 @@ describe('App chat workspace', () => {
         .getByRole('button', { name: 'Abrir sesión Deployment question' })
         .closest('.session-row')?.className,
     ).toContain('session-row-selected')
+  })
+
+  test('sends a chat retrieval limit override only when the field is filled', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    fireEvent.change(screen.getByLabelText('Retrieval limit'), {
+      target: { value: '12' },
+    })
+    await user.type(screen.getByLabelText('Question'), 'How wide should search be?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(client.askChatStream).toHaveBeenCalledWith(
+      projectId,
+      {
+        message: 'How wide should search be?',
+        retrieval_limit: 12,
+      },
+      expect.any(Object),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
   })
 
   test('adds a streaming session to the sidebar as soon as it starts', async () => {
@@ -1825,7 +1877,6 @@ describe('App chat workspace', () => {
     expect(client.askChatStream).toHaveBeenCalled()
     expect(client.askChat).toHaveBeenCalledWith(projectId, {
       message: 'How do I retry?',
-      retrieval_limit: 5,
     })
   })
 
@@ -2482,6 +2533,10 @@ describe('App chat workspace', () => {
         updated_at: '2026-06-24T00:00:02Z',
       })),
       upsertRuntimeSlotDefault: vi.fn(async () => runtimeSlotDefaultsResponse.items[0]),
+      updateChatRetrievalSettings: vi.fn(async (body) => ({
+        ...body,
+        max_limit: 50,
+      })),
       syncProviderModels: vi.fn(async () => ({
         connection_id: 'qwen-hosted',
         items: providerModelsResponse.items.filter(
@@ -2550,11 +2605,29 @@ describe('App chat workspace', () => {
         model_id: 'text-embedding-v4',
       },
     )
+
+    const globalRetrieval = screen.getByRole('region', {
+      name: 'Global chat retrieval',
+    })
+    fireEvent.change(within(globalRetrieval).getByLabelText('Retrieval limit'), {
+      target: { value: '7' },
+    })
+    fireEvent.change(within(globalRetrieval).getByLabelText('Candidate limit'), {
+      target: { value: '12' },
+    })
+    await user.click(screen.getByRole('button', { name: 'Save chat retrieval' }))
+
+    expect(client.updateChatRetrievalSettings).toHaveBeenCalledWith({
+      retrieval_limit: 7,
+      rerank_enabled: true,
+      rerank_candidate_limit: 12,
+    })
   })
 
   test('shows project runtime inheritance and resets overrides', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
+      deleteProjectChatRetrievalSettings: vi.fn(async () => ({ deleted: true })),
       deleteProjectRuntimeSlotOverride: vi.fn(async () => ({ deleted: true })),
       getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
       listChatModels: vi.fn(async () => chatModelsResponse),
@@ -2567,6 +2640,11 @@ describe('App chat workspace', () => {
         parameters: null,
         slot: 'chat',
         source: 'overridden',
+      })),
+      upsertProjectChatRetrievalSettings: vi.fn(async (body) => ({
+        ...body,
+        max_limit: 50,
+        source: 'project',
       })),
     })
 
@@ -2596,12 +2674,38 @@ describe('App chat workspace', () => {
       },
     )
 
+    fireEvent.change(within(projectSettings).getByLabelText('Retrieval limit'), {
+      target: { value: '4' },
+    })
+    await user.selectOptions(within(projectSettings).getByLabelText('Rerank'), 'false')
+    fireEvent.change(within(projectSettings).getByLabelText('Candidate limit'), {
+      target: { value: '8' },
+    })
+    await user.click(
+      screen.getByRole('button', { name: 'Save project retrieval override' }),
+    )
+
+    expect(client.upsertProjectChatRetrievalSettings).toHaveBeenCalledWith(
+      projectId,
+      {
+        retrieval_limit: 4,
+        rerank_enabled: false,
+        rerank_candidate_limit: 8,
+      },
+    )
+
     await user.click(screen.getByRole('button', { name: 'Reset chat to global' }))
 
     expect(client.deleteProjectRuntimeSlotOverride).toHaveBeenCalledWith(
       projectId,
       'chat',
     )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Reset chat retrieval to global' }),
+    )
+
+    expect(client.deleteProjectChatRetrievalSettings).toHaveBeenCalledWith(projectId)
   })
 
   test('blocks global slot save until the selected connection has compatible synced models', async () => {

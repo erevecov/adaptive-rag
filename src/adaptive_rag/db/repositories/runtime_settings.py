@@ -11,10 +11,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import (
+    CHAT_RETRIEVAL_MAX_LIMIT,
+    DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+    DEFAULT_CHAT_RERANK_ENABLED,
+    DEFAULT_CHAT_RETRIEVAL_LIMIT,
     RUNTIME_SLOT_VALUES,
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     Project,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
     RuntimeSlotDefault,
@@ -50,6 +56,132 @@ class ProjectRuntimeSettings:
     project_id: UUID
     slots: list[EffectiveRuntimeSlot]
     chat_models: list[EffectiveChatModel]
+    chat_retrieval: EffectiveChatRetrievalSettings
+
+
+@dataclass(frozen=True)
+class EffectiveChatRetrievalSettings:
+    """Effective chat retrieval behavior with inheritance metadata."""
+
+    source: str
+    retrieval_limit: int
+    rerank_enabled: bool
+    rerank_candidate_limit: int
+    max_limit: int = CHAT_RETRIEVAL_MAX_LIMIT
+
+
+class ChatRetrievalSettingsRepository:
+    """Persistence for chat retrieval defaults and project overrides."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get_global_settings(self) -> GlobalChatRetrievalSettings:
+        settings = self._session.get(GlobalChatRetrievalSettings, 1)
+        if settings is None:
+            settings = GlobalChatRetrievalSettings(
+                id=1,
+                retrieval_limit=DEFAULT_CHAT_RETRIEVAL_LIMIT,
+                rerank_enabled=DEFAULT_CHAT_RERANK_ENABLED,
+                rerank_candidate_limit=DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+                max_limit=CHAT_RETRIEVAL_MAX_LIMIT,
+            )
+            self._session.add(settings)
+            self._session.flush()
+        return settings
+
+    def upsert_global_settings(
+        self,
+        *,
+        retrieval_limit: int,
+        rerank_enabled: bool,
+        rerank_candidate_limit: int,
+    ) -> GlobalChatRetrievalSettings:
+        _validate_chat_retrieval_settings(
+            retrieval_limit=retrieval_limit,
+            rerank_enabled=rerank_enabled,
+            rerank_candidate_limit=rerank_candidate_limit,
+        )
+        settings = self.get_global_settings()
+        settings.retrieval_limit = retrieval_limit
+        settings.rerank_enabled = rerank_enabled
+        settings.rerank_candidate_limit = rerank_candidate_limit
+        settings.max_limit = CHAT_RETRIEVAL_MAX_LIMIT
+        self._session.flush()
+        return settings
+
+    def get_project_settings(
+        self,
+        project_id: UUID,
+    ) -> ProjectChatRetrievalSettings | None:
+        return self._session.get(ProjectChatRetrievalSettings, project_id)
+
+    def get_effective_project_settings(
+        self,
+        project_id: UUID,
+    ) -> EffectiveChatRetrievalSettings:
+        project = self._require_project(project_id)
+        override = self.get_project_settings(project.id)
+        if override is not None:
+            return EffectiveChatRetrievalSettings(
+                source="project",
+                retrieval_limit=override.retrieval_limit,
+                rerank_enabled=override.rerank_enabled,
+                rerank_candidate_limit=override.rerank_candidate_limit,
+            )
+        global_settings = self.get_global_settings()
+        return EffectiveChatRetrievalSettings(
+            source="global",
+            retrieval_limit=global_settings.retrieval_limit,
+            rerank_enabled=global_settings.rerank_enabled,
+            rerank_candidate_limit=global_settings.rerank_candidate_limit,
+            max_limit=global_settings.max_limit,
+        )
+
+    def upsert_project_settings(
+        self,
+        *,
+        project_id: UUID,
+        retrieval_limit: int,
+        rerank_enabled: bool,
+        rerank_candidate_limit: int,
+    ) -> ProjectChatRetrievalSettings:
+        project = self._require_project(project_id)
+        _validate_chat_retrieval_settings(
+            retrieval_limit=retrieval_limit,
+            rerank_enabled=rerank_enabled,
+            rerank_candidate_limit=rerank_candidate_limit,
+        )
+        settings = self.get_project_settings(project.id)
+        if settings is None:
+            settings = ProjectChatRetrievalSettings(
+                project_id=project.id,
+                retrieval_limit=retrieval_limit,
+                rerank_enabled=rerank_enabled,
+                rerank_candidate_limit=rerank_candidate_limit,
+            )
+            self._session.add(settings)
+        else:
+            settings.retrieval_limit = retrieval_limit
+            settings.rerank_enabled = rerank_enabled
+            settings.rerank_candidate_limit = rerank_candidate_limit
+        self._session.flush()
+        return settings
+
+    def delete_project_settings(self, *, project_id: UUID) -> bool:
+        project = self._require_project(project_id)
+        settings = self.get_project_settings(project.id)
+        if settings is None:
+            return False
+        self._session.delete(settings)
+        self._session.flush()
+        return True
+
+    def _require_project(self, project_id: UUID) -> Project:
+        project = self._session.get(Project, project_id)
+        if project is None:
+            raise ValueError("project_not_found")
+        return project
 
 
 class RuntimeSettingsRepository:
@@ -284,6 +416,9 @@ class ProjectRuntimeSettingsRepository:
             project_id=project.id,
             slots=slots,
             chat_models=self._effective_chat_models(project.id),
+            chat_retrieval=ChatRetrievalSettingsRepository(
+                self._session
+            ).get_effective_project_settings(project.id),
         )
 
     def upsert_slot_override(
@@ -555,4 +690,25 @@ def _require_capability(connection: ProviderConnection, slot: str) -> None:
         raise ValueError(
             f"connection_unavailable: {connection.connection_id} does not support "
             f"{slot}"
+        )
+
+
+def _validate_chat_retrieval_settings(
+    *,
+    retrieval_limit: int,
+    rerank_enabled: bool,
+    rerank_candidate_limit: int,
+) -> None:
+    _validate_limit(retrieval_limit, field_name="retrieval_limit")
+    _validate_limit(rerank_candidate_limit, field_name="rerank_candidate_limit")
+    if rerank_enabled and rerank_candidate_limit < retrieval_limit:
+        raise ValueError(
+            "rerank_candidate_limit must be greater than or equal to retrieval_limit"
+        )
+
+
+def _validate_limit(value: int, *, field_name: str) -> None:
+    if value < 1 or value > CHAT_RETRIEVAL_MAX_LIMIT:
+        raise ValueError(
+            f"{field_name} must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}"
         )

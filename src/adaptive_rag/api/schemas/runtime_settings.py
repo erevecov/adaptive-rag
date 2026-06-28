@@ -10,12 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     RuntimeSlotDefault,
 )
 from adaptive_rag.db.repositories import (
     EffectiveChatModel,
+    EffectiveChatRetrievalSettings,
     EffectiveRuntimeSlot,
     ProjectRuntimeSettings,
 )
@@ -89,6 +92,67 @@ class ChatModelListResponse(BaseModel):
     items: list[ChatModelResponse]
 
 
+class ChatRetrievalSettingsRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    retrieval_limit: int
+    rerank_enabled: bool
+    rerank_candidate_limit: int
+
+
+class GlobalChatRetrievalSettingsResponse(BaseModel):
+    retrieval_limit: int
+    rerank_enabled: bool
+    rerank_candidate_limit: int
+    max_limit: int
+
+    @classmethod
+    def from_model(
+        cls,
+        settings: GlobalChatRetrievalSettings,
+    ) -> GlobalChatRetrievalSettingsResponse:
+        return cls(
+            retrieval_limit=settings.retrieval_limit,
+            rerank_enabled=settings.rerank_enabled,
+            rerank_candidate_limit=settings.rerank_candidate_limit,
+            max_limit=settings.max_limit,
+        )
+
+
+class ProjectChatRetrievalSettingsResponse(BaseModel):
+    source: str
+    retrieval_limit: int
+    rerank_enabled: bool
+    rerank_candidate_limit: int
+    max_limit: int
+
+    @classmethod
+    def from_effective(
+        cls,
+        settings: EffectiveChatRetrievalSettings,
+    ) -> ProjectChatRetrievalSettingsResponse:
+        return cls(
+            source=settings.source,
+            retrieval_limit=settings.retrieval_limit,
+            rerank_enabled=settings.rerank_enabled,
+            rerank_candidate_limit=settings.rerank_candidate_limit,
+            max_limit=settings.max_limit,
+        )
+
+    @classmethod
+    def from_model(
+        cls,
+        settings: ProjectChatRetrievalSettings,
+    ) -> ProjectChatRetrievalSettingsResponse:
+        return cls(
+            source="project",
+            retrieval_limit=settings.retrieval_limit,
+            rerank_enabled=settings.rerank_enabled,
+            rerank_candidate_limit=settings.rerank_candidate_limit,
+            max_limit=50,
+        )
+
+
 class DeleteResponse(BaseModel):
     deleted: bool = Field()
 
@@ -159,6 +223,7 @@ class ProjectRuntimeSettingsResponse(BaseModel):
     project_id: UUID
     slots: list[ProjectRuntimeSlotResponse]
     chat_models: list[ProjectChatModelResponse]
+    chat_retrieval: ProjectChatRetrievalSettingsResponse
 
     @classmethod
     def from_settings(
@@ -175,4 +240,7 @@ class ProjectRuntimeSettingsResponse(BaseModel):
                 ProjectChatModelResponse.from_effective(model)
                 for model in settings.chat_models
             ],
+            chat_retrieval=ProjectChatRetrievalSettingsResponse.from_effective(
+                settings.chat_retrieval
+            ),
         )

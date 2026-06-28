@@ -36,9 +36,15 @@ from adaptive_rag.db.models.provider_usage import (
 from adaptive_rag.db.models.retrieval_run import RetrievalRun
 from adaptive_rag.db.models.retrieved_chunk import RetrievedChunk
 from adaptive_rag.db.models.runtime_settings import (
+    CHAT_RETRIEVAL_MAX_LIMIT,
+    DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+    DEFAULT_CHAT_RERANK_ENABLED,
+    DEFAULT_CHAT_RETRIEVAL_LIMIT,
     RUNTIME_SLOT_VALUES,
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     RuntimeSlotDefault,
 )
@@ -62,8 +68,13 @@ __all__ = [
     "ChatSession",
     "Document",
     "DocumentVersion",
+    "CHAT_RETRIEVAL_MAX_LIMIT",
+    "DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT",
+    "DEFAULT_CHAT_RERANK_ENABLED",
+    "DEFAULT_CHAT_RETRIEVAL_LIMIT",
     "GRAPH_PROJECTION_BACKEND_VALUES",
     "GRAPH_PROJECTION_STATUS_VALUES",
+    "GlobalChatRetrievalSettings",
     "GlobalChatModel",
     "GraphProjection",
     "JOB_EVENT_TYPE_VALUES",
@@ -82,6 +93,7 @@ __all__ = [
     "PROVIDER_USAGE_STATUS_VALUES",
     "PROJECT_ROLE_VALUES",
     "Project",
+    "ProjectChatRetrievalSettings",
     "ProjectChatModel",
     "ProjectMembership",
     "ProjectRuntimeSlotOverride",

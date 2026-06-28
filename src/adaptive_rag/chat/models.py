@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from adaptive_rag.db.models import (
+    DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+    DEFAULT_CHAT_RETRIEVAL_LIMIT,
+)
 from adaptive_rag.retrieval import RetrievalMetadataFilter
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
@@ -16,7 +20,9 @@ class ChatRequest:
     project_id: UUID
     message: str
     user_id: UUID | None = None
-    retrieval_limit: int = 5
+    retrieval_limit: int = DEFAULT_CHAT_RETRIEVAL_LIMIT
+    rerank_enabled: bool = False
+    rerank_candidate_limit: int = DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT
     metadata_filter: RetrievalMetadataFilter | None = None
 
 

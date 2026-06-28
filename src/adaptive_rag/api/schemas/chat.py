@@ -17,6 +17,8 @@ from adaptive_rag.chat import ChatRequest
 from adaptive_rag.chat.models import ChatResponse as ServiceChatResponse
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.db.models import (
+    DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+    DEFAULT_CHAT_RETRIEVAL_LIMIT,
     ChatMessage,
     ChatSession,
     ProviderUsage,
@@ -36,6 +38,7 @@ from adaptive_rag.db.repositories import (
     ChatSessionDetail,
     ChatSessionSummary,
     ChatSessionSummaryPage,
+    EffectiveChatRetrievalSettings,
 )
 
 
@@ -43,20 +46,33 @@ class ChatRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str
-    retrieval_limit: int = 5
+    retrieval_limit: int | None = None
     metadata_filter: RetrievalMetadataFilterRequest | None = None
 
     def to_service_request(
         self,
         project_id: UUID,
         *,
+        chat_retrieval_settings: EffectiveChatRetrievalSettings | None = None,
         user_id: UUID | None = None,
     ) -> ChatRequest:
+        settings = chat_retrieval_settings or EffectiveChatRetrievalSettings(
+            source="global",
+            retrieval_limit=DEFAULT_CHAT_RETRIEVAL_LIMIT,
+            rerank_enabled=False,
+            rerank_candidate_limit=DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
+        )
         return ChatRequest(
             project_id=project_id,
             user_id=user_id,
             message=self.message,
-            retrieval_limit=self.retrieval_limit,
+            retrieval_limit=(
+                self.retrieval_limit
+                if self.retrieval_limit is not None
+                else settings.retrieval_limit
+            ),
+            rerank_enabled=settings.rerank_enabled,
+            rerank_candidate_limit=settings.rerank_candidate_limit,
             metadata_filter=(
                 self.metadata_filter.to_service_filter()
                 if self.metadata_filter is not None

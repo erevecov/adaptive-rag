@@ -34,7 +34,11 @@ from adaptive_rag.provider_runtime import (
 from adaptive_rag.provider_secrets import ProviderSecretKeyError, ProviderSecretStore
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.rerank import RerankProvider
-from adaptive_rag.retrieval import RetrievalService
+from adaptive_rag.retrieval import (
+    RetrievalSearchRequest,
+    RetrievalSearchResult,
+    RetrievalService,
+)
 from adaptive_rag.retrieval.providers import (
     get_default_dense_embedding_provider,
     get_default_sparse_embedding_provider,
@@ -161,8 +165,7 @@ _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 def _call_with_supported_kwargs(factory: Callable[..., Any], **kwargs: object) -> Any:
     parameters = signature(factory).parameters
     if any(
-        parameter.kind is Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
+        parameter.kind is Parameter.VAR_KEYWORD for parameter in parameters.values()
     ):
         return factory(**kwargs)
     supported_kwargs = {
@@ -293,6 +296,72 @@ def get_retrieval_service(
     )
 
 
+class LazyChatRetrievalSearcher:
+    """Builds optional retrieval dependencies only when the chat tool is used."""
+
+    def __init__(
+        self,
+        *,
+        session: Session,
+        provider: DenseEmbeddingProvider,
+        sparse_provider_factory: SparseEmbeddingProviderFactory,
+        rerank_provider_factory: RerankProviderFactory,
+        graph_retriever: GraphRetriever | None,
+    ) -> None:
+        self._session = session
+        self._provider = provider
+        self._sparse_provider_factory = sparse_provider_factory
+        self._rerank_provider_factory = rerank_provider_factory
+        self._graph_retriever = graph_retriever
+
+    def search(
+        self,
+        request: RetrievalSearchRequest,
+    ) -> list[RetrievalSearchResult]:
+        service = RetrievalService(
+            self._session,
+            provider=self._provider,
+            sparse_provider=(
+                self._sparse_provider_factory()
+                if request.strategy in ("sparse", "dense_sparse")
+                else None
+            ),
+            reranker=(
+                self._rerank_provider_factory() if request.rerank is not None else None
+            ),
+            graph_retriever=self._graph_retriever,
+        )
+        return service.search(request)
+
+
+def get_chat_retrieval_searcher(
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[
+        DenseEmbeddingProvider,
+        Depends(get_dense_embedding_provider),
+    ],
+    sparse_provider_factory: Annotated[
+        SparseEmbeddingProviderFactory,
+        Depends(get_sparse_embedding_provider_factory),
+    ],
+    rerank_provider_factory: Annotated[
+        RerankProviderFactory,
+        Depends(get_rerank_provider_factory),
+    ],
+    graph_retriever: Annotated[
+        GraphRetriever | None,
+        Depends(get_graph_retriever),
+    ],
+) -> LazyChatRetrievalSearcher:
+    return LazyChatRetrievalSearcher(
+        session=session,
+        provider=provider,
+        sparse_provider_factory=sparse_provider_factory,
+        rerank_provider_factory=rerank_provider_factory,
+        graph_retriever=graph_retriever,
+    )
+
+
 def get_chat_audit_writer(
     session: Annotated[Session, Depends(get_session)],
 ) -> SqlAlchemyChatAuditWriter:
@@ -329,8 +398,8 @@ def get_chat_runner(
 
 def get_chat_service(
     retrieval_service: Annotated[
-        RetrievalService,
-        Depends(get_retrieval_service),
+        LazyChatRetrievalSearcher,
+        Depends(get_chat_retrieval_searcher),
     ],
     runner: Annotated[
         ChatRunner,
@@ -351,4 +420,3 @@ def get_chat_service(
         audit_writer=audit_writer,
         provider_usage_records=lambda: usage_tracker.records,
     )
-
