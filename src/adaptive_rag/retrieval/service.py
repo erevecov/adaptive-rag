@@ -28,6 +28,11 @@ from adaptive_rag.rerank import (
     RerankResult,
     RerankScore,
 )
+from adaptive_rag.retrieval.bm25 import (
+    Bm25RetrievalError,
+    Bm25RetrievalResult,
+    Bm25Retriever,
+)
 from adaptive_rag.retrieval.dense import (
     DenseRetrievalCitation,
     DenseRetrievalError,
@@ -72,7 +77,15 @@ class RetrievalRerankOptions:
     candidate_limit: int
 
 
-RetrievalStrategy = Literal["dense", "graph", "lexical", "hybrid_rrf", "dense_sparse"]
+RetrievalStrategy = Literal[
+    "dense",
+    "graph",
+    "lexical",
+    "bm25",
+    "sparse",
+    "hybrid_rrf",
+    "dense_sparse",
+]
 RRF_K = 60
 
 
@@ -85,7 +98,7 @@ class RetrievalSearchRequest:
     limit: int = 10
     metadata_filter: RetrievalMetadataFilter | None = None
     rerank: RetrievalRerankOptions | None = None
-    strategy: RetrievalStrategy = "dense"
+    strategy: RetrievalStrategy = "dense_sparse"
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +140,7 @@ class RetrievalService:
         self._reranker = reranker
         self._retriever = DenseRetriever(session)
         self._lexical_retriever = LexicalRetriever(session)
+        self._bm25_retriever = Bm25Retriever(session)
         self._sparse_retriever = SparseRetriever(session)
         self._graph_retriever = graph_retriever
         self._graph_projection_repository = (
@@ -143,9 +157,9 @@ class RetrievalService:
             limit=request.limit,
             reranker=self._reranker,
         )
-        if strategy == "dense_sparse" and self._sparse_provider is None:
+        if strategy in ("sparse", "dense_sparse") and self._sparse_provider is None:
             raise RetrievalServiceError(
-                "sparse embedding provider is required for dense_sparse retrieval"
+                "sparse embedding provider is required for sparse retrieval"
             )
 
         filters = _to_dense_filters(request.metadata_filter)
@@ -157,6 +171,20 @@ class RetrievalService:
 
         if strategy == "lexical":
             search_results = self._lexical_results(
+                project_id=request.project_id,
+                query=query,
+                limit=candidate_limit,
+                filters=filters,
+            )
+        elif strategy == "bm25":
+            search_results = self._bm25_results(
+                project_id=request.project_id,
+                query=query,
+                limit=candidate_limit,
+                filters=filters,
+            )
+        elif strategy == "sparse":
+            search_results = self._sparse_results(
                 project_id=request.project_id,
                 query=query,
                 limit=candidate_limit,
@@ -264,6 +292,42 @@ class RetrievalService:
         except LexicalRetrievalError as exc:
             raise RetrievalServiceError(str(exc)) from exc
 
+    def _bm25_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[RetrievalSearchResult]:
+        return [
+            _to_bm25_search_result(result)
+            for result in self._raw_bm25_results(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+                filters=filters,
+            )
+        ]
+
+    def _raw_bm25_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[Bm25RetrievalResult]:
+        try:
+            return self._bm25_retriever.search(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+                filters=filters,
+            )
+        except Bm25RetrievalError as exc:
+            raise RetrievalServiceError(str(exc)) from exc
+
     def _raw_sparse_results(
         self,
         *,
@@ -286,6 +350,24 @@ class RetrievalService:
             )
         except SparseRetrievalError as exc:
             raise RetrievalServiceError(str(exc)) from exc
+
+    def _sparse_results(
+        self,
+        *,
+        project_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> list[RetrievalSearchResult]:
+        return [
+            _to_sparse_search_result(result)
+            for result in self._raw_sparse_results(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+                filters=filters,
+            )
+        ]
 
     def _try_graph_results(
         self,
@@ -428,10 +510,18 @@ def _validate_query(query: str) -> str:
 
 
 def _validate_strategy(strategy: str) -> RetrievalStrategy:
-    if strategy not in ("dense", "graph", "lexical", "hybrid_rrf", "dense_sparse"):
+    if strategy not in (
+        "dense",
+        "graph",
+        "lexical",
+        "bm25",
+        "sparse",
+        "hybrid_rrf",
+        "dense_sparse",
+    ):
         raise RetrievalServiceError(
-            "retrieval strategy must be dense, graph, lexical, hybrid_rrf "
-            "or dense_sparse"
+            "retrieval strategy must be dense, graph, lexical, bm25, "
+            "sparse, hybrid_rrf or dense_sparse"
         )
     return cast(RetrievalStrategy, strategy)
 
@@ -482,6 +572,34 @@ def _to_lexical_search_result(
         embedding_metadata=_copy_metadata(result.embedding_metadata),
         retrieval_metadata=dict(result.lexical_metadata),
         strategy="lexical",
+    )
+
+
+def _to_bm25_search_result(
+    result: Bm25RetrievalResult,
+) -> RetrievalSearchResult:
+    return RetrievalSearchResult(
+        chunk_id=result.chunk_id,
+        distance=result.distance,
+        score=result.score,
+        citation=result.citation,
+        embedding_metadata=_copy_metadata(result.embedding_metadata),
+        retrieval_metadata=dict(result.bm25_metadata),
+        strategy="bm25",
+    )
+
+
+def _to_sparse_search_result(
+    result: SparseRetrievalResult,
+) -> RetrievalSearchResult:
+    return RetrievalSearchResult(
+        chunk_id=result.chunk_id,
+        distance=result.distance,
+        score=result.score,
+        citation=result.citation,
+        embedding_metadata=_copy_metadata(result.embedding_metadata),
+        retrieval_metadata=dict(result.sparse_metadata),
+        strategy="sparse",
     )
 
 

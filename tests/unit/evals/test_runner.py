@@ -11,6 +11,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Project,
@@ -93,6 +94,8 @@ def test_run_eval_suite_combines_retrieval_and_chat_reports(tmp_path: Path) -> N
         "chat_passed_count": 1.0,
         "retrieval_case_count": 1.0,
         "retrieval_hit_rate": 1.0,
+        "retrieval_mrr_at_k": 1.0,
+        "retrieval_ndcg_at_k": 1.0,
         "retrieval_passed_count": 1.0,
     }
     assert report.thresholds == {
@@ -112,6 +115,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
         ],
     )
     return create_session_factory(engine)()

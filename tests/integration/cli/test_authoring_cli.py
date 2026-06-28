@@ -46,7 +46,7 @@ def test_projects_create_list_and_show_output_json(
     assert created.exit_code == 0
     project = json.loads(created.stdout)
     assert project["name"] == "Demo"
-    assert project["embedding_mode"] == "dense"
+    assert project["embedding_mode"] == "dense_sparse"
     assert project["retrieval_contextualization_enabled"] is True
     assert project["budget_config_json"] is None
 

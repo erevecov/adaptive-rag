@@ -959,8 +959,8 @@ Objetivo:
 Condiciones del milestone:
 
 - La surface publica debe cubrir API, CLI y frontend para projects y sources.
-- Crear project usa `embedding_mode = dense` como default publico; `dense_sparse`
-  sigue reservado hasta evidencia/OpenSpec nuevo.
+- Crear project usa `embedding_mode = dense_sparse` como default publico;
+  `dense` sigue disponible explicitamente para baseline.
 - Crear source soporta `markdown`, `text`, `txt` y `url`, que son los tipos que
   el pipeline de ingestion ya entiende.
 - Para sources text-like, el contenido se guarda en `extra_metadata.content`.
@@ -1236,11 +1236,12 @@ Objetivo:
 
 - Agregar sparse embeddings Qwen/DashScope, backfill explicito sobre
   `chunk_sparse_embeddings`, `SparseRetriever` y `strategy=dense_sparse` como
-  opt-in dense+sparse RRF.
+  dense+sparse RRF.
 
 Condiciones del milestone:
 
-- `dense` sigue como default.
+- `dense_sparse` queda promovido como default tras la medicion live Qwen;
+  `dense` sigue disponible como baseline explicito.
 - Sparse provider usa DashScope native TextEmbedding con `output_type=sparse`
   y `text_type=query|document`.
 - Sparse backfill usa el mismo input contextualizado que dense/lexical.
@@ -1256,9 +1257,8 @@ Secuencia recomendada:
    dense+sparse por RRF.
 3. `m30-surfaces-evals`: completo. Expone API/CLI/evals, docs y validaciones.
 
-Continuacion: M30 queda cerrado. Completar M31 para comparar dense,
-contextual dense, lexical, sparse, hybrid RRF, graph opt-in y rerank antes de
-promover estrategias o pulir el frontend.
+Continuacion: M30 queda cerrado. M31 compara dense, contextual dense, lexical,
+sparse, hybrid RRF, graph opt-in y rerank antes de pulir el frontend.
 
 ## M31 Retrieval strategy gate
 
@@ -1271,8 +1271,8 @@ Change archivado:
 Objetivo:
 
 - Comparar las estrategias de retrieval listas contra `dense`, emitir decision
-  por estrategia y conservar `dense` como default salvo evidencia explicita de
-  promocion.
+  por estrategia y promover `dense_sparse` cuando la evidencia live muestre
+  paridad sin regresiones.
 
 Condiciones del milestone:
 
@@ -1297,17 +1297,17 @@ Secuencia recomendada:
 
 Decision de cierre:
 
-- `dense` sigue como default recomendado para frontend polish.
+- `dense_sparse` queda como default recomendado para frontend polish.
 - `contextual_dense` requiere suites con `contextual_summary` antes de cualquier
   promocion.
-- `lexical`, `hybrid_rrf`, `dense_sparse` y `dense_rerank` pueden permanecer
-  como capacidades opt-in/evaluables, no como default visual.
+- `lexical`, `hybrid_rrf` y `dense_rerank` pueden permanecer como capacidades
+  opt-in/evaluables, no como default visual.
 - `graph` queda en `hold` sin evidencia live operacional.
 
 Continuacion: abrir M32 para frontend polish. El alcance recomendado es mejorar
-authoring, ingestion, first-run, retrieval dense y chat/historial con una UI mas
-pulida, sin inventar controles para modos avanzados que el gate no haya
-promovido.
+authoring, ingestion, first-run, retrieval `dense_sparse` y chat/historial con
+una UI mas pulida, sin inventar controles para modos avanzados que el gate no
+haya promovido.
 
 ## M32 Frontend polish
 
@@ -1326,9 +1326,9 @@ Objetivo:
 Condiciones del milestone:
 
 - Abrir un nuevo change OpenSpec desde `origin/main` antes de implementar.
-- Mantener `dense` como experiencia default.
-- No exponer `contextual_dense`, `lexical`, `hybrid_rrf`, `dense_sparse`,
-  `dense_rerank` o `graph` como default.
+- Mantener `dense_sparse` como experiencia default.
+- No exponer `contextual_dense`, `lexical`, `hybrid_rrf`, `dense_rerank` o
+  `graph` como default.
 - Si algun modo avanzado aparece en UI, debe ser opt-in, claramente
   experimental y consistente con la decision M31.
 - Priorizar polish de workflows reales sobre landing pages o nuevas features.
@@ -1339,10 +1339,11 @@ Secuencia recomendada:
    flujos, estados vacios/carga/error, politica de retrieval default y
    criterios de QA visual.
 2. `m32-product-shell-and-authoring`: completo en branch de implementacion.
-   Agrega contexto de proyecto compartido, mantiene `dense` como default visible,
-   explicita source -> ingestion y muestra metadata operativa de jobs/run-next.
+   Agrega contexto de proyecto compartido, mantiene el default visible de
+   retrieval, explicita source -> ingestion y muestra metadata operativa de
+   jobs/run-next.
 3. `m32-chat-retrieval-experience`: completo en branch de implementacion.
-   Agrega contrato `dense` visible en chat, streaming partial state sin
+   Agrega contrato de retrieval visible en chat, streaming partial state sin
    citations finales falsas, metadata de citations e historial de retrieval
    read-only con strategy/top-k/latencia/rank/score.
 4. `m32-visual-qa-and-docs`: completo. Ejecuta QA responsive desktop/mobile

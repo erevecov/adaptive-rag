@@ -71,7 +71,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
             "id": str(project_id),
             "project_id": str(project_id),
             "name": "Demo",
-            "embedding_mode": "dense",
+            "embedding_mode": "dense_sparse",
             "retrieval_contextualization_enabled": True,
             "budget_config_json": None,
         },
@@ -214,7 +214,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
         "id": str(project.id),
         "project_id": str(project.id),
         "name": "Demo",
-        "embedding_mode": "dense",
+        "embedding_mode": "dense_sparse",
         "retrieval_contextualization_enabled": True,
         "budget_config_json": '{"tier":"test"}',
     }

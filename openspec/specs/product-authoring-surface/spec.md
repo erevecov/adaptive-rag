@@ -8,11 +8,11 @@ TBD - created by archiving change m23-product-authoring-surface. Update Purpose 
 The system MUST let a local user create, list and inspect projects without
 direct SQL, private fixtures or test helpers.
 
-#### Scenario: User creates a dense project
+#### Scenario: User creates a dense_sparse project
 
 - **WHEN** a user creates a project through API, CLI or frontend
 - **THEN** the project is persisted with a stable `id`
-- **AND** `embedding_mode` defaults to `dense`
+- **AND** `embedding_mode` defaults to `dense_sparse`
 - **AND** `retrieval_contextualization_enabled` defaults according to the
   existing domain contract
 - **AND** the response includes `id`, `name`, `embedding_mode`,

@@ -202,8 +202,16 @@ def get_retrieval_service(
         DenseEmbeddingProvider,
         Depends(get_dense_embedding_provider),
     ],
+    sparse_provider_factory: Annotated[
+        SparseEmbeddingProviderFactory,
+        Depends(get_sparse_embedding_provider_factory),
+    ],
 ) -> RetrievalService:
-    return RetrievalService(session, provider=provider)
+    return RetrievalService(
+        session,
+        provider=provider,
+        sparse_provider=sparse_provider_factory(),
+    )
 
 
 def get_chat_audit_writer(

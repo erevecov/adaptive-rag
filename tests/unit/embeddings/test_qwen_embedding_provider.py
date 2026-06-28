@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 
@@ -202,6 +204,52 @@ def test_qwen_http_client_posts_dashscope_embedding_payload() -> None:
     )
 
 
+def test_qwen_http_client_batches_dashscope_embedding_payloads() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        payload = json.loads(request.read())
+        texts = payload["input"]["texts"]
+        offset = 0 if len(requests) == 1 else 10
+        return httpx.Response(
+            200,
+            json={
+                "output": {
+                    "embeddings": [
+                        {
+                            "text_index": index,
+                            "embedding": _vector(float(offset + index)),
+                        }
+                        for index, _text in enumerate(texts)
+                    ]
+                }
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    embeddings = client.embed_texts(
+        model="text-embedding-v4",
+        texts=[f"text-{index}" for index in range(16)],
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert embeddings == [_vector(float(index)) for index in range(16)]
+    assert len(requests) == 2
+    request_payloads = [json.loads(request.read()) for request in requests]
+    assert [payload["input"]["texts"] for payload in request_payloads] == [
+        [f"text-{index}" for index in range(10)],
+        [f"text-{index}" for index in range(10, 16)],
+    ]
+
+
 def test_qwen_http_client_posts_dashscope_sparse_embedding_payload() -> None:
     requests: list[httpx.Request] = []
 
@@ -277,6 +325,70 @@ def test_qwen_http_client_posts_dashscope_sparse_embedding_payload() -> None:
     assert record.operation == "embedding"
     assert record.usage.input_tokens == 100
     assert record.request_id == "req_sparse"
+
+
+def test_qwen_http_client_batches_dashscope_sparse_embedding_payloads() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        payload = json.loads(request.read())
+        texts = payload["input"]["texts"]
+        offset = 0 if len(requests) == 1 else 10
+        return httpx.Response(
+            200,
+            json={
+                "output": {
+                    "embeddings": [
+                        {
+                            "text_index": index,
+                            "sparse_embedding": [
+                                {
+                                    "index": offset + index,
+                                    "value": float(offset + index),
+                                    "token": text,
+                                }
+                            ],
+                        }
+                        for index, text in enumerate(texts)
+                    ]
+                }
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://example.test/api/v1/services/embeddings/text-embedding",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    embeddings = client.embed_sparse_texts(
+        model="text-embedding-v4",
+        texts=[f"text-{index}" for index in range(16)],
+        text_type="document",
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert embeddings == [
+        SparseEmbeddingVector(
+            indices=(index,),
+            values=(float(index),),
+            tokens=(f"text-{index}",),
+        )
+        for index in range(16)
+    ]
+    assert len(requests) == 2
+    request_payloads = [json.loads(request.read()) for request in requests]
+    assert [payload["input"]["texts"] for payload in request_payloads] == [
+        [f"text-{index}" for index in range(10)],
+        [f"text-{index}" for index in range(10, 16)],
+    ]
+    assert all(
+        payload["parameters"]["output_type"] == "sparse"
+        for payload in request_payloads
+    )
 
 
 def test_qwen_http_client_accepts_openai_compatible_embedding_shape() -> None:

@@ -64,7 +64,7 @@ class RetrievalSearchRequestBody(BaseModel):
     limit: int = 10
     metadata_filter: RetrievalMetadataFilterRequest | None = None
     rerank: RetrievalRerankRequest | None = None
-    strategy: RetrievalStrategy = "dense"
+    strategy: RetrievalStrategy = "dense_sparse"
 
     def validate_rerank_options(self) -> None:
         if self.rerank is None:

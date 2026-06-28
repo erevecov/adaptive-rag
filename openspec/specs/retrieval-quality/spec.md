@@ -2,22 +2,22 @@
 
 ## Purpose
 
-Define la frontera canonica de mejoras de calidad de retrieval que mantienen
-dense retrieval como default, agregan rerank opt-in sobre candidatos ya
+Define la frontera canonica de mejoras de calidad de retrieval que promueven
+dense_sparse retrieval como default, agregan rerank opt-in sobre candidatos ya
 filtrados y permiten comparar calidad, usage y costo sin convertir providers
 hosted en requisito de CI.
 ## Requirements
 ### Requirement: Retrieval quality improvements son opt-in y medibles
 
-El sistema MUST mantener dense retrieval como default y MUST requerir
+El sistema MUST mantener dense_sparse retrieval como default y MUST requerir
 habilitacion explicita para cualquier etapa de rerank.
 
-#### Scenario: Dense retrieval sigue siendo el default
+#### Scenario: dense_sparse retrieval sigue siendo el default
 
 - **WHEN** una solicitud de retrieval no habilita rerank
-- **THEN** `RetrievalService` ejecuta el flujo dense existente
-- **AND** API, CLI y evals conservan payloads y ordenamiento dense compatibles
-  con el baseline actual
+- **THEN** `RetrievalService` ejecuta el flujo `dense_sparse`
+- **AND** API, CLI, chat y evals conservan payloads compatibles con el
+  baseline actual, reportando metadata RRF cuando aplica
 
 #### Scenario: Rerank requiere configuracion explicita
 
@@ -66,14 +66,14 @@ registrar usage/cost sin exponer secretos.
 
 ### Requirement: API y CLI exponen knobs acotados de rerank
 
-El sistema MUST exponer parametros de rerank que mantengan defaults dense y
+El sistema MUST exponer parametros de rerank que mantengan defaults dense_sparse y
 limites seguros para llamadas hosted.
 
-#### Scenario: API/CLI conservan default dense
+#### Scenario: API/CLI conservan default dense_sparse
 
 - **WHEN** un usuario llama `POST /projects/{project_id}/retrieval/search` o
   `adaptive-rag retrieval search` sin flags de rerank
-- **THEN** el sistema responde con resultados dense como antes
+- **THEN** el sistema responde con resultados `dense_sparse`
 - **AND** no lee credenciales de rerank ni llama providers live
 
 #### Scenario: API/CLI validan limites de rerank
@@ -125,7 +125,7 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
 
 #### Scenario: Decision gate precede algoritmos nuevos
 
-- **WHEN** se propone lexical/RRF, sparse retrieval o tuning automatico
+- **WHEN** se propone BM25, lexical/RRF, sparse retrieval o tuning automatico
 - **THEN** el change debe declarar evidencia de evals suficiente para justificar
   el incremento
 - **AND** debe documentar regresiones criticas, costo/latencia y comportamiento
@@ -148,7 +148,7 @@ permitan decidir si un cambio mejora, empata o degrada el baseline.
   fallo que requiera indexes o providers nuevos
 - **THEN** el primer experimento debe preferir parametros acotados de
   `candidate_limit`, top-k o rerank antes de lexical/RRF o sparse retrieval
-- **AND** debe mantener dense retrieval como default hasta un quality gate
+- **AND** debe mantener el default vigente hasta un quality gate
   posterior
 
 #### Scenario: Candidate limit matrix agrupa casos por metadata
@@ -239,22 +239,23 @@ lexical/RRF, sparse retrieval, nuevos providers o cambios de defaults.
   retrieval
 - **THEN** la decision matrix declara estado proceed, hold, no-go o
   needs-more-data para lexical/RRF, sparse retrieval y candidate tuning
-- **AND** conserva dense retrieval como default salvo que otro change posterior
-  apruebe una promocion con evidencia nueva
+- **AND** conserva el default vigente salvo que otro change posterior apruebe
+  una promocion con evidencia nueva
 
-### Requirement: Post-v1 retrieval expansion remains opt-in until gated
+### Requirement: Post-v1 retrieval expansion promotes dense_sparse after gating
 
-The system MUST treat post-v1 contextual, lexical, sparse, graph and hybrid
-retrieval capabilities as opt-in until a strategy gate proves promotion is
-safe.
+The system MUST treat post-v1 contextual, lexical, graph and rerank retrieval
+capabilities as opt-in, while `dense_sparse` is promoted after the strategy gate
+shows parity with dense and no regressions.
 
-#### Scenario: Expansion track preserves dense default
+#### Scenario: Expansion track promotes dense_sparse default
 
 - **WHEN** post-v1 retrieval capabilities are implemented
-- **THEN** `dense` retrieval remains the default path
-- **AND** each new retrieval capability requires explicit API, CLI or eval
-  selection
-- **AND** dense remains the fallback when an opt-in branch cannot run
+- **THEN** `dense_sparse` retrieval becomes the default path
+- **AND** lexical, BM25, graph and rerank capabilities require explicit API,
+  CLI or eval selection
+- **AND** dense remains available explicitly and as the fallback when an
+  opt-in graph branch cannot run
 
 #### Scenario: Frontend polish follows stable retrieval contracts
 
@@ -289,8 +290,8 @@ comparing promotion decisions.
 - **WHEN** Qwen sparse or `dense_sparse` retrieval is implemented
 - **THEN** the change verifies current provider documentation before defining
   request payloads, response parsing, storage, scoring or cost assumptions
-- **AND** sparse retrieval remains opt-in until the strategy gate reports a
-  promotion decision
+- **AND** sparse retrieval remains provider-configured and is exercised by the
+  default `dense_sparse` strategy after promotion
 
 ### Requirement: Retrieval strategy gate decides promotion
 
@@ -301,10 +302,11 @@ frontend assumptions.
 
 - **WHEN** contextual, lexical/RRF and sparse retrieval are ready enough to
   evaluate
-- **THEN** the gate compares dense, contextual dense, lexical, sparse, hybrid
-  RRF, graph opt-in and rerank where available
-- **AND** it reports quality, regressions, latency, cost, fallback, filter
-  behavior and citation coverage
+- **THEN** the gate compares dense, contextual dense, lexical, BM25, sparse,
+  hybrid RRF, graph opt-in and rerank where available
+- **AND** it reports quality metrics including hit rate, MRR@k and nDCG@k,
+  plus regressions, latency, cost, fallback, filter behavior and citation
+  coverage
 - **AND** it assigns each strategy a decision of `promote`, `keep_opt_in`,
   `hold`, `no_go` or `needs_more_data`
 
@@ -332,6 +334,24 @@ original citations across lexical and hybrid RRF retrieval.
 - **AND** rerank can still be applied only when explicit rerank options are
   supplied
 
+### Requirement: BM25 preserves retrieval safety invariants
+
+The system MUST keep project isolation, metadata filters, stable ordering and
+original citations across local Okapi BM25 retrieval.
+
+#### Scenario: BM25 filters before scoring
+
+- **WHEN** BM25 retrieval receives a metadata filter
+- **THEN** it applies `project_id` and metadata filters before scoring
+- **AND** excludes chunks outside the project or filter scope
+
+#### Scenario: BM25 remains provider-free
+
+- **WHEN** BM25 retrieval is requested
+- **THEN** it scores local chunk lexical input without dense or sparse provider
+  calls
+- **AND** result metadata records BM25 rank and score
+
 ### Requirement: Sparse retrieval preserves retrieval invariants
 
 Sparse retrieval and dense_sparse fusion MUST preserve project isolation,
@@ -356,18 +376,26 @@ metadata filters and original citations.
 - **THEN** it records provider, model, input hash and index fingerprint metadata
 - **AND** rerunning with the same inputs reuses the row instead of duplicating it
 
-### Requirement: Strategy gate decisions preserve dense default until proven
+### Requirement: Strategy gate decisions promote dense_sparse when safe
 
-The system MUST preserve `dense` as default unless the retrieval strategy gate
-reports a non-dense strategy that improves quality without regressions.
+The system MUST promote `dense_sparse` as default when the retrieval strategy
+gate shows parity with dense, zero regressions and preserved citations/filters.
 
-#### Scenario: Gate keeps equal strategies opt-in
+#### Scenario: Gate promotes dense_sparse parity
 
-- **WHEN** lexical, hybrid RRF, dense_sparse or rerank match dense hit rate
+- **WHEN** `dense_sparse` matches dense hit rate
+- **AND** they introduce no case regressions, citation loss or metadata filter
+  failures
+- **THEN** the gate assigns `promote`
+- **AND** `recommended_default` becomes `dense_sparse`
+
+#### Scenario: Gate keeps other equal strategies opt-in
+
+- **WHEN** lexical, BM25, sparse, hybrid RRF or rerank match dense hit rate
 - **AND** they introduce no case regressions, citation loss or metadata filter
   failures
 - **THEN** the gate assigns `keep_opt_in`
-- **AND** `recommended_default` remains `dense`
+- **AND** `recommended_default` remains `dense_sparse`
 
 #### Scenario: Gate blocks unsafe strategies
 

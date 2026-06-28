@@ -19,7 +19,7 @@ def run_eval_suite(
     provider: DenseEmbeddingProvider | None = None,
     sparse_provider: SparseEmbeddingProvider | None = None,
     chat_runner: ChatRunner | None = None,
-    retrieval_strategy: RetrievalStrategy = "dense",
+    retrieval_strategy: RetrievalStrategy = "dense_sparse",
 ) -> EvalRunReport:
     """Ejecuta retrieval y chat de una suite en un reporte unico."""
 
@@ -34,6 +34,7 @@ def run_eval_suite(
         session,
         suite,
         provider=provider,
+        sparse_provider=sparse_provider,
         runner=chat_runner,
     )
     status: EvalStatus = (

@@ -59,6 +59,8 @@ def test_run_retrieval_eval_suite_passes_repo_smoke_fixture() -> None:
     assert report.metrics == {
         "retrieval_case_count": 1.0,
         "retrieval_hit_rate": 1.0,
+        "retrieval_mrr_at_k": 1.0,
+        "retrieval_ndcg_at_k": 1.0,
         "retrieval_passed_count": 1.0,
     }
     assert report.thresholds == {"retrieval_hit_rate": 1.0}
@@ -77,6 +79,8 @@ def test_run_retrieval_eval_suite_passes_repo_smoke_fixture() -> None:
         "hit": 1.0,
         "matched_count": 1.0,
         "missing_count": 0.0,
+        "ndcg": 1.0,
+        "reciprocal_rank": 1.0,
         "retrieved_count": 2.0,
     }
     assert case.errors == ()
@@ -110,6 +114,8 @@ def test_run_retrieval_eval_suite_passes_repo_dataset_pack_fixture() -> None:
     assert report.metrics == {
         "retrieval_case_count": 10.0,
         "retrieval_hit_rate": 1.0,
+        "retrieval_mrr_at_k": 1.0,
+        "retrieval_ndcg_at_k": 1.0,
         "retrieval_passed_count": 10.0,
     }
     assert tuple(case.id for case in report.cases) == (
@@ -211,6 +217,8 @@ def test_run_retrieval_eval_suite_reports_missing_expected_evidence(
     assert report.cases[0].status == "failed"
     assert report.cases[0].metrics["hit"] == 0.0
     assert report.cases[0].metrics["missing_count"] == 1.0
+    assert report.cases[0].metrics["reciprocal_rank"] == 0.0
+    assert report.cases[0].metrics["ndcg"] == 0.0
     assert report.cases[0].observed_evidence_ids == ("far",)
     assert report.cases[0].errors == ("missing expected evidence: alpha",)
     assert serialize_eval_report(report)["cases"][0]["case_metadata"] == {
@@ -278,6 +286,96 @@ def test_run_retrieval_eval_suite_uses_declared_metadata_filters(
     assert report.cases[0].metrics["hit"] == 1.0
 
 
+def test_run_retrieval_eval_suite_reports_ranking_metrics(
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "retrieval-ranking-metrics",
+                "thresholds": {"retrieval_hit_rate": 0.0},
+                "evidence": [
+                    {
+                        "id": "first",
+                        "text": "First distractor evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "first.md",
+                    },
+                    {
+                        "id": "target",
+                        "text": "Target evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "target.md",
+                    },
+                    {
+                        "id": "extra",
+                        "text": "Extra relevant evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "extra.md",
+                    },
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "single-rank-two",
+                        "query": "single rank two",
+                        "limit": 3,
+                        "expected_evidence_ids": ["target"],
+                    },
+                    {
+                        "id": "multi-rank-one-three",
+                        "query": "multi rank one three",
+                        "limit": 3,
+                        "expected_evidence_ids": ["first", "extra"],
+                    },
+                ],
+                "chat_cases": [],
+            },
+        )
+    )
+    provider = MappingEmbeddingProvider(
+        {
+            "First distractor evidence": _axis_vector(0),
+            "Target evidence": _axis_vector(1),
+            "Extra relevant evidence": _axis_vector(2),
+            "single rank two": _weighted_vector({0: 0.8, 1: 0.6}),
+            "multi rank one three": _weighted_vector({1: 1.0, 0: 0.4, 2: 0.2}),
+        }
+    )
+    session = _make_session()
+
+    report = run_retrieval_eval_suite(session, suite, provider=provider)
+
+    by_case = {case.id: case for case in report.cases}
+    assert by_case["single-rank-two"].observed_evidence_ids[:2] == (
+        "first",
+        "target",
+    )
+    assert by_case["single-rank-two"].metrics["reciprocal_rank"] == 0.5
+    assert by_case["single-rank-two"].metrics["ndcg"] == pytest.approx(
+        1 / 1.5849625007211563
+    )
+    assert by_case["multi-rank-one-three"].observed_evidence_ids == (
+        "target",
+        "first",
+        "extra",
+    )
+    assert by_case["multi-rank-one-three"].metrics["reciprocal_rank"] == 0.5
+    assert by_case["multi-rank-one-three"].metrics["ndcg"] == pytest.approx(
+        ((1 / 1.5849625007211563) + 0.5)
+        / (1 + (1 / 1.5849625007211563))
+    )
+    assert report.metrics["retrieval_mrr_at_k"] == 0.5
+    assert report.metrics["retrieval_ndcg_at_k"] == pytest.approx(
+        (
+            by_case["single-rank-two"].metrics["ndcg"]
+            + by_case["multi-rank-one-three"].metrics["ndcg"]
+        )
+        / 2
+    )
+
+
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
@@ -312,6 +410,13 @@ def _vector(first: float) -> list[float]:
 def _axis_vector(axis: int) -> list[float]:
     values = [0.0] * EMBEDDING_DIMENSIONS
     values[axis] = 1.0
+    return values
+
+
+def _weighted_vector(values_by_axis: dict[int, float]) -> list[float]:
+    values = [0.0] * EMBEDDING_DIMENSIONS
+    for axis, value in values_by_axis.items():
+        values[axis] = value
     return values
 
 

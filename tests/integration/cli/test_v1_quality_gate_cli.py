@@ -11,6 +11,7 @@ from adaptive_rag.cli.app import app
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Job,
@@ -118,6 +119,7 @@ def _make_session():
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             Job.__table__,
             JobEvent.__table__,
         ],

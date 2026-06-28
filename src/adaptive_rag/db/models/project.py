@@ -46,7 +46,7 @@ class Project(Base):
     )
     name: Mapped[str] = mapped_column(nullable=False)
     embedding_mode: Mapped[str] = mapped_column(
-        nullable=False, default="dense", server_default="dense"
+        nullable=False, default="dense_sparse", server_default="dense_sparse"
     )
     retrieval_contextualization_enabled: Mapped[bool] = mapped_column(
         nullable=False, default=True, server_default="true"

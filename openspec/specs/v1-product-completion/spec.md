@@ -160,7 +160,7 @@ release evidence from the complete local-first product flow.
 - **THEN** hosted Qwen, hosted rerank and Neo4j remain marked opt-in
 - **AND** auth multi-user, PDF/Office, voice, MCP server and hosted
   observability remain explicit deferrals
-- **AND** dense retrieval remains the default path for v1.0
+- **AND** retrieval uses the current default local path for v1.0 validation
 
 ### Requirement: Product completion includes post-runtime-settings acceptance
 

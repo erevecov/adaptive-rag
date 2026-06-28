@@ -16,6 +16,8 @@ from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval import RetrievalMetadataFilter
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
+DEFAULT_CHAT_RETRIEVAL_STRATEGY = "dense_sparse"
+
 
 class ChatAuditWriter(Protocol):
     """Sink inyectable para audit trail de chat."""
@@ -51,7 +53,7 @@ class ChatAuditWriter(Protocol):
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         """Registra una llamada exitosa a la tool de retrieval."""
         ...
@@ -63,7 +65,7 @@ class ChatAuditWriter(Protocol):
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> UUID | None:
         """Registra el inicio de una llamada a la tool de retrieval."""
         ...
@@ -78,7 +80,7 @@ class ChatAuditWriter(Protocol):
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         """Completa una llamada exitosa a la tool de retrieval."""
         ...
@@ -149,7 +151,7 @@ class NullChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         return None
 
@@ -160,7 +162,7 @@ class NullChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> UUID | None:
         return None
 
@@ -174,7 +176,7 @@ class NullChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         return None
 
@@ -261,7 +263,7 @@ class InMemoryChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         self.events.append(
             {
@@ -284,7 +286,7 @@ class InMemoryChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> UUID | None:
         return uuid4()
 
@@ -298,7 +300,7 @@ class InMemoryChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         self.record_retrieval_tool(
             project_id,
@@ -415,7 +417,7 @@ class SqlAlchemyChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         if session_id is None:
             return
@@ -447,7 +449,7 @@ class SqlAlchemyChatAuditWriter:
         query: str,
         limit: int,
         metadata_filter: RetrievalMetadataFilter | None,
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> UUID | None:
         if session_id is None:
             return None
@@ -475,7 +477,7 @@ class SqlAlchemyChatAuditWriter:
         metadata_filter: RetrievalMetadataFilter | None,
         latency_ms: int,
         results: Sequence[RetrievalResultPayload],
-        strategy: str = "dense",
+        strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         if session_id is None or tool_call_id is None:
             return

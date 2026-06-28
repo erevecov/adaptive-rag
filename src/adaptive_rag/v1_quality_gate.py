@@ -8,7 +8,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from adaptive_rag.chat import ChatRunner
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.first_run import (
     DEFAULT_CONTENT,
     DEFAULT_PROJECT_NAME,
@@ -59,6 +59,7 @@ def run_v1_quality_gate(
     session: Session,
     *,
     dense_embedding_provider: DenseEmbeddingProvider,
+    sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     chat_runner: ChatRunner,
     project_name: str = DEFAULT_PROJECT_NAME,
     source_external_id: str = DEFAULT_SOURCE_EXTERNAL_ID,
@@ -69,6 +70,7 @@ def run_v1_quality_gate(
     first_run = run_first_run_smoke(
         session,
         dense_embedding_provider=dense_embedding_provider,
+        sparse_embedding_provider=sparse_embedding_provider,
         chat_runner=chat_runner,
         project_name=project_name,
         source_external_id=source_external_id,

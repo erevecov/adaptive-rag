@@ -64,7 +64,7 @@ mismo servicio de retrieval.
 ### Requirement: Retrieval surface exposes lexical and hybrid RRF strategies
 
 The system MUST expose local lexical retrieval and hybrid dense+lexical RRF as
-explicit retrieval strategies without changing the dense default.
+explicit retrieval strategies without changing the dense_sparse default.
 
 #### Scenario: Lexical strategy returns original citations
 
@@ -82,10 +82,10 @@ explicit retrieval strategies without changing the dense default.
 - **AND** fuses candidate ranks with reciprocal rank fusion
 - **AND** emits at most one result per chunk with stable ordering
 
-#### Scenario: Dense remains default
+#### Scenario: dense_sparse remains default
 
 - **WHEN** no retrieval strategy is supplied by API, CLI, chat or eval callers
-- **THEN** the system uses `dense`
+- **THEN** the system uses `dense_sparse`
 - **AND** lexical and hybrid RRF never run implicitly
 
 #### Scenario: Result metadata preserves strategy scores
@@ -95,10 +95,40 @@ explicit retrieval strategies without changing the dense default.
 - **AND** existing rerank metadata remains available when rerank is explicitly
   requested
 
-### Requirement: Retrieval surface exposes dense_sparse strategy opt-in
+### Requirement: Retrieval surface exposes local Okapi BM25 strategy
 
-The system MUST expose `strategy=dense_sparse` for API, CLI and offline evals
-without changing the default retrieval strategy.
+The system MUST expose `strategy=bm25` as a local, provider-free retrieval
+strategy over the contextualized lexical input without changing the dense_sparse
+default.
+
+#### Scenario: BM25 strategy returns original citations
+
+- **WHEN** retrieval is requested with `strategy=bm25`
+- **THEN** the system scores filtered chunks with Okapi BM25 locally
+- **AND** returns result payloads with `strategy` equal to `bm25`
+- **AND** result metadata records BM25 rank and score
+- **AND** citation snippets are sourced from original normalized document text
+
+#### Scenario: BM25 does not call embedding providers
+
+- **WHEN** retrieval is requested with `strategy=bm25`
+- **THEN** no dense or sparse embedding provider is required or called
+- **AND** project and metadata filters are applied before scoring
+
+### Requirement: Retrieval surface exposes sparse and dense_sparse strategies
+
+The system MUST expose `strategy=sparse` and `strategy=dense_sparse` for API,
+CLI, chat and offline evals, with `dense_sparse` as the default retrieval
+strategy.
+
+#### Scenario: Sparse strategy returns original citations
+
+- **WHEN** retrieval is requested with `strategy=sparse`
+- **THEN** the service embeds the query with the configured sparse provider
+- **AND** ranks stored sparse embeddings after applying project and metadata
+  filters
+- **AND** returns result payloads with `strategy` equal to `sparse`
+- **AND** records sparse rank and score in result metadata
 
 #### Scenario: dense_sparse fuses dense and sparse candidates
 
@@ -109,11 +139,18 @@ without changing the default retrieval strategy.
 - **AND** applies reciprocal rank fusion
 - **AND** records dense rank, sparse rank and RRF score in result metadata
 
-#### Scenario: dense remains default
+#### Scenario: dense_sparse remains default
 
 - **WHEN** no retrieval strategy is supplied by API, CLI, chat or eval callers
-- **THEN** retrieval uses `strategy=dense`
-- **AND** sparse retrieval never runs implicitly
+- **THEN** retrieval uses `strategy=dense_sparse`
+- **AND** dense and sparse retrieval run implicitly through the configured
+  providers
+
+#### Scenario: dense remains available explicitly
+
+- **WHEN** retrieval is requested with `strategy=dense`
+- **THEN** retrieval uses only the dense embedding provider and dense index
+- **AND** sparse retrieval does not run
 
 #### Scenario: Sparse backfill is explicit
 

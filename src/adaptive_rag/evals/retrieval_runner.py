@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from sqlalchemy.orm import Session
 
 from adaptive_rag.embeddings import (
@@ -56,7 +58,7 @@ def run_retrieval_eval_suite(
         suite,
         provider=active_provider,
     )
-    if strategy == "dense_sparse":
+    if strategy in ("sparse", "dense_sparse"):
         active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
         sparse_pipeline = SparseEmbeddingPipeline(
             session,
@@ -72,7 +74,7 @@ def run_retrieval_eval_suite(
         provider=active_provider,
         sparse_provider=(
             (sparse_provider or FakeSparseEmbeddingProvider())
-            if strategy == "dense_sparse"
+            if strategy in ("sparse", "dense_sparse")
             else None
         ),
         reranker=reranker,
@@ -93,6 +95,8 @@ def run_retrieval_eval_suite(
     metrics = {
         "retrieval_case_count": float(len(cases)),
         "retrieval_hit_rate": hit_rate,
+        "retrieval_mrr_at_k": _average_metric(cases, "reciprocal_rank"),
+        "retrieval_ndcg_at_k": _average_metric(cases, "ndcg"),
         "retrieval_passed_count": float(passed_count),
     }
     thresholds = _retrieval_thresholds(suite)
@@ -141,6 +145,8 @@ def _run_retrieval_case(
                 "hit": 0.0,
                 "matched_count": 0.0,
                 "missing_count": float(len(retrieval_case.expected_evidence_ids)),
+                "ndcg": 0.0,
+                "reciprocal_rank": 0.0,
                 "retrieved_count": 0.0,
             },
             case_metadata=retrieval_case.case_metadata,
@@ -171,6 +177,11 @@ def _run_retrieval_case(
         observed_evidence_ids,
         expected_evidence_ids=retrieval_case.expected_evidence_ids,
     )
+    reciprocal_rank = 1 / best_rank if best_rank > 0 else 0.0
+    ndcg = _ndcg(
+        observed_evidence_ids,
+        expected_evidence_ids=retrieval_case.expected_evidence_ids,
+    )
     return EvalCaseResult(
         id=retrieval_case.id,
         kind="retrieval",
@@ -181,6 +192,8 @@ def _run_retrieval_case(
             "hit": 1.0 if not missing else 0.0,
             "matched_count": float(matched_count),
             "missing_count": float(len(missing)),
+            "ndcg": ndcg,
+            "reciprocal_rank": reciprocal_rank,
             "retrieved_count": float(len(results)),
         },
         case_metadata=retrieval_case.case_metadata,
@@ -218,6 +231,36 @@ def _best_rank(
         if evidence_id in expected
     ]
     return min(ranks) if ranks else 0
+
+
+def _ndcg(
+    observed_evidence_ids: tuple[str, ...],
+    *,
+    expected_evidence_ids: tuple[str, ...],
+) -> float:
+    if not expected_evidence_ids:
+        return 1.0
+    expected = set(expected_evidence_ids)
+    dcg = sum(
+        _discount(rank)
+        for rank, evidence_id in enumerate(observed_evidence_ids, start=1)
+        if evidence_id in expected
+    )
+    ideal_count = min(len(expected), len(observed_evidence_ids))
+    if ideal_count == 0:
+        return 0.0
+    ideal_dcg = sum(_discount(rank) for rank in range(1, ideal_count + 1))
+    return dcg / ideal_dcg if ideal_dcg > 0 else 0.0
+
+
+def _discount(rank: int) -> float:
+    return 1 / math.log2(rank + 1)
+
+
+def _average_metric(cases: tuple[EvalCaseResult, ...], metric_name: str) -> float:
+    if not cases:
+        return 1.0
+    return sum(case.metrics[metric_name] for case in cases) / len(cases)
 
 
 def _missing_errors(missing: tuple[str, ...]) -> tuple[str, ...]:

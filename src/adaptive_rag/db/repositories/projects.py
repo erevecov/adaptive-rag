@@ -22,7 +22,7 @@ class ProjectRepository:
         self,
         *,
         name: str,
-        embedding_mode: str = "dense",
+        embedding_mode: str = "dense_sparse",
         retrieval_contextualization_enabled: bool = True,
         budget_config_json: Mapping[str, Any] | None = None,
     ) -> Project:

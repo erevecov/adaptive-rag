@@ -10,6 +10,7 @@ import typer
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
+    get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.first_run import (
@@ -54,6 +55,7 @@ def smoke(
             report = run_first_run_smoke(
                 session,
                 dense_embedding_provider=get_cli_dense_embedding_provider(),
+                sparse_embedding_provider=get_cli_sparse_embedding_provider(),
                 chat_runner=get_cli_chat_runner(),
                 project_name=project_name,
                 source_external_id=source_external_id,

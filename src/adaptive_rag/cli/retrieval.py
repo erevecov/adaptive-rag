@@ -65,7 +65,7 @@ def search(
     strategy: Annotated[
         RetrievalStrategy,
         typer.Option("--strategy"),
-    ] = "dense",
+    ] = "dense_sparse",
 ) -> None:
     try:
         rerank_options = _build_rerank_options(
@@ -107,7 +107,7 @@ def search(
                     project_id=project_id,
                     session=session,
                 )
-                if strategy == "dense_sparse"
+                if strategy in ("sparse", "dense_sparse")
                 else None
             ),
             reranker=(

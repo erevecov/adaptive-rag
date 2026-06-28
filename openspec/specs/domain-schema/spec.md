@@ -11,10 +11,10 @@ con pgvector/Qwen.
 
 El sistema MUST persistir registros de proyecto que aislen todos los datos RAG por `project_id` y definan configuracion de retrieval.
 
-#### Scenario: Proyecto usa dense retrieval por defecto
+#### Scenario: Proyecto usa dense_sparse retrieval por defecto
 
 - **WHEN** se crea un proyecto sin modo de embedding explicito
-- **THEN** el `embedding_mode` guardado es `dense`
+- **THEN** el `embedding_mode` guardado es `dense_sparse`
 - **AND** `retrieval_contextualization_enabled` es `true`
 
 #### Scenario: Configuracion de presupuesto del proyecto queda persistida

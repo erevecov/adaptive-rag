@@ -23,6 +23,7 @@ from adaptive_rag.db.models import (
     ChatMessage,
     ChatSession,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Project,
@@ -39,8 +40,10 @@ from adaptive_rag.db.repositories import (
     ProjectRepository,
     ProviderUsageRepository,
     SourceRepository,
+    SparseEmbeddingRepository,
 )
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.embeddings import SparseEmbeddingVector
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderCallRecord,
@@ -60,6 +63,22 @@ class StaticQueryEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         self.inputs.extend(texts)
         return [list(self.embedding) for _text in texts]
+
+
+class StaticSparseEmbeddingProvider:
+    provider_name = "fake"
+    model_name = "static-sparse-query-v1"
+    dimensions = EMBEDDING_DIMENSIONS
+
+    def __init__(self) -> None:
+        self.query_inputs: list[str] = []
+
+    def embed_documents(self, texts: list[str]) -> list[SparseEmbeddingVector]:
+        return [_sparse_vector(1.0) for _text in texts]
+
+    def embed_query(self, text: str) -> SparseEmbeddingVector:
+        self.query_inputs.append(text)
+        return _sparse_vector(1.0)
 
 
 class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
@@ -190,6 +209,7 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
             ToolCall.__table__,
@@ -206,6 +226,10 @@ def _vector(first: float, second: float = 0.0) -> list[float]:
     values[0] = first
     values[1] = second
     return values
+
+
+def _sparse_vector(value: float) -> SparseEmbeddingVector:
+    return SparseEmbeddingVector(indices=(0,), values=(value,), tokens=("alpha",))
 
 
 def _create_project(session: Session, name: str = "demo") -> Project:
@@ -257,6 +281,14 @@ def _create_embedded_chunk(
         embedding=embedding,
     )
     session.flush()
+    if embedding is not None:
+        SparseEmbeddingRepository(session).upsert_current(
+            project_id=project.id,
+            chunk_id=chunk.id,
+            vector=_sparse_vector(max(0.01, 1.0 - embedding[0])),
+            input_hash=f"sparse:{stable_id}",
+            index_fingerprint=f"sparse-fp:{stable_id}",
+        )
     return source, document, version, chunk
 
 
@@ -363,6 +395,10 @@ def _patch_chat_dependencies(
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_dense_embedding_provider",
         lambda: provider,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_sparse_embedding_provider",
+        lambda: StaticSparseEmbeddingProvider(),
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
@@ -569,6 +605,10 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
         lambda: provider,
     )
     monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_sparse_embedding_provider",
+        lambda: StaticSparseEmbeddingProvider(),
+    )
+    monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",
         runner_factory,
     )
@@ -655,6 +695,10 @@ def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
     monkeypatch.setattr(
         "adaptive_rag.cli.dependencies.get_default_dense_embedding_provider",
         default_provider_factory,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_sparse_embedding_provider",
+        lambda: StaticSparseEmbeddingProvider(),
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.chat.get_cli_chat_runner",

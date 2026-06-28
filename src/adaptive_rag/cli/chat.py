@@ -27,6 +27,7 @@ from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
+    get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter, parse_cli_datetime
 from adaptive_rag.db.repositories import (
@@ -35,7 +36,7 @@ from adaptive_rag.db.repositories import (
     ProviderUsageRepository,
 )
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.embeddings import DenseEmbeddingProvider
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.retrieval import RetrievalService
 
@@ -99,6 +100,11 @@ def ask(
         retrieval_service = RetrievalService(
             session,
             provider=_get_chat_dense_embedding_provider(
+                project_id=project_id,
+                session=session,
+                usage_tracker=usage_tracker,
+            ),
+            sparse_provider=_get_chat_sparse_embedding_provider(
                 project_id=project_id,
                 session=session,
                 usage_tracker=usage_tracker,
@@ -226,6 +232,24 @@ def _get_chat_dense_embedding_provider(
     return cast(
         DenseEmbeddingProvider,
         cast(Any, get_cli_dense_embedding_provider)(**kwargs),
+    )
+
+
+def _get_chat_sparse_embedding_provider(
+    *,
+    project_id: UUID,
+    session: Session,
+    usage_tracker: InMemoryProviderUsageTracker,
+) -> SparseEmbeddingProvider:
+    kwargs = _runtime_factory_kwargs(
+        get_cli_sparse_embedding_provider,
+        project_id=project_id,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+    return cast(
+        SparseEmbeddingProvider,
+        cast(Any, get_cli_sparse_embedding_provider)(**kwargs),
     )
 
 
