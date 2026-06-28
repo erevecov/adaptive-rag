@@ -35,7 +35,7 @@ export const THEMES: readonly ThemeDef[] = [
   },
 ] as const
 
-export const DEFAULT_THEME: Theme = 'purple'
+export const DEFAULT_THEME: Theme = 'dark'
 export const THEME_STORAGE_KEY = 'adaptive-rag-theme'
 
 const DARK_THEMES: ReadonlySet<Theme> = new Set(['dark', 'purple'])
