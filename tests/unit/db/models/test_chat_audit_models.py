@@ -129,6 +129,9 @@ def test_chat_session_persists_model_config_and_prompt_version() -> None:
     assert fetched.prompt_version == "m13-chat-v1"
     assert "model_config_json" in columns
     assert "prompt_version" in columns
+    assert "title" in columns
+    assert "title_is_custom" in columns
+    assert "archived_at" in columns
     assert "model" not in columns
     assert "prompt_config_json" not in columns
     assert "metadata_json" not in columns
@@ -461,6 +464,9 @@ def test_audit_tables_have_project_session_indexes() -> None:
 
     assert ("project_id", "created_at") in indexed_columns["chat_sessions"]
     assert ("project_id", "user_id", "created_at") in indexed_columns[
+        "chat_sessions"
+    ]
+    assert ("project_id", "user_id", "archived_at", "created_at") in indexed_columns[
         "chat_sessions"
     ]
     assert ("project_id", "status") in indexed_columns["chat_sessions"]

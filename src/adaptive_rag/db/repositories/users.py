@@ -72,6 +72,7 @@ class UserRepository:
         display_name: str | None = None,
         system_role: str | None = None,
         is_active: bool | None = None,
+        last_project_id: UUID | None = None,
     ) -> User | None:
         user = self.get_user(user_id)
         if user is None:
@@ -86,6 +87,21 @@ class UserRepository:
             )
         if is_active is not None:
             user.is_active = is_active
+        if last_project_id is not None:
+            user.last_project_id = last_project_id
+        self._session.flush()
+        return user
+
+    def update_last_project_id(
+        self,
+        user_id: UUID,
+        *,
+        last_project_id: UUID | None,
+    ) -> User | None:
+        user = self.get_user(user_id)
+        if user is None:
+            return None
+        user.last_project_id = last_project_id
         self._session.flush()
         return user
 

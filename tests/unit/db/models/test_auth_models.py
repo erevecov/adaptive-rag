@@ -44,8 +44,12 @@ def test_user_defaults_to_active_regular_user() -> None:
 
     assert user.system_role == "user"
     assert user.is_active is True
+    assert user.last_project_id is None
     assert user.created_at is not None
     assert user.updated_at is not None
+
+    columns = {column.name: column for column in inspect(User).columns}
+    assert columns["last_project_id"].nullable is True
 
 
 def test_user_rejects_unsupported_system_role() -> None:

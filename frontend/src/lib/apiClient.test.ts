@@ -10,16 +10,19 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
   })
 }
 
-function createFetchStub(response: Response): {
+function createFetchStub(...responses: Response[]): {
   fetch: typeof fetch
   calls: Array<{ input: RequestInfo | URL; init?: RequestInit }>
 } {
   const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
+  let index = 0
 
   return {
     calls,
     fetch: async (input, init) => {
       calls.push({ input, init })
+      const response = responses[Math.min(index, responses.length - 1)]
+      index += 1
       return response
     },
   }
@@ -80,6 +83,7 @@ describe('createApiClient', () => {
         display_name: 'Viewer',
         id: '11111111-1111-4111-8111-111111111111',
         is_bootstrap: false,
+        last_project_id: null,
         login: 'viewer@example.com',
         system_role: 'user',
       }),
@@ -108,9 +112,18 @@ describe('createApiClient', () => {
       display_name: 'Viewer',
       id: userId,
       is_active: true,
+      last_project_id: null,
       login: 'viewer@example.com',
       system_role: 'user',
       updated_at: createdAt,
+    }
+    const currentUser = {
+      display_name: 'Viewer',
+      id: userId,
+      is_bootstrap: false,
+      last_project_id: projectId,
+      login: 'viewer@example.com',
+      system_role: 'user',
     }
     const membership = {
       created_at: createdAt,
@@ -140,6 +153,9 @@ describe('createApiClient', () => {
     const fetchStub: typeof fetch = async (input, init) => {
       calls.push({ input, init })
       const url = String(input)
+      if (url.endsWith('/auth/me/preferences')) {
+        return jsonResponse(currentUser)
+      }
       if (url.endsWith('/admin/users')) {
         return jsonResponse(init?.method === 'GET' ? { items: [user] } : user)
       }
@@ -164,6 +180,7 @@ describe('createApiClient', () => {
       login: 'viewer@example.com',
     })
     await client.listUsers()
+    await client.updateCurrentUserPreferences({ last_project_id: projectId })
     await client.upsertProjectMembership(projectId, userId, { role: 'viewer' })
     await client.listProjectMemberships(projectId)
     await client.submitKnowledgeProposal(projectId, {
@@ -186,22 +203,27 @@ describe('createApiClient', () => {
       Authorization: 'Bearer root-token',
       'content-type': 'application/json',
     })
-    expect(String(calls[2].input)).toBe(
+    expect(String(calls[2].input)).toBe('http://api.local/auth/me/preferences')
+    expect(calls[2].init?.method).toBe('PATCH')
+    expect(calls[2].init?.body).toBe(
+      JSON.stringify({ last_project_id: projectId }),
+    )
+    expect(String(calls[3].input)).toBe(
       `http://api.local/projects/${projectId}/memberships/${userId}`,
     )
-    expect(String(calls[4].input)).toBe(
+    expect(String(calls[5].input)).toBe(
       `http://api.local/projects/${projectId}/knowledge-proposals`,
     )
-    expect(String(calls[5].input)).toBe(
+    expect(String(calls[6].input)).toBe(
       `http://api.local/projects/${projectId}/knowledge-proposals?status=pending`,
     )
-    expect(String(calls[6].input)).toBe(
+    expect(String(calls[7].input)).toBe(
       `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/refine`,
     )
-    expect(String(calls[7].input)).toBe(
+    expect(String(calls[8].input)).toBe(
       `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/approve`,
     )
-    expect(String(calls[8].input)).toBe(
+    expect(String(calls[9].input)).toBe(
       `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/reject`,
     )
   })
@@ -550,6 +572,7 @@ describe('createApiClient', () => {
     })
 
     const response = await client.listChatSessions(projectId, {
+      archived: true,
       status: 'failed',
       limit: 10,
       cursor: '2026-06-21T00:00:00Z|abc',
@@ -558,9 +581,48 @@ describe('createApiClient', () => {
     expect(response.next_cursor).toBe('next-page')
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/sessions?status=failed&limit=10&cursor=2026-06-21T00%3A00%3A00Z%7Cabc`,
+      `http://api.local/projects/${projectId}/chat/sessions?status=failed&archived=true&limit=10&cursor=2026-06-21T00%3A00%3A00Z%7Cabc`,
     )
     expect(calls[0].init?.method).toBe('GET')
+  })
+
+  test('renames archives and unarchives chat sessions', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sessionId = '22222222-2222-4222-8222-222222222222'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({
+        session_id: sessionId,
+        title: 'Renamed session',
+        title_is_custom: true,
+      }),
+      new Response(null, { status: 204 }),
+      new Response(null, { status: 204 }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    const renamed = await client.updateChatSessionTitle(
+      projectId,
+      sessionId,
+      'Renamed session',
+    )
+    await client.archiveChatSession(projectId, sessionId)
+    await client.unarchiveChatSession(projectId, sessionId)
+
+    expect(renamed.title).toBe('Renamed session')
+    expect(calls.map((call) => String(call.input))).toEqual([
+      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/title`,
+      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/archive`,
+      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/unarchive`,
+    ])
+    expect(calls.map((call) => call.init?.method)).toEqual([
+      'PATCH',
+      'POST',
+      'POST',
+    ])
+    expect(calls[0].init?.body).toBe(JSON.stringify({ title: 'Renamed session' }))
   })
 
   test('loads chat observability summaries with encoded optional query params', async () => {

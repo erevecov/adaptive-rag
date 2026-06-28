@@ -100,6 +100,26 @@ def test_user_repository_updates_user_fields() -> None:
     assert updated.is_active is False
 
 
+def test_user_repository_updates_last_project_preference() -> None:
+    session = _make_session()
+    repo = UserRepository(session)
+    project = _create_project(session)
+    user = repo.create_user(login="member@example.com", display_name="Member")
+    session.commit()
+
+    updated = repo.update_last_project_id(
+        user.id,
+        last_project_id=project.id,
+    )
+    assert updated is not None
+    assert updated.last_project_id == project.id
+
+    cleared = repo.update_last_project_id(user.id, last_project_id=None)
+    assert cleared is not None
+    assert cleared.last_project_id is None
+    assert repo.update_last_project_id(uuid4(), last_project_id=project.id) is None
+
+
 def test_user_repository_upserts_token_hash_and_can_revoke() -> None:
     session = _make_session()
     repo = UserRepository(session)

@@ -22,15 +22,18 @@ from adaptive_rag.db.models import (
     Document,
     DocumentVersion,
     Job,
+    KnowledgeProposal,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
     ToolCall,
 )
+from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.provider_usage import ProviderCallRecord
 
 DEFAULT_CHAT_SESSION_HISTORY_LIMIT = 20
 MAX_CHAT_SESSION_HISTORY_LIMIT = 100
+SESSION_TITLE_MAX_LENGTH = 60
 
 
 @dataclass(frozen=True)
@@ -41,6 +44,9 @@ class ChatSessionSummary:
     status: str
     created_at: datetime
     updated_at: datetime
+    title: str | None
+    title_is_custom: bool
+    archived_at: datetime | None
     model_config: dict[str, Any] | None
     prompt_version: str | None
     message_count: int
@@ -49,6 +55,8 @@ class ChatSessionSummary:
     provider_usage_count: int
     total_estimated_cost_usd: float
     error_message: str | None
+    has_pending_training: bool
+    has_approved_training: bool
 
 
 @dataclass(frozen=True)
@@ -177,6 +185,63 @@ class ChatAuditRepository:
         )
         chat_session.status = "failed"
         chat_session.error_message = error_message
+        self._session.flush()
+        return chat_session
+
+    def update_session_title(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        title: str,
+        user_id: UUID | None = None,
+    ) -> ChatSession:
+        chat_session = self.get_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
+        if chat_session is None:
+            raise ValueError("chat session does not belong to project")
+        chat_session.title = _normalize_session_title(title)
+        chat_session.title_is_custom = True
+        self._session.flush()
+        return chat_session
+
+    def archive_session(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        user_id: UUID | None = None,
+    ) -> ChatSession:
+        chat_session = self.get_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
+        if chat_session is None:
+            raise ValueError("chat session does not belong to project")
+        if chat_session.archived_at is None:
+            chat_session.archived_at = utc_now()
+        self._session.flush()
+        return chat_session
+
+    def unarchive_session(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        user_id: UUID | None = None,
+    ) -> ChatSession:
+        chat_session = self.get_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
+        if chat_session is None:
+            raise ValueError("chat session does not belong to project")
+        chat_session.archived_at = None
         self._session.flush()
         return chat_session
 
@@ -366,6 +431,7 @@ class ChatAuditRepository:
         project_id: UUID,
         user_id: UUID | None = None,
         status: str | None = None,
+        archived: bool = False,
         limit: int = DEFAULT_CHAT_SESSION_HISTORY_LIMIT,
         cursor: str | None = None,
     ) -> ChatSessionSummaryPage:
@@ -383,6 +449,18 @@ class ChatAuditRepository:
                 ChatMessage.project_id == project_id,
                 ChatMessage.session_id == ChatSession.id,
             )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        first_user_message = (
+            select(ChatMessage.content)
+            .where(
+                ChatMessage.project_id == project_id,
+                ChatMessage.session_id == ChatSession.id,
+                ChatMessage.role == "user",
+            )
+            .order_by(ChatMessage.created_at, ChatMessage.id)
+            .limit(1)
             .correlate(ChatSession)
             .scalar_subquery()
         )
@@ -422,20 +500,47 @@ class ChatAuditRepository:
             .correlate(ChatSession)
             .scalar_subquery()
         )
+        pending_training_count = (
+            select(func.count(KnowledgeProposal.id))
+            .where(
+                KnowledgeProposal.project_id == project_id,
+                KnowledgeProposal.origin_session_id == ChatSession.id,
+                KnowledgeProposal.status == "pending",
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+        approved_training_count = (
+            select(func.count(KnowledgeProposal.id))
+            .where(
+                KnowledgeProposal.project_id == project_id,
+                KnowledgeProposal.origin_session_id == ChatSession.id,
+                KnowledgeProposal.status == "approved",
+            )
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
 
         statement = (
             select(
                 ChatSession,
+                first_user_message,
                 message_count,
                 tool_call_count,
                 retrieval_run_count,
                 provider_usage_count,
                 total_estimated_cost,
+                pending_training_count,
+                approved_training_count,
             )
             .where(ChatSession.project_id == project_id)
             .order_by(ChatSession.created_at.desc(), ChatSession.id.desc())
             .limit(limit + 1)
         )
+        if archived:
+            statement = statement.where(ChatSession.archived_at.is_not(None))
+        else:
+            statement = statement.where(ChatSession.archived_at.is_(None))
         if user_id is not None:
             statement = statement.where(ChatSession.user_id == user_id)
         if status is not None:
@@ -459,6 +564,13 @@ class ChatAuditRepository:
                 status=chat_session.status,
                 created_at=chat_session.created_at,
                 updated_at=chat_session.updated_at,
+                title=(
+                    chat_session.title
+                    if chat_session.title is not None
+                    else _derived_session_title(first_user_message_value)
+                ),
+                title_is_custom=chat_session.title_is_custom,
+                archived_at=chat_session.archived_at,
                 model_config=(
                     dict(chat_session.model_config_json)
                     if chat_session.model_config_json is not None
@@ -471,14 +583,19 @@ class ChatAuditRepository:
                 provider_usage_count=int(provider_usage_count_value),
                 total_estimated_cost_usd=float(total_estimated_cost_value or 0.0),
                 error_message=chat_session.error_message,
+                has_pending_training=int(pending_training_count_value) > 0,
+                has_approved_training=int(approved_training_count_value) > 0,
             )
             for (
                 chat_session,
+                first_user_message_value,
                 message_count_value,
                 tool_call_count_value,
                 retrieval_run_count_value,
                 provider_usage_count_value,
                 total_estimated_cost_value,
+                pending_training_count_value,
+                approved_training_count_value,
             ) in rows[:limit]
         )
         next_cursor = (
@@ -750,3 +867,16 @@ def _decode_chat_session_cursor(cursor: str | None) -> tuple[datetime, UUID] | N
     ) as exc:
         raise ValueError("invalid chat session cursor") from exc
     return created_at, session_id
+
+
+def _normalize_session_title(value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("session title must not be empty")
+    return normalized[:SESSION_TITLE_MAX_LENGTH]
+
+
+def _derived_session_title(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+    return value[:SESSION_TITLE_MAX_LENGTH]
