@@ -35,7 +35,7 @@
 - M35 Acceptance e2e post-runtime-settings: completo.
 - Post-M35 Runtime settings UX/error-state hardening: completo.
 - Post-M35 Final release gate/audit closeout: completo.
-- M36 Functional chat workspace: completo pendiente de cierre.
+- M36 Functional chat workspace: completo.
 - M37 Project RBAC/chat knowledge: completo.
 
 ## M1 Foundation
@@ -1535,11 +1535,11 @@ release v1.0.
 
 ## M36 Functional chat workspace
 
-Estado: completo pendiente de cierre.
+Estado: completo.
 
-Change activo completo:
+Change archivado:
 
-- `openspec/changes/m36-chat-functional-workspace/`
+- `openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/`
 
 Objetivo:
 
@@ -1568,12 +1568,11 @@ Condiciones del milestone:
 - Memory se implementa solo con almacenamiento durable o fuente verificada; si
   no, queda deferred.
 
-Secuencia recomendada:
+Secuencia entregada:
 
-1. `m36-chat-functional-workspace`: implementado en worktree
-   `codex/chat-functional-workspace`; queda review/PR. Incluye shell UI/UX
-   con session navigation, context/usage, minimap, action
-   stepper, source viewer desde citas actuales y chunks historicos, Settings /
+1. `m36-chat-functional-workspace`: implementado, validado y archivado. Incluye
+   shell UI/UX con session navigation, context/usage, minimap, action stepper,
+   source viewer desde citas actuales y chunks historicos, Settings /
    Appearance con temas globales Light/Dark/Purple, STT browser fallback y
    memory deferred por falta de contrato durable.
 
@@ -1628,6 +1627,11 @@ Secuencia entregada:
 7. `m37-frontend-project-rbac`: selector buscable de proyectos, estados
    locked, project members y knowledge review queue.
 8. `m37-quality-gate`: backend/frontend/OpenSpec/browser QA y archive.
+
+Continuacion: no quedan active changes OpenSpec. La siguiente decision
+recomendada es re-ejecutar el release gate final desde `origin/main` y decidir
+tag/GitHub release v1.0; si se agrega otra feature antes de release, abrir un
+nuevo change OpenSpec primero.
 
 ## Politica para reducir conflictos de merge
 

@@ -2,20 +2,13 @@
 
 ## Milestone activo
 
-M37 Project RBAC/chat knowledge completado y archivado en
-`openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`.
+No hay milestone activo ni changes OpenSpec pendientes de archivar.
 
-Objetivo: convertir proyectos en espacios compartidos con usuarios,
-membresias por proyecto, sesiones de chat privadas por usuario y flujo de
-conocimiento propuesto desde chat. Todos los usuarios autenticados pueden ver
-nombres de proyectos, pero solo `superadmin` o miembros asignados pueden
-acceder. `superadmin` administra usuarios/proyectos globales; `admin`,
-`contributor` y `viewer` operan por proyecto.
-
-Estado de implementacion: auth local first-party, `project_memberships`,
-`chat_sessions.user_id`, `knowledge_proposals`, guards API, sesiones privadas
-por usuario, propuesta/revision de conocimiento y UI de selector/membresias/
-review queue quedaron implementados con gate backend/frontend/OpenSpec.
+Estado post-housekeeping: M36 Functional chat workspace y M37 Project
+RBAC/chat knowledge quedaron implementados, validados y archivados. La rama
+`main` ya contiene el merge de M37 y el unico change activo que quedaba, M36,
+fue archivado en
+`openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/`.
 
 ## Ultimo milestone completado
 
@@ -28,6 +21,11 @@ y actualiza las specs canonicas `project-rbac`, `domain-schema`,
 `chat-frontend` e `ingestion-pipeline`.
 
 ## Ultimo slice completado
+
+M36 Functional chat workspace fue archivado como housekeeping el 2026-06-28.
+El archive movio el change a
+`openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/` y aplico
+sus deltas finales a `openspec/specs/chat-frontend/spec.md`.
 
 M37 Project RBAC/chat knowledge: proyectos compartidos con usuarios,
 membresias por proyecto, sesiones privadas por usuario, propuestas de
@@ -77,11 +75,11 @@ intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Change OpenSpec activo
 
-- `openspec/changes/m36-chat-functional-workspace/`
+No active changes found.
 
 ## Ultimo change archivado
 
-- `openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
+- `openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/`
 
 ## Spec canonica activa
 
@@ -115,8 +113,10 @@ intencionalmente para permitir una feature pre-v1 adicional.
 
 ## Siguiente tarea recomendada
 
-- Publicar/revisar el PR de M37 y, despues del merge, reconciliar el change
-  M36 que sigue activo pero completo antes de abrir el siguiente milestone.
+- No quedan changes por archivar. La opcion recomendada es re-ejecutar desde
+  `origin/main` el release gate final y decidir si crear tag/GitHub release
+  v1.0. Si se decide una feature adicional antes de release, abrir primero un
+  nuevo change OpenSpec desde `origin/main`.
 
 ## Reglas de coordinacion
 
