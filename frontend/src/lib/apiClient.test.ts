@@ -1116,8 +1116,11 @@ describe('createApiClient', () => {
     const { fetch, calls } = createFetchStub(
       sseResponse([
         'event: session_started\ndata: {"session_id":"session-stream"}\n\n',
+        'event: step\ndata: {"id":"answer","status":"start"}\n\n',
         'event: tool_call\ndata: {"name":"retrieval.search","query":"alpha"',
         ',"limit":3,"result_count":1}\n\n',
+        'event: step\ndata: {"detail":{"result_count":1},"elapsed_ms":42,',
+        '"id":"retrieval","status":"done"}\n\n',
         'event: answer_delta\ndata: {"text":"Partial answer"}\n\n',
         'event: final\ndata: {"answer":"Final answer","citations":[],"tool_calls":[],"session_id":"session-stream"}\n\n',
       ]),
@@ -1127,6 +1130,7 @@ describe('createApiClient', () => {
       fetch,
     })
     const deltas: string[] = []
+    const steps: string[] = []
     const toolCalls: string[] = []
     const sessions: string[] = []
 
@@ -1139,6 +1143,9 @@ describe('createApiClient', () => {
       {
         onAnswerDelta: (text) => deltas.push(text),
         onSessionStarted: (sessionId) => sessions.push(sessionId),
+        onStep: (step) => {
+          steps.push(`${step.id}:${step.status}:${step.elapsed_ms ?? 'running'}`)
+        },
         onToolCall: (toolCall) => toolCalls.push(toolCall.query),
       },
     )
@@ -1150,6 +1157,7 @@ describe('createApiClient', () => {
       session_id: 'session-stream',
     })
     expect(deltas).toEqual(['Partial answer'])
+    expect(steps).toEqual(['answer:start:running', 'retrieval:done:42'])
     expect(toolCalls).toEqual(['alpha'])
     expect(sessions).toEqual(['session-stream'])
     expect(calls).toHaveLength(1)

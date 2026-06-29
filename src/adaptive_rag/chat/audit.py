@@ -248,13 +248,14 @@ class InMemoryChatAuditWriter:
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
     ) -> None:
-        self.events.append(
-            {
-                "event": "message",
-                "role": role,
-                "content": content,
-            }
-        )
+        event: dict[str, object] = {
+            "event": "message",
+            "role": role,
+            "content": content,
+        }
+        if metadata_json is not None:
+            event["metadata_json"] = dict(metadata_json)
+        self.events.append(event)
 
     def record_retrieval_tool(
         self,
