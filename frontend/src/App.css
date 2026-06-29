@@ -915,25 +915,31 @@ button:disabled {
 }
 
 .chat-pipeline-steps {
-  background: #f8faf9;
-  border: 1px solid #dfe6e2;
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: #223532;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
 }
 
 .chat-pipeline-steps summary {
   align-items: center;
   cursor: pointer;
-  display: flex;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 10px auto minmax(72px, auto) minmax(0, 1fr) auto;
   min-width: 0;
 }
 
 .chat-pipeline-steps summary::marker {
-  color: #397267;
+  content: '';
+}
+
+.chat-pipeline-steps summary::-webkit-details-marker {
+  display: none;
 }
 
 .pipeline-ticker {
@@ -941,11 +947,47 @@ button:disabled {
   display: grid;
   gap: 8px;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
+  min-height: 34px;
   min-width: 0;
+  padding: 6px 10px;
+}
+
+.pipeline-ticker,
+.pipeline-summary-button {
+  background: #f8faf9;
+  border: 1px solid #dfe6e2;
+  border-radius: 7px;
+  color: #223532;
+}
+
+.pipeline-ticker-button {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.pipeline-summary-button {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  justify-content: flex-start;
+  line-height: 1.1;
+  min-height: 26px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.pipeline-ticker-button:hover,
+.pipeline-summary-button:hover {
+  background: #e6f1ed;
+  color: #223532;
 }
 
 .pipeline-ticker strong,
-.pipeline-step-list strong {
+.pipeline-step-list strong,
+.pipeline-detail-chip {
   color: #223532;
   font-size: 13px;
   overflow: hidden;
@@ -956,33 +998,18 @@ button:disabled {
 .pipeline-ticker small,
 .pipeline-step-list small {
   color: #63706d;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
+  justify-self: end;
   white-space: nowrap;
-}
-
-.pipeline-toggle {
-  background: transparent;
-  border: 1px solid #cbd6d2;
-  border-radius: 7px;
-  color: #397267;
-  min-height: 30px;
-  min-width: 54px;
-  padding: 0 10px;
-  width: auto;
-}
-
-.pipeline-toggle:hover {
-  background: #e6f1ed;
-  color: #223532;
 }
 
 .pipeline-status {
   border: 2px solid #397267;
   border-radius: 999px;
   display: inline-block;
-  height: 13px;
-  width: 13px;
+  height: 12px;
+  width: 12px;
 }
 
 .pipeline-status-done {
@@ -999,25 +1026,88 @@ button:disabled {
 }
 
 .pipeline-step-list {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   list-style: none;
+  max-height: min(240px, 32vh);
   margin: 0;
+  overflow-y: auto;
   padding: 0;
+  scrollbar-gutter: stable;
 }
 
 .pipeline-step-list li {
-  background: #ffffff;
-  border: 1px solid #dfe6e2;
-  border-radius: 8px;
-  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.pipeline-step-row,
+.pipeline-step-row-static {
+  border-left: 2px solid rgba(57, 114, 103, 0.24);
+  min-width: 0;
+  padding-left: 6px;
+}
+
+.pipeline-step-row summary,
+.pipeline-step-row-static {
+  align-items: center;
+  border-radius: 5px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 10px auto minmax(0, 1fr) auto;
+  min-height: 24px;
+  padding: 2px 4px;
+}
+
+.pipeline-step-row[open] summary,
+.pipeline-step-row summary:hover,
+.pipeline-step-row-static:hover {
+  background: rgba(57, 114, 103, 0.08);
+}
+
+.pipeline-row-caret {
+  color: #63706d;
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 120ms ease;
+  width: 10px;
+}
+
+.pipeline-step-row[open] .pipeline-row-caret {
+  transform: rotate(90deg);
+}
+
+.pipeline-step-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.pipeline-detail-chip {
+  background: #e6f1ed;
+  border-radius: 4px;
+  color: #397267;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  justify-self: start;
+  max-width: 100%;
+  padding: 2px 5px;
 }
 
 .pipeline-step-detail {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin: 10px 0 0;
+  border-left: 2px solid rgba(57, 114, 103, 0.24);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 2px 0 5px 22px;
+  padding-left: 8px;
 }
 
 .pipeline-step-detail div {
@@ -1030,15 +1120,23 @@ button:disabled {
   color: #397267;
   font-size: 10px;
   font-weight: 800;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .pipeline-step-detail dd {
   color: #223532;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.pipeline-chevron {
+  color: #63706d;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .result-section {
@@ -2563,6 +2661,43 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .inspector-tab {
   background: transparent;
   color: var(--app-text-muted);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .chat-pipeline-steps {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-summary-button {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-summary-button:hover {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list li {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row[open] summary,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row summary:hover,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row-static:hover {
+  background: var(--app-accent-soft);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-detail-chip {
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
 }
 
 :is([data-theme='dark'], [data-theme='purple']) .theme-option,

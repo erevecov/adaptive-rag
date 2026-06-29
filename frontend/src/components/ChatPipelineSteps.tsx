@@ -35,42 +35,80 @@ export function ChatPipelineSteps({
 
   if (isStreaming) {
     const current = summarizeCurrentStep(steps)
+    const sources = formatSources(sourceCount)
+    const summary = `steps · ${current.elapsed} · ${sources}`
+    if (!expanded) {
+      return (
+        <section
+          aria-label="Chat pipeline steps"
+          className="chat-pipeline-steps chat-pipeline-steps-streaming"
+        >
+          <button
+            aria-label="Expand chat steps"
+            className="pipeline-ticker pipeline-ticker-button"
+            onClick={() => handleToggle(true)}
+            type="button"
+          >
+            <span className={`pipeline-status pipeline-status-${current.status}`} />
+            <strong>{current.label}</strong>
+            <small>{current.elapsed}</small>
+            <span aria-hidden="true" className="pipeline-chevron">
+              ▸
+            </span>
+          </button>
+        </section>
+      )
+    }
+
     return (
       <section
         aria-label="Chat pipeline steps"
         className="chat-pipeline-steps chat-pipeline-steps-streaming"
       >
-        <div className="pipeline-ticker">
-          <span className={`pipeline-status pipeline-status-${current.status}`} />
-          <strong>{current.label}</strong>
-          <small>{current.elapsed}</small>
-          <button
-            aria-label={expanded ? 'Collapse chat steps' : 'Expand chat steps'}
-            className="pipeline-toggle"
-            onClick={() => handleToggle(!expanded)}
-            type="button"
-          >
-            {expanded ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        {expanded ? <StepList steps={steps} /> : null}
+        <button
+          aria-label="Collapse chat steps"
+          className="pipeline-summary-button"
+          onClick={() => handleToggle(false)}
+          type="button"
+        >
+          ▾ {summary}
+        </button>
+        <StepList steps={steps} />
+      </section>
+    )
+  }
+
+  const elapsed = formatStepDuration(totalStepElapsedMs(steps))
+  const sources = formatSources(sourceCount)
+  const label = `${elapsed}, ${sources}`
+  const summary = `details · ${elapsed} · ${sources}`
+
+  if (!expanded) {
+    return (
+      <section aria-label="Chat pipeline steps" className="chat-pipeline-steps">
+        <button
+          aria-label={`Expand chat steps, ${label}`}
+          className="pipeline-summary-button"
+          onClick={() => handleToggle(true)}
+          type="button"
+        >
+          ▸ {summary}
+        </button>
       </section>
     )
   }
 
   return (
     <section aria-label="Chat pipeline steps" className="chat-pipeline-steps">
-      <details
-        open={expanded}
-        onToggle={(event) =>
-          handleToggle((event.currentTarget as HTMLDetailsElement).open)
-        }
+      <button
+        aria-label={`Collapse chat steps, ${label}`}
+        className="pipeline-summary-button"
+        onClick={() => handleToggle(false)}
+        type="button"
       >
-        <summary>
-          {`details - ${formatStepDuration(totalStepElapsedMs(steps))} - ${formatSources(sourceCount)}`}
-        </summary>
-        <StepList steps={steps} />
-      </details>
+        ▾ {summary}
+      </button>
+      <StepList steps={steps} />
     </section>
   )
 }
@@ -83,17 +121,66 @@ function StepList({ steps }: { steps: ChatStep[] }) {
     <ol className="pipeline-step-list">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
-          <details open>
-            <summary>
-              <span className={`pipeline-status pipeline-status-${step.status}`} />
-              <strong>{stepLabel(step.id)}</strong>
-              <small>{formatStepDuration(step.elapsed_ms)}</small>
-            </summary>
-            <StepDetail step={step} />
-          </details>
+          <StepRow step={step} />
         </li>
       ))}
     </ol>
+  )
+}
+
+function StepRow({ step }: { step: ChatStep }) {
+  const hasDetail =
+    Object.keys(step.detail ?? {}).length > 0 || step.usage !== undefined
+  const content = (
+    <>
+      <span aria-hidden="true" className="pipeline-row-caret">
+        {hasDetail ? '▸' : ''}
+      </span>
+      <span className={`pipeline-status pipeline-status-${step.status}`} />
+      <span className="pipeline-step-main">
+        <strong>{stepLabel(step.id)}</strong>
+        <InlineDetailChips step={step} />
+      </span>
+      <small>{formatStepDuration(step.elapsed_ms)}</small>
+    </>
+  )
+
+  if (!hasDetail) {
+    return <div className="pipeline-step-row-static">{content}</div>
+  }
+
+  return (
+    <details className="pipeline-step-row">
+      <summary>{content}</summary>
+      <StepDetail step={step} />
+    </details>
+  )
+}
+
+function InlineDetailChips({ step }: { step: ChatStep }) {
+  const chips: string[] = []
+  const detail = step.detail ?? {}
+  for (const key of ['result_count', 'limit', 'strategy', 'tool_calls']) {
+    const value = detail[key]
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      chips.push(`${formatDetailKey(key)} ${String(value)}`)
+    }
+  }
+  if (step.usage !== undefined) {
+    chips.push(step.usage.model)
+  }
+  return (
+    <>
+      {chips.slice(0, 3).map((chip) => (
+        <span className="pipeline-detail-chip" key={chip}>
+          {chip}
+        </span>
+      ))}
+    </>
   )
 }
 

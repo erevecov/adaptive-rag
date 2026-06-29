@@ -50,9 +50,8 @@ describe('ChatPipelineSteps', () => {
     cleanup()
   })
 
-  test('renders collapsed streaming ticker and persists expansion', async () => {
+  test('defaults to collapsed streaming ticker and persists expansion', async () => {
     const user = userEvent.setup()
-    localStorage.setItem(STEPPER_EXPANDED_STORAGE_KEY, 'false')
 
     render(
       <ChatPipelineSteps
@@ -80,7 +79,8 @@ describe('ChatPipelineSteps', () => {
     expect(within(stepper).getByText('alpha')).toBeTruthy()
   })
 
-  test('renders finished details with usage, cost and sources', () => {
+  test('renders finished response as compact details and keeps step rows closed', async () => {
+    const user = userEvent.setup()
     render(
       <ChatPipelineSteps
         isStreaming={false}
@@ -107,8 +107,22 @@ describe('ChatPipelineSteps', () => {
     )
 
     const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
-    expect(within(stepper).getByText('details - 2.4 s - 2 sources')).toBeTruthy()
-    expect(within(stepper).getByText('qwen-plus')).toBeTruthy()
+    expect(
+      within(stepper).getByRole('button', {
+        name: 'Expand chat steps, 2.4 s, 2 sources',
+      }),
+    ).toBeTruthy()
+
+    await user.click(
+      within(stepper).getByRole('button', {
+        name: 'Expand chat steps, 2.4 s, 2 sources',
+      }),
+    )
+
+    const answerRow = within(stepper).getByText('answer').closest('details')
+    expect(answerRow).not.toBeNull()
+    expect(answerRow?.hasAttribute('open')).toBe(false)
+    expect(within(stepper).getAllByText('qwen-plus').length).toBeGreaterThan(0)
     expect(within(stepper).getByText('$0.0012')).toBeTruthy()
     expect(within(stepper).getByText('144 tokens')).toBeTruthy()
   })

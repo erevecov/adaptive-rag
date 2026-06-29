@@ -3,9 +3,9 @@ export const STEPPER_EXPANDED_STORAGE_KEY =
 
 export function readStepperExpandedPreference(): boolean {
   try {
-    return localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY) !== 'false'
+    return localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY) === 'true'
   } catch {
-    return true
+    return false
   }
 }
 

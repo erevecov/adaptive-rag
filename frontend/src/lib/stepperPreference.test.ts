@@ -51,13 +51,13 @@ describe('stepperPreference', () => {
     installLocalStorage()
   })
 
-  test('reads true by default and persists explicit toggles', () => {
-    expect(readStepperExpandedPreference()).toBe(true)
-
-    writeStepperExpandedPreference(false)
-
-    expect(localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY)).toBe('false')
+  test('reads false by default and persists explicit toggles', () => {
     expect(readStepperExpandedPreference()).toBe(false)
+
+    writeStepperExpandedPreference(true)
+
+    expect(localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY)).toBe('true')
+    expect(readStepperExpandedPreference()).toBe(true)
   })
 
   test('ignores storage failures', () => {
