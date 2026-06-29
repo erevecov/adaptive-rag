@@ -15,10 +15,12 @@ from adaptive_rag.db.models import (
     Document,
     DocumentVersion,
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     Job,
     JobEvent,
     Project,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderModelCatalog,
@@ -134,8 +136,10 @@ def _make_session():
             ProviderModelCatalog.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
+            ProjectChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
