@@ -13,6 +13,7 @@ from adaptive_rag.chat.payloads import ChatResponsePayload, serialize_chat_respo
 
 type ChatStreamEventName = Literal[
     "session_started",
+    "step",
     "tool_call",
     "answer_delta",
     "heartbeat",
@@ -20,6 +21,7 @@ type ChatStreamEventName = Literal[
     "error",
 ]
 type ChatStreamEventPayload = Mapping[str, object]
+type ChatStepStatus = Literal["start", "done", "error"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,11 +32,73 @@ class ChatStreamEvent:
     data: ChatStreamEventPayload
 
 
+@dataclass(frozen=True, slots=True)
+class ChatStepUsage:
+    """Usage/costo serializable asociado a un step de chat."""
+
+    slot: str
+    provider: str
+    model: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+    estimated_cost_usd: float | None = None
+    cost_source: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ChatStep:
+    """Step de pipeline serializable para eventos y metadata de chat."""
+
+    id: str
+    status: ChatStepStatus
+    elapsed_ms: int | None = None
+    detail: Mapping[str, object] | None = None
+    usage: ChatStepUsage | None = None
+
+
 def chat_stream_session_started_event(session_id: UUID) -> ChatStreamEvent:
     return ChatStreamEvent(
         event="session_started",
         data={"session_id": str(session_id)},
     )
+
+
+def chat_stream_step_event(step: ChatStep) -> ChatStreamEvent:
+    return ChatStreamEvent(event="step", data=serialize_chat_step(step))
+
+
+def serialize_chat_step(step: ChatStep) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": step.id,
+        "status": step.status,
+    }
+    if step.elapsed_ms is not None:
+        payload["elapsed_ms"] = step.elapsed_ms
+    if step.detail is not None:
+        payload["detail"] = dict(step.detail)
+    if step.usage is not None:
+        payload["usage"] = serialize_chat_step_usage(step.usage)
+    return payload
+
+
+def serialize_chat_step_usage(usage: ChatStepUsage) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "slot": usage.slot,
+        "provider": usage.provider,
+        "model": usage.model,
+    }
+    if usage.input_tokens is not None:
+        payload["input_tokens"] = usage.input_tokens
+    if usage.output_tokens is not None:
+        payload["output_tokens"] = usage.output_tokens
+    if usage.total_tokens is not None:
+        payload["total_tokens"] = usage.total_tokens
+    if usage.estimated_cost_usd is not None:
+        payload["estimated_cost_usd"] = usage.estimated_cost_usd
+    if usage.cost_source is not None:
+        payload["cost_source"] = usage.cost_source
+    return payload
 
 
 def chat_stream_tool_call_event(tool_call: ChatToolCall) -> ChatStreamEvent:

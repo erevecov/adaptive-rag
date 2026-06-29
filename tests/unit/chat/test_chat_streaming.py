@@ -7,11 +7,14 @@ from uuid import UUID
 from adaptive_rag.chat import ChatResponse, ChatToolCall
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.chat.streaming import (
+    ChatStep,
+    ChatStepUsage,
     chat_stream_answer_delta_event,
     chat_stream_error_event,
     chat_stream_final_event,
     chat_stream_heartbeat_event,
     chat_stream_session_started_event,
+    chat_stream_step_event,
     chat_stream_tool_call_event,
     serialize_chat_stream_event,
 )
@@ -82,6 +85,52 @@ def test_progress_event_factories_produce_stable_payloads() -> None:
     assert chat_stream_error_event("runner failed").data == {
         "detail": "runner failed",
     }
+
+
+def test_step_event_serializes_stable_payload_with_usage_and_detail() -> None:
+    step = ChatStep(
+        id="answer",
+        status="done",
+        elapsed_ms=2400,
+        detail={"sources": 2},
+        usage=ChatStepUsage(
+            slot="chat",
+            provider="qwen",
+            model="qwen-plus",
+            input_tokens=120,
+            output_tokens=24,
+            total_tokens=144,
+            estimated_cost_usd=0.0012,
+            cost_source="computed",
+        ),
+    )
+
+    event = chat_stream_step_event(step)
+
+    assert event.event == "step"
+    assert event.data == {
+        "detail": {"sources": 2},
+        "elapsed_ms": 2400,
+        "id": "answer",
+        "status": "done",
+        "usage": {
+            "cost_source": "computed",
+            "estimated_cost_usd": 0.0012,
+            "input_tokens": 120,
+            "model": "qwen-plus",
+            "output_tokens": 24,
+            "provider": "qwen",
+            "slot": "chat",
+            "total_tokens": 144,
+        },
+    }
+    assert serialize_chat_stream_event(event) == (
+        'event: step\ndata: {"detail":{"sources":2},"elapsed_ms":2400,'
+        '"id":"answer","status":"done","usage":{"cost_source":"computed",'
+        '"estimated_cost_usd":0.0012,"input_tokens":120,"model":"qwen-plus",'
+        '"output_tokens":24,"provider":"qwen","slot":"chat",'
+        '"total_tokens":144}}\n\n'
+    )
 
 
 def test_serializer_keeps_multiline_payload_text_inside_json_data() -> None:

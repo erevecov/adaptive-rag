@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import './App.css'
+import { ChatPipelineSteps } from './components/ChatPipelineSteps'
 import {
   ApiClientError,
   createApiClient,
@@ -46,6 +47,11 @@ import {
   applyTheme,
   readPersistedTheme,
 } from './lib/theme'
+import {
+  applyChatStepEvent,
+  parseChatStepsFromMetadata,
+  type ChatStepEvent,
+} from './lib/chatSteps'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -475,10 +481,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             markStreamOpened()
             setResponse((current) => appendToolCall(current, toolCall))
           },
+          onStep: (step) => {
+            markStreamOpened()
+            setResponse((current) => appendChatStep(current, step))
+          },
         },
         { signal: controller.signal },
       )
-      setResponse(nextResponse)
+      setResponse((current) =>
+        withChatSteps(nextResponse, current?.steps ?? []),
+      )
       const nextSessionId = nextResponse.session_id
       if (nextSessionId !== null) {
         setSelectedSessionId(nextSessionId)
@@ -4603,14 +4615,16 @@ function ResponseContent({
   state: RequestState
 }) {
   const isStreaming = state === 'loading'
+  const steps = response.steps ?? []
 
   return (
     <div className="response-stack" aria-label="Chat response">
-      {isStreaming ? (
-        <div className="streaming-status" aria-live="polite">
-          <span>Streaming answer</span>
-          <strong>Retrieval in progress</strong>
-        </div>
+      {isStreaming || steps.length > 0 ? (
+        <ChatPipelineSteps
+          isStreaming={isStreaming}
+          sourceCount={response.citations.length}
+          steps={steps}
+        />
       ) : null}
 
       <div className="message-card">
@@ -5727,11 +5741,35 @@ function appendToolCall(
   }
 }
 
+function appendChatStep(
+  response: ChatResponseBody | null,
+  step: ChatStepEvent,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    steps: applyChatStepEvent(current.steps ?? [], step),
+  }
+}
+
+function withChatSteps(
+  response: ChatResponseBody,
+  steps: ChatStepEvent[],
+): ChatResponseBody {
+  return steps.length === 0
+    ? response
+    : {
+        ...response,
+        steps,
+      }
+}
+
 function emptyChatResponse(): ChatResponseBody {
   return {
     answer: '',
     citations: [],
     session_id: null,
+    steps: [],
     tool_calls: [],
   }
 }
@@ -5749,6 +5787,7 @@ function chatResponseFromSessionDetail(
       run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
     ),
     session_id: detail.session.session_id,
+    steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
     tool_calls: detail.tool_calls.map((call) =>
       chatToolCallFromHistory(call, detail.retrieval_runs),
     ),

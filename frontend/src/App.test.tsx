@@ -1832,6 +1832,11 @@ describe('App chat workspace', () => {
       askChat: vi.fn(),
       askChatStream: vi.fn(async (_projectId, _body, handlers) => {
         handlers.onSessionStarted?.('session-stream')
+        handlers.onStep?.({
+          id: 'retrieval',
+          status: 'start',
+          detail: { query: 'streaming evidence' },
+        })
         handlers.onToolCall?.({
           limit: 2,
           name: 'retrieval.search',
@@ -1850,13 +1855,18 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
-    expect(screen.getByText('Streaming answer')).toBeTruthy()
-    expect(screen.getByText('Retrieval in progress')).toBeTruthy()
+    const stepper = screen.getByRole('region', {
+      name: 'Chat pipeline steps',
+    })
+    expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
+    expect(
+      within(stepper).getByRole('button', { name: 'Collapse chat steps' }),
+    ).toBeTruthy()
     expect(
       screen.getByText('Citations appear after the final response.'),
     ).toBeTruthy()
     expect(screen.queryByText('No citations returned.')).toBeNull()
-    expect(screen.getByText('streaming evidence')).toBeTruthy()
+    expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
     finalResponse.resolve(chatResponse)
 
