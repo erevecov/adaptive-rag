@@ -1924,12 +1924,15 @@ describe('App chat workspace', () => {
     })
     expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
     expect(
-      within(stepper).getByRole('button', { name: 'Collapse chat steps' }),
+      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
     ).toBeTruthy()
     expect(
       screen.getByText('Citations appear after the final response.'),
     ).toBeTruthy()
     expect(screen.queryByText('No citations returned.')).toBeNull()
+    await user.click(
+      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+    )
     expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
     finalResponse.resolve(chatResponse)
