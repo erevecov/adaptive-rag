@@ -80,6 +80,14 @@ const SETTINGS_SECTIONS = [
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
 type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
+const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
+  account: '/account',
+  authoring: '/settings/authoring',
+  chat: '/chat',
+  observability: '/settings/observability',
+  runtime: '/settings/runtime',
+  settings: '/settings/authoring',
+}
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -127,7 +135,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     initialProjectId.trim() || readPersistedProjectId(),
   )
   const [question, setQuestion] = useState('')
-  const [retrievalLimitOverride, setRetrievalLimitOverride] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
@@ -165,7 +172,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [detailError, setDetailError] = useState<string | null>(null)
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
-  const [activeView, setActiveView] = useState<ActiveView>('chat')
+  const [activeView, setActiveView] =
+    useState<ActiveView>(readActiveViewFromRoute)
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -286,6 +294,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    replaceRouteForActiveView(readActiveViewFromRoute())
+
+    const handlePopState = () => {
+      setActiveView(readActiveViewFromRoute())
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
 
   useEffect(() => {
     persistProjectId(projectId)
@@ -432,17 +453,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
-    const requestBody: {
-      message: string
-      retrieval_limit?: number
-    } = {
+    const requestBody = {
       message: trimmedQuestion,
-    }
-    const parsedRetrievalLimitOverride = parseOptionalChatRetrievalLimit(
-      retrievalLimitOverride,
-    )
-    if (parsedRetrievalLimitOverride !== null) {
-      requestBody.retrieval_limit = parsedRetrievalLimitOverride
     }
     const controller = new AbortController()
     let streamOpened = false
@@ -658,7 +670,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handleStartNewSession() {
-    setActiveView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
     setResponse(null)
     setSelectedSessionId(null)
@@ -787,7 +799,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    setActiveView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
     setSelectedSessionId(sessionId)
     setRequestState('idle')
@@ -1631,6 +1643,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     )
   }
 
+  function handleChangeActiveView(view: ActiveView) {
+    const nextView = normalizeActiveView(view)
+    pushRouteForActiveView(nextView)
+    setActiveView(nextView)
+  }
+
   const activeSettingsSection: SettingsSection =
     activeView === 'observability' || activeView === 'runtime'
       ? activeView
@@ -1664,7 +1682,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         onUnarchiveSession={(sessionId) =>
           void handleUnarchiveSession(sessionId)
         }
-        onViewChange={setActiveView}
+        onViewChange={handleChangeActiveView}
         projectId={projectId}
         projectState={projectAuthoringState}
         projects={projects}
@@ -1724,25 +1742,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 </label>
 
                 <div className="composer-toolbar">
-                  <label className="field field-compact">
-                    <span>Retrieval limit</span>
-                    <input
-                      max={CHAT_RETRIEVAL_MAX_LIMIT}
-                      min={1}
-                      name="retrieval-limit"
-                      onChange={(event) =>
-                        setRetrievalLimitOverride(
-                          normalizeOptionalChatRetrievalLimit(
-                            event.currentTarget.value,
-                          ),
-                        )
-                      }
-                      placeholder="Default"
-                      type="number"
-                      value={retrievalLimitOverride}
-                    />
-                  </label>
-
                   <div className="composer-icon-actions">
                     <button
                       aria-label="Open context sidebar"
@@ -1840,7 +1839,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         ) : (
           <SettingsPanel
             activeSection={activeSettingsSection}
-            onSectionChange={setActiveView}
+            onSectionChange={handleChangeActiveView}
           >
             {activeSettingsSection === 'observability' ? (
               <ObservabilityPanel
@@ -5653,6 +5652,64 @@ function useIsRightDockInlineViewport(): boolean {
   return isInline
 }
 
+function normalizeActiveView(view: ActiveView): ActiveView {
+  return view === 'settings' ? 'authoring' : view
+}
+
+function readActiveViewFromRoute(): ActiveView {
+  if (typeof window === 'undefined') {
+    return 'chat'
+  }
+
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (pathname === '/' || pathname === '/chat') {
+    return 'chat'
+  }
+  if (pathname === '/account') {
+    return 'account'
+  }
+  if (pathname === '/settings' || pathname === '/settings/authoring') {
+    return 'authoring'
+  }
+  if (pathname === '/settings/observability') {
+    return 'observability'
+  }
+  if (pathname === '/settings/runtime') {
+    return 'runtime'
+  }
+  return 'chat'
+}
+
+function replaceRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'replace')
+}
+
+function pushRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'push')
+}
+
+function updateRouteForActiveView(
+  view: ActiveView,
+  mode: 'push' | 'replace',
+) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const nextView = normalizeActiveView(view)
+  const nextPath = ACTIVE_VIEW_ROUTES[nextView]
+  if (window.location.pathname === nextPath) {
+    return
+  }
+
+  const state = { activeView: nextView }
+  if (mode === 'replace') {
+    window.history.replaceState(state, '', nextPath)
+    return
+  }
+  window.history.pushState(state, '', nextPath)
+}
+
 function readPersistedProjectId(): string {
   try {
     return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
@@ -5838,30 +5895,6 @@ function shouldFallbackToJsonChat(error: unknown): boolean {
     return error.status === 404 || error.status === 405 || error.status >= 500
   }
   return true
-}
-
-function normalizeOptionalChatRetrievalLimit(value: string): string {
-  if (value.trim().length === 0) {
-    return ''
-  }
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return ''
-  }
-  return String(
-    Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed))),
-  )
-}
-
-function parseOptionalChatRetrievalLimit(value: string): number | null {
-  if (value.trim().length === 0) {
-    return null
-  }
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return null
-  }
-  return Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed)))
 }
 
 function normalizeChatRetrievalLimit(value: string): number {

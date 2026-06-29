@@ -86,6 +86,7 @@ function setViewportWidth(width: number) {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/')
   setViewportWidth(1400)
   installLocalStorage()
 })
@@ -862,6 +863,71 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
   })
 
+  test('opens the module matching the current route on initial render', () => {
+    window.history.replaceState(null, '', '/settings/runtime')
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+    expect(window.location.pathname).toBe('/settings/runtime')
+  })
+
+  test('updates the route when primary modules and settings tabs change', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(window.location.pathname).toBe('/settings/authoring')
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Observability' }))
+    expect(window.location.pathname).toBe('/settings/observability')
+    expect(screen.getByRole('heading', { name: 'Dashboard shell' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'My account' }))
+    expect(window.location.pathname).toBe('/account')
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /^Chat$/ }))
+    expect(window.location.pathname).toBe('/chat')
+    expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('tracks browser back and forward between modules', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+
+    window.history.back()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/authoring'),
+    )
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    window.history.forward()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/runtime'),
+    )
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+  })
+
   test('opens and closes the left sidebar with the burger control', async () => {
     const user = userEvent.setup()
 
@@ -1541,7 +1607,7 @@ describe('App chat workspace', () => {
   test('frames chat as dense retrieval without advanced mode controls', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.getByLabelText('Retrieval limit')).toBeTruthy()
+    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
     expect(
       screen.queryByRole('region', { name: 'Chat retrieval mode' }),
     ).toBeNull()
@@ -1637,7 +1703,7 @@ describe('App chat workspace', () => {
     ).toContain('session-row-selected')
   })
 
-  test('sends a chat retrieval limit override only when the field is filled', async () => {
+  test('keeps chat retrieval quantity controls in runtime settings instead of the composer', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
       askChat: vi.fn(),
@@ -1647,9 +1713,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    fireEvent.change(screen.getByLabelText('Retrieval limit'), {
-      target: { value: '12' },
-    })
+    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
+
     await user.type(screen.getByLabelText('Question'), 'How wide should search be?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
@@ -1658,7 +1723,6 @@ describe('App chat workspace', () => {
       projectId,
       {
         message: 'How wide should search be?',
-        retrieval_limit: 12,
       },
       expect.any(Object),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

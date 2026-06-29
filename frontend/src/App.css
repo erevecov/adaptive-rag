@@ -699,10 +699,6 @@ h3 {
   min-height: 44px;
 }
 
-.field-compact {
-  max-width: 150px;
-}
-
 .form-actions {
   align-items: end;
   display: flex;
@@ -714,7 +710,7 @@ h3 {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(112px, 132px) auto;
+  grid-template-columns: 1fr;
 }
 
 .composer-icon-actions {
@@ -2629,10 +2625,6 @@ body,
     flex-direction: column;
   }
 
-  .field-compact {
-    max-width: none;
-  }
-
   button {
     width: 100%;
   }
@@ -2812,14 +2804,6 @@ body,
 
 .session-button > strong {
   justify-self: start;
-}
-
-.composer-toolbar {
-  grid-template-columns: minmax(112px, 132px) auto;
-}
-
-.composer-icon-actions {
-  grid-column: auto;
 }
 
 @media (max-width: 900px) {

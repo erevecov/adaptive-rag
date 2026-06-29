@@ -117,6 +117,26 @@ Runtime settings evidence lives here." \
   levantado y model IDs disponibles en el model catalog.
 - Rerank hosted y Neo4j/graph siguen opt-in y no cambian el default.
 
+## Qwen hosted production defaults
+
+Qwen no se activa al arrancar la API ni el CLI. El flujo production-ready es
+conectar el provider desde Runtime settings y sincronizar su model catalog. No
+hace falta un comando adicional de bootstrap: despues de un sync exitoso de una
+connection Qwen, el backend materializa defaults faltantes desde modelos
+conocidos del catalogo.
+
+En una instalacion limpia, el sync configura:
+
+- pool global de chat con `qwen-plus` como default si el pool esta vacio;
+- `dense_embedding` con `text-embedding-v4` si el slot no tiene default;
+- `rerank` con `qwen3-rerank` si el slot no tiene default;
+- `sparse_embedding` con `text-embedding-v4` solo si la connection usa
+  DashScope native TextEmbedding, no una base OpenAI-compatible.
+
+El sync no pisa defaults que el usuario ya eligio y no guarda API keys desde
+environment. Para llamadas live, configura el secret `api_key` en Runtime
+settings o deja disponible `ADAPTIVE_RAG_QWEN_API_KEY` en el runtime.
+
 ## Troubleshooting
 
 - Si `uv run alembic upgrade head` falla, confirma que Postgres esta arriba y
