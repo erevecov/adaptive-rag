@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import {
   formatStepDuration,
@@ -12,12 +12,14 @@ import {
 } from '../lib/stepperPreference'
 
 type ChatPipelineStepsProps = {
+  children?: ReactNode
   isStreaming: boolean
   sourceCount: number
   steps: ChatStep[]
 }
 
 export function ChatPipelineSteps({
+  children,
   isStreaming,
   sourceCount,
   steps,
@@ -74,6 +76,7 @@ export function ChatPipelineSteps({
           ▾ {summary}
         </button>
         <StepList steps={steps} />
+        {children ? <div className="pipeline-extra-detail">{children}</div> : null}
       </section>
     )
   }
@@ -109,6 +112,7 @@ export function ChatPipelineSteps({
         ▾ {summary}
       </button>
       <StepList steps={steps} />
+      {children ? <div className="pipeline-extra-detail">{children}</div> : null}
     </section>
   )
 }
