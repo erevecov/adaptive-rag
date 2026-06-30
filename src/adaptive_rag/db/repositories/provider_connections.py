@@ -1,4 +1,4 @@
-"""Repository for global provider connections and encrypted secret status."""
+﻿"""Repository for global provider connections and encrypted secret status."""
 
 from __future__ import annotations
 

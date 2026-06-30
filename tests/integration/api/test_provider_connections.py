@@ -1,4 +1,4 @@
-"""Tests for global runtime provider connection HTTP API."""
+﻿"""Tests for global runtime provider connection HTTP API."""
 
 from __future__ import annotations
 

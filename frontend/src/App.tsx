@@ -1,4 +1,4 @@
-import {
+﻿import {
   type Dispatch,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -6523,8 +6523,8 @@ function ResponseDetailsPanel({
         onClick={() => setExpanded((current) => !current)}
         type="button"
       >
-        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
-        details · {summaryParts.join(' · ')}
+        <span aria-hidden="true">{expanded ? 'â–¾' : 'â–¸'}</span>
+        details Â· {summaryParts.join(' Â· ')}
       </button>
 
       {expanded ? (
@@ -6569,7 +6569,7 @@ function ResponseDetailsContent({
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
         <section className="response-detail-group" aria-label="Tool calls detail">
-          <h3>tool calls · {toolCallCount}</h3>
+          <h3>tool calls Â· {toolCallCount}</h3>
           <ul className="tool-call-list tool-call-list-compact">
             {response.tool_calls.map((call) => (
               <li key={`${call.name}-${call.query}`}>
@@ -6585,7 +6585,7 @@ function ResponseDetailsContent({
       ) : null}
       {sourceCount > 0 ? (
         <section className="response-detail-group" aria-label="Sources detail">
-          <h3>sources · {sourceCount}</h3>
+          <h3>sources Â· {sourceCount}</h3>
           <ol className="citation-list citation-list-compact">
             {response.citations.map((result) => (
               <li key={result.chunk_id}>
@@ -6972,7 +6972,7 @@ function SessionNavigationPanel({
                       }}
                     >
                       <input
-                        aria-label="Nuevo nombre de sesión"
+                        aria-label="Nuevo nombre de sesiÃ³n"
                         className="session-rename-input"
                         maxLength={60}
                         onBlur={() => {
@@ -6992,7 +6992,7 @@ function SessionNavigationPanel({
                     </form>
                   ) : (
                     <button
-                      aria-label={`Abrir sesión ${title}`}
+                      aria-label={`Abrir sesiÃ³n ${title}`}
                       className="session-button"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
@@ -7058,7 +7058,7 @@ function SessionNavigationPanel({
           onClick={onLoadMore}
           type="button"
         >
-          {isLoading ? 'cargando...' : 'ver más'}
+          {isLoading ? 'cargando...' : 'ver mÃ¡s'}
         </button>
       ) : null}
     </aside>
