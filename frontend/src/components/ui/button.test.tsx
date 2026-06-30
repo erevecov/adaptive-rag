@@ -2,9 +2,14 @@
  * @vitest-environment jsdom
  */
 import { cleanup, render, screen } from '@testing-library/react'
+import { type ComponentProps } from 'react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { Button, IconButton } from './button'
+
+function classTokens(element: Element): string[] {
+  return element.className.split(/\s+/).filter(Boolean)
+}
 
 afterEach(() => {
   cleanup()
@@ -15,26 +20,50 @@ describe('Button', () => {
     render(<Button>Save</Button>)
 
     const button = screen.getByRole('button', { name: 'Save' })
-    expect(button.className).toContain('bg-primary')
-    expect(button.className).toContain('text-primary-foreground')
+    expect(classTokens(button)).toContain('bg-primary')
+    expect(classTokens(button)).toContain('text-primary-foreground')
+    expect(button.getAttribute('data-slot')).toBe('button')
   })
 
-  test('merges caller classes after variant classes', () => {
+  test('merges caller classes after variant classes and removes conflicts', () => {
     render(<Button className="px-8">Save</Button>)
 
     const button = screen.getByRole('button', { name: 'Save' })
-    expect(button.className).toContain('px-8')
+    const tokens = classTokens(button)
+    expect(tokens).toContain('px-8')
+    expect(tokens).not.toContain('px-4')
+  })
+
+  test('keeps the stable slot marker when callers pass data attributes', () => {
+    render(<Button data-slot="custom-button">Save</Button>)
+
+    expect(screen.getByRole('button', { name: 'Save' }).getAttribute('data-slot')).toBe(
+      'button',
+    )
   })
 })
 
 describe('IconButton', () => {
-  test('uses the provided label as the accessible name', () => {
+  test('uses the provided label as the accessible name and marks its slot', () => {
+    const callerProps = {
+      'aria-label': 'Wrong label',
+      'data-slot': 'custom-icon-button',
+      size: 'sm',
+    } as unknown as ComponentProps<typeof IconButton>
+
     render(
-      <IconButton label="Open menu">
+      <IconButton {...callerProps} label="Open menu">
         <span aria-hidden="true">M</span>
       </IconButton>,
     )
 
-    expect(screen.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    const button = screen.getByRole('button', { name: 'Open menu' })
+    const tokens = classTokens(button)
+    expect(button.getAttribute('data-slot')).toBe('icon-button')
+    expect(button.getAttribute('title')).toBe('Open menu')
+    expect(tokens).toContain('h-9')
+    expect(tokens).toContain('w-9')
+    expect(tokens).toContain('p-0')
+    expect(tokens).not.toContain('px-3')
   })
 })
