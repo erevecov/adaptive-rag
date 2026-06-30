@@ -74,7 +74,12 @@ def create_provider_connection(
             capabilities=body.capabilities,
             metadata=body.metadata,
         )
-    except ValueError as exc:
+        _upsert_inline_api_key(
+            repository=repository,
+            connection_id=connection.connection_id,
+            api_key=body.api_key,
+        )
+    except (ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
     return ProviderConnectionResponse.from_connection(
@@ -99,7 +104,12 @@ def upsert_provider_connection(
             capabilities=body.capabilities,
             metadata=body.metadata,
         )
-    except ValueError as exc:
+        _upsert_inline_api_key(
+            repository=repository,
+            connection_id=connection.connection_id,
+            api_key=body.api_key,
+        )
+    except (ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
     return ProviderConnectionResponse.from_connection(
@@ -227,6 +237,23 @@ def _api_key_for_sync(
     if secret is None:
         return None
     return secret_store.decrypt(secret.encrypted_value)
+
+
+def _upsert_inline_api_key(
+    *,
+    repository: ProviderConnectionRepository,
+    connection_id: str,
+    api_key: str | None,
+) -> None:
+    if api_key is None:
+        return
+    secret_store = ProviderSecretStore.from_settings()
+    repository.upsert_secret(
+        connection_id=connection_id,
+        secret_name="api_key",
+        secret_value=api_key,
+        secret_store=secret_store,
+    )
 
 
 def _catalog_capabilities(

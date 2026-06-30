@@ -174,6 +174,7 @@ function createClientStub(options: {
   upsertProviderConnection?: ApiClient['upsertProviderConnection']
   upsertProviderSecret?: ApiClient['upsertProviderSecret']
   upsertRuntimeSlotDefault?: ApiClient['upsertRuntimeSlotDefault']
+  deleteProviderConnection?: ApiClient['deleteProviderConnection']
   deleteProjectChatRetrievalSettings?: ApiClient['deleteProjectChatRetrievalSettings']
   deleteProjectRuntimeSlotOverride?: ApiClient['deleteProjectRuntimeSlotOverride']
   syncProviderModels?: ApiClient['syncProviderModels']
@@ -219,7 +220,8 @@ function createClientStub(options: {
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
     listKnowledgeProposals: options.listKnowledgeProposals ?? vi.fn(),
     listProjectMemberships: options.listProjectMemberships ?? vi.fn(),
-    listProviderConnections: options.listProviderConnections ?? vi.fn(),
+    listProviderConnections:
+      options.listProviderConnections ?? vi.fn(async () => ({ items: [] })),
     listProviderModels: options.listProviderModels ?? vi.fn(),
     listProjects:
       options.listProjects ?? vi.fn(async () => ({ items: [] })),
@@ -262,7 +264,7 @@ function createClientStub(options: {
       options.deleteProjectChatRetrievalSettings ?? vi.fn(),
     deleteProjectRuntimeSlotOverride:
       options.deleteProjectRuntimeSlotOverride ?? vi.fn(),
-    deleteProviderConnection: vi.fn(),
+    deleteProviderConnection: options.deleteProviderConnection ?? vi.fn(),
     deleteProviderSecret: vi.fn(),
     deleteRuntimeSlotDefault: vi.fn(),
     setDefaultChatModel: vi.fn(),
@@ -954,7 +956,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.getByRole('heading', { level: 2, name: 'Connections' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh connections' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Refresh connections' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
     expect(screen.getByRole('heading', { level: 2, name: 'Model catalog' })).toBeTruthy()
@@ -3202,14 +3204,6 @@ describe('App chat workspace', () => {
       listProviderConnections: vi.fn(async () => providerConnectionsResponse),
       listProviderModels: vi.fn(async () => providerModelsResponse),
       listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
-      upsertProviderSecret: vi.fn(async () => ({
-        configured: true,
-        connection_id: 'qwen-hosted',
-        fingerprint: 'new-fingerprint',
-        last_four: 'cret',
-        secret_name: 'api_key',
-        updated_at: '2026-06-24T00:00:02Z',
-      })),
       upsertRuntimeSlotDefault: vi.fn(async () => runtimeSlotDefaultsResponse.items[0]),
       updateChatRetrievalSettings: vi.fn(async (body) => ({
         ...body,
@@ -3228,7 +3222,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.queryByRole('button', { name: 'Refresh runtime' })).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
+    expect(screen.queryByRole('button', { name: 'Refresh connections' })).toBeNull()
 
     expect(client.listProviderConnections).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
@@ -3236,6 +3230,7 @@ describe('App chat workspace', () => {
     expect(screen.getByText('api_key configured / last four cret')).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
+    expect(screen.queryByLabelText('Secret connection')).toBeNull()
 
     await user.selectOptions(screen.getByLabelText('Provider'), 'qwen')
     await user.selectOptions(screen.getByLabelText('Connection type'), 'hosted')
@@ -3243,16 +3238,49 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Base URL'),
       'https://dashscope.example.test/compatible-mode/v1',
     )
-    await user.type(screen.getByLabelText('Capabilities'), 'chat, dense_embedding')
-    await user.click(screen.getByRole('button', { name: 'Save connection' }))
+    const capabilitiesCombobox = screen.getByRole('combobox', {
+      name: 'Capabilities',
+    })
+    const capabilityFilter = screen.getByRole('textbox', {
+      name: 'Filter capabilities',
+    })
+    expect(within(capabilitiesCombobox).getByText('chat')).toBeTruthy()
+    const saveConnectionButton = screen.getByRole('button', {
+      name: 'Save connection',
+    }) as HTMLButtonElement
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Remove chat capability',
+      }),
+    )
+    expect(saveConnectionButton.disabled).toBe(true)
+    await user.type(capabilityFilter, 'chat')
+    await user.click(
+      await screen.findByRole('option', {
+        name: 'Add chat capability',
+      }),
+    )
+    await user.type(capabilityFilter, 'dense')
+    await user.click(
+      await screen.findByRole('option', {
+        name: 'Add dense_embedding capability',
+      }),
+    )
+    expect(saveConnectionButton.disabled).toBe(false)
+    expect(within(capabilitiesCombobox).getByText('dense_embedding')).toBeTruthy()
+    await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
+    await user.click(saveConnectionButton)
 
     expect(client.createProviderConnection).toHaveBeenCalledWith({
+      api_key: 'sk-hosted-secret',
       base_url: 'https://dashscope.example.test/compatible-mode/v1',
       capabilities: ['chat', 'dense_embedding'],
       connection_type: 'hosted',
       metadata: null,
       provider: 'qwen',
     })
+    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
+    expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
@@ -3264,19 +3292,7 @@ describe('App chat workspace', () => {
     expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
-    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
-
-    await user.selectOptions(screen.getByLabelText('Secret connection'), 'qwen-hosted')
-    await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
-    await user.click(screen.getByRole('button', { name: 'Save secret' }))
-
-    expect(client.upsertProviderSecret).toHaveBeenCalledWith(
-      'qwen-hosted',
-      'api_key',
-      { value: 'sk-hosted-secret' },
-    )
-    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
-    expect(screen.queryByText('sk-hosted-secret')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save secret' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
@@ -3312,7 +3328,54 @@ describe('App chat workspace', () => {
     })
   })
 
-  test('refreshes runtime connections without calling unrelated runtime endpoints', async () => {
+  test('deletes runtime connections only after exact connection ID confirmation', async () => {
+    const user = userEvent.setup()
+    const deleteProviderConnection = vi.fn(async () => ({ deleted: true }))
+    const client = createClientStub({
+      deleteProviderConnection,
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    const providerConnections = screen.getByRole('region', {
+      name: 'Provider connections',
+    })
+    expect(
+      await within(providerConnections).findByText('qwen-hosted'),
+    ).toBeTruthy()
+
+    await user.click(
+      within(providerConnections).getByRole('button', {
+        name: 'Delete qwen-hosted connection',
+      }),
+    )
+
+    const confirmInput = screen.getByLabelText(
+      'Confirm connection ID',
+    ) as HTMLInputElement
+    const deleteButton = screen.getByRole('button', {
+      name: 'Delete connection',
+    }) as HTMLButtonElement
+
+    expect(deleteButton.disabled).toBe(true)
+    await user.type(confirmInput, 'wrong-id')
+    expect(deleteButton.disabled).toBe(true)
+    await user.clear(confirmInput)
+    await user.type(confirmInput, 'qwen-hosted')
+    expect(deleteButton.disabled).toBe(false)
+
+    await user.click(deleteButton)
+
+    expect(deleteProviderConnection).toHaveBeenCalledWith('qwen-hosted')
+    await waitFor(() => {
+      expect(within(providerConnections).queryByText('qwen-hosted')).toBeNull()
+    })
+    expect(within(providerConnections).getByText('local-chat')).toBeTruthy()
+  })
+
+  test('loads runtime connections on entry without calling unrelated runtime endpoints', async () => {
     const user = userEvent.setup()
     const listChatModels = vi.fn(async () => {
       throw new ApiClientError('chat models unavailable', {
@@ -3356,7 +3419,6 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
-    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
 
     expect(await screen.findByText('qwen-hosted')).toBeTruthy()
     expect(client.listProviderConnections).toHaveBeenCalledTimes(1)

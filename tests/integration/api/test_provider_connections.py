@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Iterator
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -174,6 +175,55 @@ def test_connection_create_api_generates_connection_id() -> None:
     assert session.get(ProviderConnection, payload["connection_id"]) is not None
 
 
+def test_connection_create_rejects_empty_capabilities() -> None:
+    session = _make_session()
+    client = _client(session=session)
+
+    response = client.post(
+        "/runtime-settings/connections",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "capabilities": [],
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_connection_create_persists_inline_api_key_without_readback(
+    monkeypatch,
+) -> None:
+    key = base64.urlsafe_b64encode(b"4" * 32).decode("ascii")
+    monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
+    session = _make_session()
+    client = _client(session=session)
+
+    response = client.post(
+        "/runtime-settings/connections",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat", "dense_embedding"],
+            "api_key": "sk-inline-secret",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["secrets"][0]["configured"] is True
+    assert payload["secrets"][0]["secret_name"] == "api_key"
+    assert payload["secrets"][0]["last_four"] == "cret"
+    assert "api_key" not in payload
+    assert "sk-inline-secret" not in str(payload)
+
+    row = session.get(ProviderSecret, (payload["connection_id"], "api_key"))
+
+    assert row is not None
+    assert b"sk-inline-secret" not in row.encrypted_value
+
+
 def test_secret_api_persists_status_without_reading_value_back(monkeypatch) -> None:
     key = base64.urlsafe_b64encode(b"2" * 32).decode("ascii")
     monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
@@ -208,8 +258,12 @@ def test_secret_api_persists_status_without_reading_value_back(monkeypatch) -> N
     assert b"sk-hosted-secret" not in row.encrypted_value
 
 
-def test_secret_write_requires_server_side_encryption_key(monkeypatch) -> None:
+def test_secret_write_bootstraps_local_encryption_key_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     monkeypatch.delenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
     session = _make_session()
     client = _client(session=session)
     client.put(
@@ -226,9 +280,8 @@ def test_secret_write_requires_server_side_encryption_key(monkeypatch) -> None:
         json={"value": "sk-hosted-secret"},
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == {
-        "code": "provider_secret_key_missing",
-        "message": "ADAPTIVE_RAG_PROVIDER_SECRETS_KEY is required",
-    }
-    assert session.get(ProviderSecret, ("qwen-hosted", "api_key")) is None
+    assert response.status_code == 200
+    assert (tmp_path / ".adaptive-rag" / "provider-secrets.key").exists()
+    row = session.get(ProviderSecret, ("qwen-hosted", "api_key"))
+    assert row is not None
+    assert b"sk-hosted-secret" not in row.encrypted_value

@@ -894,6 +894,7 @@ describe('createApiClient', () => {
     })
 
     const created = await client.createProviderConnection({
+      api_key: 'sk-inline-secret',
       base_url: connection.base_url,
       capabilities: connection.capabilities,
       connection_type: connection.connection_type,
@@ -913,6 +914,16 @@ describe('createApiClient', () => {
       'http://api.local/runtime-settings/connections',
     )
     expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.body).toBe(
+      JSON.stringify({
+        api_key: 'sk-inline-secret',
+        base_url: connection.base_url,
+        capabilities: connection.capabilities,
+        connection_type: connection.connection_type,
+        metadata: connection.metadata,
+        provider: connection.provider,
+      }),
+    )
     expect(String(calls[1].input)).toBe(
       'http://api.local/runtime-settings/connections/qwen-hosted-abc123/models/sync',
     )

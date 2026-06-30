@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
@@ -52,6 +53,9 @@ class Settings(BaseSettings):
     provider_embedding_input_price_per_million_tokens_usd: float | None = None
     provider_rerank_input_price_per_million_tokens_usd: float | None = None
     provider_secrets_key: SecretStr | None = Field(default=None)
+    provider_secrets_key_file: Path | None = Field(
+        default=Path(".adaptive-rag/provider-secrets.key")
+    )
     qwen_api_key: SecretStr | None = Field(default=None)
     qwen_base_url: str | None = Field(default=None)
     neo4j_uri: str | None = Field(default=None)

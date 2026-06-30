@@ -1,6 +1,7 @@
 import {
   type Dispatch,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type SetStateAction,
   useCallback,
@@ -36,7 +37,6 @@ import {
   type ProjectRuntimeSettings,
   type ProviderConnection,
   type ProviderModel,
-  type ProviderSecretStatus,
   type RuntimeSlotDefault,
   type RetrievalResult,
   type Source,
@@ -82,6 +82,7 @@ const RUNTIME_SLOTS = [
   'rerank',
   'contextualization',
 ]
+const PROVIDER_CONNECTION_CAPABILITIES = RUNTIME_SLOTS
 const SETTINGS_NAVIGATION = [
   {
     id: 'authoring',
@@ -355,10 +356,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [connectionProvider, setConnectionProvider] = useState('qwen')
   const [connectionType, setConnectionType] = useState('hosted')
   const [connectionBaseUrl, setConnectionBaseUrl] = useState('')
-  const [connectionCapabilities, setConnectionCapabilities] = useState('')
+  const [connectionCapabilities, setConnectionCapabilities] = useState<string[]>([
+    'chat',
+  ])
+  const [connectionApiKey, setConnectionApiKey] = useState('')
+  const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
+    null,
+  )
+  const [deleteConnectionConfirmation, setDeleteConnectionConfirmation] =
+    useState('')
   const [modelSyncConnectionId, setModelSyncConnectionId] = useState('')
-  const [secretConnectionId, setSecretConnectionId] = useState('')
-  const [secretValue, setSecretValue] = useState('')
   const [globalSlot, setGlobalSlot] = useState('chat')
   const [globalSlotConnectionId, setGlobalSlotConnectionId] = useState('')
   const [globalSlotModelId, setGlobalSlotModelId] = useState('')
@@ -520,6 +527,36 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     transcript.scrollTop = transcript.scrollHeight
   }, [primaryView, requestState, response])
+
+  useEffect(() => {
+    if (
+      primaryView !== 'settings' ||
+      settingsModule !== 'runtime' ||
+      runtimeSubmodule !== 'connections'
+    ) {
+      return
+    }
+
+    let ignore = false
+
+    void client
+      .listProviderConnections()
+      .then((connections) => {
+        if (ignore) return
+        setRuntimeConnections(connections.items)
+        setRuntimeError(null)
+        setRuntimeState('succeeded')
+      })
+      .catch((error: unknown) => {
+        if (ignore) return
+        setRuntimeState('failed')
+        setRuntimeError(getErrorMessage(error))
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [client, primaryView, runtimeSubmodule, settingsModule])
 
   function handleChatTranscriptScroll() {
     const transcript = chatTranscriptRef.current
@@ -1462,20 +1499,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshRuntimeConnections() {
-    setRuntimeState('loading')
-    setRuntimeError(null)
-
-    try {
-      const connections = await client.listProviderConnections()
-      setRuntimeConnections(connections.items)
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    }
-  }
-
   async function handleRefreshRuntimeModelCatalog() {
     setRuntimeState('loading')
     setRuntimeError(null)
@@ -1553,20 +1576,110 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSaveConnection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const selectedCapabilities = connectionCapabilities.filter((capability) =>
+      PROVIDER_CONNECTION_CAPABILITIES.includes(capability),
+    )
+    if (selectedCapabilities.length === 0) {
+      setRuntimeState('failed')
+      setRuntimeError('Select at least one connection capability.')
+      return
+    }
+    const trimmedApiKey = connectionApiKey.trim()
 
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
       const connection = await client.createProviderConnection({
+        api_key: trimmedApiKey.length > 0 ? trimmedApiKey : null,
         base_url: optionalFilterValue(connectionBaseUrl),
-        capabilities: parseTags(connectionCapabilities),
+        capabilities: selectedCapabilities,
         connection_type: connectionType,
         metadata: null,
         provider: connectionProvider,
       })
       setRuntimeConnections((current) => upsertConnection(current, connection))
-      setSecretConnectionId(connection.connection_id)
       setModelSyncConnectionId(connection.connection_id)
+      setConnectionApiKey('')
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  function handleRequestDeleteConnection(connectionId: string) {
+    setDeleteConnectionId(connectionId)
+    setDeleteConnectionConfirmation('')
+    setRuntimeError(null)
+  }
+
+  function handleCancelDeleteConnection() {
+    setDeleteConnectionId(null)
+    setDeleteConnectionConfirmation('')
+    setRuntimeError(null)
+  }
+
+  async function handleDeleteConnection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const connectionId = deleteConnectionId
+    if (connectionId === null) {
+      return
+    }
+    if (deleteConnectionConfirmation.trim() !== connectionId) {
+      setRuntimeState('failed')
+      setRuntimeError('Type the connection ID to confirm deletion.')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const response = await client.deleteProviderConnection(connectionId)
+      if (!response.deleted) {
+        throw new Error('Connection was not deleted.')
+      }
+      setRuntimeConnections((current) =>
+        current.filter((connection) => connection.connection_id !== connectionId),
+      )
+      setRuntimeProviderModels((current) =>
+        current.filter((model) => model.connection_id !== connectionId),
+      )
+      setRuntimeSlots((current) =>
+        current.filter((slot) => slot.connection_id !== connectionId),
+      )
+      setRuntimeChatModels((current) =>
+        current.filter((model) => model.connection_id !== connectionId),
+      )
+      setProjectRuntimeSettings((current) =>
+        current === null
+          ? null
+          : {
+              ...current,
+              chat_models: current.chat_models.filter(
+                (model) => model.connection_id !== connectionId,
+              ),
+              slots: current.slots.filter(
+                (slot) => slot.connection_id !== connectionId,
+              ),
+            },
+      )
+      setModelSyncConnectionId((current) =>
+        current === connectionId ? '' : current,
+      )
+      if (globalSlotConnectionId === connectionId) {
+        setGlobalSlotConnectionId('')
+        setGlobalSlotModelId('')
+      }
+      if (globalChatConnectionId === connectionId) {
+        setGlobalChatConnectionId('')
+        setGlobalChatModelId('')
+      }
+      if (projectSlotConnectionId === connectionId) {
+        setProjectSlotConnectionId('')
+        setProjectSlotModelId('')
+      }
+      setDeleteConnectionId(null)
+      setDeleteConnectionConfirmation('')
       setRuntimeState('succeeded')
     } catch (error) {
       setRuntimeState('failed')
@@ -1594,37 +1707,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     } catch (error) {
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
-    }
-  }
-
-  async function handleSaveSecret(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmedConnectionId = secretConnectionId.trim()
-    const trimmedSecret = secretValue.trim()
-    if (trimmedConnectionId.length === 0 || trimmedSecret.length === 0) {
-      setRuntimeState('failed')
-      setRuntimeError('Secret connection ID and API key are required.')
-      setSecretValue('')
-      return
-    }
-
-    setRuntimeState('loading')
-    setRuntimeError(null)
-    try {
-      const status = await client.upsertProviderSecret(
-        trimmedConnectionId,
-        'api_key',
-        { value: trimmedSecret },
-      )
-      setRuntimeConnections((current) =>
-        updateConnectionSecret(current, trimmedConnectionId, status),
-      )
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    } finally {
-      setSecretValue('')
     }
   }
 
@@ -2126,6 +2208,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ) : activeSettingsModule === 'runtime' ? (
               <RuntimeSettingsPanel
                 activeSubmodule={runtimeSubmodule}
+                connectionApiKey={connectionApiKey}
                 chatConnectionId={globalChatConnectionId}
                 chatModelId={globalChatModelId}
                 chatModels={runtimeChatModels}
@@ -2135,6 +2218,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 connectionProvider={connectionProvider}
                 connectionType={connectionType}
                 connections={runtimeConnections}
+                deleteConnectionConfirmation={deleteConnectionConfirmation}
+                deleteConnectionId={deleteConnectionId}
                 error={runtimeError}
                 globalChatRerankCandidateLimit={
                   globalChatRerankCandidateLimit
@@ -2148,8 +2233,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onChatModelIdChange={setGlobalChatModelId}
                 onConnectionBaseUrlChange={setConnectionBaseUrl}
                 onConnectionCapabilitiesChange={setConnectionCapabilities}
+                onConnectionApiKeyChange={setConnectionApiKey}
                 onConnectionProviderChange={setConnectionProvider}
                 onConnectionTypeChange={setConnectionType}
+                onCancelDeleteConnection={handleCancelDeleteConnection}
+                onDeleteConnection={(event) => void handleDeleteConnection(event)}
+                onDeleteConnectionConfirmationChange={
+                  setDeleteConnectionConfirmation
+                }
                 onGlobalChatRerankCandidateLimitChange={
                   setGlobalChatRerankCandidateLimit
                 }
@@ -2166,9 +2257,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onProjectSlotChange={setProjectSlot}
                 onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
                 onProjectSlotModelIdChange={setProjectSlotModelId}
-                onRefreshConnections={() =>
-                  void handleRefreshRuntimeConnections()
-                }
                 onRefreshGlobalDefaults={() =>
                   void handleRefreshRuntimeGlobalDefaults()
                 }
@@ -2182,6 +2270,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   void handleResetProjectChatRetrieval()
                 }
                 onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
+                onRequestDeleteConnection={handleRequestDeleteConnection}
                 onSaveConnection={(event) => void handleSaveConnection(event)}
                 onSaveGlobalChatModel={(event) =>
                   void handleSaveGlobalChatModel(event)
@@ -2196,7 +2285,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSaveProjectOverride={(event) =>
                   void handleSaveProjectOverride(event)
                 }
-                onSaveSecret={(event) => void handleSaveSecret(event)}
                 onSyncProviderModels={(event) =>
                   void handleSyncProviderModels(event)
                 }
@@ -2211,14 +2299,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 projectSlot={projectSlot}
                 projectSlotConnectionId={projectSlotConnectionId}
                 projectSlotModelId={projectSlotModelId}
-                secretConnectionId={secretConnectionId}
-                secretValue={secretValue}
                 modelSyncConnectionId={modelSyncConnectionId}
                 providerModels={runtimeProviderModels}
                 slots={runtimeSlots}
                 state={runtimeState}
-                onSecretConnectionIdChange={setSecretConnectionId}
-                onSecretValueChange={setSecretValue}
               />
             ) : (
               <AuthoringPanel
@@ -2973,11 +3057,14 @@ function RuntimeSettingsPanel({
   chatModelId,
   chatModels,
   chatRetrievalSettings,
+  connectionApiKey,
   connectionBaseUrl,
   connectionCapabilities,
   connectionProvider,
   connectionType,
   connections,
+  deleteConnectionConfirmation,
+  deleteConnectionId,
   error,
   globalChatRerankCandidateLimit,
   globalChatRerankEnabled,
@@ -2987,10 +3074,14 @@ function RuntimeSettingsPanel({
   globalSlotModelId,
   onChatConnectionIdChange,
   onChatModelIdChange,
+  onConnectionApiKeyChange,
   onConnectionBaseUrlChange,
   onConnectionCapabilitiesChange,
   onConnectionProviderChange,
   onConnectionTypeChange,
+  onCancelDeleteConnection,
+  onDeleteConnection,
+  onDeleteConnectionConfirmationChange,
   onGlobalChatRerankCandidateLimitChange,
   onGlobalChatRerankEnabledChange,
   onGlobalChatRetrievalLimitChange,
@@ -3003,23 +3094,20 @@ function RuntimeSettingsPanel({
   onProjectSlotChange,
   onProjectSlotConnectionIdChange,
   onProjectSlotModelIdChange,
-  onRefreshConnections,
   onRefreshGlobalDefaults,
   onRefreshModelCatalog,
   onRefreshProjectOverrides,
   onResetProjectChatRetrieval,
   onResetProjectSlot,
+  onRequestDeleteConnection,
   onSaveConnection,
   onSaveGlobalChatModel,
   onSaveGlobalChatRetrieval,
   onSaveGlobalSlot,
   onSaveProjectChatRetrieval,
   onSaveProjectOverride,
-  onSaveSecret,
   onSyncProviderModels,
   onModelSyncConnectionIdChange,
-  onSecretConnectionIdChange,
-  onSecretValueChange,
   modelSyncConnectionId,
   providerModels,
   projectId,
@@ -3030,8 +3118,6 @@ function RuntimeSettingsPanel({
   projectSlot,
   projectSlotConnectionId,
   projectSlotModelId,
-  secretConnectionId,
-  secretValue,
   slots,
   state,
 }: {
@@ -3040,11 +3126,14 @@ function RuntimeSettingsPanel({
   chatModelId: string
   chatModels: ChatModel[]
   chatRetrievalSettings: ChatRetrievalSettings | null
+  connectionApiKey: string
   connectionBaseUrl: string
-  connectionCapabilities: string
+  connectionCapabilities: string[]
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
+  deleteConnectionConfirmation: string
+  deleteConnectionId: string | null
   error: string | null
   globalChatRerankCandidateLimit: number
   globalChatRerankEnabled: boolean
@@ -3054,10 +3143,14 @@ function RuntimeSettingsPanel({
   globalSlotModelId: string
   onChatConnectionIdChange(value: string): void
   onChatModelIdChange(value: string): void
+  onConnectionApiKeyChange(value: string): void
   onConnectionBaseUrlChange(value: string): void
-  onConnectionCapabilitiesChange(value: string): void
+  onConnectionCapabilitiesChange(value: string[]): void
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
+  onCancelDeleteConnection(): void
+  onDeleteConnection(event: FormEvent<HTMLFormElement>): void
+  onDeleteConnectionConfirmationChange(value: string): void
   onGlobalChatRerankCandidateLimitChange(value: number): void
   onGlobalChatRerankEnabledChange(value: boolean): void
   onGlobalChatRetrievalLimitChange(value: number): void
@@ -3070,23 +3163,20 @@ function RuntimeSettingsPanel({
   onProjectSlotChange(value: string): void
   onProjectSlotConnectionIdChange(value: string): void
   onProjectSlotModelIdChange(value: string): void
-  onRefreshConnections(): void
   onRefreshGlobalDefaults(): void
   onRefreshModelCatalog(): void
   onRefreshProjectOverrides(): void
   onResetProjectChatRetrieval(): void
   onResetProjectSlot(slot: string): void
+  onRequestDeleteConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
   onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
-  onSaveSecret(event: FormEvent<HTMLFormElement>): void
   onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
   onModelSyncConnectionIdChange(value: string): void
-  onSecretConnectionIdChange(value: string): void
-  onSecretValueChange(value: string): void
   modelSyncConnectionId: string
   providerModels: ProviderModel[]
   projectId: string
@@ -3097,8 +3187,6 @@ function RuntimeSettingsPanel({
   projectSlot: string
   projectSlotConnectionId: string
   projectSlotModelId: string
-  secretConnectionId: string
-  secretValue: string
   slots: RuntimeSlotDefault[]
   state: RequestState
 }) {
@@ -3143,22 +3231,26 @@ function RuntimeSettingsPanel({
   const activePanel =
     activeSubmodule === 'connections' ? (
       <RuntimeConnectionsPanel
+        connectionApiKey={connectionApiKey}
         connectionBaseUrl={connectionBaseUrl}
         connectionCapabilities={connectionCapabilities}
         connectionProvider={connectionProvider}
         connectionType={connectionType}
         connections={connections}
+        deleteConnectionConfirmation={deleteConnectionConfirmation}
+        deleteConnectionId={deleteConnectionId}
+        onCancelDeleteConnection={onCancelDeleteConnection}
+        onConnectionApiKeyChange={onConnectionApiKeyChange}
         onConnectionBaseUrlChange={onConnectionBaseUrlChange}
         onConnectionCapabilitiesChange={onConnectionCapabilitiesChange}
         onConnectionProviderChange={onConnectionProviderChange}
         onConnectionTypeChange={onConnectionTypeChange}
-        onRefresh={onRefreshConnections}
+        onDeleteConnection={onDeleteConnection}
+        onDeleteConnectionConfirmationChange={
+          onDeleteConnectionConfirmationChange
+        }
+        onRequestDeleteConnection={onRequestDeleteConnection}
         onSaveConnection={onSaveConnection}
-        onSaveSecret={onSaveSecret}
-        onSecretConnectionIdChange={onSecretConnectionIdChange}
-        onSecretValueChange={onSecretValueChange}
-        secretConnectionId={secretConnectionId}
-        secretValue={secretValue}
         state={state}
       />
     ) : activeSubmodule === 'model_catalog' ? (
@@ -3249,42 +3341,48 @@ function RuntimeSettingsPanel({
 }
 
 function RuntimeConnectionsPanel({
+  connectionApiKey,
   connectionBaseUrl,
   connectionCapabilities,
   connectionProvider,
   connectionType,
   connections,
+  deleteConnectionConfirmation,
+  deleteConnectionId,
+  onCancelDeleteConnection,
+  onConnectionApiKeyChange,
   onConnectionBaseUrlChange,
   onConnectionCapabilitiesChange,
   onConnectionProviderChange,
   onConnectionTypeChange,
-  onRefresh,
+  onDeleteConnection,
+  onDeleteConnectionConfirmationChange,
+  onRequestDeleteConnection,
   onSaveConnection,
-  onSaveSecret,
-  onSecretConnectionIdChange,
-  onSecretValueChange,
-  secretConnectionId,
-  secretValue,
   state,
 }: {
+  connectionApiKey: string
   connectionBaseUrl: string
-  connectionCapabilities: string
+  connectionCapabilities: string[]
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
+  deleteConnectionConfirmation: string
+  deleteConnectionId: string | null
+  onCancelDeleteConnection(): void
+  onConnectionApiKeyChange(value: string): void
   onConnectionBaseUrlChange(value: string): void
-  onConnectionCapabilitiesChange(value: string): void
+  onConnectionCapabilitiesChange(value: string[]): void
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
-  onRefresh(): void
+  onDeleteConnection(event: FormEvent<HTMLFormElement>): void
+  onDeleteConnectionConfirmationChange(value: string): void
+  onRequestDeleteConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
-  onSaveSecret(event: FormEvent<HTMLFormElement>): void
-  onSecretConnectionIdChange(value: string): void
-  onSecretValueChange(value: string): void
-  secretConnectionId: string
-  secretValue: string
   state: RequestState
 }) {
+  const canSaveConnection = connectionCapabilities.length > 0 && state !== 'loading'
+
   return (
     <section className="panel runtime-panel" aria-labelledby="runtime-connections-title">
       <div className="panel-heading">
@@ -3295,15 +3393,6 @@ function RuntimeConnectionsPanel({
         <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
       </div>
 
-      <button
-        className="secondary-button"
-        disabled={state === 'loading'}
-        onClick={onRefresh}
-        type="button"
-      >
-        {state === 'loading' ? 'Refreshing...' : 'Refresh connections'}
-      </button>
-
       <section className="runtime-section" aria-label="Provider connections">
         <h3>Connections</h3>
         <ul className="authoring-list">
@@ -3313,7 +3402,10 @@ function RuntimeConnectionsPanel({
             </li>
           ) : (
             connections.map((connection) => (
-              <li className="authoring-row authoring-row-static" key={connection.connection_id}>
+              <li
+                className="authoring-row authoring-row-static connection-row"
+                key={connection.connection_id}
+              >
                 <span>
                   <strong>{connection.connection_id}</strong>
                   <small>
@@ -3323,7 +3415,65 @@ function RuntimeConnectionsPanel({
                   {connection.base_url ? <small>{connection.base_url}</small> : null}
                   <ConnectionSecretSummary connection={connection} />
                 </span>
-                <em>{connection.connection_type}</em>
+                <div className="authoring-row-actions connection-row-actions">
+                  <em>{connection.connection_type}</em>
+                  <button
+                    aria-label={`Delete ${connection.connection_id} connection`}
+                    className="secondary-button compact-button danger-button"
+                    disabled={state === 'loading'}
+                    onClick={() =>
+                      onRequestDeleteConnection(connection.connection_id)
+                    }
+                    type="button"
+                  >
+                    Delete
+                  </button>
+                </div>
+                {deleteConnectionId === connection.connection_id ? (
+                  <form
+                    aria-label={`Delete ${connection.connection_id} connection`}
+                    className="connection-delete-confirm"
+                    onSubmit={onDeleteConnection}
+                  >
+                    <p>
+                      Type <strong>{connection.connection_id}</strong> to confirm
+                      deletion.
+                    </p>
+                    <label className="field">
+                      <span>Confirm connection ID</span>
+                      <input
+                        autoComplete="off"
+                        onChange={(event) =>
+                          onDeleteConnectionConfirmationChange(
+                            event.currentTarget.value,
+                          )
+                        }
+                        value={deleteConnectionConfirmation}
+                      />
+                    </label>
+                    <div className="connection-delete-actions">
+                      <button
+                        className="secondary-button compact-button"
+                        disabled={state === 'loading'}
+                        onClick={onCancelDeleteConnection}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="compact-button danger-button danger-button-solid"
+                        disabled={
+                          state === 'loading' ||
+                          deleteConnectionConfirmation.trim() !==
+                            connection.connection_id
+                        }
+                        type="submit"
+                      >
+                        Delete connection
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
               </li>
             ))
           )}
@@ -3369,41 +3519,180 @@ function RuntimeConnectionsPanel({
           </label>
           <label className="field runtime-field-wide">
             <span>Capabilities</span>
-            <input
-              onChange={(event) =>
-                onConnectionCapabilitiesChange(event.currentTarget.value)
-              }
+            <CapabilitySelector
+              options={PROVIDER_CONNECTION_CAPABILITIES}
+              onChange={onConnectionCapabilitiesChange}
               value={connectionCapabilities}
             />
           </label>
-        </div>
-        <button type="submit">Save connection</button>
-      </form>
-
-      <form className="authoring-form" onSubmit={onSaveSecret}>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Secret connection</span>
-            <ConnectionSelect
-              connections={connections}
-              onChange={onSecretConnectionIdChange}
-              testId="secret-connection-select"
-              value={secretConnectionId}
-            />
-          </label>
-          <label className="field">
+          <label className="field runtime-field-wide">
             <span>API key</span>
             <input
               autoComplete="off"
-              onChange={(event) => onSecretValueChange(event.currentTarget.value)}
+              onChange={(event) => onConnectionApiKeyChange(event.currentTarget.value)}
               type="password"
-              value={secretValue}
+              value={connectionApiKey}
             />
           </label>
         </div>
-        <button type="submit">Save secret</button>
+        <button disabled={!canSaveConnection} type="submit">
+          Save connection
+        </button>
       </form>
     </section>
+  )
+}
+
+function CapabilitySelector({
+  onChange,
+  options,
+  value,
+}: {
+  onChange(value: string[]): void
+  options: readonly string[]
+  value: string[]
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const selected = new Set(value)
+  const normalizedQuery = query.trim().toLowerCase()
+  const filteredOptions = options.filter((capability) => {
+    if (selected.has(capability)) {
+      return false
+    }
+    if (!normalizedQuery) {
+      return true
+    }
+    return capability.toLowerCase().includes(normalizedQuery)
+  })
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        rootRef.current !== null &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+    }
+  }, [isOpen])
+
+  function toggleCapability(capability: string) {
+    if (selected.has(capability)) {
+      onChange(value.filter((item) => item !== capability))
+      return
+    }
+    onChange([...value, capability])
+    setQuery('')
+  }
+
+  function handleFilterKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (filteredOptions.length > 0) {
+        toggleCapability(filteredOptions[0])
+      }
+    } else if (event.key === 'Escape') {
+      setIsOpen(false)
+    } else if (
+      event.key === 'Backspace' &&
+      query.length === 0 &&
+      value.length > 0
+    ) {
+      onChange(value.slice(0, -1))
+    }
+  }
+
+  return (
+    <div className="capability-selector" ref={rootRef}>
+      <div
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label="Capabilities"
+        className="capability-token-input"
+        onClick={() => {
+          setIsOpen(true)
+          inputRef.current?.focus()
+        }}
+        role="combobox"
+      >
+        <div className="capability-token-wrap">
+          {value.map((capability) => (
+            <span className="capability-token" key={capability}>
+              <span>{capability}</span>
+              <button
+                aria-label={`Remove ${capability} capability`}
+                className="capability-token-remove"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  toggleCapability(capability)
+                  inputRef.current?.focus()
+                }}
+                type="button"
+              >
+                x
+              </button>
+            </span>
+          ))}
+          <input
+            aria-label="Filter capabilities"
+            autoComplete="off"
+            className="capability-filter-input"
+            onChange={(event) => {
+              setQuery(event.currentTarget.value)
+              setIsOpen(true)
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleFilterKeyDown}
+            placeholder={value.length === 0 ? 'Select capabilities' : ''}
+            ref={inputRef}
+            value={query}
+          />
+        </div>
+        <span aria-hidden="true" className="capability-caret">
+          v
+        </span>
+      </div>
+      {isOpen ? (
+        <div
+          aria-label="Capability options"
+          className="capability-menu"
+          role="listbox"
+        >
+          {filteredOptions.length === 0 ? (
+            <div className="capability-option-empty">No capabilities found</div>
+          ) : (
+            filteredOptions.map((capability) => (
+              <button
+                aria-label={`Add ${capability} capability`}
+                className="capability-option"
+                key={capability}
+                onClick={() => {
+                  toggleCapability(capability)
+                  inputRef.current?.focus()
+                }}
+                role="option"
+                type="button"
+              >
+                <span>{capability}</span>
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -7788,25 +8077,6 @@ function upsertConnection(
     (item) => item.connection_id !== connection.connection_id,
   )
   return [...nextConnections, connection]
-}
-
-function updateConnectionSecret(
-  connections: ProviderConnection[],
-  connectionId: string,
-  secret: ProviderSecretStatus,
-): ProviderConnection[] {
-  return connections.map((connection) => {
-    if (connection.connection_id !== connectionId) {
-      return connection
-    }
-    const nextSecrets = connection.secrets.filter(
-      (item) => item.secret_name !== secret.secret_name,
-    )
-    return {
-      ...connection,
-      secrets: [...nextSecrets, secret],
-    }
-  })
 }
 
 function upsertRuntimeSlot(

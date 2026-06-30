@@ -317,6 +317,8 @@ def _normalize_capabilities(capabilities: Iterable[str]) -> list[str]:
         if normalized not in PROVIDER_CONNECTION_CAPABILITY_VALUES:
             raise ValueError(f"unsupported provider capability: {normalized}")
         requested.add(normalized)
+    if not requested:
+        raise ValueError("provider connection requires at least one capability")
     return [
         capability
         for capability in PROVIDER_CONNECTION_CAPABILITY_VALUES
