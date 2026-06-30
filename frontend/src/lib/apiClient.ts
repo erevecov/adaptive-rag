@@ -224,9 +224,11 @@ export type ChatRequestBody = {
 
 export type ChatToolCall = {
   name: string
-  query: string
-  limit: number
-  result_count: number
+  query?: string
+  limit?: number
+  result_count?: number
+  arguments?: JsonObject
+  result_summary?: JsonObject
 }
 
 export type ChatResponseBody = {
@@ -1616,10 +1618,12 @@ function toChatStreamEvent(
     return {
       event: eventName,
       data: {
-        limit: readNumber(data, 'limit'),
+        arguments: readOptionalJsonObject(data, 'arguments'),
+        limit: readOptionalNumber(data, 'limit'),
         name: readString(data, 'name'),
-        query: readString(data, 'query'),
-        result_count: readNumber(data, 'result_count'),
+        query: readOptionalString(data, 'query'),
+        result_count: readOptionalNumber(data, 'result_count'),
+        result_summary: readOptionalJsonObject(data, 'result_summary'),
       },
     }
   }

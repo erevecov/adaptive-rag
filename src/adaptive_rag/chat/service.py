@@ -15,6 +15,7 @@ from adaptive_rag.chat.models import (
     ChatResponse,
     ChatRunnerOutput,
     ChatRunnerRequest,
+    ChatToolCall,
 )
 from adaptive_rag.chat.streaming import (
     ChatStep,
@@ -28,7 +29,13 @@ from adaptive_rag.chat.streaming import (
     chat_stream_tool_call_event,
     serialize_chat_step,
 )
-from adaptive_rag.chat.tools import ChatRetrievalTool, ChatTools, RetrievalSearcher
+from adaptive_rag.chat.tools import (
+    ChatKnowledgeProposalTool,
+    ChatRetrievalTool,
+    ChatTools,
+    KnowledgeProposalSubmitter,
+    RetrievalSearcher,
+)
 from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
 from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
@@ -61,6 +68,7 @@ class ChatService:
             tuple[ProviderCallRecord, ...],
         ]
         | None = None,
+        knowledge_proposal_submitter: KnowledgeProposalSubmitter | None = None,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
@@ -72,6 +80,7 @@ class ChatService:
             if provider_usage_records is not None
             else _empty_provider_usage_records
         )
+        self._knowledge_proposal_submitter = knowledge_proposal_submitter
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_request(request)
@@ -101,16 +110,22 @@ class ChatService:
             audit_session_id=session_id,
         )
         try:
+            user_message_id = None
             if session_id is not None:
-                self._audit_writer.record_message(
+                user_message_id = self._audit_writer.record_message(
                     request.project_id,
                     session_id,
                     "user",
                     message,
                 )
+            knowledge_tool = self._build_knowledge_tool(
+                request=request,
+                session_id=session_id,
+                origin_message_id=user_message_id,
+            )
             output = self._runner.run(
                 runner_request,
-                ChatTools(retrieval=retrieval_tool),
+                ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool),
             )
             citations = _resolve_citations(
                 cited_chunk_ids=output.cited_chunk_ids,
@@ -119,7 +134,7 @@ class ChatService:
             response = ChatResponse(
                 answer=output.answer,
                 citations=citations,
-                tool_calls=retrieval_tool.tool_calls,
+                tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
             )
             if session_id is not None:
@@ -196,19 +211,25 @@ class ChatService:
         answer_start: float | None = None
         retrieval_steps_flushed = False
         try:
+            user_message_id = None
             if session_id is not None:
                 yield chat_stream_session_started_event(session_id)
-                self._audit_writer.record_message(
+                user_message_id = self._audit_writer.record_message(
                     request.project_id,
                     session_id,
                     "user",
                     message,
                 )
+            knowledge_tool = self._build_knowledge_tool(
+                request=request,
+                session_id=session_id,
+                origin_message_id=user_message_id,
+            )
             answer_start = monotonic()
             yield chat_stream_step_event(ChatStep(id="answer", status="start"))
             output = self._runner.run(
                 runner_request,
-                ChatTools(retrieval=retrieval_tool),
+                ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool),
             )
             citations = _resolve_citations(
                 cited_chunk_ids=output.cited_chunk_ids,
@@ -217,7 +238,7 @@ class ChatService:
             response = ChatResponse(
                 answer=output.answer,
                 citations=citations,
-                tool_calls=retrieval_tool.tool_calls,
+                tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
             )
             provider_usage_records = self._read_provider_usage_records()
@@ -290,6 +311,24 @@ class ChatService:
                 )
             yield chat_stream_error_event(str(exc))
 
+    def _build_knowledge_tool(
+        self,
+        *,
+        request: ChatRequest,
+        session_id: UUID | None,
+        origin_message_id: UUID | None,
+    ) -> ChatKnowledgeProposalTool | None:
+        if self._knowledge_proposal_submitter is None:
+            return None
+        return ChatKnowledgeProposalTool(
+            submitter=self._knowledge_proposal_submitter,
+            project_id=request.project_id,
+            submitted_by_user_id=request.user_id,
+            origin_session_id=session_id,
+            origin_message_id=origin_message_id,
+            audit_writer=self._audit_writer,
+        )
+
     def _record_provider_usage_once(
         self,
         *,
@@ -341,6 +380,16 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
+
+
+def _collect_tool_calls(
+    retrieval_tool: ChatRetrievalTool,
+    knowledge_tool: ChatKnowledgeProposalTool | None,
+) -> tuple[ChatToolCall, ...]:
+    calls = list(retrieval_tool.tool_calls)
+    if knowledge_tool is not None:
+        calls.extend(knowledge_tool.tool_calls)
+    return tuple(calls)
 
 
 def _chat_step_usage(

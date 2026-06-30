@@ -83,9 +83,11 @@ class ChatRequestBody(BaseModel):
 
 class ChatToolCallResponse(BaseModel):
     name: str
-    query: str
-    limit: int
-    result_count: int
+    query: str | None = None
+    limit: int | None = None
+    result_count: int | None = None
+    arguments: dict[str, Any] | None = None
+    result_summary: dict[str, Any] | None = None
 
 
 class ChatResponseBody(BaseModel):

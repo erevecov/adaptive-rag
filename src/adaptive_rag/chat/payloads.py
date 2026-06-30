@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from adaptive_rag.chat.models import ChatResponse, ChatToolCall
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
@@ -10,9 +10,11 @@ from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 class ChatToolCallPayload(TypedDict):
     name: str
-    query: str
-    limit: int
-    result_count: int
+    query: NotRequired[str]
+    limit: NotRequired[int]
+    result_count: NotRequired[int]
+    arguments: NotRequired[dict[str, Any]]
+    result_summary: NotRequired[dict[str, Any]]
 
 
 class ChatResponsePayload(TypedDict):
@@ -37,9 +39,17 @@ def serialize_chat_response(response: ChatResponse) -> ChatResponsePayload:
 
 
 def serialize_chat_tool_call(tool_call: ChatToolCall) -> ChatToolCallPayload:
-    return {
+    payload: ChatToolCallPayload = {
         "name": tool_call.name,
-        "query": tool_call.query,
-        "limit": tool_call.limit,
-        "result_count": tool_call.result_count,
     }
+    if tool_call.query is not None:
+        payload["query"] = tool_call.query
+    if tool_call.limit is not None:
+        payload["limit"] = tool_call.limit
+    if tool_call.result_count is not None:
+        payload["result_count"] = tool_call.result_count
+    if tool_call.arguments:
+        payload["arguments"] = dict(tool_call.arguments)
+    if tool_call.result_summary:
+        payload["result_summary"] = dict(tool_call.result_summary)
+    return payload
