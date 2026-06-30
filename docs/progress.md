@@ -2,13 +2,13 @@
 
 ## Milestone activo
 
-No hay milestone activo ni changes OpenSpec pendientes de archivar.
+No hay milestone activo ni changes OpenSpec pendientes tras archivar Runtime
+navigation clarity.
 
 Estado post-M38: M36 Functional chat workspace, M37 Project RBAC/chat
 knowledge y M38 Chat retrieval/rerank settings quedaron implementados,
-validados y archivados. La rama `main` ya contiene el merge funcional de M38 y
-este cierre archiva el change en
-`openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`.
+validados y archivados. El slice post-M38 Runtime navigation clarity tambien
+quedo archivado y no quedan active changes OpenSpec.
 
 ## Ultimo milestone completado
 
@@ -19,6 +19,14 @@ El change quedo archivado en
 y actualiza las specs canonicas `chat-tool-calling` y `provider-runtime`.
 
 ## Ultimo slice completado
+
+Post-M38 Runtime navigation clarity: la navegacion lateral quedo contextual por
+area primaria. `Chat` muestra sesiones; `My account` muestra modulos de cuenta
+con Appearance y Memory diferido; `Settings` muestra Authoring, Observability y
+Runtime con submodulos. Authoring expone Projects, Users, Knowledge y Sources.
+Observability expone Summary, Costs, Errors y Latency. Runtime expone
+Connections, Model catalog, Global defaults y Project overrides. El generic
+`Refresh runtime` fue reemplazado por acciones especificas de cada submodulo.
 
 M38 Chat retrieval/rerank settings: settings efectivos globales y por proyecto
 para `retrieval_limit`, `rerank_enabled` y `rerank_candidate_limit` quedaron
@@ -90,6 +98,7 @@ No active changes found.
 
 ## Ultimo change archivado
 
+- `openspec/changes/archive/2026-06-30-runtime-navigation-clarity/`
 - `openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
 
 ## Spec canonica activa

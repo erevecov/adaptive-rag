@@ -38,6 +38,7 @@
 - M36 Functional chat workspace: completo.
 - M37 Project RBAC/chat knowledge: completo.
 - M38 Chat retrieval/rerank settings: completo.
+- Post-M38 Runtime navigation clarity: completo.
 
 ## M1 Foundation
 
@@ -1674,6 +1675,27 @@ Continuacion: no quedan active changes OpenSpec. La siguiente decision
 recomendada es re-ejecutar el release gate final desde `origin/main` y decidir
 tag/GitHub release v1.0; si se agrega otra feature antes de release, abrir un
 nuevo change OpenSpec primero.
+
+## Post-M38 Runtime navigation clarity
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-06-30-runtime-navigation-clarity/`
+
+Entregado:
+
+- Sidebar contextual por area primaria: `Chat` conserva sesiones, `My account`
+  muestra modulos de cuenta con Appearance y Memory deferred, y `Settings`
+  separa Authoring, Observability y Runtime.
+- Settings quedo organizado por submodulos: Authoring con Projects, Users,
+  Knowledge y Sources; Observability con Summary, Costs, Errors y Latency; y
+  Runtime con Connections, Model catalog, Global defaults y Project overrides.
+- Runtime ya no depende del boton generico `Refresh runtime`; cada submodulo
+  usa acciones especificas para su propio alcance.
+
+Continuacion: no quedan active changes OpenSpec tras este archive.
 
 ## Politica para reducir conflictos de merge
 
