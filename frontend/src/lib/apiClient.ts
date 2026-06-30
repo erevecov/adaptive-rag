@@ -217,9 +217,11 @@ export type ChatRequestBody = {
 
 export type ChatToolCall = {
   name: string
-  query: string
-  limit: number
-  result_count: number
+  query?: string
+  limit?: number
+  result_count?: number
+  arguments?: JsonObject
+  result_summary?: JsonObject
 }
 
 export type ChatResponseBody = {
@@ -1599,10 +1601,12 @@ function toChatStreamEvent(
     return {
       event: eventName,
       data: {
-        limit: readNumber(data, 'limit'),
+        arguments: readOptionalJsonObject(data, 'arguments'),
+        limit: readOptionalNumber(data, 'limit'),
         name: readString(data, 'name'),
-        query: readString(data, 'query'),
-        result_count: readNumber(data, 'result_count'),
+        query: readOptionalString(data, 'query'),
+        result_count: readOptionalNumber(data, 'result_count'),
+        result_summary: readOptionalJsonObject(data, 'result_summary'),
       },
     }
   }
@@ -1668,10 +1672,46 @@ function readNumber(value: JsonObject, key: string): number {
   return field
 }
 
+function readOptionalNumber(value: JsonObject, key: string): number | undefined {
+  const field = value[key]
+  if (field === undefined) {
+    return undefined
+  }
+  if (typeof field !== 'number') {
+    throw new Error(`Chat stream event field ${key} must be a number`)
+  }
+  return field
+}
+
 function readString(value: JsonObject, key: string): string {
   const field = value[key]
   if (typeof field !== 'string') {
     throw new Error(`Chat stream event field ${key} must be a string`)
   }
   return field
+}
+
+function readOptionalString(value: JsonObject, key: string): string | undefined {
+  const field = value[key]
+  if (field === undefined) {
+    return undefined
+  }
+  if (typeof field !== 'string') {
+    throw new Error(`Chat stream event field ${key} must be a string`)
+  }
+  return field
+}
+
+function readOptionalJsonObject(
+  value: JsonObject,
+  key: string,
+): JsonObject | undefined {
+  const field = value[key]
+  if (field === undefined) {
+    return undefined
+  }
+  if (field === null || typeof field !== 'object' || Array.isArray(field)) {
+    throw new Error(`Chat stream event field ${key} must be an object`)
+  }
+  return field as JsonObject
 }

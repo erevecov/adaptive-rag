@@ -40,7 +40,7 @@ class ChatAuditWriter(Protocol):
         role: str,
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
-    ) -> None:
+    ) -> UUID | None:
         """Registra un mensaje de chat."""
         ...
 
@@ -96,6 +96,38 @@ class ChatAuditWriter(Protocol):
         """Marca como fallida una llamada iniciada a la tool de retrieval."""
         ...
 
+    def start_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_name: str,
+        arguments_json: Mapping[str, Any] | None = None,
+    ) -> UUID | None:
+        """Registra el inicio de una llamada generica a tool."""
+        ...
+
+    def complete_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        result_summary_json: Mapping[str, Any],
+        latency_ms: int,
+    ) -> None:
+        """Completa una llamada generica a tool."""
+        ...
+
+    def fail_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        """Marca una llamada generica a tool como fallida."""
+        ...
+
     def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
         """Marca una sesion como exitosa."""
         ...
@@ -139,7 +171,7 @@ class NullChatAuditWriter:
         role: str,
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
-    ) -> None:
+    ) -> UUID | None:
         return None
 
     def record_retrieval_tool(
@@ -184,6 +216,35 @@ class NullChatAuditWriter:
         self,
         project_id: UUID,
         session_id: UUID,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        return None
+
+    def start_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_name: str,
+        arguments_json: Mapping[str, Any] | None = None,
+    ) -> UUID | None:
+        return None
+
+    def complete_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        result_summary_json: Mapping[str, Any],
+        latency_ms: int,
+    ) -> None:
+        return None
+
+    def fail_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
         latency_ms: int,
@@ -247,7 +308,8 @@ class InMemoryChatAuditWriter:
         role: str,
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
-    ) -> None:
+    ) -> UUID | None:
+        message_id = uuid4()
         self.events.append(
             {
                 "event": "message",
@@ -255,6 +317,7 @@ class InMemoryChatAuditWriter:
                 "content": content,
             }
         )
+        return message_id
 
     def record_retrieval_tool(
         self,
@@ -331,6 +394,58 @@ class InMemoryChatAuditWriter:
             }
         )
 
+    def start_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_name: str,
+        arguments_json: Mapping[str, Any] | None = None,
+    ) -> UUID | None:
+        tool_call_id = uuid4()
+        self.events.append(
+            {
+                "event": "tool_call_started",
+                "tool_call_id": str(tool_call_id),
+                "tool_name": tool_name,
+                "arguments_json": dict(arguments_json or {}),
+            }
+        )
+        return tool_call_id
+
+    def complete_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        result_summary_json: Mapping[str, Any],
+        latency_ms: int,
+    ) -> None:
+        self.events.append(
+            {
+                "event": "tool_call",
+                "tool_call_id": str(tool_call_id) if tool_call_id is not None else None,
+                "result_summary_json": dict(result_summary_json),
+                "latency_ms": latency_ms,
+            }
+        )
+
+    def fail_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        self.events.append(
+            {
+                "event": "tool_call_failed",
+                "tool_call_id": str(tool_call_id) if tool_call_id is not None else None,
+                "error_message": error_message,
+                "latency_ms": latency_ms,
+            }
+        )
+
     def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
         self.events.append({"event": "succeed_session"})
 
@@ -400,16 +515,17 @@ class SqlAlchemyChatAuditWriter:
         role: str,
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
-    ) -> None:
+    ) -> UUID | None:
         if session_id is None:
-            return
-        self._chat_audit_repository.add_message(
+            return None
+        message = self._chat_audit_repository.add_message(
             project_id=project_id,
             session_id=session_id,
             role=role,
             content=content,
             metadata_json=metadata_json,
         )
+        return message.id
 
     def record_retrieval_tool(
         self,
@@ -521,6 +637,57 @@ class SqlAlchemyChatAuditWriter:
             )
 
     def fail_retrieval_tool(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        error_message: str,
+        latency_ms: int,
+    ) -> None:
+        if session_id is None or tool_call_id is None:
+            return
+        self._chat_audit_repository.fail_tool_call(
+            project_id=project_id,
+            tool_call_id=tool_call_id,
+            error_message=error_message,
+            latency_ms=latency_ms,
+        )
+
+    def start_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_name: str,
+        arguments_json: Mapping[str, Any] | None = None,
+    ) -> UUID | None:
+        if session_id is None:
+            return None
+        tool_call = self._chat_audit_repository.start_tool_call(
+            project_id=project_id,
+            session_id=session_id,
+            tool_name=tool_name,
+            arguments_json=arguments_json,
+        )
+        return tool_call.id
+
+    def complete_tool_call(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        tool_call_id: UUID | None,
+        result_summary_json: Mapping[str, Any],
+        latency_ms: int,
+    ) -> None:
+        if session_id is None or tool_call_id is None:
+            return
+        self._chat_audit_repository.complete_tool_call(
+            project_id=project_id,
+            tool_call_id=tool_call_id,
+            result_summary_json=result_summary_json,
+            latency_ms=latency_ms,
+        )
+
+    def fail_tool_call(
         self,
         project_id: UUID,
         session_id: UUID | None,

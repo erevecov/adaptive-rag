@@ -13,8 +13,10 @@ from adaptive_rag.contextualization import DeterministicContextualizer
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
+    GlobalChatRetrievalSettings,
     Project,
     ProjectChatModel,
+    ProjectChatRetrievalSettings,
     ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderSecret,
@@ -55,6 +57,8 @@ def _make_session():
             GlobalChatModel.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
+            ProjectChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()

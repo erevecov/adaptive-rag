@@ -1139,7 +1139,7 @@ describe('createApiClient', () => {
       {
         onAnswerDelta: (text) => deltas.push(text),
         onSessionStarted: (sessionId) => sessions.push(sessionId),
-        onToolCall: (toolCall) => toolCalls.push(toolCall.query),
+        onToolCall: (toolCall) => toolCalls.push(toolCall.query ?? ''),
       },
     )
 

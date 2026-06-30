@@ -51,6 +51,68 @@ class RecordingRetrievalService:
         return list(self.results)
 
 
+class RecordingKnowledgeProposalTool:
+    name = "commit_knowledge"
+    approve_name = "approve_knowledge"
+    cancel_name = "cancel_knowledge"
+    refine_name = "refine_knowledge"
+
+    def __init__(self) -> None:
+        self.commits: list[tuple[str, str, str | None]] = []
+        self.approvals: list[str] = []
+        self.cancellations: list[str | None] = []
+        self.refinements: list[tuple[str, str, str]] = []
+
+    def commit(
+        self,
+        *,
+        knowledge_text: str,
+        scope: str = "message",
+        draft_id: str | None = None,
+    ):
+        self.commits.append((knowledge_text, scope, draft_id))
+        return {
+            "draft_id": draft_id or "draft-33333333",
+            "proposed_text": knowledge_text,
+            "review_action": "approve",
+            "scope": scope,
+            "status": "draft",
+        }
+
+    def refine(
+        self,
+        *,
+        draft_id: str,
+        knowledge_text: str,
+        scope: str = "message",
+    ):
+        self.refinements.append((draft_id, knowledge_text, scope))
+        return {
+            "draft_id": draft_id,
+            "knowledge_lifecycle": {"action": "refine", "draft_id": draft_id},
+            "proposed_text": knowledge_text,
+            "review_action": "approve",
+            "scope": scope,
+            "status": "draft",
+        }
+
+    def cancel(self, *, draft_id: str | None = None):
+        self.cancellations.append(draft_id)
+        return {
+            "draft_id": draft_id,
+            "knowledge_lifecycle": {"action": "cancel", "draft_id": draft_id},
+            "status": "cancelled",
+        }
+
+    def approve(self, *, draft_id: str):
+        self.approvals.append(draft_id)
+        return {
+            "draft_id": draft_id,
+            "knowledge_lifecycle": {"action": "approve", "draft_id": draft_id},
+            "status": "approval_requested",
+        }
+
+
 def test_qwen_chat_runner_executes_retrieval_tool_and_returns_citations() -> None:
     project_id = uuid4()
     chunk_id = uuid4()
@@ -99,6 +161,137 @@ def test_qwen_chat_runner_executes_retrieval_tool_and_returns_citations() -> Non
     )
 
 
+def test_qwen_chat_runner_executes_commit_knowledge_tool_when_requested() -> None:
+    project_id = uuid4()
+    knowledge = RecordingKnowledgeProposalTool()
+    client = RecordingChatClient(
+        [
+            _tool_call_response(
+                {
+                    "knowledge_text": "Document this deployment exception.",
+                    "scope": "message",
+                },
+                name="commit_knowledge",
+            ),
+            _final_response(
+                {
+                    "answer": "Prepared a pending knowledge proposal.",
+                    "cited_chunk_ids": [],
+                }
+            ),
+        ]
+    )
+
+    output = QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="Propose this as knowledge: Document this deployment exception.",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        _tools(
+            project_id=project_id,
+            retrieval=RecordingRetrievalService([]),
+            default_limit=2,
+            knowledge=knowledge,
+        ),
+    )
+
+    assert knowledge.commits == [
+        ("Document this deployment exception.", "message", None)
+    ]
+    tool_names = [
+        tool["function"]["name"]
+        for tool in client.requests[0]["tools"]
+    ]
+    assert tool_names == [
+        "retrieval_search",
+        "commit_knowledge",
+        "refine_knowledge",
+        "cancel_knowledge",
+        "approve_knowledge",
+    ]
+    tool_message = client.requests[1]["messages"][-1]
+    assert tool_message["role"] == "tool"
+    assert json.loads(tool_message["content"]) == {
+        "draft_id": "draft-33333333",
+        "proposed_text": "Document this deployment exception.",
+        "review_action": "approve",
+        "scope": "message",
+        "status": "draft",
+    }
+    assert output.answer == "Prepared a pending knowledge proposal."
+    assert output.cited_chunk_ids == ()
+
+
+def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
+    project_id = uuid4()
+    knowledge = RecordingKnowledgeProposalTool()
+    client = RecordingChatClient(
+        [
+            _tool_call_response(
+                {
+                    "draft_id": "draft-33333333",
+                    "knowledge_text": "Shorter deployment exception.",
+                    "scope": "session",
+                },
+                name="refine_knowledge",
+            ),
+            _final_response({"answer": "Updated the draft.", "cited_chunk_ids": []}),
+            _tool_call_response(
+                {"draft_id": "draft-33333333"},
+                name="approve_knowledge",
+            ),
+            _final_response({"answer": "Approved the draft.", "cited_chunk_ids": []}),
+            _tool_call_response(
+                {"draft_id": "draft-44444444"},
+                name="cancel_knowledge",
+            ),
+            _final_response({"answer": "Cancelled the draft.", "cited_chunk_ids": []}),
+        ]
+    )
+    tools = _tools(
+        project_id=project_id,
+        retrieval=RecordingRetrievalService([]),
+        default_limit=2,
+        knowledge=knowledge,
+    )
+
+    QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="Refine draft-33333333.",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        tools,
+    )
+    QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="Approve draft-33333333.",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        tools,
+    )
+    QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="Cancel draft-44444444.",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        tools,
+    )
+
+    assert knowledge.refinements == [
+        ("draft-33333333", "Shorter deployment exception.", "session")
+    ]
+    assert knowledge.approvals == ["draft-33333333"]
+    assert knowledge.cancellations == ["draft-44444444"]
+
+
 def test_qwen_chat_runner_rejects_non_json_final_response() -> None:
     project_id = uuid4()
     client = RecordingChatClient([_final_response("plain text")])
@@ -127,6 +320,7 @@ def _tools(
     project_id: UUID,
     retrieval: RecordingRetrievalService,
     default_limit: int,
+    knowledge: RecordingKnowledgeProposalTool | None = None,
 ) -> ChatTools:
     return ChatTools(
         retrieval=ChatRetrievalTool(
@@ -134,11 +328,16 @@ def _tools(
             project_id=project_id,
             default_limit=default_limit,
             default_metadata_filter=None,
-        )
+        ),
+        knowledge=knowledge,
     )
 
 
-def _tool_call_response(arguments: dict[str, object]) -> dict[str, Any]:
+def _tool_call_response(
+    arguments: dict[str, object],
+    *,
+    name: str = "retrieval_search",
+) -> dict[str, Any]:
     return {
         "choices": [
             {
@@ -150,7 +349,7 @@ def _tool_call_response(arguments: dict[str, object]) -> dict[str, Any]:
                             "id": "call_retrieval",
                             "type": "function",
                             "function": {
-                            "name": "retrieval_search",
+                                "name": name,
                                 "arguments": json.dumps(arguments),
                             },
                         }

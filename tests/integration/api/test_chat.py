@@ -222,6 +222,24 @@ class RecordingNoToolChatRunner:
         return ChatRunnerOutput(answer="No retrieval was needed.")
 
 
+class KnowledgeProposalChatRunner:
+    def __init__(self, proposed_text: str) -> None:
+        self.proposed_text = proposed_text
+        self.requests: list[ChatRunnerRequest] = []
+
+    def run(
+        self,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+    ) -> ChatRunnerOutput:
+        self.requests.append(request)
+        tools.knowledge.commit(
+            knowledge_text=self.proposed_text,
+            scope="session",
+        )
+        return ChatRunnerOutput(answer="Prepared a knowledge proposal.")
+
+
 class ProviderUsageRecordingChatRunner:
     def __init__(self, *, tracker: InMemoryProviderUsageTracker) -> None:
         self.tracker = tracker
@@ -685,6 +703,70 @@ def test_chat_endpoint_persists_current_user_as_session_owner(
     chat_session = fresh_session.get(ChatSession, session_id)
     assert chat_session is not None
     assert chat_session.user_id == user.id
+
+
+def test_chat_endpoint_commit_knowledge_tool_returns_draft_without_persisting_proposal(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role="viewer",
+    )
+    session.commit()
+    proposed_text = "Document this deployment exception."
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = KnowledgeProposalChatRunner(proposed_text)
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("viewer-token"),
+        json={"message": f"Propose this as knowledge: {proposed_text}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    session_id = UUID(data["session_id"])
+    assert data["answer"] == "Prepared a knowledge proposal."
+    assert data["tool_calls"][0]["name"] == "commit_knowledge"
+    assert data["tool_calls"][0]["arguments"] == {
+        "knowledge_text": proposed_text,
+        "scope": "session",
+    }
+    assert data["tool_calls"][0]["result_summary"] == {
+        "draft_id": data["tool_calls"][0]["result_summary"]["draft_id"],
+        "proposed_text": proposed_text,
+        "review_action": "request_approval",
+        "scope": "session",
+        "status": "draft",
+    }
+    fresh_session = session_factory()
+    user_message = (
+        fresh_session.query(ChatMessage)
+        .filter_by(session_id=session_id, role="user")
+        .one()
+    )
+    assert fresh_session.query(KnowledgeProposal).count() == 0
+    tool_call = fresh_session.query(ToolCall).filter_by(session_id=session_id).one()
+    assert tool_call.tool_name == "commit_knowledge"
+    assert tool_call.status == "succeeded"
+    assert tool_call.arguments_json == {
+        "knowledge_text": proposed_text,
+        "scope": "session",
+    }
+    assert tool_call.result_summary_json == {
+        "draft_id": data["tool_calls"][0]["result_summary"]["draft_id"],
+        "proposed_text": proposed_text,
+        "review_action": "request_approval",
+        "scope": "session",
+        "status": "draft",
+    }
+    assert user_message.id is not None
 
 
 def test_chat_stream_endpoint_returns_sse_events_and_persists_session(
