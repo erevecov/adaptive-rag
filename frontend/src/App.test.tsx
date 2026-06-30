@@ -815,12 +815,19 @@ function createDeferred<T>(): {
   return { promise, reject, resolve }
 }
 
-async function openSettingsSection(
+async function openSettingsSubmodule(
   user: { click(element: Element): Promise<void> },
-  sectionName: 'Authoring' | 'Observability' | 'Runtime',
+  moduleName: 'Authoring' | 'Observability' | 'Runtime',
+  submoduleName: string,
 ) {
   await user.click(screen.getByRole('button', { name: 'Settings' }))
-  await user.click(screen.getByRole('tab', { name: sectionName }))
+  const settingsNavigation = screen.getByRole('navigation', {
+    name: 'Settings navigation',
+  })
+  await user.click(within(settingsNavigation).getByRole('button', { name: moduleName }))
+  await user.click(
+    within(settingsNavigation).getByRole('button', { name: submoduleName }),
+  )
 }
 
 describe('App chat workspace', () => {
@@ -831,7 +838,9 @@ describe('App chat workspace', () => {
     expect(screen.getByLabelText('Question')).toBeTruthy()
   })
 
-  test('keeps primary navigation to chat, my account, and settings in the left sidebar', () => {
+  test('keeps primary sidebar navigation stable and renders chat sessions only in Chat', async () => {
+    const user = userEvent.setup()
+
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
@@ -841,53 +850,123 @@ describe('App chat workspace', () => {
       name: 'Primary navigation',
     })
 
-    expect(within(navigation).getByRole('button', { name: 'Chat' })).toBeTruthy()
-    expect(
-      within(navigation).getByRole('button', { name: 'My account' }),
-    ).toBeTruthy()
-    expect(
-      within(navigation).getByRole('button', { name: 'Settings' }),
-    ).toBeTruthy()
     expect(
       within(navigation)
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['Chat', 'My account', 'Settings'])
+    expect(within(sidebar).getByRole('heading', { name: 'Sesiones' })).toBeTruthy()
+
+    await user.click(within(navigation).getByRole('button', { name: 'My account' }))
+
     expect(
-      within(navigation).queryByRole('button', { name: 'Authoring' }),
-    ).toBeNull()
+      within(sidebar).getByRole('navigation', { name: 'My account navigation' }),
+    ).toBeTruthy()
+    expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
+
+    await user.click(within(navigation).getByRole('button', { name: 'Settings' }))
+
     expect(
-      within(navigation).queryByRole('button', { name: 'Observability' }),
-    ).toBeNull()
-    expect(within(navigation).queryByRole('button', { name: 'Runtime' })).toBeNull()
-    expect(
-      within(sidebar).queryByRole('navigation', { name: 'Workspace tools' }),
-    ).toBeNull()
+      within(sidebar).getByRole('navigation', { name: 'Settings navigation' }),
+    ).toBeTruthy()
+    expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
   })
 
-  test('keeps workspace tools inside settings tabs', async () => {
+  test('shows account modules in the sidebar without rendering fake memory state', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'My account' }))
+
+    const accountNavigation = screen.getByRole('navigation', {
+      name: 'My account navigation',
+    })
+
+    expect(
+      within(accountNavigation)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Appearance', 'Memory'])
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+    const memoryButton = within(accountNavigation).getByRole('button', {
+      name: 'Memory',
+    })
+    await user.click(memoryButton)
+    expect(screen.getByRole('heading', { name: 'Memory' })).toBeTruthy()
+    expect(screen.getByText('Deferred')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'This module is not available until a durable backend contract exists.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/remembered/i)).toBeNull()
+  })
+
+  test('shows settings modules and submodules in the sidebar', async () => {
     const user = userEvent.setup()
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
-    const settingsTabs = screen.getByRole('tablist', {
-      name: 'Settings sections',
+    const settingsNavigation = screen.getByRole('navigation', {
+      name: 'Settings navigation',
     })
 
-    expect(
-      within(settingsTabs)
-        .getAllByRole('tab')
-        .map((tab) => tab.textContent),
-    ).toEqual(['Authoring', 'Observability', 'Runtime'])
-    expect(
-      within(settingsTabs).queryByRole('tab', { name: 'Appearance' }),
-    ).toBeNull()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Authoring' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Projects' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Users' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Knowledge' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Sources' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Observability' })).toBeTruthy()
+    expect(within(settingsNavigation).getByRole('button', { name: 'Runtime' })).toBeTruthy()
+    expect(screen.queryByRole('tablist', { name: 'Settings sections' })).toBeNull()
+  })
 
-    await user.click(within(settingsTabs).getByRole('tab', { name: 'Authoring' }))
+  test('routes settings sidebar submodules to focused content', async () => {
+    const user = userEvent.setup()
 
-    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Authoring', 'Users')
+    expect(screen.getByRole('heading', { name: 'Users' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Content registry' })).toBeNull()
+
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
+    expect(screen.getByRole('heading', { name: 'Content registry' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
+    expect(screen.getByRole('heading', { name: 'Summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Costs')
+    expect(screen.getByRole('heading', { name: 'Costs' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Errors')
+    expect(screen.getByRole('heading', { name: 'Errors' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Latency')
+    expect(screen.getByRole('heading', { name: 'Latency' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    expect(screen.getByRole('heading', { level: 2, name: 'Connections' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh connections' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    expect(screen.getByRole('heading', { level: 2, name: 'Model catalog' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh catalog' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    expect(screen.getByRole('heading', { level: 2, name: 'Global defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    expect(screen.getByRole('heading', { level: 2, name: 'Project overrides' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
   })
 
   test('opens the module matching the current route on initial render', () => {
@@ -896,7 +975,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     expect(
-      screen.getByRole('heading', { name: 'Provider settings' }),
+      screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
     expect(window.location.pathname).toBe('/settings/runtime')
   })
@@ -910,14 +989,14 @@ describe('App chat workspace', () => {
     expect(window.location.pathname).toBe('/settings/authoring')
     expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
 
-    await user.click(screen.getByRole('tab', { name: 'Observability' }))
+    await user.click(screen.getByRole('button', { name: 'Observability' }))
     expect(window.location.pathname).toBe('/settings/observability')
-    expect(screen.getByRole('heading', { name: 'Dashboard shell' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Summary' })).toBeTruthy()
 
-    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    await user.click(screen.getByRole('button', { name: 'Runtime' }))
     expect(window.location.pathname).toBe('/settings/runtime')
     expect(
-      screen.getByRole('heading', { name: 'Provider settings' }),
+      screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'My account' }))
@@ -935,7 +1014,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    await user.click(screen.getByRole('button', { name: 'Runtime' }))
     expect(window.location.pathname).toBe('/settings/runtime')
 
     window.history.back()
@@ -951,7 +1030,7 @@ describe('App chat workspace', () => {
       expect(window.location.pathname).toBe('/settings/runtime'),
     )
     expect(
-      screen.getByRole('heading', { name: 'Provider settings' }),
+      screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
   })
 
@@ -1489,8 +1568,7 @@ describe('App chat workspace', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('tab', { name: 'Authoring' }))
+    await openSettingsSubmodule(user, 'Authoring', 'Users')
     await user.type(screen.getByLabelText('User login'), viewerUser.login)
     await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
     await user.type(screen.getByLabelText('Access token'), 'viewer-token')
@@ -1545,8 +1623,7 @@ describe('App chat workspace', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('tab', { name: 'Authoring' }))
+    await openSettingsSubmodule(user, 'Authoring', 'Knowledge')
     await user.click(screen.getByRole('button', { name: 'Refresh proposals' }))
 
     expect(
@@ -1780,7 +1857,7 @@ describe('App chat workspace', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(localStorage.getItem('adaptive-rag-theme')).toBe('light')
 
-    await openSettingsSection(user, 'Authoring')
+    await openSettingsSubmodule(user, 'Authoring', 'Projects')
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
     expect(document.querySelector('main')?.className).toContain('app-shell')
 
@@ -1822,7 +1899,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} />)
 
-    await openSettingsSection(user, 'Authoring')
+    await openSettingsSubmodule(user, 'Authoring', 'Projects')
     expect(await screen.findByText('Demo')).toBeTruthy()
 
     await user.type(screen.getByLabelText('Project name'), 'Demo')
@@ -1831,6 +1908,7 @@ describe('App chat workspace', () => {
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
     expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
 
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.selectOptions(screen.getByLabelText('Source type'), 'markdown')
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
@@ -1869,7 +1947,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Authoring')
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
@@ -1917,13 +1995,13 @@ describe('App chat workspace', () => {
     expect(screen.queryByText('Selected project')).toBeNull()
     expect(screen.queryByText('dense default')).toBeNull()
 
-    await openSettingsSection(user, 'Authoring')
+    await openSettingsSubmodule(user, 'Authoring', 'Projects')
     await user.click(await screen.findByRole('button', { name: 'Select Demo' }))
 
     expect(screen.getByRole('heading', { name: 'Nuevo chat' })).toBeTruthy()
     expect(screen.getAllByText('Demo').length).toBeGreaterThanOrEqual(1)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     expect((screen.getByLabelText('Project ID') as HTMLInputElement).value).toBe(
       projectId,
     )
@@ -1967,7 +2045,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Authoring')
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
 
     expect(await screen.findByText('Ready to queue ingestion')).toBeTruthy()
@@ -2577,7 +2655,6 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(
       await screen.findByRole('button', {
         name: 'Abrir sesión Deployment question',
@@ -2910,7 +2987,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.type(
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
@@ -2943,7 +3020,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
@@ -2962,7 +3039,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     const statusSection = await screen.findByRole('region', {
@@ -2985,6 +3062,68 @@ describe('App chat workspace', () => {
 
     const healthSection = screen.getByRole('region', { name: 'Session health' })
     expect(within(healthSection).getByText('83.3% success')).toBeTruthy()
+  })
+
+  test('renders costs observability content without error or health sections', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Observability', 'Costs')
+    expect(screen.getByLabelText('Project ID')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    const metrics = await screen.findByLabelText('Cost observability metrics')
+    expect(within(metrics).getByText('Estimated cost')).toBeTruthy()
+    expect(within(metrics).getByText('$0.1234')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Session health' })).toBeNull()
+  })
+
+  test('renders errors observability content without provider usage', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Observability', 'Errors')
+    expect(screen.getByLabelText('Status')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    const metrics = await screen.findByLabelText('Error observability metrics')
+    expect(within(metrics).getByText('Errors')).toBeTruthy()
+    expect(within(metrics).getByText('3')).toBeTruthy()
+    const errorsSection = screen.getByRole('region', { name: 'Error messages' })
+    expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Session health' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Provider usage' })).toBeNull()
+  })
+
+  test('renders latency observability content without error or cost metrics', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatObservabilitySummary: vi.fn(async () => observabilitySummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Observability', 'Latency')
+    expect(screen.getByLabelText('Created from')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+
+    const metrics = await screen.findByLabelText('Latency observability metrics')
+    expect(within(metrics).getByText('Latency')).toBeTruthy()
+    expect(within(metrics).getByText('410 ms')).toBeTruthy()
+    const latencySection = screen.getByRole('region', { name: 'Provider latency' })
+    expect(within(latencySection).getByText('qwen-plus')).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
+    expect(screen.queryByText('Estimated cost')).toBeNull()
   })
 
   test('renders empty breakdown states when summary groups are absent', async () => {
@@ -3013,7 +3152,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(await screen.findByText('No status data yet.')).toBeTruthy()
@@ -3035,7 +3174,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Observability')
+    await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.type(
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
@@ -3087,11 +3226,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Runtime')
-    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    expect(screen.queryByRole('button', { name: 'Refresh runtime' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
 
     expect(client.listProviderConnections).toHaveBeenCalled()
-    expect(client.listProviderModels).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
     expect(screen.getByText('api_key configured / last four cret')).toBeTruthy()
@@ -3115,10 +3254,17 @@ describe('App chat workspace', () => {
       provider: 'qwen',
     })
 
+    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+
+    expect(client.listProviderModels).toHaveBeenCalled()
     await user.selectOptions(screen.getByLabelText('Model sync connection'), 'qwen-hosted')
     await user.click(screen.getByRole('button', { name: 'Sync models' }))
 
     expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
+
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
 
     await user.selectOptions(screen.getByLabelText('Secret connection'), 'qwen-hosted')
     await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
@@ -3131,6 +3277,9 @@ describe('App chat workspace', () => {
     )
     expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
     await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
     await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
@@ -3163,6 +3312,62 @@ describe('App chat workspace', () => {
     })
   })
 
+  test('refreshes runtime connections without calling unrelated runtime endpoints', async () => {
+    const user = userEvent.setup()
+    const listChatModels = vi.fn(async () => {
+      throw new ApiClientError('chat models unavailable', {
+        detail: 'chat models unavailable',
+        status: 503,
+      })
+    })
+    const listProviderModels = vi.fn(async () => {
+      throw new ApiClientError('provider models unavailable', {
+        detail: 'provider models unavailable',
+        status: 503,
+      })
+    })
+    const listRuntimeSlotDefaults = vi.fn(async () => {
+      throw new ApiClientError('slot defaults unavailable', {
+        detail: 'slot defaults unavailable',
+        status: 503,
+      })
+    })
+    const getChatRetrievalSettings = vi.fn(async () => {
+      throw new ApiClientError('chat retrieval unavailable', {
+        detail: 'chat retrieval unavailable',
+        status: 503,
+      })
+    })
+    const getProjectRuntimeSettings = vi.fn(async () => {
+      throw new ApiClientError('project runtime unavailable', {
+        detail: 'project runtime unavailable',
+        status: 503,
+      })
+    })
+    const client = createClientStub({
+      getChatRetrievalSettings,
+      getProjectRuntimeSettings,
+      listChatModels,
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels,
+      listRuntimeSlotDefaults,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
+
+    expect(await screen.findByText('qwen-hosted')).toBeTruthy()
+    expect(client.listProviderConnections).toHaveBeenCalledTimes(1)
+    expect(listChatModels).not.toHaveBeenCalled()
+    expect(listProviderModels).not.toHaveBeenCalled()
+    expect(listRuntimeSlotDefaults).not.toHaveBeenCalled()
+    expect(getChatRetrievalSettings).not.toHaveBeenCalled()
+    expect(getProjectRuntimeSettings).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   test('shows project runtime inheritance and resets overrides', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -3189,8 +3394,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Runtime')
-    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
 
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
@@ -3247,6 +3452,113 @@ describe('App chat workspace', () => {
     expect(client.deleteProjectChatRetrievalSettings).toHaveBeenCalledWith(projectId)
   })
 
+  test('clears project runtime settings and override forms when switching projects', async () => {
+    const user = userEvent.setup()
+    const nextProject: Project = {
+      ...projectSummary,
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Second',
+    }
+    const client = createClientStub({
+      getProjectRuntimeSettings: vi.fn(async () => projectRuntimeSettings),
+      listProjects: vi.fn(async () => ({
+        items: [projectSummary, nextProject],
+      })),
+      getChatRetrievalSettings: vi.fn(async () => ({
+        max_limit: 50,
+        rerank_candidate_limit: 10,
+        rerank_enabled: true,
+        retrieval_limit: 5,
+      })),
+      listChatModels: vi.fn(async () => chatModelsResponse),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
+      listRuntimeSlotDefaults: vi.fn(async () => runtimeSlotDefaultsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+    const projectSettings = await screen.findByRole('region', {
+      name: 'Project runtime settings',
+    })
+    expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
+    await user.selectOptions(screen.getByLabelText('Project slot'), 'chat')
+    await user.selectOptions(screen.getByLabelText('Project slot connection'), 'local-chat')
+    await user.selectOptions(screen.getByLabelText('Project slot model'), 'llama3.1:8b')
+
+    await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
+    await user.click(screen.getByRole('option', { name: 'Select project Second' }))
+
+    expect(
+      await screen.findByRole('button', { name: /Project selector: Second/ }),
+    ).toBeTruthy()
+    const updatedProjectSettings = screen.getByRole('region', {
+      name: 'Project runtime settings',
+    })
+    expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
+    expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
+    expect((screen.getByLabelText('Project slot connection') as HTMLSelectElement).value).toBe('')
+    expect((screen.getByLabelText('Project slot model') as HTMLSelectElement).value).toBe('')
+  })
+
+  test('ignores stale project runtime reloads after switching projects', async () => {
+    const user = userEvent.setup()
+    const nextProject: Project = {
+      ...projectSummary,
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Second',
+    }
+    const projectSettingsRequest = createDeferred<ProjectRuntimeSettings>()
+    const getProjectRuntimeSettings = vi.fn(
+      async () => await projectSettingsRequest.promise,
+    )
+    const client = createClientStub({
+      getProjectRuntimeSettings,
+      listProjects: vi.fn(async () => ({
+        items: [projectSummary, nextProject],
+      })),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+
+    await waitFor(() =>
+      expect(getProjectRuntimeSettings).toHaveBeenCalledWith(projectId),
+    )
+
+    await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
+    await user.click(screen.getByRole('option', { name: 'Select project Second' }))
+
+    expect(
+      await screen.findByRole('button', { name: /Project selector: Second/ }),
+    ).toBeTruthy()
+
+    await act(async () => {
+      projectSettingsRequest.resolve(projectRuntimeSettings)
+      await projectSettingsRequest.promise
+    })
+
+    const updatedProjectSettings = screen.getByRole('region', {
+      name: 'Project runtime settings',
+    })
+    expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
+    expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
+    expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
+    expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
+    const reloadProjectSettingsButton = screen.getByRole('button', {
+      name: /^(Reload project settings|Refreshing\.\.\.)$/,
+    }) as HTMLButtonElement
+    expect(reloadProjectSettingsButton.disabled).toBe(false)
+    expect(reloadProjectSettingsButton.textContent).toBe('Reload project settings')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   test('blocks global slot save until the selected connection has compatible synced models', async () => {
     const user = userEvent.setup()
     const upsertRuntimeSlotDefault = vi.fn(
@@ -3271,12 +3583,24 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSection(user, 'Runtime')
-    await user.click(screen.getByRole('button', { name: 'Refresh runtime' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
-    await screen.findByText('qwen-hosted')
     await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
-    await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
+    await waitFor(() => {
+      const globalSlotConnectionSelect = screen.getByLabelText(
+        'Global slot connection',
+      ) as HTMLSelectElement
+      expect(
+        Array.from(globalSlotConnectionSelect.options).some(
+          (option) => option.value === 'qwen-hosted',
+        ),
+      ).toBe(true)
+    })
+    await user.selectOptions(
+      screen.getByLabelText('Global slot connection'),
+      'qwen-hosted',
+    )
 
     expect(
       screen.getByText(

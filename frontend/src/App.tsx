@@ -82,15 +82,65 @@ const RUNTIME_SLOTS = [
   'rerank',
   'contextualization',
 ]
-const SETTINGS_SECTIONS = [
-  { id: 'authoring', label: 'Authoring' },
-  { id: 'observability', label: 'Observability' },
-  { id: 'runtime', label: 'Runtime' },
+const SETTINGS_NAVIGATION = [
+  {
+    id: 'authoring',
+    label: 'Authoring',
+    submodules: [
+      { id: 'projects', label: 'Projects' },
+      { id: 'users', label: 'Users' },
+      { id: 'knowledge', label: 'Knowledge' },
+      { id: 'sources', label: 'Sources' },
+    ],
+  },
+  {
+    id: 'observability',
+    label: 'Observability',
+    submodules: [
+      { id: 'summary', label: 'Summary' },
+      { id: 'costs', label: 'Costs' },
+      { id: 'errors', label: 'Errors' },
+      { id: 'latency', label: 'Latency' },
+    ],
+  },
+  {
+    id: 'runtime',
+    label: 'Runtime',
+    submodules: [
+      { id: 'connections', label: 'Connections' },
+      { id: 'model_catalog', label: 'Model catalog' },
+      { id: 'global_defaults', label: 'Global defaults' },
+      { id: 'project_overrides', label: 'Project overrides' },
+    ],
+  },
+] as const
+
+const AUTHORING_NAVIGATION = SETTINGS_NAVIGATION[0]
+const OBSERVABILITY_NAVIGATION = SETTINGS_NAVIGATION[1]
+const RUNTIME_NAVIGATION = SETTINGS_NAVIGATION[2]
+
+const ACCOUNT_MODULES = [
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'memory', label: 'Memory' },
 ] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
-type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
+type PrimaryView = 'chat' | 'account' | 'settings'
+type AccountModule = (typeof ACCOUNT_MODULES)[number]['id']
+type SettingsModule = (typeof SETTINGS_NAVIGATION)[number]['id']
+type AuthoringSubmodule = (typeof SETTINGS_NAVIGATION)[0]['submodules'][number]['id']
+type ObservabilitySubmodule =
+  (typeof SETTINGS_NAVIGATION)[1]['submodules'][number]['id']
+type RuntimeSubmodule = (typeof SETTINGS_NAVIGATION)[2]['submodules'][number]['id']
+type SettingsSubmodule =
+  | AuthoringSubmodule
+  | ObservabilitySubmodule
+  | RuntimeSubmodule
+type SettingsNavigationSelection =
+  | { module: 'authoring'; submodule: AuthoringSubmodule }
+  | { module: 'observability'; submodule: ObservabilitySubmodule }
+  | { module: 'runtime'; submodule: RuntimeSubmodule }
+type ActiveView = PrimaryView | SettingsModule
 const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   account: '/account',
   authoring: '/settings/authoring',
@@ -169,6 +219,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectId, setProjectId] = useState(() =>
     initialProjectId.trim() || readPersistedProjectId(),
   )
+  const projectIdRef = useRef(projectId.trim())
   const [question, setQuestion] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
@@ -214,6 +265,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     useState<AbortController | null>(null)
   const [activeView, setActiveView] =
     useState<ActiveView>(readActiveViewFromRoute)
+  const [accountModule, setAccountModule] =
+    useState<AccountModule>('appearance')
+  const [settingsModule, setSettingsModule] = useState<SettingsModule>(() => {
+    const initialActiveView = readActiveViewFromRoute()
+    return isSettingsModule(initialActiveView) ? initialActiveView : 'authoring'
+  })
+  const [authoringSubmodule, setAuthoringSubmodule] =
+    useState<AuthoringSubmodule>('projects')
+  const [observabilitySubmodule, setObservabilitySubmodule] =
+    useState<ObservabilitySubmodule>('summary')
+  const [runtimeSubmodule, setRuntimeSubmodule] =
+    useState<RuntimeSubmodule>('connections')
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -323,6 +386,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const isRightDockOverlay = isRightDockOpen && !isRightDockInlineViewport
   const speechRecognitionConstructor = getSpeechRecognitionConstructor()
   const isSpeechSupported = speechRecognitionConstructor !== null
+  const primaryView: PrimaryView =
+    activeView === 'chat' || activeView === 'account' ? activeView : 'settings'
 
   useEffect(() => {
     applyTheme(theme)
@@ -333,7 +398,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     replaceRouteForActiveView(readActiveViewFromRoute())
 
     const handlePopState = () => {
-      setActiveView(readActiveViewFromRoute())
+      const nextView = readActiveViewFromRoute()
+      setActiveView(nextView)
+      if (isSettingsModule(nextView)) {
+        setSettingsModule(nextView)
+      }
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -363,6 +432,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           setSessionDetail(null)
           setHistoryError(null)
           setHistoryState('loading')
+          projectIdRef.current = lastProjectId
           setProjectId(lastProjectId)
         }
       })
@@ -439,7 +509,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [inspectorTab])
 
   useEffect(() => {
-    if (activeView !== 'chat' || !chatAutoFollowRef.current) {
+    if (primaryView !== 'chat' || !chatAutoFollowRef.current) {
       return
     }
 
@@ -449,7 +519,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     transcript.scrollTop = transcript.scrollHeight
-  }, [activeView, requestState, response])
+  }, [primaryView, requestState, response])
 
   function handleChatTranscriptScroll() {
     const transcript = chatTranscriptRef.current
@@ -744,6 +814,34 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIsRightDockOpen(true)
   }
 
+  function handlePrimaryViewChange(view: PrimaryView) {
+    handleChangeActiveView(view === 'settings' ? settingsModule : view)
+  }
+
+  function handleSettingsModuleChange(module: SettingsModule) {
+    handleChangeActiveView(module)
+    setSettingsModule(module)
+    if (module === 'authoring') {
+      setAuthoringSubmodule('projects')
+    } else if (module === 'observability') {
+      setObservabilitySubmodule('summary')
+    } else {
+      setRuntimeSubmodule('connections')
+    }
+  }
+
+  function handleSettingsSubmoduleChange(selection: SettingsNavigationSelection) {
+    handleChangeActiveView(selection.module)
+    setSettingsModule(selection.module)
+    if (selection.module === 'authoring') {
+      setAuthoringSubmodule(selection.submodule)
+    } else if (selection.module === 'observability') {
+      setObservabilitySubmodule(selection.submodule)
+    } else {
+      setRuntimeSubmodule(selection.submodule)
+    }
+  }
+
   function handleStartNewSession() {
     handleChangeActiveView('chat')
     setQuestion('')
@@ -971,6 +1069,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function setSelectedProjectId(nextProjectId: string) {
     const trimmedProjectId = nextProjectId.trim()
+    projectIdRef.current = trimmedProjectId
     setVisibleSessionCount(SESSION_PAGE_SIZE)
     setSessions([])
     setHasMoreSessions(false)
@@ -978,6 +1077,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSessionDetail(null)
     setHistoryError(null)
     setHistoryState(trimmedProjectId.length === 0 ? 'idle' : 'loading')
+    syncProjectRuntimeSettings(null)
+    setRuntimeState('idle')
+    setRuntimeError(null)
     setProjectId(trimmedProjectId)
     if (trimmedProjectId.length === 0) {
       return
@@ -1360,7 +1462,39 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshRuntime() {
+  async function handleRefreshRuntimeConnections() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const connections = await client.listProviderConnections()
+      setRuntimeConnections(connections.items)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeModelCatalog() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const [connections, providerModels] = await Promise.all([
+        client.listProviderConnections(),
+        client.listProviderModels(),
+      ])
+      setRuntimeConnections(connections.items)
+      setRuntimeProviderModels(providerModels.items)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeGlobalDefaults() {
     setRuntimeState('loading')
     setRuntimeError(null)
 
@@ -1379,16 +1513,39 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setRuntimeProviderModels(providerModels.items)
       setRuntimeChatRetrieval(chatRetrieval)
       syncGlobalChatRetrievalFields(chatRetrieval)
-      const trimmedProjectId = projectId.trim()
-      if (trimmedProjectId.length > 0) {
-        syncProjectRuntimeSettings(
-          await client.getProjectRuntimeSettings(trimmedProjectId),
-        )
-      } else {
-        syncProjectRuntimeSettings(null)
-      }
       setRuntimeState('succeeded')
     } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeProjectOverrides() {
+    const trimmedProjectId = projectId.trim()
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const projectSettingsPromise =
+        trimmedProjectId.length > 0
+          ? client.getProjectRuntimeSettings(trimmedProjectId)
+          : Promise.resolve(null)
+      const [connections, providerModels, projectSettings] = await Promise.all([
+        client.listProviderConnections(),
+        client.listProviderModels(),
+        projectSettingsPromise,
+      ])
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
+      setRuntimeConnections(connections.items)
+      setRuntimeProviderModels(providerModels.items)
+      syncProjectRuntimeSettings(projectSettings)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1524,6 +1681,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const trimmedProjectId = projectId.trim()
     const validationError = validateChatRetrievalSettings({
       candidateLimit: globalChatRerankCandidateLimit,
       rerankEnabled: globalChatRerankEnabled,
@@ -1545,14 +1703,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       })
       setRuntimeChatRetrieval(settings)
       syncGlobalChatRetrievalFields(settings)
-      const trimmedProjectId = projectId.trim()
       if (trimmedProjectId.length > 0) {
-        syncProjectRuntimeSettings(
-          await client.getProjectRuntimeSettings(trimmedProjectId),
-        )
+        const projectSettings =
+          await client.getProjectRuntimeSettings(trimmedProjectId)
+        if (
+          !syncProjectRuntimeSettingsForProject(
+            trimmedProjectId,
+            projectSettings,
+          )
+        ) {
+          return
+        }
       }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (
+        trimmedProjectId.length > 0 &&
+        !isCurrentProjectRuntimeRequest(trimmedProjectId)
+      ) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1580,11 +1750,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         connection_id: trimmedConnectionId,
         model_id: trimmedModelId,
       })
-      setProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1602,11 +1776,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
     try {
       await client.deleteProjectRuntimeSlotOverride(trimmedProjectId, slot)
-      setProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1641,11 +1819,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         rerank_enabled: projectChatRerankEnabled,
         rerank_candidate_limit: projectChatRerankCandidateLimit,
       })
-      syncProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1663,11 +1845,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
     try {
       await client.deleteProjectChatRetrievalSettings(trimmedProjectId)
-      syncProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1682,6 +1868,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   function syncProjectRuntimeSettings(settings: ProjectRuntimeSettings | null) {
     setProjectRuntimeSettings(settings)
     if (settings === null) {
+      resetProjectRuntimeFormFields()
       return
     }
     setProjectChatRetrievalLimit(settings.chat_retrieval.retrieval_limit)
@@ -1691,16 +1878,40 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     )
   }
 
+  function syncProjectRuntimeSettingsForProject(
+    requestedProjectId: string,
+    settings: ProjectRuntimeSettings | null,
+  ): boolean {
+    if (!isCurrentProjectRuntimeRequest(requestedProjectId)) {
+      return false
+    }
+    syncProjectRuntimeSettings(settings)
+    return true
+  }
+
+  function isCurrentProjectRuntimeRequest(requestedProjectId: string): boolean {
+    return projectIdRef.current === requestedProjectId.trim()
+  }
+
+  function resetProjectRuntimeFormFields() {
+    setProjectSlot('chat')
+    setProjectSlotConnectionId('')
+    setProjectSlotModelId('')
+    setProjectChatRetrievalLimit(DEFAULT_RETRIEVAL_LIMIT)
+    setProjectChatRerankEnabled(true)
+    setProjectChatRerankCandidateLimit(DEFAULT_RERANK_CANDIDATE_LIMIT)
+  }
+
   function handleChangeActiveView(view: ActiveView) {
     const nextView = normalizeActiveView(view)
     pushRouteForActiveView(nextView)
     setActiveView(nextView)
+    if (isSettingsModule(nextView)) {
+      setSettingsModule(nextView)
+    }
   }
 
-  const activeSettingsSection: SettingsSection =
-    activeView === 'observability' || activeView === 'runtime'
-      ? activeView
-      : 'authoring'
+  const activeSettingsModule = settingsModule
 
   return (
     <main
@@ -1713,35 +1924,43 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       ].join(' ')}
     >
       <AppSidebar
-        activeView={activeView}
+        accountModule={accountModule}
+        authoringSubmodule={authoringSubmodule}
         canLoadMoreSessions={hasMoreSessions}
         error={historyError}
         isOpen={isLeftSidebarOpen}
+        observabilitySubmodule={observabilitySubmodule}
         onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
+        onAccountModuleChange={setAccountModule}
         onLoadMoreSessions={handleLoadMoreSessions}
+        onPrimaryViewChange={handlePrimaryViewChange}
         onProjectIdChange={handleChangeProjectId}
         onRenameSession={(sessionId, title) =>
           void handleRenameSession(sessionId, title)
         }
         onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+        onSettingsModuleChange={handleSettingsModuleChange}
+        onSettingsSubmoduleChange={handleSettingsSubmoduleChange}
         onStartNewSession={handleStartNewSession}
         onStatusFilterChange={handleChangeHistoryStatusFilter}
         onToggle={() => setIsLeftSidebarOpen((current) => !current)}
         onUnarchiveSession={(sessionId) =>
           void handleUnarchiveSession(sessionId)
         }
-        onViewChange={handleChangeActiveView}
+        primaryView={primaryView}
         projectId={projectId}
         projectState={projectAuthoringState}
         projects={projects}
+        runtimeSubmodule={runtimeSubmodule}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
         sessionState={historyState}
+        settingsModule={settingsModule}
         statusFilter={historyStatusFilter}
       />
 
       <section
-        className={activeView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
+        className={primaryView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
         aria-labelledby="workspace-title"
       >
         <WorkspaceTopline
@@ -1752,7 +1971,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           sessions={sessions}
         />
 
-        {activeView === 'chat' ? (
+        {primaryView === 'chat' ? (
           <div
             className={
               isRightDockInline
@@ -1880,15 +2099,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : null}
           </div>
-        ) : activeView === 'account' ? (
-          <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+        ) : primaryView === 'account' ? (
+          accountModule === 'appearance' ? (
+            <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+          ) : (
+            <DeferredAccountModulePanel moduleName="Memory" />
+          )
         ) : (
-          <SettingsPanel
-            activeSection={activeSettingsSection}
-            onSectionChange={handleChangeActiveView}
-          >
-            {activeSettingsSection === 'observability' ? (
+          <SettingsPanel>
+            {activeSettingsModule === 'observability' ? (
               <ObservabilityPanel
+                activeSubmodule={observabilitySubmodule}
                 createdAtFrom={createdAtFrom}
                 createdAtTo={createdAtTo}
                 error={observabilityError}
@@ -1902,8 +2123,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 status={observabilityStatus}
                 summary={observabilitySummary}
               />
-            ) : activeSettingsSection === 'runtime' ? (
+            ) : activeSettingsModule === 'runtime' ? (
               <RuntimeSettingsPanel
+                activeSubmodule={runtimeSubmodule}
                 chatConnectionId={globalChatConnectionId}
                 chatModelId={globalChatModelId}
                 chatModels={runtimeChatModels}
@@ -1944,7 +2166,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onProjectSlotChange={setProjectSlot}
                 onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
                 onProjectSlotModelIdChange={setProjectSlotModelId}
-                onRefresh={() => void handleRefreshRuntime()}
+                onRefreshConnections={() =>
+                  void handleRefreshRuntimeConnections()
+                }
+                onRefreshGlobalDefaults={() =>
+                  void handleRefreshRuntimeGlobalDefaults()
+                }
+                onRefreshModelCatalog={() =>
+                  void handleRefreshRuntimeModelCatalog()
+                }
+                onRefreshProjectOverrides={() =>
+                  void handleRefreshRuntimeProjectOverrides()
+                }
                 onResetProjectChatRetrieval={() =>
                   void handleResetProjectChatRetrieval()
                 }
@@ -1989,6 +2222,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : (
               <AuthoringPanel
+                activeSubmodule={authoringSubmodule}
                 accessError={accessManagementError}
                 accessState={accessManagementState}
                 ingestionError={ingestionError}
@@ -2114,48 +2348,64 @@ function WorkspaceTopline({
 }
 
 function AppSidebar({
-  activeView,
+  accountModule,
+  authoringSubmodule,
   canLoadMoreSessions,
   error,
   isOpen,
+  observabilitySubmodule,
   onArchiveSession,
+  onAccountModuleChange,
   onLoadMoreSessions,
+  onPrimaryViewChange,
   onProjectIdChange,
   onRenameSession,
   onSelectSession,
+  onSettingsModuleChange,
+  onSettingsSubmoduleChange,
   onStartNewSession,
   onStatusFilterChange,
   onToggle,
   onUnarchiveSession,
-  onViewChange,
+  primaryView,
   projectId,
   projectState,
   projects,
+  runtimeSubmodule,
   selectedSessionId,
   sessions,
   sessionState,
+  settingsModule,
   statusFilter,
 }: {
-  activeView: ActiveView
+  accountModule: AccountModule
+  authoringSubmodule: AuthoringSubmodule
   canLoadMoreSessions: boolean
   error: string | null
   isOpen: boolean
+  observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
+  onAccountModuleChange(module: AccountModule): void
   onLoadMoreSessions(): void
+  onPrimaryViewChange(view: PrimaryView): void
   onProjectIdChange(projectId: string): void
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
+  onSettingsModuleChange(module: SettingsModule): void
+  onSettingsSubmoduleChange(selection: SettingsNavigationSelection): void
   onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   onToggle(): void
   onUnarchiveSession(sessionId: string): void
-  onViewChange(view: ActiveView): void
+  primaryView: PrimaryView
   projectId: string
   projectState: RequestState
   projects: Project[]
+  runtimeSubmodule: RuntimeSubmodule
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   sessionState: RequestState
+  settingsModule: SettingsModule
   statusFilter: SessionNavigationFilter
 }) {
   return (
@@ -2190,37 +2440,53 @@ function AppSidebar({
 
         <nav className="sidebar-navigation" aria-label="Primary navigation">
           <SidebarNavButton
-            active={activeView === 'chat'}
+            active={primaryView === 'chat'}
             label="Chat"
-            onClick={() => onViewChange('chat')}
+            onClick={() => onPrimaryViewChange('chat')}
           />
           <SidebarNavButton
-            active={activeView === 'account'}
+            active={primaryView === 'account'}
             label="My account"
-            onClick={() => onViewChange('account')}
+            onClick={() => onPrimaryViewChange('account')}
           />
           <SidebarNavButton
-            active={activeView !== 'chat' && activeView !== 'account'}
+            active={primaryView === 'settings'}
             label="Settings"
-            onClick={() => onViewChange('settings')}
+            onClick={() => onPrimaryViewChange('settings')}
           />
         </nav>
 
-        <SessionNavigationPanel
-          canLoadMore={canLoadMoreSessions}
-          error={error}
-          onArchiveSession={onArchiveSession}
-          onLoadMore={onLoadMoreSessions}
-          onRenameSession={onRenameSession}
-          onSelectSession={onSelectSession}
-          onStartNewSession={onStartNewSession}
-          onStatusFilterChange={onStatusFilterChange}
-          onUnarchiveSession={onUnarchiveSession}
-          selectedSessionId={selectedSessionId}
-          sessions={sessions}
-          statusFilter={statusFilter}
-          state={sessionState}
-        />
+        {primaryView === 'chat' ? (
+          <SessionNavigationPanel
+            canLoadMore={canLoadMoreSessions}
+            error={error}
+            onArchiveSession={onArchiveSession}
+            onLoadMore={onLoadMoreSessions}
+            onRenameSession={onRenameSession}
+            onSelectSession={onSelectSession}
+            onStartNewSession={onStartNewSession}
+            onStatusFilterChange={onStatusFilterChange}
+            onUnarchiveSession={onUnarchiveSession}
+            selectedSessionId={selectedSessionId}
+            sessions={sessions}
+            statusFilter={statusFilter}
+            state={sessionState}
+          />
+        ) : primaryView === 'account' ? (
+          <AccountNavigationPanel
+            activeModule={accountModule}
+            onModuleChange={onAccountModuleChange}
+          />
+        ) : (
+          <SettingsNavigationPanel
+            activeAuthoringSubmodule={authoringSubmodule}
+            activeModule={settingsModule}
+            activeObservabilitySubmodule={observabilitySubmodule}
+            activeRuntimeSubmodule={runtimeSubmodule}
+            onModuleChange={onSettingsModuleChange}
+            onSubmoduleChange={onSettingsSubmoduleChange}
+          />
+        )}
       </div>
     </aside>
   )
@@ -2245,6 +2511,177 @@ function SidebarNavButton({
       {label}
     </button>
   )
+}
+
+function AccountNavigationPanel({
+  activeModule,
+  onModuleChange,
+}: {
+  activeModule: AccountModule
+  onModuleChange(module: AccountModule): void
+}) {
+  return (
+    <nav className="contextual-navigation" aria-label="My account navigation">
+      <h2 className="sidebar-section-title">My account</h2>
+      <div className="contextual-nav-group">
+        {ACCOUNT_MODULES.map((module) => {
+          const active = module.id === activeModule
+          return (
+            <button
+              aria-pressed={active}
+              className={
+                active
+                  ? 'contextual-nav-button contextual-nav-button-active'
+                  : 'contextual-nav-button'
+              }
+              key={module.id}
+              onClick={() => onModuleChange(module.id)}
+              type="button"
+            >
+              {module.label}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+function SettingsNavigationPanel({
+  activeAuthoringSubmodule,
+  activeModule,
+  activeObservabilitySubmodule,
+  activeRuntimeSubmodule,
+  onModuleChange,
+  onSubmoduleChange,
+}: {
+  activeAuthoringSubmodule: AuthoringSubmodule
+  activeModule: SettingsModule
+  activeObservabilitySubmodule: ObservabilitySubmodule
+  activeRuntimeSubmodule: RuntimeSubmodule
+  onModuleChange(module: SettingsModule): void
+  onSubmoduleChange(selection: SettingsNavigationSelection): void
+}) {
+  const activeSubmodule = getActiveSettingsSubmodule(
+    activeModule,
+    activeAuthoringSubmodule,
+    activeObservabilitySubmodule,
+    activeRuntimeSubmodule,
+  )
+  const renderSubmoduleButton = (
+    selection: SettingsNavigationSelection,
+    label: string,
+  ) => {
+    const submoduleActive = selection.submodule === activeSubmodule
+    return (
+      <button
+        aria-pressed={submoduleActive}
+        className={
+          submoduleActive
+            ? 'contextual-nav-subbutton contextual-nav-subbutton-active'
+            : 'contextual-nav-subbutton'
+        }
+        key={selection.submodule}
+        onClick={() => onSubmoduleChange(selection)}
+        type="button"
+      >
+        {label}
+      </button>
+    )
+  }
+
+  return (
+    <nav className="contextual-navigation" aria-label="Settings navigation">
+      <h2 className="sidebar-section-title">Settings</h2>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === AUTHORING_NAVIGATION.id}
+          className={
+            activeModule === AUTHORING_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
+          type="button"
+        >
+          {AUTHORING_NAVIGATION.label}
+        </button>
+
+        {activeModule === AUTHORING_NAVIGATION.id
+          ? AUTHORING_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                { module: AUTHORING_NAVIGATION.id, submodule: submodule.id },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === OBSERVABILITY_NAVIGATION.id}
+          className={
+            activeModule === OBSERVABILITY_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
+          type="button"
+        >
+          {OBSERVABILITY_NAVIGATION.label}
+        </button>
+
+        {activeModule === OBSERVABILITY_NAVIGATION.id
+          ? OBSERVABILITY_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                {
+                  module: OBSERVABILITY_NAVIGATION.id,
+                  submodule: submodule.id,
+                },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === RUNTIME_NAVIGATION.id}
+          className={
+            activeModule === RUNTIME_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
+          type="button"
+        >
+          {RUNTIME_NAVIGATION.label}
+        </button>
+
+        {activeModule === RUNTIME_NAVIGATION.id
+          ? RUNTIME_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                { module: RUNTIME_NAVIGATION.id, submodule: submodule.id },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
+    </nav>
+  )
+}
+
+function getActiveSettingsSubmodule(
+  activeModule: SettingsModule,
+  activeAuthoringSubmodule: AuthoringSubmodule,
+  activeObservabilitySubmodule: ObservabilitySubmodule,
+  activeRuntimeSubmodule: RuntimeSubmodule,
+): SettingsSubmodule {
+  if (activeModule === 'authoring') {
+    return activeAuthoringSubmodule
+  }
+  if (activeModule === 'observability') {
+    return activeObservabilitySubmodule
+  }
+  return activeRuntimeSubmodule
 }
 
 function SidebarProjectSelector({
@@ -2427,15 +2864,7 @@ function ProjectList({
   )
 }
 
-function SettingsPanel({
-  activeSection,
-  children,
-  onSectionChange,
-}: {
-  activeSection: SettingsSection
-  children: ReactNode
-  onSectionChange(section: SettingsSection): void
-}) {
+function SettingsPanel({ children }: { children: ReactNode }) {
   return (
     <section className="settings-shell" aria-labelledby="settings-title">
       <header className="settings-shell-header">
@@ -2444,33 +2873,6 @@ function SettingsPanel({
           <h2 id="settings-title">Settings</h2>
         </div>
       </header>
-
-      <div
-        className="settings-section-tabs"
-        role="tablist"
-        aria-label="Settings sections"
-      >
-        {SETTINGS_SECTIONS.map((section) => {
-          const active = section.id === activeSection
-          return (
-            <button
-              aria-selected={active}
-              className={
-                active
-                  ? 'settings-section-tab settings-section-tab-active'
-                  : 'settings-section-tab'
-              }
-              key={section.id}
-              onClick={() => onSectionChange(section.id)}
-              role="tab"
-              type="button"
-            >
-              {section.label}
-            </button>
-          )
-        })}
-      </div>
-
       <div className="settings-section-body">{children}</div>
     </section>
   )
@@ -2548,7 +2950,25 @@ function AppearanceSettingsPanel({
   )
 }
 
+function DeferredAccountModulePanel({ moduleName }: { moduleName: string }) {
+  return (
+    <section className="panel settings-panel" aria-labelledby="deferred-account-title">
+      <header className="settings-header">
+        <div>
+          <p className="panel-label">My account</p>
+          <h2 id="deferred-account-title">{moduleName}</h2>
+        </div>
+        <span className="status">Deferred</span>
+      </header>
+      <p className="settings-description">
+        This module is not available until a durable backend contract exists.
+      </p>
+    </section>
+  )
+}
+
 function RuntimeSettingsPanel({
+  activeSubmodule,
   chatConnectionId,
   chatModelId,
   chatModels,
@@ -2583,7 +3003,10 @@ function RuntimeSettingsPanel({
   onProjectSlotChange,
   onProjectSlotConnectionIdChange,
   onProjectSlotModelIdChange,
-  onRefresh,
+  onRefreshConnections,
+  onRefreshGlobalDefaults,
+  onRefreshModelCatalog,
+  onRefreshProjectOverrides,
   onResetProjectChatRetrieval,
   onResetProjectSlot,
   onSaveConnection,
@@ -2612,6 +3035,7 @@ function RuntimeSettingsPanel({
   slots,
   state,
 }: {
+  activeSubmodule: RuntimeSubmodule
   chatConnectionId: string
   chatModelId: string
   chatModels: ChatModel[]
@@ -2646,7 +3070,10 @@ function RuntimeSettingsPanel({
   onProjectSlotChange(value: string): void
   onProjectSlotConnectionIdChange(value: string): void
   onProjectSlotModelIdChange(value: string): void
-  onRefresh(): void
+  onRefreshConnections(): void
+  onRefreshGlobalDefaults(): void
+  onRefreshModelCatalog(): void
+  onRefreshProjectOverrides(): void
   onResetProjectChatRetrieval(): void
   onResetProjectSlot(slot: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
@@ -2713,344 +3140,530 @@ function RuntimeSettingsPanel({
     target: projectSlot,
   })
 
+  const activePanel =
+    activeSubmodule === 'connections' ? (
+      <RuntimeConnectionsPanel
+        connectionBaseUrl={connectionBaseUrl}
+        connectionCapabilities={connectionCapabilities}
+        connectionProvider={connectionProvider}
+        connectionType={connectionType}
+        connections={connections}
+        onConnectionBaseUrlChange={onConnectionBaseUrlChange}
+        onConnectionCapabilitiesChange={onConnectionCapabilitiesChange}
+        onConnectionProviderChange={onConnectionProviderChange}
+        onConnectionTypeChange={onConnectionTypeChange}
+        onRefresh={onRefreshConnections}
+        onSaveConnection={onSaveConnection}
+        onSaveSecret={onSaveSecret}
+        onSecretConnectionIdChange={onSecretConnectionIdChange}
+        onSecretValueChange={onSecretValueChange}
+        secretConnectionId={secretConnectionId}
+        secretValue={secretValue}
+        state={state}
+      />
+    ) : activeSubmodule === 'model_catalog' ? (
+      <RuntimeModelCatalogPanel
+        connections={connections}
+        modelSyncConnectionId={modelSyncConnectionId}
+        onModelSyncConnectionIdChange={onModelSyncConnectionIdChange}
+        onRefresh={onRefreshModelCatalog}
+        onSyncProviderModels={onSyncProviderModels}
+        providerModels={providerModels}
+        state={state}
+      />
+    ) : activeSubmodule === 'global_defaults' ? (
+      <RuntimeGlobalDefaultsPanel
+        chatConnectionId={chatConnectionId}
+        chatConnections={chatConnections}
+        chatModelId={chatModelId}
+        chatModelOptions={chatModelOptions}
+        chatModels={chatModels}
+        chatRetrievalSettings={chatRetrievalSettings}
+        chatSyncMessage={chatSyncMessage}
+        globalChatRerankCandidateLimit={globalChatRerankCandidateLimit}
+        globalChatRerankEnabled={globalChatRerankEnabled}
+        globalChatRetrievalLimit={globalChatRetrievalLimit}
+        globalSlot={globalSlot}
+        globalSlotConnectionId={globalSlotConnectionId}
+        globalSlotConnections={globalSlotConnections}
+        globalSlotModelId={globalSlotModelId}
+        globalSlotModelOptions={globalSlotModelOptions}
+        globalSlotSyncMessage={globalSlotSyncMessage}
+        onChatConnectionIdChange={onChatConnectionIdChange}
+        onChatModelIdChange={onChatModelIdChange}
+        onGlobalChatRerankCandidateLimitChange={
+          onGlobalChatRerankCandidateLimitChange
+        }
+        onGlobalChatRerankEnabledChange={onGlobalChatRerankEnabledChange}
+        onGlobalChatRetrievalLimitChange={onGlobalChatRetrievalLimitChange}
+        onGlobalSlotChange={onGlobalSlotChange}
+        onGlobalSlotConnectionIdChange={onGlobalSlotConnectionIdChange}
+        onGlobalSlotModelIdChange={onGlobalSlotModelIdChange}
+        onRefresh={onRefreshGlobalDefaults}
+        onSaveGlobalChatModel={onSaveGlobalChatModel}
+        onSaveGlobalChatRetrieval={onSaveGlobalChatRetrieval}
+        onSaveGlobalSlot={onSaveGlobalSlot}
+        slots={slots}
+        state={state}
+      />
+    ) : (
+      <RuntimeProjectOverridesPanel
+        onProjectChatRerankCandidateLimitChange={
+          onProjectChatRerankCandidateLimitChange
+        }
+        onProjectChatRerankEnabledChange={onProjectChatRerankEnabledChange}
+        onProjectChatRetrievalLimitChange={onProjectChatRetrievalLimitChange}
+        onProjectSlotChange={onProjectSlotChange}
+        onProjectSlotConnectionIdChange={onProjectSlotConnectionIdChange}
+        onProjectSlotModelIdChange={onProjectSlotModelIdChange}
+        onRefresh={onRefreshProjectOverrides}
+        onResetProjectChatRetrieval={onResetProjectChatRetrieval}
+        onResetProjectSlot={onResetProjectSlot}
+        onSaveProjectChatRetrieval={onSaveProjectChatRetrieval}
+        onSaveProjectOverride={onSaveProjectOverride}
+        projectChatRerankCandidateLimit={projectChatRerankCandidateLimit}
+        projectChatRerankEnabled={projectChatRerankEnabled}
+        projectChatRetrievalLimit={projectChatRetrievalLimit}
+        projectId={projectId}
+        projectRuntimeSettings={projectRuntimeSettings}
+        projectSlot={projectSlot}
+        projectSlotConnectionId={projectSlotConnectionId}
+        projectSlotConnections={projectSlotConnections}
+        projectSlotModelId={projectSlotModelId}
+        projectSlotModelOptions={projectSlotModelOptions}
+        projectSlotSyncMessage={projectSlotSyncMessage}
+        state={state}
+      />
+    )
+
   return (
-    <div className="runtime-grid">
-      <section className="panel runtime-panel" aria-labelledby="runtime-title">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Runtime</p>
-            <h2 id="runtime-title">Provider settings</h2>
-          </div>
-          <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+    <div className="runtime-grid runtime-grid-focused">
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {activePanel}
+    </div>
+  )
+}
+
+function RuntimeConnectionsPanel({
+  connectionBaseUrl,
+  connectionCapabilities,
+  connectionProvider,
+  connectionType,
+  connections,
+  onConnectionBaseUrlChange,
+  onConnectionCapabilitiesChange,
+  onConnectionProviderChange,
+  onConnectionTypeChange,
+  onRefresh,
+  onSaveConnection,
+  onSaveSecret,
+  onSecretConnectionIdChange,
+  onSecretValueChange,
+  secretConnectionId,
+  secretValue,
+  state,
+}: {
+  connectionBaseUrl: string
+  connectionCapabilities: string
+  connectionProvider: string
+  connectionType: string
+  connections: ProviderConnection[]
+  onConnectionBaseUrlChange(value: string): void
+  onConnectionCapabilitiesChange(value: string): void
+  onConnectionProviderChange(value: string): void
+  onConnectionTypeChange(value: string): void
+  onRefresh(): void
+  onSaveConnection(event: FormEvent<HTMLFormElement>): void
+  onSaveSecret(event: FormEvent<HTMLFormElement>): void
+  onSecretConnectionIdChange(value: string): void
+  onSecretValueChange(value: string): void
+  secretConnectionId: string
+  secretValue: string
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-connections-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-connections-title">Connections</h2>
         </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
 
-        <button
-          className="secondary-button"
-          disabled={state === 'loading'}
-          onClick={onRefresh}
-          type="button"
-        >
-          {state === 'loading' ? 'Refreshing...' : 'Refresh runtime'}
-        </button>
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Refresh connections'}
+      </button>
 
-        {error ? (
-          <p className="form-feedback form-feedback-error" role="alert">
-            {error}
+      <section className="runtime-section" aria-label="Provider connections">
+        <h3>Connections</h3>
+        <ul className="authoring-list">
+          {connections.length === 0 ? (
+            <li className="authoring-row authoring-row-static">
+              <span>No runtime connections loaded.</span>
+            </li>
+          ) : (
+            connections.map((connection) => (
+              <li className="authoring-row authoring-row-static" key={connection.connection_id}>
+                <span>
+                  <strong>{connection.connection_id}</strong>
+                  <small>
+                    {connection.provider} / {connection.connection_type}
+                  </small>
+                  <small>{connection.capabilities.join(', ')}</small>
+                  {connection.base_url ? <small>{connection.base_url}</small> : null}
+                  <ConnectionSecretSummary connection={connection} />
+                </span>
+                <em>{connection.connection_type}</em>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+
+      <form className="authoring-form" onSubmit={onSaveConnection}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Provider</span>
+            <select
+              onChange={(event) =>
+                onConnectionProviderChange(event.currentTarget.value)
+              }
+              value={connectionProvider}
+            >
+              <option value="qwen">qwen</option>
+              <option value="local_openai_compatible">
+                local_openai_compatible
+              </option>
+              <option value="fake">fake</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Connection type</span>
+            <select
+              onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
+              value={connectionType}
+            >
+              <option value="hosted">hosted</option>
+              <option value="local">local</option>
+              <option value="fake">fake</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Base URL</span>
+            <input
+              onChange={(event) =>
+                onConnectionBaseUrlChange(event.currentTarget.value)
+              }
+              value={connectionBaseUrl}
+            />
+          </label>
+          <label className="field runtime-field-wide">
+            <span>Capabilities</span>
+            <input
+              onChange={(event) =>
+                onConnectionCapabilitiesChange(event.currentTarget.value)
+              }
+              value={connectionCapabilities}
+            />
+          </label>
+        </div>
+        <button type="submit">Save connection</button>
+      </form>
+
+      <form className="authoring-form" onSubmit={onSaveSecret}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Secret connection</span>
+            <ConnectionSelect
+              connections={connections}
+              onChange={onSecretConnectionIdChange}
+              testId="secret-connection-select"
+              value={secretConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>API key</span>
+            <input
+              autoComplete="off"
+              onChange={(event) => onSecretValueChange(event.currentTarget.value)}
+              type="password"
+              value={secretValue}
+            />
+          </label>
+        </div>
+        <button type="submit">Save secret</button>
+      </form>
+    </section>
+  )
+}
+
+function RuntimeModelCatalogPanel({
+  connections,
+  modelSyncConnectionId,
+  onModelSyncConnectionIdChange,
+  onRefresh,
+  onSyncProviderModels,
+  providerModels,
+  state,
+}: {
+  connections: ProviderConnection[]
+  modelSyncConnectionId: string
+  onModelSyncConnectionIdChange(value: string): void
+  onRefresh(): void
+  onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
+  providerModels: ProviderModel[]
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-model-catalog-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-model-catalog-title">Model catalog</h2>
+        </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Refresh catalog'}
+      </button>
+
+      <form className="authoring-form" onSubmit={onSyncProviderModels}>
+        <div className="runtime-form-grid">
+          <label className="field runtime-field-wide">
+            <span>Model sync connection</span>
+            <ConnectionSelect
+              connections={connections}
+              onChange={onModelSyncConnectionIdChange}
+              testId="model-sync-connection-select"
+              value={modelSyncConnectionId}
+            />
+          </label>
+        </div>
+        <button type="submit">Sync models</button>
+      </form>
+
+      <ProviderModelCatalogView providerModels={providerModels} />
+    </section>
+  )
+}
+
+function RuntimeGlobalDefaultsPanel({
+  chatConnectionId,
+  chatConnections,
+  chatModelId,
+  chatModelOptions,
+  chatModels,
+  chatRetrievalSettings,
+  chatSyncMessage,
+  globalChatRerankCandidateLimit,
+  globalChatRerankEnabled,
+  globalChatRetrievalLimit,
+  globalSlot,
+  globalSlotConnectionId,
+  globalSlotConnections,
+  globalSlotModelId,
+  globalSlotModelOptions,
+  globalSlotSyncMessage,
+  onChatConnectionIdChange,
+  onChatModelIdChange,
+  onGlobalChatRerankCandidateLimitChange,
+  onGlobalChatRerankEnabledChange,
+  onGlobalChatRetrievalLimitChange,
+  onGlobalSlotChange,
+  onGlobalSlotConnectionIdChange,
+  onGlobalSlotModelIdChange,
+  onRefresh,
+  onSaveGlobalChatModel,
+  onSaveGlobalChatRetrieval,
+  onSaveGlobalSlot,
+  slots,
+  state,
+}: {
+  chatConnectionId: string
+  chatConnections: ProviderConnection[]
+  chatModelId: string
+  chatModelOptions: ProviderModelOption[]
+  chatModels: ChatModel[]
+  chatRetrievalSettings: ChatRetrievalSettings | null
+  chatSyncMessage: string | null
+  globalChatRerankCandidateLimit: number
+  globalChatRerankEnabled: boolean
+  globalChatRetrievalLimit: number
+  globalSlot: string
+  globalSlotConnectionId: string
+  globalSlotConnections: ProviderConnection[]
+  globalSlotModelId: string
+  globalSlotModelOptions: ProviderModelOption[]
+  globalSlotSyncMessage: string | null
+  onChatConnectionIdChange(value: string): void
+  onChatModelIdChange(value: string): void
+  onGlobalChatRerankCandidateLimitChange(value: number): void
+  onGlobalChatRerankEnabledChange(value: boolean): void
+  onGlobalChatRetrievalLimitChange(value: number): void
+  onGlobalSlotChange(value: string): void
+  onGlobalSlotConnectionIdChange(value: string): void
+  onGlobalSlotModelIdChange(value: string): void
+  onRefresh(): void
+  onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
+  slots: RuntimeSlotDefault[]
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-global-defaults-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-global-defaults-title">Global defaults</h2>
+        </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
+      </button>
+
+      <RuntimeSlotList slots={slots} />
+
+      <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Global slot</span>
+            <select
+              data-testid="global-slot-select"
+              onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
+              value={globalSlot}
+            >
+              {RUNTIME_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Global slot connection</span>
+            <ConnectionSelect
+              connections={globalSlotConnections}
+              onChange={onGlobalSlotConnectionIdChange}
+              testId="global-slot-connection-select"
+              value={globalSlotConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Global slot model</span>
+            <ProviderModelSelect
+              models={globalSlotModelOptions}
+              onChange={onGlobalSlotModelIdChange}
+              testId="global-slot-model-select"
+              value={globalSlotModelId}
+            />
+          </label>
+        </div>
+        {globalSlotSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">
+            {globalSlotSyncMessage}
           </p>
         ) : null}
+        <button disabled={globalSlotSyncMessage !== null} type="submit">
+          Save global slot
+        </button>
+      </form>
 
-        <section className="runtime-section" aria-label="Provider connections">
-          <h3>Connections</h3>
-          <ul className="authoring-list">
-            {connections.length === 0 ? (
-              <li className="authoring-row authoring-row-static">
-                <span>No runtime connections loaded.</span>
-              </li>
-            ) : (
-              connections.map((connection) => (
-                <li className="authoring-row authoring-row-static" key={connection.connection_id}>
-                  <span>
-                    <strong>{connection.connection_id}</strong>
-                    <small>
-                      {connection.provider} / {connection.connection_type}
-                    </small>
-                    <small>{connection.capabilities.join(', ')}</small>
-                    {connection.base_url ? <small>{connection.base_url}</small> : null}
-                    <ConnectionSecretSummary connection={connection} />
-                  </span>
-                  <em>{connection.connection_type}</em>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-
-        <form className="authoring-form" onSubmit={onSaveConnection}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Provider</span>
-              <select
-                onChange={(event) =>
-                  onConnectionProviderChange(event.currentTarget.value)
-                }
-                value={connectionProvider}
-              >
-                <option value="qwen">qwen</option>
-                <option value="local_openai_compatible">
-                  local_openai_compatible
-                </option>
-                <option value="fake">fake</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Connection type</span>
-              <select
-                onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
-                value={connectionType}
-              >
-                <option value="hosted">hosted</option>
-                <option value="local">local</option>
-                <option value="fake">fake</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Base URL</span>
-              <input
-                onChange={(event) =>
-                  onConnectionBaseUrlChange(event.currentTarget.value)
-                }
-                value={connectionBaseUrl}
-              />
-            </label>
-            <label className="field runtime-field-wide">
-              <span>Capabilities</span>
-              <input
-                onChange={(event) =>
-                  onConnectionCapabilitiesChange(event.currentTarget.value)
-                }
-                value={connectionCapabilities}
-              />
-            </label>
-          </div>
-          <button type="submit">Save connection</button>
-        </form>
-
-        <form className="authoring-form" onSubmit={onSyncProviderModels}>
-          <div className="runtime-form-grid">
-            <label className="field runtime-field-wide">
-              <span>Model sync connection</span>
-              <ConnectionSelect
-                connections={connections}
-                onChange={onModelSyncConnectionIdChange}
-                testId="model-sync-connection-select"
-                value={modelSyncConnectionId}
-              />
-            </label>
-          </div>
-          <button type="submit">Sync models</button>
-        </form>
-
-        <ProviderModelCatalogView providerModels={providerModels} />
-
-        <form className="authoring-form" onSubmit={onSaveSecret}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Secret connection</span>
-              <ConnectionSelect
-                connections={connections}
-                onChange={onSecretConnectionIdChange}
-                testId="secret-connection-select"
-                value={secretConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>API key</span>
-              <input
-                autoComplete="off"
-                onChange={(event) => onSecretValueChange(event.currentTarget.value)}
-                type="password"
-                value={secretValue}
-              />
-            </label>
-          </div>
-          <button type="submit">Save secret</button>
-        </form>
-      </section>
-
-      <section className="panel runtime-panel" aria-labelledby="runtime-slots-title">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Defaults</p>
-            <h2 id="runtime-slots-title">Global slots</h2>
-          </div>
-        </div>
-
-        <RuntimeSlotList slots={slots} />
-
-        <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Global slot</span>
-              <select
-                data-testid="global-slot-select"
-                onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
-                value={globalSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Global slot connection</span>
-              <ConnectionSelect
-                connections={globalSlotConnections}
-                onChange={onGlobalSlotConnectionIdChange}
-                testId="global-slot-connection-select"
-                value={globalSlotConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Global slot model</span>
-              <ProviderModelSelect
-                models={globalSlotModelOptions}
-                onChange={onGlobalSlotModelIdChange}
-                testId="global-slot-model-select"
-                value={globalSlotModelId}
-              />
-            </label>
-          </div>
-          {globalSlotSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">
-              {globalSlotSyncMessage}
-            </p>
-          ) : null}
-          <button disabled={globalSlotSyncMessage !== null} type="submit">
-            Save global slot
-          </button>
-        </form>
-
-        <section className="runtime-section" aria-label="Global chat models">
-          <h3>Chat models</h3>
-          <ul className="authoring-list">
-            {chatModels.length === 0 ? (
-              <li className="authoring-row authoring-row-static">
-                <span>No chat models loaded.</span>
-              </li>
-            ) : (
-              chatModels.map((model) => (
-                <li
-                  className="authoring-row authoring-row-static"
-                  key={`${model.connection_id}-${model.model_id}`}
-                >
-                  <span>
-                    <strong>{model.model_id}</strong>
-                    <small>{model.connection_id}</small>
-                  </span>
-                  <em>{model.is_default ? 'default' : 'enabled'}</em>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-
-        <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Chat connection</span>
-              <ConnectionSelect
-                connections={chatConnections}
-                onChange={onChatConnectionIdChange}
-                testId="chat-connection-select"
-                value={chatConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Chat model</span>
-              <ProviderModelSelect
-                models={chatModelOptions}
-                onChange={onChatModelIdChange}
-                testId="chat-model-select"
-                value={chatModelId}
-              />
-            </label>
-          </div>
-          {chatSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
-          ) : null}
-          <button disabled={chatSyncMessage !== null} type="submit">
-            Save chat default
-          </button>
-        </form>
-
-        <section className="runtime-section" aria-label="Global chat retrieval">
-          <h3>Chat retrieval</h3>
-          {chatRetrievalSettings ? (
-            <ul className="authoring-list">
-              <li className="authoring-row authoring-row-static">
-                <span>
-                  <strong>global defaults</strong>
-                  <small>
-                    limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
-                    {chatRetrievalSettings.rerank_candidate_limit}
-                  </small>
-                </span>
-                <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
-              </li>
-            </ul>
+      <section className="runtime-section" aria-label="Global chat models">
+        <h3>Chat models</h3>
+        <ul className="authoring-list">
+          {chatModels.length === 0 ? (
+            <li className="authoring-row authoring-row-static">
+              <span>No chat models loaded.</span>
+            </li>
           ) : (
-            <p className="empty-copy">No chat retrieval defaults loaded.</p>
+            chatModels.map((model) => (
+              <li
+                className="authoring-row authoring-row-static"
+                key={`${model.connection_id}-${model.model_id}`}
+              >
+                <span>
+                  <strong>{model.model_id}</strong>
+                  <small>{model.connection_id}</small>
+                </span>
+                <em>{model.is_default ? 'default' : 'enabled'}</em>
+              </li>
+            ))
           )}
-          <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
-            <div className="runtime-form-grid">
-              <label className="field">
-                <span>Retrieval limit</span>
-                <input
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRetrievalLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRetrievalLimit}
-                />
-              </label>
-              <label className="field">
-                <span>Rerank</span>
-                <select
-                  onChange={(event) =>
-                    onGlobalChatRerankEnabledChange(
-                      event.currentTarget.value === 'true',
-                    )
-                  }
-                  value={String(globalChatRerankEnabled)}
-                >
-                  <option value="true">on</option>
-                  <option value="false">off</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Candidate limit</span>
-                <input
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRerankCandidateLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRerankCandidateLimit}
-                />
-              </label>
-            </div>
-            <button type="submit">Save chat retrieval</button>
-          </form>
-        </section>
+        </ul>
       </section>
 
-      <section
-        className="panel runtime-panel runtime-panel-wide"
-        aria-label="Project runtime settings"
-      >
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Project</p>
-            <h2>Runtime overrides</h2>
-          </div>
-          <span className="status">{projectId.trim() || 'No project'}</span>
+      <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Chat connection</span>
+            <ConnectionSelect
+              connections={chatConnections}
+              onChange={onChatConnectionIdChange}
+              testId="chat-connection-select"
+              value={chatConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Chat model</span>
+            <ProviderModelSelect
+              models={chatModelOptions}
+              onChange={onChatModelIdChange}
+              testId="chat-model-select"
+              value={chatModelId}
+            />
+          </label>
         </div>
+        {chatSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
+        ) : null}
+        <button disabled={chatSyncMessage !== null} type="submit">
+          Save chat default
+        </button>
+      </form>
 
-        <ProjectRuntimeSettingsView
-          onResetProjectSlot={onResetProjectSlot}
-          settings={projectRuntimeSettings}
-        />
-
-        <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
+      <section className="runtime-section" aria-label="Global chat retrieval">
+        <h3>Chat retrieval</h3>
+        {chatRetrievalSettings ? (
+          <ul className="authoring-list">
+            <li className="authoring-row authoring-row-static">
+              <span>
+                <strong>global defaults</strong>
+                <small>
+                  limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
+                  {chatRetrievalSettings.rerank_candidate_limit}
+                </small>
+              </span>
+              <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
+            </li>
+          </ul>
+        ) : (
+          <p className="empty-copy">No chat retrieval defaults loaded.</p>
+        )}
+        <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
           <div className="runtime-form-grid">
             <label className="field">
               <span>Retrieval limit</span>
@@ -3058,23 +3671,23 @@ function RuntimeSettingsPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRetrievalLimitChange(
+                  onGlobalChatRetrievalLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRetrievalLimit}
+                value={globalChatRetrievalLimit}
               />
             </label>
             <label className="field">
               <span>Rerank</span>
               <select
                 onChange={(event) =>
-                  onProjectChatRerankEnabledChange(
+                  onGlobalChatRerankEnabledChange(
                     event.currentTarget.value === 'true',
                   )
                 }
-                value={String(projectChatRerankEnabled)}
+                value={String(globalChatRerankEnabled)}
               >
                 <option value="true">on</option>
                 <option value="false">off</option>
@@ -3086,74 +3699,201 @@ function RuntimeSettingsPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRerankCandidateLimitChange(
+                  onGlobalChatRerankCandidateLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRerankCandidateLimit}
+                value={globalChatRerankCandidateLimit}
               />
             </label>
           </div>
-          <div className="authoring-row-actions">
-            <button type="submit">Save project retrieval override</button>
-            {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
-              <button
-                className="secondary-button"
-                onClick={onResetProjectChatRetrieval}
-                type="button"
-              >
-                Reset chat retrieval to global
-              </button>
-            ) : null}
-          </div>
-        </form>
-
-        <form className="authoring-form" onSubmit={onSaveProjectOverride}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Project slot</span>
-              <select
-                onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
-                value={projectSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Project slot connection</span>
-              <ConnectionSelect
-                connections={projectSlotConnections}
-                onChange={onProjectSlotConnectionIdChange}
-                testId="project-slot-connection-select"
-                value={projectSlotConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Project slot model</span>
-              <ProviderModelSelect
-                models={projectSlotModelOptions}
-                onChange={onProjectSlotModelIdChange}
-                testId="project-slot-model-select"
-                value={projectSlotModelId}
-              />
-            </label>
-          </div>
-          {projectSlotSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">
-              {projectSlotSyncMessage}
-            </p>
-          ) : null}
-          <button disabled={projectSlotSyncMessage !== null} type="submit">
-            Save project override
-          </button>
+          <button type="submit">Save chat retrieval</button>
         </form>
       </section>
-    </div>
+    </section>
+  )
+}
+
+function RuntimeProjectOverridesPanel({
+  onProjectChatRerankCandidateLimitChange,
+  onProjectChatRerankEnabledChange,
+  onProjectChatRetrievalLimitChange,
+  onProjectSlotChange,
+  onProjectSlotConnectionIdChange,
+  onProjectSlotModelIdChange,
+  onRefresh,
+  onResetProjectChatRetrieval,
+  onResetProjectSlot,
+  onSaveProjectChatRetrieval,
+  onSaveProjectOverride,
+  projectChatRerankCandidateLimit,
+  projectChatRerankEnabled,
+  projectChatRetrievalLimit,
+  projectId,
+  projectRuntimeSettings,
+  projectSlot,
+  projectSlotConnectionId,
+  projectSlotConnections,
+  projectSlotModelId,
+  projectSlotModelOptions,
+  projectSlotSyncMessage,
+  state,
+}: {
+  onProjectChatRerankCandidateLimitChange(value: number): void
+  onProjectChatRerankEnabledChange(value: boolean): void
+  onProjectChatRetrievalLimitChange(value: number): void
+  onProjectSlotChange(value: string): void
+  onProjectSlotConnectionIdChange(value: string): void
+  onProjectSlotModelIdChange(value: string): void
+  onRefresh(): void
+  onResetProjectChatRetrieval(): void
+  onResetProjectSlot(slot: string): void
+  onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
+  projectChatRerankCandidateLimit: number
+  projectChatRerankEnabled: boolean
+  projectChatRetrievalLimit: number
+  projectId: string
+  projectRuntimeSettings: ProjectRuntimeSettings | null
+  projectSlot: string
+  projectSlotConnectionId: string
+  projectSlotConnections: ProviderConnection[]
+  projectSlotModelId: string
+  projectSlotModelOptions: ProviderModelOption[]
+  projectSlotSyncMessage: string | null
+  state: RequestState
+}) {
+  return (
+    <section
+      className="panel runtime-panel runtime-panel-wide"
+      aria-label="Project runtime settings"
+    >
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-project-overrides-title">Project overrides</h2>
+        </div>
+        <span className="status">{projectId.trim() || 'No project'}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Reload project settings'}
+      </button>
+
+      <ProjectRuntimeSettingsView
+        onResetProjectSlot={onResetProjectSlot}
+        settings={projectRuntimeSettings}
+      />
+
+      <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Retrieval limit</span>
+            <input
+              max={CHAT_RETRIEVAL_MAX_LIMIT}
+              min={1}
+              onChange={(event) =>
+                onProjectChatRetrievalLimitChange(
+                  normalizeChatRetrievalLimit(event.currentTarget.value),
+                )
+              }
+              type="number"
+              value={projectChatRetrievalLimit}
+            />
+          </label>
+          <label className="field">
+            <span>Rerank</span>
+            <select
+              onChange={(event) =>
+                onProjectChatRerankEnabledChange(
+                  event.currentTarget.value === 'true',
+                )
+              }
+              value={String(projectChatRerankEnabled)}
+            >
+              <option value="true">on</option>
+              <option value="false">off</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Candidate limit</span>
+            <input
+              max={CHAT_RETRIEVAL_MAX_LIMIT}
+              min={1}
+              onChange={(event) =>
+                onProjectChatRerankCandidateLimitChange(
+                  normalizeChatRetrievalLimit(event.currentTarget.value),
+                )
+              }
+              type="number"
+              value={projectChatRerankCandidateLimit}
+            />
+          </label>
+        </div>
+        <div className="authoring-row-actions">
+          <button type="submit">Save project retrieval override</button>
+          {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
+            <button
+              className="secondary-button"
+              onClick={onResetProjectChatRetrieval}
+              type="button"
+            >
+              Reset chat retrieval to global
+            </button>
+          ) : null}
+        </div>
+      </form>
+
+      <form className="authoring-form" onSubmit={onSaveProjectOverride}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Project slot</span>
+            <select
+              onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
+              value={projectSlot}
+            >
+              {RUNTIME_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Project slot connection</span>
+            <ConnectionSelect
+              connections={projectSlotConnections}
+              onChange={onProjectSlotConnectionIdChange}
+              testId="project-slot-connection-select"
+              value={projectSlotConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Project slot model</span>
+            <ProviderModelSelect
+              models={projectSlotModelOptions}
+              onChange={onProjectSlotModelIdChange}
+              testId="project-slot-model-select"
+              value={projectSlotModelId}
+            />
+          </label>
+        </div>
+        {projectSlotSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">
+            {projectSlotSyncMessage}
+          </p>
+        ) : null}
+        <button disabled={projectSlotSyncMessage !== null} type="submit">
+          Save project override
+        </button>
+      </form>
+    </section>
   )
 }
 
@@ -3377,6 +4117,7 @@ function ProjectRuntimeSettingsView({
 }
 
 function AuthoringPanel({
+  activeSubmodule,
   accessError,
   accessState,
   ingestionError,
@@ -3438,6 +4179,7 @@ function AuthoringPanel({
   userSystemRole,
   users,
 }: {
+  activeSubmodule: AuthoringSubmodule
   accessError: string | null
   accessState: RequestState
   ingestionError: string | null
@@ -3506,8 +4248,9 @@ function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="authoring-grid">
-      <section className="panel authoring-panel" aria-labelledby="projects-title">
+    <div className="authoring-grid authoring-grid-focused">
+      {activeSubmodule === 'projects' ? (
+        <section className="panel authoring-panel" aria-labelledby="projects-title">
         <div className="panel-heading">
           <div>
             <p className="panel-label">Projects</p>
@@ -3547,32 +4290,36 @@ function AuthoringPanel({
           onSelectProject={onSelectProject}
           projects={projects}
         />
-      </section>
+        </section>
+      ) : null}
 
-      <ProjectAccessPanel
-        error={accessError}
-        isBusy={isAccessBusy}
-        memberRole={memberRole}
-        memberUserId={memberUserId}
-        memberships={memberships}
-        onCreateUser={onCreateUser}
-        onMemberRoleChange={onMemberRoleChange}
-        onMemberUserIdChange={onMemberUserIdChange}
-        onRefresh={onRefreshAccess}
-        onSaveMembership={onSaveProjectMembership}
-        onUserAccessTokenChange={onUserAccessTokenChange}
-        onUserDisplayNameChange={onUserDisplayNameChange}
-        onUserLoginChange={onUserLoginChange}
-        onUserSystemRoleChange={onUserSystemRoleChange}
-        state={accessState}
-        userAccessToken={userAccessToken}
-        userDisplayName={userDisplayName}
-        userLogin={userLogin}
-        userSystemRole={userSystemRole}
-        users={users}
-      />
+      {activeSubmodule === 'users' ? (
+        <ProjectAccessPanel
+          error={accessError}
+          isBusy={isAccessBusy}
+          memberRole={memberRole}
+          memberUserId={memberUserId}
+          memberships={memberships}
+          onCreateUser={onCreateUser}
+          onMemberRoleChange={onMemberRoleChange}
+          onMemberUserIdChange={onMemberUserIdChange}
+          onRefresh={onRefreshAccess}
+          onSaveMembership={onSaveProjectMembership}
+          onUserAccessTokenChange={onUserAccessTokenChange}
+          onUserDisplayNameChange={onUserDisplayNameChange}
+          onUserLoginChange={onUserLoginChange}
+          onUserSystemRoleChange={onUserSystemRoleChange}
+          state={accessState}
+          userAccessToken={userAccessToken}
+          userDisplayName={userDisplayName}
+          userLogin={userLogin}
+          userSystemRole={userSystemRole}
+          users={users}
+        />
+      ) : null}
 
-      <section className="panel authoring-panel" aria-labelledby="sources-title">
+      {activeSubmodule === 'sources' ? (
+        <section className="panel authoring-panel" aria-labelledby="sources-title">
         <div className="panel-heading">
           <div>
             <p className="panel-label">Sources</p>
@@ -3673,22 +4420,25 @@ function AuthoringPanel({
           state={ingestionState}
           isBusy={isIngestionBusy}
         />
-      </section>
+        </section>
+      ) : null}
 
-      <KnowledgeReviewPanel
-        drafts={proposalDrafts}
-        error={knowledgeReviewError}
-        isBusy={isKnowledgeReviewBusy}
-        onApprove={onApproveKnowledgeProposal}
-        onDraftChange={onProposalDraftChange}
-        onRefresh={onRefreshKnowledgeProposals}
-        onRefine={onRefineKnowledgeProposal}
-        onReject={onRejectKnowledgeProposal}
-        onRejectReasonChange={onProposalRejectReasonChange}
-        proposals={knowledgeProposals}
-        rejectReasons={proposalRejectReasons}
-        state={knowledgeReviewState}
-      />
+      {activeSubmodule === 'knowledge' ? (
+        <KnowledgeReviewPanel
+          drafts={proposalDrafts}
+          error={knowledgeReviewError}
+          isBusy={isKnowledgeReviewBusy}
+          onApprove={onApproveKnowledgeProposal}
+          onDraftChange={onProposalDraftChange}
+          onRefresh={onRefreshKnowledgeProposals}
+          onRefine={onRefineKnowledgeProposal}
+          onReject={onRejectKnowledgeProposal}
+          onRejectReasonChange={onProposalRejectReasonChange}
+          proposals={knowledgeProposals}
+          rejectReasons={proposalRejectReasons}
+          state={knowledgeReviewState}
+        />
+      ) : null}
     </div>
   )
 }
@@ -3737,11 +4487,11 @@ function ProjectAccessPanel({
   users: User[]
 }) {
   return (
-    <section className="panel authoring-panel" aria-labelledby="access-title">
+    <section className="panel authoring-panel" aria-labelledby="project-access-title">
       <div className="panel-heading">
         <div>
-          <p className="panel-label">Access</p>
-          <h2 id="access-title">Project users</h2>
+          <p className="panel-label">Users</p>
+          <h2 id="project-access-title">Users</h2>
         </div>
         <span className={statusClassName(state)}>
           {authoringStatusLabel(state)}
@@ -4191,6 +4941,7 @@ function IngestionJobList({
 }
 
 function ObservabilityPanel({
+  activeSubmodule,
   createdAtFrom,
   createdAtTo,
   error,
@@ -4204,6 +4955,7 @@ function ObservabilityPanel({
   status,
   summary,
 }: {
+  activeSubmodule: ObservabilitySubmodule
   createdAtFrom: string
   createdAtTo: string
   error: string | null
@@ -4224,7 +4976,9 @@ function ObservabilityPanel({
       <div className="panel-heading">
         <div>
           <p className="panel-label">Observability</p>
-          <h2 id="observability-title">Dashboard shell</h2>
+          <h2 id="observability-title">
+            {observabilitySubmoduleLabel(activeSubmodule)}
+          </h2>
         </div>
         <span className={statusClassName(state)}>
           {observabilityStatusLabel(state)}
@@ -4290,14 +5044,16 @@ function ObservabilityPanel({
         </p>
       ) : null}
 
-      <ObservabilityMetrics summary={summary} />
+      <ObservabilityContent activeSubmodule={activeSubmodule} summary={summary} />
     </section>
   )
 }
 
-function ObservabilityMetrics({
+function ObservabilityContent({
+  activeSubmodule,
   summary,
 }: {
+  activeSubmodule: ObservabilitySubmodule
   summary: ChatObservabilitySummary | null
 }) {
   if (summary === null) {
@@ -4311,6 +5067,37 @@ function ObservabilityMetrics({
     )
   }
 
+  if (activeSubmodule === 'costs') {
+    return <ObservabilityCostsContent summary={summary} />
+  }
+  if (activeSubmodule === 'errors') {
+    return <ObservabilityErrorsContent summary={summary} />
+  }
+  if (activeSubmodule === 'latency') {
+    return <ObservabilityLatencyContent summary={summary} />
+  }
+
+  return <ObservabilitySummaryContent summary={summary} />
+}
+
+function ObservabilitySummaryContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <>
+      <ObservabilitySummaryMetrics summary={summary} />
+      <ObservabilityBreakdowns summary={summary} />
+    </>
+  )
+}
+
+function ObservabilitySummaryMetrics({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
   const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
   const errorCount =
     summary.errors.session_error_count + summary.errors.provider_error_count
@@ -4350,7 +5137,112 @@ function ObservabilityMetrics({
           }
         />
       </div>
-      <ObservabilityBreakdowns summary={summary} />
+    </>
+  )
+}
+
+function ObservabilityCostsContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <>
+      <div className="metric-grid" aria-label="Cost observability metrics">
+        <MetricCard
+          label="Provider calls"
+          value={String(summary.provider_usage.total_records)}
+          detail={`${summary.provider_usage.groups.length} provider groups`}
+        />
+        <MetricCard
+          label="Estimated cost"
+          value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
+          detail="Known usage only"
+        />
+        <MetricCard
+          label="Missing costs"
+          value={String(summary.provider_usage.missing_cost_count)}
+          detail="Usage records without cost"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <ProviderUsageTable summary={summary} />
+      </div>
+    </>
+  )
+}
+
+function ObservabilityErrorsContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  const errorCount =
+    summary.errors.session_error_count + summary.errors.provider_error_count
+
+  return (
+    <>
+      <div className="metric-grid" aria-label="Error observability metrics">
+        <MetricCard
+          label="Errors"
+          value={String(errorCount)}
+          detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
+        />
+        <MetricCard
+          label="Failed sessions"
+          value={String(summary.sessions.by_status.failed ?? 0)}
+          detail={`${summary.sessions.total} sessions in filter`}
+        />
+        <MetricCard
+          label="Top messages"
+          value={String(summary.errors.top_messages.length)}
+          detail="Grouped error messages"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <StatusBreakdown summary={summary} />
+        <ErrorMessages summary={summary} />
+        <SessionHealth summary={summary} />
+      </div>
+    </>
+  )
+}
+
+function ObservabilityLatencyContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
+
+  return (
+    <>
+      <div className="metric-grid" aria-label="Latency observability metrics">
+        <MetricCard
+          label="Latency"
+          value={
+            slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
+          }
+          detail={
+            slowestP95 === null
+              ? 'No known provider latency'
+              : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
+          }
+        />
+        <MetricCard
+          label="Provider groups"
+          value={String(summary.provider_usage.groups.length)}
+          detail="Latency rollups"
+        />
+        <MetricCard
+          label="Provider calls"
+          value={String(summary.provider_usage.total_records)}
+          detail="Usage records with timing"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <ProviderLatencyTable summary={summary} />
+      </div>
     </>
   )
 }
@@ -4467,6 +5359,59 @@ function ProviderUsageTable({
                   <td>{formatNullableNumber(group.total_tokens)}</td>
                   <td>{formatNullableUsd(group.estimated_cost_usd)}</td>
                   <td>{formatNullableMs(group.latency_ms.p95)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ProviderLatencyTable({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <section
+      className="breakdown-card breakdown-card-wide"
+      aria-labelledby="provider-latency-title"
+    >
+      <BreakdownHeader
+        id="provider-latency-title"
+        label={`${summary.provider_usage.groups.length} groups`}
+        title="Provider latency"
+      />
+      {summary.provider_usage.groups.length === 0 ? (
+        <p className="empty-copy">No provider latency groups yet.</p>
+      ) : (
+        <div className="table-scroll">
+          <table className="observability-table">
+            <thead>
+              <tr>
+                <th scope="col">Operation</th>
+                <th scope="col">Provider</th>
+                <th scope="col">Model</th>
+                <th scope="col">Calls</th>
+                <th scope="col">Avg</th>
+                <th scope="col">P50</th>
+                <th scope="col">P95</th>
+                <th scope="col">Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.provider_usage.groups.map((group) => (
+                <tr key={`${group.operation}-${group.provider}-${group.model}`}>
+                  <td>{group.operation}</td>
+                  <td>{group.provider}</td>
+                  <td>{group.model}</td>
+                  <td>{formatNumber(group.record_count)}</td>
+                  <td>{formatNullableMs(group.latency_ms.avg)}</td>
+                  <td>{formatNullableMs(group.latency_ms.p50)}</td>
+                  <td>{formatNullableMs(group.latency_ms.p95)}</td>
+                  <td>{formatNullableMs(group.latency_ms.max)}</td>
                 </tr>
               ))}
             </tbody>
@@ -6136,6 +7081,10 @@ function normalizeActiveView(view: ActiveView): ActiveView {
   return view === 'settings' ? 'authoring' : view
 }
 
+function isSettingsModule(view: ActiveView): view is SettingsModule {
+  return view === 'authoring' || view === 'observability' || view === 'runtime'
+}
+
 function readActiveViewFromRoute(): ActiveView {
   if (typeof window === 'undefined') {
     return 'chat'
@@ -6660,6 +7609,13 @@ function observabilityStatusLabel(state: RequestState): string {
     return 'Loaded'
   }
   return 'Ready'
+}
+
+function observabilitySubmoduleLabel(submodule: ObservabilitySubmodule): string {
+  if (submodule === 'costs') return 'Costs'
+  if (submodule === 'errors') return 'Errors'
+  if (submodule === 'latency') return 'Latency'
+  return 'Summary'
 }
 
 function authoringStatusLabel(state: RequestState): string {

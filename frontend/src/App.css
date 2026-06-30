@@ -517,6 +517,83 @@
   color: var(--app-text-strong);
 }
 
+.contextual-navigation {
+  align-content: start;
+  align-items: stretch;
+  align-self: start;
+  border-top: 1px solid var(--app-border);
+  display: grid;
+  gap: 10px;
+  grid-auto-rows: max-content;
+  padding-top: 18px;
+}
+
+.sidebar-section-title {
+  color: var(--app-text-strong);
+  font-size: 14px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.contextual-nav-group {
+  align-content: start;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.contextual-nav-button,
+.contextual-nav-subbutton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--app-text-muted);
+  display: flex;
+  justify-content: flex-start;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.contextual-nav-subbutton {
+  border-radius: 6px;
+  font-size: 12px;
+  min-height: 30px;
+  padding-left: 18px;
+  position: relative;
+}
+
+.contextual-nav-subbutton::before {
+  background: var(--app-border);
+  border-radius: 999px;
+  bottom: -4px;
+  content: '';
+  left: 7px;
+  position: absolute;
+  top: -4px;
+  width: 1px;
+}
+
+.contextual-nav-button:hover,
+.contextual-nav-button-active,
+.contextual-nav-subbutton:hover,
+.contextual-nav-subbutton-active {
+  background: var(--app-accent-soft);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+.contextual-nav-button:disabled {
+  background: transparent;
+  border-color: transparent;
+  color: var(--app-text-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .view-switcher {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #c9d2cf;
@@ -1565,6 +1642,16 @@ button.chat-question-pill:hover {
   min-height: auto;
 }
 
+.authoring-grid-focused,
+.runtime-grid-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.authoring-grid-focused .authoring-panel,
+.runtime-grid-focused .runtime-panel {
+  min-height: auto;
+}
+
 .runtime-panel-wide {
   grid-column: 1 / -1;
 }
@@ -2516,32 +2603,6 @@ body,
   justify-content: space-between;
 }
 
-.settings-section-tabs {
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 6px;
-}
-
-.settings-section-tab {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--app-text-muted);
-  min-height: 42px;
-  min-width: 0;
-  padding: 0 12px;
-}
-
-.settings-section-tab:hover,
-.settings-section-tab-active {
-  background: var(--app-primary);
-  border-color: var(--app-primary);
-  color: var(--app-primary-fg);
-}
-
 .settings-section-body {
   display: grid;
   gap: 16px;
@@ -3172,20 +3233,53 @@ body,
   color: var(--app-text-strong);
 }
 
-.settings-section-tab,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab {
+.app-sidebar .contextual-nav-button,
+.app-sidebar .contextual-nav-subbutton,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-button,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton {
   background: transparent;
   border-color: transparent;
-  color: var(--app-text-muted);
+  color: var(--sidebar-muted);
 }
 
-.settings-section-tab:hover,
-.settings-section-tab-active,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab:hover,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab-active {
-  background: var(--app-primary);
-  border-color: var(--app-primary);
-  color: var(--app-primary-fg);
+.app-sidebar .contextual-nav-subbutton,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton {
+  color: color-mix(in srgb, var(--sidebar-muted) 82%, var(--sidebar-text));
+  margin-left: 12px;
+  width: calc(100% - 12px);
+}
+
+.app-sidebar .contextual-nav-subbutton::before,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton::before {
+  background: color-mix(in srgb, var(--sidebar-border) 78%, transparent);
+}
+
+.app-sidebar .contextual-nav-button:hover,
+.app-sidebar .contextual-nav-subbutton:hover,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton:hover {
+  background: var(--sidebar-surface-hover);
+  border-color: var(--sidebar-border);
+  color: var(--sidebar-text);
+}
+
+.app-sidebar .contextual-nav-button-active,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-button-active {
+  background: color-mix(in srgb, var(--sidebar-surface-hover) 82%, var(--sidebar-accent));
+  border-color: color-mix(in srgb, var(--sidebar-border) 72%, var(--sidebar-accent));
+  color: var(--sidebar-text);
+}
+
+.app-sidebar .contextual-nav-subbutton-active,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton-active {
+  background: var(--sidebar-surface-hover);
+  border-color: var(--sidebar-border);
+  color: var(--sidebar-text);
+}
+
+.app-sidebar .contextual-nav-subbutton-active::before,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton-active::before {
+  display: none;
 }
 
 .sidebar-burger,
