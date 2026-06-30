@@ -24,14 +24,25 @@ Button.displayName = 'Button'
 
 export type IconButtonProps = Omit<
   ButtonProps,
-  'aria-label' | 'aria-labelledby' | 'children' | 'data-slot' | 'size' | 'title'
+  | 'aria-hidden'
+  | 'aria-label'
+  | 'aria-labelledby'
+  | 'children'
+  | 'data-slot'
+  | 'role'
+  | 'size'
+  | 'tabIndex'
+  | 'title'
 > & {
+  'aria-hidden'?: never
   'aria-label'?: never
   'aria-labelledby'?: never
   children: ReactNode
   'data-slot'?: never
   label: string
+  role?: never
   size?: never
+  tabIndex?: never
   title?: never
 }
 
@@ -52,8 +63,11 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     } as typeof props & Record<string, unknown>
     delete buttonProps['aria-label']
     delete buttonProps['aria-labelledby']
+    delete buttonProps['aria-hidden']
     delete buttonProps['data-slot']
+    delete buttonProps.role
     delete buttonProps.size
+    delete buttonProps.tabIndex
     delete buttonProps.title
 
     return (

@@ -434,8 +434,11 @@ describe('IconButton', () => {
     const callerProps = {
       'aria-label': 'Wrong label',
       'aria-labelledby': 'hostile-label',
+      'aria-hidden': true,
       'data-slot': 'custom-icon-button',
+      role: 'link',
       size: 'sm',
+      tabIndex: -1,
       title: 'Wrong title',
     } as unknown as ComponentProps<typeof IconButton>
 
@@ -450,10 +453,12 @@ describe('IconButton', () => {
 
     const button = screen.getByRole('button', { name: 'Open menu' })
     const tokens = classTokens(button)
+    expect(button.getAttribute('role')).toBeNull()
+    expect(button.hasAttribute('aria-hidden')).toBe(false)
+    expect(button.hasAttribute('tabindex')).toBe(false)
     expect(button.getAttribute('data-slot')).toBe('icon-button')
     expect(button.getAttribute('title')).toBe('Open menu')
-    expect(tokens).toContain('h-9')
-    expect(tokens).toContain('w-9')
+    expect(tokens).toContain('size-9')
     expect(tokens).toContain('p-0')
     expect(tokens).not.toContain('px-3')
   })
@@ -502,7 +507,7 @@ export const buttonVariants = cva(
     },
     variants: {
       size: {
-        icon: 'h-9 w-9 p-0',
+        icon: 'size-9 p-0',
         md: 'h-9 px-4 py-2',
         sm: 'h-8 px-3 text-xs',
       },
@@ -548,14 +553,25 @@ Button.displayName = 'Button'
 
 export type IconButtonProps = Omit<
   ButtonProps,
-  'aria-label' | 'aria-labelledby' | 'children' | 'data-slot' | 'size' | 'title'
+  | 'aria-hidden'
+  | 'aria-label'
+  | 'aria-labelledby'
+  | 'children'
+  | 'data-slot'
+  | 'role'
+  | 'size'
+  | 'tabIndex'
+  | 'title'
 > & {
+  'aria-hidden'?: never
   'aria-label'?: never
   'aria-labelledby'?: never
   children: ReactNode
   'data-slot'?: never
   label: string
+  role?: never
   size?: never
+  tabIndex?: never
   title?: never
 }
 
@@ -576,8 +592,11 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     } as typeof props & Record<string, unknown>
     delete buttonProps['aria-label']
     delete buttonProps['aria-labelledby']
+    delete buttonProps['aria-hidden']
     delete buttonProps['data-slot']
+    delete buttonProps.role
     delete buttonProps.size
+    delete buttonProps.tabIndex
     delete buttonProps.title
 
     return (

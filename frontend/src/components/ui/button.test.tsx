@@ -48,8 +48,11 @@ describe('IconButton', () => {
     const callerProps = {
       'aria-label': 'Wrong label',
       'aria-labelledby': 'hostile-label',
+      'aria-hidden': true,
       'data-slot': 'custom-icon-button',
+      role: 'link',
       size: 'sm',
+      tabIndex: -1,
       title: 'Wrong title',
     } as unknown as ComponentProps<typeof IconButton>
 
@@ -64,10 +67,12 @@ describe('IconButton', () => {
 
     const button = screen.getByRole('button', { name: 'Open menu' })
     const tokens = classTokens(button)
+    expect(button.getAttribute('role')).toBeNull()
+    expect(button.hasAttribute('aria-hidden')).toBe(false)
+    expect(button.hasAttribute('tabindex')).toBe(false)
     expect(button.getAttribute('data-slot')).toBe('icon-button')
     expect(button.getAttribute('title')).toBe('Open menu')
-    expect(tokens).toContain('h-9')
-    expect(tokens).toContain('w-9')
+    expect(tokens).toContain('size-9')
     expect(tokens).toContain('p-0')
     expect(tokens).not.toContain('px-3')
   })
