@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --app-page-background: #f4f6f8;
   --app-shell-background:
     linear-gradient(135deg, rgba(21, 115, 139, 0.08), transparent 34%),
@@ -20,6 +20,7 @@
   --app-input: #ffffff;
   --app-input-border: #cbd6d2;
   --app-ring: rgba(47, 125, 115, 0.16);
+  --app-success: #23705f;
   --app-error: #9b3939;
   --app-shadow: 0 18px 46px rgba(28, 40, 39, 0.08);
 }
@@ -43,6 +44,7 @@
   --app-input: #050505;
   --app-input-border: #3a3a3a;
   --app-ring: rgba(245, 245, 245, 0.18);
+  --app-success: #93e3c9;
   --app-error: #ff9d9d;
   --app-shadow: none;
 }
@@ -68,6 +70,7 @@
   --app-input: #19142d;
   --app-input-border: #382e61;
   --app-ring: rgba(139, 108, 255, 0.2);
+  --app-success: #9ee6cf;
   --app-error: #ffb4b4;
   --app-shadow: none;
 }
@@ -1975,6 +1978,51 @@ button.chat-question-pill:hover {
 
 .connection-row-actions {
   align-content: flex-start;
+}
+
+.connection-check-result {
+  font-weight: 800;
+}
+
+.connection-check-result-ok {
+  color: #23705f;
+}
+
+.connection-check-result-error {
+  color: #9f2f24;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .connection-check-result-ok {
+  color: var(--app-success);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .connection-check-result-error {
+  color: var(--app-error);
+}
+
+.authoring-row-actions .secondary-button {
+  margin-top: 0;
+  width: auto;
+}
+
+.connection-form-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.connection-form-heading h3 {
+  color: #1f2d29;
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.connection-form-heading .secondary-button {
+  margin-top: 0;
+  width: auto;
 }
 
 .connection-delete-confirm {

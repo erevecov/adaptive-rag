@@ -94,6 +94,13 @@ class ProviderConnectionListResponse(BaseModel):
     items: list[ProviderConnectionResponse]
 
 
+class ProviderConnectionCheckResponse(BaseModel):
+    connection_id: str
+    ok: bool
+    model_count: int
+    message: str
+
+
 class ProviderModelResponse(BaseModel):
     connection_id: str
     model_id: str

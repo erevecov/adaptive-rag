@@ -1,4 +1,4 @@
-import {
+﻿import {
   type Dispatch,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -36,6 +36,7 @@ import {
   type ProjectMembership,
   type ProjectRuntimeSettings,
   type ProviderConnection,
+  type ProviderConnectionCheckResponse,
   type ProviderModel,
   type RuntimeSlotDefault,
   type RetrievalResult,
@@ -360,6 +361,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     'chat',
   ])
   const [connectionApiKey, setConnectionApiKey] = useState('')
+  const [editingConnectionId, setEditingConnectionId] = useState<string | null>(
+    null,
+  )
+  const [connectionCheckResults, setConnectionCheckResults] = useState<
+    Record<string, ProviderConnectionCheckResponse>
+  >({})
+  const [checkingConnectionId, setCheckingConnectionId] = useState<string | null>(
+    null,
+  )
   const [deleteConnectionId, setDeleteConnectionId] = useState<string | null>(
     null,
   )
@@ -557,6 +567,68 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       ignore = true
     }
   }, [client, primaryView, runtimeSubmodule, settingsModule])
+
+  useEffect(() => {
+    if (
+      primaryView !== 'settings' ||
+      settingsModule !== 'runtime' ||
+      runtimeSubmodule !== 'model_catalog'
+    ) {
+      return
+    }
+
+    let ignore = false
+
+    void client
+      .listProviderConnections()
+      .then(async (connections) => {
+        const currentConnectionId = modelSyncConnectionId.trim()
+        const selectedConnectionId = connections.items.some(
+          (connection) => connection.connection_id === currentConnectionId,
+        )
+          ? currentConnectionId
+          : (connections.items[0]?.connection_id ?? '')
+
+        if (ignore) return
+        setRuntimeConnections(connections.items)
+        if (selectedConnectionId !== currentConnectionId) {
+          setModelSyncConnectionId(selectedConnectionId)
+          if (selectedConnectionId.length > 0) {
+            return
+          }
+        }
+
+        if (selectedConnectionId.length === 0) {
+          setRuntimeProviderModels([])
+          setRuntimeError(null)
+          setRuntimeState('succeeded')
+          return
+        }
+
+        const providerModels = await client.listProviderModels({
+          connection_id: selectedConnectionId,
+        })
+        if (ignore) return
+        setRuntimeProviderModels(providerModels.items)
+        setRuntimeError(null)
+        setRuntimeState('succeeded')
+      })
+      .catch((error: unknown) => {
+        if (ignore) return
+        setRuntimeState('failed')
+        setRuntimeError(getErrorMessage(error))
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [
+    client,
+    modelSyncConnectionId,
+    primaryView,
+    runtimeSubmodule,
+    settingsModule,
+  ])
 
   function handleChatTranscriptScroll() {
     const transcript = chatTranscriptRef.current
@@ -1504,11 +1576,40 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
 
     try {
+      const trimmedConnectionId = modelSyncConnectionId.trim()
       const [connections, providerModels] = await Promise.all([
         client.listProviderConnections(),
-        client.listProviderModels(),
+        client.listProviderModels(
+          trimmedConnectionId.length > 0
+            ? { connection_id: trimmedConnectionId }
+            : undefined,
+        ),
       ])
       setRuntimeConnections(connections.items)
+      setRuntimeProviderModels(providerModels.items)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSelectModelCatalogConnection(value: string) {
+    setModelSyncConnectionId(value)
+    const trimmedConnectionId = value.trim()
+    if (trimmedConnectionId.length === 0) {
+      setRuntimeProviderModels([])
+      setRuntimeError(null)
+      setRuntimeState('idle')
+      return
+    }
+
+    setRuntimeState('loading')
+    setRuntimeError(null)
+    try {
+      const providerModels = await client.listProviderModels({
+        connection_id: trimmedConnectionId,
+      })
       setRuntimeProviderModels(providerModels.items)
       setRuntimeState('succeeded')
     } catch (error) {
@@ -1574,6 +1675,46 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  function resetConnectionForm() {
+    setEditingConnectionId(null)
+    setConnectionProvider('qwen')
+    setConnectionType('hosted')
+    setConnectionBaseUrl('')
+    setConnectionCapabilities(['chat'])
+    setConnectionApiKey('')
+  }
+
+  function handleRequestEditConnection(connectionId: string) {
+    const connection = runtimeConnections.find(
+      (item) => item.connection_id === connectionId,
+    )
+    if (connection === undefined) {
+      setRuntimeState('failed')
+      setRuntimeError('Connection was not found.')
+      return
+    }
+
+    setEditingConnectionId(connection.connection_id)
+    setConnectionProvider(connection.provider)
+    setConnectionType(connection.connection_type)
+    setConnectionBaseUrl(connection.base_url ?? '')
+    setConnectionCapabilities(
+      connection.capabilities.filter((capability) =>
+        PROVIDER_CONNECTION_CAPABILITIES.includes(capability),
+      ),
+    )
+    setConnectionApiKey('')
+    setDeleteConnectionId(null)
+    setDeleteConnectionConfirmation('')
+    setRuntimeError(null)
+    setRuntimeSubmodule('connections')
+  }
+
+  function handleCancelEditConnection() {
+    resetConnectionForm()
+    setRuntimeError(null)
+  }
+
   async function handleSaveConnection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const selectedCapabilities = connectionCapabilities.filter((capability) =>
@@ -1589,15 +1730,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      const connection = await client.createProviderConnection({
+      const editingConnection =
+        editingConnectionId === null
+          ? null
+          : runtimeConnections.find(
+              (connection) => connection.connection_id === editingConnectionId,
+            )
+      const body = {
         api_key: trimmedApiKey.length > 0 ? trimmedApiKey : null,
         base_url: optionalFilterValue(connectionBaseUrl),
         capabilities: selectedCapabilities,
         connection_type: connectionType,
-        metadata: null,
+        metadata: editingConnection?.metadata ?? null,
         provider: connectionProvider,
-      })
+      }
+      const connection =
+        editingConnectionId === null
+          ? await client.createProviderConnection(body)
+          : await client.upsertProviderConnection(editingConnectionId, body)
       setRuntimeConnections((current) => upsertConnection(current, connection))
+      setConnectionCheckResults((current) => {
+        const next = { ...current }
+        delete next[connection.connection_id]
+        return next
+      })
       setModelSyncConnectionId(connection.connection_id)
       setConnectionApiKey('')
       setRuntimeState('succeeded')
@@ -1617,6 +1773,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setDeleteConnectionId(null)
     setDeleteConnectionConfirmation('')
     setRuntimeError(null)
+  }
+
+  async function handleCheckProviderConnection(connectionId: string) {
+    setCheckingConnectionId(connectionId)
+    setRuntimeError(null)
+    try {
+      const response = await client.checkProviderConnection(connectionId)
+      setConnectionCheckResults((current) => ({
+        ...current,
+        [connectionId]: response,
+      }))
+      setRuntimeState(response.ok ? 'succeeded' : 'failed')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    } finally {
+      setCheckingConnectionId((current) =>
+        current === connectionId ? null : current,
+      )
+    }
   }
 
   async function handleDeleteConnection(event: FormEvent<HTMLFormElement>) {
@@ -1650,6 +1826,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setRuntimeChatModels((current) =>
         current.filter((model) => model.connection_id !== connectionId),
       )
+      setConnectionCheckResults((current) => {
+        const next = { ...current }
+        delete next[connectionId]
+        return next
+      })
       setProjectRuntimeSettings((current) =>
         current === null
           ? null
@@ -1666,6 +1847,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setModelSyncConnectionId((current) =>
         current === connectionId ? '' : current,
       )
+      if (editingConnectionId === connectionId) {
+        resetConnectionForm()
+      }
       if (globalSlotConnectionId === connectionId) {
         setGlobalSlotConnectionId('')
         setGlobalSlotModelId('')
@@ -2213,13 +2397,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 chatModelId={globalChatModelId}
                 chatModels={runtimeChatModels}
                 chatRetrievalSettings={runtimeChatRetrieval}
+                checkingConnectionId={checkingConnectionId}
                 connectionBaseUrl={connectionBaseUrl}
+                connectionCheckResults={connectionCheckResults}
                 connectionCapabilities={connectionCapabilities}
                 connectionProvider={connectionProvider}
                 connectionType={connectionType}
                 connections={runtimeConnections}
                 deleteConnectionConfirmation={deleteConnectionConfirmation}
                 deleteConnectionId={deleteConnectionId}
+                editingConnectionId={editingConnectionId}
                 error={runtimeError}
                 globalChatRerankCandidateLimit={
                   globalChatRerankCandidateLimit
@@ -2237,6 +2424,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onConnectionProviderChange={setConnectionProvider}
                 onConnectionTypeChange={setConnectionType}
                 onCancelDeleteConnection={handleCancelDeleteConnection}
+                onCancelEditConnection={handleCancelEditConnection}
+                onCheckConnection={(connectionId) =>
+                  void handleCheckProviderConnection(connectionId)
+                }
                 onDeleteConnection={(event) => void handleDeleteConnection(event)}
                 onDeleteConnectionConfirmationChange={
                   setDeleteConnectionConfirmation
@@ -2271,6 +2462,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
                 onRequestDeleteConnection={handleRequestDeleteConnection}
+                onRequestEditConnection={handleRequestEditConnection}
                 onSaveConnection={(event) => void handleSaveConnection(event)}
                 onSaveGlobalChatModel={(event) =>
                   void handleSaveGlobalChatModel(event)
@@ -2288,7 +2480,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSyncProviderModels={(event) =>
                   void handleSyncProviderModels(event)
                 }
-                onModelSyncConnectionIdChange={setModelSyncConnectionId}
+                onModelSyncConnectionIdChange={(value) =>
+                  void handleSelectModelCatalogConnection(value)
+                }
                 projectId={projectId}
                 projectChatRerankCandidateLimit={
                   projectChatRerankCandidateLimit
@@ -3057,14 +3251,17 @@ function RuntimeSettingsPanel({
   chatModelId,
   chatModels,
   chatRetrievalSettings,
+  checkingConnectionId,
   connectionApiKey,
   connectionBaseUrl,
+  connectionCheckResults,
   connectionCapabilities,
   connectionProvider,
   connectionType,
   connections,
   deleteConnectionConfirmation,
   deleteConnectionId,
+  editingConnectionId,
   error,
   globalChatRerankCandidateLimit,
   globalChatRerankEnabled,
@@ -3080,6 +3277,8 @@ function RuntimeSettingsPanel({
   onConnectionProviderChange,
   onConnectionTypeChange,
   onCancelDeleteConnection,
+  onCancelEditConnection,
+  onCheckConnection,
   onDeleteConnection,
   onDeleteConnectionConfirmationChange,
   onGlobalChatRerankCandidateLimitChange,
@@ -3100,6 +3299,7 @@ function RuntimeSettingsPanel({
   onResetProjectChatRetrieval,
   onResetProjectSlot,
   onRequestDeleteConnection,
+  onRequestEditConnection,
   onSaveConnection,
   onSaveGlobalChatModel,
   onSaveGlobalChatRetrieval,
@@ -3126,14 +3326,17 @@ function RuntimeSettingsPanel({
   chatModelId: string
   chatModels: ChatModel[]
   chatRetrievalSettings: ChatRetrievalSettings | null
+  checkingConnectionId: string | null
   connectionApiKey: string
   connectionBaseUrl: string
+  connectionCheckResults: Record<string, ProviderConnectionCheckResponse>
   connectionCapabilities: string[]
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
   deleteConnectionConfirmation: string
   deleteConnectionId: string | null
+  editingConnectionId: string | null
   error: string | null
   globalChatRerankCandidateLimit: number
   globalChatRerankEnabled: boolean
@@ -3149,6 +3352,8 @@ function RuntimeSettingsPanel({
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
   onCancelDeleteConnection(): void
+  onCancelEditConnection(): void
+  onCheckConnection(connectionId: string): void
   onDeleteConnection(event: FormEvent<HTMLFormElement>): void
   onDeleteConnectionConfirmationChange(value: string): void
   onGlobalChatRerankCandidateLimitChange(value: number): void
@@ -3169,6 +3374,7 @@ function RuntimeSettingsPanel({
   onResetProjectChatRetrieval(): void
   onResetProjectSlot(slot: string): void
   onRequestDeleteConnection(connectionId: string): void
+  onRequestEditConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
@@ -3237,9 +3443,14 @@ function RuntimeSettingsPanel({
         connectionProvider={connectionProvider}
         connectionType={connectionType}
         connections={connections}
+        checkingConnectionId={checkingConnectionId}
+        connectionCheckResults={connectionCheckResults}
         deleteConnectionConfirmation={deleteConnectionConfirmation}
         deleteConnectionId={deleteConnectionId}
+        editingConnectionId={editingConnectionId}
         onCancelDeleteConnection={onCancelDeleteConnection}
+        onCancelEditConnection={onCancelEditConnection}
+        onCheckConnection={onCheckConnection}
         onConnectionApiKeyChange={onConnectionApiKeyChange}
         onConnectionBaseUrlChange={onConnectionBaseUrlChange}
         onConnectionCapabilitiesChange={onConnectionCapabilitiesChange}
@@ -3250,6 +3461,7 @@ function RuntimeSettingsPanel({
           onDeleteConnectionConfirmationChange
         }
         onRequestDeleteConnection={onRequestDeleteConnection}
+        onRequestEditConnection={onRequestEditConnection}
         onSaveConnection={onSaveConnection}
         state={state}
       />
@@ -3257,6 +3469,7 @@ function RuntimeSettingsPanel({
       <RuntimeModelCatalogPanel
         connections={connections}
         modelSyncConnectionId={modelSyncConnectionId}
+        onEditConnection={onRequestEditConnection}
         onModelSyncConnectionIdChange={onModelSyncConnectionIdChange}
         onRefresh={onRefreshModelCatalog}
         onSyncProviderModels={onSyncProviderModels}
@@ -3341,15 +3554,20 @@ function RuntimeSettingsPanel({
 }
 
 function RuntimeConnectionsPanel({
+  checkingConnectionId,
   connectionApiKey,
   connectionBaseUrl,
+  connectionCheckResults,
   connectionCapabilities,
   connectionProvider,
   connectionType,
   connections,
   deleteConnectionConfirmation,
   deleteConnectionId,
+  editingConnectionId,
   onCancelDeleteConnection,
+  onCancelEditConnection,
+  onCheckConnection,
   onConnectionApiKeyChange,
   onConnectionBaseUrlChange,
   onConnectionCapabilitiesChange,
@@ -3358,18 +3576,24 @@ function RuntimeConnectionsPanel({
   onDeleteConnection,
   onDeleteConnectionConfirmationChange,
   onRequestDeleteConnection,
+  onRequestEditConnection,
   onSaveConnection,
   state,
 }: {
+  checkingConnectionId: string | null
   connectionApiKey: string
   connectionBaseUrl: string
+  connectionCheckResults: Record<string, ProviderConnectionCheckResponse>
   connectionCapabilities: string[]
   connectionProvider: string
   connectionType: string
   connections: ProviderConnection[]
   deleteConnectionConfirmation: string
   deleteConnectionId: string | null
+  editingConnectionId: string | null
   onCancelDeleteConnection(): void
+  onCancelEditConnection(): void
+  onCheckConnection(connectionId: string): void
   onConnectionApiKeyChange(value: string): void
   onConnectionBaseUrlChange(value: string): void
   onConnectionCapabilitiesChange(value: string[]): void
@@ -3378,10 +3602,12 @@ function RuntimeConnectionsPanel({
   onDeleteConnection(event: FormEvent<HTMLFormElement>): void
   onDeleteConnectionConfirmationChange(value: string): void
   onRequestDeleteConnection(connectionId: string): void
+  onRequestEditConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
   state: RequestState
 }) {
   const canSaveConnection = connectionCapabilities.length > 0 && state !== 'loading'
+  const isEditingConnection = editingConnectionId !== null
 
   return (
     <section className="panel runtime-panel" aria-labelledby="runtime-connections-title">
@@ -3401,86 +3627,132 @@ function RuntimeConnectionsPanel({
               <span>No runtime connections loaded.</span>
             </li>
           ) : (
-            connections.map((connection) => (
-              <li
-                className="authoring-row authoring-row-static connection-row"
-                key={connection.connection_id}
-              >
-                <span>
-                  <strong>{connection.connection_id}</strong>
-                  <small>
-                    {connection.provider} / {connection.connection_type}
-                  </small>
-                  <small>{connection.capabilities.join(', ')}</small>
-                  {connection.base_url ? <small>{connection.base_url}</small> : null}
-                  <ConnectionSecretSummary connection={connection} />
-                </span>
-                <div className="authoring-row-actions connection-row-actions">
-                  <em>{connection.connection_type}</em>
-                  <button
-                    aria-label={`Delete ${connection.connection_id} connection`}
-                    className="secondary-button compact-button danger-button"
-                    disabled={state === 'loading'}
-                    onClick={() =>
-                      onRequestDeleteConnection(connection.connection_id)
-                    }
-                    type="button"
-                  >
-                    Delete
-                  </button>
-                </div>
-                {deleteConnectionId === connection.connection_id ? (
-                  <form
-                    aria-label={`Delete ${connection.connection_id} connection`}
-                    className="connection-delete-confirm"
-                    onSubmit={onDeleteConnection}
-                  >
-                    <p>
-                      Type <strong>{connection.connection_id}</strong> to confirm
-                      deletion.
-                    </p>
-                    <label className="field">
-                      <span>Confirm connection ID</span>
-                      <input
-                        autoComplete="off"
-                        onChange={(event) =>
-                          onDeleteConnectionConfirmationChange(
-                            event.currentTarget.value,
-                          )
-                        }
-                        value={deleteConnectionConfirmation}
-                      />
-                    </label>
-                    <div className="connection-delete-actions">
-                      <button
-                        className="secondary-button compact-button"
-                        disabled={state === 'loading'}
-                        onClick={onCancelDeleteConnection}
-                        type="button"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="compact-button danger-button danger-button-solid"
-                        disabled={
-                          state === 'loading' ||
-                          deleteConnectionConfirmation.trim() !==
-                            connection.connection_id
-                        }
-                        type="submit"
-                      >
-                        Delete connection
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
-              </li>
-            ))
+            connections.map((connection) => {
+              const isChecking =
+                checkingConnectionId === connection.connection_id
+              const checkResult =
+                connectionCheckResults[connection.connection_id]
+              return (
+                <li
+                  className="authoring-row authoring-row-static connection-row"
+                  key={connection.connection_id}
+                >
+                  <span>
+                    <strong>{connection.connection_id}</strong>
+                    <small>
+                      {connection.provider} / {connection.connection_type}
+                    </small>
+                    <small>{connection.capabilities.join(', ')}</small>
+                    {connection.base_url ? (
+                      <small>{connection.base_url}</small>
+                    ) : null}
+                    <ConnectionSecretSummary connection={connection} />
+                    <ConnectionCheckSummary result={checkResult} />
+                  </span>
+                  <div className="authoring-row-actions connection-row-actions">
+                    <em>{connection.connection_type}</em>
+                    <button
+                      aria-label={`Check ${connection.connection_id} connection`}
+                      className="secondary-button compact-button"
+                      disabled={state === 'loading' || isChecking}
+                      onClick={() => onCheckConnection(connection.connection_id)}
+                      type="button"
+                    >
+                      {isChecking ? 'Checking...' : 'Check'}
+                    </button>
+                    <button
+                      aria-label={`Edit ${connection.connection_id} connection`}
+                      className="secondary-button compact-button"
+                      disabled={state === 'loading'}
+                      onClick={() =>
+                        onRequestEditConnection(connection.connection_id)
+                      }
+                      type="button"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      aria-label={`Delete ${connection.connection_id} connection`}
+                      className="secondary-button compact-button danger-button"
+                      disabled={state === 'loading'}
+                      onClick={() =>
+                        onRequestDeleteConnection(connection.connection_id)
+                      }
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  {deleteConnectionId === connection.connection_id ? (
+                    <form
+                      aria-label={`Delete ${connection.connection_id} connection`}
+                      className="connection-delete-confirm"
+                      onSubmit={onDeleteConnection}
+                    >
+                      <p>
+                        Type <strong>{connection.connection_id}</strong> to confirm
+                        deletion.
+                      </p>
+                      <label className="field">
+                        <span>Confirm connection ID</span>
+                        <input
+                          autoComplete="off"
+                          onChange={(event) =>
+                            onDeleteConnectionConfirmationChange(
+                              event.currentTarget.value,
+                            )
+                          }
+                          value={deleteConnectionConfirmation}
+                        />
+                      </label>
+                      <div className="connection-delete-actions">
+                        <button
+                          className="secondary-button compact-button"
+                          disabled={state === 'loading'}
+                          onClick={onCancelDeleteConnection}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="compact-button danger-button danger-button-solid"
+                          disabled={
+                            state === 'loading' ||
+                            deleteConnectionConfirmation.trim() !==
+                              connection.connection_id
+                          }
+                          type="submit"
+                        >
+                          Delete connection
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                </li>
+              )
+            })
           )}
         </ul>
       </section>
 
       <form className="authoring-form" onSubmit={onSaveConnection}>
+        <div className="connection-form-heading">
+          <h3>
+            {isEditingConnection
+              ? `Edit connection ${editingConnectionId}`
+              : 'New connection'}
+          </h3>
+          {isEditingConnection ? (
+            <button
+              className="secondary-button compact-button"
+              disabled={state === 'loading'}
+              onClick={onCancelEditConnection}
+              type="button"
+            >
+              Cancel edit
+            </button>
+          ) : null}
+        </div>
         <div className="runtime-form-grid">
           <label className="field">
             <span>Provider</span>
@@ -3536,7 +3808,7 @@ function RuntimeConnectionsPanel({
           </label>
         </div>
         <button disabled={!canSaveConnection} type="submit">
-          Save connection
+          {isEditingConnection ? 'Update connection' : 'Save connection'}
         </button>
       </form>
     </section>
@@ -3699,6 +3971,7 @@ function CapabilitySelector({
 function RuntimeModelCatalogPanel({
   connections,
   modelSyncConnectionId,
+  onEditConnection,
   onModelSyncConnectionIdChange,
   onRefresh,
   onSyncProviderModels,
@@ -3707,12 +3980,17 @@ function RuntimeModelCatalogPanel({
 }: {
   connections: ProviderConnection[]
   modelSyncConnectionId: string
+  onEditConnection(connectionId: string): void
   onModelSyncConnectionIdChange(value: string): void
   onRefresh(): void
   onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
   providerModels: ProviderModel[]
   state: RequestState
 }) {
+  const selectedConnection = connections.find(
+    (connection) => connection.connection_id === modelSyncConnectionId.trim(),
+  )
+
   return (
     <section className="panel runtime-panel" aria-labelledby="runtime-model-catalog-title">
       <div className="panel-heading">
@@ -3746,6 +4024,39 @@ function RuntimeModelCatalogPanel({
         </div>
         <button type="submit">Sync models</button>
       </form>
+
+      {selectedConnection ? (
+        <section
+          className="runtime-section"
+          aria-label="Selected model sync connection"
+        >
+          <ul className="authoring-list">
+            <li className="authoring-row authoring-row-static connection-row">
+              <span>
+                <strong>{connectionOptionLabel(selectedConnection)}</strong>
+                <small>{selectedConnection.connection_id}</small>
+                <small>{selectedConnection.capabilities.join(', ')}</small>
+                {selectedConnection.base_url ? (
+                  <small>{selectedConnection.base_url}</small>
+                ) : null}
+                <ConnectionSecretSummary connection={selectedConnection} />
+              </span>
+              <div className="authoring-row-actions connection-row-actions">
+                <button
+                  className="secondary-button compact-button"
+                  disabled={state === 'loading'}
+                  onClick={() =>
+                    onEditConnection(selectedConnection.connection_id)
+                  }
+                  type="button"
+                >
+                  Edit connection
+                </button>
+              </div>
+            </li>
+          </ul>
+        </section>
+      ) : null}
 
       <ProviderModelCatalogView providerModels={providerModels} />
     </section>
@@ -4204,6 +4515,30 @@ function ConnectionSecretSummary({
         </small>
       ))}
     </>
+  )
+}
+
+function ConnectionCheckSummary({
+  result,
+}: {
+  result: ProviderConnectionCheckResponse | undefined
+}) {
+  if (result === undefined) {
+    return null
+  }
+
+  return (
+    <small
+      className={
+        result.ok
+          ? 'connection-check-result connection-check-result-ok'
+          : 'connection-check-result connection-check-result-error'
+      }
+    >
+      {result.ok
+        ? `Connection check passed: ${result.model_count} provider models reachable.`
+        : `Connection check failed: ${result.message}`}
+    </small>
   )
 }
 
@@ -6188,8 +6523,8 @@ function ResponseDetailsPanel({
         onClick={() => setExpanded((current) => !current)}
         type="button"
       >
-        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
-        details · {summaryParts.join(' · ')}
+        <span aria-hidden="true">{expanded ? 'â–¾' : 'â–¸'}</span>
+        details Â· {summaryParts.join(' Â· ')}
       </button>
 
       {expanded ? (
@@ -6234,7 +6569,7 @@ function ResponseDetailsContent({
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
         <section className="response-detail-group" aria-label="Tool calls detail">
-          <h3>tool calls · {toolCallCount}</h3>
+          <h3>tool calls Â· {toolCallCount}</h3>
           <ul className="tool-call-list tool-call-list-compact">
             {response.tool_calls.map((call) => (
               <li key={`${call.name}-${call.query}`}>
@@ -6250,7 +6585,7 @@ function ResponseDetailsContent({
       ) : null}
       {sourceCount > 0 ? (
         <section className="response-detail-group" aria-label="Sources detail">
-          <h3>sources · {sourceCount}</h3>
+          <h3>sources Â· {sourceCount}</h3>
           <ol className="citation-list citation-list-compact">
             {response.citations.map((result) => (
               <li key={result.chunk_id}>
@@ -6637,7 +6972,7 @@ function SessionNavigationPanel({
                       }}
                     >
                       <input
-                        aria-label="Nuevo nombre de sesión"
+                        aria-label="Nuevo nombre de sesiÃ³n"
                         className="session-rename-input"
                         maxLength={60}
                         onBlur={() => {
@@ -6657,7 +6992,7 @@ function SessionNavigationPanel({
                     </form>
                   ) : (
                     <button
-                      aria-label={`Abrir sesión ${title}`}
+                      aria-label={`Abrir sesiÃ³n ${title}`}
                       className="session-button"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
@@ -6723,7 +7058,7 @@ function SessionNavigationPanel({
           onClick={onLoadMore}
           type="button"
         >
-          {isLoading ? 'cargando...' : 'ver más'}
+          {isLoading ? 'cargando...' : 'ver mÃ¡s'}
         </button>
       ) : null}
     </aside>

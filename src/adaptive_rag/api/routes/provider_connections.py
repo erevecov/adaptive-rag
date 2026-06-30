@@ -14,6 +14,7 @@ from adaptive_rag.api.dependencies import (
     get_superadmin_user,
 )
 from adaptive_rag.api.schemas.provider_connections import (
+    ProviderConnectionCheckResponse,
     ProviderConnectionListResponse,
     ProviderConnectionResponse,
     ProviderConnectionUpsertRequestBody,
@@ -181,6 +182,40 @@ def sync_provider_models(
         connection_id=connection.connection_id,
         synced_count=len(discovered),
         items=[ProviderModelResponse.from_model(model) for model in models],
+    )
+
+
+@router.post(
+    "/connections/{connection_id}/check",
+    response_model=ProviderConnectionCheckResponse,
+)
+def check_provider_connection(
+    connection_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    lister: Annotated[ProviderModelLister, Depends(get_provider_model_lister)],
+    secret_store: Annotated[ProviderSecretStore, Depends(get_provider_secret_store)],
+) -> ProviderConnectionCheckResponse:
+    connection = session.get(ProviderConnection, connection_id)
+    if connection is None:
+        raise _http_error(ValueError("connection not found"))
+    try:
+        api_key = _api_key_for_sync(connection, session, secret_store)
+        discovered = lister.list_models(connection, api_key=api_key)
+    except (ProviderSecretDecryptError, ProviderSecretKeyError) as exc:
+        raise _http_error(exc) from exc
+    except ValueError as exc:
+        return ProviderConnectionCheckResponse(
+            connection_id=connection.connection_id,
+            ok=False,
+            model_count=0,
+            message=str(exc),
+        )
+
+    return ProviderConnectionCheckResponse(
+        connection_id=connection.connection_id,
+        ok=True,
+        model_count=len(discovered),
+        message="provider model list succeeded",
     )
 
 

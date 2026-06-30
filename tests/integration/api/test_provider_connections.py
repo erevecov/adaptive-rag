@@ -1,4 +1,4 @@
-"""Tests for global runtime provider connection HTTP API."""
+﻿"""Tests for global runtime provider connection HTTP API."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from adaptive_rag.api.app import create_app
-from adaptive_rag.api.dependencies import get_session
+from adaptive_rag.api.dependencies import get_provider_model_lister, get_session
 from adaptive_rag.auth import hash_access_token
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.base import Base
@@ -20,6 +20,37 @@ from adaptive_rag.db.models import ProviderConnection, ProviderSecret, User
 from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import UserRepository
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.provider_models import ProviderModelInfo
+
+
+class StubProviderModelLister:
+    def __init__(self) -> None:
+        self.api_keys: list[str | None] = []
+
+    def list_models(
+        self,
+        connection: ProviderConnection,
+        *,
+        api_key: str | None,
+    ) -> list[ProviderModelInfo]:
+        self.api_keys.append(api_key)
+        return [
+            ProviderModelInfo(model_id="qwen-plus", capabilities=("chat",)),
+            ProviderModelInfo(
+                model_id="text-embedding-v4",
+                capabilities=("dense_embedding",),
+            ),
+        ]
+
+
+class FailingProviderModelLister:
+    def list_models(
+        self,
+        connection: ProviderConnection,
+        *,
+        api_key: str | None,
+    ) -> list[ProviderModelInfo]:
+        raise ValueError("provider model list failed with status 401")
 
 
 def _make_session() -> Session:
@@ -40,7 +71,11 @@ def _make_session() -> Session:
     return create_session_factory(engine)()
 
 
-def _client(*, session: Session) -> TestClient:
+def _client(
+    *,
+    lister: FailingProviderModelLister | StubProviderModelLister | None = None,
+    session: Session,
+) -> TestClient:
     get_settings.cache_clear()
     app = create_app()
 
@@ -48,6 +83,8 @@ def _client(*, session: Session) -> TestClient:
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    if lister is not None:
+        app.dependency_overrides[get_provider_model_lister] = lambda: lister
     return TestClient(app)
 
 
@@ -285,3 +322,65 @@ def test_secret_write_bootstraps_local_encryption_key_file(
     row = session.get(ProviderSecret, ("qwen-hosted", "api_key"))
     assert row is not None
     assert b"sk-hosted-secret" not in row.encrypted_value
+
+
+def test_connection_check_lists_provider_models_without_persisting_catalog(
+    monkeypatch,
+) -> None:
+    key = base64.urlsafe_b64encode(b"5" * 32).decode("ascii")
+    monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
+    session = _make_session()
+    lister = StubProviderModelLister()
+    client = _client(lister=lister, session=session)
+    client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat", "dense_embedding"],
+            "api_key": "sk-hosted-secret",
+        },
+    )
+
+    response = client.post("/runtime-settings/connections/qwen-hosted/check")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload == {
+        "connection_id": "qwen-hosted",
+        "message": "provider model list succeeded",
+        "model_count": 2,
+        "ok": True,
+    }
+    assert lister.api_keys == ["sk-hosted-secret"]
+    assert "sk-hosted-secret" not in str(payload)
+
+
+def test_connection_check_reports_provider_failures_without_syncing(
+    monkeypatch,
+) -> None:
+    key = base64.urlsafe_b64encode(b"6" * 32).decode("ascii")
+    monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
+    session = _make_session()
+    client = _client(lister=FailingProviderModelLister(), session=session)
+    client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat", "dense_embedding"],
+            "api_key": "sk-hosted-secret",
+        },
+    )
+
+    response = client.post("/runtime-settings/connections/qwen-hosted/check")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "connection_id": "qwen-hosted",
+        "message": "provider model list failed with status 401",
+        "model_count": 0,
+        "ok": False,
+    }
