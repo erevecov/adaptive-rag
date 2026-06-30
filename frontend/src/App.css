@@ -2760,8 +2760,12 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton-active {
   background: var(--sidebar-surface-hover);
   border-color: var(--sidebar-border);
-  box-shadow: inset 2px 0 0 var(--sidebar-accent);
   color: var(--sidebar-text);
+}
+
+.app-sidebar .contextual-nav-subbutton-active::before,
+:is([data-theme='dark'], [data-theme='purple']) .app-sidebar .contextual-nav-subbutton-active::before {
+  display: none;
 }
 
 .sidebar-burger,
