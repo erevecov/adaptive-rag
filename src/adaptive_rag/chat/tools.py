@@ -15,6 +15,7 @@ from adaptive_rag.chat.audit import (
 )
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import ChatToolCall
+from adaptive_rag.chat.streaming import ChatStep
 from adaptive_rag.retrieval import (
     RetrievalMetadataFilter,
     RetrievalRerankOptions,
@@ -120,6 +121,7 @@ class ChatRetrievalTool:
         self._audit_session_id = audit_session_id
         self._tool_calls: list[ChatToolCall] = []
         self._retrieved_results: dict[UUID, RetrievalResultPayload] = {}
+        self._steps: list[ChatStep] = []
 
     @property
     def tool_calls(self) -> tuple[ChatToolCall, ...]:
@@ -128,6 +130,10 @@ class ChatRetrievalTool:
     @property
     def retrieved_results(self) -> dict[UUID, RetrievalResultPayload]:
         return dict(self._retrieved_results)
+
+    @property
+    def steps(self) -> tuple[ChatStep, ...]:
+        return tuple(self._steps)
 
     def search(
         self,
@@ -143,6 +149,17 @@ class ChatRetrievalTool:
             else metadata_filter
         )
         start = monotonic()
+        self._record_step(
+            ChatStep(
+                id="retrieval",
+                status="start",
+                detail={
+                    "query": query,
+                    "limit": active_limit,
+                    "strategy": "dense_sparse",
+                },
+            )
+        )
         audit_tool_call_id = (
             self._audit_writer.start_retrieval_tool(
                 self._project_id,
@@ -166,28 +183,55 @@ class ChatRetrievalTool:
                 )
             )
         except RetrievalServiceError as exc:
+            latency_ms = elapsed_ms(start)
+            self._record_step(
+                ChatStep(
+                    id="retrieval",
+                    status="error",
+                    elapsed_ms=latency_ms,
+                    detail={
+                        "query": query,
+                        "limit": active_limit,
+                        "error": str(exc),
+                    },
+                )
+            )
             if self._audit_session_id is not None:
                 self._audit_writer.fail_retrieval_tool(
                     self._project_id,
                     self._audit_session_id,
                     audit_tool_call_id,
                     str(exc),
-                    elapsed_ms(start),
+                    latency_ms,
                 )
             raise ChatServiceError(str(exc)) from exc
         except Exception as exc:
+            latency_ms = elapsed_ms(start)
+            self._record_step(
+                ChatStep(
+                    id="retrieval",
+                    status="error",
+                    elapsed_ms=latency_ms,
+                    detail={
+                        "query": query,
+                        "limit": active_limit,
+                        "error": str(exc),
+                    },
+                )
+            )
             if self._audit_session_id is not None:
                 self._audit_writer.fail_retrieval_tool(
                     self._project_id,
                     self._audit_session_id,
                     audit_tool_call_id,
                     str(exc),
-                    elapsed_ms(start),
+                    latency_ms,
                 )
             raise
 
         latency_ms = elapsed_ms(start)
         payloads = tuple(serialize_retrieval_results(results))
+        strategy = _strategy_for_results(results)
         for result, payload in zip(results, payloads, strict=True):
             self._retrieved_results[result.chunk_id] = payload
         self._tool_calls.append(
@@ -196,6 +240,19 @@ class ChatRetrievalTool:
                 query=query,
                 limit=active_limit,
                 result_count=len(payloads),
+            )
+        )
+        self._record_step(
+            ChatStep(
+                id="retrieval",
+                status="done",
+                elapsed_ms=latency_ms,
+                detail={
+                    "query": query,
+                    "limit": active_limit,
+                    "result_count": len(payloads),
+                    "strategy": strategy,
+                },
             )
         )
         if self._audit_session_id is not None:
@@ -208,7 +265,7 @@ class ChatRetrievalTool:
                 active_filter,
                 latency_ms,
                 payloads,
-                _strategy_for_results(results),
+                strategy,
             )
         return ChatRetrievalToolResult(results=payloads)
 
@@ -220,6 +277,9 @@ class ChatRetrievalTool:
                 "rerank_candidate_limit is required when rerank is enabled"
             )
         return RetrievalRerankOptions(candidate_limit=self._rerank_candidate_limit)
+
+    def _record_step(self, step: ChatStep) -> None:
+        self._steps.append(step)
 
 
 class ChatKnowledgeProposalTool:

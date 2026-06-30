@@ -15,9 +15,11 @@ from adaptive_rag.api.dependencies import get_provider_model_lister, get_session
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
+    GlobalChatModel,
     ProviderConnection,
     ProviderModelCatalog,
     ProviderSecret,
+    RuntimeSlotDefault,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.provider_models import ProviderModelInfo
@@ -46,6 +48,11 @@ class StubProviderModelLister:
                 metadata={"name": "Qwen3 Embedding"},
                 pricing={"input_per_million_tokens_usd": 0.07},
             ),
+            ProviderModelInfo(
+                model_id="qwen3-rerank",
+                capabilities=("rerank",),
+                metadata={"name": "Qwen Rerank"},
+            ),
         ]
 
 
@@ -61,6 +68,8 @@ def _make_session() -> Session:
             ProviderConnection.__table__,
             ProviderSecret.__table__,
             ProviderModelCatalog.__table__,
+            RuntimeSlotDefault.__table__,
+            GlobalChatModel.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -96,7 +105,7 @@ def test_provider_model_sync_persists_catalog_without_returning_secret(
             "provider": "qwen",
             "connection_type": "hosted",
             "base_url": "https://dashscope.example.test/compatible-mode/v1",
-            "capabilities": ["chat", "dense_embedding", "sparse_embedding"],
+            "capabilities": ["chat", "dense_embedding", "sparse_embedding", "rerank"],
         },
     )
     client.put(
@@ -113,7 +122,7 @@ def test_provider_model_sync_persists_catalog_without_returning_secret(
     )
 
     assert sync_response.status_code == 200
-    assert sync_response.json()["synced_count"] == 2
+    assert sync_response.json()["synced_count"] == 3
     assert "sk-hosted-secret" not in str(sync_response.json())
     assert lister.api_keys == ["sk-hosted-secret"]
     assert list_response.status_code == 200
@@ -123,3 +132,17 @@ def test_provider_model_sync_persists_catalog_without_returning_secret(
     assert list_response.json()["items"][0]["pricing"] == {
         "input_per_million_tokens_usd": 0.07
     }
+    chat_model = session.get(GlobalChatModel, ("qwen-hosted", "qwen-plus"))
+    chat_default = session.get(RuntimeSlotDefault, "chat")
+    dense_default = session.get(RuntimeSlotDefault, "dense_embedding")
+    sparse_default = session.get(RuntimeSlotDefault, "sparse_embedding")
+    rerank_default = session.get(RuntimeSlotDefault, "rerank")
+    assert chat_model is not None
+    assert chat_model.is_default is True
+    assert chat_default is not None
+    assert chat_default.model_id == "qwen-plus"
+    assert dense_default is not None
+    assert dense_default.model_id == "text-embedding-v4"
+    assert sparse_default is None
+    assert rerank_default is not None
+    assert rerank_default.model_id == "qwen3-rerank"

@@ -86,6 +86,7 @@ function setViewportWidth(width: number) {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/')
   setViewportWidth(1400)
   installLocalStorage()
 })
@@ -860,6 +861,71 @@ describe('App chat workspace', () => {
     await user.click(within(settingsTabs).getByRole('tab', { name: 'Authoring' }))
 
     expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+  })
+
+  test('opens the module matching the current route on initial render', () => {
+    window.history.replaceState(null, '', '/settings/runtime')
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+    expect(window.location.pathname).toBe('/settings/runtime')
+  })
+
+  test('updates the route when primary modules and settings tabs change', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(window.location.pathname).toBe('/settings/authoring')
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Observability' }))
+    expect(window.location.pathname).toBe('/settings/observability')
+    expect(screen.getByRole('heading', { name: 'Dashboard shell' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'My account' }))
+    expect(window.location.pathname).toBe('/account')
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /^Chat$/ }))
+    expect(window.location.pathname).toBe('/chat')
+    expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('tracks browser back and forward between modules', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+
+    window.history.back()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/authoring'),
+    )
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    window.history.forward()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/runtime'),
+    )
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
   })
 
   test('opens and closes the left sidebar with the burger control', async () => {
@@ -1937,6 +2003,32 @@ describe('App chat workspace', () => {
     ).toContain('session-row-selected')
   })
 
+  test('keeps chat retrieval quantity controls in runtime settings instead of the composer', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
+
+    await user.type(screen.getByLabelText('Question'), 'How wide should search be?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(client.askChatStream).toHaveBeenCalledWith(
+      projectId,
+      {
+        message: 'How wide should search be?',
+      },
+      expect.any(Object),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+  })
+
   test('adds a streaming session to the sidebar as soon as it starts', async () => {
     const user = userEvent.setup()
     const finalResponse = createDeferred<ChatResponseBody>()
@@ -2104,6 +2196,11 @@ describe('App chat workspace', () => {
       askChat: vi.fn(),
       askChatStream: vi.fn(async (_projectId, _body, handlers) => {
         handlers.onSessionStarted?.('session-stream')
+        handlers.onStep?.({
+          id: 'retrieval',
+          status: 'start',
+          detail: { query: 'streaming evidence' },
+        })
         handlers.onToolCall?.({
           limit: 2,
           name: 'retrieval.search',
@@ -2122,13 +2219,21 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
-    expect(screen.getByText('Streaming answer')).toBeTruthy()
-    expect(screen.getByText('Retrieval in progress')).toBeTruthy()
+    const stepper = screen.getByRole('region', {
+      name: 'Chat pipeline steps',
+    })
+    expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
+    expect(
+      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+    ).toBeTruthy()
     expect(
       screen.getByText('Citations appear after the final response.'),
     ).toBeTruthy()
     expect(screen.queryByText('No citations returned.')).toBeNull()
-    expect(screen.getByText('streaming evidence')).toBeTruthy()
+    await user.click(
+      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+    )
+    expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
     finalResponse.resolve(chatResponse)
 

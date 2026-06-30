@@ -55,9 +55,9 @@ def _make_session():
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            GlobalChatRetrievalSettings.__table__,
             ProjectRuntimeSlotOverride.__table__,
             ProjectChatModel.__table__,
-            GlobalChatRetrievalSettings.__table__,
             ProjectChatRetrievalSettings.__table__,
         ],
     )

@@ -18,6 +18,7 @@ from adaptive_rag.chat.audit import InMemoryChatAuditWriter
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.chat.streaming import chat_stream_error_event
 from adaptive_rag.chat.tools import ChatTools
+from adaptive_rag.provider_usage import ProviderCallRecord, ProviderTokenUsage
 from adaptive_rag.retrieval import (
     DenseRetrievalCitation,
     RetrievalMetadataFilter,
@@ -111,6 +112,16 @@ class RaisingRunner:
     ) -> ChatRunnerOutput:
         self.requests.append(request)
         raise ChatServiceError(self.message)
+
+
+class ProviderUsageSnapshot:
+    def __init__(self, records: tuple[ProviderCallRecord, ...]) -> None:
+        self.records = records
+        self.calls = 0
+
+    def __call__(self) -> tuple[ProviderCallRecord, ...]:
+        self.calls += 1
+        return self.records
 
 
 def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
@@ -249,12 +260,31 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
         cited_chunk_ids=(chunk_id,),
     )
     audit = InMemoryChatAuditWriter(session_id=session_id)
+    provider_usage = ProviderUsageSnapshot(
+        (
+            ProviderCallRecord(
+                provider="qwen",
+                model="qwen-plus",
+                operation="chat",
+                outcome="succeeded",
+                duration_ms=3100,
+                usage=ProviderTokenUsage(
+                    input_tokens=120,
+                    output_tokens=24,
+                    total_tokens=144,
+                ),
+                usage_source="provider_reported",
+                estimated_cost_usd=0.0012,
+            ),
+        )
+    )
 
     events = list(
         ChatService(
             runner=runner,
             retrieval_service=retrieval,
             audit_writer=audit,
+            provider_usage_records=provider_usage,
         ).stream(
             ChatRequest(
                 project_id=project_id,
@@ -266,19 +296,55 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
 
     assert [event.event for event in events] == [
         "session_started",
+        "step",
+        "step",
+        "step",
+        "step",
         "tool_call",
         "answer_delta",
         "final",
     ]
     assert events[0].data == {"session_id": str(session_id)}
-    assert events[1].data == {
+    assert events[1].data["id"] == "answer"
+    assert events[1].data["status"] == "start"
+    assert events[2].data == {
+        "detail": {
+            "limit": 2,
+            "query": "alpha evidence",
+            "strategy": "dense_sparse",
+        },
+        "id": "retrieval",
+        "status": "start",
+    }
+    assert events[3].data["id"] == "retrieval"
+    assert events[3].data["status"] == "done"
+    assert isinstance(events[3].data["elapsed_ms"], int)
+    assert events[3].data["detail"] == {
+        "limit": 2,
+        "query": "alpha evidence",
+        "result_count": 1,
+        "strategy": "dense",
+    }
+    assert events[4].data["id"] == "answer"
+    assert events[4].data["status"] == "done"
+    assert events[4].data["usage"] == {
+        "cost_source": "provider_reported",
+        "estimated_cost_usd": 0.0012,
+        "input_tokens": 120,
+        "model": "qwen-plus",
+        "output_tokens": 24,
+        "provider": "qwen",
+        "slot": "chat",
+        "total_tokens": 144,
+    }
+    assert events[5].data == {
         "name": "retrieval.search",
         "query": "alpha evidence",
         "limit": 2,
         "result_count": 1,
     }
-    assert events[2].data == {"text": "Alpha is backed by retrieved evidence."}
-    assert events[3].data == {
+    assert events[6].data == {"text": "Alpha is backed by retrieved evidence."}
+    assert events[7].data == {
         "answer": "Alpha is backed by retrieved evidence.",
         "citations": [serialize_retrieval_result(retrieval_result)],
         "tool_calls": [
@@ -291,11 +357,25 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
         ],
         "session_id": str(session_id),
     }
-    assert {
-        "event": "message",
-        "role": "assistant",
-        "content": "Alpha is backed by retrieved evidence.",
-    } in audit.events
+    assistant_messages = [
+        event
+        for event in audit.events
+        if event["event"] == "message" and event["role"] == "assistant"
+    ]
+    assert assistant_messages == [
+        {
+            "content": "Alpha is backed by retrieved evidence.",
+            "event": "message",
+            "metadata_json": {
+                "steps": [
+                    events[3].data,
+                    events[4].data,
+                ]
+            },
+            "role": "assistant",
+        }
+    ]
+    assert provider_usage.calls == 1
     assert audit.events[-1] == {"event": "succeed_session"}
 
 
@@ -329,8 +409,18 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
         ).stream(ChatRequest(project_id=uuid4(), message="alpha"))
     )
 
-    assert [event.event for event in events] == ["session_started", "error"]
-    assert events[1] == chat_stream_error_event("runner failed")
+    assert [event.event for event in events] == [
+        "session_started",
+        "step",
+        "step",
+        "error",
+    ]
+    assert events[1].data["id"] == "answer"
+    assert events[1].data["status"] == "start"
+    assert events[2].data["id"] == "answer"
+    assert events[2].data["status"] == "error"
+    assert events[2].data["detail"] == {"error": "runner failed"}
+    assert events[3] == chat_stream_error_event("runner failed")
     assert audit.events[-1] == {
         "event": "fail_session",
         "error_message": "runner failed",

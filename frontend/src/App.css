@@ -699,10 +699,6 @@ h3 {
   min-height: 44px;
 }
 
-.field-compact {
-  max-width: 150px;
-}
-
 .form-actions {
   align-items: end;
   display: flex;
@@ -714,7 +710,7 @@ h3 {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(112px, 132px) auto;
+  grid-template-columns: 1fr;
 }
 
 .composer-icon-actions {
@@ -988,6 +984,231 @@ button:disabled {
 .streaming-status strong {
   color: var(--app-text-strong);
   font-size: 13px;
+}
+
+.chat-pipeline-steps {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: #223532;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+}
+
+.chat-pipeline-steps summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 10px auto minmax(72px, auto) minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.chat-pipeline-steps summary::marker {
+  content: '';
+}
+
+.chat-pipeline-steps summary::-webkit-details-marker {
+  display: none;
+}
+
+.pipeline-ticker {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  min-height: 34px;
+  min-width: 0;
+  padding: 6px 10px;
+}
+
+.pipeline-ticker,
+.pipeline-summary-button {
+  background: #f8faf9;
+  border: 1px solid #dfe6e2;
+  border-radius: 7px;
+  color: #223532;
+}
+
+.pipeline-ticker-button {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.pipeline-summary-button {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  justify-content: flex-start;
+  line-height: 1.1;
+  min-height: 26px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.pipeline-ticker-button:hover,
+.pipeline-summary-button:hover {
+  background: #e6f1ed;
+  color: #223532;
+}
+
+.pipeline-ticker strong,
+.pipeline-step-list strong,
+.pipeline-detail-chip {
+  color: #223532;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pipeline-ticker small,
+.pipeline-step-list small {
+  color: #63706d;
+  font-size: 11px;
+  font-weight: 800;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.pipeline-status {
+  border: 2px solid #397267;
+  border-radius: 999px;
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.pipeline-status-done {
+  background: #397267;
+}
+
+.pipeline-status-error {
+  background: #9b3939;
+  border-color: #9b3939;
+}
+
+.pipeline-status-start {
+  border-style: dashed;
+}
+
+.pipeline-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  list-style: none;
+  max-height: min(240px, 32vh);
+  margin: 0;
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-gutter: stable;
+}
+
+.pipeline-step-list li {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.pipeline-step-row,
+.pipeline-step-row-static {
+  border-left: 2px solid rgba(57, 114, 103, 0.24);
+  min-width: 0;
+  padding-left: 6px;
+}
+
+.pipeline-step-row summary,
+.pipeline-step-row-static {
+  align-items: center;
+  border-radius: 5px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 10px auto minmax(0, 1fr) auto;
+  min-height: 24px;
+  padding: 2px 4px;
+}
+
+.pipeline-step-row[open] summary,
+.pipeline-step-row summary:hover,
+.pipeline-step-row-static:hover {
+  background: rgba(57, 114, 103, 0.08);
+}
+
+.pipeline-row-caret {
+  color: #63706d;
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 120ms ease;
+  width: 10px;
+}
+
+.pipeline-step-row[open] .pipeline-row-caret {
+  transform: rotate(90deg);
+}
+
+.pipeline-step-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.pipeline-detail-chip {
+  background: #e6f1ed;
+  border-radius: 4px;
+  color: #397267;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  justify-self: start;
+  max-width: 100%;
+  padding: 2px 5px;
+}
+
+.pipeline-step-detail {
+  border-left: 2px solid rgba(57, 114, 103, 0.24);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 2px 0 5px 22px;
+  padding-left: 8px;
+}
+
+.pipeline-step-detail div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pipeline-step-detail dt {
+  color: #397267;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.pipeline-step-detail dd {
+  color: #223532;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pipeline-chevron {
+  color: #63706d;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .result-section {
@@ -2396,6 +2617,8 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .minimap-list span,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list p,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list small,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker small,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list small,
 :is([data-theme='dark'], [data-theme='purple']) .action-substep-list small,
 :is([data-theme='dark'], [data-theme='purple']) .detail-session-id,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid dt,
@@ -2407,6 +2630,7 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .speech-input,
 :is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary,
 :is([data-theme='dark'], [data-theme='purple']) .streaming-status,
+:is([data-theme='dark'], [data-theme='purple']) .chat-pipeline-steps,
 :is([data-theme='dark'], [data-theme='purple']) .result-section,
 :is([data-theme='dark'], [data-theme='purple']) .observability-empty,
 :is([data-theme='dark'], [data-theme='purple']) .metric-card,
@@ -2422,6 +2646,7 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .detail-list li,
 :is([data-theme='dark'], [data-theme='purple']) .retrieved-chunk-list li,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list > li,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list li,
 :is([data-theme='dark'], [data-theme='purple']) .action-substep-list li,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid div,
 :is([data-theme='dark'], [data-theme='purple']) .theme-option {
@@ -2463,6 +2688,7 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .message-role,
 :is([data-theme='dark'], [data-theme='purple']) .minimap-list strong,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list span,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-detail dt,
 :is([data-theme='dark'], [data-theme='purple']) .retrieved-chunk-list span {
   color: var(--app-accent);
 }
@@ -2511,6 +2737,43 @@ body,
   color: var(--app-text-muted);
 }
 
+:is([data-theme='dark'], [data-theme='purple']) .chat-pipeline-steps {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-summary-button {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker-button:hover,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-summary-button:hover {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list li {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row[open] summary,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row summary:hover,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-row-static:hover {
+  background: var(--app-accent-soft);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-detail-chip {
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+}
+
 :is([data-theme='dark'], [data-theme='purple']) .theme-option,
 :is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
   color: var(--app-text);
@@ -2541,6 +2804,9 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .session-list span,
 :is([data-theme='dark'], [data-theme='purple']) .detail-list strong,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-ticker strong,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list strong,
+:is([data-theme='dark'], [data-theme='purple']) .pipeline-step-detail dd,
 :is([data-theme='dark'], [data-theme='purple']) .action-substep-list strong,
 :is([data-theme='dark'], [data-theme='purple']) .metric-card strong,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid dd,
@@ -2705,10 +2971,6 @@ body,
   .breakdown-heading {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .field-compact {
-    max-width: none;
   }
 
   button {
@@ -2890,14 +3152,6 @@ body,
 
 .session-button > strong {
   justify-self: start;
-}
-
-.composer-toolbar {
-  grid-template-columns: minmax(112px, 132px) auto;
-}
-
-.composer-icon-actions {
-  grid-column: auto;
 }
 
 @media (max-width: 900px) {

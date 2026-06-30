@@ -11,6 +11,7 @@ from adaptive_rag.db.models import (
     PROVIDER_CONNECTION_CAPABILITY_VALUES,
     ProviderConnection,
 )
+from adaptive_rag.runtime.qwen_defaults import infer_qwen_model_capabilities
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +75,10 @@ class HTTPProviderModelLister:
         items = _model_items(data)
         if items is None:
             raise ValueError("provider model response missing data")
-        return [_model_from_item(item) for item in items]
+        return [
+            _model_from_item(item, provider=connection.provider)
+            for item in items
+        ]
 
 
 def _headers(api_key: str | None) -> dict[str, str]:
@@ -105,16 +109,19 @@ def _model_items(data: object) -> list[object] | None:
     return None
 
 
-def _model_from_item(item: object) -> ProviderModelInfo:
+def _model_from_item(item: object, *, provider: str) -> ProviderModelInfo:
     if not isinstance(item, dict):
         raise ValueError("provider model item must be an object")
     model_id = item.get("id")
     if not isinstance(model_id, str) or not model_id.strip():
         raise ValueError("provider model item missing id")
+    normalized_model_id = model_id.strip()
     capabilities = _capabilities_from_item(item)
+    if not capabilities and provider == "qwen":
+        capabilities = infer_qwen_model_capabilities(normalized_model_id)
     pricing = _pricing_from_item(item)
     return ProviderModelInfo(
-        model_id=model_id.strip(),
+        model_id=normalized_model_id,
         capabilities=capabilities,
         metadata=dict(item),
         pricing=pricing,

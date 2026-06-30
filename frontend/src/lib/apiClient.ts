@@ -1,3 +1,10 @@
+import type {
+  ChatStep,
+  ChatStepEvent,
+  ChatStepStatus,
+  ChatStepUsage,
+} from './chatSteps'
+
 type JsonObject = Record<string, unknown>
 
 export type Project = {
@@ -229,12 +236,17 @@ export type ChatResponseBody = {
   citations: RetrievalResult[]
   tool_calls: ChatToolCall[]
   session_id: string | null
+  steps?: ChatStep[]
 }
 
 export type ChatStreamEvent =
   | {
       event: 'session_started'
       data: { session_id: string }
+    }
+  | {
+      event: 'step'
+      data: ChatStepEvent
     }
   | {
       event: 'tool_call'
@@ -263,6 +275,7 @@ export type ChatStreamHandlers = {
   onEvent?(event: ChatStreamEvent): void
   onHeartbeat?(elapsedMs: number): void
   onSessionStarted?(sessionId: string): void
+  onStep?(step: ChatStepEvent): void
   onToolCall?(toolCall: ChatToolCall): void
 }
 
@@ -1565,6 +1578,10 @@ function handleChatStreamEvent(
     handlers.onSessionStarted?.(event.data.session_id)
     return null
   }
+  if (event.event === 'step') {
+    handlers.onStep?.(event.data)
+    return null
+  }
   if (event.event === 'tool_call') {
     handlers.onToolCall?.(event.data)
     return null
@@ -1608,6 +1625,12 @@ function toChatStreamEvent(
         result_count: readOptionalNumber(data, 'result_count'),
         result_summary: readOptionalJsonObject(data, 'result_summary'),
       },
+    }
+  }
+  if (eventName === 'step') {
+    return {
+      event: eventName,
+      data: toChatStepEvent(data),
     }
   }
   if (eventName === 'answer_delta') {
@@ -1674,11 +1697,11 @@ function readNumber(value: JsonObject, key: string): number {
 
 function readOptionalNumber(value: JsonObject, key: string): number | undefined {
   const field = value[key]
-  if (field === undefined) {
+  if (field === undefined || field === null) {
     return undefined
   }
-  if (typeof field !== 'number') {
-    throw new Error(`Chat stream event field ${key} must be a number`)
+  if (typeof field !== 'number' || !Number.isFinite(field) || field < 0) {
+    throw new Error(`Chat stream event field ${key} must be a non-negative number`)
   }
   return field
 }
@@ -1693,7 +1716,7 @@ function readString(value: JsonObject, key: string): string {
 
 function readOptionalString(value: JsonObject, key: string): string | undefined {
   const field = value[key]
-  if (field === undefined) {
+  if (field === undefined || field === null) {
     return undefined
   }
   if (typeof field !== 'string') {
@@ -1707,11 +1730,68 @@ function readOptionalJsonObject(
   key: string,
 ): JsonObject | undefined {
   const field = value[key]
-  if (field === undefined) {
+  if (field === undefined || field === null) {
     return undefined
   }
-  if (field === null || typeof field !== 'object' || Array.isArray(field)) {
-    throw new Error(`Chat stream event field ${key} must be an object`)
+  if (typeof field !== 'object' || Array.isArray(field)) {
+    throw new Error(`Chat stream event field ${key} must be a JSON object`)
   }
   return field as JsonObject
+}
+
+function toChatStepEvent(data: JsonObject): ChatStepEvent {
+  const step: ChatStepEvent = {
+    id: readString(data, 'id'),
+    status: readChatStepStatus(data),
+  }
+  const elapsedMs = readOptionalNumber(data, 'elapsed_ms')
+  if (elapsedMs !== undefined) {
+    step.elapsed_ms = elapsedMs
+  }
+  const detail = readOptionalJsonObject(data, 'detail')
+  if (detail !== undefined) {
+    step.detail = detail
+  }
+  const usage = readOptionalJsonObject(data, 'usage')
+  if (usage !== undefined) {
+    step.usage = toChatStepUsage(usage)
+  }
+  return step
+}
+
+function readChatStepStatus(data: JsonObject): ChatStepStatus {
+  const status = readString(data, 'status')
+  if (status === 'start' || status === 'done' || status === 'error') {
+    return status
+  }
+  throw new Error('Chat stream event field status must be start, done or error')
+}
+
+function toChatStepUsage(data: JsonObject): ChatStepUsage {
+  const usage: ChatStepUsage = {
+    model: readString(data, 'model'),
+    provider: readString(data, 'provider'),
+    slot: readString(data, 'slot'),
+  }
+  const inputTokens = readOptionalNumber(data, 'input_tokens')
+  if (inputTokens !== undefined) {
+    usage.input_tokens = inputTokens
+  }
+  const outputTokens = readOptionalNumber(data, 'output_tokens')
+  if (outputTokens !== undefined) {
+    usage.output_tokens = outputTokens
+  }
+  const totalTokens = readOptionalNumber(data, 'total_tokens')
+  if (totalTokens !== undefined) {
+    usage.total_tokens = totalTokens
+  }
+  const estimatedCostUsd = readOptionalNumber(data, 'estimated_cost_usd')
+  if (estimatedCostUsd !== undefined) {
+    usage.estimated_cost_usd = estimatedCostUsd
+  }
+  const costSource = readOptionalString(data, 'cost_source')
+  if (costSource !== undefined) {
+    usage.cost_source = costSource
+  }
+  return usage
 }

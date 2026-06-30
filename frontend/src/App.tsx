@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react'
 import './App.css'
+import { ChatPipelineSteps } from './components/ChatPipelineSteps'
 import {
   ApiClientError,
   createApiClient,
@@ -49,6 +50,11 @@ import {
   applyTheme,
   readPersistedTheme,
 } from './lib/theme'
+import {
+  applyChatStepEvent,
+  parseChatStepsFromMetadata,
+  type ChatStepEvent,
+} from './lib/chatSteps'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -83,6 +89,14 @@ const SETTINGS_SECTIONS = [
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
 type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
+const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
+  account: '/account',
+  authoring: '/settings/authoring',
+  chat: '/chat',
+  observability: '/settings/observability',
+  runtime: '/settings/runtime',
+  settings: '/settings/authoring',
+}
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -193,7 +207,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [detailError, setDetailError] = useState<string | null>(null)
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
-  const [activeView, setActiveView] = useState<ActiveView>('chat')
+  const [activeView, setActiveView] =
+    useState<ActiveView>(readActiveViewFromRoute)
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -308,6 +323,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    replaceRouteForActiveView(readActiveViewFromRoute())
+
+    const handlePopState = () => {
+      setActiveView(readActiveViewFromRoute())
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
 
   useEffect(() => {
     persistProjectId(projectId)
@@ -488,10 +516,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             markStreamOpened()
             setResponse((current) => appendToolCall(current, toolCall))
           },
+          onStep: (step) => {
+            markStreamOpened()
+            setResponse((current) => appendChatStep(current, step))
+          },
         },
         { signal: controller.signal },
       )
-      setResponse(nextResponse)
+      setResponse((current) =>
+        withChatSteps(nextResponse, current?.steps ?? []),
+      )
       const nextSessionId = nextResponse.session_id
       if (nextSessionId !== null) {
         setSelectedSessionId(nextSessionId)
@@ -703,7 +737,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handleStartNewSession() {
-    setActiveView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
     setResponse(null)
     setSelectedSessionId(null)
@@ -832,7 +866,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    setActiveView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
     setSelectedSessionId(sessionId)
     setRequestState('idle')
@@ -1646,6 +1680,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     )
   }
 
+  function handleChangeActiveView(view: ActiveView) {
+    const nextView = normalizeActiveView(view)
+    pushRouteForActiveView(nextView)
+    setActiveView(nextView)
+  }
+
   const activeSettingsSection: SettingsSection =
     activeView === 'observability' || activeView === 'runtime'
       ? activeView
@@ -1679,7 +1719,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         onUnarchiveSession={(sessionId) =>
           void handleUnarchiveSession(sessionId)
         }
-        onViewChange={setActiveView}
+        onViewChange={handleChangeActiveView}
         projectId={projectId}
         projectState={projectAuthoringState}
         projects={projects}
@@ -1827,7 +1867,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         ) : (
           <SettingsPanel
             activeSection={activeSettingsSection}
-            onSectionChange={setActiveView}
+            onSectionChange={handleChangeActiveView}
           >
             {activeSettingsSection === 'observability' ? (
               <ObservabilityPanel
@@ -4755,14 +4795,16 @@ function ResponseContent({
       },
     }))
   }
+  const steps = response.steps ?? []
 
   return (
     <div className="response-stack" aria-label="Chat response">
-      {isStreaming ? (
-        <div className="streaming-status" aria-live="polite">
-          <span>Streaming answer</span>
-          <strong>Retrieval in progress</strong>
-        </div>
+      {isStreaming || steps.length > 0 ? (
+        <ChatPipelineSteps
+          isStreaming={isStreaming}
+          sourceCount={response.citations.length}
+          steps={steps}
+        />
       ) : null}
 
       <div className="message-card">
@@ -5889,6 +5931,64 @@ function useIsRightDockInlineViewport(): boolean {
   return isInline
 }
 
+function normalizeActiveView(view: ActiveView): ActiveView {
+  return view === 'settings' ? 'authoring' : view
+}
+
+function readActiveViewFromRoute(): ActiveView {
+  if (typeof window === 'undefined') {
+    return 'chat'
+  }
+
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (pathname === '/' || pathname === '/chat') {
+    return 'chat'
+  }
+  if (pathname === '/account') {
+    return 'account'
+  }
+  if (pathname === '/settings' || pathname === '/settings/authoring') {
+    return 'authoring'
+  }
+  if (pathname === '/settings/observability') {
+    return 'observability'
+  }
+  if (pathname === '/settings/runtime') {
+    return 'runtime'
+  }
+  return 'chat'
+}
+
+function replaceRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'replace')
+}
+
+function pushRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'push')
+}
+
+function updateRouteForActiveView(
+  view: ActiveView,
+  mode: 'push' | 'replace',
+) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const nextView = normalizeActiveView(view)
+  const nextPath = ACTIVE_VIEW_ROUTES[nextView]
+  if (window.location.pathname === nextPath) {
+    return
+  }
+
+  const state = { activeView: nextView }
+  if (mode === 'replace') {
+    window.history.replaceState(state, '', nextPath)
+    return
+  }
+  window.history.pushState(state, '', nextPath)
+}
+
 function readPersistedProjectId(): string {
   try {
     return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
@@ -5963,11 +6063,35 @@ function appendToolCall(
   }
 }
 
+function appendChatStep(
+  response: ChatResponseBody | null,
+  step: ChatStepEvent,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    steps: applyChatStepEvent(current.steps ?? [], step),
+  }
+}
+
+function withChatSteps(
+  response: ChatResponseBody,
+  steps: ChatStepEvent[],
+): ChatResponseBody {
+  return steps.length === 0
+    ? response
+    : {
+        ...response,
+        steps,
+      }
+}
+
 function emptyChatResponse(): ChatResponseBody {
   return {
     answer: '',
     citations: [],
     session_id: null,
+    steps: [],
     tool_calls: [],
   }
 }
@@ -5985,6 +6109,7 @@ function chatResponseFromSessionDetail(
       run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
     ),
     session_id: detail.session.session_id,
+    steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
     tool_calls: detail.tool_calls.map((call) =>
       chatToolCallFromHistory(call, detail.retrieval_runs),
     ),
