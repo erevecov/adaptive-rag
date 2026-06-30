@@ -860,11 +860,18 @@ describe('App chat workspace', () => {
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['Appearance', 'Memory'])
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
     const memoryButton = within(accountNavigation).getByRole('button', {
       name: 'Memory',
-    }) as HTMLButtonElement
-    expect(memoryButton.disabled).toBe(true)
-    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+    })
+    await user.click(memoryButton)
+    expect(screen.getByRole('heading', { name: 'Memory' })).toBeTruthy()
+    expect(screen.getByText('Deferred')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'This module is not available until a durable backend contract exists.',
+      ),
+    ).toBeTruthy()
     expect(screen.queryByText(/remembered/i)).toBeNull()
   })
 
@@ -903,10 +910,22 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Costs')
+    expect(screen.getByRole('heading', { name: 'Costs' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Errors')
+    expect(screen.getByRole('heading', { name: 'Errors' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Observability', 'Latency')
+    expect(screen.getByRole('heading', { name: 'Latency' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.getByRole('heading', { name: 'Connections' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Refresh runtime' })).toBeNull()
   })
 
   test('opens and closes the left sidebar with the burger control', async () => {
@@ -1483,6 +1502,7 @@ describe('App chat workspace', () => {
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
     expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
 
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.selectOptions(screen.getByLabelText('Source type'), 'markdown')
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
@@ -2126,7 +2146,6 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(
       await screen.findByRole('button', {
         name: 'Abrir sesión Deployment question',

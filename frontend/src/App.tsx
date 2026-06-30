@@ -104,9 +104,13 @@ const SETTINGS_NAVIGATION = [
   },
 ] as const
 
+const AUTHORING_NAVIGATION = SETTINGS_NAVIGATION[0]
+const OBSERVABILITY_NAVIGATION = SETTINGS_NAVIGATION[1]
+const RUNTIME_NAVIGATION = SETTINGS_NAVIGATION[2]
+
 const ACCOUNT_MODULES = [
-  { id: 'appearance', label: 'Appearance', disabled: false },
-  { id: 'memory', label: 'Memory', disabled: true },
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'memory', label: 'Memory' },
 ] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
@@ -121,6 +125,10 @@ type SettingsSubmodule =
   | AuthoringSubmodule
   | ObservabilitySubmodule
   | RuntimeSubmodule
+type SettingsNavigationSelection =
+  | { module: 'authoring'; submodule: AuthoringSubmodule }
+  | { module: 'observability'; submodule: ObservabilitySubmodule }
+  | { module: 'runtime'; submodule: RuntimeSubmodule }
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -723,17 +731,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  function handleSettingsSubmoduleChange(
-    module: SettingsModule,
-    submodule: SettingsSubmodule,
-  ) {
-    setSettingsModule(module)
-    if (module === 'authoring') {
-      setAuthoringSubmodule(submodule as AuthoringSubmodule)
-    } else if (module === 'observability') {
-      setObservabilitySubmodule(submodule as ObservabilitySubmodule)
+  function handleSettingsSubmoduleChange(selection: SettingsNavigationSelection) {
+    setSettingsModule(selection.module)
+    if (selection.module === 'authoring') {
+      setAuthoringSubmodule(selection.submodule)
+    } else if (selection.module === 'observability') {
+      setObservabilitySubmodule(selection.submodule)
     } else {
-      setRuntimeSubmodule(submodule as RuntimeSubmodule)
+      setRuntimeSubmodule(selection.submodule)
     }
   }
 
@@ -1711,7 +1716,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     )
   }
 
-  const activeSettingsSection = settingsModule
+  const activeSettingsModule = settingsModule
 
   return (
     <main
@@ -1921,14 +1926,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ) : null}
           </div>
         ) : primaryView === 'account' ? (
-          <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+          accountModule === 'appearance' ? (
+            <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+          ) : (
+            <DeferredAccountModulePanel moduleName="Memory" />
+          )
         ) : (
-          <SettingsPanel
-            activeSection={activeSettingsSection}
-            onSectionChange={handleSettingsModuleChange}
-          >
-            {activeSettingsSection === 'observability' ? (
+          <SettingsPanel>
+            {activeSettingsModule === 'observability' ? (
               <ObservabilityPanel
+                activeSubmodule={observabilitySubmodule}
                 createdAtFrom={createdAtFrom}
                 createdAtTo={createdAtTo}
                 error={observabilityError}
@@ -1942,8 +1949,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 status={observabilityStatus}
                 summary={observabilitySummary}
               />
-            ) : activeSettingsSection === 'runtime' ? (
+            ) : activeSettingsModule === 'runtime' ? (
               <RuntimeSettingsPanel
+                activeSubmodule={runtimeSubmodule}
                 chatConnectionId={globalChatConnectionId}
                 chatModelId={globalChatModelId}
                 chatModels={runtimeChatModels}
@@ -2029,6 +2037,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : (
               <AuthoringPanel
+                activeSubmodule={authoringSubmodule}
                 accessError={accessManagementError}
                 accessState={accessManagementState}
                 ingestionError={ingestionError}
@@ -2198,10 +2207,7 @@ function AppSidebar({
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
   onSettingsModuleChange(module: SettingsModule): void
-  onSettingsSubmoduleChange(
-    module: SettingsModule,
-    submodule: SettingsSubmodule,
-  ): void
+  onSettingsSubmoduleChange(selection: SettingsNavigationSelection): void
   onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   onToggle(): void
@@ -2343,7 +2349,6 @@ function AccountNavigationPanel({
                   ? 'contextual-nav-button contextual-nav-button-active'
                   : 'contextual-nav-button'
               }
-              disabled={module.disabled}
               key={module.id}
               onClick={() => onModuleChange(module.id)}
               type="button"
@@ -2370,7 +2375,7 @@ function SettingsNavigationPanel({
   activeObservabilitySubmodule: ObservabilitySubmodule
   activeRuntimeSubmodule: RuntimeSubmodule
   onModuleChange(module: SettingsModule): void
-  onSubmoduleChange(module: SettingsModule, submodule: SettingsSubmodule): void
+  onSubmoduleChange(selection: SettingsNavigationSelection): void
 }) {
   const activeSubmodule = getActiveSettingsSubmodule(
     activeModule,
@@ -2378,52 +2383,103 @@ function SettingsNavigationPanel({
     activeObservabilitySubmodule,
     activeRuntimeSubmodule,
   )
+  const renderSubmoduleButton = (
+    selection: SettingsNavigationSelection,
+    label: string,
+  ) => {
+    const submoduleActive = selection.submodule === activeSubmodule
+    return (
+      <button
+        aria-pressed={submoduleActive}
+        className={
+          submoduleActive
+            ? 'contextual-nav-subbutton contextual-nav-subbutton-active'
+            : 'contextual-nav-subbutton'
+        }
+        key={selection.submodule}
+        onClick={() => onSubmoduleChange(selection)}
+        type="button"
+      >
+        {label}
+      </button>
+    )
+  }
 
   return (
     <nav className="contextual-navigation" aria-label="Settings navigation">
       <h2 className="sidebar-section-title">Settings</h2>
-      {SETTINGS_NAVIGATION.map((module) => {
-        const active = module.id === activeModule
-        return (
-          <div className="contextual-nav-group" key={module.id}>
-            <button
-              aria-pressed={active}
-              className={
-                active
-                  ? 'contextual-nav-button contextual-nav-button-active'
-                  : 'contextual-nav-button'
-              }
-              onClick={() => onModuleChange(module.id)}
-              type="button"
-            >
-              {module.label}
-            </button>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === AUTHORING_NAVIGATION.id}
+          className={
+            activeModule === AUTHORING_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
+          type="button"
+        >
+          {AUTHORING_NAVIGATION.label}
+        </button>
 
-            {active
-              ? module.submodules.map((submodule) => {
-                  const submoduleActive = submodule.id === activeSubmodule
-                  return (
-                    <button
-                      aria-pressed={submoduleActive}
-                      className={
-                        submoduleActive
-                          ? 'contextual-nav-subbutton contextual-nav-subbutton-active'
-                          : 'contextual-nav-subbutton'
-                      }
-                      key={submodule.id}
-                      onClick={() =>
-                        onSubmoduleChange(module.id, submodule.id)
-                      }
-                      type="button"
-                    >
-                      {submodule.label}
-                    </button>
-                  )
-                })
-              : null}
-          </div>
-        )
-      })}
+        {activeModule === AUTHORING_NAVIGATION.id
+          ? AUTHORING_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                { module: AUTHORING_NAVIGATION.id, submodule: submodule.id },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === OBSERVABILITY_NAVIGATION.id}
+          className={
+            activeModule === OBSERVABILITY_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
+          type="button"
+        >
+          {OBSERVABILITY_NAVIGATION.label}
+        </button>
+
+        {activeModule === OBSERVABILITY_NAVIGATION.id
+          ? OBSERVABILITY_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                {
+                  module: OBSERVABILITY_NAVIGATION.id,
+                  submodule: submodule.id,
+                },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
+      <div className="contextual-nav-group">
+        <button
+          aria-pressed={activeModule === RUNTIME_NAVIGATION.id}
+          className={
+            activeModule === RUNTIME_NAVIGATION.id
+              ? 'contextual-nav-button contextual-nav-button-active'
+              : 'contextual-nav-button'
+          }
+          onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
+          type="button"
+        >
+          {RUNTIME_NAVIGATION.label}
+        </button>
+
+        {activeModule === RUNTIME_NAVIGATION.id
+          ? RUNTIME_NAVIGATION.submodules.map((submodule) =>
+              renderSubmoduleButton(
+                { module: RUNTIME_NAVIGATION.id, submodule: submodule.id },
+                submodule.label,
+              ),
+            )
+          : null}
+      </div>
     </nav>
   )
 }
@@ -2623,29 +2679,15 @@ function ProjectList({
   )
 }
 
-function SettingsPanel({
-  activeSection,
-  children,
-  onSectionChange,
-}: {
-  activeSection: SettingsModule
-  children: ReactNode
-  onSectionChange(section: SettingsModule): void
-}) {
-  const activeSectionLabel = SETTINGS_NAVIGATION.find(
-    (section) => section.id === activeSection,
-  )?.label
-  void onSectionChange
-
+function SettingsPanel({ children }: { children: ReactNode }) {
   return (
     <section className="settings-shell" aria-labelledby="settings-title">
       <header className="settings-shell-header">
         <div>
-          <p className="panel-label">{activeSectionLabel ?? 'Settings'}</p>
+          <p className="panel-label">Settings</p>
           <h2 id="settings-title">Settings</h2>
         </div>
       </header>
-
       <div className="settings-section-body">{children}</div>
     </section>
   )
@@ -2723,7 +2765,25 @@ function AppearanceSettingsPanel({
   )
 }
 
+function DeferredAccountModulePanel({ moduleName }: { moduleName: string }) {
+  return (
+    <section className="panel settings-panel" aria-labelledby="deferred-account-title">
+      <header className="settings-header">
+        <div>
+          <p className="panel-label">My account</p>
+          <h2 id="deferred-account-title">{moduleName}</h2>
+        </div>
+        <span className="status">Deferred</span>
+      </header>
+      <p className="settings-description">
+        This module is not available until a durable backend contract exists.
+      </p>
+    </section>
+  )
+}
+
 function RuntimeSettingsPanel({
+  activeSubmodule,
   chatConnectionId,
   chatModelId,
   chatModels,
@@ -2787,6 +2847,7 @@ function RuntimeSettingsPanel({
   slots,
   state,
 }: {
+  activeSubmodule: RuntimeSubmodule
   chatConnectionId: string
   chatModelId: string
   chatModels: ChatModel[]
@@ -2850,6 +2911,8 @@ function RuntimeSettingsPanel({
   slots: RuntimeSlotDefault[]
   state: RequestState
 }) {
+  void activeSubmodule
+
   const globalSlotConnections = connectionsForCapability(connections, globalSlot)
   const globalSlotModelOptions = providerModelOptions({
     capability: globalSlot,
@@ -3552,6 +3615,7 @@ function ProjectRuntimeSettingsView({
 }
 
 function AuthoringPanel({
+  activeSubmodule,
   accessError,
   accessState,
   ingestionError,
@@ -3613,6 +3677,7 @@ function AuthoringPanel({
   userSystemRole,
   users,
 }: {
+  activeSubmodule: AuthoringSubmodule
   accessError: string | null
   accessState: RequestState
   ingestionError: string | null
@@ -3681,8 +3746,9 @@ function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="authoring-grid">
-      <section className="panel authoring-panel" aria-labelledby="projects-title">
+    <div className="authoring-grid authoring-grid-focused">
+      {activeSubmodule === 'projects' ? (
+        <section className="panel authoring-panel" aria-labelledby="projects-title">
         <div className="panel-heading">
           <div>
             <p className="panel-label">Projects</p>
@@ -3722,32 +3788,36 @@ function AuthoringPanel({
           onSelectProject={onSelectProject}
           projects={projects}
         />
-      </section>
+        </section>
+      ) : null}
 
-      <ProjectAccessPanel
-        error={accessError}
-        isBusy={isAccessBusy}
-        memberRole={memberRole}
-        memberUserId={memberUserId}
-        memberships={memberships}
-        onCreateUser={onCreateUser}
-        onMemberRoleChange={onMemberRoleChange}
-        onMemberUserIdChange={onMemberUserIdChange}
-        onRefresh={onRefreshAccess}
-        onSaveMembership={onSaveProjectMembership}
-        onUserAccessTokenChange={onUserAccessTokenChange}
-        onUserDisplayNameChange={onUserDisplayNameChange}
-        onUserLoginChange={onUserLoginChange}
-        onUserSystemRoleChange={onUserSystemRoleChange}
-        state={accessState}
-        userAccessToken={userAccessToken}
-        userDisplayName={userDisplayName}
-        userLogin={userLogin}
-        userSystemRole={userSystemRole}
-        users={users}
-      />
+      {activeSubmodule === 'users' ? (
+        <ProjectAccessPanel
+          error={accessError}
+          isBusy={isAccessBusy}
+          memberRole={memberRole}
+          memberUserId={memberUserId}
+          memberships={memberships}
+          onCreateUser={onCreateUser}
+          onMemberRoleChange={onMemberRoleChange}
+          onMemberUserIdChange={onMemberUserIdChange}
+          onRefresh={onRefreshAccess}
+          onSaveMembership={onSaveProjectMembership}
+          onUserAccessTokenChange={onUserAccessTokenChange}
+          onUserDisplayNameChange={onUserDisplayNameChange}
+          onUserLoginChange={onUserLoginChange}
+          onUserSystemRoleChange={onUserSystemRoleChange}
+          state={accessState}
+          userAccessToken={userAccessToken}
+          userDisplayName={userDisplayName}
+          userLogin={userLogin}
+          userSystemRole={userSystemRole}
+          users={users}
+        />
+      ) : null}
 
-      <section className="panel authoring-panel" aria-labelledby="sources-title">
+      {activeSubmodule === 'sources' ? (
+        <section className="panel authoring-panel" aria-labelledby="sources-title">
         <div className="panel-heading">
           <div>
             <p className="panel-label">Sources</p>
@@ -3848,22 +3918,25 @@ function AuthoringPanel({
           state={ingestionState}
           isBusy={isIngestionBusy}
         />
-      </section>
+        </section>
+      ) : null}
 
-      <KnowledgeReviewPanel
-        drafts={proposalDrafts}
-        error={knowledgeReviewError}
-        isBusy={isKnowledgeReviewBusy}
-        onApprove={onApproveKnowledgeProposal}
-        onDraftChange={onProposalDraftChange}
-        onRefresh={onRefreshKnowledgeProposals}
-        onRefine={onRefineKnowledgeProposal}
-        onReject={onRejectKnowledgeProposal}
-        onRejectReasonChange={onProposalRejectReasonChange}
-        proposals={knowledgeProposals}
-        rejectReasons={proposalRejectReasons}
-        state={knowledgeReviewState}
-      />
+      {activeSubmodule === 'knowledge' ? (
+        <KnowledgeReviewPanel
+          drafts={proposalDrafts}
+          error={knowledgeReviewError}
+          isBusy={isKnowledgeReviewBusy}
+          onApprove={onApproveKnowledgeProposal}
+          onDraftChange={onProposalDraftChange}
+          onRefresh={onRefreshKnowledgeProposals}
+          onRefine={onRefineKnowledgeProposal}
+          onReject={onRejectKnowledgeProposal}
+          onRejectReasonChange={onProposalRejectReasonChange}
+          proposals={knowledgeProposals}
+          rejectReasons={proposalRejectReasons}
+          state={knowledgeReviewState}
+        />
+      ) : null}
     </div>
   )
 }
@@ -3912,11 +3985,11 @@ function ProjectAccessPanel({
   users: User[]
 }) {
   return (
-    <section className="panel authoring-panel" aria-labelledby="access-title">
+    <section className="panel authoring-panel" aria-labelledby="project-access-title">
       <div className="panel-heading">
         <div>
-          <p className="panel-label">Access</p>
-          <h2 id="access-title">Project users</h2>
+          <p className="panel-label">Users</p>
+          <h2 id="project-access-title">Users</h2>
         </div>
         <span className={statusClassName(state)}>
           {authoringStatusLabel(state)}
@@ -4366,6 +4439,7 @@ function IngestionJobList({
 }
 
 function ObservabilityPanel({
+  activeSubmodule,
   createdAtFrom,
   createdAtTo,
   error,
@@ -4379,6 +4453,7 @@ function ObservabilityPanel({
   status,
   summary,
 }: {
+  activeSubmodule: ObservabilitySubmodule
   createdAtFrom: string
   createdAtTo: string
   error: string | null
@@ -4399,7 +4474,9 @@ function ObservabilityPanel({
       <div className="panel-heading">
         <div>
           <p className="panel-label">Observability</p>
-          <h2 id="observability-title">Dashboard shell</h2>
+          <h2 id="observability-title">
+            {observabilitySubmoduleLabel(activeSubmodule)}
+          </h2>
         </div>
         <span className={statusClassName(state)}>
           {observabilityStatusLabel(state)}
@@ -6227,6 +6304,13 @@ function observabilityStatusLabel(state: RequestState): string {
     return 'Loaded'
   }
   return 'Ready'
+}
+
+function observabilitySubmoduleLabel(submodule: ObservabilitySubmodule): string {
+  if (submodule === 'costs') return 'Costs'
+  if (submodule === 'errors') return 'Errors'
+  if (submodule === 'latency') return 'Latency'
+  return 'Summary'
 }
 
 function authoringStatusLabel(state: RequestState): string {
