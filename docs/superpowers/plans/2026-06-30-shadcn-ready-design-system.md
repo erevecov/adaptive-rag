@@ -14,7 +14,8 @@
 
 - Modify `frontend/package.json` and `frontend/pnpm-lock.yaml`: add Tailwind and class composition dependencies.
 - Modify `frontend/vite.config.ts`: add the Tailwind Vite plugin and the `@` alias.
-- Modify `frontend/tsconfig.app.json`: add `baseUrl` and `@/*` path mapping.
+- Modify `frontend/tsconfig.json`: add the root `@/*` path mapping that shadcn CLI reads.
+- Modify `frontend/tsconfig.app.json`: add the app `@/*` path mapping used by TypeScript project compilation.
 - Create `frontend/components.json`: shadcn-compatible project configuration for Vite, React, TypeScript, neutral base, CSS variables, and lucide icon library.
 - Modify `frontend/src/index.css`: import Tailwind, define shadcn-compatible semantic tokens, and bridge existing `--app-*` variables.
 - Create `frontend/src/lib/utils.ts`: expose `cn(...)`.
@@ -36,6 +37,7 @@
 - Modify: `frontend/package.json`
 - Modify: `frontend/pnpm-lock.yaml`
 - Modify: `frontend/vite.config.ts`
+- Modify: `frontend/tsconfig.json`
 - Modify: `frontend/tsconfig.app.json`
 - Create: `frontend/components.json`
 
@@ -74,18 +76,27 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 3: Configure TypeScript alias**
+- [ ] **Step 3: Configure TypeScript aliases**
 
-In `frontend/tsconfig.app.json`, add `baseUrl` and `paths` inside `compilerOptions`:
+In `frontend/tsconfig.json`, add a root `compilerOptions` block before `references`:
 
 ```json
-"baseUrl": ".",
+"compilerOptions": {
+  "paths": {
+    "@/*": ["./src/*"]
+  }
+}
+```
+
+In `frontend/tsconfig.app.json`, add `paths` inside `compilerOptions`:
+
+```json
 "paths": {
   "@/*": ["./src/*"]
 }
 ```
 
-The resulting `compilerOptions` must still include the existing strict/lint options.
+Do not add `baseUrl`; TypeScript 6 accepts this `paths` mapping without it, and avoiding `baseUrl` avoids deprecation suppression. The resulting `compilerOptions` must still include the existing strict/lint options.
 
 - [ ] **Step 4: Add shadcn configuration**
 
@@ -120,17 +131,19 @@ Create `frontend/components.json` with:
 Run:
 
 ```powershell
+pnpm dlx shadcn@latest info --json
+pnpm dlx shadcn@latest add button --dry-run
 pnpm --dir frontend typecheck
 ```
 
-Expected: command exits `0`. If it fails because dependencies are not installed in the worktree, run `pnpm --dir frontend install` and retry.
+Expected: shadcn info resolves aliases under `frontend\\src\\...`, the dry run would create `src\\components\\ui\\button.tsx`, and typecheck exits `0`. If typecheck fails because dependencies are not installed in the worktree, run `pnpm --dir frontend install` and retry.
 
 - [ ] **Step 6: Commit tooling**
 
 Run:
 
 ```powershell
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/vite.config.ts frontend/tsconfig.app.json frontend/components.json
+git add frontend/package.json frontend/pnpm-lock.yaml frontend/vite.config.ts frontend/tsconfig.json frontend/tsconfig.app.json frontend/components.json
 git commit -m "feat(frontend): add tailwind shadcn tooling"
 ```
 
