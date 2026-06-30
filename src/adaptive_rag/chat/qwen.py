@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any, Protocol
@@ -27,6 +28,10 @@ ChatToolDefinition = dict[str, Any]
 ChatCompletionResponse = dict[str, Any]
 
 _RETRIEVAL_TOOL_NAME = "retrieval_search"
+_KNOWLEDGE_PROPOSAL_TOOL_NAME = "commit_knowledge"
+_KNOWLEDGE_APPROVAL_TOOL_NAME = "approve_knowledge"
+_KNOWLEDGE_CANCELLATION_TOOL_NAME = "cancel_knowledge"
+_KNOWLEDGE_REFINEMENT_TOOL_NAME = "refine_knowledge"
 
 
 class QwenChatRunnerError(ValueError):
@@ -61,7 +66,7 @@ class QwenChatRunner:
         first_response = self.client.create_chat_completion(
             model=self.model_name,
             messages=messages,
-            tools=[_retrieval_tool_schema()],
+            tools=_tool_schemas(tools),
         )
         first_message = _first_message(first_response)
         tool_calls = _tool_calls(first_message)
@@ -113,7 +118,7 @@ class QwenHTTPChatClient:
         }
         if tools is not None:
             payload["tools"] = tools
-            payload["tool_choice"] = _required_tool_choice(tools)
+            payload["tool_choice"] = _tool_choice(tools)
         started = perf_counter()
         try:
             response_data, request_id = self._post(
@@ -215,9 +220,18 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
             "content": (
                 "You are Adaptive RAG's retrieval-grounded chat runner. "
                 "Use the retrieval_search tool before answering when evidence "
-                "is needed. Return only a JSON object with keys answer and "
-                "cited_chunk_ids. cited_chunk_ids must contain only chunk_id "
-                "values returned by retrieval_search."
+                "is needed. When the user explicitly asks to save, learn, "
+                "remember, or capture project knowledge, call commit_knowledge. "
+                "Choose scope=message when the knowledge is only in the latest "
+                "user message, or scope=session when it summarizes this chat "
+                "session. If the user asks to change an existing knowledge "
+                "draft card, call refine_knowledge with its draft_id and the "
+                "revised knowledge_text. If the user explicitly confirms saving "
+                "a draft card, call approve_knowledge with its draft_id. If the "
+                "user asks to discard a draft card, call cancel_knowledge. "
+                "Return only a JSON object with keys answer and cited_chunk_ids. "
+                "cited_chunk_ids must contain only chunk_id values returned by "
+                "retrieval_search."
             ),
         },
         {
@@ -225,6 +239,20 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
             "content": request.message,
         },
     ]
+
+
+def _tool_schemas(tools: ChatTools) -> list[ChatToolDefinition]:
+    schemas = [_retrieval_tool_schema()]
+    if tools.knowledge is not None:
+        schemas.extend(
+            [
+                _knowledge_proposal_tool_schema(),
+                _knowledge_refinement_tool_schema(),
+                _knowledge_cancellation_tool_schema(),
+                _knowledge_approval_tool_schema(),
+            ]
+        )
+    return schemas
 
 
 def _retrieval_tool_schema() -> ChatToolDefinition:
@@ -259,9 +287,142 @@ def _retrieval_tool_schema() -> ChatToolDefinition:
     }
 
 
-def _required_tool_choice(tools: list[ChatToolDefinition]) -> dict[str, Any]:
+def _knowledge_proposal_tool_schema() -> ChatToolDefinition:
+    return {
+        "type": "function",
+        "function": {
+            "name": _KNOWLEDGE_PROPOSAL_TOOL_NAME,
+            "description": (
+                "Create or refine an auditable project knowledge draft card "
+                "when the user explicitly asks to save, learn, remember, or "
+                "capture knowledge from the chat."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "knowledge_text": {
+                        "type": "string",
+                        "description": (
+                            "The exact project knowledge text that should be "
+                            "shown in the review card."
+                        ),
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["message", "session"],
+                        "description": (
+                            "Use message for the latest user message, or "
+                            "session for a synthesis of the current chat."
+                        ),
+                    },
+                    "draft_id": {
+                        "type": "string",
+                        "description": (
+                            "Existing draft id to refine when the user refers "
+                            "to a specific knowledge card."
+                        ),
+                    },
+                },
+                "required": ["knowledge_text", "scope"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def _knowledge_refinement_tool_schema() -> ChatToolDefinition:
+    return {
+        "type": "function",
+        "function": {
+            "name": _KNOWLEDGE_REFINEMENT_TOOL_NAME,
+            "description": (
+                "Update an existing project knowledge draft card when the user "
+                "asks to modify, correct, shorten, expand, or refine it. Keep "
+                "the same draft_id and provide the revised knowledge text."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "draft_id": {
+                        "type": "string",
+                        "description": "Existing knowledge draft id to update.",
+                    },
+                    "knowledge_text": {
+                        "type": "string",
+                        "description": (
+                            "The revised project knowledge text to show in the "
+                            "same review card."
+                        ),
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["message", "session"],
+                        "description": (
+                            "Use message for latest-message knowledge, or "
+                            "session when the revised draft summarizes the chat."
+                        ),
+                    },
+                },
+                "required": ["draft_id", "knowledge_text"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def _knowledge_cancellation_tool_schema() -> ChatToolDefinition:
+    return {
+        "type": "function",
+        "function": {
+            "name": _KNOWLEDGE_CANCELLATION_TOOL_NAME,
+            "description": (
+                "Cancel pending knowledge draft cards when the user asks to "
+                "discard or cancel them. Pass draft_id for a specific card; omit "
+                "it only when the user clearly wants every pending draft removed."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "draft_id": {
+                        "type": "string",
+                        "description": "Knowledge draft id to cancel.",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def _knowledge_approval_tool_schema() -> ChatToolDefinition:
+    return {
+        "type": "function",
+        "function": {
+            "name": _KNOWLEDGE_APPROVAL_TOOL_NAME,
+            "description": (
+                "Approve or request approval for an existing knowledge draft "
+                "only after the user explicitly confirms saving that card."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "draft_id": {
+                        "type": "string",
+                        "description": "Knowledge draft id to approve.",
+                    },
+                },
+                "required": ["draft_id"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def _tool_choice(tools: list[ChatToolDefinition]) -> str | dict[str, Any]:
     if not tools:
         raise QwenChatRunnerError("qwen chat tools must not be empty")
+    if len(tools) > 1:
+        return "auto"
     function = tools[0].get("function")
     if not isinstance(function, dict) or not isinstance(function.get("name"), str):
         raise QwenChatRunnerError("qwen chat tool is missing function name")
@@ -314,14 +475,66 @@ def _execute_tool_call(
     *,
     request: ChatRunnerRequest,
     tools: ChatTools,
-) -> ChatRetrievalToolResult:
+) -> ChatRetrievalToolResult | Mapping[str, object]:
     function = tool_call.get("function")
     if not isinstance(function, dict):
         raise QwenChatRunnerError("qwen chat tool call is missing function")
     name = function.get("name")
+    arguments = _tool_arguments(function.get("arguments"))
+    if name in {
+        _KNOWLEDGE_PROPOSAL_TOOL_NAME,
+        _KNOWLEDGE_REFINEMENT_TOOL_NAME,
+        _KNOWLEDGE_CANCELLATION_TOOL_NAME,
+        _KNOWLEDGE_APPROVAL_TOOL_NAME,
+    }:
+        if tools.knowledge is None:
+            raise QwenChatRunnerError("qwen knowledge proposal tool is unavailable")
+        if name == _KNOWLEDGE_CANCELLATION_TOOL_NAME:
+            draft_id = arguments.get("draft_id")
+            if draft_id is not None and not isinstance(draft_id, str):
+                raise QwenChatRunnerError(
+                    "qwen chat knowledge draft_id must be a string"
+                )
+            return tools.knowledge.cancel(draft_id=draft_id)
+        if name == _KNOWLEDGE_APPROVAL_TOOL_NAME:
+            draft_id = arguments.get("draft_id")
+            if not isinstance(draft_id, str) or not draft_id.strip():
+                raise QwenChatRunnerError(
+                    "qwen chat knowledge draft_id must be a non-empty string"
+                )
+            return tools.knowledge.approve(draft_id=draft_id)
+        knowledge_text = arguments.get("knowledge_text")
+        if not isinstance(knowledge_text, str) or not knowledge_text.strip():
+            raise QwenChatRunnerError(
+                "qwen chat knowledge_text must be a non-empty string"
+            )
+        scope = arguments.get("scope", "message")
+        if not isinstance(scope, str) or not scope.strip():
+            raise QwenChatRunnerError("qwen chat knowledge scope must be a string")
+        draft_id = arguments.get("draft_id")
+        if draft_id is not None and (
+            not isinstance(draft_id, str) or not draft_id.strip()
+        ):
+            raise QwenChatRunnerError(
+                "qwen chat knowledge draft_id must be a non-empty string"
+            )
+        if name == _KNOWLEDGE_REFINEMENT_TOOL_NAME:
+            if not isinstance(draft_id, str):
+                raise QwenChatRunnerError(
+                    "qwen chat knowledge draft_id must be a non-empty string"
+                )
+            return tools.knowledge.refine(
+                draft_id=draft_id,
+                knowledge_text=knowledge_text,
+                scope=scope,
+            )
+        return tools.knowledge.commit(
+            knowledge_text=knowledge_text,
+            scope=scope,
+            draft_id=draft_id,
+        )
     if name != _RETRIEVAL_TOOL_NAME:
         raise QwenChatRunnerError(f"unsupported qwen chat tool call: {name}")
-    arguments = _tool_arguments(function.get("arguments"))
     query = arguments.get("query")
     if not isinstance(query, str) or not query.strip():
         raise QwenChatRunnerError("qwen chat retrieval query must be a string")
@@ -356,12 +569,16 @@ def _capped_limit(value: object, default: int) -> int:
 
 def _tool_result_message(
     tool_call: dict[str, Any],
-    result: ChatRetrievalToolResult,
+    result: ChatRetrievalToolResult | Mapping[str, object],
 ) -> ChatMessage:
+    if isinstance(result, ChatRetrievalToolResult):
+        content: object = {"results": list(result.results)}
+    else:
+        content = dict(result)
     return {
         "role": "tool",
         "tool_call_id": _tool_call_id(tool_call),
-        "content": json.dumps({"results": list(result.results)}, sort_keys=True),
+        "content": json.dumps(content, sort_keys=True),
     }
 
 

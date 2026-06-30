@@ -142,7 +142,11 @@ def _run_chat_case(
         fixture_project.evidence_id_by_chunk_id[UUID(citation["chunk_id"])]
         for citation in response.citations
     )
-    observed_tool_queries = tuple(tool_call.query for tool_call in response.tool_calls)
+    observed_tool_queries = tuple(
+        tool_call.query
+        for tool_call in response.tool_calls
+        if tool_call.query is not None
+    )
     missing_evidence = tuple(
         evidence_id
         for evidence_id in chat_case.expected_evidence_ids

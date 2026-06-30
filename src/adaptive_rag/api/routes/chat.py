@@ -209,7 +209,7 @@ def stream_chat(
     )
 
 
-@router.post("", response_model=ChatResponseBody)
+@router.post("", response_model=ChatResponseBody, response_model_exclude_none=True)
 def chat(
     project_id: UUID,
     body: ChatRequestBody,

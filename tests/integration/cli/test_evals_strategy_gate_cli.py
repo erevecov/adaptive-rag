@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from typer.testing import CliRunner
 
 from adaptive_rag.cli.app import app
+from adaptive_rag.config.settings import Settings
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import Project
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
@@ -41,6 +42,8 @@ def test_evals_strategy_gate_command_outputs_decision_report(
         },
     )
     captured: dict[str, object] = {}
+    dense_provider = object()
+    sparse_provider = object()
 
     def fake_strategy_gate(
         session_arg: Session,
@@ -81,6 +84,14 @@ def test_evals_strategy_gate_command_outputs_decision_report(
         )
 
     monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_dense_embedding_provider",
+        lambda *, usage_tracker: dense_provider,
+    )
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_cli_sparse_embedding_provider",
+        lambda *, usage_tracker: sparse_provider,
+    )
+    monkeypatch.setattr(
         "adaptive_rag.cli.evals.run_retrieval_strategy_gate_eval_suite",
         fake_strategy_gate,
     )
@@ -90,8 +101,8 @@ def test_evals_strategy_gate_command_outputs_decision_report(
     assert result.exit_code == 0
     assert captured["session"] is session
     assert captured["suite_id"] == "cli-strategy-gate"
-    assert captured["provider"] is not None
-    assert captured["sparse_provider"] is not None
+    assert captured["provider"] is dense_provider
+    assert captured["sparse_provider"] is sparse_provider
     assert json.loads(result.stdout) == {
         "suite_id": "cli-strategy-gate",
         "status": "passed",
@@ -261,8 +272,13 @@ def test_evals_strategy_gate_command_outputs_provider_usage(
 
 
 def test_evals_strategy_gate_can_require_live_qwen_sparse_config(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    monkeypatch.setattr(
+        "adaptive_rag.cli.evals.get_settings",
+        lambda: Settings(_env_file=None),
+    )
     suite_path = _write_suite(
         tmp_path,
         {

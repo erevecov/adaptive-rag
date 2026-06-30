@@ -108,3 +108,41 @@ def test_model_lister_reads_dashscope_output_data_shape() -> None:
     models = lister.list_models(connection, api_key="sk-hosted-secret")
 
     assert [model.model_id for model in models] == ["qwen-max"]
+
+
+def test_qwen_model_lister_infers_safe_capabilities_when_provider_is_silent() -> None:
+    lister = HTTPProviderModelLister(
+        timeout_seconds=3.0,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {"id": "qwen-plus"},
+                        {"id": "text-embedding-v4"},
+                        {"id": "qwen3-rerank"},
+                    ]
+                },
+            )
+        ),
+    )
+    connection = ProviderConnection(
+        connection_id="qwen-all",
+        provider="qwen",
+        connection_type="hosted",
+        base_url="https://dashscope.example.test/compatible-mode/v1",
+        capabilities_json=[
+            "chat",
+            "dense_embedding",
+            "sparse_embedding",
+            "rerank",
+        ],
+    )
+
+    models = lister.list_models(connection, api_key="sk-hosted-secret")
+
+    assert [(model.model_id, model.capabilities) for model in models] == [
+        ("qwen-plus", ("chat",)),
+        ("text-embedding-v4", ("dense_embedding", "sparse_embedding")),
+        ("qwen3-rerank", ("rerank",)),
+    ]

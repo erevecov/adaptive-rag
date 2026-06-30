@@ -1,12 +1,16 @@
 import {
+  type Dispatch,
   type FormEvent,
   type ReactNode,
+  type SetStateAction,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import './App.css'
+import { ChatPipelineSteps } from './components/ChatPipelineSteps'
 import {
   ApiClientError,
   createApiClient,
@@ -46,6 +50,12 @@ import {
   applyTheme,
   readPersistedTheme,
 } from './lib/theme'
+import {
+  applyChatStepEvent,
+  parseChatStepsFromMetadata,
+  type ChatStep,
+  type ChatStepEvent,
+} from './lib/chatSteps'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -54,6 +64,7 @@ const CHAT_RETRIEVAL_MAX_LIMIT = 50
 const SESSION_PAGE_SIZE = 15
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
+const QUESTION_PREVIEW_MAX_CHARS = 96
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
   sensitivity: 'base',
@@ -129,11 +140,44 @@ type SettingsNavigationSelection =
   | { module: 'authoring'; submodule: AuthoringSubmodule }
   | { module: 'observability'; submodule: ObservabilitySubmodule }
   | { module: 'runtime'; submodule: RuntimeSubmodule }
+type ActiveView = PrimaryView | SettingsModule
+const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
+  account: '/account',
+  authoring: '/settings/authoring',
+  chat: '/chat',
+  observability: '/settings/observability',
+  runtime: '/settings/runtime',
+  settings: '/settings/authoring',
+}
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
   connection_id: string
   model_id: string
+}
+type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
+type ChatKnowledgeDraftStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'cancelled'
+  | string
+type ChatKnowledgeDraft = {
+  draftId: string
+  error: string | null
+  proposalId: string | null
+  reviewAction: ChatKnowledgeDraftAction
+  scope: string
+  status: ChatKnowledgeDraftStatus
+  text: string
+}
+type ChatKnowledgeDraftMap = Record<string, ChatKnowledgeDraft>
+type ChatKnowledgeDraftSetter = Dispatch<SetStateAction<ChatKnowledgeDraftMap>>
+type ChatKnowledgeLifecycleEvent = {
+  action: 'approve' | 'cancel'
+  allPending: boolean
+  draftId: string | null
+  key: string
 }
 type SourceViewerState = {
   citationSnippet: string | null
@@ -177,12 +221,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   )
   const projectIdRef = useRef(projectId.trim())
   const [question, setQuestion] = useState('')
-  const [retrievalLimitOverride, setRetrievalLimitOverride] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
     useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [activeResponseQuestion, setActiveResponseQuestion] = useState<
+    string | null
+  >(null)
+  const [knowledgeDrafts, setKnowledgeDrafts] =
+    useState<ChatKnowledgeDraftMap>({})
   const [sourceViewer, setSourceViewer] = useState<SourceViewerState>({
     citationSnippet: null,
     error: null,
@@ -215,11 +263,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [detailError, setDetailError] = useState<string | null>(null)
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
-  const [primaryView, setPrimaryView] = useState<PrimaryView>('chat')
+  const [activeView, setActiveView] =
+    useState<ActiveView>(readActiveViewFromRoute)
   const [accountModule, setAccountModule] =
     useState<AccountModule>('appearance')
-  const [settingsModule, setSettingsModule] =
-    useState<SettingsModule>('authoring')
+  const [settingsModule, setSettingsModule] = useState<SettingsModule>(() => {
+    const initialActiveView = readActiveViewFromRoute()
+    return isSettingsModule(initialActiveView) ? initialActiveView : 'authoring'
+  })
   const [authoringSubmodule, setAuthoringSubmodule] =
     useState<AuthoringSubmodule>('projects')
   const [observabilitySubmodule, setObservabilitySubmodule] =
@@ -267,8 +318,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     useState<RequestState>('idle')
   const [accessManagementState, setAccessManagementState] =
     useState<RequestState>('idle')
-  const [knowledgeSubmitState, setKnowledgeSubmitState] =
-    useState<RequestState>('idle')
   const [knowledgeReviewState, setKnowledgeReviewState] =
     useState<RequestState>('idle')
   const [projectAuthoringError, setProjectAuthoringError] = useState<
@@ -280,9 +329,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [accessManagementError, setAccessManagementError] = useState<
     string | null
   >(null)
-  const [knowledgeSubmitError, setKnowledgeSubmitError] = useState<string | null>(
-    null,
-  )
   const [knowledgeReviewError, setKnowledgeReviewError] = useState<
     string | null
   >(null)
@@ -335,17 +381,35 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     useState(DEFAULT_RERANK_CANDIDATE_LIMIT)
 
   const isAsking = requestState === 'loading'
-  const isProposingKnowledge = knowledgeSubmitState === 'loading'
   const isRightDockInlineViewport = useIsRightDockInlineViewport()
   const isRightDockInline = isRightDockOpen && isRightDockInlineViewport
   const isRightDockOverlay = isRightDockOpen && !isRightDockInlineViewport
   const speechRecognitionConstructor = getSpeechRecognitionConstructor()
   const isSpeechSupported = speechRecognitionConstructor !== null
+  const primaryView: PrimaryView =
+    activeView === 'chat' || activeView === 'account' ? activeView : 'settings'
 
   useEffect(() => {
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    replaceRouteForActiveView(readActiveViewFromRoute())
+
+    const handlePopState = () => {
+      const nextView = readActiveViewFromRoute()
+      setActiveView(nextView)
+      if (isSettingsModule(nextView)) {
+        setSettingsModule(nextView)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
 
   useEffect(() => {
     persistProjectId(projectId)
@@ -484,6 +548,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHistoryError(null)
     setResponse(null)
+    setActiveResponseQuestion(trimmedQuestion)
     setSessionDetail(null)
     setDetailState('idle')
     setDetailError(null)
@@ -493,17 +558,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
-    const requestBody: {
-      message: string
-      retrieval_limit?: number
-    } = {
+    const requestBody = {
       message: trimmedQuestion,
-    }
-    const parsedRetrievalLimitOverride = parseOptionalChatRetrievalLimit(
-      retrievalLimitOverride,
-    )
-    if (parsedRetrievalLimitOverride !== null) {
-      requestBody.retrieval_limit = parsedRetrievalLimitOverride
     }
     const controller = new AbortController()
     let streamOpened = false
@@ -536,15 +592,22 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             markStreamOpened()
             setResponse((current) => appendToolCall(current, toolCall))
           },
+          onStep: (step) => {
+            markStreamOpened()
+            setResponse((current) => appendChatStep(current, step))
+          },
         },
         { signal: controller.signal },
       )
-      setResponse(nextResponse)
+      setResponse((current) =>
+        withChatSteps(nextResponse, current?.steps ?? []),
+      )
       const nextSessionId = nextResponse.session_id
       if (nextSessionId !== null) {
         setSelectedSessionId(nextSessionId)
       }
       setRequestState('succeeded')
+      setQuestion('')
       await handleRefreshHistory(trimmedProjectId, 'active')
       if (nextSessionId !== null) {
         setSessions((current) =>
@@ -573,6 +636,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setSelectedSessionId(nextSessionId)
           }
           setRequestState('succeeded')
+          setQuestion('')
           await handleRefreshHistory(trimmedProjectId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
@@ -600,6 +664,38 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         current === controller ? null : current,
       )
     }
+  }
+
+  async function handleSubmitKnowledgeDraft(
+    draft: ChatKnowledgeDraft,
+    sessionId: string | null,
+  ): Promise<KnowledgeProposal> {
+    const trimmedProjectId = projectId.trim()
+    const text = draft.text.trim()
+
+    if (trimmedProjectId.length === 0 || text.length === 0) {
+      throw new Error('Project ID and knowledge text are required.')
+    }
+
+    const proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+      ...(sessionId === null ? {} : { origin_session_id: sessionId }),
+      proposed_text: text,
+    })
+    setKnowledgeProposals((current) =>
+      upsertKnowledgeProposal(current, proposal),
+    )
+    return proposal
+  }
+
+  function handleRefineKnowledgeDraft(draft: ChatKnowledgeDraft) {
+    setQuestion(
+      [
+        `[refining knowledge draft ${draft.draftId}]`,
+        'Current draft:',
+        draft.text,
+        'Requested change: ',
+      ].join('\n'),
+    )
   }
 
   function handleCancelRequest() {
@@ -719,10 +815,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handlePrimaryViewChange(view: PrimaryView) {
-    setPrimaryView(view)
+    handleChangeActiveView(view === 'settings' ? settingsModule : view)
   }
 
   function handleSettingsModuleChange(module: SettingsModule) {
+    handleChangeActiveView(module)
     setSettingsModule(module)
     if (module === 'authoring') {
       setAuthoringSubmodule('projects')
@@ -734,6 +831,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handleSettingsSubmoduleChange(selection: SettingsNavigationSelection) {
+    handleChangeActiveView(selection.module)
     setSettingsModule(selection.module)
     if (selection.module === 'authoring') {
       setAuthoringSubmodule(selection.submodule)
@@ -745,9 +843,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   function handleStartNewSession() {
-    setPrimaryView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
     setResponse(null)
+    setActiveResponseQuestion(null)
     setSelectedSessionId(null)
     setSessionDetail(null)
     setRequestState('idle')
@@ -874,8 +973,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    setPrimaryView('chat')
+    handleChangeActiveView('chat')
     setQuestion('')
+    setActiveResponseQuestion(null)
     setSelectedSessionId(sessionId)
     setRequestState('idle')
     setRequestError(null)
@@ -886,6 +986,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     try {
       const detail = await client.getChatSession(trimmedProjectId, sessionId)
       setSessionDetail(detail)
+      setActiveResponseQuestion(extractLatestUserQuestion(detail))
       setResponse(chatResponseFromSessionDetail(detail))
       setDetailState('succeeded')
     } catch (error) {
@@ -1055,36 +1156,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
-    }
-  }
-
-  async function handleSubmitKnowledgeProposal() {
-    const trimmedProjectId = projectId.trim()
-    const proposedText = question.trim()
-
-    if (trimmedProjectId.length === 0) {
-      setKnowledgeSubmitState('failed')
-      setKnowledgeSubmitError('Project ID is required to propose knowledge.')
-      return
-    }
-    if (proposedText.length === 0) {
-      setKnowledgeSubmitState('failed')
-      setKnowledgeSubmitError('Question text is required to propose knowledge.')
-      return
-    }
-
-    setKnowledgeSubmitState('loading')
-    setKnowledgeSubmitError(null)
-
-    try {
-      const proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
-        proposed_text: proposedText,
-      })
-      setKnowledgeProposals((current) => upsertKnowledgeProposal(current, proposal))
-      setKnowledgeSubmitState('succeeded')
-    } catch (error) {
-      setKnowledgeSubmitState('failed')
-      setKnowledgeSubmitError(getErrorMessage(error))
     }
   }
 
@@ -1831,6 +1902,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setProjectChatRerankCandidateLimit(DEFAULT_RERANK_CANDIDATE_LIMIT)
   }
 
+  function handleChangeActiveView(view: ActiveView) {
+    const nextView = normalizeActiveView(view)
+    pushRouteForActiveView(nextView)
+    setActiveView(nextView)
+    if (isSettingsModule(nextView)) {
+      setSettingsModule(nextView)
+    }
+  }
+
   const activeSettingsModule = settingsModule
 
   return (
@@ -1908,10 +1988,21 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 role="region"
               >
                 <ResponsePanel
+                  drafts={knowledgeDrafts}
                   onOpenSource={(sourceId, citationSnippet) =>
                     void handleOpenSource(sourceId, citationSnippet)
                   }
+                  onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                  onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
+                  providerUsage={
+                    response !== null &&
+                    sessionDetail?.session.session_id === response.session_id
+                      ? sessionDetail.provider_usage
+                      : []
+                  }
+                  question={activeResponseQuestion}
                   response={response}
+                  setDrafts={setKnowledgeDrafts}
                   state={requestState}
                 />
               </div>
@@ -1929,25 +2020,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 </label>
 
                 <div className="composer-toolbar">
-                  <label className="field field-compact">
-                    <span>Retrieval limit</span>
-                    <input
-                      max={CHAT_RETRIEVAL_MAX_LIMIT}
-                      min={1}
-                      name="retrieval-limit"
-                      onChange={(event) =>
-                        setRetrievalLimitOverride(
-                          normalizeOptionalChatRetrievalLimit(
-                            event.currentTarget.value,
-                          ),
-                        )
-                      }
-                      placeholder="Default"
-                      type="number"
-                      value={retrievalLimitOverride}
-                    />
-                  </label>
-
                   <div className="composer-icon-actions">
                     <button
                       aria-label="Open context sidebar"
@@ -1976,14 +2048,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                       onStop={handleStopSpeechRecognition}
                       state={speechState}
                     />
-                    <button
-                      className="secondary-button composer-propose-button"
-                      disabled={isAsking || isProposingKnowledge}
-                      onClick={() => void handleSubmitKnowledgeProposal()}
-                      type="button"
-                    >
-                      {isProposingKnowledge ? 'Proposing...' : 'Propose knowledge'}
-                    </button>
                     <button className="composer-send-button" disabled={isAsking} type="submit">
                       <SendIcon />
                       <span>{isAsking ? 'Asking...' : 'Ask'}</span>
@@ -2004,11 +2068,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 {requestError ? (
                   <p className="form-feedback form-feedback-error" role="alert">
                     {requestError}
-                  </p>
-                ) : null}
-                {knowledgeSubmitError ? (
-                  <p className="form-feedback form-feedback-error" role="alert">
-                    {knowledgeSubmitError}
                   </p>
                 ) : null}
               </form>
@@ -5480,20 +5539,41 @@ function SpeechInputControl({
 }
 
 function ResponsePanel({
+  drafts,
   onOpenSource,
+  onRefineKnowledgeDraft,
+  onSubmitKnowledgeDraft,
+  providerUsage,
+  question,
   response,
+  setDrafts,
   state,
 }: {
+  drafts: ChatKnowledgeDraftMap
   onOpenSource(sourceId: string, citationSnippet: string | null): void
+  onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onSubmitKnowledgeDraft(
+    draft: ChatKnowledgeDraft,
+    sessionId: string | null,
+  ): Promise<KnowledgeProposal>
+  providerUsage: ChatHistoryProviderUsage[]
+  question: string | null
   response: ChatResponseBody | null
+  setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
 }) {
   if (state === 'loading') {
     if (response !== null) {
       return (
         <ResponseContent
+          drafts={drafts}
           onOpenSource={onOpenSource}
+          onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+          onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+          providerUsage={providerUsage}
+          question={question}
           response={response}
+          setDrafts={setDrafts}
           state={state}
         />
       )
@@ -5517,51 +5597,372 @@ function ResponsePanel({
 
   return (
     <ResponseContent
+      drafts={drafts}
       onOpenSource={onOpenSource}
+      onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+      onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+      providerUsage={providerUsage}
+      question={question}
       response={response}
+      setDrafts={setDrafts}
       state={state}
     />
   )
 }
 
 function ResponseContent({
+  drafts,
   onOpenSource,
+  onRefineKnowledgeDraft,
+  onSubmitKnowledgeDraft,
+  providerUsage,
+  question,
   response,
+  setDrafts,
   state,
 }: {
+  drafts: ChatKnowledgeDraftMap
   onOpenSource(sourceId: string, citationSnippet: string | null): void
+  onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onSubmitKnowledgeDraft(
+    draft: ChatKnowledgeDraft,
+    sessionId: string | null,
+  ): Promise<KnowledgeProposal>
+  providerUsage: ChatHistoryProviderUsage[]
+  question: string | null
   response: ChatResponseBody
+  setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
 }) {
   const isStreaming = state === 'loading'
+  const processedLifecycleEvents = useRef<Set<string>>(new Set())
+  const lifecycleEvents = useMemo(
+    () => extractKnowledgeLifecycleEvents(response.tool_calls),
+    [response.tool_calls],
+  )
+
+  useEffect(() => {
+    const nextDrafts = extractKnowledgeDrafts(response.tool_calls)
+    setDrafts((current) => {
+      const merged = { ...current }
+      for (const draft of nextDrafts) {
+        const existing = merged[draft.draftId]
+        merged[draft.draftId] =
+          existing === undefined
+            ? draft
+            : {
+                ...existing,
+                reviewAction: draft.reviewAction,
+                scope: draft.scope,
+                status:
+                  existing.status === 'draft' ? draft.status : existing.status,
+                text:
+                  existing.status === 'draft' && existing.text !== draft.text
+                    ? draft.text
+                    : existing.text,
+              }
+      }
+      for (const event of lifecycleEvents) {
+        if (event.action !== 'cancel') {
+          continue
+        }
+        if (event.allPending) {
+          for (const draftId of Object.keys(merged)) {
+            if (
+              merged[draftId].status !== 'approved' &&
+              merged[draftId].status !== 'cancelled'
+            ) {
+              merged[draftId] = {
+                ...merged[draftId],
+                error: null,
+                status: 'cancelled',
+              }
+            }
+          }
+          continue
+        }
+        if (event.draftId !== null && merged[event.draftId] !== undefined) {
+          merged[event.draftId] = {
+            ...merged[event.draftId],
+            error: null,
+            status: 'cancelled',
+          }
+        }
+      }
+      return merged
+    })
+  }, [lifecycleEvents, response.tool_calls, setDrafts])
+
+  const handleSubmitDraft = useCallback(
+    async (draft: ChatKnowledgeDraft) => {
+      setDrafts((current) => ({
+        ...current,
+        [draft.draftId]: {
+          ...current[draft.draftId],
+          error: null,
+        },
+      }))
+      try {
+        const proposal = await onSubmitKnowledgeDraft(
+          drafts[draft.draftId] ?? draft,
+          response.session_id,
+        )
+        setDrafts((current) => ({
+          ...current,
+          [draft.draftId]: {
+            ...current[draft.draftId],
+            error: null,
+            proposalId: proposal.id,
+            status: proposal.status,
+            text: proposal.refined_text ?? proposal.proposed_text,
+          },
+        }))
+      } catch (error) {
+        setDrafts((current) => ({
+          ...current,
+          [draft.draftId]: {
+            ...current[draft.draftId],
+            error: getErrorMessage(error),
+          },
+        }))
+      }
+    },
+    [drafts, onSubmitKnowledgeDraft, response.session_id, setDrafts],
+  )
+
+  useEffect(() => {
+    for (const event of lifecycleEvents) {
+      if (event.action !== 'approve' || event.draftId === null) {
+        continue
+      }
+      if (processedLifecycleEvents.current.has(event.key)) {
+        continue
+      }
+      const draft = drafts[event.draftId]
+      if (draft === undefined || draft.status !== 'draft') {
+        continue
+      }
+      processedLifecycleEvents.current.add(event.key)
+      void handleSubmitDraft(draft)
+    }
+  }, [drafts, handleSubmitDraft, lifecycleEvents])
+
+  const knowledgeDrafts = Object.values(drafts)
+
+  function handleDraftTextChange(draftId: string, text: string) {
+    setDrafts((current) => ({
+      ...current,
+      [draftId]: {
+        ...current[draftId],
+        error: null,
+        text,
+      },
+    }))
+  }
+
+  function handleCancelDraft(draftId: string) {
+    setDrafts((current) => ({
+      ...current,
+      [draftId]: {
+        ...current[draftId],
+        error: null,
+        status: 'cancelled',
+      },
+    }))
+  }
+  const steps = response.steps ?? []
+  const hasStepDetails = isStreaming || steps.length > 0
 
   return (
     <div className="response-stack" aria-label="Chat response">
-      {isStreaming ? (
-        <div className="streaming-status" aria-live="polite">
-          <span>Streaming answer</span>
-          <strong>Retrieval in progress</strong>
+      <QuestionPrompt key={question ?? 'empty-question'} question={question} />
+
+      {response.answer.trim().length > 0 || !isStreaming ? (
+        <div className="message-card assistant-message-card">
+          <p>{response.answer}</p>
         </div>
       ) : null}
 
-      <div className="message-card">
-        <div className="message-card-header">
-          <span className="message-role">Assistant</span>
-          {response.session_id ? (
-            <span className="session-chip">{response.session_id}</span>
-          ) : null}
-        </div>
-        <p>{response.answer}</p>
-      </div>
+      {hasStepDetails ? (
+        <ChatPipelineSteps
+          isStreaming={isStreaming}
+          sourceCount={response.citations.length}
+          steps={steps}
+        >
+          <ResponseDetailsContent
+            embedded
+            onOpenSource={onOpenSource}
+            providerUsage={providerUsage}
+            response={response}
+          />
+        </ChatPipelineSteps>
+      ) : null}
 
-      <section className="result-section" aria-labelledby="citations-title">
-        <h3 id="citations-title">Citations</h3>
-        {isStreaming && response.citations.length === 0 ? (
-          <p className="empty-copy">Citations appear after the final response.</p>
-        ) : response.citations.length === 0 ? (
-          <p className="empty-copy">No citations returned.</p>
-        ) : (
-          <ol className="citation-list">
+      {!hasStepDetails ? (
+        <ResponseDetailsPanel
+          key={response.session_id ?? response.answer}
+          onOpenSource={onOpenSource}
+          providerUsage={providerUsage}
+          response={response}
+        />
+      ) : null}
+
+      {knowledgeDrafts.length === 0 ? null : (
+        <section
+          aria-label="Knowledge drafts"
+          className="knowledge-draft-stack"
+        >
+          {knowledgeDrafts.map((draft) => (
+            <KnowledgeDraftCard
+              draft={draft}
+              key={draft.draftId}
+              onCancel={() => handleCancelDraft(draft.draftId)}
+              onRefine={() => onRefineKnowledgeDraft(draft)}
+              onSubmit={() => void handleSubmitDraft(draft)}
+              onTextChange={(text) =>
+                handleDraftTextChange(draft.draftId, text)
+              }
+            />
+          ))}
+        </section>
+      )}
+    </div>
+  )
+}
+
+function QuestionPrompt({ question }: { question: string | null }) {
+  const [expanded, setExpanded] = useState(false)
+  const trimmedQuestion = question?.trim() ?? ''
+  if (trimmedQuestion.length === 0) {
+    return null
+  }
+
+  const shouldCollapse = trimmedQuestion.length > QUESTION_PREVIEW_MAX_CHARS
+  const displayQuestion =
+    shouldCollapse && !expanded
+      ? `${trimmedQuestion.slice(0, QUESTION_PREVIEW_MAX_CHARS).trimEnd()}...`
+      : trimmedQuestion
+
+  return (
+    <div className="chat-question-sticky">
+      {shouldCollapse ? (
+        <button
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
+          className="chat-question-pill"
+          onClick={() => setExpanded((current) => !current)}
+          title={trimmedQuestion}
+          type="button"
+        >
+          {displayQuestion}
+        </button>
+      ) : (
+        <p className="chat-question-pill">{displayQuestion}</p>
+      )}
+    </div>
+  )
+}
+
+function ResponseDetailsPanel({
+  onOpenSource,
+  providerUsage,
+  response,
+}: {
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  providerUsage: ChatHistoryProviderUsage[]
+  response: ChatResponseBody
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const usage = summarizeResponseUsage(response.steps ?? [], providerUsage)
+  const sourceCount = response.citations.length
+  const toolCallCount = response.tool_calls.length
+  const hasDetails = sourceCount > 0 || toolCallCount > 0 || usage !== null
+
+  if (!hasDetails) {
+    return null
+  }
+
+  const summaryParts = [
+    formatCount(sourceCount, 'source'),
+    formatCount(toolCallCount, 'tool call'),
+  ]
+  if (usage !== null) {
+    summaryParts.push('usage')
+  }
+
+  return (
+    <section aria-label="Response details" className="response-details-panel">
+      <button
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
+        className="response-details-toggle"
+        onClick={() => setExpanded((current) => !current)}
+        type="button"
+      >
+        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+        details · {summaryParts.join(' · ')}
+      </button>
+
+      {expanded ? (
+        <ResponseDetailsContent
+          onOpenSource={onOpenSource}
+          providerUsage={providerUsage}
+          response={response}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+function ResponseDetailsContent({
+  embedded = false,
+  onOpenSource,
+  providerUsage,
+  response,
+}: {
+  embedded?: boolean
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  providerUsage: ChatHistoryProviderUsage[]
+  response: ChatResponseBody
+}) {
+  const usage = summarizeResponseUsage(response.steps ?? [], providerUsage)
+  const sourceCount = response.citations.length
+  const toolCallCount = response.tool_calls.length
+  const hasDetails = sourceCount > 0 || toolCallCount > 0 || usage !== null
+
+  if (!hasDetails) {
+    return null
+  }
+
+  return (
+    <div
+      className={
+        embedded
+          ? 'response-details-body response-details-body-embedded'
+          : 'response-details-body'
+      }
+    >
+      {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
+      {toolCallCount > 0 ? (
+        <section className="response-detail-group" aria-label="Tool calls detail">
+          <h3>tool calls · {toolCallCount}</h3>
+          <ul className="tool-call-list tool-call-list-compact">
+            {response.tool_calls.map((call) => (
+              <li key={`${call.name}-${call.query}`}>
+                <strong>{call.name}</strong>
+                <span>{call.query}</span>
+                <small>
+                  limit {call.limit} / {call.result_count} results
+                </small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {sourceCount > 0 ? (
+        <section className="response-detail-group" aria-label="Sources detail">
+          <h3>sources · {sourceCount}</h3>
+          <ol className="citation-list citation-list-compact">
             {response.citations.map((result) => (
               <li key={result.chunk_id}>
                 <div>
@@ -5583,7 +5984,10 @@ function ResponseContent({
                     aria-label={`View source ${result.citation.source_external_id}`}
                     className="source-viewer-button"
                     onClick={() =>
-                      onOpenSource(result.citation.source_id, result.citation.snippet)
+                      onOpenSource(
+                        result.citation.source_id,
+                        result.citation.snippet,
+                      )
                     }
                     type="button"
                   >
@@ -5593,28 +5997,117 @@ function ResponseContent({
               </li>
             ))}
           </ol>
-        )}
-      </section>
-
-      <section className="result-section" aria-labelledby="tool-calls-title">
-        <h3 id="tool-calls-title">Tool calls</h3>
-        {response.tool_calls.length === 0 ? (
-          <p className="empty-copy">No tool calls returned.</p>
-        ) : (
-          <ul className="tool-call-list">
-            {response.tool_calls.map((call) => (
-              <li key={`${call.name}-${call.query}`}>
-                <strong>{call.name}</strong>
-                <span>{call.query}</span>
-                <small>
-                  limit {call.limit} / {call.result_count} results
-                </small>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
     </div>
+  )
+}
+
+type ResponseUsageSummary = {
+  costUsd: number | null
+  inputTokens: number | null
+  model: string | null
+  outputTokens: number | null
+  provider: string | null
+  totalTokens: number | null
+}
+
+function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
+  return (
+    <dl className="response-usage-strip">
+      {usage.model !== null ? (
+        <div>
+          <dt>model</dt>
+          <dd>{usage.model}</dd>
+        </div>
+      ) : null}
+      {usage.provider !== null ? (
+        <div>
+          <dt>provider</dt>
+          <dd>{usage.provider}</dd>
+        </div>
+      ) : null}
+      <div>
+        <dt>tokens</dt>
+        <dd>{formatNullableTokens(usage.totalTokens)}</dd>
+      </div>
+      <div>
+        <dt>input</dt>
+        <dd>{formatNullableTokenCount(usage.inputTokens)}</dd>
+      </div>
+      <div>
+        <dt>output</dt>
+        <dd>{formatNullableTokenCount(usage.outputTokens)}</dd>
+      </div>
+      <div>
+        <dt>cost</dt>
+        <dd>{formatNullableUsageCost(usage.costUsd)}</dd>
+      </div>
+    </dl>
+  )
+}
+
+function KnowledgeDraftCard({
+  draft,
+  onCancel,
+  onRefine,
+  onSubmit,
+  onTextChange,
+}: {
+  draft: ChatKnowledgeDraft
+  onCancel(): void
+  onRefine(): void
+  onSubmit(): void
+  onTextChange(text: string): void
+}) {
+  const canEdit = draft.status === 'draft'
+  const canCancel = draft.status !== 'approved' && draft.status !== 'cancelled'
+  const primaryAction =
+    draft.reviewAction === 'approve' ? 'Approve knowledge' : 'Request approval'
+
+  return (
+    <article
+      aria-label={`Knowledge draft ${draft.draftId}`}
+      className={`knowledge-draft-card knowledge-draft-card-${draft.status}`}
+      role="region"
+    >
+      <div className="knowledge-draft-header">
+        <div>
+          <span className="message-role">Knowledge draft</span>
+          <strong>{draft.scope}</strong>
+        </div>
+        <span className="knowledge-draft-status">{draft.status}</span>
+      </div>
+      <label className="field">
+        <span>Knowledge draft text</span>
+        <textarea
+          aria-label="Knowledge draft text"
+          disabled={!canEdit}
+          onChange={(event) => onTextChange(event.currentTarget.value)}
+          rows={3}
+          value={draft.text}
+        />
+      </label>
+      {draft.proposalId === null ? null : (
+        <p className="knowledge-draft-meta">Proposal {draft.proposalId}</p>
+      )}
+      {draft.error === null ? null : (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {draft.error}
+        </p>
+      )}
+      <div className="knowledge-draft-actions">
+        <button disabled={!canEdit} onClick={onSubmit} type="button">
+          {primaryAction}
+        </button>
+        <button disabled={!canEdit} onClick={onRefine} type="button">
+          Refine in chat
+        </button>
+        <button disabled={!canCancel} onClick={onCancel} type="button">
+          Cancel draft
+        </button>
+      </div>
+    </article>
   )
 }
 
@@ -6584,6 +7077,68 @@ function useIsRightDockInlineViewport(): boolean {
   return isInline
 }
 
+function normalizeActiveView(view: ActiveView): ActiveView {
+  return view === 'settings' ? 'authoring' : view
+}
+
+function isSettingsModule(view: ActiveView): view is SettingsModule {
+  return view === 'authoring' || view === 'observability' || view === 'runtime'
+}
+
+function readActiveViewFromRoute(): ActiveView {
+  if (typeof window === 'undefined') {
+    return 'chat'
+  }
+
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (pathname === '/' || pathname === '/chat') {
+    return 'chat'
+  }
+  if (pathname === '/account') {
+    return 'account'
+  }
+  if (pathname === '/settings' || pathname === '/settings/authoring') {
+    return 'authoring'
+  }
+  if (pathname === '/settings/observability') {
+    return 'observability'
+  }
+  if (pathname === '/settings/runtime') {
+    return 'runtime'
+  }
+  return 'chat'
+}
+
+function replaceRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'replace')
+}
+
+function pushRouteForActiveView(view: ActiveView) {
+  updateRouteForActiveView(view, 'push')
+}
+
+function updateRouteForActiveView(
+  view: ActiveView,
+  mode: 'push' | 'replace',
+) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const nextView = normalizeActiveView(view)
+  const nextPath = ACTIVE_VIEW_ROUTES[nextView]
+  if (window.location.pathname === nextPath) {
+    return
+  }
+
+  const state = { activeView: nextView }
+  if (mode === 'replace') {
+    window.history.replaceState(state, '', nextPath)
+    return
+  }
+  window.history.pushState(state, '', nextPath)
+}
+
 function readPersistedProjectId(): string {
   try {
     return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
@@ -6658,11 +7213,35 @@ function appendToolCall(
   }
 }
 
+function appendChatStep(
+  response: ChatResponseBody | null,
+  step: ChatStepEvent,
+): ChatResponseBody {
+  const current = response ?? emptyChatResponse()
+  return {
+    ...current,
+    steps: applyChatStepEvent(current.steps ?? [], step),
+  }
+}
+
+function withChatSteps(
+  response: ChatResponseBody,
+  steps: ChatStepEvent[],
+): ChatResponseBody {
+  return steps.length === 0
+    ? response
+    : {
+        ...response,
+        steps,
+      }
+}
+
 function emptyChatResponse(): ChatResponseBody {
   return {
     answer: '',
     citations: [],
     session_id: null,
+    steps: [],
     tool_calls: [],
   }
 }
@@ -6680,10 +7259,18 @@ function chatResponseFromSessionDetail(
       run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
     ),
     session_id: detail.session.session_id,
+    steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
     tool_calls: detail.tool_calls.map((call) =>
       chatToolCallFromHistory(call, detail.retrieval_runs),
     ),
   }
+}
+
+function extractLatestUserQuestion(detail: ChatSessionDetailResponse): string | null {
+  const latestUserMessage = [...detail.messages]
+    .reverse()
+    .find((message) => message.role === 'user' && message.content.trim().length > 0)
+  return latestUserMessage?.content.trim() ?? null
 }
 
 function retrievalResultFromHistory(
@@ -6730,23 +7317,107 @@ function chatToolCallFromHistory(
 ): ChatToolCall {
   const matchingRun =
     retrievalRuns.find((run) => run.tool_call_id === call.tool_call_id) ?? null
-
-  return {
-    limit:
-      getJsonNumber(call.arguments, 'limit') ??
-      getJsonNumber(call.arguments, 'top_k') ??
-      matchingRun?.top_k ??
-      0,
+  const query = getCitationString(call.arguments, 'query') ?? matchingRun?.query
+  const limit =
+    getJsonNumber(call.arguments, 'limit') ??
+    getJsonNumber(call.arguments, 'top_k') ??
+    matchingRun?.top_k
+  const resultCount =
+    getJsonNumber(call.result_summary, 'result_count') ??
+    matchingRun?.retrieved_chunks.length
+  const toolCall: ChatToolCall = {
     name: call.tool_name,
-    query:
-      getCitationString(call.arguments, 'query') ??
-      matchingRun?.query ??
-      call.tool_name,
-    result_count:
-      getJsonNumber(call.result_summary, 'result_count') ??
-      matchingRun?.retrieved_chunks.length ??
-      0,
+    arguments: call.arguments ?? undefined,
+    result_summary: call.result_summary ?? undefined,
   }
+  if (query !== undefined) {
+    toolCall.query = query
+  }
+  if (limit !== undefined) {
+    toolCall.limit = limit
+  }
+  if (resultCount !== undefined) {
+    toolCall.result_count = resultCount
+  }
+  return toolCall
+}
+
+function extractKnowledgeDrafts(toolCalls: ChatToolCall[]): ChatKnowledgeDraft[] {
+  return toolCalls
+    .map((call) => extractKnowledgeDraft(call))
+    .filter((draft): draft is ChatKnowledgeDraft => draft !== null)
+}
+
+function extractKnowledgeDraft(call: ChatToolCall): ChatKnowledgeDraft | null {
+  if (call.name !== 'commit_knowledge' && call.name !== 'refine_knowledge') {
+    return null
+  }
+  const draftId = getCitationString(call.result_summary, 'draft_id')
+  const summaryText = getCitationString(call.result_summary, 'proposed_text')
+  const argumentText = getCitationString(call.arguments, 'knowledge_text')
+  const text = summaryText ?? argumentText
+  if (draftId === null || text === null) {
+    return null
+  }
+  return {
+    draftId,
+    error: null,
+    proposalId: getCitationString(call.result_summary, 'proposal_id'),
+    reviewAction:
+      getCitationString(call.result_summary, 'review_action') ??
+      'request_approval',
+    scope: getCitationString(call.result_summary, 'scope') ?? 'message',
+    status: getCitationString(call.result_summary, 'status') ?? 'draft',
+    text,
+  }
+}
+
+function extractKnowledgeLifecycleEvents(
+  toolCalls: ChatToolCall[],
+): ChatKnowledgeLifecycleEvent[] {
+  return toolCalls
+    .map((call, index) => extractKnowledgeLifecycleEvent(call, index))
+    .filter(
+      (event): event is ChatKnowledgeLifecycleEvent => event !== null,
+    )
+}
+
+function extractKnowledgeLifecycleEvent(
+  call: ChatToolCall,
+  index: number,
+): ChatKnowledgeLifecycleEvent | null {
+  const lifecycle = getJsonObject(call.result_summary, 'knowledge_lifecycle')
+  const action =
+    getCitationString(lifecycle, 'action') ?? knowledgeLifecycleAction(call.name)
+  if (action !== 'approve' && action !== 'cancel') {
+    return null
+  }
+  const draftId =
+    getCitationString(lifecycle, 'draft_id') ??
+    getCitationString(call.result_summary, 'draft_id') ??
+    getCitationString(call.arguments, 'draft_id')
+  const allPending =
+    getJsonBoolean(lifecycle, 'all_pending') ||
+    (call.name === 'cancel_knowledge' && draftId === null)
+  if (draftId === null && !allPending) {
+    return null
+  }
+  return {
+    action,
+    allPending,
+    draftId,
+    key: `${call.name}:${index}:${draftId ?? 'all'}`,
+  }
+}
+
+function knowledgeLifecycleAction(name: string): 'approve' | 'cancel' | null {
+  if (name === 'approve_knowledge') {
+    return 'approve'
+  }
+  if (name === 'cancel_knowledge') {
+    return 'cancel'
+  }
+  return null
 }
 
 function isAbortError(error: unknown): boolean {
@@ -6769,30 +7440,6 @@ function shouldFallbackToJsonChat(error: unknown): boolean {
     return error.status === 404 || error.status === 405 || error.status >= 500
   }
   return true
-}
-
-function normalizeOptionalChatRetrievalLimit(value: string): string {
-  if (value.trim().length === 0) {
-    return ''
-  }
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return ''
-  }
-  return String(
-    Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed))),
-  )
-}
-
-function parseOptionalChatRetrievalLimit(value: string): number | null {
-  if (value.trim().length === 0) {
-    return null
-  }
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return null
-  }
-  return Math.min(CHAT_RETRIEVAL_MAX_LIMIT, Math.max(1, Math.trunc(parsed)))
 }
 
 function normalizeChatRetrievalLimit(value: string): number {
@@ -6886,6 +7533,30 @@ function getCitationString(value: unknown, key: string): string | null {
   const nextValue = (value as Record<string, unknown>)[key]
   return typeof nextValue === 'string' && nextValue.length > 0
     ? nextValue
+    : null
+}
+
+function getJsonBoolean(value: unknown, key: string): boolean {
+  if (value === null || typeof value !== 'object' || !(key in value)) {
+    return false
+  }
+
+  return (value as Record<string, unknown>)[key] === true
+}
+
+function getJsonObject(
+  value: unknown,
+  key: string,
+): Record<string, unknown> | null {
+  if (value === null || typeof value !== 'object' || !(key in value)) {
+    return null
+  }
+
+  const nextValue = (value as Record<string, unknown>)[key]
+  return nextValue !== null &&
+    typeof nextValue === 'object' &&
+    !Array.isArray(nextValue)
+    ? (nextValue as Record<string, unknown>)
     : null
 }
 
@@ -7389,12 +8060,84 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
   return `${Math.round(average)} ms`
 }
 
+function summarizeResponseUsage(
+  steps: ChatStep[],
+  providerUsage: ChatHistoryProviderUsage[],
+): ResponseUsageSummary | null {
+  const stepUsages = steps
+    .map((step) => step.usage)
+    .filter((usage): usage is NonNullable<ChatStep['usage']> => usage !== undefined)
+  if (stepUsages.length > 0) {
+    const lastUsage = stepUsages[stepUsages.length - 1]
+    return {
+      costUsd: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.estimated_cost_usd),
+      ),
+      inputTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.input_tokens),
+      ),
+      model: lastUsage.model,
+      outputTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.output_tokens),
+      ),
+      provider: lastUsage.provider,
+      totalTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.total_tokens),
+      ),
+    }
+  }
+
+  if (providerUsage.length === 0) {
+    return null
+  }
+
+  const firstUsage = providerUsage[0]
+  return {
+    costUsd: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.estimated_cost_usd),
+    ),
+    inputTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.input_tokens),
+    ),
+    model: firstUsage?.model ?? null,
+    outputTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.output_tokens),
+    ),
+    provider: firstUsage?.provider ?? null,
+    totalTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.total_tokens),
+    ),
+  }
+}
+
+function sumOptionalNumbers(values: Array<number | null | undefined>): number | null {
+  const knownValues = values.filter(
+    (value): value is number => value !== null && value !== undefined,
+  )
+  if (knownValues.length === 0) {
+    return null
+  }
+  return knownValues.reduce((total, value) => total + value, 0)
+}
+
 function formatUnknownCost(value: number | null): string {
   return value === null ? 'unknown cost' : formatUsd(value)
 }
 
 function formatUnknownTokens(value: number | null): string {
   return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+}
+
+function formatNullableUsageCost(value: number | null): string {
+  return value === null ? 'unknown cost' : formatUsd(value)
+}
+
+function formatNullableTokens(value: number | null): string {
+  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+}
+
+function formatNullableTokenCount(value: number | null): string {
+  return value === null ? 'unknown' : formatNumber(value)
 }
 
 function formatUnknownMs(value: number | null): string {
