@@ -35,7 +35,7 @@ describe('Button', () => {
   })
 
   test('keeps the stable slot marker when callers pass data attributes', () => {
-    render(<Button data-slot="custom-button">Save</Button>)
+    render(<Button data-slot="icon-button">Save</Button>)
 
     expect(screen.getByRole('button', { name: 'Save' }).getAttribute('data-slot')).toBe(
       'button',
@@ -47,14 +47,18 @@ describe('IconButton', () => {
   test('uses the provided label as the accessible name and marks its slot', () => {
     const callerProps = {
       'aria-label': 'Wrong label',
+      'aria-labelledby': 'hostile-label',
       'data-slot': 'custom-icon-button',
       size: 'sm',
     } as unknown as ComponentProps<typeof IconButton>
 
     render(
-      <IconButton {...callerProps} label="Open menu">
-        <span aria-hidden="true">M</span>
-      </IconButton>,
+      <>
+        <span id="hostile-label">Wrong menu label</span>
+        <IconButton {...callerProps} label="Open menu">
+          <span aria-hidden="true">M</span>
+        </IconButton>
+      </>,
     )
 
     const button = screen.getByRole('button', { name: 'Open menu' })

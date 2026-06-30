@@ -4,31 +4,19 @@ import { type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from './button-variants'
 
-type ButtonSlot = 'button' | 'icon-button'
-
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
-    'data-slot'?: ButtonSlot | (string & {})
+    'data-slot'?: string
   }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      'data-slot': dataSlot,
-      size,
-      type = 'button',
-      variant,
-      ...props
-    },
-    ref,
-  ) => (
+  ({ className, size, type = 'button', variant, ...props }, ref) => (
     <button
       className={cn(buttonVariants({ size, variant }), className)}
       ref={ref}
       type={type}
       {...props}
-      data-slot={dataSlot === 'icon-button' ? 'icon-button' : 'button'}
+      data-slot="button"
     />
   ),
 )
@@ -36,26 +24,51 @@ Button.displayName = 'Button'
 
 export type IconButtonProps = Omit<
   ButtonProps,
-  'aria-label' | 'children' | 'data-slot' | 'size'
+  'aria-label' | 'aria-labelledby' | 'children' | 'data-slot' | 'size' | 'title'
 > & {
+  'aria-label'?: never
+  'aria-labelledby'?: never
   children: ReactNode
+  'data-slot'?: never
   label: string
+  size?: never
+  title?: never
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ children, className, label, title, variant = 'secondary', ...props }, ref) => (
-    <Button
-      className={className}
-      ref={ref}
-      {...props}
-      aria-label={label}
-      data-slot="icon-button"
-      size="icon"
-      title={title ?? label}
-      variant={variant}
-    >
-      {children}
-    </Button>
-  ),
+  (
+    {
+      children,
+      className,
+      label,
+      type = 'button',
+      variant = 'secondary',
+      ...props
+    },
+    ref,
+  ) => {
+    const buttonProps = {
+      ...props,
+    } as typeof props & Record<string, unknown>
+    delete buttonProps['aria-label']
+    delete buttonProps['aria-labelledby']
+    delete buttonProps['data-slot']
+    delete buttonProps.size
+    delete buttonProps.title
+
+    return (
+      <button
+        className={cn(buttonVariants({ size: 'icon', variant }), className)}
+        ref={ref}
+        type={type}
+        {...buttonProps}
+        aria-label={label}
+        data-slot="icon-button"
+        title={label}
+      >
+        {children}
+      </button>
+    )
+  },
 )
 IconButton.displayName = 'IconButton'
