@@ -2970,6 +2970,57 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('Project slot model') as HTMLSelectElement).value).toBe('')
   })
 
+  test('ignores stale project runtime reloads after switching projects', async () => {
+    const user = userEvent.setup()
+    const nextProject: Project = {
+      ...projectSummary,
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Second',
+    }
+    const projectSettingsRequest = createDeferred<ProjectRuntimeSettings>()
+    const getProjectRuntimeSettings = vi.fn(
+      async () => await projectSettingsRequest.promise,
+    )
+    const client = createClientStub({
+      getProjectRuntimeSettings,
+      listProjects: vi.fn(async () => ({
+        items: [projectSummary, nextProject],
+      })),
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+
+    await waitFor(() =>
+      expect(getProjectRuntimeSettings).toHaveBeenCalledWith(projectId),
+    )
+
+    await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
+    await user.click(screen.getByRole('option', { name: 'Select project Second' }))
+
+    expect(
+      await screen.findByRole('button', { name: /Project selector: Second/ }),
+    ).toBeTruthy()
+
+    await act(async () => {
+      projectSettingsRequest.resolve(projectRuntimeSettings)
+      await projectSettingsRequest.promise
+    })
+
+    const updatedProjectSettings = screen.getByRole('region', {
+      name: 'Project runtime settings',
+    })
+    expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
+    expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
+    expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
+    expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   test('blocks global slot save until the selected connection has compatible synced models', async () => {
     const user = userEvent.setup()
     const upsertRuntimeSlotDefault = vi.fn(

@@ -175,6 +175,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [projectId, setProjectId] = useState(() =>
     initialProjectId.trim() || readPersistedProjectId(),
   )
+  const projectIdRef = useRef(projectId.trim())
   const [question, setQuestion] = useState('')
   const [retrievalLimitOverride, setRetrievalLimitOverride] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
@@ -367,6 +368,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           setSessionDetail(null)
           setHistoryError(null)
           setHistoryState('loading')
+          projectIdRef.current = lastProjectId
           setProjectId(lastProjectId)
         }
       })
@@ -966,6 +968,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function setSelectedProjectId(nextProjectId: string) {
     const trimmedProjectId = nextProjectId.trim()
+    projectIdRef.current = trimmedProjectId
     setVisibleSessionCount(SESSION_PAGE_SIZE)
     setSessions([])
     setHasMoreSessions(false)
@@ -1445,11 +1448,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefreshRuntimeProjectOverrides() {
+    const trimmedProjectId = projectId.trim()
     setRuntimeState('loading')
     setRuntimeError(null)
 
     try {
-      const trimmedProjectId = projectId.trim()
       const projectSettingsPromise =
         trimmedProjectId.length > 0
           ? client.getProjectRuntimeSettings(trimmedProjectId)
@@ -1459,15 +1462,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         client.listProviderModels(),
         projectSettingsPromise,
       ])
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeConnections(connections.items)
       setRuntimeProviderModels(providerModels.items)
-      if (trimmedProjectId.length > 0) {
-        syncProjectRuntimeSettings(projectSettings)
-      } else {
-        syncProjectRuntimeSettings(null)
-      }
+      syncProjectRuntimeSettings(projectSettings)
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1603,6 +1608,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const trimmedProjectId = projectId.trim()
     const validationError = validateChatRetrievalSettings({
       candidateLimit: globalChatRerankCandidateLimit,
       rerankEnabled: globalChatRerankEnabled,
@@ -1624,14 +1630,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       })
       setRuntimeChatRetrieval(settings)
       syncGlobalChatRetrievalFields(settings)
-      const trimmedProjectId = projectId.trim()
       if (trimmedProjectId.length > 0) {
-        syncProjectRuntimeSettings(
-          await client.getProjectRuntimeSettings(trimmedProjectId),
-        )
+        const projectSettings =
+          await client.getProjectRuntimeSettings(trimmedProjectId)
+        if (
+          !syncProjectRuntimeSettingsForProject(
+            trimmedProjectId,
+            projectSettings,
+          )
+        ) {
+          return
+        }
       }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (
+        trimmedProjectId.length > 0 &&
+        !isCurrentProjectRuntimeRequest(trimmedProjectId)
+      ) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1659,11 +1677,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         connection_id: trimmedConnectionId,
         model_id: trimmedModelId,
       })
-      setProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1681,11 +1703,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
     try {
       await client.deleteProjectRuntimeSlotOverride(trimmedProjectId, slot)
-      setProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1720,11 +1746,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         rerank_enabled: projectChatRerankEnabled,
         rerank_candidate_limit: projectChatRerankCandidateLimit,
       })
-      syncProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1742,11 +1772,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeError(null)
     try {
       await client.deleteProjectChatRetrievalSettings(trimmedProjectId)
-      syncProjectRuntimeSettings(
-        await client.getProjectRuntimeSettings(trimmedProjectId),
-      )
+      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+        return
+      }
       setRuntimeState('succeeded')
     } catch (error) {
+      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+        return
+      }
       setRuntimeState('failed')
       setRuntimeError(getErrorMessage(error))
     }
@@ -1769,6 +1803,21 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setProjectChatRerankCandidateLimit(
       settings.chat_retrieval.rerank_candidate_limit,
     )
+  }
+
+  function syncProjectRuntimeSettingsForProject(
+    requestedProjectId: string,
+    settings: ProjectRuntimeSettings | null,
+  ): boolean {
+    if (!isCurrentProjectRuntimeRequest(requestedProjectId)) {
+      return false
+    }
+    syncProjectRuntimeSettings(settings)
+    return true
+  }
+
+  function isCurrentProjectRuntimeRequest(requestedProjectId: string): boolean {
+    return projectIdRef.current === requestedProjectId.trim()
   }
 
   function resetProjectRuntimeFormFields() {
