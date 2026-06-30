@@ -19,6 +19,7 @@ from adaptive_rag.auth import (
     users_exist,
 )
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
+from adaptive_rag.chat.knowledge import SqlAlchemyKnowledgeProposalSubmitter
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
@@ -397,6 +398,8 @@ def get_chat_runner(
 
 
 def get_chat_service(
+    session: Annotated[Session, Depends(get_session)],
+    access: Annotated[tuple[Project, str], Depends(get_project_access)],
     retrieval_service: Annotated[
         LazyChatRetrievalSearcher,
         Depends(get_chat_retrieval_searcher),
@@ -419,4 +422,8 @@ def get_chat_service(
         retrieval_service=retrieval_service,
         audit_writer=audit_writer,
         provider_usage_records=lambda: usage_tracker.records,
+        knowledge_proposal_submitter=SqlAlchemyKnowledgeProposalSubmitter(
+            session=session,
+            project_role=access[1],
+        ),
     )

@@ -699,10 +699,6 @@ h3 {
   min-height: 44px;
 }
 
-.field-compact {
-  max-width: 150px;
-}
-
 .form-actions {
   align-items: end;
   display: flex;
@@ -714,7 +710,7 @@ h3 {
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(112px, 132px) auto;
+  grid-template-columns: 1fr;
 }
 
 .composer-icon-actions {
@@ -857,7 +853,7 @@ button:disabled {
 }
 
 .message-role {
-  color: #99c8ba;
+  color: var(--app-accent);
   display: block;
   font-size: 12px;
   font-weight: 800;
@@ -865,7 +861,7 @@ button:disabled {
 }
 
 .message-card-muted .message-role {
-  color: #527168;
+  color: var(--app-text-muted);
 }
 
 .message-card p {
@@ -1027,12 +1023,88 @@ button.chat-question-pill:hover {
   padding: 7px 8px;
 }
 
+.knowledge-draft-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.knowledge-draft-card {
+  --knowledge-draft-accent: var(--app-accent);
+  --knowledge-draft-badge-bg: var(--app-accent-soft);
+  --knowledge-draft-bg: var(--app-surface-solid);
+  --knowledge-draft-border: var(--app-border-strong);
+  background: var(--knowledge-draft-bg);
+  border: 1px solid var(--knowledge-draft-border);
+  border-radius: 8px;
+  color: var(--app-text);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.knowledge-draft-card-cancelled {
+  --knowledge-draft-bg: var(--app-surface-muted);
+  --knowledge-draft-border: var(--app-border-strong);
+}
+
+.knowledge-draft-card-approved {
+  --knowledge-draft-bg: var(--app-accent-soft);
+  --knowledge-draft-border: var(--app-border-strong);
+}
+
+.knowledge-draft-card-pending {
+  --knowledge-draft-bg: var(--app-surface-muted);
+  --knowledge-draft-border: var(--app-border-strong);
+}
+
+.knowledge-draft-header {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.knowledge-draft-header div {
+  display: grid;
+  gap: 3px;
+}
+
+.knowledge-draft-card .message-role {
+  color: var(--knowledge-draft-accent);
+}
+
+.knowledge-draft-header strong,
+.knowledge-draft-status,
+.knowledge-draft-meta {
+  color: var(--knowledge-draft-accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.knowledge-draft-status {
+  background: var(--knowledge-draft-badge-bg);
+  border-radius: 999px;
+  padding: 5px 8px;
+}
+
+.knowledge-draft-meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .streaming-status {
   align-items: center;
-  background: #eaf4f1;
-  border: 1px solid #cfe0db;
+  background: var(--app-accent-soft);
+  border: 1px solid var(--app-border-strong);
   border-radius: 8px;
-  color: #23423e;
+  color: var(--app-text);
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -1040,14 +1112,14 @@ button.chat-question-pill:hover {
 }
 
 .streaming-status span {
-  color: #397267;
+  color: var(--app-accent);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .streaming-status strong {
-  color: #223532;
+  color: var(--app-text-strong);
   font-size: 13px;
 }
 
@@ -1281,9 +1353,10 @@ button.chat-question-pill:hover {
 }
 
 .result-section {
-  background: #f8faf9;
-  border: 1px solid #dfe6e2;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
+  color: var(--app-text);
   padding: 16px;
 }
 
@@ -1745,8 +1818,8 @@ button.chat-question-pill:hover {
 .tool-call-list li,
 .session-list li,
 .detail-list li {
-  background: #ffffff;
-  border: 1px solid #dfe5e0;
+  background: var(--app-surface-solid);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
 }
 
@@ -1763,7 +1836,7 @@ button.chat-question-pill:hover {
 .tool-call-list strong,
 .session-list span,
 .detail-list strong {
-  color: #25302f;
+  color: var(--app-text-strong);
   display: block;
   font-size: 13px;
   overflow-wrap: anywhere;
@@ -1776,7 +1849,7 @@ button.chat-question-pill:hover {
 .detail-list p,
 .detail-list small,
 .retrieved-chunk-list p {
-  color: #5c6866;
+  color: var(--app-text-muted);
   display: block;
   font-size: 13px;
   line-height: 1.45;
@@ -1784,9 +1857,9 @@ button.chat-question-pill:hover {
 }
 
 .citation-score {
-  background: #e6f1ed;
+  background: var(--app-accent-soft);
   border-radius: 999px;
-  color: #27534d;
+  color: var(--app-accent);
   display: inline-flex;
   font-size: 12px;
   font-weight: 800;
@@ -1801,17 +1874,17 @@ button.chat-question-pill:hover {
 }
 
 .source-viewer-button {
-  background: #24413d;
-  border-color: #24413d;
-  color: #ffffff;
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: var(--app-primary-fg);
   font-size: 12px;
   min-height: 34px;
   padding: 8px 10px;
 }
 
 .source-viewer-button:hover {
-  background: #315951;
-  border-color: #315951;
+  background: var(--app-primary-hover);
+  border-color: var(--app-primary-hover);
 }
 
 .citation-meta,
@@ -1824,8 +1897,9 @@ button.chat-question-pill:hover {
 
 .citation-meta span,
 .retrieval-run-meta span {
-  background: #edf6f3;
+  background: var(--app-accent-soft);
   border-radius: 999px;
+  color: var(--app-accent);
   padding: 5px 8px;
   text-transform: none;
 }
@@ -3073,10 +3147,6 @@ body,
     flex-direction: column;
   }
 
-  .field-compact {
-    max-width: none;
-  }
-
   button {
     width: 100%;
   }
@@ -3256,14 +3326,6 @@ body,
 
 .session-button > strong {
   justify-self: start;
-}
-
-.composer-toolbar {
-  grid-template-columns: minmax(112px, 132px) auto;
-}
-
-.composer-icon-actions {
-  grid-column: auto;
 }
 
 @media (max-width: 900px) {

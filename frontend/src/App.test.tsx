@@ -86,6 +86,7 @@ function setViewportWidth(width: number) {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/')
   setViewportWidth(1400)
   installLocalStorage()
 })
@@ -889,6 +890,71 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
   })
 
+  test('opens the module matching the current route on initial render', () => {
+    window.history.replaceState(null, '', '/settings/runtime')
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+    expect(window.location.pathname).toBe('/settings/runtime')
+  })
+
+  test('updates the route when primary modules and settings tabs change', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(window.location.pathname).toBe('/settings/authoring')
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Observability' }))
+    expect(window.location.pathname).toBe('/settings/observability')
+    expect(screen.getByRole('heading', { name: 'Dashboard shell' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'My account' }))
+    expect(window.location.pathname).toBe('/account')
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /^Chat$/ }))
+    expect(window.location.pathname).toBe('/chat')
+    expect(screen.getByLabelText('Question')).toBeTruthy()
+  })
+
+  test('tracks browser back and forward between modules', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }))
+    expect(window.location.pathname).toBe('/settings/runtime')
+
+    window.history.back()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/authoring'),
+    )
+    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+
+    window.history.forward()
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/runtime'),
+    )
+    expect(
+      screen.getByRole('heading', { name: 'Provider settings' }),
+    ).toBeTruthy()
+  })
+
   test('opens and closes the left sidebar with the burger control', async () => {
     const user = userEvent.setup()
 
@@ -1082,28 +1148,328 @@ describe('App chat workspace', () => {
     expect(updateCurrentUserPreferences).not.toHaveBeenCalled()
   })
 
-  test('submits current chat text as a knowledge proposal', async () => {
+  test('uses chat to request knowledge proposals instead of a composer button', async () => {
     const user = userEvent.setup()
     const submitKnowledgeProposal = vi.fn(async () => pendingKnowledgeProposal)
+    const askChatStream = vi.fn(async () => chatResponse)
 
     render(
       <App
-        apiClient={createClientStub({ submitKnowledgeProposal })}
+        apiClient={createClientStub({ askChatStream, submitKnowledgeProposal })}
         initialProjectId={projectId}
       />,
     )
 
+    expect(
+      screen.queryByRole('button', { name: 'Propose knowledge' }),
+    ).toBeNull()
     await user.type(
       screen.getByLabelText('Question'),
       'Document this deployment exception.',
     )
-    await user.click(screen.getByRole('button', { name: 'Propose knowledge' }))
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    await waitFor(() =>
+      expect(askChatStream).toHaveBeenCalledWith(
+        projectId,
+        {
+          message: 'Document this deployment exception.',
+        },
+        expect.any(Object),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    )
+    expect(submitKnowledgeProposal).not.toHaveBeenCalled()
+  })
+
+  test('renders a chat knowledge draft card and approves edited text', async () => {
+    const user = userEvent.setup()
+    const responseWithKnowledgeTool = {
+      ...chatResponse,
+      tool_calls: [
+        {
+          arguments: {
+            knowledge_text: 'Document this deployment exception.',
+            scope: 'session',
+          },
+          name: 'commit_knowledge',
+          result_summary: {
+            draft_id: 'draft-33333333',
+            proposed_text: 'Document this deployment exception.',
+            review_action: 'approve',
+            scope: 'session',
+            status: 'draft',
+          },
+        },
+      ],
+    }
+    const approveResult = {
+      ...pendingKnowledgeProposal,
+      approved_source_id: 'source-approved',
+      proposed_text: 'Document this deployment exception for import retries.',
+      status: 'approved',
+    }
+    const submitKnowledgeProposal = vi.fn(async () => approveResult)
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => responseWithKnowledgeTool),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+      submitKnowledgeProposal,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'Capture this as knowledge.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(
+      await screen.findByRole('region', {
+        name: 'Knowledge draft draft-33333333',
+      }),
+    ).toBeTruthy()
+    const draftText = screen.getByLabelText('Knowledge draft text')
+    await user.clear(draftText)
+    await user.type(
+      draftText,
+      'Document this deployment exception for import retries.',
+    )
+    await user.click(screen.getByRole('button', { name: 'Approve knowledge' }))
 
     await waitFor(() =>
       expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
-        proposed_text: 'Document this deployment exception.',
+        origin_session_id: 'session-123',
+        proposed_text: 'Document this deployment exception for import retries.',
       }),
     )
+    expect(await screen.findByText('approved')).toBeTruthy()
+    expect(
+      screen.queryByText(/limit .* results/),
+    ).toBeNull()
+  })
+
+  test('lets viewers request approval, refine via chat reference, or cancel draft cards', async () => {
+    const user = userEvent.setup()
+    const responseWithKnowledgeTool = {
+      ...chatResponse,
+      tool_calls: [
+        {
+          arguments: {
+            knowledge_text: 'Viewer draft knowledge.',
+            scope: 'message',
+          },
+          name: 'commit_knowledge',
+          result_summary: {
+            draft_id: 'draft-viewer',
+            proposed_text: 'Viewer draft knowledge.',
+            review_action: 'request_approval',
+            scope: 'message',
+            status: 'draft',
+          },
+        },
+      ],
+    }
+    const submitKnowledgeProposal = vi.fn(async () => ({
+      ...pendingKnowledgeProposal,
+      proposed_text: 'Viewer draft knowledge.',
+      status: 'pending',
+    }))
+    const client = createClientStub({
+      askChatStream: vi.fn(async () => responseWithKnowledgeTool),
+      submitKnowledgeProposal,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'Remember this project rule.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByDisplayValue('Viewer draft knowledge.')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Refine in chat' }))
+    expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
+      [
+        '[refining knowledge draft draft-viewer]',
+        'Current draft:',
+        'Viewer draft knowledge.',
+        'Requested change: ',
+      ].join('\n'),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Request approval' }))
+    await waitFor(() =>
+      expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
+        origin_session_id: 'session-123',
+        proposed_text: 'Viewer draft knowledge.',
+      }),
+    )
+    expect(await screen.findByText('pending')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel draft' }))
+    expect(screen.getByText('cancelled')).toBeTruthy()
+  })
+
+  test('applies chat knowledge lifecycle tool calls to an existing draft card', async () => {
+    const user = userEvent.setup()
+    const responses = [
+      {
+        ...chatResponse,
+        tool_calls: [
+          {
+            arguments: {
+              knowledge_text: 'Original draft knowledge.',
+              scope: 'message',
+            },
+            name: 'commit_knowledge',
+            result_summary: {
+              draft_id: 'draft-lifecycle',
+              proposed_text: 'Original draft knowledge.',
+              review_action: 'approve',
+              scope: 'message',
+              status: 'draft',
+            },
+          },
+        ],
+      },
+      {
+        ...chatResponse,
+        answer: 'Updated the draft.',
+        tool_calls: [
+          {
+            arguments: {
+              draft_id: 'draft-lifecycle',
+              knowledge_text: 'Refined draft knowledge.',
+              scope: 'message',
+            },
+            name: 'refine_knowledge',
+            result_summary: {
+              draft_id: 'draft-lifecycle',
+              knowledge_lifecycle: {
+                action: 'refine',
+                draft_id: 'draft-lifecycle',
+              },
+              proposed_text: 'Refined draft knowledge.',
+              review_action: 'approve',
+              scope: 'message',
+              status: 'draft',
+            },
+          },
+        ],
+      },
+      {
+        ...chatResponse,
+        answer: 'Cancelled the draft.',
+        tool_calls: [
+          {
+            arguments: {
+              draft_id: 'draft-lifecycle',
+            },
+            name: 'cancel_knowledge',
+            result_summary: {
+              draft_id: 'draft-lifecycle',
+              knowledge_lifecycle: {
+                action: 'cancel',
+                draft_id: 'draft-lifecycle',
+              },
+              status: 'cancelled',
+            },
+          },
+        ],
+      },
+    ]
+    const askChatStream = vi.fn(async () => responses.shift() ?? chatResponse)
+
+    render(
+      <App
+        apiClient={createClientStub({ askChatStream })}
+        initialProjectId={projectId}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Question'), 'Remember this.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByDisplayValue('Original draft knowledge.')).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Question'), 'Make that draft clearer.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByDisplayValue('Refined draft knowledge.')).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Question'), 'Cancel that draft.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect((await screen.findAllByText('cancelled')).length).toBeGreaterThan(0)
+  })
+
+  test('approves an existing draft when chat calls approve_knowledge', async () => {
+    const user = userEvent.setup()
+    const responses = [
+      {
+        ...chatResponse,
+        tool_calls: [
+          {
+            arguments: {
+              knowledge_text: 'Approval draft knowledge.',
+              scope: 'session',
+            },
+            name: 'commit_knowledge',
+            result_summary: {
+              draft_id: 'draft-approve-chat',
+              proposed_text: 'Approval draft knowledge.',
+              review_action: 'approve',
+              scope: 'session',
+              status: 'draft',
+            },
+          },
+        ],
+      },
+      {
+        ...chatResponse,
+        answer: 'Approving the draft.',
+        tool_calls: [
+          {
+            arguments: {
+              draft_id: 'draft-approve-chat',
+            },
+            name: 'approve_knowledge',
+            result_summary: {
+              draft_id: 'draft-approve-chat',
+              knowledge_lifecycle: {
+                action: 'approve',
+                draft_id: 'draft-approve-chat',
+              },
+              status: 'approval_requested',
+            },
+          },
+        ],
+      },
+    ]
+    const approveResult = {
+      ...pendingKnowledgeProposal,
+      approved_source_id: 'source-approved',
+      proposed_text: 'Approval draft knowledge.',
+      status: 'approved',
+    }
+    const askChatStream = vi.fn(async () => responses.shift() ?? chatResponse)
+    const submitKnowledgeProposal = vi.fn(async () => approveResult)
+
+    render(
+      <App
+        apiClient={createClientStub({ askChatStream, submitKnowledgeProposal })}
+        initialProjectId={projectId}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Question'), 'Capture this.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByDisplayValue('Approval draft knowledge.')).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Question'), 'Approve draft-approve-chat.')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    await waitFor(() =>
+      expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
+        origin_session_id: 'session-123',
+        proposed_text: 'Approval draft knowledge.',
+      }),
+    )
+    expect(await screen.findByText('approved')).toBeTruthy()
   })
 
   test('creates users and assigns project membership from authoring', async () => {
@@ -1568,7 +1934,7 @@ describe('App chat workspace', () => {
   test('frames chat as dense retrieval without advanced mode controls', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.getByLabelText('Retrieval limit')).toBeTruthy()
+    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
     expect(
       screen.queryByRole('region', { name: 'Chat retrieval mode' }),
     ).toBeNull()
@@ -1669,7 +2035,7 @@ describe('App chat workspace', () => {
     ).toContain('session-row-selected')
   })
 
-  test('sends a chat retrieval limit override only when the field is filled', async () => {
+  test('keeps chat retrieval quantity controls in runtime settings instead of the composer', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
       askChat: vi.fn(),
@@ -1679,9 +2045,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    fireEvent.change(screen.getByLabelText('Retrieval limit'), {
-      target: { value: '12' },
-    })
+    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
+
     await user.type(screen.getByLabelText('Question'), 'How wide should search be?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
@@ -1690,7 +2055,6 @@ describe('App chat workspace', () => {
       projectId,
       {
         message: 'How wide should search be?',
-        retrieval_limit: 12,
       },
       expect.any(Object),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

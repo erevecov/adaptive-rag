@@ -14,6 +14,7 @@ from adaptive_rag.embeddings import (
 from adaptive_rag.provider_runtime import (
     ProviderConfigurationError,
     get_chat_runner,
+    get_contextualizer,
     get_dense_embedding_provider,
     get_rerank_provider,
     get_sparse_embedding_provider,
@@ -32,6 +33,18 @@ from adaptive_rag.rerank import (
 
 def _settings(**overrides):
     return Settings(_env_file=None, **overrides)
+
+
+def test_provider_runtime_public_facade_exports_expected_names():
+    assert provider_runtime.ProviderConfigurationError is ProviderConfigurationError
+    assert provider_runtime.get_chat_runner is get_chat_runner
+    assert provider_runtime.get_contextualizer is get_contextualizer
+    assert provider_runtime.get_dense_embedding_provider is get_dense_embedding_provider
+    assert (
+        provider_runtime.get_sparse_embedding_provider
+        is get_sparse_embedding_provider
+    )
+    assert provider_runtime.get_rerank_provider is get_rerank_provider
 
 
 def test_provider_runtime_defaults_to_fake_without_credentials():

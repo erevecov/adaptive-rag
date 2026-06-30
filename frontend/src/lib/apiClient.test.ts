@@ -1143,10 +1143,10 @@ describe('createApiClient', () => {
       {
         onAnswerDelta: (text) => deltas.push(text),
         onSessionStarted: (sessionId) => sessions.push(sessionId),
+        onToolCall: (toolCall) => toolCalls.push(toolCall.query ?? ''),
         onStep: (step) => {
           steps.push(`${step.id}:${step.status}:${step.elapsed_ms ?? 'running'}`)
         },
-        onToolCall: (toolCall) => toolCalls.push(toolCall.query),
       },
     )
 

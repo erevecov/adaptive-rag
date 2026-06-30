@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 from uuid import UUID
 
 from adaptive_rag.db.models import (
@@ -50,9 +51,11 @@ class ChatToolCall:
     """Metadata minima de una llamada a tool ejecutada durante chat."""
 
     name: str
-    query: str
-    limit: int
-    result_count: int
+    query: str | None = None
+    limit: int | None = None
+    result_count: int | None = None
+    arguments: dict[str, Any] = field(default_factory=dict)
+    result_summary: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

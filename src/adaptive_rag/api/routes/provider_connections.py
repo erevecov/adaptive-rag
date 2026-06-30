@@ -34,6 +34,7 @@ from adaptive_rag.provider_secrets import (
     ProviderSecretKeyError,
     ProviderSecretStore,
 )
+from adaptive_rag.runtime.qwen_defaults import materialize_qwen_runtime_defaults
 
 router = APIRouter(
     prefix="/runtime-settings",
@@ -161,6 +162,8 @@ def sync_provider_models(
             )
             for model in discovered
         ]
+        if connection.provider == "qwen":
+            materialize_qwen_runtime_defaults(session)
     except (ProviderSecretDecryptError, ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
@@ -231,6 +234,8 @@ def _catalog_capabilities(
     model: ProviderModelInfo,
 ) -> list[str]:
     if not model.capabilities:
+        if connection.provider == "qwen":
+            return []
         return list(connection.capabilities_json)
     connection_capabilities = set(connection.capabilities_json)
     return [

@@ -9,7 +9,11 @@ from typing import Literal
 from uuid import UUID
 
 from adaptive_rag.chat.models import ChatResponse, ChatToolCall
-from adaptive_rag.chat.payloads import ChatResponsePayload, serialize_chat_response
+from adaptive_rag.chat.payloads import (
+    ChatResponsePayload,
+    serialize_chat_response,
+    serialize_chat_tool_call,
+)
 
 type ChatStreamEventName = Literal[
     "session_started",
@@ -104,12 +108,7 @@ def serialize_chat_step_usage(usage: ChatStepUsage) -> dict[str, object]:
 def chat_stream_tool_call_event(tool_call: ChatToolCall) -> ChatStreamEvent:
     return ChatStreamEvent(
         event="tool_call",
-        data={
-            "name": tool_call.name,
-            "query": tool_call.query,
-            "limit": tool_call.limit,
-            "result_count": tool_call.result_count,
-        },
+        data=serialize_chat_tool_call(tool_call),
     )
 
 
