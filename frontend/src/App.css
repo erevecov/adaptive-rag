@@ -1181,6 +1181,16 @@ button:disabled {
   min-height: auto;
 }
 
+.authoring-grid-focused,
+.runtime-grid-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.authoring-grid-focused .authoring-panel,
+.runtime-grid-focused .runtime-panel {
+  min-height: auto;
+}
+
 .runtime-panel-wide {
   grid-column: 1 / -1;
 }
@@ -2131,32 +2141,6 @@ body,
   justify-content: space-between;
 }
 
-.settings-section-tabs {
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 6px;
-}
-
-.settings-section-tab {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--app-text-muted);
-  min-height: 42px;
-  min-width: 0;
-  padding: 0 12px;
-}
-
-.settings-section-tab:hover,
-.settings-section-tab-active {
-  background: var(--app-primary);
-  border-color: var(--app-primary);
-  color: var(--app-primary-fg);
-}
-
 .settings-section-body {
   display: grid;
   gap: 16px;
@@ -2711,22 +2695,6 @@ body,
   background: var(--app-accent-soft);
   border-color: var(--app-border-strong);
   color: var(--app-text-strong);
-}
-
-.settings-section-tab,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab {
-  background: transparent;
-  border-color: transparent;
-  color: var(--app-text-muted);
-}
-
-.settings-section-tab:hover,
-.settings-section-tab-active,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab:hover,
-:is([data-theme='dark'], [data-theme='purple']) .settings-section-tab-active {
-  background: var(--app-primary);
-  border-color: var(--app-primary);
-  color: var(--app-primary-fg);
 }
 
 .sidebar-burger,

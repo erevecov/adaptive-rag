@@ -2911,8 +2911,6 @@ function RuntimeSettingsPanel({
   slots: RuntimeSlotDefault[]
   state: RequestState
 }) {
-  void activeSubmodule
-
   const globalSlotConnections = connectionsForCapability(connections, globalSlot)
   const globalSlotModelOptions = providerModelOptions({
     capability: globalSlot,
