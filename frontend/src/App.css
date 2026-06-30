@@ -886,6 +886,143 @@ button:disabled {
   gap: 14px;
 }
 
+.response-stack {
+  gap: 10px;
+}
+
+.chat-question-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.chat-question-pill {
+  background: var(--app-surface-solid);
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+  color: var(--app-text);
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0;
+  min-height: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+button.chat-question-pill:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+}
+
+.assistant-message-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--app-text);
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+.assistant-message-card p {
+  color: var(--app-text);
+}
+
+.response-details-panel {
+  color: var(--app-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.response-details-toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--app-border);
+  border-radius: 7px;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 5px;
+  justify-content: flex-start;
+  min-height: 26px;
+  min-width: 0;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.response-details-toggle:hover {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+.response-details-body {
+  border-left: 2px solid rgba(57, 114, 103, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 7px;
+  padding-left: 10px;
+}
+
+.response-details-body-embedded {
+  margin-left: 0;
+}
+
+.response-usage-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.response-usage-strip div {
+  border: 1px solid var(--app-border);
+  border-radius: 5px;
+  display: grid;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.response-usage-strip dt,
+.response-detail-group h3 {
+  color: var(--app-accent);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.response-usage-strip dd {
+  color: var(--app-text);
+  font-size: 11px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.response-detail-group {
+  display: grid;
+  gap: 5px;
+}
+
+.citation-list-compact,
+.tool-call-list-compact {
+  gap: 4px;
+}
+
+.citation-list-compact li,
+.tool-call-list-compact li {
+  padding: 7px 8px;
+}
+
 .knowledge-draft-stack {
   display: grid;
   gap: 12px;
@@ -1114,6 +1251,10 @@ button:disabled {
   border: 0;
   border-radius: 0;
   padding: 0;
+}
+
+.pipeline-extra-detail {
+  margin: 2px 0 0 8px;
 }
 
 .pipeline-step-row,
@@ -2729,6 +2870,39 @@ body,
   background: var(--app-primary-hover);
   border-color: var(--app-primary-hover);
   color: var(--app-primary-fg);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .chat-question-pill,
+:is([data-theme='dark'], [data-theme='purple']) .response-details-toggle {
+  background: var(--app-surface-solid);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) button.chat-question-pill:hover,
+:is([data-theme='dark'], [data-theme='purple']) .response-details-toggle:hover {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .assistant-message-card {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .assistant-message-card p {
+  color: var(--app-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .response-usage-strip div {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .response-usage-strip dd {
+  color: var(--app-text);
 }
 
 :is([data-theme='dark'], [data-theme='purple']) .view-tab,

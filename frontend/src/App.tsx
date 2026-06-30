@@ -53,6 +53,7 @@ import {
 import {
   applyChatStepEvent,
   parseChatStepsFromMetadata,
+  type ChatStep,
   type ChatStepEvent,
 } from './lib/chatSteps'
 
@@ -63,6 +64,7 @@ const CHAT_RETRIEVAL_MAX_LIMIT = 50
 const SESSION_PAGE_SIZE = 15
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
+const QUESTION_PREVIEW_MAX_CHARS = 96
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
   sensitivity: 'base',
@@ -173,6 +175,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
     useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [activeResponseQuestion, setActiveResponseQuestion] = useState<
+    string | null
+  >(null)
   const [knowledgeDrafts, setKnowledgeDrafts] =
     useState<ChatKnowledgeDraftMap>({})
   const [sourceViewer, setSourceViewer] = useState<SourceViewerState>({
@@ -473,6 +478,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHistoryError(null)
     setResponse(null)
+    setActiveResponseQuestion(trimmedQuestion)
     setSessionDetail(null)
     setDetailState('idle')
     setDetailError(null)
@@ -531,6 +537,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         setSelectedSessionId(nextSessionId)
       }
       setRequestState('succeeded')
+      setQuestion('')
       await handleRefreshHistory(trimmedProjectId, 'active')
       if (nextSessionId !== null) {
         setSessions((current) =>
@@ -559,6 +566,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setSelectedSessionId(nextSessionId)
           }
           setRequestState('succeeded')
+          setQuestion('')
           await handleRefreshHistory(trimmedProjectId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
@@ -740,6 +748,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     handleChangeActiveView('chat')
     setQuestion('')
     setResponse(null)
+    setActiveResponseQuestion(null)
     setSelectedSessionId(null)
     setSessionDetail(null)
     setRequestState('idle')
@@ -868,6 +877,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     handleChangeActiveView('chat')
     setQuestion('')
+    setActiveResponseQuestion(null)
     setSelectedSessionId(sessionId)
     setRequestState('idle')
     setRequestError(null)
@@ -878,6 +888,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     try {
       const detail = await client.getChatSession(trimmedProjectId, sessionId)
       setSessionDetail(detail)
+      setActiveResponseQuestion(extractLatestUserQuestion(detail))
       setResponse(chatResponseFromSessionDetail(detail))
       setDetailState('succeeded')
     } catch (error) {
@@ -1764,6 +1775,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   }
                   onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
                   onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
+                  providerUsage={
+                    response !== null &&
+                    sessionDetail?.session.session_id === response.session_id
+                      ? sessionDetail.provider_usage
+                      : []
+                  }
+                  question={activeResponseQuestion}
                   response={response}
                   setDrafts={setKnowledgeDrafts}
                   state={requestState}
@@ -4580,6 +4598,8 @@ function ResponsePanel({
   onOpenSource,
   onRefineKnowledgeDraft,
   onSubmitKnowledgeDraft,
+  providerUsage,
+  question,
   response,
   setDrafts,
   state,
@@ -4591,6 +4611,8 @@ function ResponsePanel({
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
+  providerUsage: ChatHistoryProviderUsage[]
+  question: string | null
   response: ChatResponseBody | null
   setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
@@ -4603,6 +4625,8 @@ function ResponsePanel({
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
           onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+          providerUsage={providerUsage}
+          question={question}
           response={response}
           setDrafts={setDrafts}
           state={state}
@@ -4632,6 +4656,8 @@ function ResponsePanel({
       onOpenSource={onOpenSource}
       onRefineKnowledgeDraft={onRefineKnowledgeDraft}
       onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+      providerUsage={providerUsage}
+      question={question}
       response={response}
       setDrafts={setDrafts}
       state={state}
@@ -4644,6 +4670,8 @@ function ResponseContent({
   onOpenSource,
   onRefineKnowledgeDraft,
   onSubmitKnowledgeDraft,
+  providerUsage,
+  question,
   response,
   setDrafts,
   state,
@@ -4655,6 +4683,8 @@ function ResponseContent({
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
+  providerUsage: ChatHistoryProviderUsage[]
+  question: string | null
   response: ChatResponseBody
   setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
@@ -4796,26 +4826,41 @@ function ResponseContent({
     }))
   }
   const steps = response.steps ?? []
+  const hasStepDetails = isStreaming || steps.length > 0
 
   return (
     <div className="response-stack" aria-label="Chat response">
-      {isStreaming || steps.length > 0 ? (
+      <QuestionPrompt key={question ?? 'empty-question'} question={question} />
+
+      {response.answer.trim().length > 0 || !isStreaming ? (
+        <div className="message-card assistant-message-card">
+          <p>{response.answer}</p>
+        </div>
+      ) : null}
+
+      {hasStepDetails ? (
         <ChatPipelineSteps
           isStreaming={isStreaming}
           sourceCount={response.citations.length}
           steps={steps}
-        />
+        >
+          <ResponseDetailsContent
+            embedded
+            onOpenSource={onOpenSource}
+            providerUsage={providerUsage}
+            response={response}
+          />
+        </ChatPipelineSteps>
       ) : null}
 
-      <div className="message-card">
-        <div className="message-card-header">
-          <span className="message-role">Assistant</span>
-          {response.session_id ? (
-            <span className="session-chip">{response.session_id}</span>
-          ) : null}
-        </div>
-        <p>{response.answer}</p>
-      </div>
+      {!hasStepDetails ? (
+        <ResponseDetailsPanel
+          key={response.session_id ?? response.answer}
+          onOpenSource={onOpenSource}
+          providerUsage={providerUsage}
+          response={response}
+        />
+      ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
         <section
@@ -4836,15 +4881,143 @@ function ResponseContent({
           ))}
         </section>
       )}
+    </div>
+  )
+}
 
-      <section className="result-section" aria-labelledby="citations-title">
-        <h3 id="citations-title">Citations</h3>
-        {isStreaming && response.citations.length === 0 ? (
-          <p className="empty-copy">Citations appear after the final response.</p>
-        ) : response.citations.length === 0 ? (
-          <p className="empty-copy">No citations returned.</p>
-        ) : (
-          <ol className="citation-list">
+function QuestionPrompt({ question }: { question: string | null }) {
+  const [expanded, setExpanded] = useState(false)
+  const trimmedQuestion = question?.trim() ?? ''
+  if (trimmedQuestion.length === 0) {
+    return null
+  }
+
+  const shouldCollapse = trimmedQuestion.length > QUESTION_PREVIEW_MAX_CHARS
+  const displayQuestion =
+    shouldCollapse && !expanded
+      ? `${trimmedQuestion.slice(0, QUESTION_PREVIEW_MAX_CHARS).trimEnd()}...`
+      : trimmedQuestion
+
+  return (
+    <div className="chat-question-sticky">
+      {shouldCollapse ? (
+        <button
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
+          className="chat-question-pill"
+          onClick={() => setExpanded((current) => !current)}
+          title={trimmedQuestion}
+          type="button"
+        >
+          {displayQuestion}
+        </button>
+      ) : (
+        <p className="chat-question-pill">{displayQuestion}</p>
+      )}
+    </div>
+  )
+}
+
+function ResponseDetailsPanel({
+  onOpenSource,
+  providerUsage,
+  response,
+}: {
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  providerUsage: ChatHistoryProviderUsage[]
+  response: ChatResponseBody
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const usage = summarizeResponseUsage(response.steps ?? [], providerUsage)
+  const sourceCount = response.citations.length
+  const toolCallCount = response.tool_calls.length
+  const hasDetails = sourceCount > 0 || toolCallCount > 0 || usage !== null
+
+  if (!hasDetails) {
+    return null
+  }
+
+  const summaryParts = [
+    formatCount(sourceCount, 'source'),
+    formatCount(toolCallCount, 'tool call'),
+  ]
+  if (usage !== null) {
+    summaryParts.push('usage')
+  }
+
+  return (
+    <section aria-label="Response details" className="response-details-panel">
+      <button
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
+        className="response-details-toggle"
+        onClick={() => setExpanded((current) => !current)}
+        type="button"
+      >
+        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+        details · {summaryParts.join(' · ')}
+      </button>
+
+      {expanded ? (
+        <ResponseDetailsContent
+          onOpenSource={onOpenSource}
+          providerUsage={providerUsage}
+          response={response}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+function ResponseDetailsContent({
+  embedded = false,
+  onOpenSource,
+  providerUsage,
+  response,
+}: {
+  embedded?: boolean
+  onOpenSource(sourceId: string, citationSnippet: string | null): void
+  providerUsage: ChatHistoryProviderUsage[]
+  response: ChatResponseBody
+}) {
+  const usage = summarizeResponseUsage(response.steps ?? [], providerUsage)
+  const sourceCount = response.citations.length
+  const toolCallCount = response.tool_calls.length
+  const hasDetails = sourceCount > 0 || toolCallCount > 0 || usage !== null
+
+  if (!hasDetails) {
+    return null
+  }
+
+  return (
+    <div
+      className={
+        embedded
+          ? 'response-details-body response-details-body-embedded'
+          : 'response-details-body'
+      }
+    >
+      {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
+      {toolCallCount > 0 ? (
+        <section className="response-detail-group" aria-label="Tool calls detail">
+          <h3>tool calls · {toolCallCount}</h3>
+          <ul className="tool-call-list tool-call-list-compact">
+            {response.tool_calls.map((call) => (
+              <li key={`${call.name}-${call.query}`}>
+                <strong>{call.name}</strong>
+                <span>{call.query}</span>
+                <small>
+                  limit {call.limit} / {call.result_count} results
+                </small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {sourceCount > 0 ? (
+        <section className="response-detail-group" aria-label="Sources detail">
+          <h3>sources · {sourceCount}</h3>
+          <ol className="citation-list citation-list-compact">
             {response.citations.map((result) => (
               <li key={result.chunk_id}>
                 <div>
@@ -4866,7 +5039,10 @@ function ResponseContent({
                     aria-label={`View source ${result.citation.source_external_id}`}
                     className="source-viewer-button"
                     onClick={() =>
-                      onOpenSource(result.citation.source_id, result.citation.snippet)
+                      onOpenSource(
+                        result.citation.source_id,
+                        result.citation.snippet,
+                      )
                     }
                     type="button"
                   >
@@ -4876,28 +5052,53 @@ function ResponseContent({
               </li>
             ))}
           </ol>
-        )}
-      </section>
-
-      <section className="result-section" aria-labelledby="tool-calls-title">
-        <h3 id="tool-calls-title">Tool calls</h3>
-        {response.tool_calls.length === 0 ? (
-          <p className="empty-copy">No tool calls returned.</p>
-        ) : (
-          <ul className="tool-call-list">
-            {response.tool_calls.map((call, index) => (
-              <li key={`${call.name}-${index}`}>
-                <strong>{call.name}</strong>
-                <span>{toolCallPrimaryText(call)}</span>
-                {toolCallMetaText(call) === null ? null : (
-                  <small>{toolCallMetaText(call)}</small>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
     </div>
+  )
+}
+
+type ResponseUsageSummary = {
+  costUsd: number | null
+  inputTokens: number | null
+  model: string | null
+  outputTokens: number | null
+  provider: string | null
+  totalTokens: number | null
+}
+
+function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
+  return (
+    <dl className="response-usage-strip">
+      {usage.model !== null ? (
+        <div>
+          <dt>model</dt>
+          <dd>{usage.model}</dd>
+        </div>
+      ) : null}
+      {usage.provider !== null ? (
+        <div>
+          <dt>provider</dt>
+          <dd>{usage.provider}</dd>
+        </div>
+      ) : null}
+      <div>
+        <dt>tokens</dt>
+        <dd>{formatNullableTokens(usage.totalTokens)}</dd>
+      </div>
+      <div>
+        <dt>input</dt>
+        <dd>{formatNullableTokenCount(usage.inputTokens)}</dd>
+      </div>
+      <div>
+        <dt>output</dt>
+        <dd>{formatNullableTokenCount(usage.outputTokens)}</dd>
+      </div>
+      <div>
+        <dt>cost</dt>
+        <dd>{formatNullableUsageCost(usage.costUsd)}</dd>
+      </div>
+    </dl>
   )
 }
 
@@ -6116,6 +6317,13 @@ function chatResponseFromSessionDetail(
   }
 }
 
+function extractLatestUserQuestion(detail: ChatSessionDetailResponse): string | null {
+  const latestUserMessage = [...detail.messages]
+    .reverse()
+    .find((message) => message.role === 'user' && message.content.trim().length > 0)
+  return latestUserMessage?.content.trim() ?? null
+}
+
 function retrievalResultFromHistory(
   chunk: ChatHistoryRetrievedChunk,
 ): RetrievalResult {
@@ -6183,38 +6391,6 @@ function chatToolCallFromHistory(
     toolCall.result_count = resultCount
   }
   return toolCall
-}
-
-function toolCallPrimaryText(call: ChatToolCall): string {
-  if (call.query !== undefined && call.query.length > 0) {
-    return call.query
-  }
-  const knowledgeText = getCitationString(call.arguments, 'knowledge_text')
-  if (knowledgeText !== null) {
-    return knowledgeText
-  }
-  const proposedText = getCitationString(call.arguments, 'proposed_text')
-  if (proposedText !== null) {
-    return proposedText
-  }
-  if (call.arguments !== undefined) {
-    return formatJsonValue(call.arguments)
-  }
-  if (call.result_summary !== undefined) {
-    return formatJsonValue(call.result_summary)
-  }
-  return call.name
-}
-
-function toolCallMetaText(call: ChatToolCall): string | null {
-  if (call.limit !== undefined && call.result_count !== undefined) {
-    return `limit ${call.limit} / ${call.result_count} results`
-  }
-  const status = getCitationString(call.result_summary, 'status')
-  if (status !== null) {
-    return status
-  }
-  return null
 }
 
 function extractKnowledgeDrafts(toolCalls: ChatToolCall[]): ChatKnowledgeDraft[] {
@@ -6928,12 +7104,84 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
   return `${Math.round(average)} ms`
 }
 
+function summarizeResponseUsage(
+  steps: ChatStep[],
+  providerUsage: ChatHistoryProviderUsage[],
+): ResponseUsageSummary | null {
+  const stepUsages = steps
+    .map((step) => step.usage)
+    .filter((usage): usage is NonNullable<ChatStep['usage']> => usage !== undefined)
+  if (stepUsages.length > 0) {
+    const lastUsage = stepUsages[stepUsages.length - 1]
+    return {
+      costUsd: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.estimated_cost_usd),
+      ),
+      inputTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.input_tokens),
+      ),
+      model: lastUsage.model,
+      outputTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.output_tokens),
+      ),
+      provider: lastUsage.provider,
+      totalTokens: sumOptionalNumbers(
+        stepUsages.map((usage) => usage.total_tokens),
+      ),
+    }
+  }
+
+  if (providerUsage.length === 0) {
+    return null
+  }
+
+  const firstUsage = providerUsage[0]
+  return {
+    costUsd: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.estimated_cost_usd),
+    ),
+    inputTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.input_tokens),
+    ),
+    model: firstUsage?.model ?? null,
+    outputTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.output_tokens),
+    ),
+    provider: firstUsage?.provider ?? null,
+    totalTokens: sumOptionalNumbers(
+      providerUsage.map((usage) => usage.total_tokens),
+    ),
+  }
+}
+
+function sumOptionalNumbers(values: Array<number | null | undefined>): number | null {
+  const knownValues = values.filter(
+    (value): value is number => value !== null && value !== undefined,
+  )
+  if (knownValues.length === 0) {
+    return null
+  }
+  return knownValues.reduce((total, value) => total + value, 0)
+}
+
 function formatUnknownCost(value: number | null): string {
   return value === null ? 'unknown cost' : formatUsd(value)
 }
 
 function formatUnknownTokens(value: number | null): string {
   return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+}
+
+function formatNullableUsageCost(value: number | null): string {
+  return value === null ? 'unknown cost' : formatUsd(value)
+}
+
+function formatNullableTokens(value: number | null): string {
+  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+}
+
+function formatNullableTokenCount(value: number | null): string {
+  return value === null ? 'unknown' : formatNumber(value)
 }
 
 function formatUnknownMs(value: number | null): string {

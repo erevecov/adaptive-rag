@@ -308,6 +308,33 @@ const chatResponse: ChatResponseBody = {
   ],
 }
 
+const chatResponseWithSteps: ChatResponseBody = {
+  ...chatResponse,
+  steps: [
+    {
+      detail: { result_count: 1, strategy: 'dense' },
+      elapsed_ms: 410,
+      id: 'retrieval',
+      status: 'done',
+    },
+    {
+      detail: { tool_calls: 1 },
+      elapsed_ms: 2500,
+      id: 'answer',
+      status: 'done',
+      usage: {
+        estimated_cost_usd: 0.0042,
+        input_tokens: 120,
+        model: 'qwen-plus',
+        output_tokens: 48,
+        provider: 'qwen',
+        slot: 'chat',
+        total_tokens: 168,
+      },
+    },
+  ],
+}
+
 const sessionListResponse: ChatSessionListResponse = {
   items: [
     {
@@ -1968,10 +1995,12 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    const questionInput = screen.getByLabelText('Question') as HTMLTextAreaElement
+    await user.type(questionInput, 'How do I retry?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(questionInput.value).toBe('')
     expect(client.askChatStream).toHaveBeenCalledWith(
       projectId,
       {
@@ -1985,6 +2014,9 @@ describe('App chat workspace', () => {
       archived: false,
       limit: 15,
     })
+    await user.click(
+      screen.getByRole('button', { name: 'Expand response details' }),
+    )
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
@@ -2077,6 +2109,9 @@ describe('App chat workspace', () => {
     expect(
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
+    await user.click(
+      screen.getByRole('button', { name: 'Expand response details' }),
+    )
 
     await user.click(
       screen.getByRole('button', {
@@ -2099,6 +2134,86 @@ describe('App chat workspace', () => {
     expect(within(viewer).getByText('ops')).toBeTruthy()
   })
 
+  test('renders the submitted question as a sticky collapsible prompt', async () => {
+    const user = userEvent.setup()
+    const longQuestion =
+      'How do I retry the import after the deployment worker failed and which runbook should I check before rerunning the job?'
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), longQuestion)
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    await screen.findByText(chatResponse.answer)
+
+    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const prompt = within(transcript).getByRole('button', {
+      name: 'Expand full question',
+    })
+    expect(prompt.textContent).toContain('...')
+    expect(prompt.textContent).not.toBe(longQuestion)
+    expect(prompt.closest('.chat-question-sticky')).toBeTruthy()
+
+    await user.click(prompt)
+
+    expect(prompt.textContent).toBe(longQuestion)
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
+  })
+
+  test('consolidates response sources and tool calls under a compact details panel', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      askChat: vi.fn(),
+      askChatStream: vi.fn(async () => chatResponseWithSteps),
+      getSource: vi.fn(async () => citationSource),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    await screen.findByText(chatResponseWithSteps.answer)
+
+    expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Tool calls' })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Expand response details' }),
+    ).toBeNull()
+
+    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const stepper = within(transcript).getByRole('region', {
+      name: 'Chat pipeline steps',
+    })
+    const detailsToggle = within(stepper).getByRole('button', {
+      name: /Expand chat steps/,
+    })
+    expect(detailsToggle.textContent).toContain('1 source')
+
+    await user.click(detailsToggle)
+
+    expect(within(transcript).getAllByText('qwen-plus').length).toBeGreaterThan(0)
+    expect(within(transcript).getAllByText('168 tokens').length).toBeGreaterThan(0)
+    expect(within(transcript).getAllByText('$0.0042').length).toBeGreaterThan(0)
+    expect(within(transcript).getByText('rag_search')).toBeTruthy()
+    expect(within(transcript).getByText('deployment retry runbook')).toBeTruthy()
+    expect(within(transcript).getByText('https://docs.local/runbook')).toBeTruthy()
+    expect(
+      within(transcript).getByText('Restart the worker before retrying the import.'),
+    ).toBeTruthy()
+
+    await user.click(
+      within(transcript).getByRole('button', {
+        name: 'View source https://docs.local/runbook',
+      }),
+    )
+    expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
+  })
+
   test('keeps chat response visible when source lookup fails', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -2119,6 +2234,9 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
     await screen.findByText(chatResponse.answer)
 
+    await user.click(
+      screen.getByRole('button', { name: 'Expand response details' }),
+    )
     await user.click(
       screen.getByRole('button', {
         name: 'View source https://docs.local/runbook',
@@ -2226,10 +2344,11 @@ describe('App chat workspace', () => {
     expect(
       within(stepper).getByRole('button', { name: 'Expand chat steps' }),
     ).toBeTruthy()
-    expect(
-      screen.getByText('Citations appear after the final response.'),
-    ).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
     expect(screen.queryByText('No citations returned.')).toBeNull()
+    expect(
+      screen.queryByText('Citations appear after the final response.'),
+    ).toBeNull()
     await user.click(
       within(stepper).getByRole('button', { name: 'Expand chat steps' }),
     )
@@ -2480,7 +2599,12 @@ describe('App chat workspace', () => {
         'The import failed because the worker was not running.',
       ),
     ).toBeTruthy()
-    expect(within(transcript).getByText('session-123')).toBeTruthy()
+    expect(within(transcript).getByText('What failed during deployment?')).toBeTruthy()
+    expect(
+      within(transcript).getByRole('button', {
+        name: 'Expand response details',
+      }),
+    ).toBeTruthy()
   })
 
   test('starts a blank chat session from the sidebar', async () => {
@@ -2619,6 +2743,38 @@ describe('App chat workspace', () => {
     expect(within(context).getByText('$0.0042')).toBeTruthy()
     expect(within(context).getByText('168 tokens')).toBeTruthy()
     expect(within(context).getByText('230 ms')).toBeTruthy()
+  })
+
+  test('shows selected session question and usage inside response details', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => sessionDetailResponse),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Abrir sesión Deployment question',
+      }),
+    )
+
+    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    expect(within(transcript).getByText('What failed during deployment?')).toBeTruthy()
+
+    const detailsToggle = within(transcript).getByRole('button', {
+      name: 'Expand response details',
+    })
+    expect(detailsToggle.textContent).toContain('1 source')
+    expect(detailsToggle.textContent).toContain('1 tool call')
+    expect(detailsToggle.textContent).toContain('usage')
+
+    await user.click(detailsToggle)
+
+    expect(within(transcript).getByText('qwen-plus')).toBeTruthy()
+    expect(within(transcript).getByText('168 tokens')).toBeTruthy()
+    expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
   test('keeps missing selected session usage values visible as unknown', async () => {
