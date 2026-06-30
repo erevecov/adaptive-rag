@@ -50,6 +50,7 @@ describe('IconButton', () => {
       'aria-labelledby': 'hostile-label',
       'data-slot': 'custom-icon-button',
       size: 'sm',
+      title: 'Wrong title',
     } as unknown as ComponentProps<typeof IconButton>
 
     render(
@@ -69,5 +70,17 @@ describe('IconButton', () => {
     expect(tokens).toContain('w-9')
     expect(tokens).toContain('p-0')
     expect(tokens).not.toContain('px-3')
+  })
+
+  test('allows callers to choose the icon button variant', () => {
+    render(
+      <IconButton label="Delete item" variant="danger">
+        <span aria-hidden="true">D</span>
+      </IconButton>,
+    )
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'Delete item' }))
+    expect(tokens).toContain('bg-destructive')
+    expect(tokens).not.toContain('bg-secondary')
   })
 })

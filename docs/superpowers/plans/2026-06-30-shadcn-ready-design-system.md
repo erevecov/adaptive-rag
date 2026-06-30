@@ -20,7 +20,8 @@
 - Modify `frontend/src/index.css`: import Tailwind, define shadcn-compatible semantic tokens, and bridge existing `--app-*` variables.
 - Create `frontend/src/lib/utils.ts`: expose `cn(...)`.
 - Create `frontend/src/lib/utils.test.ts`: verify `cn(...)` class composition and Tailwind conflict resolution.
-- Create `frontend/src/components/ui/button.tsx`: presentational `Button`, `IconButton`, and `buttonVariants`.
+- Create `frontend/src/components/ui/button-variants.ts`: shared `buttonVariants` class variance definition.
+- Create `frontend/src/components/ui/button.tsx`: presentational `Button` and `IconButton`.
 - Create `frontend/src/components/ui/button.test.tsx`: verify variants and accessible icon labels.
 - Create `frontend/src/components/ui/panel.tsx`: presentational panel wrappers.
 - Create `frontend/src/components/ui/field.tsx`: presentational field wrappers.
@@ -374,6 +375,7 @@ git commit -m "feat(frontend): add semantic design tokens"
 ### Task 4: Button Primitive
 
 **Files:**
+- Create: `frontend/src/components/ui/button-variants.ts`
 - Create: `frontend/src/components/ui/button.test.tsx`
 - Create: `frontend/src/components/ui/button.tsx`
 
@@ -386,9 +388,14 @@ Create `frontend/src/components/ui/button.test.tsx`:
  * @vitest-environment jsdom
  */
 import { cleanup, render, screen } from '@testing-library/react'
+import { type ComponentProps } from 'react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { Button, IconButton } from './button'
+
+function classTokens(element: Element): string[] {
+  return element.className.split(/\s+/).filter(Boolean)
+}
 
 afterEach(() => {
   cleanup()
@@ -399,27 +406,68 @@ describe('Button', () => {
     render(<Button>Save</Button>)
 
     const button = screen.getByRole('button', { name: 'Save' })
-    expect(button.className).toContain('bg-primary')
-    expect(button.className).toContain('text-primary-foreground')
+    expect(classTokens(button)).toContain('bg-primary')
+    expect(classTokens(button)).toContain('text-primary-foreground')
+    expect(button.getAttribute('data-slot')).toBe('button')
   })
 
-  test('merges caller classes after variant classes', () => {
+  test('merges caller classes after variant classes and removes conflicts', () => {
     render(<Button className="px-8">Save</Button>)
 
     const button = screen.getByRole('button', { name: 'Save' })
-    expect(button.className).toContain('px-8')
+    const tokens = classTokens(button)
+    expect(tokens).toContain('px-8')
+    expect(tokens).not.toContain('px-4')
+  })
+
+  test('keeps the stable slot marker when callers pass data attributes', () => {
+    render(<Button data-slot="icon-button">Save</Button>)
+
+    expect(screen.getByRole('button', { name: 'Save' }).getAttribute('data-slot')).toBe(
+      'button',
+    )
   })
 })
 
 describe('IconButton', () => {
-  test('uses the provided label as the accessible name', () => {
+  test('uses the provided label as the accessible name and marks its slot', () => {
+    const callerProps = {
+      'aria-label': 'Wrong label',
+      'aria-labelledby': 'hostile-label',
+      'data-slot': 'custom-icon-button',
+      size: 'sm',
+      title: 'Wrong title',
+    } as unknown as ComponentProps<typeof IconButton>
+
     render(
-      <IconButton label="Open menu">
-        <span aria-hidden="true">M</span>
+      <>
+        <span id="hostile-label">Wrong menu label</span>
+        <IconButton {...callerProps} label="Open menu">
+          <span aria-hidden="true">M</span>
+        </IconButton>
+      </>,
+    )
+
+    const button = screen.getByRole('button', { name: 'Open menu' })
+    const tokens = classTokens(button)
+    expect(button.getAttribute('data-slot')).toBe('icon-button')
+    expect(button.getAttribute('title')).toBe('Open menu')
+    expect(tokens).toContain('h-9')
+    expect(tokens).toContain('w-9')
+    expect(tokens).toContain('p-0')
+    expect(tokens).not.toContain('px-3')
+  })
+
+  test('allows callers to choose the icon button variant', () => {
+    render(
+      <IconButton label="Delete item" variant="danger">
+        <span aria-hidden="true">D</span>
       </IconButton>,
     )
 
-    expect(screen.getByRole('button', { name: 'Open menu' })).toBeTruthy()
+    const tokens = classTokens(screen.getByRole('button', { name: 'Delete item' }))
+    expect(tokens).toContain('bg-destructive')
+    expect(tokens).not.toContain('bg-secondary')
   })
 })
 ```
@@ -436,13 +484,10 @@ Expected: FAIL because `frontend/src/components/ui/button.tsx` does not exist.
 
 - [ ] **Step 3: Implement button primitive**
 
-Create `frontend/src/components/ui/button.tsx`:
+Create `frontend/src/components/ui/button-variants.ts`:
 
 ```tsx
-import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-
-import { cn } from '@/lib/utils'
+import { cva } from 'class-variance-authority'
 
 export const buttonVariants = cva(
   [
@@ -472,9 +517,21 @@ export const buttonVariants = cva(
     },
   },
 )
+```
+
+Create `frontend/src/components/ui/button.tsx`:
+
+```tsx
+import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from 'react'
+import { type VariantProps } from 'class-variance-authority'
+
+import { cn } from '@/lib/utils'
+import { buttonVariants } from './button-variants'
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>
+  VariantProps<typeof buttonVariants> & {
+    'data-slot'?: string
+  }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, size, type = 'button', variant, ...props }, ref) => (
@@ -483,33 +540,65 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       {...props}
+      data-slot="button"
     />
   ),
 )
 Button.displayName = 'Button'
 
-export type IconButtonProps = Omit<ButtonProps, 'aria-label' | 'children' | 'size'> & {
+export type IconButtonProps = Omit<
+  ButtonProps,
+  'aria-label' | 'aria-labelledby' | 'children' | 'data-slot' | 'size' | 'title'
+> & {
+  'aria-label'?: never
+  'aria-labelledby'?: never
   children: ReactNode
+  'data-slot'?: never
   label: string
+  size?: never
+  title?: never
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ children, className, label, title, variant = 'secondary', ...props }, ref) => (
-    <Button
-      aria-label={label}
-      className={className}
-      ref={ref}
-      size="icon"
-      title={title ?? label}
-      variant={variant}
-      {...props}
-    >
-      {children}
-    </Button>
-  ),
+  (
+    {
+      children,
+      className,
+      label,
+      type = 'button',
+      variant = 'secondary',
+      ...props
+    },
+    ref,
+  ) => {
+    const buttonProps = {
+      ...props,
+    } as typeof props & Record<string, unknown>
+    delete buttonProps['aria-label']
+    delete buttonProps['aria-labelledby']
+    delete buttonProps['data-slot']
+    delete buttonProps.size
+    delete buttonProps.title
+
+    return (
+      <button
+        className={cn(buttonVariants({ size: 'icon', variant }), className)}
+        ref={ref}
+        type={type}
+        {...buttonProps}
+        aria-label={label}
+        data-slot="icon-button"
+        title={label}
+      >
+        {children}
+      </button>
+    )
+  },
 )
 IconButton.displayName = 'IconButton'
 ```
+
+`IconButton` intentionally keeps `variant` as a public prop so callers can choose `primary`, `secondary`, `ghost`, or `danger`; its closed contract is `label`-driven accessibility, fixed icon size, fixed slot marker, and fixed title.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -526,7 +615,7 @@ Expected: PASS.
 Run:
 
 ```powershell
-git add frontend/src/components/ui/button.tsx frontend/src/components/ui/button.test.tsx
+git add frontend/src/components/ui/button-variants.ts frontend/src/components/ui/button.tsx frontend/src/components/ui/button.test.tsx
 git commit -m "feat(frontend): add button primitive"
 ```
 
