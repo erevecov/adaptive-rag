@@ -973,6 +973,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSessionDetail(null)
     setHistoryError(null)
     setHistoryState(trimmedProjectId.length === 0 ? 'idle' : 'loading')
+    syncProjectRuntimeSettings(null)
     setProjectId(trimmedProjectId)
     if (trimmedProjectId.length === 0) {
       return
@@ -1385,7 +1386,39 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshRuntime() {
+  async function handleRefreshRuntimeConnections() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const connections = await client.listProviderConnections()
+      setRuntimeConnections(connections.items)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeModelCatalog() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
+      const [connections, providerModels] = await Promise.all([
+        client.listProviderConnections(),
+        client.listProviderModels(),
+      ])
+      setRuntimeConnections(connections.items)
+      setRuntimeProviderModels(providerModels.items)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeGlobalDefaults() {
     setRuntimeState('loading')
     setRuntimeError(null)
 
@@ -1404,11 +1437,32 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setRuntimeProviderModels(providerModels.items)
       setRuntimeChatRetrieval(chatRetrieval)
       syncGlobalChatRetrievalFields(chatRetrieval)
+      setRuntimeState('succeeded')
+    } catch (error) {
+      setRuntimeState('failed')
+      setRuntimeError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRefreshRuntimeProjectOverrides() {
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    try {
       const trimmedProjectId = projectId.trim()
+      const projectSettingsPromise =
+        trimmedProjectId.length > 0
+          ? client.getProjectRuntimeSettings(trimmedProjectId)
+          : Promise.resolve(null)
+      const [connections, providerModels, projectSettings] = await Promise.all([
+        client.listProviderConnections(),
+        client.listProviderModels(),
+        projectSettingsPromise,
+      ])
+      setRuntimeConnections(connections.items)
+      setRuntimeProviderModels(providerModels.items)
       if (trimmedProjectId.length > 0) {
-        syncProjectRuntimeSettings(
-          await client.getProjectRuntimeSettings(trimmedProjectId),
-        )
+        syncProjectRuntimeSettings(projectSettings)
       } else {
         syncProjectRuntimeSettings(null)
       }
@@ -1707,6 +1761,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   function syncProjectRuntimeSettings(settings: ProjectRuntimeSettings | null) {
     setProjectRuntimeSettings(settings)
     if (settings === null) {
+      resetProjectRuntimeFormFields()
       return
     }
     setProjectChatRetrievalLimit(settings.chat_retrieval.retrieval_limit)
@@ -1714,6 +1769,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setProjectChatRerankCandidateLimit(
       settings.chat_retrieval.rerank_candidate_limit,
     )
+  }
+
+  function resetProjectRuntimeFormFields() {
+    setProjectSlot('chat')
+    setProjectSlotConnectionId('')
+    setProjectSlotModelId('')
+    setProjectChatRetrievalLimit(DEFAULT_RETRIEVAL_LIMIT)
+    setProjectChatRerankEnabled(true)
+    setProjectChatRerankCandidateLimit(DEFAULT_RERANK_CANDIDATE_LIMIT)
   }
 
   const activeSettingsModule = settingsModule
@@ -1992,7 +2056,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onProjectSlotChange={setProjectSlot}
                 onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
                 onProjectSlotModelIdChange={setProjectSlotModelId}
-                onRefresh={() => void handleRefreshRuntime()}
+                onRefreshConnections={() =>
+                  void handleRefreshRuntimeConnections()
+                }
+                onRefreshGlobalDefaults={() =>
+                  void handleRefreshRuntimeGlobalDefaults()
+                }
+                onRefreshModelCatalog={() =>
+                  void handleRefreshRuntimeModelCatalog()
+                }
+                onRefreshProjectOverrides={() =>
+                  void handleRefreshRuntimeProjectOverrides()
+                }
                 onResetProjectChatRetrieval={() =>
                   void handleResetProjectChatRetrieval()
                 }
@@ -2818,7 +2893,10 @@ function RuntimeSettingsPanel({
   onProjectSlotChange,
   onProjectSlotConnectionIdChange,
   onProjectSlotModelIdChange,
-  onRefresh,
+  onRefreshConnections,
+  onRefreshGlobalDefaults,
+  onRefreshModelCatalog,
+  onRefreshProjectOverrides,
   onResetProjectChatRetrieval,
   onResetProjectSlot,
   onSaveConnection,
@@ -2882,7 +2960,10 @@ function RuntimeSettingsPanel({
   onProjectSlotChange(value: string): void
   onProjectSlotConnectionIdChange(value: string): void
   onProjectSlotModelIdChange(value: string): void
-  onRefresh(): void
+  onRefreshConnections(): void
+  onRefreshGlobalDefaults(): void
+  onRefreshModelCatalog(): void
+  onRefreshProjectOverrides(): void
   onResetProjectChatRetrieval(): void
   onResetProjectSlot(slot: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
@@ -2961,7 +3042,7 @@ function RuntimeSettingsPanel({
         onConnectionCapabilitiesChange={onConnectionCapabilitiesChange}
         onConnectionProviderChange={onConnectionProviderChange}
         onConnectionTypeChange={onConnectionTypeChange}
-        onRefresh={onRefresh}
+        onRefresh={onRefreshConnections}
         onSaveConnection={onSaveConnection}
         onSaveSecret={onSaveSecret}
         onSecretConnectionIdChange={onSecretConnectionIdChange}
@@ -2975,7 +3056,7 @@ function RuntimeSettingsPanel({
         connections={connections}
         modelSyncConnectionId={modelSyncConnectionId}
         onModelSyncConnectionIdChange={onModelSyncConnectionIdChange}
-        onRefresh={onRefresh}
+        onRefresh={onRefreshModelCatalog}
         onSyncProviderModels={onSyncProviderModels}
         providerModels={providerModels}
         state={state}
@@ -3008,7 +3089,7 @@ function RuntimeSettingsPanel({
         onGlobalSlotChange={onGlobalSlotChange}
         onGlobalSlotConnectionIdChange={onGlobalSlotConnectionIdChange}
         onGlobalSlotModelIdChange={onGlobalSlotModelIdChange}
-        onRefresh={onRefresh}
+        onRefresh={onRefreshGlobalDefaults}
         onSaveGlobalChatModel={onSaveGlobalChatModel}
         onSaveGlobalChatRetrieval={onSaveGlobalChatRetrieval}
         onSaveGlobalSlot={onSaveGlobalSlot}
@@ -3025,7 +3106,7 @@ function RuntimeSettingsPanel({
         onProjectSlotChange={onProjectSlotChange}
         onProjectSlotConnectionIdChange={onProjectSlotConnectionIdChange}
         onProjectSlotModelIdChange={onProjectSlotModelIdChange}
-        onRefresh={onRefresh}
+        onRefresh={onRefreshProjectOverrides}
         onResetProjectChatRetrieval={onResetProjectChatRetrieval}
         onResetProjectSlot={onResetProjectSlot}
         onSaveProjectChatRetrieval={onSaveProjectChatRetrieval}
@@ -4853,14 +4934,16 @@ function ObservabilityPanel({
         </p>
       ) : null}
 
-      <ObservabilityMetrics summary={summary} />
+      <ObservabilityContent activeSubmodule={activeSubmodule} summary={summary} />
     </section>
   )
 }
 
-function ObservabilityMetrics({
+function ObservabilityContent({
+  activeSubmodule,
   summary,
 }: {
+  activeSubmodule: ObservabilitySubmodule
   summary: ChatObservabilitySummary | null
 }) {
   if (summary === null) {
@@ -4874,6 +4957,37 @@ function ObservabilityMetrics({
     )
   }
 
+  if (activeSubmodule === 'costs') {
+    return <ObservabilityCostsContent summary={summary} />
+  }
+  if (activeSubmodule === 'errors') {
+    return <ObservabilityErrorsContent summary={summary} />
+  }
+  if (activeSubmodule === 'latency') {
+    return <ObservabilityLatencyContent summary={summary} />
+  }
+
+  return <ObservabilitySummaryContent summary={summary} />
+}
+
+function ObservabilitySummaryContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <>
+      <ObservabilitySummaryMetrics summary={summary} />
+      <ObservabilityBreakdowns summary={summary} />
+    </>
+  )
+}
+
+function ObservabilitySummaryMetrics({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
   const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
   const errorCount =
     summary.errors.session_error_count + summary.errors.provider_error_count
@@ -4913,7 +5027,112 @@ function ObservabilityMetrics({
           }
         />
       </div>
-      <ObservabilityBreakdowns summary={summary} />
+    </>
+  )
+}
+
+function ObservabilityCostsContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <>
+      <div className="metric-grid" aria-label="Cost observability metrics">
+        <MetricCard
+          label="Provider calls"
+          value={String(summary.provider_usage.total_records)}
+          detail={`${summary.provider_usage.groups.length} provider groups`}
+        />
+        <MetricCard
+          label="Estimated cost"
+          value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
+          detail="Known usage only"
+        />
+        <MetricCard
+          label="Missing costs"
+          value={String(summary.provider_usage.missing_cost_count)}
+          detail="Usage records without cost"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <ProviderUsageTable summary={summary} />
+      </div>
+    </>
+  )
+}
+
+function ObservabilityErrorsContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  const errorCount =
+    summary.errors.session_error_count + summary.errors.provider_error_count
+
+  return (
+    <>
+      <div className="metric-grid" aria-label="Error observability metrics">
+        <MetricCard
+          label="Errors"
+          value={String(errorCount)}
+          detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
+        />
+        <MetricCard
+          label="Failed sessions"
+          value={String(summary.sessions.by_status.failed ?? 0)}
+          detail={`${summary.sessions.total} sessions in filter`}
+        />
+        <MetricCard
+          label="Top messages"
+          value={String(summary.errors.top_messages.length)}
+          detail="Grouped error messages"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <StatusBreakdown summary={summary} />
+        <ErrorMessages summary={summary} />
+        <SessionHealth summary={summary} />
+      </div>
+    </>
+  )
+}
+
+function ObservabilityLatencyContent({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
+
+  return (
+    <>
+      <div className="metric-grid" aria-label="Latency observability metrics">
+        <MetricCard
+          label="Latency"
+          value={
+            slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
+          }
+          detail={
+            slowestP95 === null
+              ? 'No known provider latency'
+              : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
+          }
+        />
+        <MetricCard
+          label="Provider groups"
+          value={String(summary.provider_usage.groups.length)}
+          detail="Latency rollups"
+        />
+        <MetricCard
+          label="Provider calls"
+          value={String(summary.provider_usage.total_records)}
+          detail="Usage records with timing"
+        />
+      </div>
+      <div className="observability-breakdowns">
+        <ProviderLatencyTable summary={summary} />
+      </div>
     </>
   )
 }
@@ -5030,6 +5249,59 @@ function ProviderUsageTable({
                   <td>{formatNullableNumber(group.total_tokens)}</td>
                   <td>{formatNullableUsd(group.estimated_cost_usd)}</td>
                   <td>{formatNullableMs(group.latency_ms.p95)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ProviderLatencyTable({
+  summary,
+}: {
+  summary: ChatObservabilitySummary
+}) {
+  return (
+    <section
+      className="breakdown-card breakdown-card-wide"
+      aria-labelledby="provider-latency-title"
+    >
+      <BreakdownHeader
+        id="provider-latency-title"
+        label={`${summary.provider_usage.groups.length} groups`}
+        title="Provider latency"
+      />
+      {summary.provider_usage.groups.length === 0 ? (
+        <p className="empty-copy">No provider latency groups yet.</p>
+      ) : (
+        <div className="table-scroll">
+          <table className="observability-table">
+            <thead>
+              <tr>
+                <th scope="col">Operation</th>
+                <th scope="col">Provider</th>
+                <th scope="col">Model</th>
+                <th scope="col">Calls</th>
+                <th scope="col">Avg</th>
+                <th scope="col">P50</th>
+                <th scope="col">P95</th>
+                <th scope="col">Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.provider_usage.groups.map((group) => (
+                <tr key={`${group.operation}-${group.provider}-${group.model}`}>
+                  <td>{group.operation}</td>
+                  <td>{group.provider}</td>
+                  <td>{group.model}</td>
+                  <td>{formatNumber(group.record_count)}</td>
+                  <td>{formatNullableMs(group.latency_ms.avg)}</td>
+                  <td>{formatNullableMs(group.latency_ms.p50)}</td>
+                  <td>{formatNullableMs(group.latency_ms.p95)}</td>
+                  <td>{formatNullableMs(group.latency_ms.max)}</td>
                 </tr>
               ))}
             </tbody>
