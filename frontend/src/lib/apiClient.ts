@@ -543,6 +543,7 @@ export type ProviderConnectionUpsertBody = {
   base_url?: string | null
   capabilities: string[]
   metadata?: JsonObject | null
+  api_key?: string | null
 }
 
 export type ProviderModel = {
