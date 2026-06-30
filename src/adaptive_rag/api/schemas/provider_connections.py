@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from adaptive_rag.db.models import ProviderConnection, ProviderModelCatalog
 from adaptive_rag.db.repositories import ProviderSecretStatus
@@ -17,8 +17,17 @@ class ProviderConnectionUpsertRequestBody(BaseModel):
     provider: str
     connection_type: str
     base_url: str | None = None
-    capabilities: list[str] = Field(default_factory=list)
+    capabilities: list[str] = Field(min_length=1)
     metadata: dict[str, Any] | None = None
+    api_key: str | None = None
+
+    @field_validator("api_key")
+    @classmethod
+    def normalize_api_key(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized if normalized else None
 
 
 class ProviderSecretUpsertRequestBody(BaseModel):
@@ -83,6 +92,13 @@ class ProviderConnectionResponse(BaseModel):
 
 class ProviderConnectionListResponse(BaseModel):
     items: list[ProviderConnectionResponse]
+
+
+class ProviderConnectionCheckResponse(BaseModel):
+    connection_id: str
+    ok: bool
+    model_count: int
+    message: str
 
 
 class ProviderModelResponse(BaseModel):

@@ -56,6 +56,23 @@ class StubProviderModelLister:
         ]
 
 
+class UnclassifiedProviderModelLister:
+    def __init__(self) -> None:
+        self.api_keys: list[str | None] = []
+
+    def list_models(
+        self,
+        connection: ProviderConnection,
+        *,
+        api_key: str | None,
+    ) -> list[ProviderModelInfo]:
+        self.api_keys.append(api_key)
+        return [
+            ProviderModelInfo(model_id="qwen-plus", capabilities=("chat",)),
+            ProviderModelInfo(model_id="qwen-experimental-preview"),
+        ]
+
+
 def _make_session() -> Session:
     engine = create_engine(
         "sqlite+pysqlite://",
@@ -77,7 +94,7 @@ def _make_session() -> Session:
 
 def _client(
     *,
-    lister: StubProviderModelLister,
+    lister: StubProviderModelLister | UnclassifiedProviderModelLister,
     session: Session,
 ) -> TestClient:
     get_settings.cache_clear()
@@ -146,3 +163,44 @@ def test_provider_model_sync_persists_catalog_without_returning_secret(
     assert sparse_default is None
     assert rerank_default is not None
     assert rerank_default.model_id == "qwen3-rerank"
+
+
+def test_provider_model_sync_persists_unclassified_models_without_slot_capabilities(
+    monkeypatch,
+) -> None:
+    key = base64.urlsafe_b64encode(b"7" * 32).decode("ascii")
+    monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
+    session = _make_session()
+    lister = UnclassifiedProviderModelLister()
+    client = _client(lister=lister, session=session)
+    client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat"],
+            "api_key": "sk-hosted-secret",
+        },
+    )
+
+    sync_response = client.post(
+        "/runtime-settings/connections/qwen-hosted/models/sync"
+    )
+    chat_models_response = client.get(
+        "/runtime-settings/models",
+        params={"connection_id": "qwen-hosted", "capability": "chat"},
+    )
+
+    assert sync_response.status_code == 200
+    payload = sync_response.json()
+    assert payload["synced_count"] == 2
+    assert {
+        item["model_id"]: item["capabilities"] for item in payload["items"]
+    } == {
+        "qwen-plus": ["chat"],
+        "qwen-experimental-preview": [],
+    }
+    assert [item["model_id"] for item in chat_models_response.json()["items"]] == [
+        "qwen-plus"
+    ]

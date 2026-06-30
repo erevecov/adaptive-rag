@@ -224,7 +224,7 @@ class ProviderModelCatalogRepository:
         if self._session.get(ProviderConnection, connection_id) is None:
             raise ValueError("connection_not_found")
         model_id = _normalize_identifier(model_id, "model_id")
-        capabilities_json = _normalize_capabilities(capabilities)
+        capabilities_json = _normalize_model_capabilities(capabilities)
         metadata_json = dict(metadata) if metadata is not None else None
         pricing_json = dict(pricing) if pricing is not None else None
 
@@ -311,6 +311,22 @@ def _normalize_supported_value(
 
 
 def _normalize_capabilities(capabilities: Iterable[str]) -> list[str]:
+    requested = set()
+    for capability in capabilities:
+        normalized = capability.strip()
+        if normalized not in PROVIDER_CONNECTION_CAPABILITY_VALUES:
+            raise ValueError(f"unsupported provider capability: {normalized}")
+        requested.add(normalized)
+    if not requested:
+        raise ValueError("provider connection requires at least one capability")
+    return [
+        capability
+        for capability in PROVIDER_CONNECTION_CAPABILITY_VALUES
+        if capability in requested
+    ]
+
+
+def _normalize_model_capabilities(capabilities: Iterable[str]) -> list[str]:
     requested = set()
     for capability in capabilities:
         normalized = capability.strip()

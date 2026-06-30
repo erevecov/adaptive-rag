@@ -35,6 +35,13 @@ En otra terminal, aplica migraciones:
 uv run alembic upgrade head
 ```
 
+Para guardar API keys de providers desde Runtime settings, el backend necesita
+una Fernet key estable. En local, si `ADAPTIVE_RAG_PROVIDER_SECRETS_KEY` no esta
+configurada, la API crea y reutiliza `.adaptive-rag/provider-secrets.key` de
+forma automatica. Ese directorio esta ignorado por Git; preservalo si quieres
+seguir descifrando secretos guardados entre reinicios. En produccion, configura
+`ADAPTIVE_RAG_PROVIDER_SECRETS_KEY` explicitamente.
+
 ## Ejecutar acceptance
 
 Ejecuta el smoke post-runtime-settings:
@@ -134,13 +141,17 @@ En una instalacion limpia, el sync configura:
   DashScope native TextEmbedding, no una base OpenAI-compatible.
 
 El sync no pisa defaults que el usuario ya eligio y no guarda API keys desde
-environment. Para llamadas live, configura el secret `api_key` en Runtime
-settings o deja disponible `ADAPTIVE_RAG_QWEN_API_KEY` en el runtime.
+environment. Para llamadas live, incluye el API key al guardar la provider
+connection en Runtime settings o deja disponible `ADAPTIVE_RAG_QWEN_API_KEY`
+en el runtime.
 
 ## Troubleshooting
 
 - Si `uv run alembic upgrade head` falla, confirma que Postgres esta arriba y
   que `ADAPTIVE_RAG_DATABASE_URL` apunta a `localhost:5432`.
+- Si guardar el API key de una provider connection falla, confirma que
+  `ADAPTIVE_RAG_PROVIDER_SECRETS_KEY` contiene una Fernet key valida o que el
+  proceso puede crear y leer `ADAPTIVE_RAG_PROVIDER_SECRETS_KEY_FILE`.
 - Si el smoke falla con `runtime acceptance model catalog is empty`, revisa la
   provider connection configurada por el comando o vuelve a ejecutar sobre una
   base limpia.

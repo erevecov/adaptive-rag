@@ -537,12 +537,20 @@ export type ProviderConnectionListResponse = {
   items: ProviderConnection[]
 }
 
+export type ProviderConnectionCheckResponse = {
+  connection_id: string
+  ok: boolean
+  model_count: number
+  message: string
+}
+
 export type ProviderConnectionUpsertBody = {
   provider: string
   connection_type: string
   base_url?: string | null
   capabilities: string[]
   metadata?: JsonObject | null
+  api_key?: string | null
 }
 
 export type ProviderModel = {
@@ -773,6 +781,9 @@ export type ApiClient = {
     connectionId: string,
     body: ProviderConnectionUpsertBody,
   ): Promise<ProviderConnection>
+  checkProviderConnection(
+    connectionId: string,
+  ): Promise<ProviderConnectionCheckResponse>
   deleteProviderConnection(connectionId: string): Promise<DeleteResponse>
   listProviderModels(
     params?: ProviderModelListParams,
@@ -1131,6 +1142,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}`,
       })
     },
+    checkProviderConnection(connectionId) {
+      return requestJson<ProviderConnectionCheckResponse>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/runtime-settings/connections/${encodePathSegment(
+          connectionId,
+        )}/check`,
+      })
+    },
     deleteProviderConnection(connectionId) {
       return requestJson<DeleteResponse>(fetchImpl, {
         method: 'DELETE',
@@ -1374,9 +1393,7 @@ async function requestJson<T>(
   if (!response.ok) {
     const detail = getErrorDetail(payload)
     throw new ApiClientError(
-      typeof detail === 'string'
-        ? detail
-        : `Request failed with status ${response.status}`,
+      getApiErrorMessage(detail, response.status),
       {
         detail,
         status: response.status,
@@ -1406,9 +1423,7 @@ async function requestVoid(
     const payload = await readJson(response)
     const detail = getErrorDetail(payload)
     throw new ApiClientError(
-      typeof detail === 'string'
-        ? detail
-        : `Request failed with status ${response.status}`,
+      getApiErrorMessage(detail, response.status),
       {
         detail,
         status: response.status,
@@ -1440,9 +1455,7 @@ async function requestChatStream(
     const payload = await readJson(response)
     const detail = getErrorDetail(payload)
     throw new ApiClientError(
-      typeof detail === 'string'
-        ? detail
-        : `Request failed with status ${response.status}`,
+      getApiErrorMessage(detail, response.status),
       {
         detail,
         status: response.status,
@@ -1685,6 +1698,21 @@ function getErrorDetail(payload: unknown): unknown {
     return (payload as { detail: unknown }).detail
   }
   return payload
+}
+
+function getApiErrorMessage(detail: unknown, status: number): string {
+  if (typeof detail === 'string') {
+    return detail
+  }
+  if (
+    detail !== null &&
+    typeof detail === 'object' &&
+    'message' in detail &&
+    typeof (detail as { message: unknown }).message === 'string'
+  ) {
+    return (detail as { message: string }).message
+  }
+  return `Request failed with status ${status}`
 }
 
 function readNumber(value: JsonObject, key: string): number {
