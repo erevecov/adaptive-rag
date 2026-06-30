@@ -3018,6 +3018,11 @@ describe('App chat workspace', () => {
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
+    const reloadProjectSettingsButton = screen.getByRole('button', {
+      name: /^(Reload project settings|Refreshing\.\.\.)$/,
+    }) as HTMLButtonElement
+    expect(reloadProjectSettingsButton.disabled).toBe(false)
+    expect(reloadProjectSettingsButton.textContent).toBe('Reload project settings')
     expect(screen.queryByRole('alert')).toBeNull()
   })
 

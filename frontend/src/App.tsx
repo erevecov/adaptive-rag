@@ -977,6 +977,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setHistoryError(null)
     setHistoryState(trimmedProjectId.length === 0 ? 'idle' : 'loading')
     syncProjectRuntimeSettings(null)
+    setRuntimeState('idle')
+    setRuntimeError(null)
     setProjectId(trimmedProjectId)
     if (trimmedProjectId.length === 0) {
       return
