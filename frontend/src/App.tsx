@@ -2951,344 +2951,530 @@ function RuntimeSettingsPanel({
     target: projectSlot,
   })
 
+  const activePanel =
+    activeSubmodule === 'connections' ? (
+      <RuntimeConnectionsPanel
+        connectionBaseUrl={connectionBaseUrl}
+        connectionCapabilities={connectionCapabilities}
+        connectionProvider={connectionProvider}
+        connectionType={connectionType}
+        connections={connections}
+        onConnectionBaseUrlChange={onConnectionBaseUrlChange}
+        onConnectionCapabilitiesChange={onConnectionCapabilitiesChange}
+        onConnectionProviderChange={onConnectionProviderChange}
+        onConnectionTypeChange={onConnectionTypeChange}
+        onRefresh={onRefresh}
+        onSaveConnection={onSaveConnection}
+        onSaveSecret={onSaveSecret}
+        onSecretConnectionIdChange={onSecretConnectionIdChange}
+        onSecretValueChange={onSecretValueChange}
+        secretConnectionId={secretConnectionId}
+        secretValue={secretValue}
+        state={state}
+      />
+    ) : activeSubmodule === 'model_catalog' ? (
+      <RuntimeModelCatalogPanel
+        connections={connections}
+        modelSyncConnectionId={modelSyncConnectionId}
+        onModelSyncConnectionIdChange={onModelSyncConnectionIdChange}
+        onRefresh={onRefresh}
+        onSyncProviderModels={onSyncProviderModels}
+        providerModels={providerModels}
+        state={state}
+      />
+    ) : activeSubmodule === 'global_defaults' ? (
+      <RuntimeGlobalDefaultsPanel
+        chatConnectionId={chatConnectionId}
+        chatConnections={chatConnections}
+        chatModelId={chatModelId}
+        chatModelOptions={chatModelOptions}
+        chatModels={chatModels}
+        chatRetrievalSettings={chatRetrievalSettings}
+        chatSyncMessage={chatSyncMessage}
+        globalChatRerankCandidateLimit={globalChatRerankCandidateLimit}
+        globalChatRerankEnabled={globalChatRerankEnabled}
+        globalChatRetrievalLimit={globalChatRetrievalLimit}
+        globalSlot={globalSlot}
+        globalSlotConnectionId={globalSlotConnectionId}
+        globalSlotConnections={globalSlotConnections}
+        globalSlotModelId={globalSlotModelId}
+        globalSlotModelOptions={globalSlotModelOptions}
+        globalSlotSyncMessage={globalSlotSyncMessage}
+        onChatConnectionIdChange={onChatConnectionIdChange}
+        onChatModelIdChange={onChatModelIdChange}
+        onGlobalChatRerankCandidateLimitChange={
+          onGlobalChatRerankCandidateLimitChange
+        }
+        onGlobalChatRerankEnabledChange={onGlobalChatRerankEnabledChange}
+        onGlobalChatRetrievalLimitChange={onGlobalChatRetrievalLimitChange}
+        onGlobalSlotChange={onGlobalSlotChange}
+        onGlobalSlotConnectionIdChange={onGlobalSlotConnectionIdChange}
+        onGlobalSlotModelIdChange={onGlobalSlotModelIdChange}
+        onRefresh={onRefresh}
+        onSaveGlobalChatModel={onSaveGlobalChatModel}
+        onSaveGlobalChatRetrieval={onSaveGlobalChatRetrieval}
+        onSaveGlobalSlot={onSaveGlobalSlot}
+        slots={slots}
+        state={state}
+      />
+    ) : (
+      <RuntimeProjectOverridesPanel
+        onProjectChatRerankCandidateLimitChange={
+          onProjectChatRerankCandidateLimitChange
+        }
+        onProjectChatRerankEnabledChange={onProjectChatRerankEnabledChange}
+        onProjectChatRetrievalLimitChange={onProjectChatRetrievalLimitChange}
+        onProjectSlotChange={onProjectSlotChange}
+        onProjectSlotConnectionIdChange={onProjectSlotConnectionIdChange}
+        onProjectSlotModelIdChange={onProjectSlotModelIdChange}
+        onRefresh={onRefresh}
+        onResetProjectChatRetrieval={onResetProjectChatRetrieval}
+        onResetProjectSlot={onResetProjectSlot}
+        onSaveProjectChatRetrieval={onSaveProjectChatRetrieval}
+        onSaveProjectOverride={onSaveProjectOverride}
+        projectChatRerankCandidateLimit={projectChatRerankCandidateLimit}
+        projectChatRerankEnabled={projectChatRerankEnabled}
+        projectChatRetrievalLimit={projectChatRetrievalLimit}
+        projectId={projectId}
+        projectRuntimeSettings={projectRuntimeSettings}
+        projectSlot={projectSlot}
+        projectSlotConnectionId={projectSlotConnectionId}
+        projectSlotConnections={projectSlotConnections}
+        projectSlotModelId={projectSlotModelId}
+        projectSlotModelOptions={projectSlotModelOptions}
+        projectSlotSyncMessage={projectSlotSyncMessage}
+        state={state}
+      />
+    )
+
   return (
-    <div className="runtime-grid">
-      <section className="panel runtime-panel" aria-labelledby="runtime-title">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Runtime</p>
-            <h2 id="runtime-title">Provider settings</h2>
-          </div>
-          <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+    <div className="runtime-grid runtime-grid-focused">
+      {error ? (
+        <p className="form-feedback form-feedback-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {activePanel}
+    </div>
+  )
+}
+
+function RuntimeConnectionsPanel({
+  connectionBaseUrl,
+  connectionCapabilities,
+  connectionProvider,
+  connectionType,
+  connections,
+  onConnectionBaseUrlChange,
+  onConnectionCapabilitiesChange,
+  onConnectionProviderChange,
+  onConnectionTypeChange,
+  onRefresh,
+  onSaveConnection,
+  onSaveSecret,
+  onSecretConnectionIdChange,
+  onSecretValueChange,
+  secretConnectionId,
+  secretValue,
+  state,
+}: {
+  connectionBaseUrl: string
+  connectionCapabilities: string
+  connectionProvider: string
+  connectionType: string
+  connections: ProviderConnection[]
+  onConnectionBaseUrlChange(value: string): void
+  onConnectionCapabilitiesChange(value: string): void
+  onConnectionProviderChange(value: string): void
+  onConnectionTypeChange(value: string): void
+  onRefresh(): void
+  onSaveConnection(event: FormEvent<HTMLFormElement>): void
+  onSaveSecret(event: FormEvent<HTMLFormElement>): void
+  onSecretConnectionIdChange(value: string): void
+  onSecretValueChange(value: string): void
+  secretConnectionId: string
+  secretValue: string
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-connections-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-connections-title">Connections</h2>
         </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
 
-        <button
-          className="secondary-button"
-          disabled={state === 'loading'}
-          onClick={onRefresh}
-          type="button"
-        >
-          {state === 'loading' ? 'Refreshing...' : 'Refresh runtime'}
-        </button>
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Refresh connections'}
+      </button>
 
-        {error ? (
-          <p className="form-feedback form-feedback-error" role="alert">
-            {error}
+      <section className="runtime-section" aria-label="Provider connections">
+        <h3>Connections</h3>
+        <ul className="authoring-list">
+          {connections.length === 0 ? (
+            <li className="authoring-row authoring-row-static">
+              <span>No runtime connections loaded.</span>
+            </li>
+          ) : (
+            connections.map((connection) => (
+              <li className="authoring-row authoring-row-static" key={connection.connection_id}>
+                <span>
+                  <strong>{connection.connection_id}</strong>
+                  <small>
+                    {connection.provider} / {connection.connection_type}
+                  </small>
+                  <small>{connection.capabilities.join(', ')}</small>
+                  {connection.base_url ? <small>{connection.base_url}</small> : null}
+                  <ConnectionSecretSummary connection={connection} />
+                </span>
+                <em>{connection.connection_type}</em>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+
+      <form className="authoring-form" onSubmit={onSaveConnection}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Provider</span>
+            <select
+              onChange={(event) =>
+                onConnectionProviderChange(event.currentTarget.value)
+              }
+              value={connectionProvider}
+            >
+              <option value="qwen">qwen</option>
+              <option value="local_openai_compatible">
+                local_openai_compatible
+              </option>
+              <option value="fake">fake</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Connection type</span>
+            <select
+              onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
+              value={connectionType}
+            >
+              <option value="hosted">hosted</option>
+              <option value="local">local</option>
+              <option value="fake">fake</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Base URL</span>
+            <input
+              onChange={(event) =>
+                onConnectionBaseUrlChange(event.currentTarget.value)
+              }
+              value={connectionBaseUrl}
+            />
+          </label>
+          <label className="field runtime-field-wide">
+            <span>Capabilities</span>
+            <input
+              onChange={(event) =>
+                onConnectionCapabilitiesChange(event.currentTarget.value)
+              }
+              value={connectionCapabilities}
+            />
+          </label>
+        </div>
+        <button type="submit">Save connection</button>
+      </form>
+
+      <form className="authoring-form" onSubmit={onSaveSecret}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Secret connection</span>
+            <ConnectionSelect
+              connections={connections}
+              onChange={onSecretConnectionIdChange}
+              testId="secret-connection-select"
+              value={secretConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>API key</span>
+            <input
+              autoComplete="off"
+              onChange={(event) => onSecretValueChange(event.currentTarget.value)}
+              type="password"
+              value={secretValue}
+            />
+          </label>
+        </div>
+        <button type="submit">Save secret</button>
+      </form>
+    </section>
+  )
+}
+
+function RuntimeModelCatalogPanel({
+  connections,
+  modelSyncConnectionId,
+  onModelSyncConnectionIdChange,
+  onRefresh,
+  onSyncProviderModels,
+  providerModels,
+  state,
+}: {
+  connections: ProviderConnection[]
+  modelSyncConnectionId: string
+  onModelSyncConnectionIdChange(value: string): void
+  onRefresh(): void
+  onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
+  providerModels: ProviderModel[]
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-model-catalog-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-model-catalog-title">Model catalog</h2>
+        </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Refresh catalog'}
+      </button>
+
+      <form className="authoring-form" onSubmit={onSyncProviderModels}>
+        <div className="runtime-form-grid">
+          <label className="field runtime-field-wide">
+            <span>Model sync connection</span>
+            <ConnectionSelect
+              connections={connections}
+              onChange={onModelSyncConnectionIdChange}
+              testId="model-sync-connection-select"
+              value={modelSyncConnectionId}
+            />
+          </label>
+        </div>
+        <button type="submit">Sync models</button>
+      </form>
+
+      <ProviderModelCatalogView providerModels={providerModels} />
+    </section>
+  )
+}
+
+function RuntimeGlobalDefaultsPanel({
+  chatConnectionId,
+  chatConnections,
+  chatModelId,
+  chatModelOptions,
+  chatModels,
+  chatRetrievalSettings,
+  chatSyncMessage,
+  globalChatRerankCandidateLimit,
+  globalChatRerankEnabled,
+  globalChatRetrievalLimit,
+  globalSlot,
+  globalSlotConnectionId,
+  globalSlotConnections,
+  globalSlotModelId,
+  globalSlotModelOptions,
+  globalSlotSyncMessage,
+  onChatConnectionIdChange,
+  onChatModelIdChange,
+  onGlobalChatRerankCandidateLimitChange,
+  onGlobalChatRerankEnabledChange,
+  onGlobalChatRetrievalLimitChange,
+  onGlobalSlotChange,
+  onGlobalSlotConnectionIdChange,
+  onGlobalSlotModelIdChange,
+  onRefresh,
+  onSaveGlobalChatModel,
+  onSaveGlobalChatRetrieval,
+  onSaveGlobalSlot,
+  slots,
+  state,
+}: {
+  chatConnectionId: string
+  chatConnections: ProviderConnection[]
+  chatModelId: string
+  chatModelOptions: ProviderModelOption[]
+  chatModels: ChatModel[]
+  chatRetrievalSettings: ChatRetrievalSettings | null
+  chatSyncMessage: string | null
+  globalChatRerankCandidateLimit: number
+  globalChatRerankEnabled: boolean
+  globalChatRetrievalLimit: number
+  globalSlot: string
+  globalSlotConnectionId: string
+  globalSlotConnections: ProviderConnection[]
+  globalSlotModelId: string
+  globalSlotModelOptions: ProviderModelOption[]
+  globalSlotSyncMessage: string | null
+  onChatConnectionIdChange(value: string): void
+  onChatModelIdChange(value: string): void
+  onGlobalChatRerankCandidateLimitChange(value: number): void
+  onGlobalChatRerankEnabledChange(value: boolean): void
+  onGlobalChatRetrievalLimitChange(value: number): void
+  onGlobalSlotChange(value: string): void
+  onGlobalSlotConnectionIdChange(value: string): void
+  onGlobalSlotModelIdChange(value: string): void
+  onRefresh(): void
+  onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
+  slots: RuntimeSlotDefault[]
+  state: RequestState
+}) {
+  return (
+    <section className="panel runtime-panel" aria-labelledby="runtime-global-defaults-title">
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-global-defaults-title">Global defaults</h2>
+        </div>
+        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
+      </button>
+
+      <RuntimeSlotList slots={slots} />
+
+      <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Global slot</span>
+            <select
+              data-testid="global-slot-select"
+              onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
+              value={globalSlot}
+            >
+              {RUNTIME_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Global slot connection</span>
+            <ConnectionSelect
+              connections={globalSlotConnections}
+              onChange={onGlobalSlotConnectionIdChange}
+              testId="global-slot-connection-select"
+              value={globalSlotConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Global slot model</span>
+            <ProviderModelSelect
+              models={globalSlotModelOptions}
+              onChange={onGlobalSlotModelIdChange}
+              testId="global-slot-model-select"
+              value={globalSlotModelId}
+            />
+          </label>
+        </div>
+        {globalSlotSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">
+            {globalSlotSyncMessage}
           </p>
         ) : null}
+        <button disabled={globalSlotSyncMessage !== null} type="submit">
+          Save global slot
+        </button>
+      </form>
 
-        <section className="runtime-section" aria-label="Provider connections">
-          <h3>Connections</h3>
-          <ul className="authoring-list">
-            {connections.length === 0 ? (
-              <li className="authoring-row authoring-row-static">
-                <span>No runtime connections loaded.</span>
-              </li>
-            ) : (
-              connections.map((connection) => (
-                <li className="authoring-row authoring-row-static" key={connection.connection_id}>
-                  <span>
-                    <strong>{connection.connection_id}</strong>
-                    <small>
-                      {connection.provider} / {connection.connection_type}
-                    </small>
-                    <small>{connection.capabilities.join(', ')}</small>
-                    {connection.base_url ? <small>{connection.base_url}</small> : null}
-                    <ConnectionSecretSummary connection={connection} />
-                  </span>
-                  <em>{connection.connection_type}</em>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-
-        <form className="authoring-form" onSubmit={onSaveConnection}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Provider</span>
-              <select
-                onChange={(event) =>
-                  onConnectionProviderChange(event.currentTarget.value)
-                }
-                value={connectionProvider}
-              >
-                <option value="qwen">qwen</option>
-                <option value="local_openai_compatible">
-                  local_openai_compatible
-                </option>
-                <option value="fake">fake</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Connection type</span>
-              <select
-                onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
-                value={connectionType}
-              >
-                <option value="hosted">hosted</option>
-                <option value="local">local</option>
-                <option value="fake">fake</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Base URL</span>
-              <input
-                onChange={(event) =>
-                  onConnectionBaseUrlChange(event.currentTarget.value)
-                }
-                value={connectionBaseUrl}
-              />
-            </label>
-            <label className="field runtime-field-wide">
-              <span>Capabilities</span>
-              <input
-                onChange={(event) =>
-                  onConnectionCapabilitiesChange(event.currentTarget.value)
-                }
-                value={connectionCapabilities}
-              />
-            </label>
-          </div>
-          <button type="submit">Save connection</button>
-        </form>
-
-        <form className="authoring-form" onSubmit={onSyncProviderModels}>
-          <div className="runtime-form-grid">
-            <label className="field runtime-field-wide">
-              <span>Model sync connection</span>
-              <ConnectionSelect
-                connections={connections}
-                onChange={onModelSyncConnectionIdChange}
-                testId="model-sync-connection-select"
-                value={modelSyncConnectionId}
-              />
-            </label>
-          </div>
-          <button type="submit">Sync models</button>
-        </form>
-
-        <ProviderModelCatalogView providerModels={providerModels} />
-
-        <form className="authoring-form" onSubmit={onSaveSecret}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Secret connection</span>
-              <ConnectionSelect
-                connections={connections}
-                onChange={onSecretConnectionIdChange}
-                testId="secret-connection-select"
-                value={secretConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>API key</span>
-              <input
-                autoComplete="off"
-                onChange={(event) => onSecretValueChange(event.currentTarget.value)}
-                type="password"
-                value={secretValue}
-              />
-            </label>
-          </div>
-          <button type="submit">Save secret</button>
-        </form>
-      </section>
-
-      <section className="panel runtime-panel" aria-labelledby="runtime-slots-title">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Defaults</p>
-            <h2 id="runtime-slots-title">Global slots</h2>
-          </div>
-        </div>
-
-        <RuntimeSlotList slots={slots} />
-
-        <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Global slot</span>
-              <select
-                data-testid="global-slot-select"
-                onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
-                value={globalSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Global slot connection</span>
-              <ConnectionSelect
-                connections={globalSlotConnections}
-                onChange={onGlobalSlotConnectionIdChange}
-                testId="global-slot-connection-select"
-                value={globalSlotConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Global slot model</span>
-              <ProviderModelSelect
-                models={globalSlotModelOptions}
-                onChange={onGlobalSlotModelIdChange}
-                testId="global-slot-model-select"
-                value={globalSlotModelId}
-              />
-            </label>
-          </div>
-          {globalSlotSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">
-              {globalSlotSyncMessage}
-            </p>
-          ) : null}
-          <button disabled={globalSlotSyncMessage !== null} type="submit">
-            Save global slot
-          </button>
-        </form>
-
-        <section className="runtime-section" aria-label="Global chat models">
-          <h3>Chat models</h3>
-          <ul className="authoring-list">
-            {chatModels.length === 0 ? (
-              <li className="authoring-row authoring-row-static">
-                <span>No chat models loaded.</span>
-              </li>
-            ) : (
-              chatModels.map((model) => (
-                <li
-                  className="authoring-row authoring-row-static"
-                  key={`${model.connection_id}-${model.model_id}`}
-                >
-                  <span>
-                    <strong>{model.model_id}</strong>
-                    <small>{model.connection_id}</small>
-                  </span>
-                  <em>{model.is_default ? 'default' : 'enabled'}</em>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-
-        <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Chat connection</span>
-              <ConnectionSelect
-                connections={chatConnections}
-                onChange={onChatConnectionIdChange}
-                testId="chat-connection-select"
-                value={chatConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Chat model</span>
-              <ProviderModelSelect
-                models={chatModelOptions}
-                onChange={onChatModelIdChange}
-                testId="chat-model-select"
-                value={chatModelId}
-              />
-            </label>
-          </div>
-          {chatSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
-          ) : null}
-          <button disabled={chatSyncMessage !== null} type="submit">
-            Save chat default
-          </button>
-        </form>
-
-        <section className="runtime-section" aria-label="Global chat retrieval">
-          <h3>Chat retrieval</h3>
-          {chatRetrievalSettings ? (
-            <ul className="authoring-list">
-              <li className="authoring-row authoring-row-static">
-                <span>
-                  <strong>global defaults</strong>
-                  <small>
-                    limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
-                    {chatRetrievalSettings.rerank_candidate_limit}
-                  </small>
-                </span>
-                <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
-              </li>
-            </ul>
+      <section className="runtime-section" aria-label="Global chat models">
+        <h3>Chat models</h3>
+        <ul className="authoring-list">
+          {chatModels.length === 0 ? (
+            <li className="authoring-row authoring-row-static">
+              <span>No chat models loaded.</span>
+            </li>
           ) : (
-            <p className="empty-copy">No chat retrieval defaults loaded.</p>
+            chatModels.map((model) => (
+              <li
+                className="authoring-row authoring-row-static"
+                key={`${model.connection_id}-${model.model_id}`}
+              >
+                <span>
+                  <strong>{model.model_id}</strong>
+                  <small>{model.connection_id}</small>
+                </span>
+                <em>{model.is_default ? 'default' : 'enabled'}</em>
+              </li>
+            ))
           )}
-          <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
-            <div className="runtime-form-grid">
-              <label className="field">
-                <span>Retrieval limit</span>
-                <input
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRetrievalLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRetrievalLimit}
-                />
-              </label>
-              <label className="field">
-                <span>Rerank</span>
-                <select
-                  onChange={(event) =>
-                    onGlobalChatRerankEnabledChange(
-                      event.currentTarget.value === 'true',
-                    )
-                  }
-                  value={String(globalChatRerankEnabled)}
-                >
-                  <option value="true">on</option>
-                  <option value="false">off</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Candidate limit</span>
-                <input
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRerankCandidateLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRerankCandidateLimit}
-                />
-              </label>
-            </div>
-            <button type="submit">Save chat retrieval</button>
-          </form>
-        </section>
+        </ul>
       </section>
 
-      <section
-        className="panel runtime-panel runtime-panel-wide"
-        aria-label="Project runtime settings"
-      >
-        <div className="panel-heading">
-          <div>
-            <p className="panel-label">Project</p>
-            <h2>Runtime overrides</h2>
-          </div>
-          <span className="status">{projectId.trim() || 'No project'}</span>
+      <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Chat connection</span>
+            <ConnectionSelect
+              connections={chatConnections}
+              onChange={onChatConnectionIdChange}
+              testId="chat-connection-select"
+              value={chatConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Chat model</span>
+            <ProviderModelSelect
+              models={chatModelOptions}
+              onChange={onChatModelIdChange}
+              testId="chat-model-select"
+              value={chatModelId}
+            />
+          </label>
         </div>
+        {chatSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
+        ) : null}
+        <button disabled={chatSyncMessage !== null} type="submit">
+          Save chat default
+        </button>
+      </form>
 
-        <ProjectRuntimeSettingsView
-          onResetProjectSlot={onResetProjectSlot}
-          settings={projectRuntimeSettings}
-        />
-
-        <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
+      <section className="runtime-section" aria-label="Global chat retrieval">
+        <h3>Chat retrieval</h3>
+        {chatRetrievalSettings ? (
+          <ul className="authoring-list">
+            <li className="authoring-row authoring-row-static">
+              <span>
+                <strong>global defaults</strong>
+                <small>
+                  limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
+                  {chatRetrievalSettings.rerank_candidate_limit}
+                </small>
+              </span>
+              <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
+            </li>
+          </ul>
+        ) : (
+          <p className="empty-copy">No chat retrieval defaults loaded.</p>
+        )}
+        <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
           <div className="runtime-form-grid">
             <label className="field">
               <span>Retrieval limit</span>
@@ -3296,23 +3482,23 @@ function RuntimeSettingsPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRetrievalLimitChange(
+                  onGlobalChatRetrievalLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRetrievalLimit}
+                value={globalChatRetrievalLimit}
               />
             </label>
             <label className="field">
               <span>Rerank</span>
               <select
                 onChange={(event) =>
-                  onProjectChatRerankEnabledChange(
+                  onGlobalChatRerankEnabledChange(
                     event.currentTarget.value === 'true',
                   )
                 }
-                value={String(projectChatRerankEnabled)}
+                value={String(globalChatRerankEnabled)}
               >
                 <option value="true">on</option>
                 <option value="false">off</option>
@@ -3324,74 +3510,201 @@ function RuntimeSettingsPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRerankCandidateLimitChange(
+                  onGlobalChatRerankCandidateLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRerankCandidateLimit}
+                value={globalChatRerankCandidateLimit}
               />
             </label>
           </div>
-          <div className="authoring-row-actions">
-            <button type="submit">Save project retrieval override</button>
-            {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
-              <button
-                className="secondary-button"
-                onClick={onResetProjectChatRetrieval}
-                type="button"
-              >
-                Reset chat retrieval to global
-              </button>
-            ) : null}
-          </div>
-        </form>
-
-        <form className="authoring-form" onSubmit={onSaveProjectOverride}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Project slot</span>
-              <select
-                onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
-                value={projectSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Project slot connection</span>
-              <ConnectionSelect
-                connections={projectSlotConnections}
-                onChange={onProjectSlotConnectionIdChange}
-                testId="project-slot-connection-select"
-                value={projectSlotConnectionId}
-              />
-            </label>
-            <label className="field">
-              <span>Project slot model</span>
-              <ProviderModelSelect
-                models={projectSlotModelOptions}
-                onChange={onProjectSlotModelIdChange}
-                testId="project-slot-model-select"
-                value={projectSlotModelId}
-              />
-            </label>
-          </div>
-          {projectSlotSyncMessage ? (
-            <p className="form-feedback runtime-sync-hint">
-              {projectSlotSyncMessage}
-            </p>
-          ) : null}
-          <button disabled={projectSlotSyncMessage !== null} type="submit">
-            Save project override
-          </button>
+          <button type="submit">Save chat retrieval</button>
         </form>
       </section>
-    </div>
+    </section>
+  )
+}
+
+function RuntimeProjectOverridesPanel({
+  onProjectChatRerankCandidateLimitChange,
+  onProjectChatRerankEnabledChange,
+  onProjectChatRetrievalLimitChange,
+  onProjectSlotChange,
+  onProjectSlotConnectionIdChange,
+  onProjectSlotModelIdChange,
+  onRefresh,
+  onResetProjectChatRetrieval,
+  onResetProjectSlot,
+  onSaveProjectChatRetrieval,
+  onSaveProjectOverride,
+  projectChatRerankCandidateLimit,
+  projectChatRerankEnabled,
+  projectChatRetrievalLimit,
+  projectId,
+  projectRuntimeSettings,
+  projectSlot,
+  projectSlotConnectionId,
+  projectSlotConnections,
+  projectSlotModelId,
+  projectSlotModelOptions,
+  projectSlotSyncMessage,
+  state,
+}: {
+  onProjectChatRerankCandidateLimitChange(value: number): void
+  onProjectChatRerankEnabledChange(value: boolean): void
+  onProjectChatRetrievalLimitChange(value: number): void
+  onProjectSlotChange(value: string): void
+  onProjectSlotConnectionIdChange(value: string): void
+  onProjectSlotModelIdChange(value: string): void
+  onRefresh(): void
+  onResetProjectChatRetrieval(): void
+  onResetProjectSlot(slot: string): void
+  onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
+  projectChatRerankCandidateLimit: number
+  projectChatRerankEnabled: boolean
+  projectChatRetrievalLimit: number
+  projectId: string
+  projectRuntimeSettings: ProjectRuntimeSettings | null
+  projectSlot: string
+  projectSlotConnectionId: string
+  projectSlotConnections: ProviderConnection[]
+  projectSlotModelId: string
+  projectSlotModelOptions: ProviderModelOption[]
+  projectSlotSyncMessage: string | null
+  state: RequestState
+}) {
+  return (
+    <section
+      className="panel runtime-panel runtime-panel-wide"
+      aria-label="Project runtime settings"
+    >
+      <div className="panel-heading">
+        <div>
+          <p className="panel-label">Runtime</p>
+          <h2 id="runtime-project-overrides-title">Project overrides</h2>
+        </div>
+        <span className="status">{projectId.trim() || 'No project'}</span>
+      </div>
+
+      <button
+        className="secondary-button"
+        disabled={state === 'loading'}
+        onClick={onRefresh}
+        type="button"
+      >
+        {state === 'loading' ? 'Refreshing...' : 'Reload project settings'}
+      </button>
+
+      <ProjectRuntimeSettingsView
+        onResetProjectSlot={onResetProjectSlot}
+        settings={projectRuntimeSettings}
+      />
+
+      <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Retrieval limit</span>
+            <input
+              max={CHAT_RETRIEVAL_MAX_LIMIT}
+              min={1}
+              onChange={(event) =>
+                onProjectChatRetrievalLimitChange(
+                  normalizeChatRetrievalLimit(event.currentTarget.value),
+                )
+              }
+              type="number"
+              value={projectChatRetrievalLimit}
+            />
+          </label>
+          <label className="field">
+            <span>Rerank</span>
+            <select
+              onChange={(event) =>
+                onProjectChatRerankEnabledChange(
+                  event.currentTarget.value === 'true',
+                )
+              }
+              value={String(projectChatRerankEnabled)}
+            >
+              <option value="true">on</option>
+              <option value="false">off</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Candidate limit</span>
+            <input
+              max={CHAT_RETRIEVAL_MAX_LIMIT}
+              min={1}
+              onChange={(event) =>
+                onProjectChatRerankCandidateLimitChange(
+                  normalizeChatRetrievalLimit(event.currentTarget.value),
+                )
+              }
+              type="number"
+              value={projectChatRerankCandidateLimit}
+            />
+          </label>
+        </div>
+        <div className="authoring-row-actions">
+          <button type="submit">Save project retrieval override</button>
+          {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
+            <button
+              className="secondary-button"
+              onClick={onResetProjectChatRetrieval}
+              type="button"
+            >
+              Reset chat retrieval to global
+            </button>
+          ) : null}
+        </div>
+      </form>
+
+      <form className="authoring-form" onSubmit={onSaveProjectOverride}>
+        <div className="runtime-form-grid">
+          <label className="field">
+            <span>Project slot</span>
+            <select
+              onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
+              value={projectSlot}
+            >
+              {RUNTIME_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Project slot connection</span>
+            <ConnectionSelect
+              connections={projectSlotConnections}
+              onChange={onProjectSlotConnectionIdChange}
+              testId="project-slot-connection-select"
+              value={projectSlotConnectionId}
+            />
+          </label>
+          <label className="field">
+            <span>Project slot model</span>
+            <ProviderModelSelect
+              models={projectSlotModelOptions}
+              onChange={onProjectSlotModelIdChange}
+              testId="project-slot-model-select"
+              value={projectSlotModelId}
+            />
+          </label>
+        </div>
+        {projectSlotSyncMessage ? (
+          <p className="form-feedback runtime-sync-hint">
+            {projectSlotSyncMessage}
+          </p>
+        ) : null}
+        <button disabled={projectSlotSyncMessage !== null} type="submit">
+          Save project override
+        </button>
+      </form>
+    </section>
   )
 }
 

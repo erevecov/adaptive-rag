@@ -925,7 +925,20 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
-    expect(screen.getByRole('heading', { name: 'Connections' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Connections' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh connections' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    expect(screen.getByRole('heading', { level: 2, name: 'Model catalog' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh catalog' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    expect(screen.getByRole('heading', { level: 2, name: 'Global defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    expect(screen.getByRole('heading', { level: 2, name: 'Project overrides' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
   })
 
   test('opens and closes the left sidebar with the burger control', async () => {
@@ -2619,6 +2632,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
+    expect(screen.queryByRole('button', { name: 'Refresh runtime' })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Refresh connections' }))
 
     expect(client.listProviderConnections).toHaveBeenCalled()
@@ -2814,9 +2828,21 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
-    await screen.findByText('qwen-hosted')
     await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
-    await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
+    await waitFor(() => {
+      const globalSlotConnectionSelect = screen.getByLabelText(
+        'Global slot connection',
+      ) as HTMLSelectElement
+      expect(
+        Array.from(globalSlotConnectionSelect.options).some(
+          (option) => option.value === 'qwen-hosted',
+        ),
+      ).toBe(true)
+    })
+    await user.selectOptions(
+      screen.getByLabelText('Global slot connection'),
+      'qwen-hosted',
+    )
 
     expect(
       screen.getByText(
