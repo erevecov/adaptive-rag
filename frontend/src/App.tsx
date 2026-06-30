@@ -71,15 +71,56 @@ const RUNTIME_SLOTS = [
   'rerank',
   'contextualization',
 ]
-const SETTINGS_SECTIONS = [
-  { id: 'authoring', label: 'Authoring' },
-  { id: 'observability', label: 'Observability' },
-  { id: 'runtime', label: 'Runtime' },
+const SETTINGS_NAVIGATION = [
+  {
+    id: 'authoring',
+    label: 'Authoring',
+    submodules: [
+      { id: 'projects', label: 'Projects' },
+      { id: 'users', label: 'Users' },
+      { id: 'knowledge', label: 'Knowledge' },
+      { id: 'sources', label: 'Sources' },
+    ],
+  },
+  {
+    id: 'observability',
+    label: 'Observability',
+    submodules: [
+      { id: 'summary', label: 'Summary' },
+      { id: 'costs', label: 'Costs' },
+      { id: 'errors', label: 'Errors' },
+      { id: 'latency', label: 'Latency' },
+    ],
+  },
+  {
+    id: 'runtime',
+    label: 'Runtime',
+    submodules: [
+      { id: 'connections', label: 'Connections' },
+      { id: 'model_catalog', label: 'Model catalog' },
+      { id: 'global_defaults', label: 'Global defaults' },
+      { id: 'project_overrides', label: 'Project overrides' },
+    ],
+  },
+] as const
+
+const ACCOUNT_MODULES = [
+  { id: 'appearance', label: 'Appearance', disabled: false },
+  { id: 'memory', label: 'Memory', disabled: true },
 ] as const
 
 type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type SettingsSection = (typeof SETTINGS_SECTIONS)[number]['id']
-type ActiveView = 'chat' | 'account' | 'settings' | SettingsSection
+type PrimaryView = 'chat' | 'account' | 'settings'
+type AccountModule = (typeof ACCOUNT_MODULES)[number]['id']
+type SettingsModule = (typeof SETTINGS_NAVIGATION)[number]['id']
+type AuthoringSubmodule = (typeof SETTINGS_NAVIGATION)[0]['submodules'][number]['id']
+type ObservabilitySubmodule =
+  (typeof SETTINGS_NAVIGATION)[1]['submodules'][number]['id']
+type RuntimeSubmodule = (typeof SETTINGS_NAVIGATION)[2]['submodules'][number]['id']
+type SettingsSubmodule =
+  | AuthoringSubmodule
+  | ObservabilitySubmodule
+  | RuntimeSubmodule
 type SessionNavigationFilter = (typeof SESSION_FILTERS)[number]['value']
 type InspectorTab = 'context' | 'minimap'
 type ProviderModelOption = {
@@ -165,7 +206,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [detailError, setDetailError] = useState<string | null>(null)
   const [activeRequestController, setActiveRequestController] =
     useState<AbortController | null>(null)
-  const [activeView, setActiveView] = useState<ActiveView>('chat')
+  const [primaryView, setPrimaryView] = useState<PrimaryView>('chat')
+  const [accountModule, setAccountModule] =
+    useState<AccountModule>('appearance')
+  const [settingsModule, setSettingsModule] =
+    useState<SettingsModule>('authoring')
+  const [authoringSubmodule, setAuthoringSubmodule] =
+    useState<AuthoringSubmodule>('projects')
+  const [observabilitySubmodule, setObservabilitySubmodule] =
+    useState<ObservabilitySubmodule>('summary')
+  const [runtimeSubmodule, setRuntimeSubmodule] =
+    useState<RuntimeSubmodule>('connections')
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -384,7 +435,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [inspectorTab])
 
   useEffect(() => {
-    if (activeView !== 'chat' || !chatAutoFollowRef.current) {
+    if (primaryView !== 'chat' || !chatAutoFollowRef.current) {
       return
     }
 
@@ -394,7 +445,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     transcript.scrollTop = transcript.scrollHeight
-  }, [activeView, requestState, response])
+  }, [primaryView, requestState, response])
 
   function handleChatTranscriptScroll() {
     const transcript = chatTranscriptRef.current
@@ -657,8 +708,37 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIsRightDockOpen(true)
   }
 
+  function handlePrimaryViewChange(view: PrimaryView) {
+    setPrimaryView(view)
+  }
+
+  function handleSettingsModuleChange(module: SettingsModule) {
+    setSettingsModule(module)
+    if (module === 'authoring') {
+      setAuthoringSubmodule('projects')
+    } else if (module === 'observability') {
+      setObservabilitySubmodule('summary')
+    } else {
+      setRuntimeSubmodule('connections')
+    }
+  }
+
+  function handleSettingsSubmoduleChange(
+    module: SettingsModule,
+    submodule: SettingsSubmodule,
+  ) {
+    setSettingsModule(module)
+    if (module === 'authoring') {
+      setAuthoringSubmodule(submodule as AuthoringSubmodule)
+    } else if (module === 'observability') {
+      setObservabilitySubmodule(submodule as ObservabilitySubmodule)
+    } else {
+      setRuntimeSubmodule(submodule as RuntimeSubmodule)
+    }
+  }
+
   function handleStartNewSession() {
-    setActiveView('chat')
+    setPrimaryView('chat')
     setQuestion('')
     setResponse(null)
     setSelectedSessionId(null)
@@ -787,7 +867,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    setActiveView('chat')
+    setPrimaryView('chat')
     setQuestion('')
     setSelectedSessionId(sessionId)
     setRequestState('idle')
@@ -1631,10 +1711,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     )
   }
 
-  const activeSettingsSection: SettingsSection =
-    activeView === 'observability' || activeView === 'runtime'
-      ? activeView
-      : 'authoring'
+  const activeSettingsSection = settingsModule
 
   return (
     <main
@@ -1647,35 +1724,43 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       ].join(' ')}
     >
       <AppSidebar
-        activeView={activeView}
+        accountModule={accountModule}
+        authoringSubmodule={authoringSubmodule}
         canLoadMoreSessions={hasMoreSessions}
         error={historyError}
         isOpen={isLeftSidebarOpen}
+        observabilitySubmodule={observabilitySubmodule}
         onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
+        onAccountModuleChange={setAccountModule}
         onLoadMoreSessions={handleLoadMoreSessions}
+        onPrimaryViewChange={handlePrimaryViewChange}
         onProjectIdChange={handleChangeProjectId}
         onRenameSession={(sessionId, title) =>
           void handleRenameSession(sessionId, title)
         }
         onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+        onSettingsModuleChange={handleSettingsModuleChange}
+        onSettingsSubmoduleChange={handleSettingsSubmoduleChange}
         onStartNewSession={handleStartNewSession}
         onStatusFilterChange={handleChangeHistoryStatusFilter}
         onToggle={() => setIsLeftSidebarOpen((current) => !current)}
         onUnarchiveSession={(sessionId) =>
           void handleUnarchiveSession(sessionId)
         }
-        onViewChange={setActiveView}
+        primaryView={primaryView}
         projectId={projectId}
         projectState={projectAuthoringState}
         projects={projects}
+        runtimeSubmodule={runtimeSubmodule}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
         sessionState={historyState}
+        settingsModule={settingsModule}
         statusFilter={historyStatusFilter}
       />
 
       <section
-        className={activeView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
+        className={primaryView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
         aria-labelledby="workspace-title"
       >
         <WorkspaceTopline
@@ -1686,7 +1771,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           sessions={sessions}
         />
 
-        {activeView === 'chat' ? (
+        {primaryView === 'chat' ? (
           <div
             className={
               isRightDockInline
@@ -1835,12 +1920,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               />
             ) : null}
           </div>
-        ) : activeView === 'account' ? (
+        ) : primaryView === 'account' ? (
           <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
         ) : (
           <SettingsPanel
             activeSection={activeSettingsSection}
-            onSectionChange={setActiveView}
+            onSectionChange={handleSettingsModuleChange}
           >
             {activeSettingsSection === 'observability' ? (
               <ObservabilityPanel
@@ -2069,48 +2154,67 @@ function WorkspaceTopline({
 }
 
 function AppSidebar({
-  activeView,
+  accountModule,
+  authoringSubmodule,
   canLoadMoreSessions,
   error,
   isOpen,
+  observabilitySubmodule,
   onArchiveSession,
+  onAccountModuleChange,
   onLoadMoreSessions,
+  onPrimaryViewChange,
   onProjectIdChange,
   onRenameSession,
   onSelectSession,
+  onSettingsModuleChange,
+  onSettingsSubmoduleChange,
   onStartNewSession,
   onStatusFilterChange,
   onToggle,
   onUnarchiveSession,
-  onViewChange,
+  primaryView,
   projectId,
   projectState,
   projects,
+  runtimeSubmodule,
   selectedSessionId,
   sessions,
   sessionState,
+  settingsModule,
   statusFilter,
 }: {
-  activeView: ActiveView
+  accountModule: AccountModule
+  authoringSubmodule: AuthoringSubmodule
   canLoadMoreSessions: boolean
   error: string | null
   isOpen: boolean
+  observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
+  onAccountModuleChange(module: AccountModule): void
   onLoadMoreSessions(): void
+  onPrimaryViewChange(view: PrimaryView): void
   onProjectIdChange(projectId: string): void
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
+  onSettingsModuleChange(module: SettingsModule): void
+  onSettingsSubmoduleChange(
+    module: SettingsModule,
+    submodule: SettingsSubmodule,
+  ): void
   onStartNewSession(): void
   onStatusFilterChange(filter: SessionNavigationFilter): void
   onToggle(): void
   onUnarchiveSession(sessionId: string): void
-  onViewChange(view: ActiveView): void
+  primaryView: PrimaryView
   projectId: string
   projectState: RequestState
   projects: Project[]
+  runtimeSubmodule: RuntimeSubmodule
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
   sessionState: RequestState
+  settingsModule: SettingsModule
   statusFilter: SessionNavigationFilter
 }) {
   return (
@@ -2145,37 +2249,53 @@ function AppSidebar({
 
         <nav className="sidebar-navigation" aria-label="Primary navigation">
           <SidebarNavButton
-            active={activeView === 'chat'}
+            active={primaryView === 'chat'}
             label="Chat"
-            onClick={() => onViewChange('chat')}
+            onClick={() => onPrimaryViewChange('chat')}
           />
           <SidebarNavButton
-            active={activeView === 'account'}
+            active={primaryView === 'account'}
             label="My account"
-            onClick={() => onViewChange('account')}
+            onClick={() => onPrimaryViewChange('account')}
           />
           <SidebarNavButton
-            active={activeView !== 'chat' && activeView !== 'account'}
+            active={primaryView === 'settings'}
             label="Settings"
-            onClick={() => onViewChange('settings')}
+            onClick={() => onPrimaryViewChange('settings')}
           />
         </nav>
 
-        <SessionNavigationPanel
-          canLoadMore={canLoadMoreSessions}
-          error={error}
-          onArchiveSession={onArchiveSession}
-          onLoadMore={onLoadMoreSessions}
-          onRenameSession={onRenameSession}
-          onSelectSession={onSelectSession}
-          onStartNewSession={onStartNewSession}
-          onStatusFilterChange={onStatusFilterChange}
-          onUnarchiveSession={onUnarchiveSession}
-          selectedSessionId={selectedSessionId}
-          sessions={sessions}
-          statusFilter={statusFilter}
-          state={sessionState}
-        />
+        {primaryView === 'chat' ? (
+          <SessionNavigationPanel
+            canLoadMore={canLoadMoreSessions}
+            error={error}
+            onArchiveSession={onArchiveSession}
+            onLoadMore={onLoadMoreSessions}
+            onRenameSession={onRenameSession}
+            onSelectSession={onSelectSession}
+            onStartNewSession={onStartNewSession}
+            onStatusFilterChange={onStatusFilterChange}
+            onUnarchiveSession={onUnarchiveSession}
+            selectedSessionId={selectedSessionId}
+            sessions={sessions}
+            statusFilter={statusFilter}
+            state={sessionState}
+          />
+        ) : primaryView === 'account' ? (
+          <AccountNavigationPanel
+            activeModule={accountModule}
+            onModuleChange={onAccountModuleChange}
+          />
+        ) : (
+          <SettingsNavigationPanel
+            activeAuthoringSubmodule={authoringSubmodule}
+            activeModule={settingsModule}
+            activeObservabilitySubmodule={observabilitySubmodule}
+            activeRuntimeSubmodule={runtimeSubmodule}
+            onModuleChange={onSettingsModuleChange}
+            onSubmoduleChange={onSettingsSubmoduleChange}
+          />
+        )}
       </div>
     </aside>
   )
@@ -2200,6 +2320,127 @@ function SidebarNavButton({
       {label}
     </button>
   )
+}
+
+function AccountNavigationPanel({
+  activeModule,
+  onModuleChange,
+}: {
+  activeModule: AccountModule
+  onModuleChange(module: AccountModule): void
+}) {
+  return (
+    <nav className="contextual-navigation" aria-label="My account navigation">
+      <h2 className="sidebar-section-title">My account</h2>
+      <div className="contextual-nav-group">
+        {ACCOUNT_MODULES.map((module) => {
+          const active = module.id === activeModule
+          return (
+            <button
+              aria-pressed={active}
+              className={
+                active
+                  ? 'contextual-nav-button contextual-nav-button-active'
+                  : 'contextual-nav-button'
+              }
+              disabled={module.disabled}
+              key={module.id}
+              onClick={() => onModuleChange(module.id)}
+              type="button"
+            >
+              {module.label}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+function SettingsNavigationPanel({
+  activeAuthoringSubmodule,
+  activeModule,
+  activeObservabilitySubmodule,
+  activeRuntimeSubmodule,
+  onModuleChange,
+  onSubmoduleChange,
+}: {
+  activeAuthoringSubmodule: AuthoringSubmodule
+  activeModule: SettingsModule
+  activeObservabilitySubmodule: ObservabilitySubmodule
+  activeRuntimeSubmodule: RuntimeSubmodule
+  onModuleChange(module: SettingsModule): void
+  onSubmoduleChange(module: SettingsModule, submodule: SettingsSubmodule): void
+}) {
+  const activeSubmodule = getActiveSettingsSubmodule(
+    activeModule,
+    activeAuthoringSubmodule,
+    activeObservabilitySubmodule,
+    activeRuntimeSubmodule,
+  )
+
+  return (
+    <nav className="contextual-navigation" aria-label="Settings navigation">
+      <h2 className="sidebar-section-title">Settings</h2>
+      {SETTINGS_NAVIGATION.map((module) => {
+        const active = module.id === activeModule
+        return (
+          <div className="contextual-nav-group" key={module.id}>
+            <button
+              aria-pressed={active}
+              className={
+                active
+                  ? 'contextual-nav-button contextual-nav-button-active'
+                  : 'contextual-nav-button'
+              }
+              onClick={() => onModuleChange(module.id)}
+              type="button"
+            >
+              {module.label}
+            </button>
+
+            {active
+              ? module.submodules.map((submodule) => {
+                  const submoduleActive = submodule.id === activeSubmodule
+                  return (
+                    <button
+                      aria-pressed={submoduleActive}
+                      className={
+                        submoduleActive
+                          ? 'contextual-nav-subbutton contextual-nav-subbutton-active'
+                          : 'contextual-nav-subbutton'
+                      }
+                      key={submodule.id}
+                      onClick={() =>
+                        onSubmoduleChange(module.id, submodule.id)
+                      }
+                      type="button"
+                    >
+                      {submodule.label}
+                    </button>
+                  )
+                })
+              : null}
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
+
+function getActiveSettingsSubmodule(
+  activeModule: SettingsModule,
+  activeAuthoringSubmodule: AuthoringSubmodule,
+  activeObservabilitySubmodule: ObservabilitySubmodule,
+  activeRuntimeSubmodule: RuntimeSubmodule,
+): SettingsSubmodule {
+  if (activeModule === 'authoring') {
+    return activeAuthoringSubmodule
+  }
+  if (activeModule === 'observability') {
+    return activeObservabilitySubmodule
+  }
+  return activeRuntimeSubmodule
 }
 
 function SidebarProjectSelector({
@@ -2387,44 +2628,23 @@ function SettingsPanel({
   children,
   onSectionChange,
 }: {
-  activeSection: SettingsSection
+  activeSection: SettingsModule
   children: ReactNode
-  onSectionChange(section: SettingsSection): void
+  onSectionChange(section: SettingsModule): void
 }) {
+  const activeSectionLabel = SETTINGS_NAVIGATION.find(
+    (section) => section.id === activeSection,
+  )?.label
+  void onSectionChange
+
   return (
     <section className="settings-shell" aria-labelledby="settings-title">
       <header className="settings-shell-header">
         <div>
-          <p className="panel-label">Settings</p>
+          <p className="panel-label">{activeSectionLabel ?? 'Settings'}</p>
           <h2 id="settings-title">Settings</h2>
         </div>
       </header>
-
-      <div
-        className="settings-section-tabs"
-        role="tablist"
-        aria-label="Settings sections"
-      >
-        {SETTINGS_SECTIONS.map((section) => {
-          const active = section.id === activeSection
-          return (
-            <button
-              aria-selected={active}
-              className={
-                active
-                  ? 'settings-section-tab settings-section-tab-active'
-                  : 'settings-section-tab'
-              }
-              key={section.id}
-              onClick={() => onSectionChange(section.id)}
-              role="tab"
-              type="button"
-            >
-              {section.label}
-            </button>
-          )
-        })}
-      </div>
 
       <div className="settings-section-body">{children}</div>
     </section>

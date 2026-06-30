@@ -517,6 +517,61 @@
   color: var(--app-text-strong);
 }
 
+.contextual-navigation {
+  border-top: 1px solid var(--app-border);
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.sidebar-section-title {
+  color: var(--app-text-strong);
+  font-size: 14px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.contextual-nav-group {
+  display: grid;
+  gap: 6px;
+}
+
+.contextual-nav-button,
+.contextual-nav-subbutton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--app-text-muted);
+  justify-content: flex-start;
+  min-height: 38px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.contextual-nav-subbutton {
+  font-size: 13px;
+  min-height: 34px;
+  padding-left: 22px;
+}
+
+.contextual-nav-button:hover,
+.contextual-nav-button-active,
+.contextual-nav-subbutton:hover,
+.contextual-nav-subbutton-active {
+  background: var(--app-accent-soft);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-strong);
+}
+
+.contextual-nav-button:disabled {
+  background: transparent;
+  border-color: transparent;
+  color: var(--app-text-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .view-switcher {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #c9d2cf;
