@@ -14,6 +14,7 @@ import { ChatPipelineSteps } from './components/ChatPipelineSteps'
 import { IconButton } from '@/components/ui/button'
 import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
+import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
 import { RuntimeSettingsPanel } from '@/features/runtime/RuntimeSettingsView'
 import {
   CHAT_RETRIEVAL_MAX_LIMIT,
@@ -25,7 +26,6 @@ import {
   createApiClient,
   type ApiClient,
   type ChatRetrievalSettings,
-  type ChatObservabilityProviderUsageGroup,
   type ChatObservabilitySummary,
   type ChatHistoryProviderUsage,
   type ChatHistoryRetrievedChunk,
@@ -77,7 +77,6 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
   sensitivity: 'base',
 })
-const STATUS_ORDER = ['failed', 'running', 'succeeded']
 const SESSION_FILTERS = [
   { label: 'ACTIVOS', value: 'active' },
   { label: 'TRAIN', value: 'training' },
@@ -2378,6 +2377,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onProjectIdChange={handleChangeProjectId}
                 onRefresh={() => void handleRefreshObservability()}
                 onStatusChange={setObservabilityStatus}
+                onSubmoduleChange={(submodule) =>
+                  handleSettingsSubmoduleChange({
+                    module: 'observability',
+                    submodule,
+                  })
+                }
                 projectId={projectId}
                 state={observabilityState}
                 status={observabilityStatus}
@@ -3187,549 +3192,6 @@ function DeferredAccountModulePanel({ moduleName }: { moduleName: string }) {
         This module is not available until a durable backend contract exists.
       </p>
     </section>
-  )
-}
-
-function ObservabilityPanel({
-  activeSubmodule,
-  createdAtFrom,
-  createdAtTo,
-  error,
-  onCreatedAtFromChange,
-  onCreatedAtToChange,
-  onProjectIdChange,
-  onRefresh,
-  onStatusChange,
-  projectId,
-  state,
-  status,
-  summary,
-}: {
-  activeSubmodule: ObservabilitySubmodule
-  createdAtFrom: string
-  createdAtTo: string
-  error: string | null
-  onCreatedAtFromChange(value: string): void
-  onCreatedAtToChange(value: string): void
-  onProjectIdChange(value: string): void
-  onRefresh(): void
-  onStatusChange(value: string): void
-  projectId: string
-  state: RequestState
-  status: string
-  summary: ChatObservabilitySummary | null
-}) {
-  const isRefreshing = state === 'loading'
-
-  return (
-    <section className="panel observability-panel" aria-labelledby="observability-title">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Observability</p>
-          <h2 id="observability-title">
-            {observabilitySubmoduleLabel(activeSubmodule)}
-          </h2>
-        </div>
-        <span className={statusClassName(state)}>
-          {observabilityStatusLabel(state)}
-        </span>
-      </div>
-
-      <form
-        className="observability-filters"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onRefresh()
-        }}
-      >
-        <label className="field">
-          <span>Project ID</span>
-          <input
-            autoComplete="off"
-            name="observability-project-id"
-            onChange={(event) => onProjectIdChange(event.currentTarget.value)}
-            placeholder="Project UUID"
-            value={projectId}
-          />
-        </label>
-        <label className="field">
-          <span>Created from</span>
-          <input
-            name="created-at-from"
-            onChange={(event) => onCreatedAtFromChange(event.currentTarget.value)}
-            placeholder="2026-06-21T00:00:00Z"
-            value={createdAtFrom}
-          />
-        </label>
-        <label className="field">
-          <span>Created to</span>
-          <input
-            name="created-at-to"
-            onChange={(event) => onCreatedAtToChange(event.currentTarget.value)}
-            placeholder="2026-06-22T00:00:00Z"
-            value={createdAtTo}
-          />
-        </label>
-        <label className="field">
-          <span>Status</span>
-          <select
-            name="observability-status"
-            onChange={(event) => onStatusChange(event.currentTarget.value)}
-            value={status}
-          >
-            <option value="">Any</option>
-            <option value="running">running</option>
-            <option value="succeeded">succeeded</option>
-            <option value="failed">failed</option>
-          </select>
-        </label>
-        <button disabled={isRefreshing} type="submit">
-          {isRefreshing ? 'Refreshing...' : 'Refresh summary'}
-        </button>
-      </form>
-
-      {error ? (
-        <p className="form-feedback form-feedback-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      <ObservabilityContent activeSubmodule={activeSubmodule} summary={summary} />
-    </section>
-  )
-}
-
-function ObservabilityContent({
-  activeSubmodule,
-  summary,
-}: {
-  activeSubmodule: ObservabilitySubmodule
-  summary: ChatObservabilitySummary | null
-}) {
-  if (summary === null) {
-    return (
-      <div className="observability-empty">
-        <p className="empty-copy">
-          No observability summary yet. Enter filters and refresh to inspect chat
-          health.
-        </p>
-      </div>
-    )
-  }
-
-  if (activeSubmodule === 'costs') {
-    return <ObservabilityCostsContent summary={summary} />
-  }
-  if (activeSubmodule === 'errors') {
-    return <ObservabilityErrorsContent summary={summary} />
-  }
-  if (activeSubmodule === 'latency') {
-    return <ObservabilityLatencyContent summary={summary} />
-  }
-
-  return <ObservabilitySummaryContent summary={summary} />
-}
-
-function ObservabilitySummaryContent({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  return (
-    <>
-      <ObservabilitySummaryMetrics summary={summary} />
-      <ObservabilityBreakdowns summary={summary} />
-    </>
-  )
-}
-
-function ObservabilitySummaryMetrics({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
-  const errorCount =
-    summary.errors.session_error_count + summary.errors.provider_error_count
-
-  return (
-    <>
-      <div className="metric-grid" aria-label="Chat observability metrics">
-        <MetricCard
-          label="Sessions"
-          value={String(summary.sessions.total)}
-          detail="Filtered chat sessions"
-        />
-        <MetricCard
-          label="Provider calls"
-          value={String(summary.provider_usage.total_records)}
-          detail={`${summary.provider_usage.missing_cost_count} missing cost`}
-        />
-        <MetricCard
-          label="Estimated cost"
-          value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
-          detail="Known usage only"
-        />
-        <MetricCard
-          label="Errors"
-          value={String(errorCount)}
-          detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
-        />
-        <MetricCard
-          label="Latency"
-          value={
-            slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
-          }
-          detail={
-            slowestP95 === null
-              ? 'No known provider latency'
-              : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
-          }
-        />
-      </div>
-    </>
-  )
-}
-
-function ObservabilityCostsContent({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  return (
-    <>
-      <div className="metric-grid" aria-label="Cost observability metrics">
-        <MetricCard
-          label="Provider calls"
-          value={String(summary.provider_usage.total_records)}
-          detail={`${summary.provider_usage.groups.length} provider groups`}
-        />
-        <MetricCard
-          label="Estimated cost"
-          value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
-          detail="Known usage only"
-        />
-        <MetricCard
-          label="Missing costs"
-          value={String(summary.provider_usage.missing_cost_count)}
-          detail="Usage records without cost"
-        />
-      </div>
-      <div className="observability-breakdowns">
-        <ProviderUsageTable summary={summary} />
-      </div>
-    </>
-  )
-}
-
-function ObservabilityErrorsContent({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  const errorCount =
-    summary.errors.session_error_count + summary.errors.provider_error_count
-
-  return (
-    <>
-      <div className="metric-grid" aria-label="Error observability metrics">
-        <MetricCard
-          label="Errors"
-          value={String(errorCount)}
-          detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
-        />
-        <MetricCard
-          label="Failed sessions"
-          value={String(summary.sessions.by_status.failed ?? 0)}
-          detail={`${summary.sessions.total} sessions in filter`}
-        />
-        <MetricCard
-          label="Top messages"
-          value={String(summary.errors.top_messages.length)}
-          detail="Grouped error messages"
-        />
-      </div>
-      <div className="observability-breakdowns">
-        <StatusBreakdown summary={summary} />
-        <ErrorMessages summary={summary} />
-        <SessionHealth summary={summary} />
-      </div>
-    </>
-  )
-}
-
-function ObservabilityLatencyContent({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
-
-  return (
-    <>
-      <div className="metric-grid" aria-label="Latency observability metrics">
-        <MetricCard
-          label="Latency"
-          value={
-            slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
-          }
-          detail={
-            slowestP95 === null
-              ? 'No known provider latency'
-              : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
-          }
-        />
-        <MetricCard
-          label="Provider groups"
-          value={String(summary.provider_usage.groups.length)}
-          detail="Latency rollups"
-        />
-        <MetricCard
-          label="Provider calls"
-          value={String(summary.provider_usage.total_records)}
-          detail="Usage records with timing"
-        />
-      </div>
-      <div className="observability-breakdowns">
-        <ProviderLatencyTable summary={summary} />
-      </div>
-    </>
-  )
-}
-
-function ObservabilityBreakdowns({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  return (
-    <div className="observability-breakdowns">
-      <StatusBreakdown summary={summary} />
-      <ErrorMessages summary={summary} />
-      <ProviderUsageTable summary={summary} />
-      <SessionHealth summary={summary} />
-    </div>
-  )
-}
-
-function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
-  const rows = getStatusBreakdown(summary.sessions.by_status)
-
-  return (
-    <section
-      className="breakdown-card"
-      aria-labelledby="status-breakdown-title"
-    >
-      <BreakdownHeader
-        id="status-breakdown-title"
-        label={`${summary.sessions.total} total`}
-        title="Status breakdown"
-      />
-      {rows.length === 0 ? (
-        <p className="empty-copy">No status data yet.</p>
-      ) : (
-        <ul className="status-breakdown-list">
-          {rows.map((row) => (
-            <li key={row.status}>
-              <div>
-                <strong>{row.status}</strong>
-                <small>{formatPercent(row.count, summary.sessions.total)}</small>
-              </div>
-              <span>{formatCount(row.count, 'session')}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}
-
-function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
-  return (
-    <section className="breakdown-card" aria-labelledby="error-messages-title">
-      <BreakdownHeader
-        id="error-messages-title"
-        label={`${summary.errors.top_messages.length} messages`}
-        title="Error messages"
-      />
-      {summary.errors.top_messages.length === 0 ? (
-        <p className="empty-copy">No error messages yet.</p>
-      ) : (
-        <ul className="compact-list">
-          {summary.errors.top_messages.map((error) => (
-            <li key={error.message}>
-              <strong>{error.message}</strong>
-              <span>{formatCount(error.count, 'occurrence')}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}
-
-function ProviderUsageTable({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  return (
-    <section
-      className="breakdown-card breakdown-card-wide"
-      aria-labelledby="provider-usage-title"
-    >
-      <BreakdownHeader
-        id="provider-usage-title"
-        label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider usage"
-      />
-      {summary.provider_usage.groups.length === 0 ? (
-        <p className="empty-copy">No provider usage groups yet.</p>
-      ) : (
-        <div className="table-scroll">
-          <table className="observability-table">
-            <thead>
-              <tr>
-                <th scope="col">Operation</th>
-                <th scope="col">Provider</th>
-                <th scope="col">Model</th>
-                <th scope="col">Calls</th>
-                <th scope="col">Tokens</th>
-                <th scope="col">Cost</th>
-                <th scope="col">P95</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.provider_usage.groups.map((group) => (
-                <tr key={`${group.operation}-${group.provider}-${group.model}`}>
-                  <td>{group.operation}</td>
-                  <td>{group.provider}</td>
-                  <td>{group.model}</td>
-                  <td>{formatNumber(group.record_count)}</td>
-                  <td>{formatNullableNumber(group.total_tokens)}</td>
-                  <td>{formatNullableUsd(group.estimated_cost_usd)}</td>
-                  <td>{formatNullableMs(group.latency_ms.p95)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function ProviderLatencyTable({
-  summary,
-}: {
-  summary: ChatObservabilitySummary
-}) {
-  return (
-    <section
-      className="breakdown-card breakdown-card-wide"
-      aria-labelledby="provider-latency-title"
-    >
-      <BreakdownHeader
-        id="provider-latency-title"
-        label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider latency"
-      />
-      {summary.provider_usage.groups.length === 0 ? (
-        <p className="empty-copy">No provider latency groups yet.</p>
-      ) : (
-        <div className="table-scroll">
-          <table className="observability-table">
-            <thead>
-              <tr>
-                <th scope="col">Operation</th>
-                <th scope="col">Provider</th>
-                <th scope="col">Model</th>
-                <th scope="col">Calls</th>
-                <th scope="col">Avg</th>
-                <th scope="col">P50</th>
-                <th scope="col">P95</th>
-                <th scope="col">Max</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.provider_usage.groups.map((group) => (
-                <tr key={`${group.operation}-${group.provider}-${group.model}`}>
-                  <td>{group.operation}</td>
-                  <td>{group.provider}</td>
-                  <td>{group.model}</td>
-                  <td>{formatNumber(group.record_count)}</td>
-                  <td>{formatNullableMs(group.latency_ms.avg)}</td>
-                  <td>{formatNullableMs(group.latency_ms.p50)}</td>
-                  <td>{formatNullableMs(group.latency_ms.p95)}</td>
-                  <td>{formatNullableMs(group.latency_ms.max)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
-  const total = summary.sessions.total
-  const succeeded = summary.sessions.by_status.succeeded ?? 0
-  const failed = summary.sessions.by_status.failed ?? 0
-  const running = summary.sessions.by_status.running ?? 0
-
-  return (
-    <section className="breakdown-card" aria-labelledby="session-health-title">
-      <BreakdownHeader
-        id="session-health-title"
-        label="Current filter"
-        title="Session health"
-      />
-      {total === 0 ? (
-        <p className="empty-copy">No sessions in this filter window.</p>
-      ) : (
-        <div className="health-summary">
-          <strong>{formatPercent(succeeded, total)} success</strong>
-          <span>{formatCount(failed, 'failed session')}</span>
-          <span>{formatCount(running, 'running session')}</span>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function BreakdownHeader({
-  id,
-  label,
-  title,
-}: {
-  id: string
-  label: string
-  title: string
-}) {
-  return (
-    <div className="breakdown-heading">
-      <h3 id={id}>{title}</h3>
-      <span>{label}</span>
-    </div>
-  )
-}
-
-function MetricCard({
-  detail,
-  label,
-  value,
-}: {
-  detail: string
-  label: string
-  value: string
-}) {
-  return (
-    <article className="metric-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </article>
   )
 }
 
@@ -4888,6 +4350,30 @@ function SessionContextPanel({
   )
 }
 
+function MetricCard({
+  detail,
+  label,
+  value,
+}: {
+  detail: string
+  label: string
+  value: string
+}) {
+  return (
+    <article className="grid min-h-32 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
+      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+        {label}
+      </span>
+      <strong className="break-words text-2xl font-semibold leading-none">
+        {value}
+      </strong>
+      <small className="text-sm leading-relaxed text-muted-foreground">
+        {detail}
+      </small>
+    </article>
+  )
+}
+
 function InternalActionStepper({
   detail,
 }: {
@@ -5820,10 +5306,6 @@ function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
   return run.used_rerank ? `${run.strategy} with rerank` : `${run.strategy} retrieval`
 }
 
-function statusClassName(state: RequestState): string {
-  return state === 'failed' ? 'status-dot status-dot-error' : 'status-dot'
-}
-
 function sourceViewerStatusLabel(state: RequestState): string {
   if (state === 'loading') {
     return 'Loading'
@@ -5838,26 +5320,6 @@ function sourceViewerStatusLabel(state: RequestState): string {
     return 'Canceled'
   }
   return 'Idle'
-}
-
-function observabilityStatusLabel(state: RequestState): string {
-  if (state === 'loading') {
-    return 'Refreshing'
-  }
-  if (state === 'failed') {
-    return 'Error'
-  }
-  if (state === 'succeeded') {
-    return 'Loaded'
-  }
-  return 'Ready'
-}
-
-function observabilitySubmoduleLabel(submodule: ObservabilitySubmodule): string {
-  if (submodule === 'costs') return 'Costs'
-  if (submodule === 'errors') return 'Errors'
-  if (submodule === 'latency') return 'Latency'
-  return 'Summary'
 }
 
 function buildSourceCreateBody({
@@ -6192,27 +5654,8 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(4)}`
 }
 
-function formatNullableUsd(value: number | null): string {
-  return value === null ? 'n/a' : formatUsd(value)
-}
-
 function formatNumber(value: number): string {
   return NUMBER_FORMATTER.format(value)
-}
-
-function formatNullableNumber(value: number | null): string {
-  return value === null ? 'n/a' : formatNumber(value)
-}
-
-function formatNullableMs(value: number | null): string {
-  return value === null ? 'n/a' : `${value} ms`
-}
-
-function formatPercent(value: number, total: number): string {
-  if (total === 0) {
-    return '0.0%'
-  }
-  return `${((value / total) * 100).toFixed(1)}%`
 }
 
 function formatCount(value: number, singularLabel: string): string {
@@ -6225,41 +5668,6 @@ function formatCount(value: number, singularLabel: string): string {
 function optionalFilterValue(value: string): string | null {
   const trimmedValue = value.trim()
   return trimmedValue.length > 0 ? trimmedValue : null
-}
-
-function getStatusBreakdown(
-  byStatus: Record<string, number>,
-): { count: number; status: string }[] {
-  return Object.entries(byStatus)
-    .filter(([, count]) => count > 0)
-    .map(([status, count]) => ({ count, status }))
-    .sort((left, right) => {
-      const leftIndex = STATUS_ORDER.indexOf(left.status)
-      const rightIndex = STATUS_ORDER.indexOf(right.status)
-      if (leftIndex !== -1 || rightIndex !== -1) {
-        return normalizeStatusIndex(leftIndex) - normalizeStatusIndex(rightIndex)
-      }
-      return right.count - left.count
-    })
-}
-
-function normalizeStatusIndex(index: number): number {
-  return index === -1 ? Number.MAX_SAFE_INTEGER : index
-}
-
-function getSlowestP95Group(
-  groups: ChatObservabilityProviderUsageGroup[],
-): ChatObservabilityProviderUsageGroup | null {
-  let slowest: ChatObservabilityProviderUsageGroup | null = null
-  for (const group of groups) {
-    if (group.latency_ms.p95 === null) {
-      continue
-    }
-    if (slowest === null || group.latency_ms.p95 > slowest.latency_ms.p95!) {
-      slowest = group
-    }
-  }
-  return slowest
 }
 
 function MenuIcon() {

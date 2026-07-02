@@ -1377,196 +1377,6 @@ button.chat-question-pill:hover {
   padding: 16px;
 }
 
-.observability-panel {
-  display: grid;
-  gap: 22px;
-  min-height: auto;
-}
-
-.observability-filters {
-  align-items: end;
-  border-bottom: 1px solid #dfe5e2;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(160px, 1fr)) auto;
-  padding-bottom: 22px;
-}
-
-.observability-filters button {
-  white-space: nowrap;
-}
-
-.observability-empty {
-  background: #f8faf9;
-  border: 1px solid #dfe6e2;
-  border-radius: 8px;
-  padding: 18px;
-}
-
-.metric-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.metric-card {
-  background: #ffffff;
-  border: 1px solid #dfe5e0;
-  border-radius: 8px;
-  display: grid;
-  gap: 8px;
-  min-height: 132px;
-  padding: 16px;
-}
-
-.metric-card span {
-  color: #63706d;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.metric-card strong {
-  color: #1f2d29;
-  font-size: 26px;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-}
-
-.metric-card small {
-  color: #5c6866;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.observability-breakdowns {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.breakdown-card {
-  background: #ffffff;
-  border: 1px solid #dfe5e0;
-  border-radius: 8px;
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  padding: 16px;
-}
-
-.breakdown-card-wide {
-  grid-column: 1 / -1;
-}
-
-.breakdown-heading {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.breakdown-heading h3 {
-  color: #1f2d29;
-  font-size: 16px;
-  margin: 0;
-}
-
-.breakdown-heading span {
-  background: #eef4f2;
-  border-radius: 999px;
-  color: #4f625f;
-  font-size: 12px;
-  font-weight: 800;
-  padding: 5px 8px;
-}
-
-.status-breakdown-list,
-.compact-list {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.status-breakdown-list li,
-.compact-list li {
-  align-items: center;
-  background: #f8faf9;
-  border: 1px solid #e4ebe7;
-  border-radius: 8px;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  min-width: 0;
-  padding: 12px;
-}
-
-.status-breakdown-list strong,
-.compact-list strong {
-  color: #25302f;
-  display: block;
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-
-.status-breakdown-list small,
-.compact-list span,
-.health-summary span {
-  color: #5c6866;
-  font-size: 13px;
-}
-
-.status-breakdown-list li > span {
-  color: #23423e;
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.observability-table {
-  border-collapse: collapse;
-  min-width: 720px;
-  width: 100%;
-}
-
-.observability-table th,
-.observability-table td {
-  border-bottom: 1px solid #e1e8e4;
-  color: #25302f;
-  font-size: 13px;
-  padding: 10px;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.observability-table th {
-  color: #63706d;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.observability-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.health-summary {
-  align-items: start;
-  display: grid;
-  gap: 8px;
-}
-
-.health-summary strong {
-  color: #1f2d29;
-  font-size: 24px;
-}
-
 .citation-list,
 .tool-call-list,
 .session-list,
@@ -2505,8 +2315,7 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .settings-header h2,
 :is([data-theme='dark'], [data-theme='purple']) .detail-heading h3,
 :is([data-theme='dark'], [data-theme='purple']) .detail-section h4,
-:is([data-theme='dark'], [data-theme='purple']) .source-viewer-block h4,
-:is([data-theme='dark'], [data-theme='purple']) .breakdown-card h3 {
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-block h4 {
   color: var(--app-text-strong);
 }
 
@@ -2514,8 +2323,6 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .form-feedback,
 :is([data-theme='dark'], [data-theme='purple']) .history-error,
 :is([data-theme='dark'], [data-theme='purple']) .empty-copy,
-:is([data-theme='dark'], [data-theme='purple']) .metric-card small,
-:is([data-theme='dark'], [data-theme='purple']) .breakdown-card small,
 :is([data-theme='dark'], [data-theme='purple']) .message-card p,
 :is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary p,
 :is([data-theme='dark'], [data-theme='purple']) .speech-feedback,
@@ -2544,13 +2351,9 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .streaming-status,
 :is([data-theme='dark'], [data-theme='purple']) .chat-pipeline-steps,
 :is([data-theme='dark'], [data-theme='purple']) .result-section,
-:is([data-theme='dark'], [data-theme='purple']) .observability-empty,
-:is([data-theme='dark'], [data-theme='purple']) .metric-card,
-:is([data-theme='dark'], [data-theme='purple']) .breakdown-card,
 :is([data-theme='dark'], [data-theme='purple']) .message-card,
 :is([data-theme='dark'], [data-theme='purple']) .message-card-muted,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer,
-:is([data-theme='dark'], [data-theme='purple']) .compact-list li,
 :is([data-theme='dark'], [data-theme='purple']) .citation-list li,
 :is([data-theme='dark'], [data-theme='purple']) .tool-call-list li,
 :is([data-theme='dark'], [data-theme='purple']) .session-list li,
@@ -2590,7 +2393,6 @@ body,
 
 :is([data-theme='dark'], [data-theme='purple']) .field,
 :is([data-theme='dark'], [data-theme='purple']) .panel-label,
-:is([data-theme='dark'], [data-theme='purple']) .metric-card span,
 :is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary span,
 :is([data-theme='dark'], [data-theme='purple']) .citation-meta span,
 :is([data-theme='dark'], [data-theme='purple']) .retrieval-run-meta span,
@@ -2765,7 +2567,6 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list strong,
 :is([data-theme='dark'], [data-theme='purple']) .pipeline-step-detail dd,
 :is([data-theme='dark'], [data-theme='purple']) .action-substep-list strong,
-:is([data-theme='dark'], [data-theme='purple']) .metric-card strong,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid dd,
 :is([data-theme='dark'], [data-theme='purple']) .theme-option-title {
   color: var(--app-text-strong);
@@ -2773,8 +2574,7 @@ body,
 
 :is([data-theme='dark'], [data-theme='purple']) .citation-meta span,
 :is([data-theme='dark'], [data-theme='purple']) .retrieval-run-meta span,
-:is([data-theme='dark'], [data-theme='purple']) .source-tag-list li,
-:is([data-theme='dark'], [data-theme='purple']) .status-breakdown-list li > span {
+:is([data-theme='dark'], [data-theme='purple']) .source-tag-list li {
   background: var(--app-accent-soft);
   color: var(--app-accent);
 }
@@ -2823,12 +2623,6 @@ body,
 
   .workspace-inspector {
     order: 3;
-  }
-
-  .observability-filters,
-  .metric-grid,
-  .observability-breakdowns {
-    grid-template-columns: 1fr 1fr;
   }
 
   .panel {
@@ -2880,26 +2674,12 @@ body,
   }
 
   .view-switcher,
-  .observability-filters,
   .chat-retrieval-summary,
   .speech-input,
-  .source-viewer-grid,
-  .metric-grid,
-  .observability-breakdowns {
+  .source-viewer-grid {
     display: grid;
     grid-template-columns: 1fr;
     width: 100%;
-  }
-
-  .status-breakdown-list li,
-  .compact-list li {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .breakdown-heading {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   button:not([data-slot]) {
