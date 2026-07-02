@@ -18,4 +18,5 @@ htmlcov/
 
 # ZCode / skills local artifacts
 .agents/
+.superpowers/
 skills-lock.json

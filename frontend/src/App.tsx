@@ -12,6 +12,8 @@
 } from 'react'
 import './App.css'
 import { ChatPipelineSteps } from './components/ChatPipelineSteps'
+import { IconButton } from '@/components/ui/button'
+import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import {
   ApiClientError,
   createApiClient,
@@ -2692,16 +2694,14 @@ function AppSidebar({
       className={isOpen ? 'app-sidebar app-sidebar-open' : 'app-sidebar app-sidebar-closed'}
     >
       <div className="app-sidebar-chrome">
-        <button
+        <IconButton
           aria-expanded={isOpen}
-          aria-label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
           className="sidebar-burger"
+          label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
           onClick={onToggle}
-          title={isOpen ? 'Collapse menu' : 'Open menu'}
-          type="button"
         >
           <MenuIcon />
-        </button>
+        </IconButton>
         <div className="sidebar-brand" aria-hidden={!isOpen}>
           <strong>Adaptive RAG</strong>
           <span>Workspace</span>
@@ -2780,14 +2780,13 @@ function SidebarNavButton({
   onClick(): void
 }) {
   return (
-    <button
-      aria-pressed={active}
+    <UiSidebarItem
+      active={active}
       className={active ? 'sidebar-nav-button sidebar-nav-button-active' : 'sidebar-nav-button'}
       onClick={onClick}
-      type="button"
     >
       {label}
-    </button>
+    </UiSidebarItem>
   )
 }
 
