@@ -44,6 +44,22 @@ import { ApiClientError } from './lib/apiClient'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 
+type NodeFsModule = {
+  readFileSync(path: string, encoding: 'utf8'): string
+}
+
+type NodeProcess = {
+  getBuiltinModule?(name: 'fs'): NodeFsModule
+}
+
+const appStyles =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process?.getBuiltinModule?.('fs').readFileSync('src/App.css', 'utf8') ??
+  ''
+
 function installLocalStorage() {
   const entries = new Map<string, string>()
   const storage = {
@@ -1921,6 +1937,25 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: /^Chat$/ }))
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
     expect(document.querySelector('main')?.className).toContain('app-shell')
+  })
+
+  test('keeps appearance theme options isolated from legacy button theme styles', () => {
+    expect(appStyles).toContain('.theme-option {')
+    expect(appStyles).toContain('background: var(--theme-option-background);')
+    expect(appStyles).toContain('color: var(--theme-option-text);')
+    expect(appStyles).toContain('.theme-option:hover {')
+    expect(appStyles).toContain('background: var(--theme-option-hover-background);')
+    expect(appStyles).toContain('.theme-option-active,')
+    expect(appStyles).toContain('background: var(--theme-option-active-background);')
+    expect(appStyles).toContain(
+      ":is([data-theme='dark'], [data-theme='purple']) .theme-option:hover",
+    )
+    const legacyDarkButtonHoverSelectors = appStyles.match(
+      /:is\(\[data-theme='dark'\], \[data-theme='purple'\]\) button:not\(\[data-slot\]\):hover[^{]*/,
+    )?.[0]
+
+    expect(legacyDarkButtonHoverSelectors).toBeDefined()
+    expect(legacyDarkButtonHoverSelectors).not.toContain('.theme-option:hover')
   })
 
   test('hydrates the global theme from local storage', async () => {

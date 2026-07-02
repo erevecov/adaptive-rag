@@ -2606,20 +2606,48 @@ body,
 }
 
 .theme-option {
-  background: var(--app-surface-solid);
-  border: 1px solid var(--app-border);
+  --theme-option-active-background: color-mix(
+    in srgb,
+    var(--app-accent-soft) 44%,
+    var(--app-surface-solid)
+  );
+  --theme-option-background: var(--app-surface-solid);
+  --theme-option-border: var(--app-border);
+  --theme-option-description: var(--app-text-muted);
+  --theme-option-hover-background: var(--app-surface-muted);
+  --theme-option-text: var(--app-text);
+  --theme-option-title: var(--app-text-strong);
+
+  align-content: start;
+  background: var(--theme-option-background);
+  border: 1px solid var(--theme-option-border);
   border-radius: 8px;
-  color: var(--app-text);
+  color: var(--theme-option-text);
   display: grid;
   gap: 12px;
+  justify-items: stretch;
   min-height: auto;
-  padding: 12px;
+  min-width: 0;
+  padding: 14px;
   text-align: left;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+  width: 100%;
 }
 
-.theme-option:hover,
-.theme-option-active {
+.theme-option:hover {
+  background: var(--theme-option-hover-background);
+  border-color: var(--app-border-strong);
+  color: var(--theme-option-text);
+}
+
+.theme-option-active,
+.theme-option-active:hover {
+  background: var(--theme-option-active-background);
   border-color: var(--app-accent);
+  color: var(--theme-option-text);
 }
 
 .theme-swatch {
@@ -2664,15 +2692,17 @@ body,
 
 .theme-option-title {
   align-items: center;
-  color: var(--app-text-strong);
+  color: var(--theme-option-title);
   font-size: 15px;
   font-weight: 800;
   grid-template-columns: minmax(0, 1fr) auto;
+  line-height: 1.25;
 }
 
 .theme-option-description {
-  color: var(--app-text-muted);
+  color: var(--theme-option-description);
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.45;
 }
 
@@ -2747,8 +2777,7 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .action-step-list > li,
 :is([data-theme='dark'], [data-theme='purple']) .pipeline-step-list li,
 :is([data-theme='dark'], [data-theme='purple']) .action-substep-list li,
-:is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid div,
-:is([data-theme='dark'], [data-theme='purple']) .theme-option {
+:is([data-theme='dark'], [data-theme='purple']) .source-viewer-grid div {
   background: var(--app-surface);
   border-color: var(--app-border);
   box-shadow: var(--app-shadow);
@@ -2823,8 +2852,7 @@ body,
 
 :is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer-button:hover,
-:is([data-theme='dark'], [data-theme='purple']) .session-filter:hover,
-:is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
+:is([data-theme='dark'], [data-theme='purple']) .session-filter:hover {
   background: var(--app-primary-hover);
   border-color: var(--app-primary-hover);
   color: var(--app-primary-fg);
@@ -2906,15 +2934,30 @@ body,
   color: var(--app-accent);
 }
 
-:is([data-theme='dark'], [data-theme='purple']) .theme-option,
-:is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
-  color: var(--app-text);
+:is([data-theme='dark'], [data-theme='purple']) .theme-option {
+  --theme-option-active-background: color-mix(
+    in srgb,
+    var(--app-accent-soft) 42%,
+    var(--app-surface-solid)
+  );
+  --theme-option-background: var(--app-surface-solid);
+  --theme-option-border: var(--app-border);
+  --theme-option-description: var(--app-text-muted);
+  --theme-option-hover-background: var(--app-surface-muted);
+  --theme-option-text: var(--app-text);
+  --theme-option-title: var(--app-text-strong);
 }
 
-:is([data-theme='dark'], [data-theme='purple']) .theme-option-active,
-:is([data-theme='dark'], [data-theme='purple']) .theme-option-active:hover {
-  background: var(--app-surface-solid);
+:is([data-theme='dark'], [data-theme='purple']) .theme-option:hover {
+  background: var(--theme-option-hover-background);
+  border-color: var(--app-border-strong);
+  color: var(--theme-option-text);
+}
+
+:is([data-theme='dark'], [data-theme='purple']) .theme-option-active {
+  background: var(--theme-option-active-background);
   border-color: var(--app-accent);
+  color: var(--theme-option-text);
 }
 
 :is([data-theme='dark'], [data-theme='purple']) .status,
