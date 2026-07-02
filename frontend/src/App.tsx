@@ -3178,6 +3178,7 @@ function AppearanceSettingsPanel({
               className={
                 active ? 'theme-option theme-option-active' : 'theme-option'
               }
+              data-slot="theme-option"
               key={option.id}
               onClick={() => onThemeChange(option.id)}
               type="button"
