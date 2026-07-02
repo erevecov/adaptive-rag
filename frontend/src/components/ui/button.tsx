@@ -72,7 +72,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     return (
       <button
-        className={cn(buttonVariants({ size: 'icon', variant }), className)}
+        className={cn(className, buttonVariants({ size: 'icon', variant }))}
         ref={ref}
         type={type}
         {...buttonProps}

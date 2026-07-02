@@ -59,7 +59,7 @@ describe('IconButton', () => {
     render(
       <>
         <span id="hostile-label">Wrong menu label</span>
-        <IconButton {...callerProps} label="Open menu">
+        <IconButton {...callerProps} className="size-12 p-4" label="Open menu">
           <span aria-hidden="true">M</span>
         </IconButton>
       </>,
@@ -74,6 +74,8 @@ describe('IconButton', () => {
     expect(button.getAttribute('title')).toBe('Open menu')
     expect(tokens).toContain('size-9')
     expect(tokens).toContain('p-0')
+    expect(tokens).not.toContain('size-12')
+    expect(tokens).not.toContain('p-4')
     expect(tokens).not.toContain('px-3')
   })
 
