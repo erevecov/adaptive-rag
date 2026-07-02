@@ -47,7 +47,7 @@ export type IconButtonProps = Omit<
 }
 
 const fixedIconSizingClassPattern =
-  /^(?:size|w|h|min-w|min-h|max-w|max-h|p|px|py|pt|pr|pb|pl)-/
+  /^(?:size|w|h|min-w|min-h|max-w|max-h|p|px|py|pt|pr|pb|pl|ps|pe)-/
 const fixedIconSizingProperties = new Set([
   'block-size',
   'height',
