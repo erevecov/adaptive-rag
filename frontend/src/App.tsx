@@ -7,16 +7,11 @@
   useState,
 } from 'react'
 import './App.css'
-import { IconButton } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/badge'
-import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
-import {
-  SessionNavigationPanel,
-  WorkspaceInspectorPanel,
-} from '@/features/history/HistoryInspectorView'
+import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
 import { RuntimeSettingsPanel } from '@/features/runtime/RuntimeSettingsView'
 import {
@@ -24,6 +19,20 @@ import {
   PROVIDER_CONNECTION_CAPABILITIES,
   type RuntimeSubmodule,
 } from '@/features/runtime/runtimeUi'
+import {
+  AppShell,
+  AppSidebar,
+  ChatWorkspaceGrid,
+  WorkspaceTopline,
+  type AccountModule,
+  type AuthoringSubmodule,
+  type ObservabilitySubmodule,
+  type PrimaryView,
+  type RequestState,
+  type SessionNavigationFilter,
+  type SettingsModule,
+  type SettingsNavigationSelection,
+} from '@/features/shell/AppShell'
 import {
   ApiClientError,
   createApiClient,
@@ -73,66 +82,6 @@ const DEFAULT_RERANK_CANDIDATE_LIMIT = 10
 const SESSION_PAGE_SIZE = 15
 const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
-const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
-  sensitivity: 'base',
-})
-const SETTINGS_NAVIGATION = [
-  {
-    id: 'authoring',
-    label: 'Authoring',
-    submodules: [
-      { id: 'projects', label: 'Projects' },
-      { id: 'users', label: 'Users' },
-      { id: 'knowledge', label: 'Knowledge' },
-      { id: 'sources', label: 'Sources' },
-    ],
-  },
-  {
-    id: 'observability',
-    label: 'Observability',
-    submodules: [
-      { id: 'summary', label: 'Summary' },
-      { id: 'costs', label: 'Costs' },
-      { id: 'errors', label: 'Errors' },
-      { id: 'latency', label: 'Latency' },
-    ],
-  },
-  {
-    id: 'runtime',
-    label: 'Runtime',
-    submodules: [
-      { id: 'connections', label: 'Connections' },
-      { id: 'model_catalog', label: 'Model catalog' },
-      { id: 'global_defaults', label: 'Global defaults' },
-      { id: 'project_overrides', label: 'Project overrides' },
-    ],
-  },
-] as const
-
-const AUTHORING_NAVIGATION = SETTINGS_NAVIGATION[0]
-const OBSERVABILITY_NAVIGATION = SETTINGS_NAVIGATION[1]
-const RUNTIME_NAVIGATION = SETTINGS_NAVIGATION[2]
-
-const ACCOUNT_MODULES = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'memory', label: 'Memory' },
-] as const
-
-type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-type PrimaryView = 'chat' | 'account' | 'settings'
-type AccountModule = (typeof ACCOUNT_MODULES)[number]['id']
-type SettingsModule = (typeof SETTINGS_NAVIGATION)[number]['id']
-type AuthoringSubmodule = (typeof SETTINGS_NAVIGATION)[0]['submodules'][number]['id']
-type ObservabilitySubmodule =
-  (typeof SETTINGS_NAVIGATION)[1]['submodules'][number]['id']
-type SettingsSubmodule =
-  | AuthoringSubmodule
-  | ObservabilitySubmodule
-  | RuntimeSubmodule
-type SettingsNavigationSelection =
-  | { module: 'authoring'; submodule: AuthoringSubmodule }
-  | { module: 'observability'; submodule: ObservabilitySubmodule }
-  | { module: 'runtime'; submodule: RuntimeSubmodule }
 type ActiveView = PrimaryView | SettingsModule
 const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   account: '/account',
@@ -142,7 +91,6 @@ const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   runtime: '/settings/runtime',
   settings: '/settings/authoring',
 }
-type SessionNavigationFilter = 'active' | 'training' | 'archived'
 type InspectorTab = 'context' | 'minimap'
 type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
 type ChatKnowledgeDraftStatus =
@@ -2160,55 +2108,48 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const activeSettingsModule = settingsModule
 
   return (
-    <main
-      className={[
-        'app-shell',
-        isLeftSidebarOpen
-          ? 'app-shell-sidebar-open'
-          : 'app-shell-sidebar-closed',
-        isRightDockOpen ? 'app-shell-right-dock-open' : 'app-shell-right-dock-closed',
-      ].join(' ')}
-    >
-      <AppSidebar
-        accountModule={accountModule}
-        authoringSubmodule={authoringSubmodule}
-        canLoadMoreSessions={hasMoreSessions}
-        error={historyError}
-        isOpen={isLeftSidebarOpen}
-        observabilitySubmodule={observabilitySubmodule}
-        onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
-        onAccountModuleChange={setAccountModule}
-        onLoadMoreSessions={handleLoadMoreSessions}
-        onPrimaryViewChange={handlePrimaryViewChange}
-        onProjectIdChange={handleChangeProjectId}
-        onRenameSession={(sessionId, title) =>
-          void handleRenameSession(sessionId, title)
-        }
-        onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
-        onSettingsModuleChange={handleSettingsModuleChange}
-        onSettingsSubmoduleChange={handleSettingsSubmoduleChange}
-        onStartNewSession={handleStartNewSession}
-        onStatusFilterChange={handleChangeHistoryStatusFilter}
-        onToggle={() => setIsLeftSidebarOpen((current) => !current)}
-        onUnarchiveSession={(sessionId) =>
-          void handleUnarchiveSession(sessionId)
-        }
-        primaryView={primaryView}
-        projectId={projectId}
-        projectState={projectAuthoringState}
-        projects={projects}
-        runtimeSubmodule={runtimeSubmodule}
-        selectedSessionId={selectedSessionId}
-        sessions={sessions}
-        sessionState={historyState}
-        settingsModule={settingsModule}
-        statusFilter={historyStatusFilter}
-      />
-
-      <section
-        className={primaryView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
-        aria-labelledby="workspace-title"
-      >
+    <AppShell
+      isLeftSidebarOpen={isLeftSidebarOpen}
+      isRightDockOpen={isRightDockOpen}
+      primaryView={primaryView}
+      sidebar={
+        <AppSidebar
+          accountModule={accountModule}
+          authoringSubmodule={authoringSubmodule}
+          canLoadMoreSessions={hasMoreSessions}
+          error={historyError}
+          isOpen={isLeftSidebarOpen}
+          observabilitySubmodule={observabilitySubmodule}
+          onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
+          onAccountModuleChange={setAccountModule}
+          onLoadMoreSessions={handleLoadMoreSessions}
+          onPrimaryViewChange={handlePrimaryViewChange}
+          onProjectIdChange={handleChangeProjectId}
+          onRenameSession={(sessionId, title) =>
+            void handleRenameSession(sessionId, title)
+          }
+          onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
+          onSettingsModuleChange={handleSettingsModuleChange}
+          onSettingsSubmoduleChange={handleSettingsSubmoduleChange}
+          onStartNewSession={handleStartNewSession}
+          onStatusFilterChange={handleChangeHistoryStatusFilter}
+          onToggle={() => setIsLeftSidebarOpen((current) => !current)}
+          onUnarchiveSession={(sessionId) =>
+            void handleUnarchiveSession(sessionId)
+          }
+          primaryView={primaryView}
+          projectId={projectId}
+          projectState={projectAuthoringState}
+          projects={projects}
+          runtimeSubmodule={runtimeSubmodule}
+          selectedSessionId={selectedSessionId}
+          sessions={sessions}
+          sessionState={historyState}
+          settingsModule={settingsModule}
+          statusFilter={historyStatusFilter}
+        />
+      }
+      topline={
         <WorkspaceTopline
           projectId={projectId}
           projects={projects}
@@ -2216,15 +2157,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           sessionDetail={sessionDetail}
           sessions={sessions}
         />
-
-        {primaryView === 'chat' ? (
-          <div
-            className={
-              isRightDockInline
-                ? 'workspace-grid chat-workspace-grid chat-workspace-grid-docked'
-                : 'workspace-grid chat-workspace-grid'
-            }
-          >
+      }
+    >
+      {primaryView === 'chat' ? (
+          <ChatWorkspaceGrid isRightDockInline={isRightDockInline}>
             <ChatWorkspacePanel
               activeResponseQuestion={activeResponseQuestion}
               drafts={knowledgeDrafts}
@@ -2290,7 +2226,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 sourceViewer={sourceViewer}
               />
             ) : null}
-          </div>
+          </ChatWorkspaceGrid>
         ) : primaryView === 'account' ? (
           accountModule === 'appearance' ? (
             <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
@@ -2517,511 +2453,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             )}
           </SettingsPanel>
         )}
-      </section>
-    </main>
-  )
-}
-
-function WorkspaceTopline({
-  projectId,
-  projects,
-  selectedSessionId,
-  sessionDetail,
-  sessions,
-}: {
-  projectId: string
-  projects: Project[]
-  selectedSessionId: string | null
-  sessionDetail: ChatSessionDetailResponse | null
-  sessions: ChatSessionSummary[]
-}) {
-  const projectName = getWorkspaceProjectName(projectId, projects)
-  const sessionName = getWorkspaceSessionName({
-    selectedSessionId,
-    sessionDetail,
-    sessions,
-  })
-
-  return (
-    <header
-      aria-label={`Current session ${sessionName}, project ${projectName}`}
-      className="workspace-topline"
-    >
-      <h1 id="workspace-title" title={sessionName}>
-        {sessionName}
-      </h1>
-      <span className="workspace-project-chip" title={projectName}>
-        {projectName}
-      </span>
-    </header>
-  )
-}
-
-function AppSidebar({
-  accountModule,
-  authoringSubmodule,
-  canLoadMoreSessions,
-  error,
-  isOpen,
-  observabilitySubmodule,
-  onArchiveSession,
-  onAccountModuleChange,
-  onLoadMoreSessions,
-  onPrimaryViewChange,
-  onProjectIdChange,
-  onRenameSession,
-  onSelectSession,
-  onSettingsModuleChange,
-  onSettingsSubmoduleChange,
-  onStartNewSession,
-  onStatusFilterChange,
-  onToggle,
-  onUnarchiveSession,
-  primaryView,
-  projectId,
-  projectState,
-  projects,
-  runtimeSubmodule,
-  selectedSessionId,
-  sessions,
-  sessionState,
-  settingsModule,
-  statusFilter,
-}: {
-  accountModule: AccountModule
-  authoringSubmodule: AuthoringSubmodule
-  canLoadMoreSessions: boolean
-  error: string | null
-  isOpen: boolean
-  observabilitySubmodule: ObservabilitySubmodule
-  onArchiveSession(sessionId: string): void
-  onAccountModuleChange(module: AccountModule): void
-  onLoadMoreSessions(): void
-  onPrimaryViewChange(view: PrimaryView): void
-  onProjectIdChange(projectId: string): void
-  onRenameSession(sessionId: string, title: string): void
-  onSelectSession(sessionId: string): void
-  onSettingsModuleChange(module: SettingsModule): void
-  onSettingsSubmoduleChange(selection: SettingsNavigationSelection): void
-  onStartNewSession(): void
-  onStatusFilterChange(filter: SessionNavigationFilter): void
-  onToggle(): void
-  onUnarchiveSession(sessionId: string): void
-  primaryView: PrimaryView
-  projectId: string
-  projectState: RequestState
-  projects: Project[]
-  runtimeSubmodule: RuntimeSubmodule
-  selectedSessionId: string | null
-  sessions: ChatSessionSummary[]
-  sessionState: RequestState
-  settingsModule: SettingsModule
-  statusFilter: SessionNavigationFilter
-}) {
-  return (
-    <aside
-      aria-label="Primary sidebar"
-      className={isOpen ? 'app-sidebar app-sidebar-open' : 'app-sidebar app-sidebar-closed'}
-    >
-      <div className="app-sidebar-chrome">
-        <IconButton
-          aria-expanded={isOpen}
-          className="sidebar-burger"
-          label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
-          onClick={onToggle}
-        >
-          <MenuIcon />
-        </IconButton>
-        <div className="sidebar-brand" aria-hidden={!isOpen}>
-          <strong>Adaptive RAG</strong>
-          <span>Workspace</span>
-        </div>
-      </div>
-
-      <div className="app-sidebar-content">
-        <SidebarProjectSelector
-          onProjectIdChange={onProjectIdChange}
-          projectId={projectId}
-          projects={projects}
-          state={projectState}
-        />
-
-        <nav className="sidebar-navigation" aria-label="Primary navigation">
-          <SidebarNavButton
-            active={primaryView === 'chat'}
-            label="Chat"
-            onClick={() => onPrimaryViewChange('chat')}
-          />
-          <SidebarNavButton
-            active={primaryView === 'account'}
-            label="My account"
-            onClick={() => onPrimaryViewChange('account')}
-          />
-          <SidebarNavButton
-            active={primaryView === 'settings'}
-            label="Settings"
-            onClick={() => onPrimaryViewChange('settings')}
-          />
-        </nav>
-
-        {primaryView === 'chat' ? (
-          <SessionNavigationPanel
-            canLoadMore={canLoadMoreSessions}
-            error={error}
-            onArchiveSession={onArchiveSession}
-            onLoadMore={onLoadMoreSessions}
-            onRenameSession={onRenameSession}
-            onSelectSession={onSelectSession}
-            onStartNewSession={onStartNewSession}
-            onStatusFilterChange={onStatusFilterChange}
-            onUnarchiveSession={onUnarchiveSession}
-            selectedSessionId={selectedSessionId}
-            sessions={sessions}
-            statusFilter={statusFilter}
-            state={sessionState}
-          />
-        ) : primaryView === 'account' ? (
-          <AccountNavigationPanel
-            activeModule={accountModule}
-            onModuleChange={onAccountModuleChange}
-          />
-        ) : (
-          <SettingsNavigationPanel
-            activeAuthoringSubmodule={authoringSubmodule}
-            activeModule={settingsModule}
-            activeObservabilitySubmodule={observabilitySubmodule}
-            activeRuntimeSubmodule={runtimeSubmodule}
-            onModuleChange={onSettingsModuleChange}
-            onSubmoduleChange={onSettingsSubmoduleChange}
-          />
-        )}
-      </div>
-    </aside>
-  )
-}
-
-function SidebarNavButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean
-  label: string
-  onClick(): void
-}) {
-  return (
-    <UiSidebarItem
-      active={active}
-      className={active ? 'sidebar-nav-button sidebar-nav-button-active' : 'sidebar-nav-button'}
-      onClick={onClick}
-    >
-      {label}
-    </UiSidebarItem>
-  )
-}
-
-function AccountNavigationPanel({
-  activeModule,
-  onModuleChange,
-}: {
-  activeModule: AccountModule
-  onModuleChange(module: AccountModule): void
-}) {
-  return (
-    <nav className="contextual-navigation" aria-label="My account navigation">
-      <h2 className="sidebar-section-title">My account</h2>
-      <div className="contextual-nav-group">
-        {ACCOUNT_MODULES.map((module) => {
-          const active = module.id === activeModule
-          return (
-            <button
-              aria-pressed={active}
-              className={
-                active
-                  ? 'contextual-nav-button contextual-nav-button-active'
-                  : 'contextual-nav-button'
-              }
-              key={module.id}
-              onClick={() => onModuleChange(module.id)}
-              type="button"
-            >
-              {module.label}
-            </button>
-          )
-        })}
-      </div>
-    </nav>
-  )
-}
-
-function SettingsNavigationPanel({
-  activeAuthoringSubmodule,
-  activeModule,
-  activeObservabilitySubmodule,
-  activeRuntimeSubmodule,
-  onModuleChange,
-  onSubmoduleChange,
-}: {
-  activeAuthoringSubmodule: AuthoringSubmodule
-  activeModule: SettingsModule
-  activeObservabilitySubmodule: ObservabilitySubmodule
-  activeRuntimeSubmodule: RuntimeSubmodule
-  onModuleChange(module: SettingsModule): void
-  onSubmoduleChange(selection: SettingsNavigationSelection): void
-}) {
-  const activeSubmodule = getActiveSettingsSubmodule(
-    activeModule,
-    activeAuthoringSubmodule,
-    activeObservabilitySubmodule,
-    activeRuntimeSubmodule,
-  )
-  const renderSubmoduleButton = (
-    selection: SettingsNavigationSelection,
-    label: string,
-  ) => {
-    const submoduleActive = selection.submodule === activeSubmodule
-    return (
-      <button
-        aria-pressed={submoduleActive}
-        className={
-          submoduleActive
-            ? 'contextual-nav-subbutton contextual-nav-subbutton-active'
-            : 'contextual-nav-subbutton'
-        }
-        key={selection.submodule}
-        onClick={() => onSubmoduleChange(selection)}
-        type="button"
-      >
-        {label}
-      </button>
-    )
-  }
-
-  return (
-    <nav className="contextual-navigation" aria-label="Settings navigation">
-      <h2 className="sidebar-section-title">Settings</h2>
-      <div className="contextual-nav-group">
-        <button
-          aria-pressed={activeModule === AUTHORING_NAVIGATION.id}
-          className={
-            activeModule === AUTHORING_NAVIGATION.id
-              ? 'contextual-nav-button contextual-nav-button-active'
-              : 'contextual-nav-button'
-          }
-          onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
-          type="button"
-        >
-          {AUTHORING_NAVIGATION.label}
-        </button>
-
-        {activeModule === AUTHORING_NAVIGATION.id
-          ? AUTHORING_NAVIGATION.submodules.map((submodule) =>
-              renderSubmoduleButton(
-                { module: AUTHORING_NAVIGATION.id, submodule: submodule.id },
-                submodule.label,
-              ),
-            )
-          : null}
-      </div>
-      <div className="contextual-nav-group">
-        <button
-          aria-pressed={activeModule === OBSERVABILITY_NAVIGATION.id}
-          className={
-            activeModule === OBSERVABILITY_NAVIGATION.id
-              ? 'contextual-nav-button contextual-nav-button-active'
-              : 'contextual-nav-button'
-          }
-          onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
-          type="button"
-        >
-          {OBSERVABILITY_NAVIGATION.label}
-        </button>
-
-        {activeModule === OBSERVABILITY_NAVIGATION.id
-          ? OBSERVABILITY_NAVIGATION.submodules.map((submodule) =>
-              renderSubmoduleButton(
-                {
-                  module: OBSERVABILITY_NAVIGATION.id,
-                  submodule: submodule.id,
-                },
-                submodule.label,
-              ),
-            )
-          : null}
-      </div>
-      <div className="contextual-nav-group">
-        <button
-          aria-pressed={activeModule === RUNTIME_NAVIGATION.id}
-          className={
-            activeModule === RUNTIME_NAVIGATION.id
-              ? 'contextual-nav-button contextual-nav-button-active'
-              : 'contextual-nav-button'
-          }
-          onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
-          type="button"
-        >
-          {RUNTIME_NAVIGATION.label}
-        </button>
-
-        {activeModule === RUNTIME_NAVIGATION.id
-          ? RUNTIME_NAVIGATION.submodules.map((submodule) =>
-              renderSubmoduleButton(
-                { module: RUNTIME_NAVIGATION.id, submodule: submodule.id },
-                submodule.label,
-              ),
-            )
-          : null}
-      </div>
-    </nav>
-  )
-}
-
-function getActiveSettingsSubmodule(
-  activeModule: SettingsModule,
-  activeAuthoringSubmodule: AuthoringSubmodule,
-  activeObservabilitySubmodule: ObservabilitySubmodule,
-  activeRuntimeSubmodule: RuntimeSubmodule,
-): SettingsSubmodule {
-  if (activeModule === 'authoring') {
-    return activeAuthoringSubmodule
-  }
-  if (activeModule === 'observability') {
-    return activeObservabilitySubmodule
-  }
-  return activeRuntimeSubmodule
-}
-
-function SidebarProjectSelector({
-  onProjectIdChange,
-  projectId,
-  projects,
-  state,
-}: {
-  onProjectIdChange(projectId: string): void
-  projectId: string
-  projects: Project[]
-  state: RequestState
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [projectSearch, setProjectSearch] = useState('')
-  const rootRef = useRef<HTMLDivElement | null>(null)
-  const trimmedProjectId = projectId.trim()
-  const selectedProject = projects.find((project) => project.id === trimmedProjectId)
-  const selectedLabel =
-    selectedProject?.name ??
-    (trimmedProjectId.length > 0 ? 'Project selected' : 'Select project')
-  const visibleProjects = useMemo(
-    () => getVisibleProjectOptions(projects, projectSearch),
-    [projectSearch, projects],
-  )
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current?.contains(event.target as Node) === true) {
-        return
-      }
-      setIsOpen(false)
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [isOpen])
-
-  function handleSelectProject(nextProjectId: string) {
-    onProjectIdChange(nextProjectId)
-    setIsOpen(false)
-    setProjectSearch('')
-  }
-
-  return (
-    <div className="sidebar-project-selector" ref={rootRef}>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={`Project selector: ${selectedLabel}`}
-        className="project-selector-trigger"
-        onClick={() => setIsOpen((current) => !current)}
-        type="button"
-      >
-        <span>
-          <small>Project</small>
-          <strong>{selectedLabel}</strong>
-        </span>
-        <ChevronDownIcon />
-      </button>
-
-      {isOpen ? (
-        <div className="project-selector-popover">
-          <label className="project-selector-search">
-            <span>Search projects</span>
-            <input
-              aria-label="Search projects"
-              autoComplete="off"
-              autoFocus
-              name="project-search"
-              onChange={(event) => setProjectSearch(event.currentTarget.value)}
-              placeholder="Search projects"
-              type="search"
-              value={projectSearch}
-            />
-          </label>
-
-          <div className="project-selector-popover-header">
-            <span>{state === 'loading' ? 'Loading projects...' : 'All projects'}</span>
-          </div>
-
-          <div className="project-selector-list" role="listbox" aria-label="Projects">
-            {visibleProjects.length > 0 ? (
-              visibleProjects.map((project) => {
-                const canAccess = project.can_access !== false
-                const isSelected = project.id === trimmedProjectId
-
-                return (
-                  <button
-                    aria-label={
-                      canAccess
-                        ? `Select project ${project.name}`
-                        : `Project ${project.name}. No tienes acceso para ese proyecto`
-                    }
-                    aria-selected={isSelected}
-                    className={[
-                      'project-selector-option',
-                      isSelected ? 'project-selector-option-active' : '',
-                      canAccess ? '' : 'project-selector-option-disabled',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    disabled={!canAccess}
-                    key={project.id}
-                    onClick={() => handleSelectProject(project.id)}
-                    role="option"
-                    title={canAccess ? undefined : 'No tienes acceso para ese proyecto'}
-                    type="button"
-                  >
-                    <span>
-                      <strong>{project.name}</strong>
-                    </span>
-                    {!canAccess ? (
-                      <span
-                        aria-label="No tienes acceso para ese proyecto"
-                        className="project-selector-lock"
-                        title="No tienes acceso para ese proyecto"
-                      >
-                        <LockIcon />
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })
-            ) : (
-              <p className="project-selector-empty">No projects match.</p>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
+    </AppShell>
   )
 }
 
@@ -3210,59 +2642,6 @@ function sessionHasTraining(session: ChatSessionSummary): boolean {
   return session.has_pending_training || session.has_approved_training
 }
 
-function sessionDisplayTitle(session: ChatSessionSummary): string {
-  const title = session.title?.trim()
-  if (title !== undefined && title.length > 0) {
-    return title
-  }
-  return shortSessionId(session.session_id)
-}
-
-function getWorkspaceProjectName(projectId: string, projects: Project[]): string {
-  const trimmedProjectId = projectId.trim()
-  const project = projects.find((item) => item.id === trimmedProjectId)
-  const name = project?.name.trim()
-  if (name !== undefined && name.length > 0) {
-    return name
-  }
-  return trimmedProjectId.length > 0 ? 'Proyecto seleccionado' : 'Sin proyecto'
-}
-
-function getWorkspaceSessionName({
-  selectedSessionId,
-  sessionDetail,
-  sessions,
-}: {
-  selectedSessionId: string | null
-  sessionDetail: ChatSessionDetailResponse | null
-  sessions: ChatSessionSummary[]
-}): string {
-  if (selectedSessionId === null) {
-    return 'Nuevo chat'
-  }
-
-  if (sessionDetail?.session.session_id === selectedSessionId) {
-    const detailTitle = sessionDetail.session.title?.trim()
-    if (detailTitle !== undefined && detailTitle.length > 0) {
-      return detailTitle
-    }
-  }
-
-  const session = sessions.find((item) => item.session_id === selectedSessionId)
-  if (session !== undefined) {
-    return sessionDisplayTitle(session)
-  }
-
-  return shortSessionId(selectedSessionId)
-}
-
-function shortSessionId(sessionId: string): string {
-  if (sessionId.length <= 12) {
-    return sessionId
-  }
-  return sessionId.slice(0, 8)
-}
-
 function getDefaultApiBaseUrl(): string {
   const configured = (
     import.meta.env.VITE_ADAPTIVE_RAG_API_BASE_URL ?? ''
@@ -3387,27 +2766,6 @@ function persistProjectId(projectId: string): void {
   } catch {
     // Storage can be unavailable in restricted browser contexts.
   }
-}
-
-function getVisibleProjectOptions(projects: Project[], search: string): Project[] {
-  const normalizedSearch = search.trim().toLowerCase()
-  const filteredProjects =
-    normalizedSearch.length === 0
-      ? projects
-      : projects.filter((project) =>
-          project.name.toLowerCase().includes(normalizedSearch),
-        )
-
-  return [...filteredProjects].sort((left, right) => {
-    const leftCanAccess = left.can_access !== false
-    const rightCanAccess = right.can_access !== false
-    if (leftCanAccess !== rightCanAccess) {
-      return leftCanAccess ? -1 : 1
-    }
-
-    const nameComparison = PROJECT_NAME_COLLATOR.compare(left.name, right.name)
-    return nameComparison === 0 ? left.id.localeCompare(right.id) : nameComparison
-  })
 }
 
 function getErrorMessage(error: unknown): string {
@@ -3854,31 +3212,6 @@ function messageElementId(messageId: string): string {
 function optionalFilterValue(value: string): string | null {
   const trimmedValue = value.trim()
   return trimmedValue.length > 0 ? trimmedValue : null
-}
-
-function MenuIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <rect height="10" rx="2" width="14" x="5" y="10" />
-      <path d="M8 10V8a4 4 0 0 1 8 0v2" />
-    </svg>
-  )
 }
 
 export default App
