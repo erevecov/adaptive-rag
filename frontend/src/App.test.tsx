@@ -872,6 +872,23 @@ describe('App chat workspace', () => {
     expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
   })
 
+  test('marks the current primary sidebar page with aria-current', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const chatButton = await screen.findByRole('button', { name: /^Chat$/ })
+    const accountButton = screen.getByRole('button', { name: 'My account' })
+
+    expect(chatButton.getAttribute('aria-current')).toBe('page')
+    expect(accountButton.hasAttribute('aria-current')).toBe(false)
+
+    await user.click(accountButton)
+
+    expect(accountButton.getAttribute('aria-current')).toBe('page')
+    expect(chatButton.hasAttribute('aria-current')).toBe(false)
+  })
+
   test('shows account modules in the sidebar without rendering fake memory state', async () => {
     const user = userEvent.setup()
 
