@@ -1556,222 +1556,6 @@ button.chat-question-pill:hover {
   border-bottom: 0;
 }
 
-.authoring-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-}
-
-.authoring-panel {
-  align-content: start;
-  display: grid;
-  gap: 18px;
-  min-height: auto;
-}
-
-.authoring-grid-focused {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.authoring-grid-focused .authoring-panel {
-  min-height: auto;
-}
-
-.authoring-form {
-  border-bottom: 1px solid #dfe5e2;
-  display: grid;
-  gap: 14px;
-  padding-bottom: 18px;
-}
-
-.source-form-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(140px, 0.7fr) minmax(0, 1.3fr);
-}
-
-.authoring-list {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.authoring-list li {
-  min-width: 0;
-}
-
-.authoring-row {
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #dfe5e0;
-  border-radius: 8px;
-  color: inherit;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 68px;
-  padding: 12px;
-  text-align: left;
-  width: 100%;
-}
-
-.authoring-row:hover,
-.authoring-row-active {
-  background: #edf6f3;
-  border-color: #bdd4cc;
-}
-
-.authoring-row-disabled,
-.authoring-row-disabled:hover {
-  background: #f5f7f6;
-  border-color: #e3e8e5;
-  color: #7a8582;
-  cursor: not-allowed;
-}
-
-.authoring-row-static:hover {
-  background: #ffffff;
-  border-color: #dfe5e0;
-}
-
-.authoring-row span {
-  min-width: 0;
-}
-
-.authoring-row strong,
-.authoring-row small {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-.authoring-row strong {
-  color: #25302f;
-  font-size: 14px;
-}
-
-.authoring-row small {
-  color: #5c6866;
-  font-size: 12px;
-  line-height: 1.45;
-  margin-top: 5px;
-}
-
-.authoring-row em {
-  background: #eef4f2;
-  border-radius: 999px;
-  color: #4f625f;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 800;
-  padding: 5px 8px;
-  white-space: nowrap;
-}
-
-.access-list-grid,
-.knowledge-proposal-actions {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.knowledge-proposal-row {
-  align-items: start;
-  grid-template-columns: minmax(0, 0.8fr) minmax(220px, 1.2fr);
-}
-
-.authoring-row-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.authoring-row-actions .secondary-button {
-  margin-top: 0;
-  width: auto;
-}
-
-.compact-button {
-  min-height: 34px;
-  padding: 8px 10px;
-}
-
-.ingestion-panel {
-  border-top: 1px solid #dfe5e2;
-  display: grid;
-  gap: 14px;
-  padding-top: 18px;
-}
-
-.ingestion-heading {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.ingestion-heading h3 {
-  color: #1f2d29;
-  font-size: 16px;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.ingestion-run {
-  align-items: center;
-  background: #f7faf8;
-  border: 1px solid #dfe8e2;
-  border-radius: 8px;
-  color: #596764;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 13px;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 12px;
-}
-
-.ingestion-run strong {
-  color: #24413d;
-}
-
-.job-error {
-  color: #8a3535;
-}
-
-.job-status {
-  border-radius: 999px;
-  display: inline-flex;
-  padding: 4px 8px;
-  width: fit-content;
-}
-
-.job-status-queued {
-  background: #e8f0f7;
-  color: #315575;
-}
-
-.job-status-running {
-  background: #e6f1ed;
-  color: #27534d;
-}
-
-.job-status-succeeded {
-  background: #eef4f2;
-  color: #397267;
-}
-
-.job-status-blocked,
-.job-status-dead_letter,
-.job-status-failed {
-  background: #f8e9e6;
-  color: #8a3535;
-}
-
 .health-summary {
   align-items: start;
   display: grid;
@@ -2732,7 +2516,6 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .empty-copy,
 :is([data-theme='dark'], [data-theme='purple']) .metric-card small,
 :is([data-theme='dark'], [data-theme='purple']) .breakdown-card small,
-:is([data-theme='dark'], [data-theme='purple']) .authoring-row small,
 :is([data-theme='dark'], [data-theme='purple']) .message-card p,
 :is([data-theme='dark'], [data-theme='purple']) .chat-retrieval-summary p,
 :is([data-theme='dark'], [data-theme='purple']) .speech-feedback,
@@ -2767,7 +2550,6 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .message-card,
 :is([data-theme='dark'], [data-theme='purple']) .message-card-muted,
 :is([data-theme='dark'], [data-theme='purple']) .source-viewer,
-:is([data-theme='dark'], [data-theme='purple']) .authoring-row,
 :is([data-theme='dark'], [data-theme='purple']) .compact-list li,
 :is([data-theme='dark'], [data-theme='purple']) .citation-list li,
 :is([data-theme='dark'], [data-theme='purple']) .tool-call-list li,
@@ -2992,7 +2774,6 @@ body,
 :is([data-theme='dark'], [data-theme='purple']) .citation-meta span,
 :is([data-theme='dark'], [data-theme='purple']) .retrieval-run-meta span,
 :is([data-theme='dark'], [data-theme='purple']) .source-tag-list li,
-:is([data-theme='dark'], [data-theme='purple']) .authoring-row em,
 :is([data-theme='dark'], [data-theme='purple']) .status-breakdown-list li > span {
   background: var(--app-accent-soft);
   color: var(--app-accent);
@@ -3050,10 +2831,6 @@ body,
     grid-template-columns: 1fr 1fr;
   }
 
-  .authoring-grid {
-    grid-template-columns: 1fr;
-  }
-
   .panel {
     min-height: auto;
   }
@@ -3104,10 +2881,8 @@ body,
 
   .view-switcher,
   .observability-filters,
-  .authoring-grid,
   .chat-retrieval-summary,
   .speech-input,
-  .source-form-grid,
   .source-viewer-grid,
   .metric-grid,
   .observability-breakdowns {
@@ -3120,19 +2895,6 @@ body,
   .compact-list li {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .authoring-row {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
-  .authoring-row-actions {
-    justify-content: flex-start;
-  }
-
-  .authoring-row em {
-    width: fit-content;
   }
 
   .breakdown-heading {
