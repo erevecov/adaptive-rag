@@ -366,14 +366,14 @@ describe('RuntimeSettingsPanel', () => {
     ).toBeNull()
   })
 
-  test('keeps legacy global button CSS scoped away from UI primitives', () => {
-    expect(appStyles).toContain('button:not([data-slot]) {')
-    expect(appStyles).toContain('button:not([data-slot]):disabled {')
-    expect(appStyles).toContain(
-      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]),",
+  test('keeps legacy global button CSS removed from App styles', () => {
+    expect(appStyles).not.toContain('button:not([data-slot]) {')
+    expect(appStyles).not.toContain('button:not([data-slot]):disabled {')
+    expect(appStyles).not.toContain(
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]) {",
     )
-    expect(appStyles).toContain(
-      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover,",
+    expect(appStyles).not.toContain(
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover {",
     )
     expect(appStyles).not.toMatch(/(^|\n)\s*button\s*\{/)
     expect(appStyles).not.toMatch(/(^|\n)\s*button:disabled\s*\{/)

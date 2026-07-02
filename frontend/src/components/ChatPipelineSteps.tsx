@@ -43,19 +43,20 @@ export function ChatPipelineSteps({
       return (
         <section
           aria-label="Chat pipeline steps"
-          className="chat-pipeline-steps chat-pipeline-steps-streaming"
+          className="rounded-md border border-border bg-muted/40 p-3"
+          data-slot="chat-pipeline-steps"
         >
           <button
             aria-label="Expand chat steps"
-            className="pipeline-ticker pipeline-ticker-button"
+            className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-background"
             onClick={() => handleToggle(true)}
             type="button"
           >
-            <span className={`pipeline-status pipeline-status-${current.status}`} />
-            <strong>{current.label}</strong>
-            <small>{current.elapsed}</small>
-            <span aria-hidden="true" className="pipeline-chevron">
-              ▸
+            <StatusDot status={current.status} />
+            <strong className="min-w-0 truncate">{current.label}</strong>
+            <small className="text-muted-foreground">{current.elapsed}</small>
+            <span aria-hidden="true" className="ml-auto text-muted-foreground">
+              &gt;
             </span>
           </button>
         </section>
@@ -65,18 +66,23 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat pipeline steps"
-        className="chat-pipeline-steps chat-pipeline-steps-streaming"
+        className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+        data-slot="chat-pipeline-steps"
       >
         <button
           aria-label="Collapse chat steps"
-          className="pipeline-summary-button"
+          className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           onClick={() => handleToggle(false)}
           type="button"
         >
-          ▾ {summary}
+          v {summary}
         </button>
         <StepList steps={steps} />
-        {children ? <div className="pipeline-extra-detail">{children}</div> : null}
+        {children ? (
+          <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">
+            {children}
+          </div>
+        ) : null}
       </section>
     )
   }
@@ -88,41 +94,60 @@ export function ChatPipelineSteps({
 
   if (!expanded) {
     return (
-      <section aria-label="Chat pipeline steps" className="chat-pipeline-steps">
+      <section
+        aria-label="Chat pipeline steps"
+        className="rounded-md border border-border bg-muted/40 p-3"
+        data-slot="chat-pipeline-steps"
+      >
         <button
           aria-label={`Expand chat steps, ${label}`}
-          className="pipeline-summary-button"
+          className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           onClick={() => handleToggle(true)}
           type="button"
         >
-          ▸ {summary}
+          &gt; {summary}
         </button>
       </section>
     )
   }
 
   return (
-    <section aria-label="Chat pipeline steps" className="chat-pipeline-steps">
+    <section
+      aria-label="Chat pipeline steps"
+      className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+      data-slot="chat-pipeline-steps"
+    >
       <button
         aria-label={`Collapse chat steps, ${label}`}
-        className="pipeline-summary-button"
+        className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         onClick={() => handleToggle(false)}
         type="button"
       >
-        ▾ {summary}
+        v {summary}
       </button>
       <StepList steps={steps} />
-      {children ? <div className="pipeline-extra-detail">{children}</div> : null}
+      {children ? (
+        <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">
+          {children}
+        </div>
+      ) : null}
     </section>
   )
 }
 
 function StepList({ steps }: { steps: ChatStep[] }) {
   if (steps.length === 0) {
-    return <p className="empty-copy">Waiting for pipeline steps.</p>
+    return (
+      <p
+        className="rounded-md border border-dashed border-border bg-background/60 p-3 text-sm text-muted-foreground"
+        data-slot="chat-pipeline-empty"
+      >
+        Waiting for pipeline steps.
+      </p>
+    )
   }
   return (
-    <ol className="pipeline-step-list">
+    <ol className="grid gap-2" data-slot="chat-pipeline-step-list">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
           <StepRow step={step} />
@@ -137,25 +162,42 @@ function StepRow({ step }: { step: ChatStep }) {
     Object.keys(step.detail ?? {}).length > 0 || step.usage !== undefined
   const content = (
     <>
-      <span aria-hidden="true" className="pipeline-row-caret">
-        {hasDetail ? '▸' : ''}
+      <span
+        aria-hidden="true"
+        className="w-3 shrink-0 text-muted-foreground group-open:rotate-90"
+      >
+        {hasDetail ? '>' : ''}
       </span>
-      <span className={`pipeline-status pipeline-status-${step.status}`} />
-      <span className="pipeline-step-main">
-        <strong>{stepLabel(step.id)}</strong>
+      <StatusDot status={step.status} />
+      <span className="grid min-w-0 flex-1 gap-1">
+        <strong className="text-sm text-foreground">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
-      <small>{formatStepDuration(step.elapsed_ms)}</small>
+      <small className="text-xs text-muted-foreground">
+        {formatStepDuration(step.elapsed_ms)}
+      </small>
     </>
   )
 
   if (!hasDetail) {
-    return <div className="pipeline-step-row-static">{content}</div>
+    return (
+      <div
+        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3"
+        data-slot="chat-pipeline-step-row"
+      >
+        {content}
+      </div>
+    )
   }
 
   return (
-    <details className="pipeline-step-row">
-      <summary>{content}</summary>
+    <details
+      className="group rounded-md border border-border bg-card"
+      data-slot="chat-pipeline-step-row"
+    >
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 p-3 marker:content-none">
+        {content}
+      </summary>
       <StepDetail step={step} />
     </details>
   )
@@ -180,7 +222,11 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
   return (
     <>
       {chips.slice(0, 3).map((chip) => (
-        <span className="pipeline-detail-chip" key={chip}>
+        <span
+          className="inline-flex w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+          data-slot="chat-pipeline-detail-chip"
+          key={chip}
+        >
           {chip}
         </span>
       ))}
@@ -192,37 +238,80 @@ function StepDetail({ step }: { step: ChatStep }) {
   const detailEntries = Object.entries(step.detail ?? {})
   const usage = step.usage
   if (detailEntries.length === 0 && usage === undefined) {
-    return <p className="empty-copy">No step detail recorded.</p>
+    return (
+      <p
+        className="px-3 pb-3 text-sm text-muted-foreground"
+        data-slot="chat-pipeline-empty"
+      >
+        No step detail recorded.
+      </p>
+    )
   }
   return (
-    <dl className="pipeline-step-detail">
+    <dl
+      className="grid gap-2 border-t border-border p-3"
+      data-slot="chat-pipeline-step-detail"
+    >
       {detailEntries.map(([key, value]) => (
-        <div key={key}>
-          <dt>{formatDetailKey(key)}</dt>
-          <dd>{formatDetailValue(value)}</dd>
+        <div className="grid gap-1 rounded-md bg-muted/50 p-2" key={key}>
+          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            {formatDetailKey(key)}
+          </dt>
+          <dd className="break-words text-sm text-foreground">
+            {formatDetailValue(value)}
+          </dd>
         </div>
       ))}
       {usage !== undefined ? (
         <>
-          <div>
-            <dt>model</dt>
-            <dd>{usage.model}</dd>
+          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              model
+            </dt>
+            <dd className="break-words text-sm text-foreground">{usage.model}</dd>
           </div>
-          <div>
-            <dt>provider</dt>
-            <dd>{usage.provider}</dd>
+          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              provider
+            </dt>
+            <dd className="break-words text-sm text-foreground">{usage.provider}</dd>
           </div>
-          <div>
-            <dt>tokens</dt>
-            <dd>{formatTokens(usage.total_tokens)}</dd>
+          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              tokens
+            </dt>
+            <dd className="break-words text-sm text-foreground">
+              {formatTokens(usage.total_tokens)}
+            </dd>
           </div>
-          <div>
-            <dt>cost</dt>
-            <dd>{formatCost(usage.estimated_cost_usd)}</dd>
+          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              cost
+            </dt>
+            <dd className="break-words text-sm text-foreground">
+              {formatCost(usage.estimated_cost_usd)}
+            </dd>
           </div>
         </>
       ) : null}
     </dl>
+  )
+}
+
+function StatusDot({ status }: { status: ChatStep['status'] }) {
+  const toneClassName =
+    status === 'error'
+      ? 'bg-destructive'
+      : status === 'done'
+        ? 'bg-primary'
+        : 'bg-muted-foreground'
+  return (
+    <span
+      aria-hidden="true"
+      className={`size-2 shrink-0 rounded-full ${toneClassName}`}
+      data-status={status}
+      data-slot="chat-pipeline-status"
+    />
   )
 }
 

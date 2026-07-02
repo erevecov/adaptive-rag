@@ -959,9 +959,13 @@ describe('App chat workspace', () => {
     expect(within(settingsNavigation).getByRole('button', { name: 'Observability' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Runtime' })).toBeTruthy()
     expect(screen.queryByRole('tablist', { name: 'Settings sections' })).toBeNull()
-    const settingsShell = document.querySelector('.settings-shell') as HTMLElement
+    const settingsShell = document.querySelector(
+      '[data-slot="settings-shell"]',
+    ) as HTMLElement
     expect(within(settingsShell).getByRole('heading', { name: 'Settings' })).toBeTruthy()
-    expect(document.querySelector('.settings-shell-header .panel-label')).toBeNull()
+    expect(
+      document.querySelector('[data-slot="settings-shell-header"] .panel-label'),
+    ).toBeNull()
   })
 
   test('routes settings sidebar submodules to focused content', async () => {
@@ -1954,11 +1958,13 @@ describe('App chat workspace', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
     expect(purpleThemeButton.getAttribute('aria-pressed')).toBe('true')
     expect(
-      darkThemeButton.querySelector<HTMLElement>('.theme-swatch')?.style
+      darkThemeButton.querySelector<HTMLElement>('[data-slot="theme-swatch"]')?.style
         .background,
     ).toBe('rgb(0, 0, 0)')
     expect(
-      darkThemeButton.querySelector<HTMLElement>('.theme-swatch-accent')?.style
+      darkThemeButton
+        .querySelector<HTMLElement>('[data-slot="theme-swatch-accent"]')
+        ?.style
         .background,
     ).toBe('rgb(245, 245, 245)')
 
@@ -1977,23 +1983,11 @@ describe('App chat workspace', () => {
     expect(document.querySelector('main')?.className).toContain('app-shell')
   })
 
-  test('keeps appearance theme options isolated from legacy button theme styles', () => {
-    expect(appStyles).toContain('.theme-option {')
-    expect(appStyles).toContain('background: var(--theme-option-background);')
-    expect(appStyles).toContain('color: var(--theme-option-text);')
-    expect(appStyles).toContain('.theme-option:hover {')
-    expect(appStyles).toContain('background: var(--theme-option-hover-background);')
-    expect(appStyles).toContain('.theme-option-active,')
-    expect(appStyles).toContain('background: var(--theme-option-active-background);')
-    expect(appStyles).toContain(
-      ":is([data-theme='dark'], [data-theme='purple']) .theme-option:hover",
-    )
-    const legacyDarkButtonHoverSelectors = appStyles.match(
-      /:is\(\[data-theme='dark'\], \[data-theme='purple'\]\) button:not\(\[data-slot\]\):hover[^{]*/,
-    )?.[0]
-
-    expect(legacyDarkButtonHoverSelectors).toBeDefined()
-    expect(legacyDarkButtonHoverSelectors).not.toContain('.theme-option:hover')
+  test('keeps appearance theme options out of App.css legacy selectors', () => {
+    expect(appStyles).not.toMatch(/\.theme-option\b/)
+    expect(appStyles).not.toMatch(/\.theme-swatch\b/)
+    expect(appStyles).not.toMatch(/\.settings-panel\b/)
+    expect(appStyles).not.toMatch(/\.panel-label\b/)
   })
 
   test('hydrates the global theme from local storage', async () => {
@@ -2239,8 +2233,9 @@ describe('App chat workspace', () => {
     expect(
       screen
         .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
-        .closest('.session-row')?.className,
-    ).toContain('session-row-selected')
+        .closest('[data-slot="data-list-item"]')
+        ?.getAttribute('data-selected'),
+    ).toBe('')
   })
 
   test('keeps chat retrieval quantity controls in runtime settings instead of the composer', async () => {
@@ -2289,9 +2284,11 @@ describe('App chat workspace', () => {
     const sessionButton = await screen.findByRole('button', {
       name: 'Abrir sesiÃ³n Start a fresh session',
     })
-    expect(sessionButton.closest('.session-row')?.className).toContain(
-      'session-row-selected',
-    )
+    expect(
+      sessionButton
+        .closest('[data-slot="data-list-item"]')
+        ?.getAttribute('data-selected'),
+    ).toBe('')
 
     await act(async () => {
       finalResponse.resolve({ ...chatResponse, session_id: 'session-stream' })
@@ -2364,7 +2361,7 @@ describe('App chat workspace', () => {
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
-    expect(prompt.closest('.chat-question-sticky')).toBeTruthy()
+    expect(prompt.closest('[data-slot="chat-question-sticky"]')).toBeTruthy()
 
     await user.click(prompt)
 
@@ -2835,10 +2832,9 @@ describe('App chat workspace', () => {
     expect(
       screen
         .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
-        .closest('.session-row')?.className,
-    ).not.toContain(
-      'session-row-selected',
-    )
+        .closest('[data-slot="data-list-item"]')
+        ?.hasAttribute('data-selected'),
+    ).toBe(false)
     expect(screen.getByText('No response yet.')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       '',
