@@ -4,9 +4,11 @@ import { cn } from './utils'
 
 describe('cn', () => {
   test('combines conditional classes and resolves Tailwind conflicts', () => {
+    const shouldHide = new Date(0).getTime() > 0
+
     const result = cn(
       'px-2 text-sm',
-      false && 'hidden',
+      shouldHide && 'hidden',
       ['px-4', 'font-medium'],
       { 'text-foreground': true },
     )
