@@ -990,6 +990,42 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
   })
 
+  test('switches runtime submodules from the content segmented control', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Connections')
+
+    const runtimeNavigation = screen.getByRole('group', {
+      name: 'Runtime submodule navigation',
+    })
+    expect(
+      within(runtimeNavigation)
+        .getByRole('button', { name: 'Connections' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+
+    await user.click(
+      within(runtimeNavigation).getByRole('button', {
+        name: 'Model catalog',
+      }),
+    )
+
+    expect(
+      within(runtimeNavigation)
+        .getByRole('button', { name: 'Model catalog' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Model catalog' }),
+    ).toBeTruthy()
+  })
+
   test('opens the module matching the current route on initial render', () => {
     window.history.replaceState(null, '', '/settings/runtime')
 
@@ -3253,10 +3289,9 @@ describe('App chat workspace', () => {
 
     await user.selectOptions(screen.getByLabelText('Provider'), 'qwen')
     await user.selectOptions(screen.getByLabelText('Connection type'), 'hosted')
-    await user.type(
-      screen.getByLabelText('Base URL'),
-      'https://dashscope.example.test/compatible-mode/v1',
-    )
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'https://dashscope.example.test/compatible-mode/v1' },
+    })
     const capabilitiesCombobox = screen.getByRole('combobox', {
       name: 'Capabilities',
     })
@@ -3287,7 +3322,9 @@ describe('App chat workspace', () => {
     )
     expect(saveConnectionButton.disabled).toBe(false)
     expect(within(capabilitiesCombobox).getByText('dense_embedding')).toBeTruthy()
-    await user.type(screen.getByLabelText('API key'), 'sk-hosted-secret')
+    fireEvent.change(screen.getByLabelText('API key'), {
+      target: { value: 'sk-hosted-secret' },
+    })
     await user.click(saveConnectionButton)
 
     expect(client.createProviderConnection).toHaveBeenCalledWith({

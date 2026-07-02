@@ -1,11 +1,20 @@
 import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
   useEffect,
   useRef,
   useState,
 } from 'react'
 
+import { Badge, StatusBadge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input, NativeSelect } from '@/components/ui/control'
+import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
+import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Field, FieldControl, FieldError, FieldHelp, FieldLabel } from '@/components/ui/field'
+import { Panel, PanelBody, PanelDescription, PanelHeader } from '@/components/ui/panel'
+import { SegmentedControl, SegmentedControlItem } from '@/components/ui/tabs'
 import type {
   ChatModel,
   ChatRetrievalSettings,
@@ -25,11 +34,20 @@ import {
   normalizeChatRetrievalLimit,
   providerModelOptions,
   runtimeStatusLabel,
-  statusClassName,
   type ProviderModelOption,
   type RequestState,
   type RuntimeSubmodule,
 } from './runtimeUi'
+
+const RUNTIME_SUBMODULES: Array<{
+  label: string
+  value: RuntimeSubmodule
+}> = [
+  { label: 'Connections', value: 'connections' },
+  { label: 'Model catalog', value: 'model_catalog' },
+  { label: 'Global defaults', value: 'global_defaults' },
+  { label: 'Project overrides', value: 'project_overrides' },
+]
 
 export type RuntimeSettingsPanelProps = {
   activeSubmodule: RuntimeSubmodule
@@ -65,6 +83,7 @@ export type RuntimeSettingsPanelProps = {
   onCancelDeleteConnection(): void
   onCancelEditConnection(): void
   onCheckConnection(connectionId: string): void
+  onActiveSubmoduleChange(value: RuntimeSubmodule): void
   onDeleteConnection(event: FormEvent<HTMLFormElement>): void
   onDeleteConnectionConfirmationChange(value: string): void
   onGlobalChatRerankCandidateLimitChange(value: number): void
@@ -142,6 +161,7 @@ export function RuntimeSettingsPanel({
   onCancelDeleteConnection,
   onCancelEditConnection,
   onCheckConnection,
+  onActiveSubmoduleChange,
   onDeleteConnection,
   onDeleteConnectionConfirmationChange,
   onGlobalChatRerankCandidateLimitChange,
@@ -330,14 +350,126 @@ export function RuntimeSettingsPanel({
     )
 
   return (
-    <div className="runtime-grid runtime-grid-focused">
-      {error ? (
-        <p className="form-feedback form-feedback-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+    <div className="grid gap-4">
+      <RuntimeSubmoduleNavigation
+        activeSubmodule={activeSubmodule}
+        onActiveSubmoduleChange={onActiveSubmoduleChange}
+      />
+      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
       {activePanel}
     </div>
+  )
+}
+
+function RuntimeSubmoduleNavigation({
+  activeSubmodule,
+  onActiveSubmoduleChange,
+}: {
+  activeSubmodule: RuntimeSubmodule
+  onActiveSubmoduleChange(value: RuntimeSubmodule): void
+}) {
+  return (
+    <SegmentedControl
+      aria-label="Runtime submodule navigation"
+      className="flex w-full flex-wrap"
+    >
+      {RUNTIME_SUBMODULES.map((submodule) => (
+        <SegmentedControlItem
+          active={submodule.value === activeSubmodule}
+          key={submodule.value}
+          onClick={() => onActiveSubmoduleChange(submodule.value)}
+        >
+          {submodule.label}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+  )
+}
+
+function RuntimePanel({
+  ariaLabel,
+  children,
+  description,
+  id,
+  status,
+  title,
+}: {
+  ariaLabel?: string
+  children: ReactNode
+  description?: ReactNode
+  id: string
+  status: ReactNode
+  title: string
+}) {
+  return (
+    <Panel
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabel === undefined ? id : undefined}
+      role="region"
+    >
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row">
+        <div className="grid min-w-0 gap-1">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Runtime
+          </p>
+          <h2 id={id} className="text-lg font-semibold leading-none">
+            {title}
+          </h2>
+          {description ? (
+            <PanelDescription>{description}</PanelDescription>
+          ) : null}
+        </div>
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end">
+          {status}
+        </div>
+      </PanelHeader>
+      <PanelBody className="grid gap-4 p-4 pt-0">{children}</PanelBody>
+    </Panel>
+  )
+}
+
+function RuntimeStatus({ state }: { state: RequestState }) {
+  return (
+    <StatusBadge
+      className="max-w-full break-all text-left"
+      tone={runtimeStatusTone(state)}
+    >
+      {runtimeStatusLabel(state)}
+    </StatusBadge>
+  )
+}
+
+function runtimeStatusTone(
+  state: RequestState,
+): 'danger' | 'neutral' | 'success' | 'warning' {
+  if (state === 'failed') return 'danger'
+  if (state === 'succeeded') return 'success'
+  if (state === 'loading' || state === 'canceled') return 'warning'
+  return 'neutral'
+}
+
+function RuntimeField({
+  children,
+  className,
+  error,
+  help,
+  id,
+  label,
+}: {
+  children(id: string): ReactNode
+  className?: string
+  error?: ReactNode
+  help?: ReactNode
+  id: string
+  label: string
+}) {
+  return (
+    <Field className={className}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldControl>{children(id)}</FieldControl>
+      {help ? <FieldHelp>{help}</FieldHelp> : null}
+      {error ? <FieldError>{error}</FieldError> : null}
+    </Field>
   )
 }
 
@@ -398,216 +530,252 @@ export function RuntimeConnectionsPanel({
   const isEditingConnection = editingConnectionId !== null
 
   return (
-    <section className="panel runtime-panel" aria-labelledby="runtime-connections-title">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Runtime</p>
-          <h2 id="runtime-connections-title">Connections</h2>
-        </div>
-        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
-      </div>
-
-      <section className="runtime-section" aria-label="Provider connections">
-        <h3>Connections</h3>
-        <ul className="authoring-list">
-          {connections.length === 0 ? (
-            <li className="authoring-row authoring-row-static">
-              <span>No runtime connections loaded.</span>
-            </li>
-          ) : (
-            connections.map((connection) => {
+    <RuntimePanel
+      id="runtime-connections-title"
+      status={<RuntimeStatus state={state} />}
+      title="Connections"
+    >
+      <section aria-label="Provider connections" className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Connections</h3>
+        {connections.length === 0 ? (
+          <EmptyState>No runtime connections loaded.</EmptyState>
+        ) : (
+          <DataList>
+            {connections.map((connection) => {
               const isChecking =
                 checkingConnectionId === connection.connection_id
               const checkResult =
                 connectionCheckResults[connection.connection_id]
               return (
-                <li
-                  className="authoring-row authoring-row-static connection-row"
+                <DataListItem
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
-                  <span>
-                    <strong>{connection.connection_id}</strong>
-                    <small>
-                      {connection.provider} / {connection.connection_type}
-                    </small>
-                    <small>{connection.capabilities.join(', ')}</small>
-                    {connection.base_url ? (
-                      <small>{connection.base_url}</small>
-                    ) : null}
+                  <div className="grid min-w-0 gap-2">
+                    <div className="grid gap-1">
+                      <strong className="text-sm font-semibold">
+                        {connection.connection_id}
+                      </strong>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>
+                          {connection.provider} / {connection.connection_type}
+                        </Badge>
+                        <Badge tone="neutral">
+                          {connection.capabilities.join(', ')}
+                        </Badge>
+                      </div>
+                      {connection.base_url ? (
+                        <small className="break-all text-xs text-muted-foreground">
+                          {connection.base_url}
+                        </small>
+                      ) : null}
+                    </div>
                     <ConnectionSecretSummary connection={connection} />
                     <ConnectionCheckSummary result={checkResult} />
-                  </span>
-                  <div className="authoring-row-actions connection-row-actions">
-                    <em>{connection.connection_type}</em>
-                    <button
+                  </div>
+                  <DataListItemActions className="justify-start md:justify-end">
+                    <Badge tone="neutral">{connection.connection_type}</Badge>
+                    <Button
                       aria-label={`Check ${connection.connection_id} connection`}
-                      className="secondary-button compact-button"
                       disabled={state === 'loading' || isChecking}
                       onClick={() => onCheckConnection(connection.connection_id)}
-                      type="button"
+                      size="sm"
+                      variant="secondary"
                     >
                       {isChecking ? 'Checking...' : 'Check'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       aria-label={`Edit ${connection.connection_id} connection`}
-                      className="secondary-button compact-button"
                       disabled={state === 'loading'}
                       onClick={() =>
                         onRequestEditConnection(connection.connection_id)
                       }
-                      type="button"
+                      size="sm"
+                      variant="secondary"
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       aria-label={`Delete ${connection.connection_id} connection`}
-                      className="secondary-button compact-button danger-button"
                       disabled={state === 'loading'}
                       onClick={() =>
                         onRequestDeleteConnection(connection.connection_id)
                       }
-                      type="button"
+                      size="sm"
+                      variant="danger"
                     >
                       Delete
-                    </button>
-                  </div>
+                    </Button>
+                  </DataListItemActions>
                   {deleteConnectionId === connection.connection_id ? (
                     <form
                       aria-label={`Delete ${connection.connection_id} connection`}
-                      className="connection-delete-confirm"
+                      className="grid gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2"
                       onSubmit={onDeleteConnection}
                     >
-                      <p>
+                      <InlineFeedback tone="danger">
                         Type <strong>{connection.connection_id}</strong> to confirm
                         deletion.
-                      </p>
-                      <label className="field">
-                        <span>Confirm connection ID</span>
-                        <input
-                          autoComplete="off"
-                          onChange={(event) =>
-                            onDeleteConnectionConfirmationChange(
-                              event.currentTarget.value,
-                            )
-                          }
-                          value={deleteConnectionConfirmation}
-                        />
-                      </label>
-                      <div className="connection-delete-actions">
-                        <button
-                          className="secondary-button compact-button"
+                      </InlineFeedback>
+                      <RuntimeField
+                        id={`delete-${connection.connection_id}-confirmation`}
+                        label="Confirm connection ID"
+                      >
+                        {(fieldId) => (
+                          <Input
+                            autoComplete="off"
+                            id={fieldId}
+                            onChange={(event) =>
+                              onDeleteConnectionConfirmationChange(
+                                event.currentTarget.value,
+                              )
+                            }
+                            value={deleteConnectionConfirmation}
+                          />
+                        )}
+                      </RuntimeField>
+                      <DataListItemActions>
+                        <Button
                           disabled={state === 'loading'}
                           onClick={onCancelDeleteConnection}
-                          type="button"
+                          size="sm"
+                          variant="secondary"
                         >
                           Cancel
-                        </button>
-                        <button
-                          className="compact-button danger-button danger-button-solid"
+                        </Button>
+                        <Button
                           disabled={
                             state === 'loading' ||
                             deleteConnectionConfirmation.trim() !==
                               connection.connection_id
                           }
+                          size="sm"
                           type="submit"
+                          variant="danger"
                         >
                           Delete connection
-                        </button>
-                      </div>
+                        </Button>
+                      </DataListItemActions>
                     </form>
                   ) : null}
-                </li>
+                </DataListItem>
               )
-            })
-          )}
-        </ul>
+            })}
+          </DataList>
+        )}
       </section>
 
-      <form className="authoring-form" onSubmit={onSaveConnection}>
-        <div className="connection-form-heading">
-          <h3>
+      <form className="grid gap-4" onSubmit={onSaveConnection}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold leading-none">
             {isEditingConnection
               ? `Edit connection ${editingConnectionId}`
               : 'New connection'}
           </h3>
           {isEditingConnection ? (
-            <button
-              className="secondary-button compact-button"
+            <Button
               disabled={state === 'loading'}
               onClick={onCancelEditConnection}
-              type="button"
+              size="sm"
+              variant="secondary"
             >
               Cancel edit
-            </button>
+            </Button>
           ) : null}
         </div>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Provider</span>
-            <select
-              onChange={(event) =>
-                onConnectionProviderChange(event.currentTarget.value)
-              }
-              value={connectionProvider}
-            >
-              <option value="qwen">qwen</option>
-              <option value="local_openai_compatible">
-                local_openai_compatible
-              </option>
-              <option value="fake">fake</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Connection type</span>
-            <select
-              onChange={(event) => onConnectionTypeChange(event.currentTarget.value)}
-              value={connectionType}
-            >
-              <option value="hosted">hosted</option>
-              <option value="local">local</option>
-              <option value="fake">fake</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Base URL</span>
-            <input
-              onChange={(event) =>
-                onConnectionBaseUrlChange(event.currentTarget.value)
-              }
-              value={connectionBaseUrl}
-            />
-          </label>
-          <label className="field runtime-field-wide">
-            <span>Capabilities</span>
-            <CapabilitySelector
-              options={PROVIDER_CONNECTION_CAPABILITIES}
-              onChange={onConnectionCapabilitiesChange}
-              value={connectionCapabilities}
-            />
-          </label>
-          <label className="field runtime-field-wide">
-            <span>API key</span>
-            <input
-              autoComplete="off"
-              onChange={(event) => onConnectionApiKeyChange(event.currentTarget.value)}
-              type="password"
-              value={connectionApiKey}
-            />
-          </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <RuntimeField id="runtime-connection-provider" label="Provider">
+            {(fieldId) => (
+              <NativeSelect
+                id={fieldId}
+                onChange={(event) =>
+                  onConnectionProviderChange(event.currentTarget.value)
+                }
+                value={connectionProvider}
+              >
+                <option value="qwen">qwen</option>
+                <option value="local_openai_compatible">
+                  local_openai_compatible
+                </option>
+                <option value="fake">fake</option>
+              </NativeSelect>
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-connection-type"
+            label="Connection type"
+          >
+            {(fieldId) => (
+              <NativeSelect
+                id={fieldId}
+                onChange={(event) =>
+                  onConnectionTypeChange(event.currentTarget.value)
+                }
+                value={connectionType}
+              >
+                <option value="hosted">hosted</option>
+                <option value="local">local</option>
+                <option value="fake">fake</option>
+              </NativeSelect>
+            )}
+          </RuntimeField>
+          <RuntimeField id="runtime-connection-base-url" label="Base URL">
+            {(fieldId) => (
+              <Input
+                id={fieldId}
+                onChange={(event) =>
+                  onConnectionBaseUrlChange(event.currentTarget.value)
+                }
+                value={connectionBaseUrl}
+              />
+            )}
+          </RuntimeField>
+          <Field className="md:col-span-2">
+            <FieldLabel id="runtime-connection-capabilities-label">
+              Capabilities
+            </FieldLabel>
+            <FieldControl>
+              <CapabilitySelector
+                labelledBy="runtime-connection-capabilities-label"
+                onChange={onConnectionCapabilitiesChange}
+                options={PROVIDER_CONNECTION_CAPABILITIES}
+                value={connectionCapabilities}
+              />
+            </FieldControl>
+          </Field>
+          <RuntimeField
+            className="md:col-span-2"
+            id="runtime-connection-api-key"
+            label="API key"
+          >
+            {(fieldId) => (
+              <Input
+                autoComplete="off"
+                id={fieldId}
+                onChange={(event) =>
+                  onConnectionApiKeyChange(event.currentTarget.value)
+                }
+                type="password"
+                value={connectionApiKey}
+              />
+            )}
+          </RuntimeField>
         </div>
-        <button disabled={!canSaveConnection} type="submit">
+        <Button disabled={!canSaveConnection} type="submit">
           {isEditingConnection ? 'Update connection' : 'Save connection'}
-        </button>
+        </Button>
       </form>
-    </section>
+    </RuntimePanel>
   )
 }
 
 export function CapabilitySelector({
+  labelledBy,
   onChange,
   options,
   value,
 }: {
+  labelledBy?: string
   onChange(value: string[]): void
   options: readonly string[]
   value: string[]
@@ -676,40 +844,42 @@ export function CapabilitySelector({
   }
 
   return (
-    <div className="capability-selector" ref={rootRef}>
+    <div className="relative" ref={rootRef}>
       <div
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-label="Capabilities"
-        className="capability-token-input"
+        aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
+        aria-labelledby={labelledBy}
+        className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background"
         onClick={() => {
           setIsOpen(true)
           inputRef.current?.focus()
         }}
         role="combobox"
       >
-        <div className="capability-token-wrap">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
           {value.map((capability) => (
-            <span className="capability-token" key={capability}>
+            <Badge className="gap-1 pr-1" key={capability} tone="primary">
               <span>{capability}</span>
-              <button
+              <Button
                 aria-label={`Remove ${capability} capability`}
-                className="capability-token-remove"
+                className="h-5 px-1 text-xs"
                 onClick={(event) => {
                   event.stopPropagation()
                   toggleCapability(capability)
                   inputRef.current?.focus()
                 }}
-                type="button"
+                size="sm"
+                variant="ghost"
               >
                 x
-              </button>
-            </span>
+              </Button>
+            </Badge>
           ))}
-          <input
+          <Input
             aria-label="Filter capabilities"
             autoComplete="off"
-            className="capability-filter-input"
+            className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             onChange={(event) => {
               setQuery(event.currentTarget.value)
               setIsOpen(true)
@@ -721,23 +891,25 @@ export function CapabilitySelector({
             value={query}
           />
         </div>
-        <span aria-hidden="true" className="capability-caret">
+        <span aria-hidden="true" className="text-muted-foreground">
           v
         </span>
       </div>
       {isOpen ? (
         <div
           aria-label="Capability options"
-          className="capability-menu"
+          className="absolute z-20 mt-1 grid max-h-60 w-full gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
           role="listbox"
         >
           {filteredOptions.length === 0 ? (
-            <div className="capability-option-empty">No capabilities found</div>
+            <EmptyState className="p-3 text-left">
+              No capabilities found
+            </EmptyState>
           ) : (
             filteredOptions.map((capability) => (
-              <button
+              <Button
                 aria-label={`Add ${capability} capability`}
-                className="capability-option"
+                className="justify-start"
                 key={capability}
                 onClick={() => {
                   toggleCapability(capability)
@@ -745,9 +917,10 @@ export function CapabilitySelector({
                 }}
                 role="option"
                 type="button"
+                variant="ghost"
               >
                 <span>{capability}</span>
-              </button>
+              </Button>
             ))
           )}
         </div>
@@ -780,74 +953,83 @@ export function RuntimeModelCatalogPanel({
   )
 
   return (
-    <section className="panel runtime-panel" aria-labelledby="runtime-model-catalog-title">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Runtime</p>
-          <h2 id="runtime-model-catalog-title">Model catalog</h2>
-        </div>
-        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
-      </div>
-
-      <button
-        className="secondary-button"
+    <RuntimePanel
+      id="runtime-model-catalog-title"
+      status={<RuntimeStatus state={state} />}
+      title="Model catalog"
+    >
+      <Button
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
+        variant="secondary"
       >
         {state === 'loading' ? 'Refreshing...' : 'Refresh catalog'}
-      </button>
+      </Button>
 
-      <form className="authoring-form" onSubmit={onSyncProviderModels}>
-        <div className="runtime-form-grid">
-          <label className="field runtime-field-wide">
-            <span>Model sync connection</span>
+      <form className="grid gap-4" onSubmit={onSyncProviderModels}>
+        <RuntimeField
+          id="runtime-model-sync-connection"
+          label="Model sync connection"
+        >
+          {(fieldId) => (
             <ConnectionSelect
               connections={connections}
+              id={fieldId}
               onChange={onModelSyncConnectionIdChange}
               testId="model-sync-connection-select"
               value={modelSyncConnectionId}
             />
-          </label>
-        </div>
-        <button type="submit">Sync models</button>
+          )}
+        </RuntimeField>
+        <Button type="submit">Sync models</Button>
       </form>
 
       {selectedConnection ? (
         <section
-          className="runtime-section"
           aria-label="Selected model sync connection"
+          className="grid gap-3"
         >
-          <ul className="authoring-list">
-            <li className="authoring-row authoring-row-static connection-row">
-              <span>
-                <strong>{connectionOptionLabel(selectedConnection)}</strong>
-                <small>{selectedConnection.connection_id}</small>
-                <small>{selectedConnection.capabilities.join(', ')}</small>
-                {selectedConnection.base_url ? (
-                  <small>{selectedConnection.base_url}</small>
-                ) : null}
+          <DataList>
+            <DataListItem className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="grid min-w-0 gap-2">
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">
+                    {connectionOptionLabel(selectedConnection)}
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    {selectedConnection.connection_id}
+                  </small>
+                  <Badge tone="neutral">
+                    {selectedConnection.capabilities.join(', ')}
+                  </Badge>
+                  {selectedConnection.base_url ? (
+                    <small className="break-all text-xs text-muted-foreground">
+                      {selectedConnection.base_url}
+                    </small>
+                  ) : null}
+                </div>
                 <ConnectionSecretSummary connection={selectedConnection} />
-              </span>
-              <div className="authoring-row-actions connection-row-actions">
-                <button
-                  className="secondary-button compact-button"
+              </div>
+              <DataListItemActions className="justify-start md:justify-end">
+                <Button
                   disabled={state === 'loading'}
                   onClick={() =>
                     onEditConnection(selectedConnection.connection_id)
                   }
-                  type="button"
+                  size="sm"
+                  variant="secondary"
                 >
                   Edit connection
-                </button>
-              </div>
-            </li>
-          </ul>
+                </Button>
+              </DataListItemActions>
+            </DataListItem>
+          </DataList>
         </section>
       ) : null}
 
       <ProviderModelCatalogView providerModels={providerModels} />
-    </section>
+    </RuntimePanel>
   )
 }
 
@@ -915,191 +1097,226 @@ export function RuntimeGlobalDefaultsPanel({
   state: RequestState
 }) {
   return (
-    <section className="panel runtime-panel" aria-labelledby="runtime-global-defaults-title">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Runtime</p>
-          <h2 id="runtime-global-defaults-title">Global defaults</h2>
-        </div>
-        <span className={statusClassName(state)}>{runtimeStatusLabel(state)}</span>
-      </div>
-
-      <button
-        className="secondary-button"
+    <RuntimePanel
+      id="runtime-global-defaults-title"
+      status={<RuntimeStatus state={state} />}
+      title="Global defaults"
+    >
+      <Button
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
+        variant="secondary"
       >
         {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
-      </button>
+      </Button>
 
       <RuntimeSlotList slots={slots} />
 
-      <form className="authoring-form" onSubmit={onSaveGlobalSlot}>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Global slot</span>
-            <select
-              data-testid="global-slot-select"
-              onChange={(event) => onGlobalSlotChange(event.currentTarget.value)}
-              value={globalSlot}
-            >
-              {RUNTIME_SLOTS.map((slot) => (
-                <option key={slot} value={slot}>
-                  {slot}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Global slot connection</span>
-            <ConnectionSelect
-              connections={globalSlotConnections}
-              onChange={onGlobalSlotConnectionIdChange}
-              testId="global-slot-connection-select"
-              value={globalSlotConnectionId}
-            />
-          </label>
-          <label className="field">
-            <span>Global slot model</span>
-            <ProviderModelSelect
-              models={globalSlotModelOptions}
-              onChange={onGlobalSlotModelIdChange}
-              testId="global-slot-model-select"
-              value={globalSlotModelId}
-            />
-          </label>
+      <form className="grid gap-4" onSubmit={onSaveGlobalSlot}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <RuntimeField id="runtime-global-slot" label="Global slot">
+            {(fieldId) => (
+              <NativeSelect
+                data-testid="global-slot-select"
+                id={fieldId}
+                onChange={(event) =>
+                  onGlobalSlotChange(event.currentTarget.value)
+                }
+                value={globalSlot}
+              >
+                {RUNTIME_SLOTS.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </NativeSelect>
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-global-slot-connection"
+            label="Global slot connection"
+          >
+            {(fieldId) => (
+              <ConnectionSelect
+                connections={globalSlotConnections}
+                id={fieldId}
+                onChange={onGlobalSlotConnectionIdChange}
+                testId="global-slot-connection-select"
+                value={globalSlotConnectionId}
+              />
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-global-slot-model"
+            label="Global slot model"
+          >
+            {(fieldId) => (
+              <ProviderModelSelect
+                id={fieldId}
+                models={globalSlotModelOptions}
+                onChange={onGlobalSlotModelIdChange}
+                testId="global-slot-model-select"
+                value={globalSlotModelId}
+              />
+            )}
+          </RuntimeField>
         </div>
         {globalSlotSyncMessage ? (
-          <p className="form-feedback runtime-sync-hint">
-            {globalSlotSyncMessage}
-          </p>
+          <InlineFeedback>{globalSlotSyncMessage}</InlineFeedback>
         ) : null}
-        <button disabled={globalSlotSyncMessage !== null} type="submit">
+        <Button disabled={globalSlotSyncMessage !== null} type="submit">
           Save global slot
-        </button>
+        </Button>
       </form>
 
-      <section className="runtime-section" aria-label="Global chat models">
-        <h3>Chat models</h3>
-        <ul className="authoring-list">
-          {chatModels.length === 0 ? (
-            <li className="authoring-row authoring-row-static">
-              <span>No chat models loaded.</span>
-            </li>
-          ) : (
-            chatModels.map((model) => (
-              <li
-                className="authoring-row authoring-row-static"
+      <section aria-label="Global chat models" className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Chat models</h3>
+        {chatModels.length === 0 ? (
+          <EmptyState>No chat models loaded.</EmptyState>
+        ) : (
+          <DataList>
+            {chatModels.map((model) => (
+              <DataListItem
+                className="flex flex-wrap items-center justify-between gap-3"
                 key={`${model.connection_id}-${model.model_id}`}
               >
-                <span>
-                  <strong>{model.model_id}</strong>
-                  <small>{model.connection_id}</small>
-                </span>
-                <em>{model.is_default ? 'default' : 'enabled'}</em>
-              </li>
-            ))
-          )}
-        </ul>
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">
+                    {model.model_id}
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    {model.connection_id}
+                  </small>
+                </div>
+                <Badge tone={model.is_default ? 'primary' : 'neutral'}>
+                  {model.is_default ? 'default' : 'enabled'}
+                </Badge>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
       </section>
 
-      <form className="authoring-form" onSubmit={onSaveGlobalChatModel}>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Chat connection</span>
-            <ConnectionSelect
-              connections={chatConnections}
-              onChange={onChatConnectionIdChange}
-              testId="chat-connection-select"
-              value={chatConnectionId}
-            />
-          </label>
-          <label className="field">
-            <span>Chat model</span>
-            <ProviderModelSelect
-              models={chatModelOptions}
-              onChange={onChatModelIdChange}
-              testId="chat-model-select"
-              value={chatModelId}
-            />
-          </label>
+      <form className="grid gap-4" onSubmit={onSaveGlobalChatModel}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <RuntimeField
+            id="runtime-chat-connection"
+            label="Chat connection"
+          >
+            {(fieldId) => (
+              <ConnectionSelect
+                connections={chatConnections}
+                id={fieldId}
+                onChange={onChatConnectionIdChange}
+                testId="chat-connection-select"
+                value={chatConnectionId}
+              />
+            )}
+          </RuntimeField>
+          <RuntimeField id="runtime-chat-model" label="Chat model">
+            {(fieldId) => (
+              <ProviderModelSelect
+                id={fieldId}
+                models={chatModelOptions}
+                onChange={onChatModelIdChange}
+                testId="chat-model-select"
+                value={chatModelId}
+              />
+            )}
+          </RuntimeField>
         </div>
-        {chatSyncMessage ? (
-          <p className="form-feedback runtime-sync-hint">{chatSyncMessage}</p>
-        ) : null}
-        <button disabled={chatSyncMessage !== null} type="submit">
+        {chatSyncMessage ? <InlineFeedback>{chatSyncMessage}</InlineFeedback> : null}
+        <Button disabled={chatSyncMessage !== null} type="submit">
           Save chat default
-        </button>
+        </Button>
       </form>
 
-      <section className="runtime-section" aria-label="Global chat retrieval">
-        <h3>Chat retrieval</h3>
+      <section aria-label="Global chat retrieval" className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
         {chatRetrievalSettings ? (
-          <ul className="authoring-list">
-            <li className="authoring-row authoring-row-static">
-              <span>
-                <strong>global defaults</strong>
-                <small>
+          <DataList>
+            <DataListItem className="flex flex-wrap items-center justify-between gap-3">
+              <div className="grid gap-1">
+                <strong className="text-sm font-semibold">
+                  global defaults
+                </strong>
+                <small className="text-xs text-muted-foreground">
                   limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
-              </span>
-              <em>{chatRetrievalSettings.rerank_enabled ? 'rerank on' : 'rerank off'}</em>
-            </li>
-          </ul>
+              </div>
+              <Badge tone="neutral">
+                {chatRetrievalSettings.rerank_enabled
+                  ? 'rerank on'
+                  : 'rerank off'}
+              </Badge>
+            </DataListItem>
+          </DataList>
         ) : (
-          <p className="empty-copy">No chat retrieval defaults loaded.</p>
+          <EmptyState>No chat retrieval defaults loaded.</EmptyState>
         )}
-        <form className="authoring-form" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="runtime-form-grid">
-            <label className="field">
-              <span>Retrieval limit</span>
-              <input
-                max={CHAT_RETRIEVAL_MAX_LIMIT}
-                min={1}
-                onChange={(event) =>
-                  onGlobalChatRetrievalLimitChange(
-                    normalizeChatRetrievalLimit(event.currentTarget.value),
-                  )
-                }
-                type="number"
-                value={globalChatRetrievalLimit}
-              />
-            </label>
-            <label className="field">
-              <span>Rerank</span>
-              <select
-                onChange={(event) =>
-                  onGlobalChatRerankEnabledChange(
-                    event.currentTarget.value === 'true',
-                  )
-                }
-                value={String(globalChatRerankEnabled)}
-              >
-                <option value="true">on</option>
-                <option value="false">off</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Candidate limit</span>
-              <input
-                max={CHAT_RETRIEVAL_MAX_LIMIT}
-                min={1}
-                onChange={(event) =>
-                  onGlobalChatRerankCandidateLimitChange(
-                    normalizeChatRetrievalLimit(event.currentTarget.value),
-                  )
-                }
-                type="number"
-                value={globalChatRerankCandidateLimit}
-              />
-            </label>
+        <form className="grid gap-4" onSubmit={onSaveGlobalChatRetrieval}>
+          <div className="grid gap-4 md:grid-cols-3">
+            <RuntimeField
+              id="runtime-global-retrieval-limit"
+              label="Retrieval limit"
+            >
+              {(fieldId) => (
+                <Input
+                  id={fieldId}
+                  max={CHAT_RETRIEVAL_MAX_LIMIT}
+                  min={1}
+                  onChange={(event) =>
+                    onGlobalChatRetrievalLimitChange(
+                      normalizeChatRetrievalLimit(event.currentTarget.value),
+                    )
+                  }
+                  type="number"
+                  value={globalChatRetrievalLimit}
+                />
+              )}
+            </RuntimeField>
+            <RuntimeField id="runtime-global-rerank" label="Rerank">
+              {(fieldId) => (
+                <NativeSelect
+                  id={fieldId}
+                  onChange={(event) =>
+                    onGlobalChatRerankEnabledChange(
+                      event.currentTarget.value === 'true',
+                    )
+                  }
+                  value={String(globalChatRerankEnabled)}
+                >
+                  <option value="true">on</option>
+                  <option value="false">off</option>
+                </NativeSelect>
+              )}
+            </RuntimeField>
+            <RuntimeField
+              id="runtime-global-candidate-limit"
+              label="Candidate limit"
+            >
+              {(fieldId) => (
+                <Input
+                  id={fieldId}
+                  max={CHAT_RETRIEVAL_MAX_LIMIT}
+                  min={1}
+                  onChange={(event) =>
+                    onGlobalChatRerankCandidateLimitChange(
+                      normalizeChatRetrievalLimit(event.currentTarget.value),
+                    )
+                  }
+                  type="number"
+                  value={globalChatRerankCandidateLimit}
+                />
+              )}
+            </RuntimeField>
           </div>
-          <button type="submit">Save chat retrieval</button>
+          <Button type="submit">Save chat retrieval</Button>
         </form>
       </section>
-    </section>
+    </RuntimePanel>
   )
 }
 
@@ -1153,135 +1370,157 @@ export function RuntimeProjectOverridesPanel({
   state: RequestState
 }) {
   return (
-    <section
-      className="panel runtime-panel runtime-panel-wide"
-      aria-label="Project runtime settings"
+    <RuntimePanel
+      ariaLabel="Project runtime settings"
+      id="runtime-project-overrides-title"
+      status={
+        <StatusBadge className="max-w-full break-all text-left" tone="neutral">
+          {projectId.trim() || 'No project'}
+        </StatusBadge>
+      }
+      title="Project overrides"
     >
-      <div className="panel-heading">
-        <div>
-          <p className="panel-label">Runtime</p>
-          <h2 id="runtime-project-overrides-title">Project overrides</h2>
-        </div>
-        <span className="status">{projectId.trim() || 'No project'}</span>
-      </div>
-
-      <button
-        className="secondary-button"
+      <Button
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
+        variant="secondary"
       >
         {state === 'loading' ? 'Refreshing...' : 'Reload project settings'}
-      </button>
+      </Button>
 
       <ProjectRuntimeSettingsView
         onResetProjectSlot={onResetProjectSlot}
         settings={projectRuntimeSettings}
       />
 
-      <form className="authoring-form" onSubmit={onSaveProjectChatRetrieval}>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Retrieval limit</span>
-            <input
-              max={CHAT_RETRIEVAL_MAX_LIMIT}
-              min={1}
-              onChange={(event) =>
-                onProjectChatRetrievalLimitChange(
-                  normalizeChatRetrievalLimit(event.currentTarget.value),
-                )
-              }
-              type="number"
-              value={projectChatRetrievalLimit}
-            />
-          </label>
-          <label className="field">
-            <span>Rerank</span>
-            <select
-              onChange={(event) =>
-                onProjectChatRerankEnabledChange(
-                  event.currentTarget.value === 'true',
-                )
-              }
-              value={String(projectChatRerankEnabled)}
-            >
-              <option value="true">on</option>
-              <option value="false">off</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Candidate limit</span>
-            <input
-              max={CHAT_RETRIEVAL_MAX_LIMIT}
-              min={1}
-              onChange={(event) =>
-                onProjectChatRerankCandidateLimitChange(
-                  normalizeChatRetrievalLimit(event.currentTarget.value),
-                )
-              }
-              type="number"
-              value={projectChatRerankCandidateLimit}
-            />
-          </label>
+      <form className="grid gap-4" onSubmit={onSaveProjectChatRetrieval}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <RuntimeField
+            id="runtime-project-retrieval-limit"
+            label="Retrieval limit"
+          >
+            {(fieldId) => (
+              <Input
+                id={fieldId}
+                max={CHAT_RETRIEVAL_MAX_LIMIT}
+                min={1}
+                onChange={(event) =>
+                  onProjectChatRetrievalLimitChange(
+                    normalizeChatRetrievalLimit(event.currentTarget.value),
+                  )
+                }
+                type="number"
+                value={projectChatRetrievalLimit}
+              />
+            )}
+          </RuntimeField>
+          <RuntimeField id="runtime-project-rerank" label="Rerank">
+            {(fieldId) => (
+              <NativeSelect
+                id={fieldId}
+                onChange={(event) =>
+                  onProjectChatRerankEnabledChange(
+                    event.currentTarget.value === 'true',
+                  )
+                }
+                value={String(projectChatRerankEnabled)}
+              >
+                <option value="true">on</option>
+                <option value="false">off</option>
+              </NativeSelect>
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-project-candidate-limit"
+            label="Candidate limit"
+          >
+            {(fieldId) => (
+              <Input
+                id={fieldId}
+                max={CHAT_RETRIEVAL_MAX_LIMIT}
+                min={1}
+                onChange={(event) =>
+                  onProjectChatRerankCandidateLimitChange(
+                    normalizeChatRetrievalLimit(event.currentTarget.value),
+                  )
+                }
+                type="number"
+                value={projectChatRerankCandidateLimit}
+              />
+            )}
+          </RuntimeField>
         </div>
-        <div className="authoring-row-actions">
-          <button type="submit">Save project retrieval override</button>
+        <DataListItemActions>
+          <Button type="submit">Save project retrieval override</Button>
           {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
-            <button
-              className="secondary-button"
+            <Button
               onClick={onResetProjectChatRetrieval}
               type="button"
+              variant="secondary"
             >
               Reset chat retrieval to global
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </DataListItemActions>
       </form>
 
-      <form className="authoring-form" onSubmit={onSaveProjectOverride}>
-        <div className="runtime-form-grid">
-          <label className="field">
-            <span>Project slot</span>
-            <select
-              onChange={(event) => onProjectSlotChange(event.currentTarget.value)}
-              value={projectSlot}
-            >
-              {RUNTIME_SLOTS.map((slot) => (
-                <option key={slot} value={slot}>
-                  {slot}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Project slot connection</span>
-            <ConnectionSelect
-              connections={projectSlotConnections}
-              onChange={onProjectSlotConnectionIdChange}
-              testId="project-slot-connection-select"
-              value={projectSlotConnectionId}
-            />
-          </label>
-          <label className="field">
-            <span>Project slot model</span>
-            <ProviderModelSelect
-              models={projectSlotModelOptions}
-              onChange={onProjectSlotModelIdChange}
-              testId="project-slot-model-select"
-              value={projectSlotModelId}
-            />
-          </label>
+      <form className="grid gap-4" onSubmit={onSaveProjectOverride}>
+        <div className="grid gap-4 md:grid-cols-3">
+          <RuntimeField id="runtime-project-slot" label="Project slot">
+            {(fieldId) => (
+              <NativeSelect
+                id={fieldId}
+                onChange={(event) =>
+                  onProjectSlotChange(event.currentTarget.value)
+                }
+                value={projectSlot}
+              >
+                {RUNTIME_SLOTS.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </NativeSelect>
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-project-slot-connection"
+            label="Project slot connection"
+          >
+            {(fieldId) => (
+              <ConnectionSelect
+                connections={projectSlotConnections}
+                id={fieldId}
+                onChange={onProjectSlotConnectionIdChange}
+                testId="project-slot-connection-select"
+                value={projectSlotConnectionId}
+              />
+            )}
+          </RuntimeField>
+          <RuntimeField
+            id="runtime-project-slot-model"
+            label="Project slot model"
+          >
+            {(fieldId) => (
+              <ProviderModelSelect
+                id={fieldId}
+                models={projectSlotModelOptions}
+                onChange={onProjectSlotModelIdChange}
+                testId="project-slot-model-select"
+                value={projectSlotModelId}
+              />
+            )}
+          </RuntimeField>
         </div>
         {projectSlotSyncMessage ? (
-          <p className="form-feedback runtime-sync-hint">
-            {projectSlotSyncMessage}
-          </p>
+          <InlineFeedback>{projectSlotSyncMessage}</InlineFeedback>
         ) : null}
-        <button disabled={projectSlotSyncMessage !== null} type="submit">
+        <Button disabled={projectSlotSyncMessage !== null} type="submit">
           Save project override
-        </button>
+        </Button>
       </form>
-    </section>
+    </RuntimePanel>
   )
 }
 
@@ -1291,18 +1530,20 @@ export function ConnectionSecretSummary({
   connection: ProviderConnection
 }) {
   if (connection.secrets.length === 0) {
-    return <small>No secret status</small>
+    return (
+      <small className="text-xs text-muted-foreground">No secret status</small>
+    )
   }
   return (
-    <>
+    <div className="flex flex-wrap gap-2">
       {connection.secrets.map((secret) => (
-        <small key={secret.secret_name}>
+        <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secret.secret_name}{' '}
           {secret.configured ? 'configured' : 'not configured'}
           {secret.last_four ? ` / last four ${secret.last_four}` : ''}
-        </small>
+        </Badge>
       ))}
-    </>
+    </div>
   )
 }
 
@@ -1316,34 +1557,35 @@ export function ConnectionCheckSummary({
   }
 
   return (
-    <small
-      className={
-        result.ok
-          ? 'connection-check-result connection-check-result-ok'
-          : 'connection-check-result connection-check-result-error'
-      }
+    <InlineFeedback
+      aria-live={result.ok ? 'polite' : undefined}
+      role={result.ok ? 'status' : undefined}
+      tone={result.ok ? 'success' : 'danger'}
     >
       {result.ok
         ? `Connection check passed: ${result.model_count} provider models reachable.`
         : `Connection check failed: ${result.message}`}
-    </small>
+    </InlineFeedback>
   )
 }
 
 export function ConnectionSelect({
   connections,
+  id,
   onChange,
   testId,
   value,
 }: {
   connections: ProviderConnection[]
+  id?: string
   onChange(value: string): void
   testId?: string
   value: string
 }) {
   return (
-    <select
+    <NativeSelect
       data-testid={testId}
+      id={id}
       onChange={(event) => onChange(event.currentTarget.value)}
       value={value}
     >
@@ -1355,25 +1597,28 @@ export function ConnectionSelect({
           {connectionOptionLabel(connection)}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   )
 }
 
 export function ProviderModelSelect({
+  id,
   models,
   onChange,
   testId,
   value,
 }: {
+  id?: string
   models: ProviderModelOption[]
   onChange(value: string): void
   testId?: string
   value: string
 }) {
   return (
-    <select
+    <NativeSelect
       data-testid={testId}
       disabled={models.length === 0}
+      id={id}
       onChange={(event) => onChange(event.currentTarget.value)}
       value={value}
     >
@@ -1385,7 +1630,7 @@ export function ProviderModelSelect({
           {model.model_id}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   )
 }
 
@@ -1395,56 +1640,63 @@ export function ProviderModelCatalogView({
   providerModels: ProviderModel[]
 }) {
   return (
-    <section className="runtime-section" aria-label="Provider model catalog">
-      <h3>Model catalog</h3>
-      <ul className="authoring-list">
-        {providerModels.length === 0 ? (
-          <li className="authoring-row authoring-row-static">
-            <span>No provider models loaded.</span>
-          </li>
-        ) : (
-          providerModels.map((model) => (
-            <li
-              className="authoring-row authoring-row-static"
+    <section aria-label="Provider model catalog" className="grid gap-3">
+      <h3 className="text-base font-semibold leading-none">Model catalog</h3>
+      {providerModels.length === 0 ? (
+        <EmptyState>No provider models loaded.</EmptyState>
+      ) : (
+        <DataList>
+          {providerModels.map((model) => (
+            <DataListItem
+              className="flex flex-wrap items-center justify-between gap-3"
               key={`${model.connection_id}-${model.model_id}`}
             >
-              <span>
-                <strong>{model.model_id}</strong>
-                <small>
+              <div className="grid gap-1">
+                <strong className="text-sm font-semibold">
+                  {model.model_id}
+                </strong>
+                <small className="text-xs text-muted-foreground">
                   {model.connection_id} / {model.capabilities.join(', ')}
                 </small>
-                {model.pricing ? <small>pricing metadata saved</small> : null}
-              </span>
-              <em>{model.pricing ? 'pricing' : 'metadata'}</em>
-            </li>
-          ))
-        )}
-      </ul>
+                {model.pricing ? (
+                  <small className="text-xs text-muted-foreground">
+                    pricing metadata saved
+                  </small>
+                ) : null}
+              </div>
+              <Badge tone={model.pricing ? 'primary' : 'neutral'}>
+                {model.pricing ? 'pricing' : 'metadata'}
+              </Badge>
+            </DataListItem>
+          ))}
+        </DataList>
+      )}
     </section>
   )
 }
 
 export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
   return (
-    <ul className="authoring-list" aria-label="Global runtime slots">
+    <DataList aria-label="Global runtime slots">
       {slots.length === 0 ? (
-        <li className="authoring-row authoring-row-static">
-          <span>No global slot defaults loaded.</span>
-        </li>
+        <DataListItem>No global slot defaults loaded.</DataListItem>
       ) : (
         slots.map((slot) => (
-          <li className="authoring-row authoring-row-static" key={slot.slot}>
-            <span>
-              <strong>{slot.slot}</strong>
-              <small>
+          <DataListItem
+            className="flex flex-wrap items-center justify-between gap-3"
+            key={slot.slot}
+          >
+            <div className="grid gap-1">
+              <strong className="text-sm font-semibold">{slot.slot}</strong>
+              <small className="text-xs text-muted-foreground">
                 {slot.connection_id} / {slot.model_id}
               </small>
-            </span>
-            <em>global</em>
-          </li>
+            </div>
+            <Badge tone="neutral">global</Badge>
+          </DataListItem>
         ))
       )}
-    </ul>
+    </DataList>
   )
 }
 
@@ -1456,73 +1708,80 @@ export function ProjectRuntimeSettingsView({
   settings: ProjectRuntimeSettings | null
 }) {
   if (settings === null) {
-    return <p className="empty-copy">No project runtime settings loaded.</p>
+    return <EmptyState>No project runtime settings loaded.</EmptyState>
   }
   return (
-    <div className="project-runtime-grid">
-      <section className="runtime-section">
-        <h3>Effective slots</h3>
-        <ul className="authoring-list">
+    <div className="grid gap-4 xl:grid-cols-3">
+      <section className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Effective slots</h3>
+        <DataList>
           {settings.slots.map((slot) => (
-            <li className="authoring-row authoring-row-static" key={slot.slot}>
-              <span>
-                <strong>{slot.slot}</strong>
-                <small>
+            <DataListItem className="grid gap-3" key={slot.slot}>
+              <div className="grid gap-1">
+                <strong className="text-sm font-semibold">{slot.slot}</strong>
+                <small className="text-xs text-muted-foreground">
                   {slot.connection_id} / {slot.model_id}
                 </small>
-              </span>
-              <div className="authoring-row-actions">
-                <em>{slot.source}</em>
+              </div>
+              <DataListItemActions>
+                <Badge tone="neutral">{slot.source}</Badge>
                 {slot.source === 'overridden' ? (
-                  <button
-                    className="compact-button"
+                  <Button
                     onClick={() => onResetProjectSlot(slot.slot)}
+                    size="sm"
                     type="button"
+                    variant="secondary"
                   >
                     Reset {slot.slot} to global
-                  </button>
+                  </Button>
                 ) : null}
-              </div>
-            </li>
+              </DataListItemActions>
+            </DataListItem>
           ))}
-        </ul>
+        </DataList>
       </section>
-      <section className="runtime-section">
-        <h3>Chat pool</h3>
-        <ul className="authoring-list">
+      <section className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Chat pool</h3>
+        <DataList>
           {settings.chat_models.map((model) => (
-            <li
-              className="authoring-row authoring-row-static"
+            <DataListItem
+              className="grid gap-3"
               key={`${model.connection_id}-${model.model_id}`}
             >
-              <span>
-                <strong>{model.model_id}</strong>
-                <small>{model.connection_id}</small>
-              </span>
-              <div className="authoring-row-actions">
-                <em>{model.source}</em>
-                <em>{model.is_default ? 'default' : 'enabled'}</em>
+              <div className="grid gap-1">
+                <strong className="text-sm font-semibold">
+                  {model.model_id}
+                </strong>
+                <small className="text-xs text-muted-foreground">
+                  {model.connection_id}
+                </small>
               </div>
-            </li>
+              <DataListItemActions>
+                <Badge tone="neutral">{model.source}</Badge>
+                <Badge tone={model.is_default ? 'primary' : 'neutral'}>
+                  {model.is_default ? 'default' : 'enabled'}
+                </Badge>
+              </DataListItemActions>
+            </DataListItem>
           ))}
-        </ul>
+        </DataList>
       </section>
-      <section className="runtime-section">
-        <h3>Chat retrieval</h3>
-        <ul className="authoring-list">
-          <li className="authoring-row authoring-row-static">
-            <span>
-              <strong>
+      <section className="grid gap-3">
+        <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
+        <DataList>
+          <DataListItem className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid gap-1">
+              <strong className="text-sm font-semibold">
                 limit {settings.chat_retrieval.retrieval_limit}
               </strong>
-              <small>
+              <small className="text-xs text-muted-foreground">
                 candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
                 {settings.chat_retrieval.rerank_enabled ? 'rerank on' : 'rerank off'}
               </small>
-            </span>
-            <em>{settings.chat_retrieval.source}</em>
-          </li>
-        </ul>
+            </div>
+            <Badge tone="neutral">{settings.chat_retrieval.source}</Badge>
+          </DataListItem>
+        </DataList>
       </section>
     </div>
   )

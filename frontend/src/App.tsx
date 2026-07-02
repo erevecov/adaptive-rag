@@ -2418,6 +2418,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onConnectionTypeChange={setConnectionType}
                 onCancelDeleteConnection={handleCancelDeleteConnection}
                 onCancelEditConnection={handleCancelEditConnection}
+                onActiveSubmoduleChange={setRuntimeSubmodule}
                 onCheckConnection={(connectionId) =>
                   void handleCheckProviderConnection(connectionId)
                 }

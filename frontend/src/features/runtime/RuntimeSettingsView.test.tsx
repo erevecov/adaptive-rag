@@ -18,6 +18,22 @@ import type {
 } from '@/lib/apiClient'
 import type { RuntimeSubmodule } from './runtimeUi'
 
+type NodeFsModule = {
+  readFileSync(path: string, encoding: 'utf8'): string
+}
+
+type NodeProcess = {
+  getBuiltinModule?(name: 'fs'): NodeFsModule
+}
+
+const appStyles =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process?.getBuiltinModule?.('fs').readFileSync('src/App.css', 'utf8') ??
+  ''
+
 afterEach(() => {
   cleanup()
 })
@@ -183,6 +199,7 @@ function renderRuntimeSettingsPanel(
     onGlobalSlotConnectionIdChange: vi.fn(),
     onGlobalSlotModelIdChange: vi.fn(),
     onModelSyncConnectionIdChange: vi.fn(),
+    onActiveSubmoduleChange: vi.fn(),
     onProjectChatRerankCandidateLimitChange: vi.fn(),
     onProjectChatRerankEnabledChange: vi.fn(),
     onProjectChatRetrievalLimitChange: vi.fn(),
@@ -277,6 +294,7 @@ function StatefulDeleteRuntimePanel({
       onGlobalSlotConnectionIdChange={vi.fn()}
       onGlobalSlotModelIdChange={vi.fn()}
       onModelSyncConnectionIdChange={vi.fn()}
+      onActiveSubmoduleChange={vi.fn()}
       onProjectChatRerankCandidateLimitChange={vi.fn()}
       onProjectChatRerankEnabledChange={vi.fn()}
       onProjectChatRetrievalLimitChange={vi.fn()}
@@ -338,6 +356,88 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
   })
 
+  test('renders accessible runtime submodule segmented controls', async () => {
+    const user = userEvent.setup()
+    const onActiveSubmoduleChange = vi.fn()
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      onActiveSubmoduleChange,
+    })
+
+    const runtimeNavigation = screen.getByRole('group', {
+      name: 'Runtime submodule navigation',
+    })
+    expect(
+      within(runtimeNavigation)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual([
+      'Connections',
+      'Model catalog',
+      'Global defaults',
+      'Project overrides',
+    ])
+    expect(
+      within(runtimeNavigation)
+        .getByRole('button', { name: 'Global defaults' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      within(runtimeNavigation)
+        .getByRole('button', { name: 'Connections' })
+        .getAttribute('aria-pressed'),
+    ).toBe('false')
+
+    await user.click(
+      within(runtimeNavigation).getByRole('button', {
+        name: 'Project overrides',
+      }),
+    )
+
+    expect(onActiveSubmoduleChange).toHaveBeenCalledWith('project_overrides')
+  })
+
+  test('keeps legacy global button CSS scoped away from UI primitives', () => {
+    expect(appStyles).toContain('button:not([data-slot]) {')
+    expect(appStyles).toContain('button:not([data-slot]):disabled {')
+    expect(appStyles).toContain(
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]),",
+    )
+    expect(appStyles).toContain(
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover,",
+    )
+    expect(appStyles).not.toMatch(/(^|\n)\s*button\s*\{/)
+    expect(appStyles).not.toMatch(/(^|\n)\s*button:disabled\s*\{/)
+    expect(appStyles).not.toMatch(
+      /:is\(\[data-theme='dark'\], \[data-theme='purple'\]\) button,/,
+    )
+    expect(appStyles).not.toMatch(
+      /:is\(\[data-theme='dark'\], \[data-theme='purple'\]\) button:hover,/,
+    )
+  })
+
+  test('wraps runtime panel headers with long status values', () => {
+    const longProjectId =
+      '11111111-1111-4111-8111-111111111111-project-with-long-runtime-id'
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'project_overrides',
+      projectId: longProjectId,
+    })
+
+    const statusBadge = screen.getByText(longProjectId)
+    const header = statusBadge.closest('[data-slot="panel-header"]')
+    const titleGroup = screen.getByRole('heading', {
+      level: 2,
+      name: 'Project overrides',
+    }).parentElement
+
+    expect(header?.className).toContain('flex-col')
+    expect(header?.className).toContain('sm:flex-row')
+    expect(titleGroup?.className).toContain('min-w-0')
+    expect(statusBadge.className).toContain('max-w-full')
+    expect(statusBadge.className).toContain('break-all')
+  })
+
   test('keeps connection form fields label-addressable without rendering secret connection controls', () => {
     renderRuntimeSettingsPanel()
 
@@ -362,11 +462,32 @@ describe('RuntimeSettingsPanel', () => {
 
     renderRuntimeSettingsPanel({ connectionCheckResults })
 
+    const feedback = screen.getByText(
+      'Connection check passed: 2 provider models reachable.',
+    )
+
+    expect(feedback.getAttribute('role')).toBe('status')
+    expect(feedback.getAttribute('aria-live')).toBe('polite')
+  })
+
+  test('keeps failed connection checks as alerts', () => {
+    const connectionCheckResults: Record<string, ProviderConnectionCheckResponse> =
+      {
+        'qwen-hosted': {
+          connection_id: 'qwen-hosted',
+          message: 'provider credentials rejected',
+          model_count: 0,
+          ok: false,
+        },
+      }
+
+    renderRuntimeSettingsPanel({ connectionCheckResults })
+
     expect(
-      screen.getByText(
-        'Connection check passed: 2 provider models reachable.',
-      ),
-    ).toBeTruthy()
+      screen
+        .getByText('Connection check failed: provider credentials rejected')
+        .getAttribute('role'),
+    ).toBe('alert')
   })
 
   test('enables delete confirmation only for the exact connection id', async () => {
