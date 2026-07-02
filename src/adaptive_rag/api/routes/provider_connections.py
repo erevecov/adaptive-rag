@@ -14,6 +14,7 @@ from adaptive_rag.api.dependencies import (
     get_superadmin_user,
 )
 from adaptive_rag.api.schemas.provider_connections import (
+    ProviderConnectionCheckResponse,
     ProviderConnectionListResponse,
     ProviderConnectionResponse,
     ProviderConnectionUpsertRequestBody,
@@ -74,7 +75,12 @@ def create_provider_connection(
             capabilities=body.capabilities,
             metadata=body.metadata,
         )
-    except ValueError as exc:
+        _upsert_inline_api_key(
+            repository=repository,
+            connection_id=connection.connection_id,
+            api_key=body.api_key,
+        )
+    except (ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
     return ProviderConnectionResponse.from_connection(
@@ -99,7 +105,12 @@ def upsert_provider_connection(
             capabilities=body.capabilities,
             metadata=body.metadata,
         )
-    except ValueError as exc:
+        _upsert_inline_api_key(
+            repository=repository,
+            connection_id=connection.connection_id,
+            api_key=body.api_key,
+        )
+    except (ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
     return ProviderConnectionResponse.from_connection(
@@ -174,6 +185,40 @@ def sync_provider_models(
     )
 
 
+@router.post(
+    "/connections/{connection_id}/check",
+    response_model=ProviderConnectionCheckResponse,
+)
+def check_provider_connection(
+    connection_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    lister: Annotated[ProviderModelLister, Depends(get_provider_model_lister)],
+    secret_store: Annotated[ProviderSecretStore, Depends(get_provider_secret_store)],
+) -> ProviderConnectionCheckResponse:
+    connection = session.get(ProviderConnection, connection_id)
+    if connection is None:
+        raise _http_error(ValueError("connection not found"))
+    try:
+        api_key = _api_key_for_sync(connection, session, secret_store)
+        discovered = lister.list_models(connection, api_key=api_key)
+    except (ProviderSecretDecryptError, ProviderSecretKeyError) as exc:
+        raise _http_error(exc) from exc
+    except ValueError as exc:
+        return ProviderConnectionCheckResponse(
+            connection_id=connection.connection_id,
+            ok=False,
+            model_count=0,
+            message=str(exc),
+        )
+
+    return ProviderConnectionCheckResponse(
+        connection_id=connection.connection_id,
+        ok=True,
+        model_count=len(discovered),
+        message="provider model list succeeded",
+    )
+
+
 @router.put(
     "/connections/{connection_id}/secrets/{secret_name}",
     response_model=ProviderSecretStatusResponse,
@@ -227,6 +272,23 @@ def _api_key_for_sync(
     if secret is None:
         return None
     return secret_store.decrypt(secret.encrypted_value)
+
+
+def _upsert_inline_api_key(
+    *,
+    repository: ProviderConnectionRepository,
+    connection_id: str,
+    api_key: str | None,
+) -> None:
+    if api_key is None:
+        return
+    secret_store = ProviderSecretStore.from_settings()
+    repository.upsert_secret(
+        connection_id=connection_id,
+        secret_name="api_key",
+        secret_value=api_key,
+        secret_store=secret_store,
+    )
 
 
 def _catalog_capabilities(

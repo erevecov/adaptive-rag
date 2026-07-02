@@ -797,11 +797,20 @@ describe('createApiClient', () => {
       updated_at: '2026-06-24T00:00:00Z',
     }
     const secretStatus = connection.secrets[0]
+    const checkResponse = {
+      connection_id: 'qwen-hosted',
+      message: 'provider model list succeeded',
+      model_count: 2,
+      ok: true,
+    }
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const fetchStub: typeof fetch = async (input, init) => {
       calls.push({ input, init })
       if (String(input).endsWith('/secrets/api_key')) {
         return jsonResponse(secretStatus)
+      }
+      if (String(input).endsWith('/connections/qwen-hosted/check')) {
+        return jsonResponse(checkResponse)
       }
       return jsonResponse(
         init?.method === 'GET' ? { items: [connection] } : connection,
@@ -825,10 +834,12 @@ describe('createApiClient', () => {
       'api_key',
       { value: 'sk-hosted-secret' },
     )
+    const checked = await client.checkProviderConnection('qwen-hosted')
 
     expect(listed.items[0].secrets[0].last_four).toBe('cret')
     expect(saved.provider).toBe('qwen')
     expect(secret.configured).toBe(true)
+    expect(checked).toEqual(checkResponse)
     expect(String(calls[0].input)).toBe('http://api.local/runtime-settings/connections')
     expect(String(calls[1].input)).toBe(
       'http://api.local/runtime-settings/connections/qwen-hosted',
@@ -848,6 +859,10 @@ describe('createApiClient', () => {
     )
     expect(calls[2].init?.method).toBe('PUT')
     expect(calls[2].init?.body).toBe(JSON.stringify({ value: 'sk-hosted-secret' }))
+    expect(String(calls[3].input)).toBe(
+      'http://api.local/runtime-settings/connections/qwen-hosted/check',
+    )
+    expect(calls[3].init?.method).toBe('POST')
   })
 
   test('creates provider connections and syncs provider model catalog', async () => {
@@ -894,6 +909,7 @@ describe('createApiClient', () => {
     })
 
     const created = await client.createProviderConnection({
+      api_key: 'sk-inline-secret',
       base_url: connection.base_url,
       capabilities: connection.capabilities,
       connection_type: connection.connection_type,
@@ -913,6 +929,16 @@ describe('createApiClient', () => {
       'http://api.local/runtime-settings/connections',
     )
     expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.body).toBe(
+      JSON.stringify({
+        api_key: 'sk-inline-secret',
+        base_url: connection.base_url,
+        capabilities: connection.capabilities,
+        connection_type: connection.connection_type,
+        metadata: connection.metadata,
+        provider: connection.provider,
+      }),
+    )
     expect(String(calls[1].input)).toBe(
       'http://api.local/runtime-settings/connections/qwen-hosted-abc123/models/sync',
     )
@@ -1109,6 +1135,34 @@ describe('createApiClient', () => {
       status: 404,
       detail: 'chat session not found',
       } satisfies Partial<ApiClientError>)
+  })
+
+  test('uses structured detail messages for API error text', async () => {
+    const { fetch } = createFetchStub(
+      jsonResponse(
+        {
+          detail: {
+            code: 'provider_model_sync_failed',
+            message: 'provider model list failed with status 401',
+          },
+        },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      ),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await expect(client.syncProviderModels('qwen-hosted')).rejects.toMatchObject({
+      detail: {
+        code: 'provider_model_sync_failed',
+        message: 'provider model list failed with status 401',
+      },
+      message: 'provider model list failed with status 401',
+      name: 'ApiClientError',
+      status: 422,
+    } satisfies Partial<ApiClientError>)
   })
 
   test('streams chat SSE events and resolves the final response', async () => {
