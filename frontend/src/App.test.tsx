@@ -959,6 +959,9 @@ describe('App chat workspace', () => {
     expect(within(settingsNavigation).getByRole('button', { name: 'Observability' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Runtime' })).toBeTruthy()
     expect(screen.queryByRole('tablist', { name: 'Settings sections' })).toBeNull()
+    const settingsShell = document.querySelector('.settings-shell') as HTMLElement
+    expect(within(settingsShell).getByRole('heading', { name: 'Settings' })).toBeTruthy()
+    expect(document.querySelector('.settings-shell-header .panel-label')).toBeNull()
   })
 
   test('routes settings sidebar submodules to focused content', async () => {
@@ -1006,7 +1009,7 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
   })
 
-  test('switches runtime submodules from the content segmented control', async () => {
+  test('uses only sidebar navigation for runtime submodules', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
       listProviderConnections: vi.fn(async () => providerConnectionsResponse),
@@ -1017,28 +1020,63 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
 
-    const runtimeNavigation = screen.getByRole('group', {
-      name: 'Runtime submodule navigation',
+    expect(
+      screen.queryByRole('group', {
+        name: 'Runtime submodule navigation',
+      }),
+    ).toBeNull()
+
+    const settingsNavigation = screen.getByRole('navigation', {
+      name: 'Settings navigation',
     })
     expect(
-      within(runtimeNavigation)
+      within(settingsNavigation)
         .getByRole('button', { name: 'Connections' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
 
     await user.click(
-      within(runtimeNavigation).getByRole('button', {
+      within(settingsNavigation).getByRole('button', {
         name: 'Model catalog',
       }),
     )
 
     expect(
-      within(runtimeNavigation)
+      within(settingsNavigation)
         .getByRole('button', { name: 'Model catalog' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
     expect(
       screen.getByRole('heading', { level: 2, name: 'Model catalog' }),
+    ).toBeTruthy()
+  })
+
+  test('does not render duplicated runtime submodule navigation in content', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      listProviderConnections: vi.fn(async () => providerConnectionsResponse),
+      listProviderModels: vi.fn(async () => providerModelsResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+
+    const settingsNavigation = screen.getByRole('navigation', {
+      name: 'Settings navigation',
+    })
+    expect(
+      within(settingsNavigation)
+        .getByRole('button', { name: 'Project overrides' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen.queryByRole('group', {
+      name: 'Runtime submodule navigation',
+      }),
+    ).toBeNull()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Project overrides' }),
     ).toBeTruthy()
   })
 

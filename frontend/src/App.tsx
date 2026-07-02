@@ -2418,7 +2418,6 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onConnectionTypeChange={setConnectionType}
                 onCancelDeleteConnection={handleCancelDeleteConnection}
                 onCancelEditConnection={handleCancelEditConnection}
-                onActiveSubmoduleChange={setRuntimeSubmodule}
                 onCheckConnection={(connectionId) =>
                   void handleCheckProviderConnection(connectionId)
                 }
@@ -3138,7 +3137,6 @@ function SettingsPanel({ children }: { children: ReactNode }) {
     <section className="settings-shell" aria-labelledby="settings-title">
       <header className="settings-shell-header">
         <div>
-          <p className="panel-label">Settings</p>
           <h2 id="settings-title">Settings</h2>
         </div>
       </header>

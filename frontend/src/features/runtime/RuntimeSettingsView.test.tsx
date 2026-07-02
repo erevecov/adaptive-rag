@@ -199,7 +199,6 @@ function renderRuntimeSettingsPanel(
     onGlobalSlotConnectionIdChange: vi.fn(),
     onGlobalSlotModelIdChange: vi.fn(),
     onModelSyncConnectionIdChange: vi.fn(),
-    onActiveSubmoduleChange: vi.fn(),
     onProjectChatRerankCandidateLimitChange: vi.fn(),
     onProjectChatRerankEnabledChange: vi.fn(),
     onProjectChatRetrievalLimitChange: vi.fn(),
@@ -294,7 +293,6 @@ function StatefulDeleteRuntimePanel({
       onGlobalSlotConnectionIdChange={vi.fn()}
       onGlobalSlotModelIdChange={vi.fn()}
       onModelSyncConnectionIdChange={vi.fn()}
-      onActiveSubmoduleChange={vi.fn()}
       onProjectChatRerankCandidateLimitChange={vi.fn()}
       onProjectChatRerankEnabledChange={vi.fn()}
       onProjectChatRetrievalLimitChange={vi.fn()}
@@ -356,45 +354,16 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
   })
 
-  test('renders accessible runtime submodule segmented controls', async () => {
-    const user = userEvent.setup()
-    const onActiveSubmoduleChange = vi.fn()
+  test('does not render runtime submodule segmented controls in the content panel', () => {
     renderRuntimeSettingsPanel({
       activeSubmodule: 'global_defaults',
-      onActiveSubmoduleChange,
     })
 
-    const runtimeNavigation = screen.getByRole('group', {
-      name: 'Runtime submodule navigation',
-    })
     expect(
-      within(runtimeNavigation)
-        .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual([
-      'Connections',
-      'Model catalog',
-      'Global defaults',
-      'Project overrides',
-    ])
-    expect(
-      within(runtimeNavigation)
-        .getByRole('button', { name: 'Global defaults' })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(
-      within(runtimeNavigation)
-        .getByRole('button', { name: 'Connections' })
-        .getAttribute('aria-pressed'),
-    ).toBe('false')
-
-    await user.click(
-      within(runtimeNavigation).getByRole('button', {
-        name: 'Project overrides',
+      screen.queryByRole('group', {
+        name: 'Runtime submodule navigation',
       }),
-    )
-
-    expect(onActiveSubmoduleChange).toHaveBeenCalledWith('project_overrides')
+    ).toBeNull()
   })
 
   test('keeps legacy global button CSS scoped away from UI primitives', () => {

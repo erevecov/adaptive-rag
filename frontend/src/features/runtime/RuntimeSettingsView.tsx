@@ -14,7 +14,6 @@ import { DataList, DataListItem, DataListItemActions } from '@/components/ui/dat
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldError, FieldHelp, FieldLabel } from '@/components/ui/field'
 import { Panel, PanelBody, PanelDescription, PanelHeader } from '@/components/ui/panel'
-import { SegmentedControl, SegmentedControlItem } from '@/components/ui/tabs'
 import type {
   ChatModel,
   ChatRetrievalSettings,
@@ -38,16 +37,6 @@ import {
   type RequestState,
   type RuntimeSubmodule,
 } from './runtimeUi'
-
-const RUNTIME_SUBMODULES: Array<{
-  label: string
-  value: RuntimeSubmodule
-}> = [
-  { label: 'Connections', value: 'connections' },
-  { label: 'Model catalog', value: 'model_catalog' },
-  { label: 'Global defaults', value: 'global_defaults' },
-  { label: 'Project overrides', value: 'project_overrides' },
-]
 
 export type RuntimeSettingsPanelProps = {
   activeSubmodule: RuntimeSubmodule
@@ -83,7 +72,6 @@ export type RuntimeSettingsPanelProps = {
   onCancelDeleteConnection(): void
   onCancelEditConnection(): void
   onCheckConnection(connectionId: string): void
-  onActiveSubmoduleChange(value: RuntimeSubmodule): void
   onDeleteConnection(event: FormEvent<HTMLFormElement>): void
   onDeleteConnectionConfirmationChange(value: string): void
   onGlobalChatRerankCandidateLimitChange(value: number): void
@@ -161,7 +149,6 @@ export function RuntimeSettingsPanel({
   onCancelDeleteConnection,
   onCancelEditConnection,
   onCheckConnection,
-  onActiveSubmoduleChange,
   onDeleteConnection,
   onDeleteConnectionConfirmationChange,
   onGlobalChatRerankCandidateLimitChange,
@@ -351,38 +338,9 @@ export function RuntimeSettingsPanel({
 
   return (
     <div className="grid gap-4">
-      <RuntimeSubmoduleNavigation
-        activeSubmodule={activeSubmodule}
-        onActiveSubmoduleChange={onActiveSubmoduleChange}
-      />
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
       {activePanel}
     </div>
-  )
-}
-
-function RuntimeSubmoduleNavigation({
-  activeSubmodule,
-  onActiveSubmoduleChange,
-}: {
-  activeSubmodule: RuntimeSubmodule
-  onActiveSubmoduleChange(value: RuntimeSubmodule): void
-}) {
-  return (
-    <SegmentedControl
-      aria-label="Runtime submodule navigation"
-      className="flex w-full flex-wrap"
-    >
-      {RUNTIME_SUBMODULES.map((submodule) => (
-        <SegmentedControlItem
-          active={submodule.value === activeSubmodule}
-          key={submodule.value}
-          onClick={() => onActiveSubmoduleChange(submodule.value)}
-        >
-          {submodule.label}
-        </SegmentedControlItem>
-      ))}
-    </SegmentedControl>
   )
 }
 
