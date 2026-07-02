@@ -48,15 +48,66 @@ export type IconButtonProps = Omit<
 
 const fixedIconSizingClassPattern =
   /^(?:size|w|h|min-w|min-h|max-w|max-h|p|px|py|pt|pr|pb|pl)-/
+const fixedIconSizingProperties = new Set([
+  'block-size',
+  'height',
+  'inline-size',
+  'max-block-size',
+  'max-height',
+  'max-inline-size',
+  'max-width',
+  'min-block-size',
+  'min-height',
+  'min-inline-size',
+  'min-width',
+  'padding',
+  'padding-block',
+  'padding-bottom',
+  'padding-inline',
+  'padding-left',
+  'padding-right',
+  'padding-top',
+  'width',
+])
+
+function iconUtilityToken(token: string): string {
+  let bracketDepth = 0
+  let utilityStart = 0
+
+  for (let index = 0; index < token.length; index += 1) {
+    const character = token[index]
+
+    if (character === '[') {
+      bracketDepth += 1
+    } else if (character === ']') {
+      bracketDepth = Math.max(0, bracketDepth - 1)
+    } else if (character === ':' && bracketDepth === 0) {
+      utilityStart = index + 1
+    }
+  }
+
+  return token.slice(utilityStart).replace(/^!/, '')
+}
+
+function isIconSizingClass(token: string): boolean {
+  const utility = iconUtilityToken(token)
+
+  if (fixedIconSizingClassPattern.test(utility)) {
+    return true
+  }
+
+  const arbitraryProperty = utility.match(/^\[([a-z-]+):/i)
+  return (
+    arbitraryProperty !== null &&
+    fixedIconSizingProperties.has(arbitraryProperty[1].toLowerCase())
+  )
+}
 
 function withoutIconSizingClasses(className?: string): string | undefined {
   const sanitizedClassName = className
     ?.split(/\s+/)
     .filter(Boolean)
-    .filter((token) => {
-      const utility = token.split(':').pop()?.replace(/^!/, '')
-      return utility === undefined || !fixedIconSizingClassPattern.test(utility)
-    })
+    .filter((token) => !isIconSizingClass(token))
     .join(' ')
 
   return sanitizedClassName === '' ? undefined : sanitizedClassName

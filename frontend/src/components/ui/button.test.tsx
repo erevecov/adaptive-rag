@@ -61,7 +61,7 @@ describe('IconButton', () => {
         <span id="hostile-label">Wrong menu label</span>
         <IconButton
           {...callerProps}
-          className="size-12 p-4 min-h-12 min-w-12 rounded-full shadow-sm"
+          className="size-12 p-4 min-h-12 min-w-12 [width:3rem] [height:3rem] [padding:1rem] [inline-size:3rem] hover:[width:3rem] rounded-full shadow-sm"
           label="Open menu"
         >
           <span aria-hidden="true">M</span>
@@ -84,6 +84,11 @@ describe('IconButton', () => {
     expect(tokens).not.toContain('p-4')
     expect(tokens).not.toContain('min-h-12')
     expect(tokens).not.toContain('min-w-12')
+    expect(tokens).not.toContain('[width:3rem]')
+    expect(tokens).not.toContain('[height:3rem]')
+    expect(tokens).not.toContain('[padding:1rem]')
+    expect(tokens).not.toContain('[inline-size:3rem]')
+    expect(tokens).not.toContain('hover:[width:3rem]')
     expect(tokens).not.toContain('px-3')
   })
 
