@@ -8,7 +8,9 @@
 } from 'react'
 import './App.css'
 import { IconButton } from '@/components/ui/button'
+import { StatusBadge } from '@/components/ui/badge'
 import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
+import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
 import {
@@ -3025,13 +3027,27 @@ function SidebarProjectSelector({
 
 function SettingsPanel({ children }: { children: ReactNode }) {
   return (
-    <section className="settings-shell" aria-labelledby="settings-title">
-      <header className="settings-shell-header">
+    <section
+      className="grid gap-4"
+      data-slot="settings-shell"
+      aria-labelledby="settings-title"
+    >
+      <header
+        className="flex items-end justify-between"
+        data-slot="settings-shell-header"
+      >
         <div>
-          <h2 id="settings-title">Settings</h2>
+          <h2
+            className="text-xl font-semibold leading-tight text-foreground"
+            id="settings-title"
+          >
+            Settings
+          </h2>
         </div>
       </header>
-      <div className="settings-section-body">{children}</div>
+      <div className="grid min-w-0 gap-4" data-slot="settings-section-body">
+        {children}
+      </div>
     </section>
   )
 }
@@ -3044,29 +3060,42 @@ function AppearanceSettingsPanel({
   theme: Theme
 }) {
   return (
-    <section
-      className="panel settings-panel"
+    <Panel
+      role="region"
       aria-labelledby="appearance-settings-title"
+      className="grid gap-6 p-6"
     >
-      <header className="settings-header">
-        <div>
-          <p className="panel-label">My account</p>
-          <h2 id="appearance-settings-title">Appearance</h2>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+            My account
+          </p>
+          <h2
+            className="text-xl font-semibold leading-tight text-foreground"
+            id="appearance-settings-title"
+          >
+            Appearance
+          </h2>
         </div>
-        <span className="status">{theme}</span>
+        <StatusBadge className="w-fit uppercase">{theme}</StatusBadge>
       </header>
 
-      <p className="settings-description">Choose the interface palette.</p>
+      <PanelDescription>Choose the interface palette.</PanelDescription>
 
-      <div className="theme-option-grid">
+      <div className="grid gap-3 sm:grid-cols-3">
         {THEMES.map((option) => {
           const active = option.id === theme
           return (
             <button
               aria-pressed={active}
-              className={
-                active ? 'theme-option theme-option-active' : 'theme-option'
-              }
+              className={[
+                'grid w-full min-w-0 gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground transition-colors',
+                'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                active ? 'border-primary bg-primary/10' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              data-state={active ? 'active' : 'inactive'}
               data-slot="theme-option"
               key={option.id}
               onClick={() => onThemeChange(option.id)}
@@ -3074,30 +3103,37 @@ function AppearanceSettingsPanel({
             >
               <span
                 aria-hidden="true"
-                className="theme-swatch"
+                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3"
+                data-slot="theme-swatch"
                 style={{ background: option.swatch.bg }}
               >
                 <span
-                  className="theme-swatch-line theme-swatch-line-strong"
+                  className="block h-2 rounded-full"
+                  data-slot="theme-swatch-line-strong"
                   style={{ background: option.swatch.fg }}
                 />
                 <span
-                  className="theme-swatch-line theme-swatch-line-muted"
+                  className="block h-2 w-3/4 rounded-full"
+                  data-slot="theme-swatch-line-muted"
                   style={{ background: option.swatch.muted }}
                 />
                 <span
-                  className="theme-swatch-accent"
+                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full"
+                  data-slot="theme-swatch-accent"
                   style={{ background: option.swatch.accent }}
                 />
               </span>
-              <span className="theme-option-copy">
-                <span className="theme-option-title">
+              <span className="grid gap-1">
+                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground">
                   {option.label}
                   {active ? (
-                    <span className="theme-option-check" aria-hidden="true" />
+                    <span
+                      className="inline-block size-2.5 rounded-full bg-primary"
+                      aria-hidden="true"
+                    />
                   ) : null}
                 </span>
-                <span className="theme-option-description">
+                <span className="text-xs leading-relaxed text-muted-foreground">
                   {option.description}
                 </span>
               </span>
@@ -3105,24 +3141,35 @@ function AppearanceSettingsPanel({
           )
         })}
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function DeferredAccountModulePanel({ moduleName }: { moduleName: string }) {
   return (
-    <section className="panel settings-panel" aria-labelledby="deferred-account-title">
-      <header className="settings-header">
-        <div>
-          <p className="panel-label">My account</p>
-          <h2 id="deferred-account-title">{moduleName}</h2>
+    <Panel
+      role="region"
+      className="grid gap-4 p-6"
+      aria-labelledby="deferred-account-title"
+    >
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+            My account
+          </p>
+          <h2
+            className="text-xl font-semibold leading-tight text-foreground"
+            id="deferred-account-title"
+          >
+            {moduleName}
+          </h2>
         </div>
-        <span className="status">Deferred</span>
+        <StatusBadge className="w-fit">Deferred</StatusBadge>
       </header>
-      <p className="settings-description">
+      <PanelDescription>
         This module is not available until a durable backend contract exists.
-      </p>
-    </section>
+      </PanelDescription>
+    </Panel>
   )
 }
 
