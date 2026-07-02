@@ -46,6 +46,22 @@ export type IconButtonProps = Omit<
   title?: never
 }
 
+const fixedIconSizingClassPattern =
+  /^(?:size|w|h|min-w|min-h|max-w|max-h|p|px|py|pt|pr|pb|pl)-/
+
+function withoutIconSizingClasses(className?: string): string | undefined {
+  const sanitizedClassName = className
+    ?.split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => {
+      const utility = token.split(':').pop()?.replace(/^!/, '')
+      return utility === undefined || !fixedIconSizingClassPattern.test(utility)
+    })
+    .join(' ')
+
+  return sanitizedClassName === '' ? undefined : sanitizedClassName
+}
+
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (
     {
@@ -72,7 +88,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     return (
       <button
-        className={cn(className, buttonVariants({ size: 'icon', variant }))}
+        className={cn(
+          withoutIconSizingClasses(className),
+          buttonVariants({ size: 'icon', variant }),
+        )}
         ref={ref}
         type={type}
         {...buttonProps}
