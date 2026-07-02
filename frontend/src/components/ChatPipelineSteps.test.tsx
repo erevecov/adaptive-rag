@@ -126,4 +126,39 @@ describe('ChatPipelineSteps', () => {
     expect(within(stepper).getByText('$0.0012')).toBeTruthy()
     expect(within(stepper).getByText('144 tokens')).toBeTruthy()
   })
+
+  test('uses tokenized slots instead of legacy pipeline classes', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <ChatPipelineSteps
+        isStreaming={false}
+        sourceCount={1}
+        steps={[
+          {
+            detail: { sources: 1 },
+            elapsed_ms: 900,
+            id: 'retrieval',
+            status: 'done',
+          },
+        ]}
+      />,
+    )
+
+    const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
+    expect(stepper.getAttribute('data-slot')).toBe('chat-pipeline-steps')
+
+    await user.click(
+      within(stepper).getByRole('button', {
+        name: 'Expand chat steps, 900 ms, 1 source',
+      }),
+    )
+
+    expect(container.querySelector('.chat-pipeline-steps')).toBeNull()
+    expect(container.querySelector('.pipeline-summary-button')).toBeNull()
+    expect(container.querySelector('.pipeline-step-list')).toBeNull()
+    expect(container.querySelector('.pipeline-step-row')).toBeNull()
+    expect(container.querySelector('.pipeline-detail-chip')).toBeNull()
+    expect(container.querySelector('[data-slot="chat-pipeline-step-list"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="chat-pipeline-step-row"]')).toBeTruthy()
+  })
 })

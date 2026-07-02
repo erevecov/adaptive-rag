@@ -370,10 +370,10 @@ describe('RuntimeSettingsPanel', () => {
     expect(appStyles).toContain('button:not([data-slot]) {')
     expect(appStyles).toContain('button:not([data-slot]):disabled {')
     expect(appStyles).toContain(
-      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]),",
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]) {",
     )
     expect(appStyles).toContain(
-      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover,",
+      ":is([data-theme='dark'], [data-theme='purple']) button:not([data-slot]):hover {",
     )
     expect(appStyles).not.toMatch(/(^|\n)\s*button\s*\{/)
     expect(appStyles).not.toMatch(/(^|\n)\s*button:disabled\s*\{/)

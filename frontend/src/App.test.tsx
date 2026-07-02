@@ -2239,8 +2239,9 @@ describe('App chat workspace', () => {
     expect(
       screen
         .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
-        .closest('.session-row')?.className,
-    ).toContain('session-row-selected')
+        .closest('[data-slot="data-list-item"]')
+        ?.getAttribute('data-selected'),
+    ).toBe('')
   })
 
   test('keeps chat retrieval quantity controls in runtime settings instead of the composer', async () => {
@@ -2289,9 +2290,11 @@ describe('App chat workspace', () => {
     const sessionButton = await screen.findByRole('button', {
       name: 'Abrir sesiÃ³n Start a fresh session',
     })
-    expect(sessionButton.closest('.session-row')?.className).toContain(
-      'session-row-selected',
-    )
+    expect(
+      sessionButton
+        .closest('[data-slot="data-list-item"]')
+        ?.getAttribute('data-selected'),
+    ).toBe('')
 
     await act(async () => {
       finalResponse.resolve({ ...chatResponse, session_id: 'session-stream' })
@@ -2364,7 +2367,7 @@ describe('App chat workspace', () => {
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
-    expect(prompt.closest('.chat-question-sticky')).toBeTruthy()
+    expect(prompt.closest('[data-slot="chat-question-sticky"]')).toBeTruthy()
 
     await user.click(prompt)
 
@@ -2835,10 +2838,9 @@ describe('App chat workspace', () => {
     expect(
       screen
         .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
-        .closest('.session-row')?.className,
-    ).not.toContain(
-      'session-row-selected',
-    )
+        .closest('[data-slot="data-list-item"]')
+        ?.hasAttribute('data-selected'),
+    ).toBe(false)
     expect(screen.getByText('No response yet.')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       '',
