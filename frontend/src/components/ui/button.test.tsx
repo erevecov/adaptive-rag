@@ -44,6 +44,51 @@ describe('Button', () => {
 })
 
 describe('IconButton', () => {
+  const hostileIconSizingClasses = [
+    'size-12',
+    'w-12',
+    'h-12',
+    'p-4',
+    'px-4',
+    'py-4',
+    'pt-4',
+    'pr-4',
+    'pb-4',
+    'pl-4',
+    'ps-4',
+    'pe-4',
+    'min-h-12',
+    'min-w-12',
+    'max-h-12',
+    'max-w-12',
+    '[width:3rem]',
+    '[height:3rem]',
+    '[min-width:3rem]',
+    '[min-height:3rem]',
+    '[max-width:3rem]',
+    '[max-height:3rem]',
+    '[inline-size:3rem]',
+    '[block-size:3rem]',
+    '[min-inline-size:3rem]',
+    '[min-block-size:3rem]',
+    '[max-inline-size:3rem]',
+    '[max-block-size:3rem]',
+    '[padding:1rem]',
+    '[padding-inline:1rem]',
+    '[padding-block:1rem]',
+    '[padding-top:1rem]',
+    '[padding-right:1rem]',
+    '[padding-bottom:1rem]',
+    '[padding-left:1rem]',
+    'hover:[width:3rem]',
+    'hover:ps-4',
+    'hover:pe-4',
+    'hover:[padding-inline-start:1rem]',
+    '[padding-inline-end:1rem]',
+    '[padding-block-start:1rem]',
+    '[padding-block-end:1rem]',
+  ]
+
   test('uses the provided label as the accessible name and marks its slot', () => {
     const callerProps = {
       'aria-label': 'Wrong label',
@@ -61,7 +106,7 @@ describe('IconButton', () => {
         <span id="hostile-label">Wrong menu label</span>
         <IconButton
           {...callerProps}
-          className="size-12 p-4 ps-4 pe-4 min-h-12 min-w-12 [width:3rem] [height:3rem] [padding:1rem] [inline-size:3rem] hover:[width:3rem] hover:ps-4 hover:pe-4 hover:[padding-inline-start:1rem] [padding-inline-end:1rem] [padding-block-start:1rem] [padding-block-end:1rem] rounded-full shadow-sm"
+          className={`${hostileIconSizingClasses.join(' ')} rounded-full shadow-sm`}
           label="Open menu"
         >
           <span aria-hidden="true">M</span>
@@ -80,23 +125,9 @@ describe('IconButton', () => {
     expect(tokens).toContain('p-0')
     expect(tokens).toContain('rounded-full')
     expect(tokens).toContain('shadow-sm')
-    expect(tokens).not.toContain('size-12')
-    expect(tokens).not.toContain('p-4')
-    expect(tokens).not.toContain('ps-4')
-    expect(tokens).not.toContain('pe-4')
-    expect(tokens).not.toContain('min-h-12')
-    expect(tokens).not.toContain('min-w-12')
-    expect(tokens).not.toContain('[width:3rem]')
-    expect(tokens).not.toContain('[height:3rem]')
-    expect(tokens).not.toContain('[padding:1rem]')
-    expect(tokens).not.toContain('[inline-size:3rem]')
-    expect(tokens).not.toContain('hover:[width:3rem]')
-    expect(tokens).not.toContain('hover:ps-4')
-    expect(tokens).not.toContain('hover:pe-4')
-    expect(tokens).not.toContain('hover:[padding-inline-start:1rem]')
-    expect(tokens).not.toContain('[padding-inline-end:1rem]')
-    expect(tokens).not.toContain('[padding-block-start:1rem]')
-    expect(tokens).not.toContain('[padding-block-end:1rem]')
+    for (const hostileClass of hostileIconSizingClasses) {
+      expect(tokens).not.toContain(hostileClass)
+    }
     expect(tokens).not.toContain('px-3')
   })
 
