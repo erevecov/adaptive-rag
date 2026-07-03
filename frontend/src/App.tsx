@@ -2206,8 +2206,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             {isRightDockOverlay ? (
               <div
                 aria-hidden="true"
-                className="workspace-inspector-backdrop fixed inset-0 z-[60] cursor-pointer border-0 bg-[var(--overlay-backdrop)] p-0"
-                data-testid="workspace-inspector-backdrop"
+                className="fixed inset-0 z-[60] cursor-pointer border-0 bg-[var(--overlay-backdrop)] p-0"
+                data-slot="inspector-backdrop"
+                data-testid="inspector-backdrop"
                 onClick={() => setIsRightDockOpen(false)}
               />
             ) : null}
