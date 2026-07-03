@@ -1,9 +1,9 @@
 import { type CSSProperties, type ReactNode, useMemo, useState } from 'react'
-import * as Popover from '@radix-ui/react-popover'
 
 import { IconButton } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
 import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
+import * as Popover from '@/components/ui/popover'
 import { SessionNavigationPanel } from '@/features/history/HistoryInspectorView'
 import { type RuntimeSubmodule } from '@/features/runtime/runtimeUi'
 import {

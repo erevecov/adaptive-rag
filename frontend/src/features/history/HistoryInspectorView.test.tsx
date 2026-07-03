@@ -14,6 +14,7 @@ import {
   SessionNavigationPanel,
   WorkspaceInspectorPanel,
 } from './HistoryInspectorView'
+import historySource from './HistoryInspectorView.tsx?raw'
 
 afterEach(() => {
   cleanup()
@@ -228,6 +229,11 @@ describe('SessionNavigationPanel', () => {
     )
     expect(screen.getByRole('menuitem', { name: 'renombrar' })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
+  })
+
+  test('uses the shared DropdownMenu wrapper for session actions', () => {
+    expect(historySource).toContain('@/components/ui/dropdown-menu')
+    expect(historySource).not.toContain('@radix-ui/react-dropdown-menu')
   })
 })
 

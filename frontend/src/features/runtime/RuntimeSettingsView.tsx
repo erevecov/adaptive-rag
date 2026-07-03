@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import * as Popover from '@radix-ui/react-popover'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +13,7 @@ import { DataList, DataListItem, DataListItemActions } from '@/components/ui/dat
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldError, FieldHelp, FieldLabel } from '@/components/ui/field'
 import { Panel, PanelBody, PanelDescription, PanelHeader } from '@/components/ui/panel'
+import * as Popover from '@/components/ui/popover'
 import { Select } from '@/components/ui/select'
 import type {
   ChatModel,
