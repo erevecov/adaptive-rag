@@ -473,7 +473,8 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('delegates capability popover dismissal to Radix primitives', () => {
-    expect(runtimeSource).toContain("@radix-ui/react-popover")
+    expect(runtimeSource).toContain('@/components/ui/popover')
+    expect(runtimeSource).not.toContain('@radix-ui/react-popover')
     expect(runtimeSource).not.toContain('document.addEventListener')
     expect(runtimeSource).not.toContain('document.removeEventListener')
   })

@@ -2099,6 +2099,11 @@ describe('App chat workspace', () => {
     expect(appSource).not.toMatch(/function WorkspaceTopline\b/)
   })
 
+  test('uses the shared Popover wrapper for shell project selection', () => {
+    expect(shellSource).toContain('@/components/ui/popover')
+    expect(shellSource).not.toContain('@radix-ui/react-popover')
+  })
+
   test('keeps workspace shell layout out of App.css legacy selectors', () => {
     for (const selector of [
       '.app-shell',
