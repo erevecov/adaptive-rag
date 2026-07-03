@@ -289,8 +289,8 @@ export function WorkspaceInspectorPanel({
       aria-label="Workspace inspector"
       className={
         layout === 'inline'
-          ? 'workspace-inspector-inline grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed inset-y-0 right-0 z-40 grid w-[min(420px,calc(100vw-24px))] min-h-0 gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-xl'
+          ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
       }
       role="complementary"
     >

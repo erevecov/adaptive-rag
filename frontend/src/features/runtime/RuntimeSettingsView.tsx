@@ -2,18 +2,19 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
-  useEffect,
   useRef,
   useState,
 } from 'react'
+import * as Popover from '@radix-ui/react-popover'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input, NativeSelect } from '@/components/ui/control'
+import { Input } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldError, FieldHelp, FieldLabel } from '@/components/ui/field'
 import { Panel, PanelBody, PanelDescription, PanelHeader } from '@/components/ui/panel'
+import { Select } from '@/components/ui/select'
 import type {
   ChatModel,
   ChatRetrievalSettings,
@@ -644,19 +645,19 @@ export function RuntimeConnectionsPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
-                onChange={(event) =>
-                  onConnectionProviderChange(event.currentTarget.value)
-                }
+                onValueChange={onConnectionProviderChange}
+                options={[
+                  { label: 'qwen', value: 'qwen' },
+                  {
+                    label: 'local_openai_compatible',
+                    value: 'local_openai_compatible',
+                  },
+                  { label: 'fake', value: 'fake' },
+                ]}
                 value={connectionProvider}
-              >
-                <option value="qwen">qwen</option>
-                <option value="local_openai_compatible">
-                  local_openai_compatible
-                </option>
-                <option value="fake">fake</option>
-              </NativeSelect>
+              />
             )}
           </RuntimeField>
           <RuntimeField
@@ -664,17 +665,16 @@ export function RuntimeConnectionsPanel({
             label="Connection type"
           >
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
-                onChange={(event) =>
-                  onConnectionTypeChange(event.currentTarget.value)
-                }
+                onValueChange={onConnectionTypeChange}
+                options={[
+                  { label: 'hosted', value: 'hosted' },
+                  { label: 'local', value: 'local' },
+                  { label: 'fake', value: 'fake' },
+                ]}
                 value={connectionType}
-              >
-                <option value="hosted">hosted</option>
-                <option value="local">local</option>
-                <option value="fake">fake</option>
-              </NativeSelect>
+              />
             )}
           </RuntimeField>
           <RuntimeField id="runtime-connection-base-url" label="Base URL">
@@ -741,7 +741,6 @@ export function CapabilitySelector({
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const rootRef = useRef<HTMLDivElement | null>(null)
   const selected = new Set(value)
   const normalizedQuery = query.trim().toLowerCase()
   const filteredOptions = options.filter((capability) => {
@@ -753,27 +752,6 @@ export function CapabilitySelector({
     }
     return capability.toLowerCase().includes(normalizedQuery)
   })
-
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (
-        rootRef.current !== null &&
-        event.target instanceof Node &&
-        !rootRef.current.contains(event.target)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-    }
-  }, [isOpen])
 
   function toggleCapability(capability: string) {
     if (selected.has(capability)) {
@@ -802,88 +780,99 @@ export function CapabilitySelector({
   }
 
   return (
-    <div className="relative" ref={rootRef}>
-      <div
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
-        aria-labelledby={labelledBy}
-        className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background"
-        onClick={() => {
-          setIsOpen(true)
-          inputRef.current?.focus()
-        }}
-        role="combobox"
-      >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-          {value.map((capability) => (
-            <Badge className="gap-1 pr-1" key={capability} tone="primary">
-              <span>{capability}</span>
-              <Button
-                aria-label={`Remove ${capability} capability`}
-                className="h-5 px-1 text-xs"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  toggleCapability(capability)
-                  inputRef.current?.focus()
-                }}
-                size="sm"
-                variant="ghost"
-              >
-                x
-              </Button>
-            </Badge>
-          ))}
-          <Input
-            aria-label="Filter capabilities"
-            autoComplete="off"
-            className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            onChange={(event) => {
-              setQuery(event.currentTarget.value)
+    <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+      <div className="relative" data-slot="capability-selector">
+        <Popover.Trigger asChild>
+          <div
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
+            aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
+            aria-labelledby={labelledBy}
+            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
+            onClick={() => {
               setIsOpen(true)
+              inputRef.current?.focus()
             }}
-            onFocus={() => setIsOpen(true)}
-            onKeyDown={handleFilterKeyDown}
-            placeholder={value.length === 0 ? 'Select capabilities' : ''}
-            ref={inputRef}
-            value={query}
-          />
-        </div>
-        <span aria-hidden="true" className="text-muted-foreground">
-          v
-        </span>
-      </div>
-      {isOpen ? (
-        <div
-          aria-label="Capability options"
-          className="absolute z-20 mt-1 grid max-h-60 w-full gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
-          role="listbox"
-        >
-          {filteredOptions.length === 0 ? (
-            <EmptyState className="p-3 text-left">
-              No capabilities found
-            </EmptyState>
-          ) : (
-            filteredOptions.map((capability) => (
-              <Button
-                aria-label={`Add ${capability} capability`}
-                className="justify-start"
-                key={capability}
-                onClick={() => {
-                  toggleCapability(capability)
-                  inputRef.current?.focus()
+            role="combobox"
+          >
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+              {value.map((capability) => (
+                <Badge className="gap-1 pr-1" key={capability} tone="primary">
+                  <span>{capability}</span>
+                  <Button
+                    aria-label={`Remove ${capability} capability`}
+                    className="h-5 px-1 text-xs"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      toggleCapability(capability)
+                      inputRef.current?.focus()
+                    }}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    x
+                  </Button>
+                </Badge>
+              ))}
+              <Input
+                aria-label="Filter capabilities"
+                autoComplete="off"
+                className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                onChange={(event) => {
+                  setQuery(event.currentTarget.value)
+                  setIsOpen(true)
                 }}
-                role="option"
-                type="button"
-                variant="ghost"
-              >
-                <span>{capability}</span>
-              </Button>
-            ))
-          )}
-        </div>
-      ) : null}
-    </div>
+                onFocus={() => setIsOpen(true)}
+                onKeyDown={handleFilterKeyDown}
+                placeholder={value.length === 0 ? 'Select capabilities' : ''}
+                ref={inputRef}
+                value={query}
+              />
+            </div>
+            <span aria-hidden="true" className="text-muted-foreground">
+              v
+            </span>
+          </div>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            align="start"
+            aria-label="Capability options"
+            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            onOpenAutoFocus={(event) => {
+              event.preventDefault()
+              inputRef.current?.focus()
+            }}
+            role="listbox"
+            side="bottom"
+            sideOffset={4}
+          >
+            {filteredOptions.length === 0 ? (
+              <EmptyState className="p-3 text-left">
+                No capabilities found
+              </EmptyState>
+            ) : (
+              filteredOptions.map((capability) => (
+                <Button
+                  aria-label={`Add ${capability} capability`}
+                  className="justify-start"
+                  key={capability}
+                  onClick={() => {
+                    toggleCapability(capability)
+                    inputRef.current?.focus()
+                  }}
+                  role="option"
+                  type="button"
+                  variant="ghost"
+                >
+                  <span>{capability}</span>
+                </Button>
+              ))
+            )}
+          </Popover.Content>
+        </Popover.Portal>
+      </div>
+    </Popover.Root>
   )
 }
 
@@ -1075,20 +1064,16 @@ export function RuntimeGlobalDefaultsPanel({
         <div className="grid gap-4 md:grid-cols-3">
           <RuntimeField id="runtime-global-slot" label="Global slot">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 data-testid="global-slot-select"
                 id={fieldId}
-                onChange={(event) =>
-                  onGlobalSlotChange(event.currentTarget.value)
-                }
+                onValueChange={onGlobalSlotChange}
+                options={RUNTIME_SLOTS.map((slot) => ({
+                  label: slot,
+                  value: slot,
+                }))}
                 value={globalSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </NativeSelect>
+              />
             )}
           </RuntimeField>
           <RuntimeField
@@ -1237,18 +1222,17 @@ export function RuntimeGlobalDefaultsPanel({
             </RuntimeField>
             <RuntimeField id="runtime-global-rerank" label="Rerank">
               {(fieldId) => (
-                <NativeSelect
+                <Select
                   id={fieldId}
-                  onChange={(event) =>
-                    onGlobalChatRerankEnabledChange(
-                      event.currentTarget.value === 'true',
-                    )
+                  onValueChange={(nextValue) =>
+                    onGlobalChatRerankEnabledChange(nextValue === 'true')
                   }
+                  options={[
+                    { label: 'on', value: 'true' },
+                    { label: 'off', value: 'false' },
+                  ]}
                   value={String(globalChatRerankEnabled)}
-                >
-                  <option value="true">on</option>
-                  <option value="false">off</option>
-                </NativeSelect>
+                />
               )}
             </RuntimeField>
             <RuntimeField
@@ -1375,18 +1359,17 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
           <RuntimeField id="runtime-project-rerank" label="Rerank">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
-                onChange={(event) =>
-                  onProjectChatRerankEnabledChange(
-                    event.currentTarget.value === 'true',
-                  )
+                onValueChange={(nextValue) =>
+                  onProjectChatRerankEnabledChange(nextValue === 'true')
                 }
+                options={[
+                  { label: 'on', value: 'true' },
+                  { label: 'off', value: 'false' },
+                ]}
                 value={String(projectChatRerankEnabled)}
-              >
-                <option value="true">on</option>
-                <option value="false">off</option>
-              </NativeSelect>
+              />
             )}
           </RuntimeField>
           <RuntimeField
@@ -1427,19 +1410,15 @@ export function RuntimeProjectOverridesPanel({
         <div className="grid gap-4 md:grid-cols-3">
           <RuntimeField id="runtime-project-slot" label="Project slot">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
-                onChange={(event) =>
-                  onProjectSlotChange(event.currentTarget.value)
-                }
+                onValueChange={onProjectSlotChange}
+                options={RUNTIME_SLOTS.map((slot) => ({
+                  label: slot,
+                  value: slot,
+                }))}
                 value={projectSlot}
-              >
-                {RUNTIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </NativeSelect>
+              />
             )}
           </RuntimeField>
           <RuntimeField
@@ -1541,21 +1520,25 @@ export function ConnectionSelect({
   value: string
 }) {
   return (
-    <NativeSelect
+    <Select
       data-testid={testId}
       id={id}
-      onChange={(event) => onChange(event.currentTarget.value)}
+      onValueChange={onChange}
+      options={[
+        {
+          label:
+            connections.length === 0
+              ? 'No connections loaded'
+              : 'Select connection',
+          value: '',
+        },
+        ...connections.map((connection) => ({
+          label: connectionOptionLabel(connection),
+          value: connection.connection_id,
+        })),
+      ]}
       value={value}
-    >
-      <option value="">
-        {connections.length === 0 ? 'No connections loaded' : 'Select connection'}
-      </option>
-      {connections.map((connection) => (
-        <option key={connection.connection_id} value={connection.connection_id}>
-          {connectionOptionLabel(connection)}
-        </option>
-      ))}
-    </NativeSelect>
+    />
   )
 }
 
@@ -1573,22 +1556,23 @@ export function ProviderModelSelect({
   value: string
 }) {
   return (
-    <NativeSelect
+    <Select
       data-testid={testId}
       disabled={models.length === 0}
       id={id}
-      onChange={(event) => onChange(event.currentTarget.value)}
+      onValueChange={onChange}
+      options={[
+        {
+          label: models.length === 0 ? 'No models loaded' : 'Select model',
+          value: '',
+        },
+        ...models.map((model) => ({
+          label: model.model_id,
+          value: model.model_id,
+        })),
+      ]}
       value={value}
-    >
-      <option value="">
-        {models.length === 0 ? 'No models loaded' : 'Select model'}
-      </option>
-      {models.map((model) => (
-        <option key={`${model.connection_id}-${model.model_id}`} value={model.model_id}>
-          {model.model_id}
-        </option>
-      ))}
-    </NativeSelect>
+    />
   )
 }
 

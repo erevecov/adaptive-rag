@@ -13,6 +13,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
+import { installPointerEventMocks } from './test/pointerEvents'
 import App from './App'
 import type {
   ApiClient,
@@ -66,6 +67,16 @@ const appSource =
     }
   ).process?.getBuiltinModule?.('fs').readFileSync('src/App.tsx', 'utf8') ??
   ''
+const shellSource =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process
+    ?.getBuiltinModule?.('fs')
+    .readFileSync('src/features/shell/AppShell.tsx', 'utf8') ?? ''
+
+installPointerEventMocks()
 
 function installLocalStorage() {
   const entries = new Map<string, string>()
@@ -98,6 +109,15 @@ function installLocalStorage() {
     configurable: true,
     value: storage,
   })
+}
+
+async function chooseRadixSelectOption(
+  user: ReturnType<typeof userEvent.setup>,
+  selectTrigger: HTMLElement,
+  optionName: string | RegExp,
+) {
+  await user.click(selectTrigger)
+  await user.click(await screen.findByRole('option', { name: optionName }))
 }
 
 function setViewportWidth(width: number) {
@@ -2075,6 +2095,29 @@ describe('App chat workspace', () => {
     expect(appSource).not.toMatch(/function WorkspaceTopline\b/)
   })
 
+  test('keeps workspace shell layout out of App.css legacy selectors', () => {
+    for (const selector of [
+      '.app-shell',
+      '.workspace',
+      '.workspace-topline',
+      '.workspace-project-chip',
+      '.workspace-grid',
+      '.workspace-chat',
+      '.chat-workspace-grid',
+      '.workspace-inspector-inline',
+      '.workspace-inspector-overlay',
+      '.workspace-inspector-backdrop',
+    ]) {
+      expect(appStyles).not.toContain(selector)
+    }
+
+    expect(shellSource).toContain('data-slot="app-shell"')
+    expect(shellSource).toContain('data-slot="workspace"')
+    expect(shellSource).toContain('data-slot="workspace-topline"')
+    expect(shellSource).toContain('data-slot="chat-workspace-grid"')
+    expect(shellSource).toContain('data-slot="workspace-project-chip"')
+  })
+
   test('hydrates the global theme from local storage', async () => {
     const user = userEvent.setup()
     localStorage.setItem('adaptive-rag-theme', 'dark')
@@ -3441,8 +3484,12 @@ describe('App chat workspace', () => {
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
 
-    await user.selectOptions(screen.getByLabelText('Provider'), 'qwen')
-    await user.selectOptions(screen.getByLabelText('Connection type'), 'hosted')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Provider'), 'qwen')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Connection type'),
+      'hosted',
+    )
     fireEvent.change(screen.getByLabelText('Base URL'), {
       target: { value: 'https://dashscope.example.test/compatible-mode/v1' },
     })
@@ -3496,7 +3543,11 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
 
     expect(client.listProviderModels).toHaveBeenCalled()
-    await user.selectOptions(screen.getByLabelText('Model sync connection'), 'qwen-hosted')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Model sync connection'),
+      /Hosted Qwen/,
+    )
     await user.click(screen.getByRole('button', { name: 'Sync models' }))
 
     expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
@@ -3507,9 +3558,21 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
-    await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
-    await user.selectOptions(screen.getByLabelText('Global slot connection'), 'qwen-hosted')
-    await user.selectOptions(screen.getByLabelText('Global slot model'), 'text-embedding-v4')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Global slot'),
+      'dense_embedding',
+    )
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Global slot connection'),
+      /Hosted Qwen/,
+    )
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Global slot model'),
+      'text-embedding-v4',
+    )
     await user.click(screen.getByRole('button', { name: 'Save global slot' }))
 
     expect(client.upsertRuntimeSlotDefault).toHaveBeenCalledWith(
@@ -3705,9 +3768,10 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
-    await user.selectOptions(
+    await chooseRadixSelectOption(
+      user,
       screen.getByLabelText('Model sync connection'),
-      'qwen-hosted',
+      /Hosted Qwen/,
     )
 
     await waitFor(() =>
@@ -3751,10 +3815,9 @@ describe('App chat workspace', () => {
       }),
     )
     expect(syncProviderModels).not.toHaveBeenCalled()
-    expect(
-      (screen.getByLabelText('Model sync connection') as HTMLSelectElement)
-        .value,
-    ).toBe('qwen-hosted')
+    expect(screen.getByLabelText('Model sync connection').textContent).toContain(
+      'Hosted Qwen',
+    )
     expect(await screen.findByText('qwen-plus')).toBeTruthy()
   })
 
@@ -3785,9 +3848,10 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
-    await user.selectOptions(
+    await chooseRadixSelectOption(
+      user,
       screen.getByLabelText('Model sync connection'),
-      'qwen-hosted',
+      /Hosted Qwen/,
     )
     await user.click(screen.getByRole('button', { name: 'Edit connection' }))
 
@@ -3857,9 +3921,17 @@ describe('App chat workspace', () => {
     expect(within(projectSettings).getAllByText('inherited').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
 
-    await user.selectOptions(screen.getByLabelText('Project slot'), 'chat')
-    await user.selectOptions(screen.getByLabelText('Project slot connection'), 'local-chat')
-    await user.selectOptions(screen.getByLabelText('Project slot model'), 'llama3.1:8b')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Project slot connection'),
+      /local-chat/,
+    )
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Project slot model'),
+      'llama3.1:8b',
+    )
     await user.click(screen.getByRole('button', { name: 'Save project override' }))
 
     expect(client.upsertProjectRuntimeSlotOverride).toHaveBeenCalledWith(
@@ -3874,7 +3946,11 @@ describe('App chat workspace', () => {
     fireEvent.change(within(projectSettings).getByLabelText('Retrieval limit'), {
       target: { value: '4' },
     })
-    await user.selectOptions(within(projectSettings).getByLabelText('Rerank'), 'false')
+    await chooseRadixSelectOption(
+      user,
+      within(projectSettings).getByLabelText('Rerank'),
+      'off',
+    )
     fireEvent.change(within(projectSettings).getByLabelText('Candidate limit'), {
       target: { value: '8' },
     })
@@ -3937,9 +4013,17 @@ describe('App chat workspace', () => {
       name: 'Project runtime settings',
     })
     expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
-    await user.selectOptions(screen.getByLabelText('Project slot'), 'chat')
-    await user.selectOptions(screen.getByLabelText('Project slot connection'), 'local-chat')
-    await user.selectOptions(screen.getByLabelText('Project slot model'), 'llama3.1:8b')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Project slot connection'),
+      /local-chat/,
+    )
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Project slot model'),
+      'llama3.1:8b',
+    )
 
     await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
     await user.click(screen.getByRole('option', { name: 'Select project Second' }))
@@ -3952,8 +4036,12 @@ describe('App chat workspace', () => {
     })
     expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
-    expect((screen.getByLabelText('Project slot connection') as HTMLSelectElement).value).toBe('')
-    expect((screen.getByLabelText('Project slot model') as HTMLSelectElement).value).toBe('')
+    expect(screen.getByLabelText('Project slot connection').textContent).toContain(
+      'Select connection',
+    )
+    expect(screen.getByLabelText('Project slot model').textContent).toContain(
+      'No models loaded',
+    )
   })
 
   test('ignores stale project runtime reloads after switching projects', async () => {
@@ -4039,21 +4127,17 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
-    await user.selectOptions(screen.getByLabelText('Global slot'), 'dense_embedding')
-    await waitFor(() => {
-      const globalSlotConnectionSelect = screen.getByLabelText(
-        'Global slot connection',
-      ) as HTMLSelectElement
-      expect(
-        Array.from(globalSlotConnectionSelect.options).some(
-          (option) => option.value === 'qwen-hosted',
-        ),
-      ).toBe(true)
-    })
-    await user.selectOptions(
-      screen.getByLabelText('Global slot connection'),
-      'qwen-hosted',
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Global slot'),
+      'dense_embedding',
     )
+    await user.click(screen.getByLabelText('Global slot connection'))
+    const hostedQwenOption = await screen.findByRole('option', {
+      name: /Hosted Qwen/,
+    })
+    expect(hostedQwenOption).toBeTruthy()
+    await user.click(hostedQwenOption)
 
     expect(
       screen.getByText(

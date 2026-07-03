@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react'
+import { type CSSProperties, type ReactNode, useMemo, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 
 import { IconButton } from '@/components/ui/button'
@@ -94,20 +94,43 @@ export function AppShell({
 }) {
   return (
     <main
-      className={[
-        'app-shell',
+      className={cn(
+        [
+          'app-shell grid h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground',
+          'grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)] transition-[grid-template-columns] duration-200 ease-out',
+          'max-[680px]:grid-cols-1',
+        ],
         isLeftSidebarOpen
           ? 'app-shell-sidebar-open'
           : 'app-shell-sidebar-closed',
-        isRightDockOpen ? 'app-shell-right-dock-open' : 'app-shell-right-dock-closed',
-      ].join(' ')}
+        isRightDockOpen
+          ? 'app-shell-right-dock-open'
+          : 'app-shell-right-dock-closed',
+      )}
       data-slot="app-shell"
+      style={
+        {
+          '--left-sidebar-width': isLeftSidebarOpen ? '306px' : '0px',
+        } as CSSProperties
+      }
     >
       {sidebar}
 
       <section
-        className={primaryView === 'chat' ? 'workspace workspace-chat' : 'workspace'}
         aria-labelledby="workspace-title"
+        className={cn(
+          [
+            'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
+            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-3',
+          ],
+          primaryView === 'chat'
+            ? [
+                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
+                'max-[900px]:px-3.5 max-[900px]:py-3',
+              ]
+            : 'mx-auto max-w-[1240px]',
+        )}
+        data-slot="workspace"
       >
         {topline}
         {children}
@@ -125,11 +148,14 @@ export function ChatWorkspaceGrid({
 }) {
   return (
     <div
-      className={
-        isRightDockInline
-          ? 'workspace-grid chat-workspace-grid chat-workspace-grid-docked'
-          : 'workspace-grid chat-workspace-grid'
-      }
+      className={cn(
+        [
+          'workspace-grid chat-workspace-grid grid h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)]',
+          'max-[680px]:min-h-0',
+        ],
+        isRightDockInline &&
+          'chat-workspace-grid-docked grid-cols-[minmax(0,1fr)_minmax(330px,390px)] max-[900px]:grid-cols-1',
+      )}
       data-slot="chat-workspace-grid"
     >
       {children}
@@ -138,12 +164,16 @@ export function ChatWorkspaceGrid({
 }
 
 export function WorkspaceTopline({
+  isChatWorkspace = false,
+  isLeftSidebarOpen = true,
   projectId,
   projects,
   selectedSessionId,
   sessionDetail,
   sessions,
 }: {
+  isChatWorkspace?: boolean
+  isLeftSidebarOpen?: boolean
   projectId: string
   projects: Project[]
   selectedSessionId: string | null
@@ -160,12 +190,28 @@ export function WorkspaceTopline({
   return (
     <header
       aria-label={`Current session ${sessionName}, project ${projectName}`}
-      className="workspace-topline"
+      className={cn(
+        [
+          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground',
+        ],
+        isChatWorkspace ? 'mb-0' : 'mb-[22px]',
+        !isLeftSidebarOpen && 'pl-12',
+        'max-[680px]:pl-12',
+      )}
+      data-slot="workspace-topline"
     >
-      <h1 id="workspace-title" title={sessionName}>
+      <h1
+        className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] text-foreground"
+        id="workspace-title"
+        title={sessionName}
+      >
         {sessionName}
       </h1>
-      <span className="workspace-project-chip" title={projectName}>
+      <span
+        className="workspace-project-chip min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-w-[34vw]"
+        data-slot="workspace-project-chip"
+        title={projectName}
+      >
         {projectName}
       </span>
     </header>

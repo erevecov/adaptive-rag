@@ -7,7 +7,9 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import appSource from '@/App.tsx?raw'
+import runtimeSource from './RuntimeSettingsView.tsx?raw'
 import { RuntimeSettingsPanel } from './RuntimeSettingsView'
+import { installPointerEventMocks } from '@/test/pointerEvents'
 import type {
   ChatRetrievalSettings,
   ProjectRuntimeSettings,
@@ -33,6 +35,8 @@ const appStyles =
     }
   ).process?.getBuiltinModule?.('fs').readFileSync('src/App.css', 'utf8') ??
   ''
+
+installPointerEventMocks()
 
 afterEach(() => {
   cleanup()
@@ -416,6 +420,62 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
     expect(screen.getByLabelText('API key')).toBeTruthy()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
+  })
+
+  test('renders runtime form selects with the Radix Select primitive', async () => {
+    const user = userEvent.setup()
+    const onConnectionProviderChange = vi.fn()
+    renderRuntimeSettingsPanel({ onConnectionProviderChange })
+
+    const providerSelect = screen.getByRole('combobox', { name: 'Provider' })
+
+    expect(providerSelect.getAttribute('data-slot')).toBe('select-trigger')
+    expect(providerSelect.getAttribute('data-state')).toBe('closed')
+
+    await user.click(providerSelect)
+
+    const fakeOption = await screen.findByRole('option', { name: 'fake' })
+    const field = providerSelect.closest('[data-slot="field"]')
+
+    expect(providerSelect.getAttribute('data-state')).toBe('open')
+    expect(fakeOption.closest('[data-slot="select-content"]')).toBeTruthy()
+    expect(field?.contains(fakeOption)).toBe(false)
+
+    await user.click(fakeOption)
+
+    expect(onConnectionProviderChange).toHaveBeenCalledWith('fake')
+  })
+
+  test('uses reusable Radix selects for runtime select controls', () => {
+    expect(runtimeSource).toContain("@/components/ui/select")
+    expect(runtimeSource).not.toContain('NativeSelect')
+    expect(runtimeSource).not.toContain('<select')
+  })
+
+  test('renders capability options through a Radix popover portal', async () => {
+    const user = userEvent.setup()
+    renderRuntimeSettingsPanel()
+
+    const trigger = screen.getByRole('combobox', { name: 'Capabilities' })
+
+    expect(trigger.getAttribute('data-state')).toBe('closed')
+    await user.click(trigger)
+
+    const listbox = await screen.findByRole('listbox', {
+      name: 'Capability options',
+    })
+    const selector = trigger.closest('[data-slot="capability-selector"]')
+
+    expect(trigger.getAttribute('data-state')).toBe('open')
+    expect(listbox.getAttribute('data-state')).toBe('open')
+    expect(selector).toBeTruthy()
+    expect(selector?.contains(listbox)).toBe(false)
+  })
+
+  test('delegates capability popover dismissal to Radix primitives', () => {
+    expect(runtimeSource).toContain("@radix-ui/react-popover")
+    expect(runtimeSource).not.toContain('document.addEventListener')
+    expect(runtimeSource).not.toContain('document.removeEventListener')
   })
 
   test('renders connection check results with provider connection rows', () => {
