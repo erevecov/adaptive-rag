@@ -2,7 +2,7 @@ import { type FormEvent, type ReactNode } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input, NativeSelect, Textarea } from '@/components/ui/control'
+import { Input, Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
@@ -13,6 +13,7 @@ import {
   PanelHeader,
   PanelTitle,
 } from '@/components/ui/panel'
+import { Select } from '@/components/ui/select'
 import type {
   IngestionJob,
   IngestionRunResponse,
@@ -536,17 +537,16 @@ function ProjectAccessPanel({
         <div className="grid gap-3 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System role">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
                 name="user-system-role"
-                onChange={(event) =>
-                  onUserSystemRoleChange(event.currentTarget.value)
-                }
+                onValueChange={onUserSystemRoleChange}
+                options={[
+                  { label: 'user', value: 'user' },
+                  { label: 'superadmin', value: 'superadmin' },
+                ]}
                 value={userSystemRole}
-              >
-                <option value="user">user</option>
-                <option value="superadmin">superadmin</option>
-              </NativeSelect>
+              />
             )}
           </AuthoringField>
           <AuthoringField id="authoring-user-access-token" label="Access token">
@@ -595,16 +595,17 @@ function ProjectAccessPanel({
           </AuthoringField>
           <AuthoringField id="authoring-member-role" label="Project role">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
                 name="member-role"
-                onChange={(event) => onMemberRoleChange(event.currentTarget.value)}
+                onValueChange={onMemberRoleChange}
+                options={[
+                  { label: 'viewer', value: 'viewer' },
+                  { label: 'contributor', value: 'contributor' },
+                  { label: 'admin', value: 'admin' },
+                ]}
                 value={memberRole}
-              >
-                <option value="viewer">viewer</option>
-                <option value="contributor">contributor</option>
-                <option value="admin">admin</option>
-              </NativeSelect>
+              />
             )}
           </AuthoringField>
         </div>
@@ -734,17 +735,18 @@ function SourcesPanel({
         <div className="grid gap-3 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source type">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
                 name="source-type"
-                onChange={(event) => onSourceTypeChange(event.currentTarget.value)}
+                onValueChange={onSourceTypeChange}
+                options={[
+                  { label: 'markdown', value: 'markdown' },
+                  { label: 'text', value: 'text' },
+                  { label: 'txt', value: 'txt' },
+                  { label: 'url', value: 'url' },
+                ]}
                 value={sourceType}
-              >
-                <option value="markdown">markdown</option>
-                <option value="text">text</option>
-                <option value="txt">txt</option>
-                <option value="url">url</option>
-              </NativeSelect>
+              />
             )}
           </AuthoringField>
           <AuthoringField id="authoring-source-external-id" label="External ID">

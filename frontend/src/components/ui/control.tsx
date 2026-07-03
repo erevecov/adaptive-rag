@@ -1,6 +1,5 @@
 import {
   type InputHTMLAttributes,
-  type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
   forwardRef,
 } from 'react'
@@ -42,17 +41,3 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ),
 )
 Textarea.displayName = 'Textarea'
-
-export type NativeSelectProps = SelectHTMLAttributes<HTMLSelectElement>
-
-export const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
-  ({ className, ...props }, ref) => (
-    <select
-      className={cn('h-9', controlClasses, className)}
-      ref={ref}
-      {...props}
-      data-slot="native-select"
-    />
-  ),
-)
-NativeSelect.displayName = 'NativeSelect'

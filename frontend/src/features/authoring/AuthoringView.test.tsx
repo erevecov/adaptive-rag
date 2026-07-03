@@ -5,6 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
+import { installPointerEventMocks } from '@/test/pointerEvents'
 import type {
   IngestionJob,
   IngestionRunResponse,
@@ -16,9 +17,20 @@ import type {
 } from '@/lib/apiClient'
 import { AuthoringPanel } from './AuthoringView'
 
+installPointerEventMocks()
+
 afterEach(() => {
   cleanup()
 })
+
+async function chooseRadixSelectOption(
+  user: ReturnType<typeof userEvent.setup>,
+  selectTrigger: HTMLElement,
+  optionName: string | RegExp,
+) {
+  await user.click(selectTrigger)
+  await user.click(await screen.findByRole('option', { name: optionName }))
+}
 
 const project: Project = {
   access_role: 'admin',
@@ -229,8 +241,9 @@ describe('AuthoringPanel', () => {
     ).not.toBeNull()
   })
 
-  test('users submodule keeps form labels addressable and uses selects', () => {
-    const { view } = renderAuthoringPanel({ activeSubmodule: 'users' })
+  test('users submodule keeps form labels addressable and uses Radix selects', async () => {
+    const userDriver = userEvent.setup()
+    const { props, view } = renderAuthoringPanel({ activeSubmodule: 'users' })
 
     expect(screen.getByLabelText('User login').getAttribute('data-slot')).toBe(
       'input',
@@ -239,11 +252,23 @@ describe('AuthoringPanel', () => {
       'input',
     )
     expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
-      'native-select',
+      'select-trigger',
     )
     expect(screen.getByLabelText('Project role').getAttribute('data-slot')).toBe(
-      'native-select',
+      'select-trigger',
     )
+    await chooseRadixSelectOption(
+      userDriver,
+      screen.getByLabelText('System role'),
+      'superadmin',
+    )
+    await chooseRadixSelectOption(
+      userDriver,
+      screen.getByLabelText('Project role'),
+      'admin',
+    )
+    expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
+    expect(props.onMemberRoleChange).toHaveBeenCalledWith('admin')
     expect(screen.getAllByText(user.id).length).toBeGreaterThanOrEqual(1)
     expectNoLegacyAuthoringClasses(view.container)
   })
@@ -261,14 +286,15 @@ describe('AuthoringPanel', () => {
     expectNoLegacyAuthoringClasses(view.container)
   })
 
-  test('sources submodule exposes ingestion operations and metadata', () => {
-    const { view } = renderAuthoringPanel({ activeSubmodule: 'sources' })
+  test('sources submodule exposes ingestion operations and metadata', async () => {
+    const userDriver = userEvent.setup()
+    const { props, view } = renderAuthoringPanel({ activeSubmodule: 'sources' })
 
     expect(screen.getByLabelText('Project ID').getAttribute('data-slot')).toBe(
       'input',
     )
     expect(screen.getByLabelText('Source type').getAttribute('data-slot')).toBe(
-      'native-select',
+      'select-trigger',
     )
     expect(screen.getByLabelText('Content').getAttribute('data-slot')).toBe(
       'textarea',
@@ -281,6 +307,12 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()
+    await chooseRadixSelectOption(
+      userDriver,
+      screen.getByLabelText('Source type'),
+      'url',
+    )
+    expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
     expectNoLegacyAuthoringClasses(view.container)
   })
 })

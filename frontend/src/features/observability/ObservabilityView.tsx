@@ -2,7 +2,7 @@ import { type FormEvent, type ReactNode } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input, NativeSelect } from '@/components/ui/control'
+import { Input } from '@/components/ui/control'
 import { DataList, DataListItem } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
@@ -13,6 +13,7 @@ import {
   PanelHeader,
   PanelTitle,
 } from '@/components/ui/panel'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -172,17 +173,18 @@ export function ObservabilityPanel({
           </ObservabilityField>
           <ObservabilityField id="observability-status" label="Status">
             {(fieldId) => (
-              <NativeSelect
+              <Select
                 id={fieldId}
                 name="observability-status"
-                onChange={(event) => onStatusChange(event.currentTarget.value)}
+                onValueChange={onStatusChange}
+                options={[
+                  { label: 'Any', value: '' },
+                  { label: 'running', value: 'running' },
+                  { label: 'succeeded', value: 'succeeded' },
+                  { label: 'failed', value: 'failed' },
+                ]}
                 value={status}
-              >
-                <option value="">Any</option>
-                <option value="running">running</option>
-                <option value="succeeded">succeeded</option>
-                <option value="failed">failed</option>
-              </NativeSelect>
+              />
             )}
           </ObservabilityField>
           <Button className="whitespace-nowrap" disabled={isRefreshing} type="submit">

@@ -5,12 +5,24 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
+import { installPointerEventMocks } from '@/test/pointerEvents'
 import type { ChatObservabilitySummary } from '@/lib/apiClient'
 import { ObservabilityPanel } from './ObservabilityView'
+
+installPointerEventMocks()
 
 afterEach(() => {
   cleanup()
 })
+
+async function chooseRadixSelectOption(
+  user: ReturnType<typeof userEvent.setup>,
+  selectTrigger: HTMLElement,
+  optionName: string | RegExp,
+) {
+  await user.click(selectTrigger)
+  await user.click(await screen.findByRole('option', { name: optionName }))
+}
 
 const summary: ChatObservabilitySummary = {
   errors: {
@@ -106,7 +118,7 @@ describe('ObservabilityPanel', () => {
       'input',
     )
     expect(screen.getByLabelText('Status').getAttribute('data-slot')).toBe(
-      'native-select',
+      'select-trigger',
     )
     expect(
       view.container.querySelector('[data-slot="segmented-control"]'),
@@ -119,6 +131,9 @@ describe('ObservabilityPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Latency' }))
     expect(props.onSubmoduleChange).toHaveBeenCalledWith('latency')
+
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
+    expect(props.onStatusChange).toHaveBeenCalledWith('failed')
   })
 
   test('matches empty-state copy to the active observability view', () => {
@@ -206,9 +221,7 @@ describe('ObservabilityPanel', () => {
     expect((screen.getByLabelText('Created from') as HTMLInputElement).value).toBe(
       '2026-06-21T00:00:00Z',
     )
-    expect((screen.getByLabelText('Status') as HTMLSelectElement).value).toBe(
-      'failed',
-    )
+    expect(screen.getByLabelText('Status').textContent).toContain('failed')
     expect(screen.getByRole('alert').textContent).toContain(
       'observability unavailable',
     )
