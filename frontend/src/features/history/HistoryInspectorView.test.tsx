@@ -193,6 +193,42 @@ describe('SessionNavigationPanel', () => {
     expect(onSelectSession).toHaveBeenCalledWith('session-1')
     expectNoLegacyHistoryClasses(container)
   })
+
+  test('renders session action menus through Radix dropdown primitives', async () => {
+    const user = userEvent.setup()
+    render(
+      <SessionNavigationPanel
+        canLoadMore
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId="session-1"
+        sessions={sessions}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+
+    const trigger = screen.getByRole('button', {
+      name: /Opciones de Architecture review/,
+    })
+
+    expect(trigger.getAttribute('data-state')).toBe('closed')
+
+    await user.click(trigger)
+
+    expect(trigger.getAttribute('data-state')).toBe('open')
+    expect(screen.getByRole('menu').getAttribute('data-slot')).toBe(
+      'session-actions-menu',
+    )
+    expect(screen.getByRole('menuitem', { name: 'renombrar' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
+  })
 })
 
 describe('WorkspaceInspectorPanel', () => {

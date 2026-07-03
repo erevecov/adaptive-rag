@@ -59,6 +59,13 @@ const appStyles =
     }
   ).process?.getBuiltinModule?.('fs').readFileSync('src/App.css', 'utf8') ??
   ''
+const appSource =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process?.getBuiltinModule?.('fs').readFileSync('src/App.tsx', 'utf8') ??
+  ''
 
 function installLocalStorage() {
   const entries = new Map<string, string>()
@@ -1155,18 +1162,19 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const toggle = screen.getByRole('button', { name: 'Collapse left sidebar' })
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+
+    expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
+    expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(
-      screen.getByRole('complementary', { name: 'Primary sidebar' }).className,
-    ).toContain('app-sidebar-open')
 
     await user.click(toggle)
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.getAttribute('aria-label')).toBe('Open left sidebar')
-    expect(
-      screen.getByRole('complementary', { name: 'Primary sidebar' }).className,
-    ).toContain('app-sidebar-closed')
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
   })
 
   test('moves project selection into the sidebar above primary navigation', async () => {
@@ -1210,6 +1218,76 @@ describe('App chat workspace', () => {
       last_project_id: projectId,
     })
     expect(screen.getByRole('button', { name: /Project selector: Demo/ })).toBeTruthy()
+  })
+
+  test('uses tokenized sidebar shell slots instead of legacy selectors', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    const primaryNavigation = within(sidebar).getByRole('navigation', {
+      name: 'Primary navigation',
+    })
+    const selector = await within(sidebar).findByRole('button', {
+      name: /Project selector/i,
+    })
+
+    expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
+    expect(primaryNavigation.getAttribute('data-slot')).toBe(
+      'sidebar-primary-navigation',
+    )
+    expect(selector.getAttribute('data-slot')).toBe('project-selector-trigger')
+    expect(selector.closest('[data-slot="project-selector"]')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    const settingsNavigation = screen.getByRole('navigation', {
+      name: 'Settings navigation',
+    })
+    expect(settingsNavigation.getAttribute('data-slot')).toBe(
+      'sidebar-contextual-navigation',
+    )
+    expect(
+      within(settingsNavigation)
+        .getByRole('button', { name: 'Authoring' })
+        .getAttribute('data-slot'),
+    ).toBe('sidebar-contextual-item')
+
+    expect(appStyles).not.toMatch(/\.sidebar-navigation\b/)
+    expect(appStyles).not.toMatch(/\.sidebar-nav-button\b/)
+    expect(appStyles).not.toMatch(/\.contextual-navigation\b/)
+    expect(appStyles).not.toMatch(/\.contextual-nav-/)
+    expect(appStyles).not.toMatch(/\.project-selector-/)
+    expect(appStyles).not.toMatch(/\.sidebar-project-selector\b/)
+  })
+
+  test('renders the project selector popover through Radix state and portal primitives', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    const selector = await within(sidebar).findByRole('button', {
+      name: /Project selector/i,
+    })
+
+    expect(selector.getAttribute('data-state')).toBe('closed')
+
+    await user.click(selector)
+
+    expect(selector.getAttribute('data-state')).toBe('open')
+
+    const popover = screen
+      .getByRole('listbox', { name: 'Projects' })
+      .closest('[data-slot="project-selector-popover"]')
+
+    expect(popover).toBeTruthy()
+    expect(popover?.parentElement?.closest('[data-slot="app-sidebar"]')).toBeNull()
   })
 
   test('orders, filters and disables sidebar project options', async () => {
@@ -1990,6 +2068,13 @@ describe('App chat workspace', () => {
     expect(appStyles).not.toMatch(/\.panel-label\b/)
   })
 
+  test('keeps shell components extracted from App.tsx', () => {
+    expect(appSource).toContain('@/features/shell/AppShell')
+    expect(appSource).not.toMatch(/function AppSidebar\b/)
+    expect(appSource).not.toMatch(/function SidebarProjectSelector\b/)
+    expect(appSource).not.toMatch(/function WorkspaceTopline\b/)
+  })
+
   test('hydrates the global theme from local storage', async () => {
     const user = userEvent.setup()
     localStorage.setItem('adaptive-rag-theme', 'dark')
@@ -2754,8 +2839,8 @@ describe('App chat workspace', () => {
     await user.click(
       screen.getByRole('button', { name: 'Opciones de Deployment question' }),
     )
-    await user.click(screen.getByRole('button', { name: 'renombrar' }))
-    const input = screen.getByLabelText('Nuevo nombre de sesiÃ³n')
+    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
+    const input = await screen.findByLabelText('Nuevo nombre de sesiÃ³n')
     await user.clear(input)
     await user.type(input, 'Renamed session{Enter}')
 
@@ -2768,7 +2853,7 @@ describe('App chat workspace', () => {
     await user.click(
       screen.getByRole('button', { name: 'Opciones de Deployment question' }),
     )
-    await user.click(screen.getByRole('button', { name: 'Archivar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Archivar' }))
 
     expect(archiveChatSession).toHaveBeenCalledWith(projectId, 'session-123')
   })

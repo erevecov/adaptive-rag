@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, IconButton } from '@/components/ui/button'
@@ -77,7 +78,6 @@ export function SessionNavigationPanel({
   sessions: ChatSessionSummary[]
   state: RequestState
 }) {
-  const [openMenuSessionId, setOpenMenuSessionId] = useState<string | null>(null)
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const renameInputRef = useRef<HTMLInputElement | null>(null)
@@ -89,21 +89,6 @@ export function SessionNavigationPanel({
       renameInputRef.current?.select()
     }
   }, [renamingSessionId])
-
-  useEffect(() => {
-    if (openMenuSessionId === null) {
-      return
-    }
-
-    const closeMenu = (event: MouseEvent) => {
-      if ((event.target as HTMLElement).closest('[data-session-menu-root]')) {
-        return
-      }
-      setOpenMenuSessionId(null)
-    }
-    document.addEventListener('mousedown', closeMenu)
-    return () => document.removeEventListener('mousedown', closeMenu)
-  }, [openMenuSessionId])
 
   return (
     <Panel
@@ -156,7 +141,6 @@ export function SessionNavigationPanel({
             const isArchived = session.archived_at !== null
             const hasTraining = sessionHasTraining(session)
             const isRenaming = renamingSessionId === session.session_id
-            const menuOpen = openMenuSessionId === session.session_id
             return (
               <DataListItem
                 className={
@@ -164,7 +148,6 @@ export function SessionNavigationPanel({
                     ? 'border-primary bg-primary/5'
                     : 'hover:border-border/80'
                 }
-                data-session-menu-root
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
               >
@@ -194,10 +177,6 @@ export function SessionNavigationPanel({
                       <Input
                         aria-label="Nuevo nombre de sesiÃ³n"
                         maxLength={60}
-                        onBlur={() => {
-                          setRenamingSessionId(null)
-                          setRenameDraft('')
-                        }}
                         onChange={(event) => setRenameDraft(event.target.value)}
                         onKeyDown={(event) => {
                           if (event.key === 'Escape') {
@@ -221,63 +200,47 @@ export function SessionNavigationPanel({
                       <span className="truncate">{title}</span>
                     </Button>
                   )}
-                  <span
-                    className={
-                      menuOpen
-                        ? 'sr-only'
-                        : 'text-xs text-muted-foreground'
-                    }
-                  >
+                  <span className="text-xs text-muted-foreground">
                     {formatRelativeSessionAge(session.created_at)}
                   </span>
-                  <div className="relative" data-session-menu-root>
-                    <IconButton
-                      label={`Opciones de ${title}`}
-                      onClick={() =>
-                        setOpenMenuSessionId((current) =>
-                          current === session.session_id
-                            ? null
-                            : session.session_id,
-                        )
-                      }
-                      variant="ghost"
-                    >
-                      <MoreVerticalIcon />
-                    </IconButton>
-                    {menuOpen ? (
-                      <div className="absolute right-0 top-10 z-20 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
-                        <Button
-                          className="justify-start"
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger asChild>
+                      <IconButton label={`Opciones de ${title}`} variant="ghost">
+                        <MoreVerticalIcon />
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Content
+                        align="end"
+                        className="z-20 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                        data-slot="session-actions-menu"
+                        onCloseAutoFocus={(event) => event.preventDefault()}
+                        sideOffset={4}
+                      >
+                        <DropdownMenu.Item
+                          className="flex min-h-8 cursor-pointer items-center rounded-sm px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           onClick={() => {
                             setRenamingSessionId(session.session_id)
                             setRenameDraft(title)
-                            setOpenMenuSessionId(null)
                           }}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
                         >
                           renombrar
-                        </Button>
-                        <Button
-                          className="justify-start"
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          className="flex min-h-8 cursor-pointer items-center rounded-sm px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           onClick={() => {
                             if (isArchived) {
                               onUnarchiveSession(session.session_id)
                             } else {
                               onArchiveSession(session.session_id)
                             }
-                            setOpenMenuSessionId(null)
                           }}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
                         >
                           {isArchived ? 'Desarchivar' : 'Archivar'}
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Root>
                 </div>
               </DataListItem>
             )

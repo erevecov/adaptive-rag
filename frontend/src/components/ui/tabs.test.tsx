@@ -54,4 +54,25 @@ describe('SegmentedControl', () => {
 
     expect(handleClick).not.toHaveBeenCalled()
   })
+
+  test('uses Radix tab state for tablist controls', () => {
+    render(
+      <SegmentedControl aria-label="Inspector panels" role="tablist">
+        <SegmentedControlItem active role="tab" value="context">
+          Context
+        </SegmentedControlItem>
+        <SegmentedControlItem role="tab" value="minimap">
+          Minimap
+        </SegmentedControlItem>
+      </SegmentedControl>,
+    )
+
+    const tablist = screen.getByRole('tablist', { name: 'Inspector panels' })
+    const contextTab = screen.getByRole('tab', { name: 'Context' })
+    const minimapTab = screen.getByRole('tab', { name: 'Minimap' })
+
+    expect(tablist.getAttribute('data-orientation')).toBe('horizontal')
+    expect(contextTab.getAttribute('data-state')).toBe('active')
+    expect(minimapTab.getAttribute('data-state')).toBe('inactive')
+  })
 })
