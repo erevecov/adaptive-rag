@@ -4,7 +4,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { Input, NativeSelect, Textarea } from './control'
+import controlSource from './control.tsx?raw'
+import { Input, Textarea } from './control'
 
 function classTokens(element: Element): string[] {
   return element.className.split(/\s+/).filter(Boolean)
@@ -37,6 +38,11 @@ afterEach(() => {
 })
 
 describe('control primitives', () => {
+  test('does not keep a native select primitive after Radix Select migration', () => {
+    expect(controlSource).not.toContain('NativeSelect')
+    expect(controlSource).not.toContain('<select')
+  })
+
   test('Input uses tokenized control classes and a stable slot', () => {
     render(<Input aria-label="Connection id" className="h-12" />)
 
@@ -60,22 +66,6 @@ describe('control primitives', () => {
     expect(tokens).not.toContain('min-h-24')
   })
 
-  test('NativeSelect uses tokenized control classes and a stable slot', () => {
-    render(
-      <NativeSelect aria-label="Connection" className="h-12">
-        <option value="">Select connection</option>
-        <option value="qwen-hosted">Qwen hosted</option>
-      </NativeSelect>,
-    )
-
-    const select = screen.getByRole('combobox', { name: 'Connection' })
-    const tokens = classTokens(select)
-    expect(select.getAttribute('data-slot')).toBe('native-select')
-    expectSharedControlTokens(select)
-    expect(tokens).toContain('h-12')
-    expect(tokens).not.toContain('h-9')
-  })
-
   test.each([
     {
       label: 'Disabled input',
@@ -88,16 +78,6 @@ describe('control primitives', () => {
       render: () => <Textarea aria-label="Disabled textarea" disabled />,
       role: 'textbox',
       slot: 'textarea',
-    },
-    {
-      label: 'Disabled select',
-      render: () => (
-        <NativeSelect aria-label="Disabled select" disabled>
-          <option value="">Select connection</option>
-        </NativeSelect>
-      ),
-      role: 'combobox',
-      slot: 'native-select',
     },
   ])('$slot exposes disabled state and disabled token classes', (control) => {
     render(control.render())

@@ -1797,7 +1797,11 @@ describe('App chat workspace', () => {
     )
 
     await user.type(screen.getByLabelText('Member user ID'), viewerUser.id)
-    await user.selectOptions(screen.getByLabelText('Project role'), 'admin')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Project role'),
+      'admin',
+    )
     await user.click(screen.getByRole('button', { name: 'Save membership' }))
 
     await waitFor(() =>
@@ -2161,7 +2165,11 @@ describe('App chat workspace', () => {
     expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    await user.selectOptions(screen.getByLabelText('Source type'), 'markdown')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Source type'),
+      'markdown',
+    )
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
     await user.type(screen.getByLabelText('Tags'), 'docs, local')
@@ -3250,7 +3258,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Created to'),
       '2026-06-22T00:00:00Z',
     )
-    await user.selectOptions(screen.getByLabelText('Status'), 'failed')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
@@ -3433,7 +3441,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
     )
-    await user.selectOptions(screen.getByLabelText('Status'), 'failed')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect((await screen.findByRole('alert')).textContent).toContain(
@@ -3442,9 +3450,7 @@ describe('App chat workspace', () => {
     expect(
       (screen.getByLabelText('Created from') as HTMLInputElement).value,
     ).toBe('2026-06-21T00:00:00Z')
-    expect((screen.getByLabelText('Status') as HTMLSelectElement).value).toBe(
-      'failed',
-    )
+    expect(screen.getByLabelText('Status').textContent).toContain('failed')
   })
 
   test('manages runtime settings without rendering provider secrets', async () => {
