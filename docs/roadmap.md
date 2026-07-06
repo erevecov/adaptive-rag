@@ -39,6 +39,9 @@
 - M37 Project RBAC/chat knowledge: completo.
 - M38 Chat retrieval/rerank settings: completo.
 - Post-M38 Runtime navigation clarity: completo.
+- M39 Chat stepper live events: completo.
+- M39 Qwen runtime production defaults: completo.
+- Post-M39 Design system shadcn/Radix closeout: completo.
 
 ## M1 Foundation
 
@@ -1671,10 +1674,11 @@ Secuencia entregada:
 3. `m38-quality-gate`: backend/frontend relevantes, lint/typecheck, OpenSpec
    strict, `git diff --check` y QA browser.
 
-Continuacion: no quedan active changes OpenSpec. La siguiente decision
-recomendada es re-ejecutar el release gate final desde `origin/main` y decidir
-tag/GitHub release v1.0; si se agrega otra feature antes de release, abrir un
-nuevo change OpenSpec primero.
+Continuacion: Post-M38 Runtime navigation clarity, M39 Chat stepper live events
+y M39 Qwen runtime production defaults quedaron completos y archivados. La
+siguiente decision recomendada es re-ejecutar el release gate final desde
+`origin/main`, registrar la evidencia y mantener diferida la creacion de
+tag/GitHub release v1.0.
 
 ## Post-M38 Runtime navigation clarity
 
@@ -1695,7 +1699,82 @@ Entregado:
 - Runtime ya no depende del boton generico `Refresh runtime`; cada submodulo
   usa acciones especificas para su propio alcance.
 
-Continuacion: no quedan active changes OpenSpec tras este archive.
+Continuacion: M39 Chat stepper live events y M39 Qwen runtime production
+defaults quedaron completos y archivados despues de este slice.
+
+## M39 Chat stepper live events
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-07-06-m39-chat-stepper-live-events/`
+
+Objetivo:
+
+- Mostrar el avance interno de una respuesta de chat junto al turno actual,
+  emitirlo por streaming SSE, persistir el snapshot terminal en metadata y
+  renderizar el mismo stepper al leer historial.
+
+Entregado:
+
+- Eventos SSE `step` para fases de answer/retrieval sin cambiar el payload
+  `final`.
+- Persistencia de steps terminales en `ChatHistoryMessage.metadata.steps`.
+- Parser frontend tolerante para SSE/metadata, preferencia
+  expandido/colapsado en `localStorage` y renderer `ChatPipelineSteps`.
+- Specs canonicas actualizadas en `chat-streaming`, `chat-history` y
+  `chat-frontend`.
+
+## M39 Qwen runtime production defaults
+
+Estado: completo.
+
+Change archivado:
+
+- `openspec/changes/archive/2026-07-06-m39-qwen-runtime-production-defaults/`
+
+Objetivo:
+
+- Reducir la friccion para usar Qwen en produccion materializando defaults
+  seguros cuando una connection Qwen queda conectada y sincroniza su catalogo,
+  sin sobrescribir configuracion elegida por el usuario.
+
+Entregado:
+
+- Defaults idempotentes para `qwen-plus`, `text-embedding-v4` y
+  `qwen3-rerank` en slots de chat, dense embedding, sparse embedding y rerank.
+- Capability inference conocida por modelo Qwen para evitar que modelos de
+  chat aparezcan como embeddings o rerank por heredar capabilities amplias de
+  la connection.
+- Runtime reorganizado en modulos enfocados con
+  `adaptive_rag.provider_runtime` mantenido como facade compatible.
+- Spec canonica `provider-runtime` actualizada.
+
+## Post-M39 Design system shadcn/Radix closeout
+
+Estado: completo.
+
+Objetivo:
+
+- Cerrar la migracion frontend pendiente a primitives shadcn/Radix locales,
+  Radix wrappers y lucide, eliminando los ultimos controles legacy que quedaban
+  fuera de `frontend/src/components/ui`.
+
+Entregado:
+
+- Ultimos botones crudos de `App`, shell y chat stepper reemplazados por
+  `Button`/`IconButton` locales.
+- Iconos SVG inline de shell, chat e history reemplazados por `lucide-react`,
+  alineado con `frontend/components.json`.
+- CSS global de iconos `.ui-icon`, `.brain-icon` y `.context-ring-*`
+  eliminado de `App.css`.
+- Tests fuente agregados para bloquear regresiones a `<button>`, `<svg>`
+  manuales y selectores legacy de iconos.
+
+Continuacion: no quedan active changes OpenSpec. La siguiente tarea recomendada
+es re-ejecutar el release gate final desde `origin/main` y documentar que no se
+creara tag ni GitHub release v1.0 por ahora.
 
 ## Politica para reducir conflictos de merge
 

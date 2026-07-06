@@ -286,20 +286,22 @@ demos.
 The frontend MUST include user-visible states for the normal and failure paths
 of authoring, ingestion, chat, history and observability.
 
-#### Scenario: Requests expose stable states
+#### Scenario: Streaming chat shows a response-local stepper
 
-- **WHEN** a frontend request is empty, loading, successful, rejected by HTTP
-  validation or blocked by network/backend unavailability
-- **THEN** the UI shows a clear state for that condition
-- **AND** preserves valid user input when the request fails
+- **WHEN** chat streaming is in progress and the backend emits `step` events
+- **THEN** the frontend renders a response-local stepper near the active answer
+- **AND** expanded mode shows ordered steps with status, latency and available
+  detail or usage fields
+- **AND** collapsed mode shows a compact current-phase ticker
+- **AND** cancellation or failure does not invent a successful final answer
 
-#### Scenario: Streaming and ingestion expose in-progress states
+#### Scenario: Stepper expansion preference is persisted
 
-- **WHEN** chat streaming or ingestion work is in progress
-- **THEN** the UI exposes progress, cancellation or retry affordances according
-  to the existing public contracts
-- **AND** it does not invent a successful chat answer, citation or ingestion
-  result when the backend did not return one
+- **WHEN** the user expands or collapses the chat stepper
+- **THEN** the frontend writes the preference to
+  `adaptive-rag:chat-stepper-expanded`
+- **AND** the next chat turn initializes from that persisted preference
+- **AND** storage failures do not break the in-memory toggle state
 
 ### Requirement: Frontend retrieval polish follows dense_sparse default
 
@@ -485,22 +487,15 @@ existing chat audit and observability data.
 The frontend MUST make persisted conversation and internal action data
 navigable without changing backend behavior.
 
-#### Scenario: Conversation minimap navigates persisted messages
+#### Scenario: Finished response rehydrates persisted step metadata
 
-- **WHEN** a selected session has persisted messages
-- **THEN** the minimap renders one item per message using its role and content
-  preview
-- **AND** activating an item navigates focus to the corresponding message in
-  the session detail
-
-#### Scenario: Action stepper renders stored internals
-
-- **WHEN** a selected session has tool calls, retrieval runs, retrieved chunks
-  or provider usage
-- **THEN** the stepper renders ordered read-only steps for those records
-- **AND** each step shows status, latency, cost, tokens, rank or scores when
-  present
-- **AND** the stepper does not re-run chat, retrieval or providers
+- **WHEN** a selected or reloaded chat session has an assistant message with
+  `metadata.steps`
+- **THEN** the frontend parses valid step records and renders them under the
+  finished response details
+- **AND** malformed individual steps are ignored without blanking the answer
+- **AND** older sessions without steps keep the legacy answer, citations and
+  tool-call rendering
 
 ### Requirement: Chat workspace exposes functional source inspection
 

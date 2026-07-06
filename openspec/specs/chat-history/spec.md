@@ -39,27 +39,14 @@ chat persistidas por proyecto, con orden deterministico y limite acotado.
 El sistema MUST exponer una superficie HTTP read-only para consultar el detalle
 auditable de una sesion de chat, aislada por proyecto.
 
-#### Scenario: Detalle devuelve audit trail completo
+#### Scenario: Detalle devuelve stepper metadata del assistant
 
-- **WHEN** `GET /projects/{project_id}/chat/sessions/{session_id}` se invoca
-  para una sesion del proyecto
-- **THEN** la respuesta incluye metadata de sesion, mensajes, tool calls,
-  retrieval runs, retrieved chunks/citations y provider usage
-- **AND** mensajes, tool calls, retrieval runs y provider usage se ordenan por
-  `created_at` ascendente
-- **AND** retrieved chunks se ordenan por `rank` dentro de cada retrieval run
-
-#### Scenario: Detalle conserva citations persistidas
-
-- **WHEN** una sesion contiene retrieved chunks con `citation_json`
-- **THEN** la respuesta de detalle devuelve esas citations persistidas sin
-  recalcular retrieval ni tocar embeddings/providers
-
-#### Scenario: Detalle no filtra datos cross-project
-
-- **WHEN** un cliente pide un `session_id` que pertenece a otro proyecto
-- **THEN** el sistema responde con no encontrado o error estable equivalente
-- **AND** no revela datos de la sesion de otro proyecto
+- **WHEN** una sesion contiene un mensaje assistant con `metadata_json.steps`
+- **THEN** `GET /projects/{project_id}/chat/sessions/{session_id}` devuelve el
+  campo `metadata.steps` dentro del mensaje correspondiente
+- **AND** esos steps preservan `id`, `status`, `elapsed_ms`, `detail` y `usage`
+  cuando existan
+- **AND** la lectura no re-ejecuta chat, retrieval ni providers
 
 ### Requirement: CLI inspecciona historial de chat
 

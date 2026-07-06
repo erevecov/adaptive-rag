@@ -2,23 +2,44 @@
 
 ## Milestone activo
 
-No hay milestone activo ni changes OpenSpec pendientes tras archivar Runtime
-navigation clarity.
+No hay milestone activo ni changes OpenSpec pendientes tras archivar M39.
 
-Estado post-M38: M36 Functional chat workspace, M37 Project RBAC/chat
-knowledge y M38 Chat retrieval/rerank settings quedaron implementados,
-validados y archivados. El slice post-M38 Runtime navigation clarity tambien
-quedo archivado y no quedan active changes OpenSpec.
+Estado post-M39: M36 Functional chat workspace, M37 Project RBAC/chat
+knowledge, M38 Chat retrieval/rerank settings, M39 Chat stepper live events y
+M39 Qwen runtime production defaults quedaron implementados, validados y
+archivados. El cierre post-M39 de design system tambien migro los controles e
+iconos restantes a primitives shadcn/Radix locales y lucide. No quedan active
+changes OpenSpec.
 
 ## Ultimo milestone completado
 
-M38 Chat retrieval/rerank settings cerrado el 2026-06-28.
+M39 closeout cerrado el 2026-07-06.
 
-El change quedo archivado en
-`openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
-y actualiza las specs canonicas `chat-tool-calling` y `provider-runtime`.
+Los changes quedaron archivados en
+`openspec/changes/archive/2026-07-06-m39-chat-stepper-live-events/` y
+`openspec/changes/archive/2026-07-06-m39-qwen-runtime-production-defaults/`.
+Actualizan las specs canonicas `chat-frontend`, `chat-history`,
+`chat-streaming` y `provider-runtime`.
 
 ## Ultimo slice completado
+
+Post-M39 design system closeout: se eliminaron los ultimos botones crudos de
+`App`, shell y chat stepper en favor de `Button`; los iconos SVG inline de
+shell/chat/history fueron reemplazados por `lucide-react`; y se removieron los
+selectores globales `.ui-icon`, `.brain-icon` y `.context-ring-*` de `App.css`.
+El cierre agrego tests fuente para impedir regresiones a botones/SVG legacy y
+paso el gate frontend completo.
+
+M39 Qwen runtime production defaults: model sync ahora materializa defaults
+idempotentes para Qwen conectado sin sobrescribir elecciones del usuario, usa
+capability inference conocida por modelo para evitar slots incompatibles y
+mantiene `adaptive_rag.provider_runtime` como facade compatible tras separar
+runtime en modulos enfocados.
+
+M39 Chat stepper live events: streaming SSE emite eventos `step`, el snapshot
+terminal queda persistido en `ChatHistoryMessage.metadata.steps`, y frontend
+renderiza el mismo stepper durante streaming e historial con preferencia
+expandido/colapsado en `localStorage`.
 
 Post-M38 Runtime navigation clarity: la navegacion lateral quedo contextual por
 area primaria. `Chat` muestra sesiones; `My account` muestra modulos de cuenta
@@ -98,6 +119,8 @@ No active changes found.
 
 ## Ultimo change archivado
 
+- `openspec/changes/archive/2026-07-06-m39-qwen-runtime-production-defaults/`
+- `openspec/changes/archive/2026-07-06-m39-chat-stepper-live-events/`
 - `openspec/changes/archive/2026-06-30-runtime-navigation-clarity/`
 - `openspec/changes/archive/2026-06-28-m38-chat-retrieval-settings/`
 
@@ -134,9 +157,10 @@ No active changes found.
 ## Siguiente tarea recomendada
 
 - No quedan changes por archivar. La opcion recomendada es re-ejecutar desde
-  `origin/main` el release gate final y decidir si crear tag/GitHub release
-  v1.0. Si se decide una feature adicional antes de release, abrir primero un
-  nuevo change OpenSpec desde `origin/main`.
+  `origin/main` el release gate final, registrar la evidencia y mantener
+  diferida la creacion de tag/GitHub release v1.0 por decision de producto. Si
+  se decide una feature adicional antes de release, abrir primero un nuevo
+  change OpenSpec desde `origin/main`.
 
 ## Reglas de coordinacion
 
