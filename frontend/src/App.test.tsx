@@ -1934,7 +1934,7 @@ describe('App chat workspace', () => {
         .getByRole('complementary', { name: 'Workspace inspector' })
         .className,
     ).toContain('workspace-inspector-inline')
-    expect(screen.queryByTestId('workspace-inspector-backdrop')).toBeNull()
+    expect(screen.queryByTestId('inspector-backdrop')).toBeNull()
     expect(document.querySelector('.chat-workspace-grid')?.className).toContain(
       'chat-workspace-grid-docked',
     )
@@ -1950,7 +1950,7 @@ describe('App chat workspace', () => {
         .getByRole('complementary', { name: 'Workspace inspector' })
         .className,
     ).toContain('workspace-inspector-overlay')
-    expect(screen.getByTestId('workspace-inspector-backdrop')).toBeTruthy()
+    expect(screen.getByTestId('inspector-backdrop')).toBeTruthy()
     expect(document.querySelector('.chat-workspace-grid')?.className).not.toContain(
       'chat-workspace-grid-docked',
     )
@@ -2141,6 +2141,10 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('data-slot="workspace-topline"')
     expect(shellSource).toContain('data-slot="chat-workspace-grid"')
     expect(shellSource).toContain('data-slot="workspace-project-chip"')
+  })
+
+  test('does not keep legacy inspector backdrop class markers in App.tsx', () => {
+    expect(appSource).not.toContain('workspace-inspector-backdrop')
   })
 
   test('hydrates the global theme from local storage', async () => {

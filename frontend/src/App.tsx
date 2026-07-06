@@ -2207,10 +2207,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             {isRightDockOverlay ? (
               <Button
                 aria-label="Close workspace inspector"
-                className="workspace-inspector-backdrop fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
-                data-testid="workspace-inspector-backdrop"
+                className="fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
+                data-testid="inspector-backdrop"
                 onClick={() => setIsRightDockOpen(false)}
-                slotName="workspace-inspector-backdrop"
+                slotName="inspector-backdrop"
                 type="button"
                 variant="ghost"
               />
