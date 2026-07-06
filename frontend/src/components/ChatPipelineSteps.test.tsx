@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { ChatPipelineSteps } from './ChatPipelineSteps'
+import chatPipelineStepsSource from './ChatPipelineSteps.tsx?raw'
 import { STEPPER_EXPANDED_STORAGE_KEY } from '../lib/stepperPreference'
 
 function installLocalStorage() {
@@ -160,5 +161,10 @@ describe('ChatPipelineSteps', () => {
     expect(container.querySelector('.pipeline-detail-chip')).toBeNull()
     expect(container.querySelector('[data-slot="chat-pipeline-step-list"]')).toBeTruthy()
     expect(container.querySelector('[data-slot="chat-pipeline-step-row"]')).toBeTruthy()
+  })
+
+  test('uses the shared Button primitive for stepper toggles', () => {
+    expect(chatPipelineStepsSource).toContain('./ui/button')
+    expect(chatPipelineStepsSource).not.toContain('<button')
   })
 })

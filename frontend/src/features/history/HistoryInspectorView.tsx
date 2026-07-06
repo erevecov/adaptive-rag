@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { Brain, MoreVertical, Plus, X } from 'lucide-react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, IconButton } from '@/components/ui/button'
@@ -101,7 +102,7 @@ export function SessionNavigationPanel({
           Sesiones
         </h2>
         <Button onClick={onStartNewSession} size="sm" type="button">
-          <PlusIcon />
+          <Plus aria-hidden="true" className="size-4" />
           nuevo chat
         </Button>
       </div>
@@ -158,7 +159,14 @@ export function SessionNavigationPanel({
                     title={hasTraining ? 'Training' : undefined}
                   >
                     {hasTraining ? (
-                      <BrainIcon approved={session.has_approved_training} />
+                      <Brain
+                        aria-hidden="true"
+                        className={
+                          session.has_approved_training
+                            ? 'size-[15px] fill-primary/20'
+                            : 'size-[15px]'
+                        }
+                      />
                     ) : null}
                   </span>
                   {isRenaming ? (
@@ -206,7 +214,7 @@ export function SessionNavigationPanel({
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
                       <IconButton label={`Opciones de ${title}`} variant="ghost">
-                        <MoreVerticalIcon />
+                        <MoreVertical aria-hidden="true" className="size-4" />
                       </IconButton>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
@@ -322,7 +330,7 @@ export function WorkspaceInspectorPanel({
           </SegmentedControlItem>
         </SegmentedControl>
         <IconButton label="Close right sidebar" onClick={onClose} variant="ghost">
-          <XIcon />
+          <X aria-hidden="true" className="size-4" />
         </IconButton>
       </div>
 
@@ -1113,43 +1121,4 @@ function formatUsd(value: number): string {
 
 function formatNumber(value: number): string {
   return NUMBER_FORMATTER.format(value)
-}
-
-function XIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
-  )
-}
-
-function PlusIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  )
-}
-
-function MoreVerticalIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="M12 5h.01M12 12h.01M12 19h.01" />
-    </svg>
-  )
-}
-
-function BrainIcon({ approved }: { approved: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={approved ? 'ui-icon brain-icon brain-icon-approved' : 'ui-icon brain-icon'}
-      focusable="false"
-      viewBox="0 0 24 24"
-    >
-      <path d="M9.5 4.5A3.5 3.5 0 0 0 6 8v.2A3.2 3.2 0 0 0 4 11.2c0 1.2.7 2.3 1.7 2.8A3.8 3.8 0 0 0 9.5 19H11V5.7a3.4 3.4 0 0 0-1.5-1.2Z" />
-      <path d="M14.5 4.5A3.5 3.5 0 0 1 18 8v.2a3.2 3.2 0 0 1 2 3c0 1.2-.7 2.3-1.7 2.8a3.8 3.8 0 0 1-3.8 5H13V5.7a3.4 3.4 0 0 1 1.5-1.2Z" />
-      <path d="M8 10h3M13 10h3M8.5 14H11M13 14h2.5" />
-    </svg>
-  )
 }

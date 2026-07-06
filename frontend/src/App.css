@@ -22,33 +22,6 @@
   --app-shadow: none;
 }
 
-.ui-icon {
-  fill: none;
-  height: 20px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-  width: 20px;
-}
-
-.brain-icon {
-  height: 15px;
-  width: 15px;
-}
-
-.brain-icon-approved {
-  fill: color-mix(in srgb, var(--app-accent) 24%, transparent);
-}
-
-.context-ring-track {
-  stroke: color-mix(in srgb, currentColor 26%, transparent);
-}
-
-.context-ring-fill {
-  stroke: var(--app-accent);
-}
-
 html,
 body,
 #root {

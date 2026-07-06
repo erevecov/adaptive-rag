@@ -235,6 +235,16 @@ describe('SessionNavigationPanel', () => {
     expect(historySource).toContain('@/components/ui/dropdown-menu')
     expect(historySource).not.toContain('@radix-ui/react-dropdown-menu')
   })
+
+  test('uses lucide icons instead of inline SVG icon functions', () => {
+    expect(historySource).toContain('lucide-react')
+    expect(historySource).not.toContain('<svg')
+    expect(historySource).not.toContain('function XIcon')
+    expect(historySource).not.toContain('function PlusIcon')
+    expect(historySource).not.toContain('function MoreVerticalIcon')
+    expect(historySource).not.toContain('function BrainIcon')
+    expect(historySource).not.toContain('ui-icon')
+  })
 })
 
 describe('WorkspaceInspectorPanel', () => {

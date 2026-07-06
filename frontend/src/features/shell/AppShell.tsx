@@ -1,6 +1,7 @@
 import { type CSSProperties, type ReactNode, useMemo, useState } from 'react'
+import { ChevronDown, LockKeyhole, Menu } from 'lucide-react'
 
-import { IconButton } from '@/components/ui/button'
+import { Button, IconButton } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
 import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import * as Popover from '@/components/ui/popover'
@@ -312,7 +313,7 @@ export function AppSidebar({
           label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
           onClick={onToggle}
         >
-          <MenuIcon />
+          <Menu aria-hidden="true" className="size-5" />
         </IconButton>
         <div
           className={cn(
@@ -583,12 +584,12 @@ function SidebarContextualButton({
   subitem?: boolean
 }) {
   return (
-    <button
+    <Button
       aria-pressed={active}
       className={cn(
         [
-          'flex w-full cursor-pointer items-center justify-start border border-transparent bg-transparent text-left text-muted-foreground transition-colors',
-          'hover:border-border hover:bg-accent hover:text-accent-foreground',
+          'h-auto w-full cursor-pointer justify-start border border-transparent bg-transparent text-left text-muted-foreground',
+          'hover:border-border',
           'disabled:cursor-not-allowed disabled:opacity-55',
         ],
         subitem
@@ -601,12 +602,13 @@ function SidebarContextualButton({
         active && 'border-border bg-accent text-accent-foreground',
       )}
       data-active={active ? '' : undefined}
-      data-slot={slot}
       onClick={onClick}
+      slotName={slot}
       type="button"
+      variant="ghost"
     >
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -658,18 +660,19 @@ function SidebarProjectSelector({
     <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
       <div className="relative z-[90] min-w-0" data-slot="project-selector">
         <Popover.Trigger asChild>
-          <button
+          <Button
             aria-label={`Project selector: ${selectedLabel}`}
             className={cn(
               [
-                'grid min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2',
+                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
                 'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground transition-colors',
-                'hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'hover:border-primary',
               ],
               isOpen && 'border-primary bg-accent',
             )}
-            data-slot="project-selector-trigger"
+            slotName="project-selector-trigger"
             type="button"
+            variant="ghost"
           >
             <span className="grid min-w-0 gap-0.5">
               <small className="text-[10px] font-extrabold uppercase text-muted-foreground">
@@ -679,8 +682,8 @@ function SidebarProjectSelector({
                 {selectedLabel}
               </strong>
             </span>
-            <ChevronDownIcon />
-          </button>
+            <ChevronDown aria-hidden="true" className="size-5" />
+          </Button>
         </Popover.Trigger>
 
         <Popover.Portal>
@@ -730,7 +733,7 @@ function SidebarProjectSelector({
                   const isSelected = project.id === trimmedProjectId
 
                   return (
-                    <button
+                    <Button
                       aria-label={
                         canAccess
                           ? `Select project ${project.name}`
@@ -739,23 +742,24 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
                           'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground transition-colors',
-                          'hover:border-border hover:bg-accent hover:text-accent-foreground',
+                          'hover:border-border',
                         ],
                         isSelected && 'border-border bg-accent text-accent-foreground',
                         !canAccess && 'cursor-not-allowed opacity-55',
                       )}
                       data-selected={isSelected ? '' : undefined}
-                      data-slot="project-selector-option"
                       disabled={!canAccess}
                       key={project.id}
                       onClick={() => handleSelectProject(project.id)}
                       role="option"
+                      slotName="project-selector-option"
                       title={
                         canAccess ? undefined : 'No tienes acceso para ese proyecto'
                       }
                       type="button"
+                      variant="ghost"
                     >
                       <span className="grid min-w-0 gap-0.5">
                         <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold text-foreground">
@@ -765,14 +769,14 @@ function SidebarProjectSelector({
                       {!canAccess ? (
                         <span
                           aria-label="No tienes acceso para ese proyecto"
-                          className="inline-flex justify-self-end text-muted-foreground [&_.ui-icon]:h-3.5 [&_.ui-icon]:w-3.5"
+                          className="inline-flex justify-self-end text-muted-foreground"
                           data-slot="project-selector-lock"
                           title="No tienes acceso para ese proyecto"
                         >
-                          <LockIcon />
+                          <LockKeyhole aria-hidden="true" className="size-3.5" />
                         </span>
                       ) : null}
-                    </button>
+                    </Button>
                   )
                 })
               ) : (
@@ -863,29 +867,4 @@ function shortSessionId(sessionId: string): string {
     return sessionId
   }
   return sessionId.slice(0, 8)
-}
-
-function MenuIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <rect height="10" rx="2" width="14" x="5" y="10" />
-      <path d="M8 10V8a4 4 0 0 1 8 0v2" />
-    </svg>
-  )
 }
