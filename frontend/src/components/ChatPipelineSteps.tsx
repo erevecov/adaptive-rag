@@ -10,6 +10,7 @@ import {
   readStepperExpandedPreference,
   writeStepperExpandedPreference,
 } from '../lib/stepperPreference'
+import { Button } from './ui/button'
 
 type ChatPipelineStepsProps = {
   children?: ReactNode
@@ -46,11 +47,12 @@ export function ChatPipelineSteps({
           className="rounded-md border border-border bg-muted/40 p-3"
           data-slot="chat-pipeline-steps"
         >
-          <button
+          <Button
             aria-label="Expand chat steps"
-            className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-background"
+            className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
             onClick={() => handleToggle(true)}
             type="button"
+            variant="ghost"
           >
             <StatusDot status={current.status} />
             <strong className="min-w-0 truncate">{current.label}</strong>
@@ -58,7 +60,7 @@ export function ChatPipelineSteps({
             <span aria-hidden="true" className="ml-auto text-muted-foreground">
               &gt;
             </span>
-          </button>
+          </Button>
         </section>
       )
     }
@@ -69,14 +71,15 @@ export function ChatPipelineSteps({
         className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
         data-slot="chat-pipeline-steps"
       >
-        <button
+        <Button
           aria-label="Collapse chat steps"
-          className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(false)}
           type="button"
+          variant="secondary"
         >
           v {summary}
-        </button>
+        </Button>
         <StepList steps={steps} />
         {children ? (
           <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">
@@ -99,14 +102,15 @@ export function ChatPipelineSteps({
         className="rounded-md border border-border bg-muted/40 p-3"
         data-slot="chat-pipeline-steps"
       >
-        <button
+        <Button
           aria-label={`Expand chat steps, ${label}`}
-          className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(true)}
           type="button"
+          variant="secondary"
         >
           &gt; {summary}
-        </button>
+        </Button>
       </section>
     )
   }
@@ -117,14 +121,15 @@ export function ChatPipelineSteps({
       className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
       data-slot="chat-pipeline-steps"
     >
-      <button
+      <Button
         aria-label={`Collapse chat steps, ${label}`}
-        className="inline-flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="h-auto min-w-0 justify-start text-left"
         onClick={() => handleToggle(false)}
         type="button"
+        variant="secondary"
       >
         v {summary}
-      </button>
+      </Button>
       <StepList steps={steps} />
       {children ? (
         <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">

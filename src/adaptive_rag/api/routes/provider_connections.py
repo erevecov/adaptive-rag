@@ -285,7 +285,7 @@ def _upsert_inline_api_key(
     secret_store = ProviderSecretStore.from_settings()
     repository.upsert_secret(
         connection_id=connection_id,
-        secret_name="api_key",
+        secret_name="api_key",  # nosec B106
         secret_value=api_key,
         secret_store=secret_store,
     )

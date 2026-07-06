@@ -2092,6 +2092,13 @@ describe('App chat workspace', () => {
     expect(appStyles).not.toMatch(/\.panel-label\b/)
   })
 
+  test('uses shared button primitives for remaining App and shell actions', () => {
+    expect(appSource).toContain('@/components/ui/button')
+    expect(shellSource).toContain('@/components/ui/button')
+    expect(appSource).not.toContain('<button')
+    expect(shellSource).not.toContain('<button')
+  })
+
   test('keeps shell components extracted from App.tsx', () => {
     expect(appSource).toContain('@/features/shell/AppShell')
     expect(appSource).not.toMatch(/function AppSidebar\b/)
@@ -2102,6 +2109,15 @@ describe('App chat workspace', () => {
   test('uses the shared Popover wrapper for shell project selection', () => {
     expect(shellSource).toContain('@/components/ui/popover')
     expect(shellSource).not.toContain('@radix-ui/react-popover')
+  })
+
+  test('uses lucide icons without global App.css icon selectors', () => {
+    expect(shellSource).toContain('lucide-react')
+    expect(shellSource).not.toContain('<svg')
+    expect(shellSource).not.toContain('ui-icon')
+    expect(appStyles).not.toMatch(/\.ui-icon\b/)
+    expect(appStyles).not.toMatch(/\.brain-icon\b/)
+    expect(appStyles).not.toMatch(/\.context-ring-/)
   })
 
   test('keeps workspace shell layout out of App.css legacy selectors', () => {

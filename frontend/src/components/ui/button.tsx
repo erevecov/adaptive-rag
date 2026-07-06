@@ -7,16 +7,17 @@ import { buttonVariants } from './button-variants'
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     'data-slot'?: string
+    slotName?: string
   }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, size, type = 'button', variant, ...props }, ref) => (
+  ({ className, size, slotName = 'button', type = 'button', variant, ...props }, ref) => (
     <button
       className={cn(buttonVariants({ size, variant }), className)}
       ref={ref}
       type={type}
       {...props}
-      data-slot="button"
+      data-slot={slotName}
     />
   ),
 )
@@ -31,6 +32,7 @@ export type IconButtonProps = Omit<
   | 'data-slot'
   | 'role'
   | 'size'
+  | 'slotName'
   | 'tabIndex'
   | 'title'
 > & {
@@ -42,6 +44,7 @@ export type IconButtonProps = Omit<
   label: string
   role?: never
   size?: never
+  slotName?: never
   tabIndex?: never
   title?: never
 }
@@ -138,6 +141,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     delete buttonProps['data-slot']
     delete buttonProps.role
     delete buttonProps.size
+    delete buttonProps.slotName
     delete buttonProps.tabIndex
     delete buttonProps.title
 

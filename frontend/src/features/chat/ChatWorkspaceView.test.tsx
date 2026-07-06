@@ -12,6 +12,7 @@ import type {
   KnowledgeProposal,
 } from '@/lib/apiClient'
 import { ChatWorkspacePanel } from './ChatWorkspaceView'
+import chatWorkspaceSource from './ChatWorkspaceView.tsx?raw'
 
 afterEach(() => {
   cleanup()
@@ -252,5 +253,15 @@ describe('ChatWorkspacePanel', () => {
     expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
     expect(within(draft).getByRole('button', { name: 'Approve knowledge' })).toBeTruthy()
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('uses lucide icons instead of inline SVG icon functions', () => {
+    expect(chatWorkspaceSource).toContain('lucide-react')
+    expect(chatWorkspaceSource).not.toContain('<svg')
+    expect(chatWorkspaceSource).not.toContain('function ContextRingIcon')
+    expect(chatWorkspaceSource).not.toContain('function MinimapIcon')
+    expect(chatWorkspaceSource).not.toContain('function TranscriptIcon')
+    expect(chatWorkspaceSource).not.toContain('function SendIcon')
+    expect(chatWorkspaceSource).not.toContain('ui-icon')
   })
 })

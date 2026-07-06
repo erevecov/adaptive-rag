@@ -8,6 +8,7 @@
 } from 'react'
 import './App.css'
 import { StatusBadge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
@@ -2204,12 +2205,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             />
 
             {isRightDockOverlay ? (
-              <div
-                aria-hidden="true"
-                className="fixed inset-0 z-[60] cursor-pointer border-0 bg-[var(--overlay-backdrop)] p-0"
-                data-slot="inspector-backdrop"
+              <Button
+                aria-label="Close workspace inspector"
+                className="fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
                 data-testid="inspector-backdrop"
                 onClick={() => setIsRightDockOpen(false)}
+                slotName="inspector-backdrop"
+                type="button"
+                variant="ghost"
               />
             ) : null}
 
@@ -2521,20 +2524,21 @@ function AppearanceSettingsPanel({
         {THEMES.map((option) => {
           const active = option.id === theme
           return (
-            <button
+            <Button
               aria-pressed={active}
               className={[
-                'grid w-full min-w-0 gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground transition-colors',
-                'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground',
+                'hover:bg-muted',
                 active ? 'border-primary bg-primary/10' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               data-state={active ? 'active' : 'inactive'}
-              data-slot="theme-option"
               key={option.id}
               onClick={() => onThemeChange(option.id)}
+              slotName="theme-option"
               type="button"
+              variant="ghost"
             >
               <span
                 aria-hidden="true"
@@ -2572,7 +2576,7 @@ function AppearanceSettingsPanel({
                   {option.description}
                 </span>
               </span>
-            </button>
+            </Button>
           )
         })}
       </div>

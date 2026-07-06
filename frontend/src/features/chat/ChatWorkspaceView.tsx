@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { CircleDot, Map as MapIcon, Mic, Send, Square } from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { Badge, StatusBadge } from '@/components/ui/badge'
@@ -176,7 +177,7 @@ export function ChatWorkspacePanel({
                 onClick={onOpenContextInspector}
                 variant={isContextInspectorActive ? 'primary' : 'secondary'}
               >
-                <ContextRingIcon />
+                <CircleDot aria-hidden="true" className="size-5" />
               </IconButton>
               <IconButton
                 aria-pressed={isMinimapInspectorActive}
@@ -184,7 +185,7 @@ export function ChatWorkspacePanel({
                 onClick={onOpenMinimapInspector}
                 variant={isMinimapInspectorActive ? 'primary' : 'secondary'}
               >
-                <MinimapIcon />
+                <MapIcon aria-hidden="true" className="size-5" />
               </IconButton>
               <SpeechInputControl
                 feedback={speechFeedback}
@@ -194,7 +195,7 @@ export function ChatWorkspacePanel({
                 state={speechState}
               />
               <Button disabled={isAsking} type="submit">
-                <SendIcon />
+                <Send aria-hidden="true" className="size-4" />
                 <span>{isAsking ? 'Asking...' : 'Ask'}</span>
               </Button>
             </div>
@@ -251,7 +252,11 @@ function SpeechInputControl({
         onClick={isListening ? onStop : onStart}
         variant={isListening ? 'primary' : 'secondary'}
       >
-        <TranscriptIcon active={isListening} />
+        {isListening ? (
+          <Square aria-hidden="true" className="size-4" />
+        ) : (
+          <Mic aria-hidden="true" className="size-4" />
+        )}
       </IconButton>
       <InlineFeedback
         className="min-w-0 max-w-72"
@@ -1052,52 +1057,4 @@ function formatCount(value: number, singularLabel: string): string {
     return `1 ${singularLabel}`
   }
   return `${formatNumber(value)} ${singularLabel}s`
-}
-
-function ContextRingIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="ui-icon context-ring-icon"
-      focusable="false"
-      viewBox="0 0 24 24"
-    >
-      <circle className="context-ring-track" cx="12" cy="12" r="8" />
-      <path className="context-ring-fill" d="M12 4a8 8 0 0 1 7.6 5.5" />
-      <circle cx="12" cy="12" r="2.8" />
-    </svg>
-  )
-}
-
-function MinimapIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <rect height="14" rx="2" width="14" x="5" y="5" />
-      <path d="M8 9h3M8 12h5M8 15h2M15 9h1M15 15h1" />
-    </svg>
-  )
-}
-
-function TranscriptIcon({ active }: { active: boolean }) {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      {active ? (
-        <rect height="10" rx="1.5" width="10" x="7" y="7" />
-      ) : (
-        <>
-          <path d="M12 5a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V8a3 3 0 0 0-3-3Z" />
-          <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-        </>
-      )}
-    </svg>
-  )
-}
-
-function SendIcon() {
-  return (
-    <svg aria-hidden="true" className="ui-icon" focusable="false" viewBox="0 0 24 24">
-      <path d="m5 12 14-7-5 14-3-6-6-1Z" />
-      <path d="m11 13 8-8" />
-    </svg>
-  )
 }
