@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -17,6 +16,7 @@ from adaptive_rag.acceptance import (
     run_runtime_settings_acceptance_smoke,
     runtime_settings_acceptance_report_payload,
 )
+from adaptive_rag.cli.output import exit_error, write_or_echo_json
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.first_run import DEFAULT_QUESTION
 
@@ -62,15 +62,11 @@ def runtime_settings_smoke(
             )
         except AcceptanceError as exc:
             session.rollback()
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
         session.commit()
-        payload = json.dumps(runtime_settings_acceptance_report_payload(report))
+        payload = runtime_settings_acceptance_report_payload(report)
 
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(payload, output)
 
     if report.status != "succeeded":
         raise typer.Exit(1)

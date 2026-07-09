@@ -6,11 +6,12 @@ import socket
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy.orm import Session
 
 from adaptive_rag import ingestion_ops
 from adaptive_rag.api.dependencies import get_project_contributor_access, get_session
+from adaptive_rag.api.http_errors import domain_http_error
 from adaptive_rag.api.schemas.ingestion_ops import (
     EnqueueIngestionJobRequestBody,
     IngestionRunResponse,
@@ -49,7 +50,7 @@ def enqueue_source_ingestion(
             max_attempts=active_body.max_attempts,
         )
     except ingestion_ops.IngestionOpsError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     session.commit()
     return JobResponse.from_job(job)
 
@@ -75,7 +76,7 @@ def list_ingestion_jobs(
             job_type=job_type,
         )
     except ingestion_ops.IngestionOpsError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     return JobListResponse.from_jobs(jobs)
 
 
@@ -102,7 +103,7 @@ def run_next_ingestion_job(
             lease_seconds=active_body.lease_seconds,
         )
     except ingestion_ops.IngestionOpsError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     session.commit()
     return IngestionRunResponse.from_report(report)
 
@@ -127,7 +128,7 @@ def get_ingestion_job(
             job_id=job_id,
         )
     except ingestion_ops.IngestionOpsError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     return JobDetailResponse.from_job_and_events(
         job=detail.job,
         events=list(detail.events),
@@ -157,13 +158,9 @@ def retry_ingestion_job(
             reset_attempts=active_body.reset_attempts,
         )
     except ingestion_ops.IngestionOpsError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     session.commit()
     return JobResponse.from_job(job)
-
-
-def _http_error(error: ingestion_ops.IngestionOpsError) -> HTTPException:
-    return HTTPException(status_code=error.status_code, detail=error.detail)
 
 
 def _default_worker_id() -> str:

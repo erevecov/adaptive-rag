@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import json
 import os
 import socket
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, NoReturn
+from typing import Annotated
 from uuid import UUID
 
 import typer
 
 from adaptive_rag import ingestion_ops
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.ingestion.pipeline import IngestionBlockedResult, IngestionPipeline
 
@@ -36,11 +36,11 @@ def enqueue_ingest_source(
                 max_attempts=max_attempts,
             )
         except ingestion_ops.IngestionOpsError as exc:
-            _exit_ingestion_ops_error(exc)
+            exit_error(exc.detail)
         session.commit()
         payload = ingestion_ops.job_payload(job)
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("list")
@@ -60,10 +60,10 @@ def list_jobs(
                 job_type=job_type,
             )
         except ingestion_ops.IngestionOpsError as exc:
-            _exit_ingestion_ops_error(exc)
+            exit_error(exc.detail)
         payload = {"items": [ingestion_ops.job_payload(job) for job in jobs]}
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("show")
@@ -79,7 +79,7 @@ def show_job(
                 job_id=job_id,
             )
         except ingestion_ops.IngestionOpsError as exc:
-            _exit_ingestion_ops_error(exc)
+            exit_error(exc.detail)
         payload = {
             "job": ingestion_ops.job_payload(detail.job),
             "events": [
@@ -87,7 +87,7 @@ def show_job(
             ],
         }
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("retry")
@@ -105,11 +105,11 @@ def retry_job(
                 reset_attempts=reset_attempts,
             )
         except ingestion_ops.IngestionOpsError as exc:
-            _exit_ingestion_ops_error(exc)
+            exit_error(exc.detail)
         session.commit()
         payload = ingestion_ops.job_payload(job)
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("run-worker")
@@ -146,7 +146,7 @@ def run_worker(
             processed_jobs += 1
             payload["processed_jobs"] = processed_jobs
 
-        typer.echo(json.dumps(payload))
+        echo_json(payload)
 
         reached_max_jobs = max_jobs is not None and processed_jobs >= max_jobs
         should_exit = once or reached_max_jobs
@@ -215,8 +215,3 @@ def _source_id_from_job_payload(payload: object) -> str | None:
         return None
     source_id = payload.get("source_id")
     return source_id if isinstance(source_id, str) else None
-
-
-def _exit_ingestion_ops_error(error: ingestion_ops.IngestionOpsError) -> NoReturn:
-    typer.echo(error.detail, err=True)
-    raise typer.Exit(1)

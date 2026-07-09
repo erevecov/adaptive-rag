@@ -16,18 +16,14 @@ from adaptive_rag.db.repositories import (
     SourceFilters,
     SourceRepository,
 )
+from adaptive_rag.errors import DomainError
 
 SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 
 
-class AuthoringError(Exception):
+class AuthoringError(DomainError):
     """Error esperado de authoring con mensaje estable para API y CLI."""
-
-    def __init__(self, detail: str, *, status_code: int) -> None:
-        super().__init__(detail)
-        self.detail = detail
-        self.status_code = status_code
 
 
 def create_project(

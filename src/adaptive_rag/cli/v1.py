@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -13,6 +12,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
     get_cli_sparse_embedding_provider,
 )
+from adaptive_rag.cli.output import exit_error, write_or_echo_json
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.first_run import (
     DEFAULT_CONTENT,
@@ -72,15 +72,11 @@ def quality_gate(
             )
         except FirstRunError as exc:
             session.rollback()
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
         session.commit()
-        payload = json.dumps(v1_quality_gate_report_payload(report))
+        payload = v1_quality_gate_report_payload(report)
 
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(payload, output)
 
     if report.status != "succeeded":
         raise typer.Exit(1)

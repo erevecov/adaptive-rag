@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from typing import Annotated, Any, NoReturn
+from typing import Annotated, Any
 from uuid import UUID
 
 import typer
@@ -21,6 +20,7 @@ from adaptive_rag.authoring import (
 from adaptive_rag.authoring import (
     list_sources as list_authoring_sources,
 )
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.db.repositories import SourceFilters
 from adaptive_rag.db.session import session_scope
 
@@ -48,11 +48,11 @@ def create(
                 extra_metadata=extra_metadata,
             )
         except AuthoringError as exc:
-            _exit_authoring_error(exc)
+            exit_error(exc.detail)
         session.commit()
         payload = source_payload(source)
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("list")
@@ -74,10 +74,10 @@ def list_sources(
                 ),
             )
         except AuthoringError as exc:
-            _exit_authoring_error(exc)
+            exit_error(exc.detail)
         payload = {"items": [source_payload(source) for source in sources]}
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("show")
@@ -93,18 +93,13 @@ def show(
                 source_id=source_id,
             )
         except AuthoringError as exc:
-            _exit_authoring_error(exc)
+            exit_error(exc.detail)
         payload = source_payload(source)
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 def _extra_metadata_from_content(content: str | None) -> dict[str, Any] | None:
     if content is None:
         return None
     return {"content": content}
-
-
-def _exit_authoring_error(error: AuthoringError) -> NoReturn:
-    typer.echo(error.detail, err=True)
-    raise typer.Exit(1)

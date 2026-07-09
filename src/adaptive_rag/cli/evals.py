@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from pathlib import Path
 from typing import Annotated
@@ -16,6 +15,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_hosted_eval_runtime,
     get_cli_sparse_embedding_provider,
 )
+from adaptive_rag.cli.output import exit_error, write_or_echo_json
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
@@ -68,8 +68,7 @@ def run(
     try:
         suite = load_eval_suite(suite_path)
     except EvalDatasetError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
     active_mode = _parse_mode(mode)
     active_retrieval_strategy: RetrievalStrategy = retrieval_strategy or (
@@ -123,14 +122,9 @@ def run(
         QwenChatRunnerError,
         QwenEmbeddingProviderError,
     ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    payload = json.dumps(serialize_eval_report(report))
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(serialize_eval_report(report), output)
 
     if report.status == "failed":
         raise typer.Exit(1)
@@ -154,8 +148,7 @@ def strategy_gate(
     try:
         suite = load_eval_suite(suite_path)
     except EvalDatasetError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
     try:
         if require_live_qwen_sparse:
@@ -182,14 +175,9 @@ def strategy_gate(
         ProviderConfigurationError,
         QwenEmbeddingProviderError,
     ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    payload = json.dumps(serialize_retrieval_strategy_gate_report(report))
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(serialize_retrieval_strategy_gate_report(report), output)
 
     if report.status == "failed":
         raise typer.Exit(1)
@@ -230,8 +218,7 @@ def graph_quality_gate(
     try:
         suite = load_eval_suite(suite_path)
     except EvalDatasetError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
     try:
         with session_scope() as session:
@@ -241,14 +228,9 @@ def graph_quality_gate(
                 provider=get_cli_dense_embedding_provider(),
             )
     except (EvalConfigurationError, QwenEmbeddingProviderError) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    payload = json.dumps(serialize_graph_quality_gate_report(report))
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(serialize_graph_quality_gate_report(report), output)
 
     if report.status == "failed":
         raise typer.Exit(1)
@@ -285,8 +267,7 @@ def graph_live_evidence(
             for path in retrieval_smoke_report or ()
         )
     except EvalDatasetError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
     try:
         with session_scope() as session:
@@ -305,14 +286,9 @@ def graph_live_evidence(
             ),
         )
     except (EvalConfigurationError, QwenEmbeddingProviderError) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    payload = json.dumps(serialize_graph_live_evidence_report(report))
-    if output is None:
-        typer.echo(payload)
-    else:
-        output.write_text(f"{payload}\n", encoding="utf-8")
+    write_or_echo_json(serialize_graph_live_evidence_report(report), output)
 
     if report.status == "failed":
         raise typer.Exit(1)

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Annotated, Any, cast
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -14,6 +13,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_graph_store,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.graph import (
@@ -44,23 +44,20 @@ def neo4j_smoke() -> None:
             )
         health = store.health_check()
     except GraphStoreError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
     finally:
         _close_store(store)
 
     settings = get_settings()
-    typer.echo(
-        json.dumps(
-            {
-                "backend": health.backend,
-                "available": health.available,
-                "status": health.status,
-                "error_code": health.error_code,
-                "uri_scheme": _uri_scheme(settings.neo4j_uri),
-                "uri_kind": _uri_kind(settings.neo4j_uri),
-            }
-        )
+    echo_json(
+        {
+            "backend": health.backend,
+            "available": health.available,
+            "status": health.status,
+            "error_code": health.error_code,
+            "uri_scheme": _uri_scheme(settings.neo4j_uri),
+            "uri_kind": _uri_kind(settings.neo4j_uri),
+        }
     )
     if not health.available:
         raise typer.Exit(1)
@@ -170,12 +167,11 @@ def _run_backfill_command(
                 operation=operation,
             )
     except GraphStoreError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
     finally:
         _close_store(store)
 
-    typer.echo(json.dumps(_operation_report_payload(report)))
+    echo_json(_operation_report_payload(report))
     if report.status != "ready":
         raise typer.Exit(1)
 
@@ -205,12 +201,11 @@ def _run_retrieval_smoke_command(
                 metadata_filter=metadata_filter,
             )
     except (GraphStoreError, RetrievalServiceError) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
     finally:
         _close_store(store)
 
-    typer.echo(json.dumps(_retrieval_smoke_report_payload(report)))
+    echo_json(_retrieval_smoke_report_payload(report))
     if report.status != "ready":
         raise typer.Exit(1)
 

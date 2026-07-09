@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from collections.abc import Callable
-from inspect import signature
 from typing import Annotated, Any, cast
 from uuid import UUID
 
@@ -16,8 +13,10 @@ from adaptive_rag.cli.dependencies import (
     get_cli_graph_retriever,
     get_cli_rerank_provider,
     get_cli_sparse_embedding_provider,
+    resolve_factory_kwargs,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.rerank import RerankProvider
@@ -73,8 +72,7 @@ def search(
             candidate_limit=rerank_candidate_limit,
         )
     except RetrievalServiceError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
     metadata_filter = build_retrieval_metadata_filter(
         source_id=source_id,
@@ -120,10 +118,9 @@ def search(
         try:
             results = service.search(request)
         except RetrievalServiceError as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
 
-    typer.echo(json.dumps({"results": serialize_retrieval_results(results)}))
+    echo_json({"results": serialize_retrieval_results(results)})
 
 
 def _build_rerank_options(
@@ -147,7 +144,7 @@ def _get_dense_embedding_provider(
     project_id: UUID,
     session: Session,
 ) -> DenseEmbeddingProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_dense_embedding_provider,
         project_id=project_id,
         session=session,
@@ -163,7 +160,7 @@ def _get_sparse_embedding_provider(
     project_id: UUID,
     session: Session,
 ) -> SparseEmbeddingProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_sparse_embedding_provider,
         project_id=project_id,
         session=session,
@@ -179,25 +176,10 @@ def _get_rerank_provider(
     project_id: UUID,
     session: Session,
 ) -> RerankProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_rerank_provider,
         project_id=project_id,
         session=session,
     )
     return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
-
-
-def _project_runtime_kwargs(
-    factory: Callable[..., object],
-    *,
-    project_id: UUID,
-    session: Session,
-) -> dict[str, object]:
-    parameters = signature(factory).parameters
-    kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
-    if "session" in parameters:
-        kwargs["session"] = session
-    return kwargs
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring
@@ -17,6 +17,7 @@ from adaptive_rag.api.dependencies import (
     get_session,
     require_superadmin,
 )
+from adaptive_rag.api.http_errors import domain_http_error
 from adaptive_rag.api.schemas.authoring import (
     ProjectCreateRequestBody,
     ProjectListResponse,
@@ -50,7 +51,7 @@ def create_project(
             budget_config_json=body.budget_config_json,
         )
     except authoring.AuthoringError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     session.commit()
     return ProjectResponse.from_project(
         project,
@@ -103,7 +104,7 @@ def create_source(
             extra_metadata=body.extra_metadata,
         )
     except authoring.AuthoringError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     session.commit()
     return SourceResponse.from_source(source)
 
@@ -132,7 +133,7 @@ def list_sources(
             ),
         )
     except authoring.AuthoringError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     return SourceListResponse.from_sources(sources)
 
 
@@ -150,12 +151,8 @@ def get_source(
             source_id=source_id,
         )
     except authoring.AuthoringError as exc:
-        raise _http_error(exc) from exc
+        raise domain_http_error(exc) from exc
     return SourceResponse.from_source(source)
-
-
-def _http_error(error: authoring.AuthoringError) -> HTTPException:
-    return HTTPException(status_code=error.status_code, detail=error.detail)
 
 
 def _project_response_for_current_user(

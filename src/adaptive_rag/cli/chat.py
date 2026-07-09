@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
-from inspect import signature
 from typing import Annotated, Any, cast
 from uuid import UUID
 
@@ -29,8 +27,10 @@ from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
     get_cli_rerank_provider,
     get_cli_sparse_embedding_provider,
+    resolve_factory_kwargs,
 )
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter, parse_cli_datetime
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatObservabilityRepository,
@@ -145,13 +145,12 @@ def ask(
             session.commit()
         except ChatServiceError as exc:
             _commit_or_rollback_chat_error(session)
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
         except Exception:
             _commit_or_rollback_chat_error(session)
             raise
 
-    typer.echo(json.dumps(serialize_chat_response(response)))
+    echo_json(serialize_chat_response(response))
 
 
 @sessions_app.command("list")
@@ -170,11 +169,10 @@ def list_sessions(
                 cursor=cursor,
             )
         except ValueError as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
 
     response = ChatSessionListResponse.from_summary_page(page)
-    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
+    echo_json(response.model_dump(mode="json", by_alias=True))
 
 
 @sessions_app.command("show")
@@ -188,11 +186,10 @@ def show_session(
             session_id=session_id,
         )
         if detail is None:
-            typer.echo("chat session not found", err=True)
-            raise typer.Exit(1)
+            exit_error("chat session not found")
 
     response = ChatSessionDetailResponse.from_detail(detail)
-    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
+    echo_json(response.model_dump(mode="json", by_alias=True))
 
 
 @observability_app.command("summary")
@@ -223,11 +220,10 @@ def observability_summary(
                 status=status,
             )
         except ValueError as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(1) from exc
+            exit_error(str(exc), cause=exc)
 
     response = ChatObservabilitySummaryResponse.from_summary(summary)
-    typer.echo(json.dumps(response.model_dump(mode="json", by_alias=True)))
+    echo_json(response.model_dump(mode="json", by_alias=True))
 
 
 def _commit_or_rollback_chat_error(session: Session) -> None:
@@ -243,7 +239,7 @@ def _get_chat_dense_embedding_provider(
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> DenseEmbeddingProvider:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_dense_embedding_provider,
         project_id=project_id,
         session=session,
@@ -261,7 +257,7 @@ def _get_chat_sparse_embedding_provider(
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> SparseEmbeddingProvider:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_sparse_embedding_provider,
         project_id=project_id,
         session=session,
@@ -279,7 +275,7 @@ def _get_chat_rerank_provider(
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> RerankProvider:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_rerank_provider,
         project_id=project_id,
         session=session,
@@ -294,31 +290,13 @@ def _get_chat_runner(
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> ChatRunner:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_cli_chat_runner,
         project_id=project_id,
         session=session,
         usage_tracker=usage_tracker,
     )
     return cast(ChatRunner, cast(Any, get_cli_chat_runner)(**kwargs))
-
-
-def _runtime_factory_kwargs(
-    factory: Callable[..., object],
-    *,
-    project_id: UUID,
-    session: Session,
-    usage_tracker: InMemoryProviderUsageTracker,
-) -> dict[str, object]:
-    parameters = signature(factory).parameters
-    kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
-    if "session" in parameters:
-        kwargs["session"] = session
-    if "usage_tracker" in parameters:
-        kwargs["usage_tracker"] = usage_tracker
-    return kwargs
 
 
 class _LazyCliChatRetrievalSearcher:

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from adaptive_rag import authoring
 from adaptive_rag.db.models import Job, JobEvent
 from adaptive_rag.db.repositories import JobRepository
+from adaptive_rag.errors import DomainError
 from adaptive_rag.ingestion.pipeline import (
     INGEST_SOURCE_JOB_TYPE,
     IngestionBlockedResult,
@@ -19,13 +20,8 @@ from adaptive_rag.ingestion.pipeline import (
 )
 
 
-class IngestionOpsError(Exception):
+class IngestionOpsError(DomainError):
     """Error esperado de ingestion ops con mensaje estable para API y CLI."""
-
-    def __init__(self, detail: str, *, status_code: int) -> None:
-        super().__init__(detail)
-        self.detail = detail
-        self.status_code = status_code
 
 
 @dataclass(frozen=True, slots=True)

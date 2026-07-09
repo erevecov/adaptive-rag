@@ -48,7 +48,7 @@ def get_cli_dense_embedding_provider(
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_default_dense_embedding_provider,
         project_id=project_id,
         session=session,
@@ -66,7 +66,7 @@ def get_cli_sparse_embedding_provider(
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> SparseEmbeddingProvider:
-    kwargs = _runtime_factory_kwargs(
+    kwargs = resolve_factory_kwargs(
         get_default_sparse_embedding_provider,
         project_id=project_id,
         session=session,
@@ -104,22 +104,16 @@ def get_cli_rerank_provider(
     )
 
 
-def _runtime_factory_kwargs(
+def resolve_factory_kwargs(
     factory: Callable[..., object],
-    *,
-    project_id: UUID | None,
-    session: Session | None,
-    usage_tracker: InMemoryProviderUsageTracker | None,
+    **candidates: object,
 ) -> dict[str, object]:
+    """Filtra `candidates` a los parametros que `factory` acepta por nombre."""
+
     parameters = signature(factory).parameters
-    kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
-    if "session" in parameters:
-        kwargs["session"] = session
-    if "usage_tracker" in parameters:
-        kwargs["usage_tracker"] = usage_tracker
-    return kwargs
+    return {
+        name: value for name, value in candidates.items() if name in parameters
+    }
 
 
 def get_cli_graph_store() -> GraphStore:

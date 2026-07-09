@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Annotated
 from uuid import UUID
 
@@ -15,6 +14,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
     get_cli_rerank_provider,
 )
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
@@ -46,19 +46,16 @@ def embedding_smoke(
         ProviderConfigurationError,
         QwenEmbeddingProviderError,
     ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    typer.echo(
-        json.dumps(
-            {
-                "provider": provider.provider_name,
-                "model": provider.model_name,
-                "dimensions": provider.dimensions,
-                "input_count": 1,
-                "embedding_count": len(embeddings),
-            }
-        )
+    echo_json(
+        {
+            "provider": provider.provider_name,
+            "model": provider.model_name,
+            "dimensions": provider.dimensions,
+            "input_count": 1,
+            "embedding_count": len(embeddings),
+        }
     )
 
 
@@ -87,19 +84,16 @@ def chat_smoke(
         QwenChatRunnerError,
         ChatServiceError,
     ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    typer.echo(
-        json.dumps(
-            {
-                "provider": getattr(runner, "provider_name", "fake"),
-                "model": getattr(runner, "model_name", "retrieval-grounded-local-v1"),
-                "answer": response.answer,
-                "citation_count": len(response.citations),
-                "tool_call_count": len(response.tool_calls),
-            }
-        )
+    echo_json(
+        {
+            "provider": getattr(runner, "provider_name", "fake"),
+            "model": getattr(runner, "model_name", "retrieval-grounded-local-v1"),
+            "answer": response.answer,
+            "citation_count": len(response.citations),
+            "tool_call_count": len(response.tool_calls),
+        }
     )
 
 
@@ -134,20 +128,17 @@ def rerank_smoke(
         QwenRerankProviderError,
         RerankProviderError,
     ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+        exit_error(str(exc), cause=exc)
 
-    typer.echo(
-        json.dumps(
-            {
-                "provider": result.provider_name,
-                "model": result.model_name,
-                "query": query,
-                "candidate_count": len(active_documents),
-                "result_count": len(result.scores),
-                "results": [_serialize_rerank_score(score) for score in result.scores],
-            }
-        )
+    echo_json(
+        {
+            "provider": result.provider_name,
+            "model": result.model_name,
+            "query": query,
+            "candidate_count": len(active_documents),
+            "result_count": len(result.scores),
+            "results": [_serialize_rerank_score(score) for score in result.scores],
+        }
     )
 
 

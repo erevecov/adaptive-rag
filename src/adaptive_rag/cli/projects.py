@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from typing import Annotated, NoReturn
+from typing import Annotated
 from uuid import UUID
 
 import typer
@@ -21,6 +20,7 @@ from adaptive_rag.authoring import (
 from adaptive_rag.authoring import (
     list_projects as list_authoring_projects,
 )
+from adaptive_rag.cli.output import echo_json, exit_error
 from adaptive_rag.db.session import session_scope
 
 app = typer.Typer(no_args_is_help=True)
@@ -34,11 +34,11 @@ def create(
         try:
             project = create_authoring_project(session, name=name)
         except AuthoringError as exc:
-            _exit_authoring_error(exc)
+            exit_error(exc.detail)
         session.commit()
         payload = project_payload(project)
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("list")
@@ -47,7 +47,7 @@ def list_projects() -> None:
         projects = list_authoring_projects(session)
         payload = {"items": [project_payload(project) for project in projects]}
 
-    typer.echo(json.dumps(payload))
+    echo_json(payload)
 
 
 @app.command("show")
@@ -58,12 +58,7 @@ def show(
         try:
             project = get_authoring_project(session, project_id)
         except AuthoringError as exc:
-            _exit_authoring_error(exc)
+            exit_error(exc.detail)
         payload = project_payload(project)
 
-    typer.echo(json.dumps(payload))
-
-
-def _exit_authoring_error(error: AuthoringError) -> NoReturn:
-    typer.echo(error.detail, err=True)
-    raise typer.Exit(1)
+    echo_json(payload)
