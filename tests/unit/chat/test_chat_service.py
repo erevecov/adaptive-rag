@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID, uuid4
 
 import pytest
@@ -502,6 +503,48 @@ def test_chat_service_rejects_citations_not_returned_by_retrieval() -> None:
         ChatService(runner=runner, retrieval_service=retrieval).respond(
             ChatRequest(project_id=project_id, message="What supports alpha?")
         )
+
+
+def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    retrieval = RecordingRetrievalService(
+        [_retrieval_result(chunk_id=chunk_id, snippet="Alpha original evidence")]
+    )
+    runner = ToolCallingRunner(
+        retrieval_query="alpha evidence",
+        cited_chunk_ids=(chunk_id,),
+    )
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+
+    def _raise_usage() -> tuple[ProviderCallRecord, ...]:
+        raise RuntimeError("usage source unavailable")
+
+    with caplog.at_level(logging.WARNING, logger="adaptive_rag.chat.service"):
+        response = ChatService(
+            runner=runner,
+            retrieval_service=retrieval,
+            audit_writer=audit,
+            provider_usage_records=_raise_usage,
+        ).respond(
+            ChatRequest(project_id=project_id, message="What supports alpha?")
+        )
+
+    assert response.answer == "Alpha is backed by retrieved evidence."
+    warnings = [
+        record
+        for record in caplog.records
+        if record.getMessage() == "chat_provider_usage_audit_failed"
+    ]
+    assert warnings
+    assert all(record.exc_info is not None for record in warnings)
+    assert any(
+        record.exc_info is not None and record.exc_info[0] is RuntimeError
+        for record in warnings
+    )
+    assert audit.events[-1] == {"event": "succeed_session"}
 
 
 def _retrieval_result(

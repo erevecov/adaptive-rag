@@ -411,6 +411,7 @@ class ChatService:
             logger.warning(
                 "chat_provider_usage_audit_failed",
                 extra={"error_type": type(exc).__name__},
+                exc_info=exc,
             )
         return True
 
@@ -421,6 +422,7 @@ class ChatService:
             logger.warning(
                 "chat_provider_usage_audit_failed",
                 extra={"error_type": type(exc).__name__},
+                exc_info=exc,
             )
             return ()
 
@@ -440,6 +442,7 @@ class ChatService:
             logger.warning(
                 "chat_provider_usage_audit_failed",
                 extra={"error_type": type(exc).__name__},
+                exc_info=exc,
             )
         return True
 
