@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { installPointerEventMocks } from '@/test/pointerEvents'
+import { chooseRadixSelectOption } from '@/test/radixSelect'
 import type {
   IngestionJob,
   IngestionRunResponse,
@@ -22,15 +23,6 @@ installPointerEventMocks()
 afterEach(() => {
   cleanup()
 })
-
-async function chooseRadixSelectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  selectTrigger: HTMLElement,
-  optionName: string | RegExp,
-) {
-  await user.click(selectTrigger)
-  await user.click(await screen.findByRole('option', { name: optionName }))
-}
 
 const project: Project = {
   access_role: 'admin',

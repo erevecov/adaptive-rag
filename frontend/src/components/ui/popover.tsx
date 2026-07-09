@@ -62,7 +62,6 @@ export const Content = forwardRef<
       className={cn(
         [
           'z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out',
         ],
         className,
       )}
