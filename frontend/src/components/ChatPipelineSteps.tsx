@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 
 import {
   formatStepDuration,
@@ -57,9 +58,10 @@ export function ChatPipelineSteps({
             <StatusDot status={current.status} />
             <strong className="min-w-0 truncate">{current.label}</strong>
             <small className="text-muted-foreground">{current.elapsed}</small>
-            <span aria-hidden="true" className="ml-auto text-muted-foreground">
-              &gt;
-            </span>
+            <ChevronRight
+              aria-hidden="true"
+              className="ml-auto size-4 text-muted-foreground"
+            />
           </Button>
         </section>
       )
@@ -78,7 +80,8 @@ export function ChatPipelineSteps({
           type="button"
           variant="secondary"
         >
-          v {summary}
+          <ChevronDown aria-hidden="true" className="size-4" />
+          <span>{summary}</span>
         </Button>
         <StepList steps={steps} />
         {children ? (
@@ -109,7 +112,8 @@ export function ChatPipelineSteps({
           type="button"
           variant="secondary"
         >
-          &gt; {summary}
+          <ChevronRight aria-hidden="true" className="size-4" />
+          <span>{summary}</span>
         </Button>
       </section>
     )
@@ -128,7 +132,8 @@ export function ChatPipelineSteps({
         type="button"
         variant="secondary"
       >
-        v {summary}
+        <ChevronDown aria-hidden="true" className="size-4" />
+        <span>{summary}</span>
       </Button>
       <StepList steps={steps} />
       {children ? (
