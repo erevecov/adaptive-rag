@@ -80,7 +80,16 @@ def enqueue_source_ingestion(
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
 
-    return JobRepository(session).create(
+    job_repo = JobRepository(session)
+    existing = job_repo.find_open_ingest_source(
+        project_id=project_id,
+        source_id=source_id,
+    )
+    if existing is not None:
+        # Idempotent free enqueue: reuse open (queued/running) job for same source.
+        return existing
+
+    return job_repo.create(
         project_id=project_id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         payload_json={"source_id": str(source_id)},

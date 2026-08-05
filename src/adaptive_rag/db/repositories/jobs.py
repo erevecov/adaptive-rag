@@ -54,15 +54,42 @@ class JobRepository:
         *,
         project_id: UUID,
         status: str | None = None,
+        statuses: Sequence[str] | None = None,
         job_type: str | None = None,
     ) -> builtins.list[Job]:
+        if status is not None and statuses is not None:
+            raise ValueError("pass status or statuses, not both")
         statement = select(Job).where(Job.project_id == project_id)
-        if status is not None:
+        if statuses is not None:
+            statement = statement.where(Job.status.in_(tuple(statuses)))
+        elif status is not None:
             statement = statement.where(Job.status == status)
         if job_type is not None:
             statement = statement.where(Job.job_type == job_type)
         statement = statement.order_by(Job.created_at, Job.id)
         return builtins.list(self._session.scalars(statement))
+
+    def find_open_ingest_source(
+        self,
+        *,
+        project_id: UUID,
+        source_id: UUID,
+    ) -> Job | None:
+        """Return the oldest open ingest_source job for source_id, if any.
+
+        Open means status in (queued, running). Payload match is application-level
+        so SQLite and Postgres stay portable without JSON operator dialects.
+        """
+        source_key = str(source_id)
+        for job in self.list(
+            project_id=project_id,
+            job_type="ingest_source",
+            statuses=("queued", "running"),
+        ):
+            payload = job.payload_json or {}
+            if payload.get("source_id") == source_key:
+                return job
+        return None
 
     def lease_next(
         self,

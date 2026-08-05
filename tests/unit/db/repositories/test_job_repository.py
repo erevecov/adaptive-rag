@@ -551,3 +551,61 @@ def test_complete_and_block_allowed_when_unlocked():
     assert blocked.locked_by is None
     assert completed.status == "succeeded"
     assert completed.locked_by is None
+
+
+def test_find_open_ingest_source_returns_oldest_queued_or_running():
+    session = _make_session()
+    project = _make_project(session)
+    other = _make_project(session, "other")
+    repo = JobRepository(session)
+    source_a = "11111111-1111-1111-1111-111111111111"
+    source_b = "22222222-2222-2222-2222-222222222222"
+    from uuid import UUID
+
+    older = repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_b},
+    )
+    repo.create(
+        project_id=other.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    session.commit()
+
+    found = repo.find_open_ingest_source(
+        project_id=project.id,
+        source_id=UUID(source_a),
+    )
+    assert found is not None
+    assert found.id == older.id
+
+    # Succeeded is not open
+    repo.complete(project_id=project.id, job_id=older.id)
+    assert (
+        repo.find_open_ingest_source(
+            project_id=project.id,
+            source_id=UUID(source_a),
+        )
+        is None
+    )
+
+    # New queued job is found again
+    newer = repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    assert (
+        repo.find_open_ingest_source(
+            project_id=project.id,
+            source_id=UUID(source_a),
+        ).id
+        == newer.id
+    )

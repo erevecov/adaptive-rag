@@ -73,6 +73,36 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     assert [event["event_type"] for event in shown.json()["events"]] == ["created"]
 
 
+def test_double_enqueue_returns_existing_open_job() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="notes.md",
+        extra_metadata={"content": "# Notes"},
+    )
+    session.commit()
+    client = _client(session=session)
+
+    first = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    second = client.post(
+        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        json={"priority": 99},
+    )
+    listed = client.get(
+        f"/projects/{project.id}/ingestion-jobs",
+        params={"source_id": str(source.id), "job_type": "ingest_source"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["id"] == first.json()["id"]
+    assert second.json()["status"] == "queued"
+    assert [item["id"] for item in listed.json()["items"]] == [first.json()["id"]]
+    assert session.scalar(select(func.count()).select_from(Job)) == 1
+
+
 def test_enqueue_ingestion_job_requires_contributor_role() -> None:
     session = _make_session()
     project = ProjectRepository(session).create(name="Demo")
@@ -130,9 +160,7 @@ def test_run_next_processes_text_source_and_updates_job_state() -> None:
         f"/projects/{project.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test", "lease_seconds": 60},
     )
-    detail = client.get(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}"
-    )
+    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
     version = session.scalars(select(DocumentVersion)).one()
 
     assert run.status_code == 200
@@ -154,10 +182,7 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
         source_type="markdown",
         external_id="indexing.md",
         extra_metadata={
-            "content": (
-                "# Indexing\n\n"
-                "The public run-next path indexes after ingest."
-            )
+            "content": ("# Indexing\n\nThe public run-next path indexes after ingest.")
         },
     )
     session.commit()
@@ -185,9 +210,7 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     assert index_payload["job_type"] == "index_document_version"
     assert index_payload["chunk_count"] >= 1
     assert index_payload["embedded_chunk_count"] == index_payload["chunk_count"]
-    assert (
-        index_payload["sparse_embedded_chunk_count"] == index_payload["chunk_count"]
-    )
+    assert index_payload["sparse_embedded_chunk_count"] == index_payload["chunk_count"]
 
     idle_run = client.post(
         f"/projects/{project.id}/ingestion-jobs/run-next",
@@ -231,9 +254,7 @@ def test_run_next_reports_blocked_job_and_retry_requeues_it() -> None:
     retried = client.post(
         f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}/retry"
     )
-    detail = client.get(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}"
-    )
+    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
 
     assert blocked.status_code == 200
     assert blocked.json()["status"] == "blocked"
