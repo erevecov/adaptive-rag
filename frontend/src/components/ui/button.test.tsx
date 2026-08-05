@@ -64,7 +64,7 @@ describe('Button', () => {
     render(<Button variant="secondary">Cancel</Button>)
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Cancel' }))
-    expect(tokens).toContain('hover:bg-primary/10')
+    expect(tokens).toContain('hover:bg-primary/15')
     expect(tokens).toContain('hover:border-primary/40')
   })
 
@@ -72,7 +72,7 @@ describe('Button', () => {
     render(<Button variant="ghost">More</Button>)
 
     const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
-    expect(tokens).toContain('hover:bg-primary/10')
+    expect(tokens).toContain('hover:bg-primary/15')
   })
 })
 
