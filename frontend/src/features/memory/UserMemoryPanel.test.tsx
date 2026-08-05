@@ -177,7 +177,7 @@ describe('UserMemoryPanel', () => {
     )
 
     expect(await screen.findByText('1 Injectable')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Proposed' }))
+    await user.click(screen.getByRole('button', { name: /^Proposed/ }))
     expect(await screen.findByText('Draft')).toBeTruthy()
     expect(screen.getByText('1 Injectable')).toBeTruthy()
     expect(screen.queryByText('0 Injectable')).toBeNull()
@@ -214,7 +214,7 @@ describe('UserMemoryPanel', () => {
     )
 
     expect(await screen.findByText('Live preference')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Approved' }))
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
     expect(await screen.findByText('Live preference')).toBeTruthy()
 
     await user.type(
@@ -224,7 +224,7 @@ describe('UserMemoryPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Propose' }))
     expect(await screen.findByText('New preference')).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+      screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
   })
 
@@ -248,12 +248,12 @@ describe('UserMemoryPanel', () => {
       />,
     )
 
-    await user.click(await screen.findByRole('button', { name: 'Rejected' }))
+    await user.click(await screen.findByRole('button', { name: /^Rejected/ }))
     expect(await screen.findByText('No rejected memories')).toBeTruthy()
     expect(screen.getByText(/never inject into chat/i)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'View proposed' }))
     expect(
-      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+      screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
   })
 
@@ -317,13 +317,13 @@ describe('UserMemoryPanel', () => {
       />,
     )
 
-    expect(await screen.findByText('Proposed')).toBeTruthy()
+    expect(await screen.findByLabelText(/Proposed memory/i)).toBeTruthy()
     expect(screen.getByText(/Focus a proposed row/i)).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Approved' }))
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
     expect(await screen.findByText('No approved memories')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'View proposed' }))
     expect(
-      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+      screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
   })
 

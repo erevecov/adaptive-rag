@@ -58,6 +58,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [editDraft, setEditDraft] = useState('')
   const [injectableCount, setInjectableCount] = useState(0)
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    approved: 0,
+    proposed: 0,
+    rejected: 0,
+  })
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -70,21 +76,33 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setListState('loading')
       setListError(null)
       try {
-        const [listResponse, approvedResponse] = await Promise.all([
-          apiClient.listUserMemories({
-            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-            status: statusFilter === 'all' ? null : statusFilter,
-          }),
-          apiClient.listUserMemories({
-            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-            status: 'approved',
-          }),
-        ])
+        const projectScope =
+          trimmedProjectId.length > 0 ? trimmedProjectId : null
+        const tallyResponse = await apiClient.listUserMemories({
+          project_id: projectScope,
+          status: null,
+        })
+        const listResponse =
+          statusFilter === 'all'
+            ? tallyResponse
+            : await apiClient.listUserMemories({
+                project_id: projectScope,
+                status: statusFilter,
+              })
         if (cancelled) {
           return
         }
+        const tally = tallyResponse.items
         setItems(listResponse.items)
-        setInjectableCount(approvedResponse.items.length)
+        setInjectableCount(
+          tally.filter((item) => item.status === 'approved').length,
+        )
+        setStatusCounts({
+          all: tally.length,
+          approved: tally.filter((item) => item.status === 'approved').length,
+          proposed: tally.filter((item) => item.status === 'proposed').length,
+          rejected: tally.filter((item) => item.status === 'rejected').length,
+        })
         setListState('succeeded')
       } catch (error) {
         if (cancelled) {
@@ -102,27 +120,35 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     }
   }, [apiClient, statusFilter, trimmedProjectId])
 
-  async function refreshInjectableCount() {
-    try {
-      const response = await apiClient.listUserMemories({
-        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-        status: 'approved',
-      })
-      setInjectableCount(response.items.length)
-    } catch {
-      /* keep last known injectable count */
-    }
-  }
 
   async function refreshList() {
     setListState('loading')
     setListError(null)
     try {
-      const response = await apiClient.listUserMemories({
-        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-        status: statusFilter === 'all' ? null : statusFilter,
+      const projectScope =
+        trimmedProjectId.length > 0 ? trimmedProjectId : null
+      const tallyResponse = await apiClient.listUserMemories({
+        project_id: projectScope,
+        status: null,
       })
+      const response =
+        statusFilter === 'all'
+          ? tallyResponse
+          : await apiClient.listUserMemories({
+              project_id: projectScope,
+              status: statusFilter,
+            })
+      const tally = tallyResponse.items
       setItems(response.items)
+      setInjectableCount(
+        tally.filter((item) => item.status === 'approved').length,
+      )
+      setStatusCounts({
+        all: tally.length,
+        approved: tally.filter((item) => item.status === 'approved').length,
+        proposed: tally.filter((item) => item.status === 'proposed').length,
+        rejected: tally.filter((item) => item.status === 'rejected').length,
+      })
       setListState('succeeded')
     } catch (error) {
       setItems([])
@@ -168,7 +194,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.approveUserMemory(memory.id)
-      await Promise.all([refreshList(), refreshInjectableCount()])
+      await refreshList()
       requestAnimationFrame(() => {
         focusAfterReview(memory.id, rowIndex)
       })
@@ -189,7 +215,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditingId(null)
         setEditDraft('')
       }
-      await Promise.all([refreshList(), refreshInjectableCount()])
+      await refreshList()
       requestAnimationFrame(() => {
         focusAfterReview(memory.id, rowIndex)
       })
@@ -382,6 +408,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
+              <span className="tabular-nums text-[10px] opacity-80">
+                {statusCounts[filter.id]}
+              </span>
             </Button>
           )
         })}
