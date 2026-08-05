@@ -199,7 +199,7 @@ describe('ChatWorkspacePanel', () => {
       screen.getByRole('button', { name: 'Expand response details' }),
     )
 
-    expect(screen.getByRole('region', { name: 'Tool calls detail' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Tool Calls Detail' })).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Sources detail' })).toBeTruthy()
     expect(view.container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(screen.getByText('$0.0123')).toBeTruthy()
@@ -478,7 +478,7 @@ describe('ChatWorkspacePanel', () => {
       expect(
         (
           within(card).getByRole('button', {
-            name: 'Refine in chat',
+            name: 'Refine In Chat',
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(true)

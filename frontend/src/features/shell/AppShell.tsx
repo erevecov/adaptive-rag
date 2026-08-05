@@ -754,7 +754,7 @@ function SidebarContextualButton({
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 rounded-md px-2.5 text-sm',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}

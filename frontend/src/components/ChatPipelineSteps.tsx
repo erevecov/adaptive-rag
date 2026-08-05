@@ -160,7 +160,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
         data-slot="chat-pipeline-empty"
         role="status"
       >
-        Waiting for pipeline steps.
+        Waiting For Pipeline Steps.
       </p>
     )
   }
@@ -266,7 +266,7 @@ function StepDetail({ step }: { step: ChatStep }) {
         className="px-3 pb-3 text-sm text-muted-foreground"
         data-slot="chat-pipeline-empty"
       >
-        No step detail recorded.
+        No Step Detail Recorded.
       </p>
     )
   }

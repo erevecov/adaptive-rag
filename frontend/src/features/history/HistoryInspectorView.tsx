@@ -570,8 +570,8 @@ export function WorkspaceInspectorPanel({
           role="tabpanel"
         >
           <SourceViewerPanel viewer={sourceViewer} />
-          <SessionContextPanel detail={detail} />
-          <InternalActionStepper detail={detail} />
+          <SessionContextPanel detail={detail} state={detailState} />
+          <InternalActionStepper detail={detail} state={detailState} />
           <SessionDetailPanel
             detail={detail}
             error={detailError}
@@ -589,6 +589,7 @@ export function WorkspaceInspectorPanel({
           <ConversationMinimap
             detail={detail}
             onNavigateMessage={onNavigateMessage}
+            state={detailState}
           />
         </div>
       )}
@@ -602,9 +603,9 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
   }
 
   return (
-    <Panel aria-label="Source viewer" role="region">
+    <Panel aria-label="Source Viewer" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
-        <PanelTitle>Source viewer</PanelTitle>
+        <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
         </StatusBadge>
@@ -649,7 +650,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
         {viewer.citationSnippet === null ? null : (
           <section className="grid gap-1">
             <h4 className="text-sm font-semibold text-foreground">
-              Citation snippet
+              Citation Snippet
             </h4>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {viewer.citationSnippet}
@@ -699,7 +700,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               <h4 className="text-sm font-semibold text-foreground">Metadata</h4>
               {viewer.source.extra_metadata === null ||
               Object.keys(viewer.source.extra_metadata).length === 0 ? (
-                <EmptyState>No metadata stored.</EmptyState>
+                <EmptyState>No Metadata Stored.</EmptyState>
               ) : (
                 <dl className="grid gap-2">
                   {Object.entries(viewer.source.extra_metadata).map(([key, value]) => (
@@ -722,21 +723,28 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 function ConversationMinimap({
   detail,
   onNavigateMessage,
+  state,
 }: {
   detail: ChatSessionDetailResponse | null
   onNavigateMessage(messageId: string): void
+  state: RequestState
 }) {
   return (
-    <Panel aria-label="Conversation minimap" role="navigation">
+    <Panel aria-label="Conversation Minimap" role="navigation">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
-          {(detail?.messages.length ?? 0) === 1 ? 'message' : 'messages'}
+          {(detail?.messages.length ?? 0) === 1 ? 'Message' : 'Messages'}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
-        {detail === null || detail.messages.length === 0 ? (
+        {state === 'loading' ? (
+          <InspectorLoadingSkeleton
+            ariaLabel="Loading conversation minimap"
+            slot="conversation-minimap-loading"
+          />
+        ) : detail === null || detail.messages.length === 0 ? (
           <EmptyState>Select a session to navigate messages.</EmptyState>
         ) : (
           <DataList aria-label="Conversation messages">
@@ -744,7 +752,7 @@ function ConversationMinimap({
               <DataListItem className="p-0 shadow-none" key={message.message_id}>
                 <Button
                   aria-label={minimapMessageLabel(message.role, message.content)}
-                  className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left"
+                  className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left max-[680px]:min-h-11"
                   onClick={() => onNavigateMessage(message.message_id)}
                   type="button"
                   variant="ghost"
@@ -769,21 +777,28 @@ function ConversationMinimap({
 
 function SessionContextPanel({
   detail,
+  state,
 }: {
   detail: ChatSessionDetailResponse | null
+  state: RequestState
 }) {
   const firstUsage = detail?.provider_usage[0] ?? null
 
   return (
-    <Panel aria-label="Session context" role="region">
+    <Panel aria-label="Session Context" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
-        <PanelTitle>Session context</PanelTitle>
+        <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
-        {detail === null ? (
+        {state === 'loading' ? (
+          <InspectorLoadingSkeleton
+            ariaLabel="Loading session context"
+            slot="session-context-loading"
+          />
+        ) : detail === null ? (
           <EmptyState>
             Select a session to inspect model, prompt and usage context.
           </EmptyState>
@@ -851,19 +866,26 @@ function MetricCard({
 
 function InternalActionStepper({
   detail,
+  state,
 }: {
   detail: ChatSessionDetailResponse | null
+  state: RequestState
 }) {
   return (
-    <Panel aria-label="Internal action stepper" role="region">
+    <Panel aria-label="Internal Action Stepper" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
-        <PanelTitle>Action stepper</PanelTitle>
+        <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
-        {detail === null || countInternalSteps(detail) === 0 ? (
+        {state === 'loading' ? (
+          <InspectorLoadingSkeleton
+            ariaLabel="Loading action stepper"
+            slot="action-stepper-loading"
+          />
+        ) : detail === null || countInternalSteps(detail) === 0 ? (
           <EmptyState>No stored internal actions for this session.</EmptyState>
         ) : (
           <DataList>
@@ -948,7 +970,7 @@ function SessionDetailPanel({
     return (
       <Panel aria-live="polite" role="region">
         <PanelHeader className="p-4">
-          <PanelTitle>Session detail</PanelTitle>
+          <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <div
@@ -980,7 +1002,7 @@ function SessionDetailPanel({
     return (
       <Panel role="region">
         <PanelHeader className="p-4">
-          <PanelTitle>Session detail</PanelTitle>
+          <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <InlineFeedback role="alert" tone="danger">
@@ -995,7 +1017,7 @@ function SessionDetailPanel({
     return (
       <Panel role="region">
         <PanelHeader className="p-4">
-          <PanelTitle>Session detail</PanelTitle>
+          <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <EmptyState>Select a session to inspect stored history.</EmptyState>
@@ -1005,10 +1027,10 @@ function SessionDetailPanel({
   }
 
   return (
-    <Panel aria-label="Selected session detail" role="region">
+    <Panel aria-label="Selected Session Detail" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <div className="grid min-w-0 gap-1">
-          <PanelTitle>Session detail</PanelTitle>
+          <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground">
             {detail.session.session_id}
           </p>
@@ -1251,6 +1273,31 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
         {label}
       </dt>
       <dd className="mt-1 break-words text-sm text-foreground">{value}</dd>
+    </div>
+  )
+}
+
+
+function InspectorLoadingSkeleton({
+  ariaLabel,
+  slot,
+}: {
+  ariaLabel: string
+  slot: string
+}) {
+  return (
+    <div
+      aria-busy="true"
+      aria-label={ariaLabel}
+      className="grid w-full gap-2"
+      data-slot={slot}
+      role="status"
+    >
+      <span className="sr-only">{ariaLabel}…</span>
+      <div aria-hidden="true" className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25" />
+      <div aria-hidden="true" className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
+      <div aria-hidden="true" className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
+      <div aria-hidden="true" className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
     </div>
   )
 }
