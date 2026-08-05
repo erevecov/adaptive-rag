@@ -444,6 +444,9 @@ function sourceLabel(source: string): string {
   if (source === 'overridden') {
     return 'Overridden'
   }
+  if (source === 'inherited') {
+    return 'Inherited'
+  }
   if (source === 'global') {
     return 'Global'
   }

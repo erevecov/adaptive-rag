@@ -1876,7 +1876,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Project role'),
-      'admin',
+      'Admin',
     )
     await user.click(screen.getByRole('button', { name: 'Save membership' }))
 
@@ -2291,7 +2291,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Source type'),
-      'markdown',
+      'Markdown',
     )
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
@@ -2322,7 +2322,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Source type'),
-      'pdf',
+      'PDF',
     )
 
     const oversize = new File([new Uint8Array(1)], 'huge.pdf', {
@@ -3802,7 +3802,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Connection type'),
-      'hosted',
+      'Hosted',
     )
     fireEvent.change(screen.getByLabelText('Base URL'), {
       target: { value: 'https://dashscope.example.test/compatible-mode/v1' },
@@ -4234,8 +4234,8 @@ describe('App chat workspace', () => {
       name: 'Project runtime settings',
     })
     expect(within(projectSettings).getAllByText('dense_embedding').length).toBeGreaterThan(0)
-    expect(within(projectSettings).getAllByText('inherited').length).toBeGreaterThan(0)
-    expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
+    expect(within(projectSettings).getAllByText('Inherited').length).toBeGreaterThan(0)
+    expect(within(projectSettings).getAllByText('Overridden').length).toBeGreaterThan(0)
 
     await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
     await chooseRadixSelectOption(
@@ -4265,7 +4265,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       within(projectSettings).getByLabelText('Rerank'),
-      'off',
+      'Off',
     )
     fireEvent.change(within(projectSettings).getByLabelText('Candidate limit'), {
       target: { value: '8' },
