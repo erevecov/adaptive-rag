@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from adaptive_rag.api.routes.auth import router as auth_router
 from adaptive_rag.api.routes.authoring import router as authoring_router
@@ -18,6 +19,7 @@ from adaptive_rag.api.routes.runtime_settings import router as runtime_settings_
 from adaptive_rag.api.routes.user_memory import router as user_memory_router
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.security.headers import SecurityHeadersMiddleware
 
 # Explicit CORS surface (no method/header wildcards).
@@ -29,6 +31,10 @@ CORS_ALLOW_HEADERS = (
     "X-Request-Id",
     "X-Access-Token",
 )
+
+# Misconfigured / incomplete provider runtime: request may be valid, service cannot
+# fulfill until runtime settings/secrets are fixed. Prefer 503 over opaque 500.
+_PROVIDER_CONFIGURATION_STATUS = 503
 
 
 def create_app() -> FastAPI:
@@ -46,6 +52,19 @@ def create_app() -> FastAPI:
         allow_methods=list(CORS_ALLOW_METHODS),
         allow_headers=list(CORS_ALLOW_HEADERS),
     )
+
+    @app.exception_handler(ProviderConfigurationError)
+    async def provider_configuration_error_handler(
+        _request: Request,
+        exc: ProviderConfigurationError,
+    ) -> JSONResponse:
+        # Stable client-facing message only (no traceback / secret material).
+        # Existing ProviderConfigurationError strings are operational codes, not keys.
+        return JSONResponse(
+            status_code=_PROVIDER_CONFIGURATION_STATUS,
+            content={"detail": str(exc)},
+        )
+
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(authoring_router)
