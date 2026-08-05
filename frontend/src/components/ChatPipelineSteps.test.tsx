@@ -73,11 +73,39 @@ describe('ChatPipelineSteps', () => {
     expect(within(stepper).queryByText('alpha')).toBeNull()
 
     await user.click(
-      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+      within(stepper).getByRole('button', {
+        name: /Expand chat steps, retrieval, running/,
+      }),
     )
 
     expect(localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY)).toBe('true')
     expect(within(stepper).getByText('alpha')).toBeTruthy()
+    expect(
+      within(stepper).getByRole('button', { name: /Collapse chat steps/ }).getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('true')
+  })
+
+  test('marks streaming toggle aria-expanded false when collapsed', () => {
+    render(
+      <ChatPipelineSteps
+        isStreaming
+        sourceCount={0}
+        steps={[
+          {
+            detail: { limit: 3 },
+            id: 'retrieval',
+            status: 'start',
+          },
+        ]}
+      />,
+    )
+
+    const toggle = screen.getByRole('button', {
+      name: /Expand chat steps, retrieval, running/,
+    })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
   })
 
   test('renders finished response as compact details and keeps step rows closed', async () => {

@@ -549,4 +549,46 @@ describe('WorkspaceInspectorPanel', () => {
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  test('overlay Tab cycles within the inspector dialog', async () => {
+    const user = userEvent.setup()
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="overlay"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const dialog = screen.getByRole('dialog', { name: 'Workspace inspector' })
+    const close = screen.getByRole('button', { name: 'Close right sidebar' })
+    expect(document.activeElement).toBe(close)
+
+    await user.tab()
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).not.toBe(close)
+
+    // Wrap from last focusable back to first inside the dialog.
+    for (let i = 0; i < 40; i += 1) {
+      await user.tab()
+      if (document.activeElement === close) {
+        break
+      }
+    }
+    expect(document.activeElement).toBe(close)
+    expect(dialog.contains(document.activeElement)).toBe(true)
+  })
 })

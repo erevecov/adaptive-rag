@@ -89,6 +89,12 @@ describe('RetrievalPlaygroundPanel', () => {
       screen.getByText('Refunds are available within 30 days.'),
     ).toBeTruthy()
     expect(screen.getByText('0.9200')).toBeTruthy()
+    const rankBadge = screen.getByLabelText('Rank 1')
+    expect(rankBadge.className).toMatch(/tabular-nums/)
+    expect(rankBadge.closest('[data-rank="1"]')).toBeTruthy()
+    expect(screen.getByLabelText('Score 0.9200').className).toMatch(
+      /tabular-nums/,
+    )
     const doneBadge = screen.getByText('Done')
     expect(doneBadge.getAttribute('data-slot')).toBe('badge')
     expect(doneBadge.getAttribute('data-tone')).toBe('success')
@@ -188,12 +194,12 @@ describe('RetrievalPlaygroundPanel', () => {
     await user.type(screen.getByLabelText('Query'), 'refund')
     await user.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() => {
-      expect(screen.getByText('rank 1')).toBeTruthy()
+      expect(screen.getByText('#1')).toBeTruthy()
     })
 
     await user.clear(screen.getByLabelText('Query'))
     await user.click(screen.getByRole('button', { name: 'Search' }))
     expect(screen.getByText(/non-empty query/i)).toBeTruthy()
-    expect(screen.queryByText('rank 1')).toBeNull()
+    expect(screen.queryByText('#1')).toBeNull()
   })
 })

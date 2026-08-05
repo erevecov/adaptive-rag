@@ -742,7 +742,7 @@ function ResponseContent({
                 ].join('-')
                 return (
                   <Button
-                    aria-label={`View source ${label}`}
+                    aria-label={`Open source ${label}`}
                     className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
                     key={chipKey}
                     onClick={() =>

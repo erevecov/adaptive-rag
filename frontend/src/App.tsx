@@ -576,6 +576,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (requestState === 'loading') {
+      return
+    }
+
     const trimmedProjectId = projectId.trim()
     const trimmedQuestion = question.trim()
 
@@ -2317,57 +2321,65 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     >
       {primaryView === 'chat' ? (
           <ChatWorkspaceGrid isRightDockInline={isRightDockInline}>
-            <ChatWorkspacePanel
-              activeResponseQuestion={activeResponseQuestion}
-              drafts={knowledgeDrafts}
-              isAsking={isAsking}
-              isContextInspectorActive={
-                isRightDockOpen && inspectorTab === 'context'
-              }
-              isMinimapInspectorActive={
-                isRightDockOpen && inspectorTab === 'minimap'
-              }
-              isSpeechSupported={isSpeechSupported}
-              onCancelRequest={handleCancelRequest}
-              onOpenContextInspector={() => handleOpenInspectorTab('context')}
-              onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
-              onOpenSource={(sourceId, citationSnippet) =>
-                void handleOpenSource(sourceId, citationSnippet)
-              }
-              onQuestionChange={setQuestion}
-              onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
-              onStartSpeechRecognition={handleStartSpeechRecognition}
-              onStopSpeechRecognition={handleStopSpeechRecognition}
-              onSubmit={handleSubmit}
-              onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
-              onTranscriptScroll={handleChatTranscriptScroll}
-              providerUsage={
-                response !== null &&
-                sessionDetail?.session.session_id === response.session_id
-                  ? sessionDetail.provider_usage
-                  : []
-              }
-              question={question}
-              requestError={requestError}
-              requestState={requestState}
-              response={response}
-              setDrafts={setKnowledgeDrafts}
-              speechFeedback={speechFeedback}
-              speechState={speechState}
-              transcriptRef={chatTranscriptRef}
-            />
-
             {isRightDockOverlay ? (
               <Button
                 aria-label="Close workspace inspector"
+                // tabIndex=-1 keeps the full-screen scrim out of Tab order; Escape / X still close.
                 className="fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
                 data-testid="inspector-backdrop"
                 onClick={() => setIsRightDockOpen(false)}
                 slotName="inspector-backdrop"
+                tabIndex={-1}
                 type="button"
                 variant="ghost"
               />
             ) : null}
+
+            <div
+              className="min-h-0 min-w-0"
+              data-slot="chat-workspace-inert-host"
+              {...(isRightDockOverlay ? { inert: true } : {})}
+            >
+              <ChatWorkspacePanel
+                activeResponseQuestion={activeResponseQuestion}
+                drafts={knowledgeDrafts}
+                isAsking={isAsking}
+                isContextInspectorActive={
+                  isRightDockOpen && inspectorTab === 'context'
+                }
+                isMinimapInspectorActive={
+                  isRightDockOpen && inspectorTab === 'minimap'
+                }
+                isSpeechSupported={isSpeechSupported}
+                onCancelRequest={handleCancelRequest}
+                onOpenContextInspector={() => handleOpenInspectorTab('context')}
+                onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
+                onOpenSource={(sourceId, citationSnippet) =>
+                  void handleOpenSource(sourceId, citationSnippet)
+                }
+                onQuestionChange={setQuestion}
+                onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                onStartSpeechRecognition={handleStartSpeechRecognition}
+                onStopSpeechRecognition={handleStopSpeechRecognition}
+                onSubmit={handleSubmit}
+                onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
+                onTranscriptScroll={handleChatTranscriptScroll}
+                providerUsage={
+                  response !== null &&
+                  sessionDetail?.session.session_id === response.session_id
+                    ? sessionDetail.provider_usage
+                    : []
+                }
+                question={question}
+                requestError={requestError}
+                requestState={requestState}
+                response={response}
+                setDrafts={setKnowledgeDrafts}
+                speechFeedback={speechFeedback}
+                speechState={speechState}
+                transcriptRef={chatTranscriptRef}
+              />
+            </div>
 
             {isRightDockOpen ? (
               <WorkspaceInspectorPanel

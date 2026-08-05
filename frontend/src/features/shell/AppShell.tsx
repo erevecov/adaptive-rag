@@ -884,7 +884,7 @@ function SidebarProjectSelector({
                       className={cn(
                         [
                           'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground transition-colors',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground motion-safe:transition-colors',
                           'hover:border-border',
                         ],
                         isSelected && 'border-border bg-accent text-accent-foreground',

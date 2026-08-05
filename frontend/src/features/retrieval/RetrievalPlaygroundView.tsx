@@ -286,18 +286,25 @@ export function RetrievalPlaygroundPanel({
                   data-rank={index + 1}
                 >
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <Badge className="tabular-nums" tone="neutral">
-                      rank {index + 1}
+                    <Badge
+                      aria-label={`Rank ${index + 1}`}
+                      className="min-w-[4.5ch] justify-center tabular-nums"
+                      tone="neutral"
+                    >
+                      #{index + 1}
                     </Badge>
-                    <Badge className="font-mono tabular-nums">
+                    <Badge
+                      aria-label={`Score ${result.score.toFixed(4)}`}
+                      className="min-w-[7ch] justify-center font-mono tabular-nums"
+                    >
                       {result.score.toFixed(4)}
                     </Badge>
                     <StatusBadge tone="neutral">
                       {result.strategy ?? '—'}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        distance {result.distance.toFixed(4)}
+                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground">
+                        d {result.distance.toFixed(4)}
                       </span>
                     ) : null}
                   </div>
