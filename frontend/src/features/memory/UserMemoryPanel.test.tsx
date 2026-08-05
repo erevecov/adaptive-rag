@@ -327,4 +327,34 @@ describe('UserMemoryPanel', () => {
     ).toBe('true')
   })
 
+
+  test('shows relative created time on memory rows', async () => {
+    const recent = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'approved') {
+        return { items: [] }
+      }
+      return {
+        items: [
+          memory({
+            content: 'Timed preference',
+            created_at: recent,
+            id: 'mem-1',
+            status: 'proposed',
+          }),
+        ],
+      }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Timed preference')).toBeTruthy()
+    expect(screen.getByText('5m ago')).toBeTruthy()
+  })
+
 })

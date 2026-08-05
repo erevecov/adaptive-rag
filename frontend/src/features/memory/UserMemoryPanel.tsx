@@ -164,11 +164,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   async function handleApprove(memory: UserMemory) {
     setBusyMemoryId(memory.id)
     setActionError(null)
+    const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.approveUserMemory(memory.id)
       await Promise.all([refreshList(), refreshInjectableCount()])
       requestAnimationFrame(() => {
-        document.getElementById(`user-memory-${memory.id}`)?.focus()
+        focusAfterReview(memory.id, rowIndex)
       })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not approve memory.'))
@@ -180,6 +181,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   async function handleReject(memory: UserMemory) {
     setBusyMemoryId(memory.id)
     setActionError(null)
+    const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.rejectUserMemory(memory.id)
       if (editingId === memory.id) {
@@ -187,6 +189,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditDraft('')
       }
       await Promise.all([refreshList(), refreshInjectableCount()])
+      requestAnimationFrame(() => {
+        focusAfterReview(memory.id, rowIndex)
+      })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not reject memory.'))
     } finally {
@@ -448,6 +453,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <span className="text-xs text-muted-foreground">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
                     </span>
+                    {formatRelativeTime(memory.created_at) ? (
+                      <>
+                        <span aria-hidden className="text-xs text-muted-foreground">
+                          ·
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatRelativeTime(memory.created_at)}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
 
                   {isEditing ? (
@@ -637,6 +652,53 @@ function statusTone(
     return 'danger'
   }
   return 'neutral'
+}
+
+function focusAfterReview(memoryId: string, rowIndex: number): void {
+  const current = document.getElementById(`user-memory-${memoryId}`)
+  if (current instanceof HTMLElement) {
+    current.focus()
+    return
+  }
+  const reviewable = Array.from(
+    document.querySelectorAll<HTMLElement>('[id^="user-memory-"][tabindex="0"]'),
+  )
+  if (reviewable.length > 0) {
+    const index = Math.min(Math.max(rowIndex, 0), reviewable.length - 1)
+    reviewable[index]?.focus()
+    return
+  }
+  const empty = document.querySelector<HTMLElement>('[data-slot="empty-state"]')
+  if (empty) {
+    empty.setAttribute('tabindex', '-1')
+    empty.focus()
+    return
+  }
+  document.querySelector<HTMLElement>('[aria-label="Propose memory"]')?.focus()
+}
+
+function formatRelativeTime(iso: string | null): string | null {
+  if (iso === null || iso.trim().length === 0) {
+    return null
+  }
+  const then = Date.parse(iso)
+  if (Number.isNaN(then)) {
+    return null
+  }
+  const seconds = Math.max(0, Math.round((Date.now() - then) / 1000))
+  if (seconds < 60) {
+    return 'Just now'
+  }
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes}m ago`
+  }
+  const hours = Math.round(minutes / 60)
+  if (hours < 48) {
+    return `${hours}h ago`
+  }
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
