@@ -1924,7 +1924,7 @@ describe('App chat workspace', () => {
     ).toBeTruthy()
 
     await user.type(screen.getByLabelText('Refined text'), 'Refined escalation runbook.')
-    await user.click(screen.getByRole('button', { name: /Refine proposal/ }))
+    await user.click(screen.getByRole('button', { name: /^Refine / }))
 
     await waitFor(() =>
       expect(refineKnowledgeProposal).toHaveBeenCalledWith(
@@ -1934,7 +1934,7 @@ describe('App chat workspace', () => {
       ),
     )
 
-    await user.click(screen.getByRole('button', { name: /Approve proposal/ }))
+    await user.click(screen.getByRole('button', { name: /^Approve / }))
 
     await waitFor(() =>
       expect(approveKnowledgeProposal).toHaveBeenCalledWith(
@@ -1948,7 +1948,7 @@ describe('App chat workspace', () => {
     )
 
     await user.type(screen.getByLabelText('Reject reason'), 'Needs source owner.')
-    await user.click(screen.getByRole('button', { name: /Reject proposal/ }))
+    await user.click(screen.getByRole('button', { name: /^Reject / }))
 
     await waitFor(() =>
       expect(rejectKnowledgeProposal).toHaveBeenCalledWith(
@@ -2358,20 +2358,20 @@ describe('App chat workspace', () => {
       projectId,
       sourceSummary.id,
     )
-    expect(await screen.findByText('queued')).toBeTruthy()
+    expect((await screen.findAllByText('queued')).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
     expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
       job_type: 'ingest_source',
     })
-    expect(await screen.findByText('blocked')).toBeTruthy()
+    expect((await screen.findAllByText('blocked')).length).toBeGreaterThan(0)
     expect(screen.getByText('missing content')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
     expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
-    expect(await screen.findByText('processed')).toBeTruthy()
+    expect((await screen.findAllByText('processed')).length).toBeGreaterThan(0)
 
     await user.click(
       screen.getByRole('button', {
@@ -2459,7 +2459,10 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
-    expect(await screen.findByText('Last run idle')).toBeTruthy()
+    const lastRun = await screen.findByText('Last run')
+    expect(lastRun).toBeTruthy()
+    const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
+    expect(lastRunCard?.textContent).toMatch(/idle/)
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
   })
 
@@ -3598,9 +3601,12 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'observability unavailable',
-    )
+    const alerts = await screen.findAllByRole('alert')
+    expect(
+      alerts.some((node) =>
+        node.textContent?.includes('observability unavailable'),
+      ),
+    ).toBe(true)
     expect(
       (screen.getByLabelText('Created from') as HTMLInputElement).value,
     ).toBe('2026-06-21T00:00:00Z')

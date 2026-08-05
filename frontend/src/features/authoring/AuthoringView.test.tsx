@@ -315,9 +315,9 @@ describe('AuthoringPanel', () => {
       'textarea',
     )
     expect(screen.getByDisplayValue('Existing refined text.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Refine proposal/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Approve proposal/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Reject proposal/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Refine / })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Approve / })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Reject / })).toBeTruthy()
     expectNoLegacyAuthoringClasses(view.container)
   })
 
@@ -343,7 +343,8 @@ describe('AuthoringPanel', () => {
       '[data-slot="ingestion-last-run"]',
     )
     expect(lastRun).toBeTruthy()
-    expect(lastRun?.textContent).toContain('Last run idle')
+    expect(lastRun?.textContent).toMatch(/Last run/)
+    expect(lastRun?.textContent).toMatch(/idle/)
     expect(
       lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),
     ).toBe('neutral')

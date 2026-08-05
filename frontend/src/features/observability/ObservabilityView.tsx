@@ -128,12 +128,16 @@ export function ObservabilityPanel({
         <SegmentedControl
           aria-label="Observability views"
           className="max-w-full flex-wrap justify-start"
+          role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
             <SegmentedControlItem
               active={activeSubmodule === tab.value}
+              aria-controls={`observability-panel-${tab.value}`}
+              id={`observability-tab-${tab.value}`}
               key={tab.value}
               onClick={() => onSubmoduleChange(tab.value)}
+              value={tab.value}
             >
               {tab.label}
             </SegmentedControlItem>
@@ -204,11 +208,17 @@ export function ObservabilityPanel({
           </Callout>
         ) : null}
 
-        <ObservabilityContent
-          activeSubmodule={activeSubmodule}
-          state={state}
-          summary={summary}
-        />
+        <div
+          aria-labelledby={`observability-tab-${activeSubmodule}`}
+          id={`observability-panel-${activeSubmodule}`}
+          role="tabpanel"
+        >
+          <ObservabilityContent
+            activeSubmodule={activeSubmodule}
+            state={state}
+            summary={summary}
+          />
+        </div>
       </PanelBody>
     </Panel>
   )
@@ -252,7 +262,7 @@ function ObservabilityContent({
         <EmptyState
           className="border-destructive/40 bg-destructive/5 p-4 text-left"
           data-slot-state="failed"
-          role="status"
+          role="alert"
         >
           <p className="font-semibold text-destructive">Summary unavailable.</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -262,7 +272,7 @@ function ObservabilityContent({
       )
     }
     return (
-      <EmptyState data-slot-state="empty">
+      <EmptyState data-slot-state="empty" role="status">
         {EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}
       </EmptyState>
     )
@@ -289,7 +299,9 @@ function ObservabilityContent({
         <Callout className="p-3" role="alert" tone="danger">
           Showing last successful summary — refresh failed.
         </Callout>
-        <div className="opacity-60">{content}</div>
+        <div className="pointer-events-none" data-stale="">
+          {content}
+        </div>
       </div>
     )
   }
@@ -297,9 +309,12 @@ function ObservabilityContent({
   return (
     <div
       aria-busy="true"
-      className="opacity-70 motion-safe:animate-pulse"
+      className="relative"
       data-slot="observability-refreshing"
     >
+      <p className="mb-2 text-xs font-medium text-muted-foreground" role="status">
+        Refreshing…
+      </p>
       {content}
     </div>
   )
@@ -612,7 +627,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList>
           {rows.map((row) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-0 bg-transparent p-2 shadow-none"
               key={row.status}
             >
               <div className="grid min-w-0 gap-1">

@@ -121,7 +121,7 @@ describe('ObservabilityPanel', () => {
     ).toBeTruthy()
     expectNoLegacyObservabilityClasses(view.container)
 
-    await user.click(screen.getByRole('button', { name: 'Latency' }))
+    await user.click(screen.getByRole('tab', { name: 'Latency' }))
     expect(props.onSubmoduleChange).toHaveBeenCalledWith('latency')
 
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
@@ -268,9 +268,11 @@ describe('ObservabilityPanel', () => {
       '2026-06-21T00:00:00Z',
     )
     expect(screen.getByLabelText('Status').textContent).toContain('failed')
-    expect(screen.getByRole('alert').textContent).toContain(
-      'observability unavailable',
-    )
+    expect(
+      screen
+        .getAllByRole('alert')
+        .some((node) => node.textContent?.includes('observability unavailable')),
+    ).toBe(true)
     // Failed load must not reuse the idle empty copy.
     expect(screen.queryByText(/No observability summary yet/)).toBeNull()
     expect(

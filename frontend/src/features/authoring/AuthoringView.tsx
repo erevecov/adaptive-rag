@@ -337,11 +337,24 @@ function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-w-full break-all text-left"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
       role="status"
       tone={requestStateTone(state)}
     >
       {ingestionStatusLabel(state)}
+    </StatusBadge>
+  )
+}
+
+function KnowledgeStatus({ state }: { state: RequestState }) {
+  return (
+    <StatusBadge
+      aria-live="polite"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
+      role="status"
+      tone={requestStateTone(state)}
+    >
+      {knowledgeStatusLabel(state)}
     </StatusBadge>
   )
 }
@@ -1207,7 +1220,7 @@ function KnowledgeReviewPanel({
       description="Review and refine pending knowledge proposals."
       eyebrow="Knowledge"
       id="knowledge-review-title"
-      status={<RequestStatus state={state} />}
+      status={<KnowledgeStatus state={state} />}
       title="Pending proposals"
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -1231,23 +1244,29 @@ function KnowledgeReviewPanel({
         <LoadingListState label="Loading proposals…" />
       ) : proposals.length === 0 ? (
         <EmptyState
+          aria-label="No pending proposals"
           className="border-border/60 bg-muted/20 p-4 text-left"
           data-slot-state="empty"
           role="status"
         >
-          No pending knowledge proposals loaded.
+          No pending proposals.
         </EmptyState>
       ) : (
         <DataList aria-label="Knowledge proposals">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
+            const rejectReason = rejectReasons[proposal.id] ?? ''
+            const canReject = rejectReason.trim().length > 0
             return (
               <DataListItem className="grid gap-3" key={proposal.id}>
                 <div className="grid min-w-0 gap-1">
                   <strong className="break-words text-sm font-semibold">
                     {proposal.proposed_text}
                   </strong>
-                  <small className="break-all text-xs text-muted-foreground">
+                  <small
+                    className="break-all text-xs text-muted-foreground"
+                    title={proposal.id}
+                  >
                     {proposal.id}
                   </small>
                   <Badge className="w-fit">{proposal.status}</Badge>
@@ -1285,36 +1304,40 @@ function KnowledgeReviewPanel({
                           )
                         }
                         placeholder="Reason"
-                        value={rejectReasons[proposal.id] ?? ''}
+                        value={rejectReason}
                       />
                     )}
                   </AuthoringField>
                   <DataListItemActions>
                     <Button
-                      aria-label={`Refine proposal ${proposal.id}`}
+                      aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
+                      size="sm"
                       type="button"
                       variant="secondary"
                     >
-                      Refine proposal
+                      Refine
                     </Button>
                     <Button
-                      aria-label={`Approve proposal ${proposal.id}`}
+                      aria-label={proposalActionLabel('Approve', proposal)}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
+                      size="sm"
                       type="button"
                     >
-                      Approve proposal
+                      Approve
                     </Button>
                     <Button
-                      aria-label={`Reject proposal ${proposal.id}`}
-                      disabled={isBusy}
+                      aria-describedby={`proposal-reject-${proposal.id}`}
+                      aria-label={proposalActionLabel('Reject', proposal)}
+                      disabled={isBusy || !canReject}
                       onClick={() => onReject(proposal)}
+                      size="sm"
                       type="button"
-                      variant="secondary"
+                      variant="danger"
                     >
-                      Reject proposal
+                      Reject
                     </Button>
                   </DataListItemActions>
                 </div>
@@ -1365,14 +1388,14 @@ function IngestionJobsPanel({
         >
           <ButtonLabel
             busy={isBusy}
-            busyLabel="Working…"
+            busyLabel="Refreshing…"
             idleLabel="Refresh jobs"
           />
         </Button>
         <Button disabled={isBusy} onClick={onRunNext} type="button">
           <ButtonLabel
             busy={isBusy}
-            busyLabel="Working…"
+            busyLabel="Running…"
             idleLabel="Run next job"
           />
         </Button>
@@ -1386,9 +1409,7 @@ function IngestionJobsPanel({
           data-slot="ingestion-last-run"
         >
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <span className="font-medium text-muted-foreground tabular-nums">
-              {`Last run ${run.status}`}
-            </span>
+            <span className="font-medium text-muted-foreground">Last run</span>
             <StatusBadge
               className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide"
               tone={jobTone(run.status)}
@@ -1440,79 +1461,95 @@ function IngestionJobList({
     )
   }
 
+  const groups = groupJobsByStatus(jobs)
+
   return (
-    <DataList aria-label="Ingestion jobs">
-      {jobs.map((job) => {
-        const isRunning = job.status === 'running'
-        const sourceId = ingestionJobSourceId(job)
-        return (
-          <DataListItem
-            aria-label={
-              sourceId
-                ? `Ingestion job ${job.status} for source ${sourceId}`
-                : `Ingestion job ${job.status}`
-            }
-            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-            data-job-status={job.status}
-            key={job.id}
-          >
-            <div className="grid min-w-0 gap-1.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                {isRunning ? (
-                  <span
-                    aria-hidden="true"
-                    className="size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
-                    data-slot="ingestion-job-pulse"
-                  />
-                ) : null}
-                <StatusBadge className="w-fit" tone={jobTone(job.status)}>
-                  {jobStatusLabel(job.status)}
-                </StatusBadge>
-                <Badge className="w-fit">{job.job_type}</Badge>
-              </div>
-              {sourceId ? (
-                <small
-                  className="break-all text-xs text-muted-foreground"
-                  title="source_id from job payload"
+    <div className="grid gap-3" data-slot="ingestion-job-groups">
+      {groups.map((group) => (
+        <div className="grid gap-2" key={group.status}>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            {jobStatusLabel(group.status)}
+            <span className="ml-1 tabular-nums">({group.jobs.length})</span>
+          </p>
+          <DataList aria-label={`Ingestion jobs ${jobStatusLabel(group.status)}`}>
+            {group.jobs.map((job) => {
+              const isRunning = job.status === 'running'
+              const sourceId = ingestionJobSourceId(job)
+              const statusLabel = jobStatusLabel(job.status)
+              const runAfter = formatRelativeOperatorTimestamp(job.run_after)
+              return (
+                <DataListItem
+                  aria-label={
+                    sourceId
+                      ? `Ingestion job ${statusLabel} for source ${sourceId}`
+                      : `Ingestion job ${statusLabel}`
+                  }
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                  data-job-status={job.status}
+                  key={job.id}
                 >
-                  source {sourceId}
-                </small>
-              ) : null}
-              <small
-                className="break-all font-mono text-[11px] text-muted-foreground"
-                title={job.id}
-              >
-                {job.id}
-              </small>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                <span>{formatAttempts(job)}</span>
-                <span>{formatRunAfter(job)}</span>
-                <span>{formatLockState(job)}</span>
-              </div>
-              {job.last_error ? (
-                <InlineFeedback className="text-xs" tone="danger">
-                  {job.last_error}
-                </InlineFeedback>
-              ) : null}
-            </div>
-            <DataListItemActions className="justify-start md:justify-end">
-              {isRetryableIngestionJob(job) ? (
-                <Button
-                  aria-label={`Retry ingestion job ${job.id}`}
-                  disabled={isBusy}
-                  onClick={() => onRetry(job)}
-                  size="sm"
-                  type="button"
-                  variant="secondary"
-                >
-                  Retry
-                </Button>
-              ) : null}
-            </DataListItemActions>
-          </DataListItem>
-        )
-      })}
-    </DataList>
+                  <div className="grid min-w-0 gap-1.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      {isRunning ? (
+                        <span
+                          aria-hidden="true"
+                          className="size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
+                          data-slot="ingestion-job-pulse"
+                        />
+                      ) : null}
+                      <StatusBadge className="w-fit" tone={jobTone(job.status)}>
+                        {statusLabel}
+                      </StatusBadge>
+                      <Badge className="w-fit">{job.job_type}</Badge>
+                    </div>
+                    {sourceId ? (
+                      <small
+                        className="break-all text-xs text-muted-foreground"
+                        title="source_id from job payload"
+                      >
+                        source {sourceId}
+                      </small>
+                    ) : null}
+                    <small
+                      className="truncate font-mono text-[11px] text-muted-foreground"
+                      title={job.id}
+                    >
+                      {truncateId(job.id)}
+                    </small>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
+                      <span>{formatAttempts(job)}</span>
+                      <span title={runAfter.absolute}>
+                        run after {runAfter.relative}
+                      </span>
+                      <span>{formatLockState(job)}</span>
+                    </div>
+                    {job.last_error ? (
+                      <InlineFeedback className="text-xs" tone="danger">
+                        {job.last_error}
+                      </InlineFeedback>
+                    ) : null}
+                  </div>
+                  <DataListItemActions className="justify-start md:justify-end">
+                    {isRetryableIngestionJob(job) ? (
+                      <Button
+                        aria-label={`Retry ingestion job ${job.id}`}
+                        disabled={isBusy}
+                        onClick={() => onRetry(job)}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        Retry
+                      </Button>
+                    ) : null}
+                  </DataListItemActions>
+                </DataListItem>
+              )
+            })}
+          </DataList>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1549,6 +1586,31 @@ function ingestionStatusLabel(state: RequestState): string {
   return 'Ready'
 }
 
+function knowledgeStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Working'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Updated'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
+  }
+  return 'Ready'
+}
+
+function proposalActionLabel(
+  action: string,
+  proposal: KnowledgeProposal,
+): string {
+  const snippet = proposal.proposed_text.trim().slice(0, 40)
+  const ellipsis = proposal.proposed_text.trim().length > 40 ? '…' : ''
+  return `${action} ${snippet}${ellipsis}`
+}
+
 function proposalDraftText(
   drafts: Record<string, string>,
   proposal: KnowledgeProposal,
@@ -1564,21 +1626,58 @@ function formatAttempts(job: IngestionJob): string {
   return `attempt ${job.attempts}/${job.max_attempts}`
 }
 
-function formatRunAfter(job: IngestionJob): string {
-  return `run after ${formatOperatorTimestamp(job.run_after)}`
-}
-
 function formatLockState(job: IngestionJob): string {
   if (job.locked_by === null && job.locked_until === null) {
     return 'unlocked'
   }
+  const until = formatRelativeOperatorTimestamp(job.locked_until)
   if (job.locked_by !== null && job.locked_until !== null) {
-    return `locked by ${job.locked_by} until ${formatOperatorTimestamp(job.locked_until)}`
+    return `locked by ${job.locked_by} until ${until.relative}`
   }
   if (job.locked_by !== null) {
     return `locked by ${job.locked_by}`
   }
-  return `locked until ${formatOperatorTimestamp(job.locked_until)}`
+  return `locked until ${until.relative}`
+}
+
+function truncateId(value: string): string {
+  if (value.length <= 12) {
+    return value
+  }
+  return `…${value.slice(-8)}`
+}
+
+const JOB_STATUS_ORDER = [
+  'running',
+  'queued',
+  'blocked',
+  'dead_letter',
+  'failed',
+  'processed',
+  'idle',
+] as const
+
+function groupJobsByStatus(
+  jobs: IngestionJob[],
+): { jobs: IngestionJob[]; status: string }[] {
+  const buckets = new Map<string, IngestionJob[]>()
+  for (const job of jobs) {
+    const list = buckets.get(job.status) ?? []
+    list.push(job)
+    buckets.set(job.status, list)
+  }
+  const ordered: { jobs: IngestionJob[]; status: string }[] = []
+  for (const status of JOB_STATUS_ORDER) {
+    const group = buckets.get(status)
+    if (group !== undefined && group.length > 0) {
+      ordered.push({ jobs: group, status })
+      buckets.delete(status)
+    }
+  }
+  for (const [status, group] of buckets) {
+    ordered.push({ jobs: group, status })
+  }
+  return ordered
 }
 
 function formatOperatorTimestamp(value: string | null): string {
@@ -1593,6 +1692,39 @@ function formatOperatorTimestamp(value: string | null): string {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(parsed))
+}
+
+function formatRelativeOperatorTimestamp(value: string | null): {
+  absolute: string
+  relative: string
+} {
+  const absolute = formatOperatorTimestamp(value)
+  if (value === null || value.length === 0) {
+    return { absolute, relative: absolute }
+  }
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) {
+    return { absolute, relative: absolute }
+  }
+  const deltaMs = parsed - Date.now()
+  const absMs = Math.abs(deltaMs)
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  let relative: string
+  if (absMs < minute) {
+    relative = deltaMs >= 0 ? 'now' : 'just now'
+  } else if (absMs < hour) {
+    const n = Math.round(absMs / minute)
+    relative = deltaMs >= 0 ? `in ${n}m` : `${n}m ago`
+  } else if (absMs < day) {
+    const n = Math.round(absMs / hour)
+    relative = deltaMs >= 0 ? `in ${n}h` : `${n}h ago`
+  } else {
+    const n = Math.round(absMs / day)
+    relative = deltaMs >= 0 ? `in ${n}d` : `${n}d ago`
+  }
+  return { absolute, relative }
 }
 
 function jobStatusLabel(status: string): string {

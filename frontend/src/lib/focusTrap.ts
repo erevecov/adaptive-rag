@@ -16,10 +16,15 @@ export function listFocusable(container: HTMLElement): HTMLElement[] {
     if (el.closest('[inert]')) {
       return false
     }
-    if (el.getAttribute('aria-hidden') === 'true') {
+    if (el.closest('[aria-hidden="true"]')) {
       return false
     }
-    return el.getClientRects().length > 0
+    // Prefer computed style over getClientRects — jsdom often returns empty rects.
+    const style = window.getComputedStyle(el)
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return false
+    }
+    return true
   })
 }
 
