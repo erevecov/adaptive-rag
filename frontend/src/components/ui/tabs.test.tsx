@@ -75,4 +75,26 @@ describe('SegmentedControl', () => {
     expect(contextTab.getAttribute('data-state')).toBe('active')
     expect(minimapTab.getAttribute('data-state')).toBe('inactive')
   })
+
+  test('arrow keys change tablist value via onClick compat', async () => {
+    const user = userEvent.setup()
+    const onContext = vi.fn()
+    const onMinimap = vi.fn()
+
+    render(
+      <SegmentedControl aria-label="Inspector panels" role="tablist">
+        <SegmentedControlItem active onClick={onContext} role="tab" value="context">
+          Context
+        </SegmentedControlItem>
+        <SegmentedControlItem onClick={onMinimap} role="tab" value="minimap">
+          Minimap
+        </SegmentedControlItem>
+      </SegmentedControl>,
+    )
+
+    const contextTab = screen.getByRole('tab', { name: 'Context' })
+    contextTab.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(onMinimap).toHaveBeenCalled()
+  })
 })

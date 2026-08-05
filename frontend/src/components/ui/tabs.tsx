@@ -14,12 +14,25 @@ import { cn } from '@/lib/utils'
 
 export type SegmentedControlProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode
+  onValueChange?(value: string): void
+  value?: string
 }
 
 export const SegmentedControl = forwardRef<
   HTMLDivElement,
   SegmentedControlProps
->(({ children, className, role = 'group', ...props }, ref) => {
+>(
+  (
+    {
+      children,
+      className,
+      onValueChange,
+      role = 'group',
+      value: valueProp,
+      ...props
+    },
+    ref,
+  ) => {
   const controlClassName = cn(
     'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted p-1',
     className,
@@ -32,12 +45,32 @@ export const SegmentedControl = forwardRef<
         child,
         value: segmentedControlItemValue(child, index),
       }))
-    const activeTab =
+    const activeFromChildren =
       tabItems.find(({ child }) => child.props.active)?.value ??
       tabItems[0]?.value
+    const activeTab = valueProp ?? activeFromChildren
 
     return (
-      <TabsPrimitive.Root orientation="horizontal" value={activeTab}>
+      <TabsPrimitive.Root
+        onValueChange={(next) => {
+          onValueChange?.(next)
+          if (onValueChange !== undefined) {
+            return
+          }
+          // Backward compat: fire the matching item onClick when parent only
+          // wires selection via item clicks (mouse still works; arrows need this).
+          const match = tabItems.find(({ value }) => value === next)
+          const itemClick = match?.child.props.onClick
+          if (typeof itemClick === 'function') {
+            itemClick({
+              preventDefault() {},
+              stopPropagation() {},
+            } as Parameters<NonNullable<typeof itemClick>>[0])
+          }
+        }}
+        orientation="horizontal"
+        value={activeTab}
+      >
         <TabsPrimitive.List
           className={controlClassName}
           ref={ref}
@@ -67,7 +100,8 @@ export const SegmentedControl = forwardRef<
       {children}
     </div>
   )
-})
+},
+)
 SegmentedControl.displayName = 'SegmentedControl'
 
 export type SegmentedControlItemProps =
