@@ -1037,11 +1037,11 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
     expect(screen.getByRole('heading', { level: 2, name: 'Model Catalog' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh catalog' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Catalog' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
     expect(screen.getByRole('heading', { level: 2, name: 'Global Defaults' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload Global Defaults' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
     expect(screen.getByRole('heading', { level: 2, name: 'Project overrides' })).toBeTruthy()
@@ -3448,7 +3448,7 @@ describe('App chat workspace', () => {
     const context = await screen.findByRole('region', {
       name: 'Session context',
     })
-    expect(within(context).getByText('prompt default')).toBeTruthy()
+    expect(within(context).getByText('Prompt default')).toBeTruthy()
     expect(within(context).getByText('qwen-plus')).toBeTruthy()
     expect(within(context).getByText('$0.0042')).toBeTruthy()
     expect(within(context).getByText('168 Tokens')).toBeTruthy()
@@ -3922,7 +3922,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
 
     expect(client.listProviderModels).toHaveBeenCalled()
     await chooseRadixSelectOption(
@@ -3930,7 +3930,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Model sync connection'),
       /Hosted Qwen/,
     )
-    await user.click(screen.getByRole('button', { name: 'Sync models' }))
+    await user.click(screen.getByRole('button', { name: 'Sync Models' }))
 
     expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
 
@@ -3938,7 +3938,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByRole('button', { name: 'Save secret' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
-    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
+    await user.click(screen.getByRole('button', { name: 'Reload Global Defaults' }))
 
     await chooseRadixSelectOption(
       user,
@@ -4149,7 +4149,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Model sync connection'),
@@ -4229,7 +4229,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Model sync connection'),
@@ -4509,7 +4509,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
-    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
+    await user.click(screen.getByRole('button', { name: 'Reload Global Defaults' }))
 
     await chooseRadixSelectOption(
       user,

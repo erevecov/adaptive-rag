@@ -355,7 +355,7 @@ describe('RuntimeSettingsPanel', () => {
     expect(
       screen.getByRole('heading', { name: 'Global Defaults' }),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload Global Defaults' })).toBeTruthy()
   })
 
   test('does not render runtime submodule segmented controls in the content panel', () => {

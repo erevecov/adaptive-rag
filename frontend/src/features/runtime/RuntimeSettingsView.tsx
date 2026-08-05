@@ -998,7 +998,7 @@ export function RuntimeModelCatalogPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing…' : 'Refresh catalog'}
+        {state === 'loading' ? 'Refreshing…' : 'Refresh Catalog'}
       </Button>
 
       <form className="grid gap-4" onSubmit={onSyncProviderModels}>
@@ -1017,7 +1017,7 @@ export function RuntimeModelCatalogPanel({
             />
           )}
         </RuntimeField>
-        <Button type="submit">Sync models</Button>
+        <Button type="submit">Sync Models</Button>
       </form>
 
       {selectedConnection ? (
@@ -1148,7 +1148,7 @@ export function RuntimeGlobalDefaultsPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing…' : 'Reload global defaults'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload Global Defaults'}
       </Button>
 
       <RuntimeSlotList isLoading={state === 'loading'} slots={slots} />
