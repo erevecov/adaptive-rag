@@ -98,7 +98,8 @@ def test_validate_source_create_accepts_url_without_content() -> None:
 
 def test_validate_source_create_rejects_unsupported_type() -> None:
     with pytest.raises(AuthoringError) as excinfo:
-        validate_source_create(source_type="pdf", extra_metadata=None)
+        # pdf/docx are supported post-M45; use a type outside the registry.
+        validate_source_create(source_type="rss", extra_metadata=None)
 
     assert excinfo.value.status_code == 422
     assert "source_type must be one of" in excinfo.value.detail
