@@ -1613,8 +1613,8 @@ export function ConnectionSecretSummary({
       {connection.secrets.map((secret) => (
         <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secretNameLabel(secret.secret_name)}{' '}
-          {secret.configured ? 'Configured' : 'Not configured'}
-          {secret.last_four ? ` / last four ${secret.last_four}` : ''}
+          {secret.configured ? 'Configured' : 'Not Configured'}
+          {secret.last_four ? ` / Last Four ${secret.last_four}` : ''}
         </Badge>
       ))}
     </div>
