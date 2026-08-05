@@ -19,8 +19,10 @@
 
 ## Milestone activo
 
-Marathon goal **implementation complete on `main`**. Residual **human only**:
-optional clean-clone re-gate + decide v1.0 tag/release. Graph live: hold.
+Marathon goal **implementation complete on `main`** (#200). Post-marathon
+quality residuals #202 (coverage) + #204 (error surfacing) merged.
+Residual **human only**: v1.0 tag/release. Graph live: hold.
+Open non-marathon: #178 refactor, #179 Radix cleanup.
 
 ## Ultimo milestone completado
 
