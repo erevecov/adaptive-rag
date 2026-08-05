@@ -2234,6 +2234,7 @@ describe('App chat workspace', () => {
     const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
     expect(skip.getAttribute('href')).toBe('#chat-composer')
     expect(skip.getAttribute('data-slot')).toBe('skip-link')
+    expect(skip.className).toContain('focus-visible:ring-primary-foreground')
     expect(document.getElementById('chat-composer')).toBeTruthy()
     expect(document.getElementById('main-content')).toBeTruthy()
   })

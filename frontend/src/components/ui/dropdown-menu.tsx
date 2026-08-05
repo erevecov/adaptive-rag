@@ -33,7 +33,19 @@ export function Portal(props: DropdownMenuPortalProps) {
 export const Trigger = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Trigger>,
   DropdownMenuTriggerProps
->((props, ref) => <DropdownMenuPrimitive.Trigger ref={ref} {...props} />)
+>(({ asChild, className, ...props }, ref) => (
+  <DropdownMenuPrimitive.Trigger
+    asChild={asChild}
+    className={cn(
+      // Bare triggers render a button — match Popover / DS focus-visible rings.
+      !asChild &&
+        'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+      className,
+    )}
+    ref={ref}
+    {...props}
+  />
+))
 Trigger.displayName = DropdownMenuPrimitive.Trigger.displayName
 
 export const Content = forwardRef<
@@ -53,6 +65,7 @@ export const Content = forwardRef<
       className={cn(
         [
           'z-50 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)]',
+          'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         ],
         className,
       )}

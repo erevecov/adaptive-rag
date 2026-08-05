@@ -56,7 +56,8 @@ describe('Button', () => {
     render(<Button variant="danger">Delete</Button>)
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Delete' }))
-    expect(tokens).toContain('focus-visible:ring-destructive-foreground/55')
+    expect(tokens).toContain('focus-visible:ring-destructive-foreground')
+    expect(tokens).not.toContain('focus-visible:ring-destructive-foreground/55')
   })
 })
 
