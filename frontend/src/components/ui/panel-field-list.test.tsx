@@ -5,8 +5,8 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { DataList, DataListItem } from './data-list'
-import { Field, FieldError, FieldHelp, FieldLabel } from './field'
-import { Panel, PanelBody, PanelDescription, PanelHeader } from './panel'
+import { Field, FieldError, FieldHelp, FieldLabel, FieldControl } from './field'
+import { Panel, PanelBody, PanelDescription, PanelHeader, PanelTitle } from './panel'
 
 afterEach(() => {
   cleanup()
@@ -32,14 +32,15 @@ describe('Panel density', () => {
     render(
       <Panel>
         <PanelHeader>
-          Title
+          <PanelTitle>Appearance</PanelTitle>
           <PanelDescription>Choose the interface palette.</PanelDescription>
         </PanelHeader>
       </Panel>,
     )
 
-    const panel = screen.getByText('Title').closest('[data-slot="panel"]')
+    const panel = screen.getByText('Appearance').closest('[data-slot="panel"]')
     expect(panel?.className).toContain('motion-safe:transition-colors')
+    expect(screen.getByText('Appearance').className).toContain('tracking-tight')
     const description = screen.getByText('Choose the interface palette.')
     expect(description.getAttribute('data-slot')).toBe('panel-description')
     expect(description.className).toContain('text-xs')
@@ -52,13 +53,20 @@ describe('Field disabled styling', () => {
     render(
       <Field>
         <FieldLabel htmlFor="x">Name</FieldLabel>
-        <input disabled id="x" />
+        <FieldControl>
+          <input disabled id="x" />
+        </FieldControl>
       </Field>,
     )
 
     const field = screen.getByText('Name').closest('[data-slot="field"]')
     expect(field?.className).toContain('group/field')
     expect(field?.className).toContain('max-[680px]:gap-1.5')
+    expect(
+      screen.getByText('Name').closest('[data-slot="field"]')?.querySelector(
+        '[data-slot="field-control"]',
+      )?.className,
+    ).toContain('max-[680px]:gap-1.5')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )

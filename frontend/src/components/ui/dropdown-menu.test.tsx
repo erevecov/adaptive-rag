@@ -34,6 +34,8 @@ describe('DropdownMenu', () => {
 
     expect(trigger.getAttribute('data-state')).toBe('closed')
     expect(trigger.className).toContain('focus-visible:ring-ring')
+    expect(trigger.className).toContain('max-[680px]:min-h-11')
+    expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
     const menu = await screen.findByRole('menu')
