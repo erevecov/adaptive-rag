@@ -39,6 +39,7 @@ import {
   providerModelOptions,
   runtimeStatusLabel,
   slotLabel,
+  titleCaseToken,
   type ProviderModelOption,
   type RequestState,
   type RuntimeSubmodule,
@@ -434,6 +435,13 @@ function sourceLabel(source: string): string {
     return 'Default'
   }
   return source.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function secretNameLabel(secretName: string): string {
+  if (secretName === 'api_key') {
+    return 'API Key'
+  }
+  return titleCaseToken(secretName)
 }
 
 function RuntimeField({
@@ -1604,7 +1612,7 @@ export function ConnectionSecretSummary({
     <div className="flex flex-wrap gap-2">
       {connection.secrets.map((secret) => (
         <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
-          {secret.secret_name}{' '}
+          {secretNameLabel(secret.secret_name)}{' '}
           {secret.configured ? 'Configured' : 'Not configured'}
           {secret.last_four ? ` / last four ${secret.last_four}` : ''}
         </Badge>

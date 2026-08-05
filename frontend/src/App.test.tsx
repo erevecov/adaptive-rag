@@ -2550,10 +2550,10 @@ describe('App chat workspace', () => {
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
-    expect(screen.getByText('score 0.88')).toBeTruthy()
-    expect(screen.getByText('URL source')).toBeTruthy()
-    expect(screen.getByText('version 2')).toBeTruthy()
-    expect(screen.getByText('chars 12-98')).toBeTruthy()
+    expect(screen.getByText('Score 0.88')).toBeTruthy()
+    expect(screen.getByText('URL Source')).toBeTruthy()
+    expect(screen.getByText('Version 2')).toBeTruthy()
+    expect(screen.getByText('Chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(
       screen.getByRole('heading', { name: 'Deployment question' }),
@@ -3377,15 +3377,15 @@ describe('App chat workspace', () => {
     })
     expect(within(sessionDetail).getByText('rag_search')).toBeTruthy()
     expect(within(sessionDetail).getByText('deployment import failure')).toBeTruthy()
-    expect(within(sessionDetail).getByText('default dense retrieval')).toBeTruthy()
-    expect(within(sessionDetail).getByText('latency 41 ms')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Default Dense Retrieval')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Latency 41 ms')).toBeTruthy()
     expect(
       within(sessionDetail).getByText(
         'Confirm the worker is running before retrying the import.',
       ),
     ).toBeTruthy()
-    expect(within(sessionDetail).getByText('rank 1')).toBeTruthy()
-    expect(within(sessionDetail).getByText('dense score 0.84')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Rank 1')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Dense Score 0.84')).toBeTruthy()
     expect(within(sessionDetail).getByText('qwen / qwen-plus')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
@@ -3571,14 +3571,14 @@ describe('App chat workspace', () => {
     const stepper = await screen.findByRole('region', {
       name: 'Internal action stepper',
     })
-    expect(within(stepper).getByText('tool call succeeded')).toBeTruthy()
-    expect(within(stepper).getByText('retrieval dense')).toBeTruthy()
-    expect(within(stepper).getByText('provider usage succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
+    expect(within(stepper).getByText('Provider Usage Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('rag_search')).toBeTruthy()
     expect(within(stepper).getByText('deployment import failure')).toBeTruthy()
     expect(within(stepper).getByText('qwen-plus')).toBeTruthy()
     expect(within(stepper).getByText('39 ms')).toBeTruthy()
-    expect(within(stepper).getByText('rank 1')).toBeTruthy()
+    expect(within(stepper).getByText('Rank 1')).toBeTruthy()
     expect(within(stepper).getByText(/0\.0042/)).toBeTruthy()
     expect(within(stepper).queryByRole('button', { name: /replay/i })).toBeNull()
   })
@@ -3679,13 +3679,13 @@ describe('App chat workspace', () => {
       name: 'Status breakdown',
     })
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
-    expect(within(statusSection).getByText('10 sessions')).toBeTruthy()
+    expect(within(statusSection).getByText('10 Sessions')).toBeTruthy()
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
     expect(within(statusSection).getByText('2 sessions')).toBeTruthy()
 
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
-    expect(within(errorsSection).getByText('2 occurrences')).toBeTruthy()
+    expect(within(errorsSection).getByText('2 Occurrences')).toBeTruthy()
 
     const providerSection = screen.getByRole('region', { name: 'Provider usage' })
     expect(within(providerSection).getByText('chat')).toBeTruthy()
@@ -3859,7 +3859,7 @@ describe('App chat workspace', () => {
     expect(client.listProviderConnections).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
-    expect(screen.getByText('api_key Configured / last four cret')).toBeTruthy()
+    expect(screen.getByText('API Key Configured / last four cret')).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()

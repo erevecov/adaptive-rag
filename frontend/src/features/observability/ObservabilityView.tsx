@@ -667,7 +667,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
-              <Badge>{formatCount(row.count, 'session')}</Badge>
+              <Badge>{formatCount(row.count, 'Session')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -696,7 +696,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               <strong className="break-words text-sm font-semibold">
                 {operatorSafeMessage(error.message, error.message)}
               </strong>
-              <Badge>{formatCount(error.count, 'occurrence')}</Badge>
+              <Badge>{formatCount(error.count, 'Occurrence')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -843,10 +843,10 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
             {formatPercent(succeeded, total)} success
           </strong>
           <span className="text-sm text-muted-foreground">
-            {formatCount(failed, 'failed session')}
+            {formatCount(failed, 'Failed session')}
           </span>
           <span className="text-sm text-muted-foreground">
-            {formatCount(running, 'running session')}
+            {formatCount(running, 'Running session')}
           </span>
         </div>
       )}
@@ -908,7 +908,7 @@ function formatUsd(value: number): string {
 }
 
 function formatNullableUsd(value: number | null): string {
-  return value === null ? 'n/a' : formatUsd(value)
+  return value === null ? 'N/A' : formatUsd(value)
 }
 
 function formatNumber(value: number): string {
@@ -916,11 +916,11 @@ function formatNumber(value: number): string {
 }
 
 function formatNullableNumber(value: number | null): string {
-  return value === null ? 'n/a' : formatNumber(value)
+  return value === null ? 'N/A' : formatNumber(value)
 }
 
 function formatNullableMs(value: number | null): string {
-  return value === null ? 'n/a' : `${value} ms`
+  return value === null ? 'N/A' : `${value} ms`
 }
 
 function formatPercent(value: number, total: number): string {

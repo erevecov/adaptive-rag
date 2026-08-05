@@ -214,7 +214,7 @@ describe('ObservabilityPanel', () => {
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
     expect(
-      within(statusSection).getByText('10 sessions').getAttribute('data-slot'),
+      within(statusSection).getByText('10 Sessions').getAttribute('data-slot'),
     ).toBe('badge')
     expect(
       statusSection.querySelector('[data-slot="data-list-item"]'),

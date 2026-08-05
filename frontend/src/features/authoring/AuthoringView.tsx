@@ -1796,7 +1796,7 @@ function groupJobsByStatus(
 
 function formatOperatorTimestamp(value: string | null): string {
   if (value === null || value.length === 0) {
-    return 'unknown'
+    return 'Unknown'
   }
   const parsed = Date.parse(value)
   if (Number.isNaN(parsed)) {
