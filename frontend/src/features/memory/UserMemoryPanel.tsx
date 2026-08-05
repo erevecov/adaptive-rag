@@ -322,7 +322,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       className="grid gap-4 p-4 max-[680px]:gap-2 max-[680px]:p-2.5"
       role="region"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-1">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
         <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My Account
@@ -346,7 +346,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         Propose → approve required. No automatic capture in this build.
       </PanelDescription>
 
-      <form className="grid gap-2 max-[680px]:gap-1" onSubmit={(event) => void handlePropose(event)}>
+      <form className="grid gap-2 max-[680px]:gap-0.5" onSubmit={(event) => void handlePropose(event)}>
         <Field>
           <FieldLabel htmlFor={draftFieldId}>Propose Memory</FieldLabel>
           <FieldControl>
@@ -398,7 +398,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </label>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
           <Button
             disabled={
               draft.trim().length === 0 ||
@@ -459,7 +459,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
-          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
             <InlineFeedback role="alert" tone="danger">
               {listError}
             </InlineFeedback>
