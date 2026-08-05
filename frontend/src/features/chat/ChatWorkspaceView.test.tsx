@@ -336,7 +336,38 @@ describe('ChatWorkspacePanel', () => {
     const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
     expect(within(draft).getByRole('button', { name: 'Approve knowledge' })).toBeTruthy()
+    expect(within(draft).getByText('draft').getAttribute('data-tone')).toBe('primary')
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('maps knowledge draft status badges to lifecycle tones', () => {
+    const statuses = [
+      { status: 'draft', tone: 'primary' },
+      { status: 'pending', tone: 'warning' },
+      { status: 'approved', tone: 'success' },
+      { status: 'cancelled', tone: 'neutral' },
+    ] as const
+
+    for (const { status, tone } of statuses) {
+      cleanup()
+      renderChatWorkspace({
+        drafts: {
+          [status]: {
+            draftId: status,
+            error: null,
+            proposalId: status === 'pending' ? 'proposal-1' : null,
+            reviewAction: 'approve',
+            scope: 'project',
+            status,
+            text: `Text for ${status}`,
+          },
+        },
+        response,
+      })
+
+      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      expect(within(card).getByText(status).getAttribute('data-tone')).toBe(tone)
+    }
   })
 
   test('uses lucide icons instead of inline SVG icon functions', () => {

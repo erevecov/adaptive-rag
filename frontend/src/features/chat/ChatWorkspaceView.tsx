@@ -1035,7 +1035,7 @@ function KnowledgeDraftCard({
             {draft.scope}
           </strong>
         </div>
-        <StatusBadge>{draft.status}</StatusBadge>
+        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>{draft.status}</StatusBadge>
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
@@ -1082,6 +1082,24 @@ function KnowledgeDraftCard({
       </div>
     </article>
   )
+}
+
+function knowledgeDraftStatusTone(
+  status: ChatKnowledgeDraftStatus,
+): 'danger' | 'neutral' | 'primary' | 'success' | 'warning' {
+  if (status === 'approved') {
+    return 'success'
+  }
+  if (status === 'pending') {
+    return 'warning'
+  }
+  if (status === 'cancelled') {
+    return 'neutral'
+  }
+  if (status === 'draft') {
+    return 'primary'
+  }
+  return 'neutral'
 }
 
 function extractKnowledgeDrafts(toolCalls: ChatToolCall[]): ChatKnowledgeDraft[] {

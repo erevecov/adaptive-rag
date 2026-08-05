@@ -467,7 +467,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    transcript.scrollTop = transcript.scrollHeight
+    scrollChatTranscriptToBottom(transcript)
   }, [primaryView, requestState, response])
 
   useEffect(() => {
@@ -3398,6 +3398,25 @@ function upsertIngestionJob(
 ): IngestionJob[] {
   const nextJobs = jobs.filter((item) => item.id !== job.id)
   return [job, ...nextJobs]
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function scrollChatTranscriptToBottom(transcript: HTMLElement): void {
+  const top = transcript.scrollHeight
+  // Auto-follow: smooth when motion is OK; instant when user prefers reduced motion.
+  // Prefer scrollTo when available; fall back to scrollTop (jsdom / older engines).
+  if (typeof transcript.scrollTo === 'function') {
+    const behavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth'
+    transcript.scrollTo({ behavior, top })
+    return
+  }
+  transcript.scrollTop = top
 }
 
 function focusMessage(messageId: string): void {
