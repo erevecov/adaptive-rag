@@ -1612,14 +1612,16 @@ function IngestionJobList({
                       <StatusBadge className="w-fit" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
-                      <Badge className="w-fit">{job.job_type}</Badge>
+                      <Badge className="w-fit">
+                        {titleCaseStatus(job.job_type)}
+                      </Badge>
                     </div>
                     {sourceId ? (
                       <small
                         className="break-all text-xs text-muted-foreground"
                         title="source_id from job payload"
                       >
-                        source {sourceId}
+                        Source {sourceId}
                       </small>
                     ) : null}
                     <small
@@ -1631,7 +1633,7 @@ function IngestionJobList({
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
                       <span>{formatAttempts(job)}</span>
                       <span title={runAfter.absolute}>
-                        run after {runAfter.relative}
+                        Run after {runAfter.relative}
                       </span>
                       <span>{formatLockState(job)}</span>
                     </div>
@@ -1735,21 +1737,21 @@ function isRetryableIngestionJob(job: IngestionJob): boolean {
 }
 
 function formatAttempts(job: IngestionJob): string {
-  return `attempt ${job.attempts}/${job.max_attempts}`
+  return `Attempt ${job.attempts}/${job.max_attempts}`
 }
 
 function formatLockState(job: IngestionJob): string {
   if (job.locked_by === null && job.locked_until === null) {
-    return 'unlocked'
+    return 'Unlocked'
   }
   const until = formatRelativeOperatorTimestamp(job.locked_until)
   if (job.locked_by !== null && job.locked_until !== null) {
-    return `locked by ${job.locked_by} until ${until.relative}`
+    return `Locked by ${job.locked_by} until ${until.relative}`
   }
   if (job.locked_by !== null) {
-    return `locked by ${job.locked_by}`
+    return `Locked by ${job.locked_by}`
   }
-  return `locked until ${until.relative}`
+  return `Locked until ${until.relative}`
 }
 
 function truncateId(value: string): string {

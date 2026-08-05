@@ -2026,6 +2026,8 @@ describe('App chat workspace', () => {
       name: 'Workspace inspector',
     })
     expect(overlayInspector.className).toContain('workspace-inspector-overlay')
+    expect(overlayInspector.className).toMatch(/max-\[680px\]:inset-0/)
+    expect(overlayInspector.className).not.toMatch(/max-\[680px\]:inset-3/)
     expect(overlayInspector.getAttribute('aria-modal')).toBe('true')
     expect(screen.getByTestId('inspector-backdrop')).toBeTruthy()
     expect(
@@ -2498,7 +2500,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
-    expect(await screen.findByText('attempt 1/3')).toBeTruthy()
+    expect(await screen.findByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('unlocked')).toBeTruthy()
     expect(
       screen.getByText(`source ${sourceSummary.id}`, { exact: false }),

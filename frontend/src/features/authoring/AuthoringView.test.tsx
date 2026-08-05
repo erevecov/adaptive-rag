@@ -344,7 +344,7 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
-    expect(screen.getByText('attempt 1/3')).toBeTruthy()
+    expect(screen.getByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
     const lastRun = view.container.querySelector(
       '[data-slot="ingestion-last-run"]',
@@ -506,7 +506,7 @@ describe('AuthoringPanel', () => {
     ).toBeTruthy()
     expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Blocked').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/run after/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Run after/).length).toBeGreaterThan(0)
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()

@@ -25,10 +25,10 @@ import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
 
 const STRATEGY_OPTIONS = [
-  { label: 'dense + sparse (default)', value: 'dense_sparse' },
-  { label: 'dense only', value: 'dense' },
-  { label: 'sparse only', value: 'sparse' },
-  { label: 'graph', value: 'graph' },
+  { label: 'Dense + sparse (default)', value: 'dense_sparse' },
+  { label: 'Dense only', value: 'dense' },
+  { label: 'Sparse only', value: 'sparse' },
+  { label: 'Graph', value: 'graph' },
 ] as const
 
 const RERANK_OPTIONS = [
