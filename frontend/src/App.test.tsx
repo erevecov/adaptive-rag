@@ -4066,7 +4066,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Global slot model'),
       'text-embedding-v4',
     )
-    await user.click(screen.getByRole('button', { name: 'Save global slot' }))
+    await user.click(screen.getByRole('button', { name: 'Save Global Slot' }))
 
     expect(client.upsertRuntimeSlotDefault).toHaveBeenCalledWith(
       'dense_embedding',
@@ -4640,7 +4640,7 @@ describe('App chat workspace', () => {
       ),
     ).toBeTruthy()
     const saveButton = screen.getByRole('button', {
-      name: 'Save global slot',
+      name: 'Save Global Slot',
     }) as HTMLButtonElement
     expect(saveButton.disabled).toBe(true)
 
