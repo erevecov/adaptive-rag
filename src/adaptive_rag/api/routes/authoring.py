@@ -67,7 +67,14 @@ def list_projects(
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> ProjectListResponse:
-    projects = authoring.list_projects(session)
+    # Superadmin/bootstrap see all projects. Non-superadmin only membership
+    # rows at query level (no existence disclosure of foreign projects).
+    if current.is_superadmin:
+        projects = authoring.list_projects(session)
+    elif current.user_id is None:
+        projects = []
+    else:
+        projects = authoring.list_projects(session, member_user_id=current.user_id)
     return ProjectListResponse(
         items=[
             _project_response_for_current_user(
@@ -329,4 +336,3 @@ def source_resync(
         raise
     session.commit()
     return {"source_id": str(result.source_id), "job": job_payload(result.job)}
-

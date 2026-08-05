@@ -59,8 +59,12 @@ def create_project(
     )
 
 
-def list_projects(session: Session) -> list[Project]:
-    return ProjectRepository(session).list()
+def list_projects(
+    session: Session,
+    *,
+    member_user_id: UUID | None = None,
+) -> list[Project]:
+    return ProjectRepository(session).list(member_user_id=member_user_id)
 
 
 def get_project(session: Session, project_id: UUID) -> Project:
