@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode } from 'react'
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, ButtonLabel } from '@/components/ui/button'
@@ -881,6 +881,92 @@ function UserAccessLists({
   )
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function SourceFileField({
+  fieldId,
+  isBusy,
+  onSourceFileChange,
+  sourceFileName,
+  sourceType,
+}: {
+  fieldId: string
+  isBusy: boolean
+  onSourceFileChange(file: File | null): void
+  sourceFileName: string
+  sourceType: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [sizeBytes, setSizeBytes] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (sourceFileName.length === 0) {
+      setSizeBytes(null)
+      if (inputRef.current !== null) {
+        inputRef.current.value = ''
+      }
+    }
+  }, [sourceFileName])
+
+  return (
+    <div className="grid gap-2">
+      <Input
+        accept={
+          sourceType === 'pdf'
+            ? 'application/pdf,.pdf'
+            : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        }
+        disabled={isBusy}
+        id={fieldId}
+        name="source-file"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0] ?? null
+          setSizeBytes(file?.size ?? null)
+          onSourceFileChange(file)
+        }}
+        ref={inputRef}
+        type="file"
+      />
+      {sourceFileName.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground" id={`${fieldId}-selected`}>
+            Selected: {sourceFileName}
+            {sizeBytes !== null ? ` · ${formatFileSize(sizeBytes)}` : null}
+          </span>
+          <Button
+            aria-label="Clear selected file"
+            disabled={isBusy}
+            onClick={() => {
+              setSizeBytes(null)
+              if (inputRef.current !== null) {
+                inputRef.current.value = ''
+              }
+              onSourceFileChange(null)
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Clear
+          </Button>
+        </div>
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          PDF or DOCX up to 5 MiB.
+        </span>
+      )}
+    </div>
+  )
+}
+
 function isBinarySourceType(sourceType: string): boolean {
   return sourceType === 'pdf' || sourceType === 'docx'
 }
@@ -994,27 +1080,13 @@ function SourcesPanel({
         {binaryType ? (
           <AuthoringField id="authoring-source-file" label="File">
             {(fieldId) => (
-              <div className="grid gap-1">
-                <Input
-                  accept={
-                    sourceType === 'pdf'
-                      ? 'application/pdf,.pdf'
-                      : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                  }
-                  id={fieldId}
-                  name="source-file"
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0] ?? null
-                    onSourceFileChange(file)
-                  }}
-                  type="file"
-                />
-                {sourceFileName.length > 0 ? (
-                  <span className="text-xs text-muted-foreground">
-                    Selected: {sourceFileName}
-                  </span>
-                ) : null}
-              </div>
+              <SourceFileField
+                fieldId={fieldId}
+                isBusy={isBusy}
+                onSourceFileChange={onSourceFileChange}
+                sourceFileName={sourceFileName}
+                sourceType={sourceType}
+              />
             )}
           </AuthoringField>
         ) : textType ? (

@@ -317,4 +317,26 @@ describe('ObservabilityPanel', () => {
     ).toBeTruthy()
     expect(screen.getByLabelText('Chat observability metrics')).toBeTruthy()
   })
+
+  test('breakdown EmptyStates carry data-slot-state=empty', () => {
+    const emptySummary: ChatObservabilitySummary = {
+      ...summary,
+      errors: { provider_error_count: 0, session_error_count: 0, top_messages: [] },
+      provider_usage: {
+        groups: [],
+        missing_cost_count: 0,
+        total_estimated_cost_usd: 0,
+        total_records: 0,
+      },
+      sessions: { by_status: {}, total: 0 },
+    }
+    const { view } = renderObservabilityPanel({ summary: emptySummary })
+
+    const empties = view.container.querySelectorAll(
+      '[data-slot="empty-state"][data-slot-state="empty"]',
+    )
+    expect(empties.length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('No status data yet.')).toBeTruthy()
+    expect(screen.getByText('No error messages yet.')).toBeTruthy()
+  })
 })

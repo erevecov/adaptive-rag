@@ -429,4 +429,27 @@ describe('AuthoringPanel', () => {
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()
   })
+
+  test('binary source upload shows idle and selected file status', () => {
+    const idle = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sourceType: 'pdf',
+    })
+    const status = idle.view.container.querySelector(
+      '[data-slot="source-file-status"]',
+    )
+    expect(status?.textContent).toBe('No file selected.')
+    expect(screen.getByLabelText('File').getAttribute('type')).toBe('file')
+    expect(screen.getByLabelText('File').className).toMatch(/min-h-9/)
+    idle.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sourceFileName: 'handbook.pdf',
+      sourceType: 'pdf',
+    })
+    expect(
+      screen.getByText('Selected: handbook.pdf').getAttribute('data-slot'),
+    ).toBe('source-file-status')
+  })
 })
