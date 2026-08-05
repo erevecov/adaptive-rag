@@ -75,7 +75,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       return
     }
     const editor = document.querySelector<HTMLTextAreaElement>(
-      `textarea[aria-label="Edit memory content"]`,
+      `textarea[aria-label="Edit Memory Content"]`,
     )
     editor?.focus()
     editor?.setSelectionRange(editor.value.length, editor.value.length)
