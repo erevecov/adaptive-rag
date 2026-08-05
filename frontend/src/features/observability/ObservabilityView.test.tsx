@@ -173,7 +173,7 @@ describe('ObservabilityPanel', () => {
     expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
     expect(view.container.querySelector('[data-slot="observability-metric-skeleton"]')).toBeNull()
 
-    const metrics = screen.getByLabelText('Chat observability metrics')
+    const metrics = screen.getByLabelText('Chat Observability Metrics')
     expect(within(metrics).getByText('12')).toBeTruthy()
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
   })
@@ -181,7 +181,7 @@ describe('ObservabilityPanel', () => {
   test('metric card values use tabular-nums for raw counts', () => {
     renderObservabilityPanel()
 
-    const metrics = screen.getByLabelText('Chat observability metrics')
+    const metrics = screen.getByLabelText('Chat Observability Metrics')
     const sessionsValue = within(metrics).getByText('12')
     expect(sessionsValue.className).toMatch(/tabular-nums/)
     const callsValue = within(metrics).getByText('18')
@@ -203,7 +203,7 @@ describe('ObservabilityPanel', () => {
   test('summary view renders metric cards and data-list breakdowns', () => {
     const { view } = renderObservabilityPanel()
 
-    const metrics = screen.getByLabelText('Chat observability metrics')
+    const metrics = screen.getByLabelText('Chat Observability Metrics')
     expect(within(metrics).getByText('12')).toBeTruthy()
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
     expect(within(metrics).getByText('410 ms')).toBeTruthy()
@@ -278,7 +278,7 @@ describe('ObservabilityPanel', () => {
       summary: null,
     })
 
-    expect((screen.getByLabelText('Created from') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('Created From') as HTMLInputElement).value).toBe(
       '2026-06-21T00:00:00Z',
     )
     expect(screen.getByLabelText('Status').textContent).toContain('Failed')
@@ -345,7 +345,7 @@ describe('ObservabilityPanel', () => {
     expect(
       screen.getByText(/Showing last successful summary — Refresh Failed/),
     ).toBeTruthy()
-    expect(screen.getByLabelText('Chat observability metrics')).toBeTruthy()
+    expect(screen.getByLabelText('Chat Observability Metrics')).toBeTruthy()
   })
 
   test('breakdown EmptyStates carry data-slot-state=empty', () => {

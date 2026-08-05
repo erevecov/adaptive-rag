@@ -2,19 +2,15 @@
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-polish-post-218` → **https://github.com/erevecov/adaptive-rag/pull/222**  
-#218 + #220 MERGED. Not using stale obsessional/post-215.
+Branch: `feat/ui-polish-cont` (post-#225; **pushed**)
 
-## Shipped on #222
-- Runtime/authoring/obs/retrieval canceled≠empty + Title Case empties
-- Retrieval project-required copy Title Case
-- Save Chat Default/Retrieval, Confirm Connection ID, Failed Sessions Title Case
-- Memory untouched
+## Shipped
+- Title Case residual fields/ARIA/metrics after #225
+- Runtime API Key helpers + check/secret messages
+- Authoring panel descriptions Title Case
+- Memory not deleted
 
 ## Verify
-Focused vitest suites green (50–57).
+Authoring **14**; runtime **23**; operator suites **57**.
 
-## Next
-Continue densify; land #222 when CI green.
-
-Grok merges green PRs.
+Grok/coordinator opens PRs.

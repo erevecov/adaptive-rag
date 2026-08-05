@@ -2369,7 +2369,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           <ChatWorkspaceGrid isRightDockInline={isRightDockInline}>
             {isRightDockOverlay ? (
               <Button
-                aria-label="Close workspace inspector"
+                aria-label="Close Workspace Inspector"
                 // tabIndex=-1 keeps the full-screen scrim out of Tab order; Escape / X still close.
                 className="fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
                 data-testid="inspector-backdrop"
@@ -2738,7 +2738,7 @@ function AppearanceSettingsPanel({
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
-            My account
+            My Account
           </p>
           <h2
             className="text-lg font-semibold leading-tight text-foreground"

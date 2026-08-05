@@ -158,7 +158,7 @@ export function ObservabilityPanel({
               />
             )}
           </ObservabilityField>
-          <ObservabilityField id="observability-created-from" label="Created from">
+          <ObservabilityField id="observability-created-from" label="Created From">
             {(fieldId) => (
               <Input
                 id={fieldId}
@@ -171,7 +171,7 @@ export function ObservabilityPanel({
               />
             )}
           </ObservabilityField>
-          <ObservabilityField id="observability-created-to" label="Created to">
+          <ObservabilityField id="observability-created-to" label="Created To">
             {(fieldId) => (
               <Input
                 id={fieldId}
@@ -343,12 +343,12 @@ function ObservabilityMetricSkeleton({
   const cardCount = activeSubmodule === 'summary' ? 5 : 3
   const label =
     activeSubmodule === 'costs'
-      ? 'Cost observability metrics loading'
+      ? 'Cost Observability Metrics Loading'
       : activeSubmodule === 'errors'
-        ? 'Error observability metrics loading'
+        ? 'Error Observability Metrics Loading'
         : activeSubmodule === 'latency'
-          ? 'Latency observability metrics loading'
-          : 'Chat observability metrics loading'
+          ? 'Latency Observability Metrics Loading'
+          : 'Chat Observability Metrics Loading'
 
   return (
     <div
@@ -401,7 +401,7 @@ function ObservabilitySummaryMetrics({
     summary.errors.session_error_count + summary.errors.provider_error_count
 
   return (
-    <MetricGrid label="Chat observability metrics">
+    <MetricGrid label="Chat Observability Metrics">
       <MetricCard
         detail="Filtered chat sessions"
         label="Sessions"
@@ -409,12 +409,12 @@ function ObservabilitySummaryMetrics({
       />
       <MetricCard
         detail={`${summary.provider_usage.missing_cost_count} missing cost`}
-        label="Provider calls"
+        label="Provider Calls"
         value={String(summary.provider_usage.total_records)}
       />
       <MetricCard
         detail="Known usage only"
-        label="Estimated cost"
+        label="Estimated Cost"
         value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
       />
       <MetricCard
@@ -442,20 +442,20 @@ function ObservabilityCostsContent({
 }) {
   return (
     <>
-      <MetricGrid columns={3} label="Cost observability metrics">
+      <MetricGrid columns={3} label="Cost Observability Metrics">
         <MetricCard
           detail={`${summary.provider_usage.groups.length} provider groups`}
-          label="Provider calls"
+          label="Provider Calls"
           value={String(summary.provider_usage.total_records)}
         />
         <MetricCard
           detail="Known usage only"
-          label="Estimated cost"
+          label="Estimated Cost"
           value={formatUsd(summary.provider_usage.total_estimated_cost_usd)}
         />
         <MetricCard
           detail="Usage records without cost"
-          label="Missing costs"
+          label="Missing Costs"
           value={String(summary.provider_usage.missing_cost_count)}
         />
       </MetricGrid>
@@ -476,7 +476,7 @@ function ObservabilityErrorsContent({
 
   return (
     <>
-      <MetricGrid columns={3} label="Error observability metrics">
+      <MetricGrid columns={3} label="Error Observability Metrics">
         <MetricCard
           detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
           label="Errors"
@@ -489,7 +489,7 @@ function ObservabilityErrorsContent({
         />
         <MetricCard
           detail="Grouped error messages"
-          label="Top messages"
+          label="Top Messages"
           value={String(summary.errors.top_messages.length)}
         />
       </MetricGrid>
@@ -511,7 +511,7 @@ function ObservabilityLatencyContent({
 
   return (
     <>
-      <MetricGrid columns={3} label="Latency observability metrics">
+      <MetricGrid columns={3} label="Latency Observability Metrics">
         <MetricCard
           detail={
             slowestP95 === null
@@ -525,12 +525,12 @@ function ObservabilityLatencyContent({
         />
         <MetricCard
           detail="Latency rollups"
-          label="Provider groups"
+          label="Provider Groups"
           value={String(summary.provider_usage.groups.length)}
         />
         <MetricCard
           detail="Usage records with timing"
-          label="Provider calls"
+          label="Provider Calls"
           value={String(summary.provider_usage.total_records)}
         />
       </MetricGrid>
@@ -832,7 +832,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   const running = summary.sessions.by_status.running ?? 0
 
   return (
-    <BreakdownCard label="Current filter" title="Session Health">
+    <BreakdownCard label="Current Filter" title="Session Health">
       {total === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
           No Sessions in This Filter Window.

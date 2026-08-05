@@ -149,9 +149,9 @@ describe('UserMemoryPanel', () => {
     await waitFor(() => expect(update).toHaveBeenCalled())
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove from injection' }),
+      screen.getByRole('button', { name: 'Remove From Injection' }),
     )
-    await user.click(screen.getByRole('button', { name: 'Confirm remove' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Remove' }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
@@ -477,15 +477,15 @@ describe('UserMemoryPanel', () => {
     expect(stamped.getAttribute('title')).toBeTruthy()
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove from injection' }),
+      screen.getByRole('button', { name: 'Remove From Injection' }),
     )
     expect(
-      await screen.findByRole('button', { name: 'Confirm remove' }),
+      await screen.findByRole('button', { name: 'Confirm Remove' }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('button', { name: 'Confirm remove' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Confirm Remove' })).toBeNull()
     expect(
-      screen.getByRole('button', { name: 'Remove from injection' }),
+      screen.getByRole('button', { name: 'Remove From Injection' }),
     ).toBeTruthy()
     expect(reject).not.toHaveBeenCalled()
   })

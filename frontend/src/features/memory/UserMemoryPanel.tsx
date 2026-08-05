@@ -311,7 +311,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
-            My account
+            My Account
           </p>
           <h2
             className="text-lg font-semibold leading-tight text-foreground"
@@ -684,7 +684,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             type="button"
                             variant="danger"
                           >
-                            Confirm remove
+                            Confirm Remove
                           </Button>
                           <Button
                             disabled={busy}
@@ -704,7 +704,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           type="button"
                           variant="secondary"
                         >
-                          Remove from injection
+                          Remove From Injection
                         </Button>
                       )
                     ) : null}

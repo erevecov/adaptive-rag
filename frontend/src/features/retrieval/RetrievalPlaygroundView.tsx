@@ -25,7 +25,7 @@ import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
 
 const STRATEGY_OPTIONS = [
-  { label: 'Dense + sparse (default)', value: 'dense_sparse' },
+  { label: 'Dense + Sparse (Default)', value: 'dense_sparse' },
   { label: 'Dense Only', value: 'dense' },
   { label: 'Sparse Only', value: 'sparse' },
   { label: 'Graph', value: 'graph' },
@@ -253,7 +253,7 @@ export function RetrievalPlaygroundPanel({
             >
               <p className="font-semibold text-destructive">Search Failed</p>
               <p className="text-xs text-muted-foreground">
-                {error ?? 'Adjust query or strategy and retry.'}
+                {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
             </EmptyState>
           ) : null}
@@ -268,7 +268,7 @@ export function RetrievalPlaygroundPanel({
                 Run a query to inspect ranked chunks.
               </p>
               <p className="text-xs text-muted-foreground">
-                Choose strategy, optional rerank, then Search.
+                Choose Strategy, Optional Rerank, Then Search.
               </p>
             </EmptyState>
           ) : null}

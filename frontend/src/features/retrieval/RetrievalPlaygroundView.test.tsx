@@ -103,7 +103,7 @@ describe('RetrievalPlaygroundPanel', () => {
     const doneBadge = screen.getByText('Done')
     expect(doneBadge.getAttribute('data-slot')).toBe('badge')
     expect(doneBadge.getAttribute('data-tone')).toBe('success')
-    expect(screen.getByText('Dense + sparse')).toBeTruthy()
+    expect(screen.getAllByText('Dense + Sparse (Default)').length).toBeGreaterThan(0)
     expect(screen.getByText('Text')).toBeTruthy()
   })
 

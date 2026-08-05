@@ -920,10 +920,10 @@ describe('App chat workspace', () => {
       within(navigation)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Chat', 'My account', 'Settings'])
+    ).toEqual(['Chat', 'My Account', 'Settings'])
     expect(within(sidebar).getByRole('heading', { name: 'Sesiones' })).toBeTruthy()
 
-    await user.click(within(navigation).getByRole('button', { name: 'My account' }))
+    await user.click(within(navigation).getByRole('button', { name: 'My Account' }))
 
     expect(
       within(sidebar).getByRole('navigation', { name: 'My Account Navigation' }),
@@ -944,7 +944,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const chatButton = await screen.findByRole('button', { name: /^Chat$/ })
-    const accountButton = screen.getByRole('button', { name: 'My account' })
+    const accountButton = screen.getByRole('button', { name: 'My Account' })
 
     expect(chatButton.getAttribute('aria-current')).toBe('page')
     expect(accountButton.hasAttribute('aria-current')).toBe(false)
@@ -1003,7 +1003,7 @@ describe('App chat workspace', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'My account' }))
+    await user.click(screen.getByRole('button', { name: 'My Account' }))
 
     const accountNavigation = screen.getByRole('navigation', {
       name: 'My Account Navigation',
@@ -1113,7 +1113,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
     expect(screen.getByRole('heading', { level: 2, name: 'Project Overrides' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload Project Settings' })).toBeTruthy()
   })
 
   test('uses only sidebar navigation for runtime submodules', async () => {
@@ -1218,7 +1218,7 @@ describe('App chat workspace', () => {
       screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'My account' }))
+    await user.click(screen.getByRole('button', { name: 'My Account' }))
     expect(window.location.pathname).toBe('/account')
     expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
 
@@ -1947,7 +1947,7 @@ describe('App chat workspace', () => {
       }),
     )
 
-    await user.type(screen.getByLabelText('Member user ID'), viewerUser.id)
+    await user.type(screen.getByLabelText('Member User ID'), viewerUser.id)
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Project Role'),
@@ -2178,7 +2178,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const transcriptButton = screen.getByRole('button', {
-      name: 'Transcript unavailable',
+      name: 'Transcript Unavailable',
     })
 
     expect(transcriptButton.querySelector('svg')).toBeTruthy()
@@ -2195,11 +2195,11 @@ describe('App chat workspace', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.querySelector('main')?.className).toContain('app-shell')
 
-    await user.click(screen.getByRole('button', { name: 'My account' }))
+    await user.click(screen.getByRole('button', { name: 'My Account' }))
 
     const appearancePanel = screen.getByRole('region', { name: 'Appearance' })
     expect(within(appearancePanel).getByRole('heading', { name: 'Appearance' })).toBeTruthy()
-    expect(within(appearancePanel).getByText('My account')).toBeTruthy()
+    expect(within(appearancePanel).getByText('My Account')).toBeTruthy()
     expect(screen.getByText('Choose the interface palette.')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: /Light/ }).getAttribute('aria-pressed'),
@@ -2359,7 +2359,7 @@ describe('App chat workspace', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
-    await user.click(screen.getByRole('button', { name: 'My account' }))
+    await user.click(screen.getByRole('button', { name: 'My Account' }))
 
     expect(
       screen.getByRole('button', { name: /Dark/ }).getAttribute('aria-pressed'),
@@ -2528,7 +2528,7 @@ describe('App chat workspace', () => {
   test('frames chat as dense retrieval without advanced mode controls', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
+    expect(screen.queryByLabelText('Retrieval Limit')).toBeNull()
     expect(
       screen.queryByRole('region', { name: 'Chat Retrieval mode' }),
     ).toBeNull()
@@ -2644,7 +2644,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
+    expect(screen.queryByLabelText('Retrieval Limit')).toBeNull()
 
     await user.type(screen.getByLabelText('Question'), 'How wide should search be?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
@@ -2717,7 +2717,7 @@ describe('App chat workspace', () => {
     // Citation chips + details panel share the same accessible name.
     await user.click(
       screen.getAllByRole('button', {
-        name: 'View source https://docs.local/runbook',
+        name: 'View Source https://docs.local/runbook',
       })[0],
     )
 
@@ -2754,7 +2754,7 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
-      name: 'Expand full question',
+      name: 'Expand Full Question',
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
@@ -2763,7 +2763,7 @@ describe('App chat workspace', () => {
     await user.click(prompt)
 
     expect(prompt.textContent).toBe(longQuestion)
-    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse Full Question')
   })
 
   test('consolidates response sources and tool calls under a compact details panel', async () => {
@@ -2813,7 +2813,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       within(transcript).getAllByRole('button', {
-        name: 'View source https://docs.local/runbook',
+        name: 'View Source https://docs.local/runbook',
       })[0],
     )
     expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
@@ -2844,7 +2844,7 @@ describe('App chat workspace', () => {
     )
     await user.click(
       screen.getAllByRole('button', {
-        name: 'View source https://docs.local/runbook',
+        name: 'View Source https://docs.local/runbook',
       })[0],
     )
 
@@ -2866,7 +2866,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const button = screen.getByRole('button', {
-      name: 'Transcript unavailable',
+      name: 'Transcript Unavailable',
     }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     expect(
@@ -2880,7 +2880,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Start transcript' }))
+    await user.click(screen.getByRole('button', { name: 'Start Transcript' }))
     expect(FakeSpeechRecognition.latest?.start).toHaveBeenCalled()
 
     await act(async () => {
@@ -2901,7 +2901,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Start transcript' }))
+    await user.click(screen.getByRole('button', { name: 'Start Transcript' }))
     await act(async () => {
       FakeSpeechRecognition.latest?.onerror?.({ error: 'not-allowed' })
     })
@@ -3525,7 +3525,7 @@ describe('App chat workspace', () => {
     })
     await user.click(
       within(sessionDetail).getByRole('button', {
-        name: 'View source https://docs.local/deploy',
+        name: 'View Source https://docs.local/deploy',
       }),
     )
 
@@ -3734,11 +3734,11 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.type(
-      screen.getByLabelText('Created from'),
+      screen.getByLabelText('Created From'),
       '2026-06-21T00:00:00Z',
     )
     await user.type(
-      screen.getByLabelText('Created to'),
+      screen.getByLabelText('Created To'),
       '2026-06-22T00:00:00Z',
     )
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
@@ -3749,7 +3749,7 @@ describe('App chat workspace', () => {
       created_at_to: '2026-06-22T00:00:00Z',
       status: 'failed',
     })
-    const metrics = await screen.findByLabelText('Chat observability metrics')
+    const metrics = await screen.findByLabelText('Chat Observability Metrics')
     expect(within(metrics).getByText('12')).toBeTruthy()
     expect(within(metrics).getByText('18')).toBeTruthy()
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
@@ -3821,8 +3821,8 @@ describe('App chat workspace', () => {
     expect(screen.getByLabelText('Project ID')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
-    const metrics = await screen.findByLabelText('Cost observability metrics')
-    expect(within(metrics).getByText('Estimated cost')).toBeTruthy()
+    const metrics = await screen.findByLabelText('Cost Observability Metrics')
+    expect(within(metrics).getByText('Estimated Cost')).toBeTruthy()
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
@@ -3841,7 +3841,7 @@ describe('App chat workspace', () => {
     expect(screen.getByLabelText('Status')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
-    const metrics = await screen.findByLabelText('Error observability metrics')
+    const metrics = await screen.findByLabelText('Error Observability Metrics')
     expect(within(metrics).getByText('Errors')).toBeTruthy()
     expect(within(metrics).getByText('3')).toBeTruthy()
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
@@ -3859,16 +3859,16 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Observability', 'Latency')
-    expect(screen.getByLabelText('Created from')).toBeTruthy()
+    expect(screen.getByLabelText('Created From')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
-    const metrics = await screen.findByLabelText('Latency observability metrics')
+    const metrics = await screen.findByLabelText('Latency Observability Metrics')
     expect(within(metrics).getByText('Latency')).toBeTruthy()
     expect(within(metrics).getByText('410 ms')).toBeTruthy()
     const latencySection = screen.getByRole('region', { name: 'Provider latency' })
     expect(within(latencySection).getByText('qwen-plus')).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
-    expect(screen.queryByText('Estimated cost')).toBeNull()
+    expect(screen.queryByText('Estimated Cost')).toBeNull()
   })
 
   test('renders empty breakdown states when summary groups are absent', async () => {
@@ -3921,7 +3921,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.type(
-      screen.getByLabelText('Created from'),
+      screen.getByLabelText('Created From'),
       '2026-06-21T00:00:00Z',
     )
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
@@ -3934,7 +3934,7 @@ describe('App chat workspace', () => {
       ),
     ).toBe(true)
     expect(
-      (screen.getByLabelText('Created from') as HTMLInputElement).value,
+      (screen.getByLabelText('Created From') as HTMLInputElement).value,
     ).toBe('2026-06-21T00:00:00Z')
     expect(screen.getByLabelText('Status').textContent).toContain('Failed')
   })
@@ -4017,7 +4017,7 @@ describe('App chat workspace', () => {
     expect(
       screen.getByRole('button', { name: 'Remove Dense Embedding capability' }),
     ).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('API key'), {
+    fireEvent.change(screen.getByLabelText('API Key'), {
       target: { value: 'sk-hosted-secret' },
     })
     await user.click(saveConnectionButton)
@@ -4030,7 +4030,7 @@ describe('App chat workspace', () => {
       metadata: null,
       provider: 'qwen',
     })
-    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
+    expect((screen.getByLabelText('API Key') as HTMLInputElement).value).toBe('')
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
     await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
@@ -4039,7 +4039,7 @@ describe('App chat workspace', () => {
     expect(client.listProviderModels).toHaveBeenCalled()
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Model sync connection'),
+      screen.getByLabelText('Model Sync Connection'),
       /Hosted Qwen/,
     )
     await user.click(screen.getByRole('button', { name: 'Sync Models' }))
@@ -4054,17 +4054,17 @@ describe('App chat workspace', () => {
 
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Global slot'),
+      screen.getByLabelText('Global Slot'),
       'Dense Embedding',
     )
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Global slot connection'),
+      screen.getByLabelText('Global Slot Connection'),
       /Hosted Qwen/,
     )
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Global slot model'),
+      screen.getByLabelText('Global Slot Model'),
       'text-embedding-v4',
     )
     await user.click(screen.getByRole('button', { name: 'Save Global Slot' }))
@@ -4080,10 +4080,10 @@ describe('App chat workspace', () => {
     const globalRetrieval = screen.getByRole('region', {
       name: 'Global Chat Retrieval',
     })
-    fireEvent.change(within(globalRetrieval).getByLabelText('Retrieval limit'), {
+    fireEvent.change(within(globalRetrieval).getByLabelText('Retrieval Limit'), {
       target: { value: '7' },
     })
-    fireEvent.change(within(globalRetrieval).getByLabelText('Candidate limit'), {
+    fireEvent.change(within(globalRetrieval).getByLabelText('Candidate Limit'), {
       target: { value: '12' },
     })
     await user.click(screen.getByRole('button', { name: 'Save Chat Retrieval' }))
@@ -4264,7 +4264,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Model sync connection'),
+      screen.getByLabelText('Model Sync Connection'),
       /Hosted Qwen/,
     )
 
@@ -4309,7 +4309,7 @@ describe('App chat workspace', () => {
       }),
     )
     expect(syncProviderModels).not.toHaveBeenCalled()
-    expect(screen.getByLabelText('Model sync connection').textContent).toContain(
+    expect(screen.getByLabelText('Model Sync Connection').textContent).toContain(
       'Hosted Qwen',
     )
     expect(await screen.findByText('qwen-plus')).toBeTruthy()
@@ -4344,7 +4344,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Model sync connection'),
+      screen.getByLabelText('Model Sync Connection'),
       /Hosted Qwen/,
     )
     await user.click(screen.getByRole('button', { name: 'Edit connection' }))
@@ -4353,7 +4353,7 @@ describe('App chat workspace', () => {
       screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
-    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('API Key') as HTMLInputElement).value).toBe(
       '',
     )
 
@@ -4362,7 +4362,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Base URL'),
       'https://dashscope.aliyuncs.com/compatible-mode/v1',
     )
-    await user.type(screen.getByLabelText('API key'), 'sk-new-secret')
+    await user.type(screen.getByLabelText('API Key'), 'sk-new-secret')
     await user.click(screen.getByRole('button', { name: 'Update Connection' }))
 
     expect(upsertProviderConnection).toHaveBeenCalledWith('qwen-hosted', {
@@ -4373,7 +4373,7 @@ describe('App chat workspace', () => {
       metadata: { label: 'Hosted Qwen' },
       provider: 'qwen',
     })
-    expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('API Key') as HTMLInputElement).value).toBe(
       '',
     )
     expect(screen.queryByText('sk-new-secret')).toBeNull()
@@ -4406,7 +4406,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
-    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+    await user.click(screen.getByRole('button', { name: 'Reload Project Settings' }))
 
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
@@ -4415,18 +4415,18 @@ describe('App chat workspace', () => {
     expect(within(projectSettings).getAllByText('Inherited').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('Overridden').length).toBeGreaterThan(0)
 
-    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'Chat')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project Slot'), 'Chat')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project slot connection'),
+      screen.getByLabelText('Project Slot Connection'),
       /local-chat/,
     )
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project slot model'),
+      screen.getByLabelText('Project Slot Model'),
       'llama3.1:8b',
     )
-    await user.click(screen.getByRole('button', { name: 'Save project override' }))
+    await user.click(screen.getByRole('button', { name: 'Save Project Override' }))
 
     expect(client.upsertProjectRuntimeSlotOverride).toHaveBeenCalledWith(
       projectId,
@@ -4437,7 +4437,7 @@ describe('App chat workspace', () => {
       },
     )
 
-    fireEvent.change(within(projectSettings).getByLabelText('Retrieval limit'), {
+    fireEvent.change(within(projectSettings).getByLabelText('Retrieval Limit'), {
       target: { value: '4' },
     })
     await chooseRadixSelectOption(
@@ -4445,11 +4445,11 @@ describe('App chat workspace', () => {
       within(projectSettings).getByLabelText('Rerank'),
       'Off',
     )
-    fireEvent.change(within(projectSettings).getByLabelText('Candidate limit'), {
+    fireEvent.change(within(projectSettings).getByLabelText('Candidate Limit'), {
       target: { value: '8' },
     })
     await user.click(
-      screen.getByRole('button', { name: 'Save project retrieval override' }),
+      screen.getByRole('button', { name: 'Save Project Retrieval Override' }),
     )
 
     expect(client.upsertProjectChatRetrievalSettings).toHaveBeenCalledWith(
@@ -4502,22 +4502,22 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
-    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+    await user.click(screen.getByRole('button', { name: 'Reload Project Settings' }))
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
     })
     expect(
       (await within(projectSettings).findAllByText('Overridden')).length,
     ).toBeGreaterThan(0)
-    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'Chat')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project Slot'), 'Chat')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project slot connection'),
+      screen.getByLabelText('Project Slot Connection'),
       /local-chat/,
     )
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project slot model'),
+      screen.getByLabelText('Project Slot Model'),
       'llama3.1:8b',
     )
 
@@ -4532,10 +4532,10 @@ describe('App chat workspace', () => {
     })
     expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
-    expect(screen.getByLabelText('Project slot connection').textContent).toContain(
+    expect(screen.getByLabelText('Project Slot Connection').textContent).toContain(
       'Select Connection',
     )
-    expect(screen.getByLabelText('Project slot model').textContent).toContain(
+    expect(screen.getByLabelText('Project Slot Model').textContent).toContain(
       'No Models Yet',
     )
   })
@@ -4563,7 +4563,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
-    await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
+    await user.click(screen.getByRole('button', { name: 'Reload Project Settings' }))
 
     await waitFor(() =>
       expect(getProjectRuntimeSettings).toHaveBeenCalledWith(projectId),
@@ -4589,10 +4589,10 @@ describe('App chat workspace', () => {
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
     const reloadProjectSettingsButton = screen.getByRole('button', {
-      name: /^(Reload project settings|Refreshing\.\.\.)$/,
+      name: /^(Reload Project Settings|Refreshing\.\.\.)$/,
     }) as HTMLButtonElement
     expect(reloadProjectSettingsButton.disabled).toBe(false)
-    expect(reloadProjectSettingsButton.textContent).toBe('Reload project settings')
+    expect(reloadProjectSettingsButton.textContent).toBe('Reload Project Settings')
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
@@ -4625,10 +4625,10 @@ describe('App chat workspace', () => {
 
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Global slot'),
+      screen.getByLabelText('Global Slot'),
       'Dense Embedding',
     )
-    await user.click(screen.getByLabelText('Global slot connection'))
+    await user.click(screen.getByLabelText('Global Slot Connection'))
     const hostedQwenOption = await screen.findByRole('option', {
       name: /Hosted Qwen \(Qwen\/Hosted\)/,
     })

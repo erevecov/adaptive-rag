@@ -252,7 +252,7 @@ export function ChatWorkspacePanel({
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
-                placeholder="Ask a question about indexed sources"
+                placeholder="Ask A Question About Indexed Sources"
                 ref={questionInputRef}
                 rows={2}
                 title="Enter to send · Shift+Enter for a new line · Escape to cancel"
@@ -356,10 +356,10 @@ function SpeechInputControl({
 }) {
   const isListening = state === 'loading'
   const buttonLabel = !isSupported
-    ? 'Transcript unavailable'
+    ? 'Transcript Unavailable'
     : isListening
-      ? 'Stop transcript'
-      : 'Start transcript'
+      ? 'Stop Transcript'
+      : 'Start Transcript'
   // Idle "Speech input ready." crowded the toolbar — only show status when useful.
   const showStatus =
     feedback !== null ||
@@ -791,7 +791,7 @@ function ResponseContent({
                 ].join('-')
                 return (
                   <Button
-                    aria-label={`Open source ${label}`}
+                    aria-label={`Open Source ${label}`}
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
                       'hover:border-primary/50 hover:bg-primary/15',
@@ -912,7 +912,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
+          aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
           className="max-w-full justify-start whitespace-normal text-left"
           onClick={() => setExpanded((current) => !current)}
           title={trimmedQuestion}
@@ -964,7 +964,7 @@ function ResponseDetailsPanel({
     >
       <Button
         aria-expanded={expanded}
-        aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
+        aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
         className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
@@ -1071,7 +1071,7 @@ function ResponseDetailsContent({
                 <DataListItemActions className="justify-start md:justify-end">
                   <StatusBadge>Score {formatScore(result.score)}</StatusBadge>
                   <Button
-                    aria-label={`View source ${result.citation.source_external_id}`}
+                    aria-label={`View Source ${result.citation.source_external_id}`}
                     onClick={() =>
                       onOpenSource(
                         result.citation.source_id,

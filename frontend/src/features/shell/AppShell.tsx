@@ -501,7 +501,7 @@ export function AppSidebar({
           />
           <SidebarNavButton
             active={primaryView === 'account'}
-            label="My account"
+            label="My Account"
             onClick={() => onPrimaryViewChange('account')}
           />
           <SidebarNavButton
@@ -594,7 +594,7 @@ function AccountNavigationPanel({
         className="text-sm font-semibold leading-tight text-foreground uppercase"
         data-slot="sidebar-contextual-title"
       >
-        My account
+        My Account
       </h2>
       <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
         {ACCOUNT_MODULES.map((module) => {
@@ -854,7 +854,7 @@ function SidebarProjectSelector({
           >
             <label className="grid gap-1.5" data-slot="project-selector-search">
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                Search projects
+                Search Projects
               </span>
               <Input
                 aria-label="Search Projects"
@@ -863,7 +863,7 @@ function SidebarProjectSelector({
                 className="h-[34px] text-xs"
                 name="project-search"
                 onChange={(event) => setProjectSearch(event.currentTarget.value)}
-                placeholder="Search projects"
+                placeholder="Search Projects"
                 type="search"
                 value={projectSearch}
               />
