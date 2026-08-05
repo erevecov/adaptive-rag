@@ -319,11 +319,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   return (
     <Panel
       aria-labelledby={titleId}
-      className="grid gap-4 p-4 max-[680px]:p-3"
+      className="grid gap-4 p-4 max-[680px]:gap-3 max-[680px]:p-3"
       role="region"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-1.5">
+        <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My Account
           </p>
