@@ -55,7 +55,7 @@ export function ChatPipelineSteps({
             className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
             onClick={() => handleToggle(true)}
             type="button"
-            variant="ghost"
+            variant="secondary"
           >
             <StatusDot status={current.status} />
             <strong className="min-w-0 truncate">{current.label}</strong>
