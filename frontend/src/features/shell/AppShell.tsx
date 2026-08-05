@@ -755,7 +755,7 @@ function SidebarContextualButton({
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-2 max-[680px]:text-[0.8125rem]',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-2 max-[680px]:text-[0.75rem]',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
@@ -900,7 +900,7 @@ function SidebarProjectSelector({
                       className={cn(
                         [
                           'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-1.5',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1.5 max-[680px]:text-[0.8125rem]',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1.5 max-[680px]:text-[0.75rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',
