@@ -175,6 +175,41 @@ def test_role_matrix_update_delete_source_and_membership() -> None:
     assert allowed_membership.status_code == 204
 
 
+def test_soft_deleted_project_is_not_gettable_or_listed() -> None:
+    """OpenSpec M43: after soft-delete, GET/list must omit the project."""
+
+    session = _make_session()
+    seeded = _seed(session)
+    project = seeded["project"]
+    client = _client(session)
+
+    deleted = client.delete(
+        f"/projects/{project.id}",
+        headers=_auth("super-token"),
+    )
+    assert deleted.status_code == 200
+    assert deleted.json()["deleted_at"] is not None
+
+    # Access path used by all project-scoped routes (get_project_access).
+    get_response = client.get(
+        f"/projects/{project.id}",
+        headers=_auth("admin-token"),
+    )
+    assert get_response.status_code == 404
+    assert get_response.json()["detail"] == "project not found"
+
+    listed = client.get("/projects", headers=_auth("admin-token"))
+    assert listed.status_code == 200
+    assert all(item["id"] != str(project.id) for item in listed.json()["items"])
+
+    # Contributor surface also 404s instead of operating on a tombstone.
+    sources = client.get(
+        f"/projects/{project.id}/sources",
+        headers=_auth("contrib-token"),
+    )
+    assert sources.status_code == 404
+
+
 def test_deactivate_user_and_revoke_token() -> None:
     session = _make_session()
     users = UserRepository(session)

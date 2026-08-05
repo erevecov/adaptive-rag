@@ -26,8 +26,11 @@ from adaptive_rag.api.schemas.auth import (
     UserResponse,
 )
 from adaptive_rag.auth import CurrentPrincipal, get_project_role, hash_access_token
-from adaptive_rag.db.models import Project
-from adaptive_rag.db.repositories import ProjectMembershipRepository, UserRepository
+from adaptive_rag.db.repositories import (
+    ProjectMembershipRepository,
+    ProjectRepository,
+    UserRepository,
+)
 
 router = APIRouter(tags=["auth"])
 
@@ -49,7 +52,7 @@ def update_me_preferences(
         raise HTTPException(status_code=401, detail="authenticated user required")
 
     if body.last_project_id is not None:
-        if session.get(Project, body.last_project_id) is None:
+        if ProjectRepository(session).get(body.last_project_id) is None:
             raise HTTPException(status_code=404, detail="project not found")
         if (
             get_project_role(
