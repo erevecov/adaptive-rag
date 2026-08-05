@@ -117,7 +117,7 @@ describe('DataListItem', () => {
     )
 
     const list = screen.getByText('row').closest('[data-slot="data-list"]')
-    expect(list?.className).toContain('max-[680px]:gap-1')
+    expect(list?.className).toContain('max-[680px]:gap-0.5')
     const row = screen.getByText('row')
     expect(row.className).toContain('min-w-0')
     expect(row.className).toContain('motion-safe:transition-colors')
