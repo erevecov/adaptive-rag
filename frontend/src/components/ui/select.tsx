@@ -87,7 +87,7 @@ export function Select({
           position="popper"
           sideOffset={4}
         >
-          <SelectPrimitive.Viewport className="grid gap-1 p-0 max-[680px]:gap-1.5">
+          <SelectPrimitive.Viewport className="grid gap-1 p-0 max-[680px]:gap-1">
             {options.map((option) => (
               <SelectPrimitive.Item
                 className={cn(
