@@ -813,7 +813,7 @@ function UserAccessLists({
         data-slot-state="empty"
         role="status"
       >
-        No users or memberships loaded.
+        No users or memberships yet.
       </EmptyState>
     )
   }
@@ -1355,7 +1355,10 @@ function KnowledgeReviewPanel({
           data-slot-state="empty"
           role="status"
         >
-          No pending proposals.
+          <p className="font-medium text-foreground/90">No pending proposals.</p>
+          <p className="text-xs text-muted-foreground">
+            Refresh after chat surfaces a knowledge draft for this project.
+          </p>
         </EmptyState>
       ) : (
         <DataList aria-label="Knowledge proposals">
@@ -1375,7 +1378,9 @@ function KnowledgeReviewPanel({
                   >
                     {proposal.id}
                   </small>
-                  <Badge className="w-fit">{proposal.status}</Badge>
+                  <Badge className="w-fit">
+                    {titleCaseStatus(proposal.status)}
+                  </Badge>
                 </div>
                 <div className="grid gap-3">
                   <AuthoringField
@@ -1520,7 +1525,7 @@ function IngestionJobsPanel({
               className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide"
               tone={jobTone(run.status)}
             >
-              {run.status}
+              {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
           <p className="text-sm leading-snug text-foreground/90">
@@ -1836,22 +1841,28 @@ function formatRelativeOperatorTimestamp(value: string | null): {
 function jobStatusLabel(status: string): string {
   switch (status) {
     case 'queued':
-      return 'queued'
+      return 'Queued'
     case 'running':
-      return 'running'
+      return 'Running'
     case 'processed':
-      return 'processed'
+      return 'Processed'
     case 'blocked':
-      return 'blocked'
+      return 'Blocked'
     case 'dead_letter':
-      return 'dead letter'
+      return 'Dead letter'
     case 'failed':
-      return 'failed'
+      return 'Failed'
     case 'idle':
-      return 'idle'
+      return 'Idle'
     default:
-      return status.replace(/_/g, ' ')
+      return titleCaseStatus(status)
   }
+}
+
+function titleCaseStatus(status: string): string {
+  return status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function ingestionJobSourceId(job: IngestionJob): string | null {

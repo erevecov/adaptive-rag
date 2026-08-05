@@ -124,7 +124,7 @@ describe('ObservabilityPanel', () => {
     await user.click(screen.getByRole('tab', { name: 'Latency' }))
     expect(props.onSubmoduleChange).toHaveBeenCalledWith('latency')
 
-    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
     expect(props.onStatusChange).toHaveBeenCalledWith('failed')
   })
 
@@ -279,7 +279,7 @@ describe('ObservabilityPanel', () => {
     expect((screen.getByLabelText('Created from') as HTMLInputElement).value).toBe(
       '2026-06-21T00:00:00Z',
     )
-    expect(screen.getByLabelText('Status').textContent).toContain('failed')
+    expect(screen.getByLabelText('Status').textContent).toContain('Failed')
     expect(
       screen
         .getAllByRole('alert')

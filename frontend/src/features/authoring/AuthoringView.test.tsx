@@ -351,7 +351,7 @@ describe('AuthoringPanel', () => {
     )
     expect(lastRun).toBeTruthy()
     expect(lastRun?.textContent).toMatch(/Last run/)
-    expect(lastRun?.textContent).toMatch(/idle/)
+    expect(lastRun?.textContent).toMatch(/Idle/)
     expect(
       lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),
     ).toBe('neutral')
@@ -459,6 +459,24 @@ describe('AuthoringPanel', () => {
     ).toMatch(/text-muted-foreground/)
   })
 
+  test('knowledge empty is structured and proposal status is Title Case', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeProposals: [],
+    })
+    expect(screen.getByText('No pending proposals.')).toBeTruthy()
+    expect(
+      screen.getByText(/Refresh after chat surfaces a knowledge draft/),
+    ).toBeTruthy()
+    cleanup()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeProposals: [proposal],
+    })
+    expect(screen.getByText('Pending')).toBeTruthy()
+  })
+
   test('knowledge status says Working while busy and gates Reject without reason', () => {
     renderAuthoringPanel({
       activeSubmodule: 'knowledge',
@@ -486,6 +504,8 @@ describe('AuthoringPanel', () => {
     expect(
       view.container.querySelector('[data-slot="ingestion-job-groups"]'),
     ).toBeTruthy()
+    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Blocked').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/run after/).length).toBeGreaterThan(0)
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),

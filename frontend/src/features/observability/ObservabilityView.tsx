@@ -189,9 +189,9 @@ export function ObservabilityPanel({
                 onValueChange={onStatusChange}
                 options={[
                   { label: 'Any', value: '' },
-                  { label: 'running', value: 'running' },
-                  { label: 'succeeded', value: 'succeeded' },
-                  { label: 'failed', value: 'failed' },
+                  { label: 'Running', value: 'running' },
+                  { label: 'Succeeded', value: 'succeeded' },
+                  { label: 'Failed', value: 'failed' },
                 ]}
                 value={status}
               />

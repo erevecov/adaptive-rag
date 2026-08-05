@@ -1,20 +1,20 @@
-# FE OPERATOR report — 20260805 post-#212 loop
+# FE OPERATOR report — 20260805 Title Case statuses pass
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (local ahead of origin; **no push**)
+Branch: `feat/ui-obsessional-polish` (local ahead; **no push**)
 
-## Operator work since #212
-| Commit | Summary |
-|--------|---------|
-| `6fb3997` | form gap-4 + runtime loading pulse chrome |
-| `4c09482` | FieldHelp outside FieldControl + describedby |
-| `5bf64ca` | retrieval rerank hint → FieldHelp |
-| `912c694` | unicode ellipsis on busy labels |
-| `1dde3c1` | includes users/memberships per-column empties (+ peer DS/chat) |
+## This pass
+| Finding | Fix |
+|---------|-----|
+| Obs status filter labels lowercase | Running / Succeeded / Failed |
+| Ingestion job + last-run badges lowercase | `jobStatusLabel` Title Case |
+| Proposal status raw snake | `titleCaseStatus` |
+| Knowledge empty one-liner | Title + supporting hint |
+| Users empty copy “loaded” | “yet” parity |
 
 ## Verify
-Focused vitest authoring/runtime/observability/retrieval — green per batch (authoring **13** on last pass).
+authoring + observability vitest — **26 passed**.
 
 ## Coordination
-No push from operator. Grok opens/merges PR only when CI all-green.
+No push. Grok opens/merges when CI all-green.
