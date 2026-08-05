@@ -37,7 +37,7 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(
     <table
       className={cn(
         // On narrow viewports shrink min-width so horizontal scroll is less extreme.
-        'w-full min-w-[720px] max-[680px]:min-w-[560px] border-collapse text-sm',
+        'w-full min-w-[720px] max-[680px]:min-w-[520px] border-collapse text-sm',
         className,
       )}
       ref={ref}
