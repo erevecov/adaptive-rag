@@ -127,7 +127,7 @@ export function ObservabilityPanel({
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0">
         <SegmentedControl
-          aria-label="Observability views"
+          aria-label="Observability Views"
           className="max-w-full flex-wrap justify-start"
           role="tablist"
         >

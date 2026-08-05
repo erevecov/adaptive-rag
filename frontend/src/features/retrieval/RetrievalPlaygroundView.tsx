@@ -229,7 +229,7 @@ export function RetrievalPlaygroundPanel({
 
         <div
           aria-busy={state === 'loading' || undefined}
-          aria-label="Retrieval results"
+          aria-label="Retrieval Results"
           className="grid gap-2"
           role="region"
         >
@@ -291,7 +291,7 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked retrieval results">
+            <DataList aria-label="Ranked Retrieval Results">
               {results.map((result, index) => (
                 <DataListItem
                   className="grid gap-2"

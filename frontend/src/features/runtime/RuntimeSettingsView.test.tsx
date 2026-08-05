@@ -484,7 +484,7 @@ describe('RuntimeSettingsPanel', () => {
     await user.click(trigger)
 
     const listbox = await screen.findByRole('listbox', {
-      name: 'Capability options',
+      name: 'Capability Options',
     })
 
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
@@ -547,7 +547,7 @@ describe('RuntimeSettingsPanel', () => {
     render(<StatefulDeleteRuntimePanel />)
 
     const providerConnectionsRegion = screen.getByRole('region', {
-      name: 'Provider connections',
+      name: 'Provider Connections',
     })
     await user.click(
       within(providerConnectionsRegion).getByRole('button', {
@@ -606,7 +606,7 @@ describe('RuntimeSettingsPanel', () => {
     await user.click(filter)
     expect(filter.getAttribute('aria-expanded')).toBe('true')
     expect(
-      await screen.findByRole('listbox', { name: 'Capability options' }),
+      await screen.findByRole('listbox', { name: 'Capability Options' }),
     ).toBeTruthy()
   })
 

@@ -531,7 +531,7 @@ export function RuntimeConnectionsPanel({
       status={<RuntimeStatus state={state} />}
       title="Connections"
     >
-      <section aria-label="Provider connections" className="grid gap-3">
+      <section aria-label="Provider Connections" className="grid gap-3">
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
@@ -926,7 +926,7 @@ export function CapabilitySelector({
         <Popover.Portal>
           <Popover.Content
             align="start"
-            aria-label="Capability options"
+            aria-label="Capability Options"
             className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)]"
             id={listboxId}
             onOpenAutoFocus={(event) => {
@@ -1030,7 +1030,7 @@ export function RuntimeModelCatalogPanel({
 
       {selectedConnection ? (
         <section
-          aria-label="Selected model sync connection"
+          aria-label="Selected Model Sync Connection"
           className="grid gap-3"
         >
           <DataList>
@@ -1218,7 +1218,7 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global chat models" className="grid gap-3">
+      <section aria-label="Global Chat Models" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
@@ -1305,7 +1305,7 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global chat retrieval" className="grid gap-3">
+      <section aria-label="Global Chat Retrieval" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
@@ -1774,7 +1774,7 @@ export function ProviderModelCatalogView({
   providerModels: ProviderModel[]
 }) {
   return (
-    <section aria-label="Provider model catalog" className="grid gap-3">
+    <section aria-label="Provider Model Catalog" className="grid gap-3">
       <h3 className="text-base font-semibold leading-none">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
@@ -1865,7 +1865,7 @@ export function RuntimeSlotList({
     )
   }
   return (
-    <DataList aria-label="Global runtime slots">
+    <DataList aria-label="Global Runtime Slots">
       {slots.map((slot) => (
         <DataListItem
           className="flex flex-wrap items-center justify-between gap-3"

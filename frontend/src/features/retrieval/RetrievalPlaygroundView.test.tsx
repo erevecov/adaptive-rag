@@ -210,7 +210,7 @@ describe('RetrievalPlaygroundPanel', () => {
     expect(failed.textContent).toMatch(/non-empty query/i)
     expect(
       document.querySelector(
-        '[aria-label="Retrieval results"] [data-slot-state="failed"]',
+        '[aria-label="Retrieval Results"] [data-slot-state="failed"]',
       ),
     ).toBeTruthy()
     expect(screen.queryByText('#1')).toBeNull()
@@ -232,7 +232,7 @@ describe('RetrievalPlaygroundPanel', () => {
     await waitFor(() => {
       expect(
         document.querySelector(
-          '[aria-label="Retrieval results"] [data-slot-state="failed"]',
+          '[aria-label="Retrieval Results"] [data-slot-state="failed"]',
         ),
       ).toBeTruthy()
     })

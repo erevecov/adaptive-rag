@@ -4078,7 +4078,7 @@ describe('App chat workspace', () => {
     )
 
     const globalRetrieval = screen.getByRole('region', {
-      name: 'Global chat retrieval',
+      name: 'Global Chat Retrieval',
     })
     fireEvent.change(within(globalRetrieval).getByLabelText('Retrieval limit'), {
       target: { value: '7' },
@@ -4107,7 +4107,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     const providerConnections = screen.getByRole('region', {
-      name: 'Provider connections',
+      name: 'Provider Connections',
     })
     expect(
       await within(providerConnections).findByText('qwen-hosted'),
@@ -4161,7 +4161,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     const providerConnections = screen.getByRole('region', {
-      name: 'Provider connections',
+      name: 'Provider Connections',
     })
     expect(
       await within(providerConnections).findByText('qwen-hosted'),
