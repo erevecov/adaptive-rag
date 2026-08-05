@@ -5,11 +5,11 @@ from __future__ import annotations
 import ipaddress
 import socket
 from collections.abc import Callable, Iterator, Mapping
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
 from types import TracebackType
 from typing import Protocol
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
@@ -91,6 +91,15 @@ class FetchResult:
     content: bytes
 
 
+@dataclass(frozen=True, slots=True)
+class PinnedRequest:
+    """URL/headers/extensions para conectar al IP validado sin re-resolver DNS."""
+
+    url: str
+    headers: dict[str, str]
+    extensions: dict[str, str]
+
+
 class _HTTPXFetchResponse:
     def __init__(self, response: httpx.Response) -> None:
         self._response = response
@@ -144,9 +153,13 @@ class URLFetcher:
     ) -> None:
         self.policy = policy or URLFetchPolicy()
         self._resolver = resolver or resolve_hostname
-        self._stream_factory = stream_factory or self._httpx_stream
+        # Custom factories (tests) keep the simple URL-only contract; the
+        # default path pins the connect target to the validated IP.
+        self._stream_factory = stream_factory
 
-    def validate_url(self, url: str) -> None:
+    def validate_url(self, url: str) -> list[str]:
+        """Valida la URL y devuelve las IPs globales resueltas (orden estable)."""
+
         parts = urlsplit(url)
         scheme = parts.scheme.lower()
         if scheme not in self.policy.allowed_schemes:
@@ -167,14 +180,15 @@ class URLFetcher:
                 raise UnsafeURLError(
                     f"Hostname resolves to non-global address: {address}"
                 )
+        return addresses
 
     def fetch(self, url: str) -> FetchResult:
         current_url = url
         redirects_seen = 0
 
         while True:
-            self.validate_url(current_url)
-            with self._stream_factory(current_url) as response:
+            addresses = self.validate_url(current_url)
+            with self._open_stream(current_url, pinned_ip=addresses[0]) as response:
                 if _is_redirect(response.status_code):
                     if redirects_seen >= self.policy.max_redirects:
                         raise TooManyRedirectsError("Maximum redirects exceeded")
@@ -193,14 +207,23 @@ class URLFetcher:
                     content=content,
                 )
 
-    def _httpx_stream(self, url: str) -> ResponseContext:
+    def _open_stream(self, url: str, *, pinned_ip: str) -> ResponseContext:
+        if self._stream_factory is not None:
+            return self._stream_factory(url)
+        return self._httpx_stream(url, pinned_ip=pinned_ip)
+
+    def _httpx_stream(self, url: str, *, pinned_ip: str) -> ResponseContext:
+        pinned = build_pinned_request(
+            url,
+            pinned_ip=pinned_ip,
+            request_headers=self.policy.request_headers,
+        )
         return _HTTPXStreamContext(
-            httpx.stream(
-                "GET",
-                url,
-                follow_redirects=False,
-                headers=dict(self.policy.request_headers),
+            _httpx_pinned_stream(
+                pinned_url=pinned.url,
+                headers=pinned.headers,
                 timeout=self.policy.timeout_seconds,
+                extensions=pinned.extensions,
             )
         )
 
@@ -245,11 +268,86 @@ class URLFetcher:
         return b"".join(chunks)
 
 
+def build_pinned_request(
+    url: str,
+    *,
+    pinned_ip: str,
+    request_headers: Mapping[str, str],
+) -> PinnedRequest:
+    """Construye URL por IP + Host/SNI del hostname original (anti DNS-rebinding)."""
+
+    parts = urlsplit(url)
+    hostname = parts.hostname
+    if not hostname:
+        raise UnsafeURLError("URL must include a hostname")
+
+    scheme = parts.scheme.lower()
+    port = parts.port
+    ip_literal = _format_ip_for_url(pinned_ip)
+    netloc = ip_literal if port is None else f"{ip_literal}:{port}"
+    pinned_url = urlunsplit(
+        (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
+    )
+
+    headers = dict(request_headers)
+    headers["Host"] = _host_header(hostname, port)
+
+    extensions: dict[str, str] = {}
+    if scheme == "https":
+        # httpcore usa sni_hostname para SNI y verificacion del certificado.
+        extensions["sni_hostname"] = hostname
+
+    return PinnedRequest(url=pinned_url, headers=headers, extensions=extensions)
+
+
+@contextmanager
+def _httpx_pinned_stream(
+    *,
+    pinned_url: str,
+    headers: Mapping[str, str],
+    timeout: float,
+    extensions: Mapping[str, str],
+) -> Iterator[httpx.Response]:
+    # trust_env=False evita que un proxy de entorno re-resuelva el hostname.
+    with httpx.Client(
+        timeout=timeout,
+        follow_redirects=False,
+        trust_env=False,
+        proxy=None,
+    ) as client:
+        with client.stream(
+            "GET",
+            pinned_url,
+            headers=dict(headers),
+            extensions=dict(extensions),
+        ) as response:
+            yield response
+
+
 def resolve_hostname(hostname: str, port: int) -> list[str]:
     """Resuelve `hostname` a IPs usando `socket.getaddrinfo`."""
 
     infos = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
     return sorted({str(info[4][0]) for info in infos})
+
+
+def _format_ip_for_url(address: str) -> str:
+    ip = ipaddress.ip_address(address)
+    if ip.version == 6:
+        return f"[{address}]"
+    return address
+
+
+def _host_header(hostname: str, port: int | None) -> str:
+    try:
+        ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        host = hostname
+    else:
+        host = f"[{hostname}]" if ip.version == 6 else hostname
+    if port is not None:
+        return f"{host}:{port}"
+    return host
 
 
 def _default_port(scheme: str) -> int:

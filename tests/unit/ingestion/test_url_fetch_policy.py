@@ -261,3 +261,165 @@ def test_fetch_returns_allowed_response_at_size_limit() -> None:
     assert result.content == b"0123456789abcdef"
     assert result.content_type == "application/pdf"
     assert result.status_code == 200
+
+
+def test_validate_url_returns_global_addresses() -> None:
+    fetcher, _, _ = _fetcher(dns={"example.com": ["93.184.216.34", "93.184.216.35"]})
+
+    addresses = fetcher.validate_url("https://example.com/doc")
+
+    assert addresses == ["93.184.216.34", "93.184.216.35"]
+
+
+def test_build_pinned_request_uses_validated_ip_and_original_host() -> None:
+    from adaptive_rag.ingestion.url_fetch_policy import build_pinned_request
+
+    pinned = build_pinned_request(
+        "https://example.com/doc?q=1",
+        pinned_ip="93.184.216.34",
+        request_headers={"User-Agent": "adaptive-rag/0.1.0"},
+    )
+
+    assert pinned.url == "https://93.184.216.34/doc?q=1"
+    assert pinned.headers["Host"] == "example.com"
+    assert pinned.headers["User-Agent"] == "adaptive-rag/0.1.0"
+    assert pinned.extensions == {"sni_hostname": "example.com"}
+
+
+def test_build_pinned_request_http_omits_sni_and_keeps_nondefault_port() -> None:
+    from adaptive_rag.ingestion.url_fetch_policy import build_pinned_request
+
+    pinned = build_pinned_request(
+        "http://docs.example.com:8080/a",
+        pinned_ip="8.8.8.8",
+        request_headers={},
+    )
+
+    assert pinned.url == "http://8.8.8.8:8080/a"
+    assert pinned.headers["Host"] == "docs.example.com:8080"
+    assert pinned.extensions == {}
+
+
+def test_build_pinned_request_formats_ipv6_literal() -> None:
+    from adaptive_rag.ingestion.url_fetch_policy import build_pinned_request
+
+    pinned = build_pinned_request(
+        "https://example.com/x",
+        pinned_ip="2001:db8::1",
+        request_headers={},
+    )
+
+    assert pinned.url == "https://[2001:db8::1]/x"
+    assert pinned.headers["Host"] == "example.com"
+    assert pinned.extensions == {"sni_hostname": "example.com"}
+
+
+def test_httpx_stream_connects_to_pinned_ip_not_hostname(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default transport must not let httpx re-resolve the hostname."""
+    from adaptive_rag.ingestion import url_fetch_policy as policy_mod
+
+    captured: dict[str, object] = {}
+
+    class _FakeResponse:
+        status_code = 200
+        headers = {"content-type": "text/plain"}
+        url = "https://93.184.216.34/doc"
+
+        def iter_bytes(self):
+            yield b"pinned-ok"
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def close(self) -> None:
+            return None
+
+    class _StreamCM:
+        def __enter__(self) -> _FakeResponse:
+            return _FakeResponse()
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+    class _FakeClient:
+        def __init__(self, **kwargs: object) -> None:
+            captured["client_kwargs"] = kwargs
+
+        def __enter__(self) -> _FakeClient:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def stream(self, method: str, url: str, **kwargs: object) -> _StreamCM:
+            captured["method"] = method
+            captured["url"] = url
+            captured["stream_kwargs"] = kwargs
+            return _StreamCM()
+
+    monkeypatch.setattr(policy_mod.httpx, "Client", _FakeClient)
+
+    fetcher = URLFetcher(
+        policy=URLFetchPolicy(max_response_bytes=64),
+        resolver=lambda hostname, port: ["93.184.216.34"],
+    )
+    result = fetcher.fetch("https://example.com/doc")
+
+    assert result.content == b"pinned-ok"
+    assert captured["method"] == "GET"
+    assert captured["url"] == "https://93.184.216.34/doc"
+    stream_kwargs = captured["stream_kwargs"]
+    assert isinstance(stream_kwargs, dict)
+    assert stream_kwargs["headers"]["Host"] == "example.com"
+    assert stream_kwargs["extensions"] == {"sni_hostname": "example.com"}
+    client_kwargs = captured["client_kwargs"]
+    assert isinstance(client_kwargs, dict)
+    assert client_kwargs.get("trust_env") is False
+    assert client_kwargs.get("follow_redirects") is False
+
+
+def test_fetch_revalidates_each_redirect_hop_before_pinning() -> None:
+    """Each hop resolves+validates independently (DNS rebinding on redirect)."""
+    resolve_sequence = {
+        "evil.example": [
+            ["93.184.216.34"],  # first lookup: public (passes)
+        ],
+        "safe.example": [["8.8.4.4"]],
+    }
+    call_counts: dict[str, int] = {}
+
+    def resolver(hostname: str, port: int) -> list[str]:
+        call_counts[hostname] = call_counts.get(hostname, 0) + 1
+        seq = resolve_sequence[hostname]
+        # Always return last known mapping after consuming sequence
+        idx = min(call_counts[hostname] - 1, len(seq) - 1)
+        return seq[idx]
+
+    stream_factory = FakeStreamFactory(
+        {
+            "https://evil.example/start": FakeResponse(
+                status_code=302,
+                headers={"location": "https://safe.example/final"},
+            ),
+            "https://safe.example/final": FakeResponse(
+                headers={"content-type": "text/plain"},
+                chunks=[b"done"],
+            ),
+        }
+    )
+    fetcher = URLFetcher(
+        policy=URLFetchPolicy(max_response_bytes=16),
+        resolver=resolver,
+        stream_factory=stream_factory,
+    )
+
+    result = fetcher.fetch("https://evil.example/start")
+
+    assert result.content == b"done"
+    assert call_counts == {"evil.example": 1, "safe.example": 1}
+    assert stream_factory.requested_urls == [
+        "https://evil.example/start",
+        "https://safe.example/final",
+    ]
