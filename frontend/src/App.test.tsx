@@ -4518,7 +4518,7 @@ describe('App chat workspace', () => {
     )
     await user.click(screen.getByLabelText('Global slot connection'))
     const hostedQwenOption = await screen.findByRole('option', {
-      name: /Qwen hosted \(Qwen\/Hosted\)/,
+      name: /Hosted Qwen \(Qwen\/Hosted\)/,
     })
     expect(hostedQwenOption).toBeTruthy()
     await user.click(hostedQwenOption)

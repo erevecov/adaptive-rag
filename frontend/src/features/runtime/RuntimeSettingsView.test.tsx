@@ -472,6 +472,13 @@ describe('RuntimeSettingsPanel', () => {
     renderRuntimeSettingsPanel()
 
     const trigger = screen.getByRole('combobox', { name: 'Capabilities' })
+    const selector = trigger.closest('[data-slot="capability-selector"]')
+    expect(selector?.querySelector('.max-\\[680px\\]\\:min-h-11, [class*="min-h-11"]')).toBeTruthy()
+    expect(
+      Array.from(selector?.querySelectorAll('div') ?? []).some((el) =>
+        el.className.includes('max-[680px]:min-h-11'),
+      ),
+    ).toBe(true)
 
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     await user.click(trigger)
@@ -479,10 +486,11 @@ describe('RuntimeSettingsPanel', () => {
     const listbox = await screen.findByRole('listbox', {
       name: 'Capability options',
     })
-    const selector = trigger.closest('[data-slot="capability-selector"]')
 
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(listbox.getAttribute('data-state')).toBe('open')
+    expect(listbox.className).toContain('shadow-[var(--shadow-popover)]')
+    expect(screen.getByRole('option', { name: 'Add Dense Embedding capability' })).toBeTruthy()
     expect(selector).toBeTruthy()
     expect(selector?.contains(listbox)).toBe(false)
   })

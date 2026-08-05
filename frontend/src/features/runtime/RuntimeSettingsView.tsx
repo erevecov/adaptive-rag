@@ -31,11 +31,14 @@ import {
   PROVIDER_CONNECTION_CAPABILITIES,
   RUNTIME_SLOTS,
   connectionOptionLabel,
+  connectionTypeLabel,
   connectionsForCapability,
   missingSyncedModelMessage,
   normalizeChatRetrievalLimit,
+  providerLabel,
   providerModelOptions,
   runtimeStatusLabel,
+  slotLabel,
   type ProviderModelOption,
   type RequestState,
   type RuntimeSubmodule,
@@ -412,32 +415,6 @@ function runtimeStatusTone(
   if (state === 'loading') return 'warning'
   if (state === 'canceled') return 'neutral'
   return 'neutral'
-}
-
-function providerLabel(provider: string): string {
-  if (provider === 'local_openai_compatible') {
-    return 'Local OpenAI-compatible'
-  }
-  if (provider === 'qwen') {
-    return 'Qwen'
-  }
-  if (provider === 'fake') {
-    return 'Fake'
-  }
-  return provider.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function connectionTypeLabel(connectionType: string): string {
-  if (connectionType === 'hosted') {
-    return 'Hosted'
-  }
-  if (connectionType === 'local') {
-    return 'Local'
-  }
-  if (connectionType === 'fake') {
-    return 'Fake'
-  }
-  return connectionType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function sourceLabel(source: string): string {
@@ -869,7 +846,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
+            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
@@ -878,9 +855,9 @@ export function CapabilitySelector({
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
               {value.map((capability) => (
                 <Badge className="gap-1 pr-1" key={capability} tone="primary">
-                  <span>{capability}</span>
+                  <span>{slotLabel(capability)}</span>
                   <Button
-                    aria-label={`Remove ${capability} capability`}
+                    aria-label={`Remove ${slotLabel(capability)} capability`}
                     className="h-5 px-1 text-xs"
                     onClick={(event) => {
                       event.stopPropagation()
@@ -892,7 +869,7 @@ export function CapabilitySelector({
                     type="button"
                     variant="ghost"
                   >
-                    x
+                    ×
                   </Button>
                 </Badge>
               ))}
@@ -932,7 +909,7 @@ export function CapabilitySelector({
           <Popover.Content
             align="start"
             aria-label="Capability options"
-            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)]"
             id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
@@ -953,7 +930,7 @@ export function CapabilitySelector({
             ) : (
               filteredOptions.map((capability) => (
                 <Button
-                  aria-label={`Add ${capability} capability`}
+                  aria-label={`Add ${slotLabel(capability)} capability`}
                   aria-selected={false}
                   className="justify-start"
                   key={capability}
@@ -965,7 +942,7 @@ export function CapabilitySelector({
                   type="button"
                   variant="ghost"
                 >
-                  <span>{capability}</span>
+                  <span>{slotLabel(capability)}</span>
                 </Button>
               ))
             )}
@@ -1173,7 +1150,7 @@ export function RuntimeGlobalDefaultsPanel({
                 id={fieldId}
                 onValueChange={onGlobalSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
-                  label: slot,
+                  label: slotLabel(slot),
                   value: slot,
                 }))}
                 value={globalSlot}
@@ -1554,7 +1531,7 @@ export function RuntimeProjectOverridesPanel({
                 id={fieldId}
                 onValueChange={onProjectSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
-                  label: slot,
+                  label: slotLabel(slot),
                   value: slot,
                 }))}
                 value={projectSlot}
@@ -1845,12 +1822,12 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="grid gap-1">
-            <strong className="text-sm font-semibold">{slot.slot}</strong>
+            <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
             <small className="text-xs text-muted-foreground">
               {slot.connection_id} / {slot.model_id}
             </small>
           </div>
-          <Badge tone="neutral">global</Badge>
+          <Badge tone="neutral">{sourceLabel('global')}</Badge>
         </DataListItem>
       ))}
     </DataList>
@@ -1902,7 +1879,7 @@ export function ProjectRuntimeSettingsView({
             {settings.slots.map((slot) => (
               <DataListItem className="grid gap-3" key={slot.slot}>
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold">{slot.slot}</strong>
+                  <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground">
                     {slot.connection_id} / {slot.model_id}
                   </small>
@@ -1916,7 +1893,7 @@ export function ProjectRuntimeSettingsView({
                       type="button"
                       variant="secondary"
                     >
-                      Reset {slot.slot} to global
+                      Reset {slotLabel(slot.slot)} to global
                     </Button>
                   ) : null}
                 </DataListItemActions>
