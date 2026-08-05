@@ -464,7 +464,7 @@ class ChatHistoryToolCallResponse(BaseModel):
 
 class ChatHistoryRetrievedChunkResponse(BaseModel):
     retrieved_chunk_id: UUID
-    chunk_id: UUID
+    chunk_id: UUID | None
     rank: int
     dense_score: float | None
     lexical_score: float | None

@@ -43,7 +43,7 @@ def _require_project_runtime_admin_access(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> tuple[Project, str]:
     project = session.get(Project, project_id)
-    if project is None:
+    if project is None or project.deleted_at is not None:
         raise HTTPException(
             status_code=404,
             detail={"code": "project_not_found", "message": "project_not_found"},

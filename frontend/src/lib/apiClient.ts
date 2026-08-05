@@ -418,7 +418,8 @@ export type ChatHistoryToolCall = {
 
 export type ChatHistoryRetrievedChunk = {
   retrieved_chunk_id: string
-  chunk_id: string
+  // Null when the cited chunk was removed by a source soft-delete cascade.
+  chunk_id: string | null
   rank: number
   dense_score: number | null
   lexical_score: number | null

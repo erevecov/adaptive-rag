@@ -49,7 +49,8 @@ def update_me_preferences(
         raise HTTPException(status_code=401, detail="authenticated user required")
 
     if body.last_project_id is not None:
-        if session.get(Project, body.last_project_id) is None:
+        project = session.get(Project, body.last_project_id)
+        if project is None or project.deleted_at is not None:
             raise HTTPException(status_code=404, detail="project not found")
         if (
             get_project_role(

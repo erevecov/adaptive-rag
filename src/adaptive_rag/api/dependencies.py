@@ -90,7 +90,7 @@ def get_project_access(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> tuple[Project, str]:
     project = session.get(Project, project_id)
-    if project is None:
+    if project is None or project.deleted_at is not None:
         raise HTTPException(status_code=404, detail="project not found")
     role = get_project_role(session, principal=current, project_id=project_id)
     if role is None:

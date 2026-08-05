@@ -225,3 +225,70 @@ def test_deactivate_user_and_revoke_token() -> None:
     assert revoked.json()["revoked"] is True
     me_after = client.get("/auth/me", headers=_auth("temp-token-2"))
     assert me_after.status_code in {401, 403}
+
+
+def test_project_update_delete_matrix_and_post_delete_access() -> None:
+    session = _make_session()
+    seeded = _seed(session)
+    project = seeded["project"]
+    viewer_user = seeded["viewer"]
+    client = _client(session)
+
+    viewer_patch = client.patch(
+        f"/projects/{project.id}",
+        headers=_auth("viewer-token"),
+        json={"name": "Nope"},
+    )
+    contrib_patch = client.patch(
+        f"/projects/{project.id}",
+        headers=_auth("contrib-token"),
+        json={"name": "Nope"},
+    )
+    admin_patch = client.patch(
+        f"/projects/{project.id}",
+        headers=_auth("admin-token"),
+        json={"name": "Renamed"},
+    )
+    assert viewer_patch.status_code == 403
+    assert contrib_patch.status_code == 403
+    assert admin_patch.status_code == 200
+    assert admin_patch.json()["name"] == "Renamed"
+
+    # Project delete is superadmin-only.
+    admin_delete = client.delete(
+        f"/projects/{project.id}", headers=_auth("admin-token")
+    )
+    assert admin_delete.status_code == 403
+
+    super_delete = client.delete(
+        f"/projects/{project.id}", headers=_auth("super-token")
+    )
+    assert super_delete.status_code == 200
+    assert super_delete.json()["deleted_at"] is not None
+
+    # Post-delete: GET by id 404s, list omits it, project surfaces deny access.
+    assert (
+        client.get(f"/projects/{project.id}", headers=_auth("admin-token")).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/projects/{project.id}", headers=_auth("super-token")
+        ).status_code
+        == 404
+    )
+    listed = client.get("/projects", headers=_auth("super-token"))
+    assert all(item["id"] != str(project.id) for item in listed.json()["items"])
+    assert (
+        client.get(
+            f"/projects/{project.id}/sources", headers=_auth("admin-token")
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(
+            f"/projects/{project.id}/memberships/{viewer_user.id}",
+            headers=_auth("super-token"),
+        ).status_code
+        == 404
+    )

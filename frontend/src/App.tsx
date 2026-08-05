@@ -1,4 +1,4 @@
-﻿import {
+import {
   type FormEvent,
   type ReactNode,
   useEffect,
@@ -2876,16 +2876,17 @@ function retrievalResultFromHistory(
   const sourceId =
     getCitationString(citation, 'source_id') ??
     getCitationString(citation, 'source_external_id') ??
-    chunk.chunk_id
+    chunk.chunk_id ??
+    ''
   const sourceExternalId =
     getCitationString(citation, 'source_external_id') ?? sourceId
 
   return {
-    chunk_id: chunk.chunk_id,
+    chunk_id: chunk.chunk_id ?? getCitationString(citation, 'chunk_id') ?? '',
     citation: {
       char_end: getJsonNumber(citation, 'char_end') ?? 0,
       char_start: getJsonNumber(citation, 'char_start') ?? 0,
-      chunk_id: getCitationString(citation, 'chunk_id') ?? chunk.chunk_id,
+      chunk_id: getCitationString(citation, 'chunk_id') ?? chunk.chunk_id ?? '',
       document_id: getCitationString(citation, 'document_id') ?? '',
       document_stable_id:
         getCitationString(citation, 'document_stable_id') ?? sourceExternalId,
