@@ -88,6 +88,7 @@ export const Item = forwardRef<
         [
           'flex min-h-8 cursor-pointer items-center rounded-sm px-2 text-sm outline-none',
           'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+          'focus-visible:ring-1 focus-visible:ring-ring/50',
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         ],
         className,

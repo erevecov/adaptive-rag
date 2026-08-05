@@ -210,17 +210,21 @@ describe('ChatWorkspacePanel', () => {
       response: null,
     })
 
-    expect(screen.getByText('Waiting for response...').getAttribute('data-slot')).toBe(
-      'empty-state',
+    const loading = view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="loading"]',
     )
-    expect(
-      screen.getByText('Waiting for response...').getAttribute('data-slot-state'),
-    ).toBe('loading')
+    expect(loading).toBeTruthy()
+    expect(loading?.textContent).toContain('Waiting for response...')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-composer-actions"]'),
     ).toBeTruthy()
+    expect(
+      view.container
+        .querySelector('[data-slot="chat-transcript"]')
+        ?.getAttribute('aria-busy'),
+    ).toBe('true')
     expectNoLegacyChatClasses(view.container)
   })
 
@@ -229,9 +233,12 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'idle',
       response: null,
     })
-    expect(screen.getByText('No response yet.').getAttribute('data-slot-state')).toBe(
-      'empty',
+    const emptyState = empty.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="empty"]',
     )
+    expect(emptyState).toBeTruthy()
+    expect(emptyState?.textContent).toContain('No response yet.')
+    expect(emptyState?.textContent).toMatch(/Enter to send/)
     expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)

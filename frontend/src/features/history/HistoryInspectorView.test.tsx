@@ -212,7 +212,7 @@ describe('SessionNavigationPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'TRAIN' }))
     expect(onStatusFilterChange).toHaveBeenCalledWith('training')
-    await user.click(screen.getByRole('button', { name: 'Abrir sesiÃ³n Architecture review' }))
+    await user.click(screen.getByRole('button', { name: 'Abrir sesión Architecture review' }))
     expect(onSelectSession).toHaveBeenCalledWith('session-1')
     expectNoLegacyHistoryClasses(container)
   })
@@ -294,7 +294,7 @@ describe('SessionNavigationPanel', () => {
     await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
 
     const input = (await screen.findByLabelText(
-      'Nuevo nombre de sesiÃ³n',
+      'Nuevo nombre de sesión',
     )) as HTMLInputElement
 
     await vi.waitFor(() => {
@@ -305,7 +305,7 @@ describe('SessionNavigationPanel', () => {
     expect(input.value).toBe('Architecture review')
 
     await user.click(document.body)
-    expect(screen.queryByLabelText('Nuevo nombre de sesiÃ³n')).toBeNull()
+    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
     expect(onRenameSession).not.toHaveBeenCalled()
   })
 

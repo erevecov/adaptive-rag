@@ -278,7 +278,7 @@ export function SessionNavigationPanel({
                       }}
                     >
                       <Input
-                        aria-label="Nuevo nombre de sesiÃ³n"
+                        aria-label="Nuevo nombre de sesión"
                         className="h-7 text-xs"
                         maxLength={60}
                         onBlur={() => {
@@ -298,7 +298,7 @@ export function SessionNavigationPanel({
                     </form>
                   ) : (
                     <Button
-                      aria-label={`Abrir sesiÃ³n ${title}`}
+                      aria-label={`Abrir sesión ${title}`}
                       className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
@@ -343,7 +343,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Trigger asChild>
                         <Button
                           aria-label={`Opciones de ${title}`}
-                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                           type="button"
                           variant="ghost"
                         >
@@ -408,7 +408,7 @@ export function SessionNavigationPanel({
           type="button"
           variant="ghost"
         >
-          {isLoading ? 'cargando...' : 'ver mÃ¡s'}
+          {isLoading ? 'cargando...' : 'ver más'}
         </Button>
       ) : null}
     </Panel>

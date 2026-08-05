@@ -17,7 +17,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
-import { InlineFeedback } from '@/components/ui/feedback'
+import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import { Panel } from '@/components/ui/panel'
 import type {
@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground'
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -140,6 +140,7 @@ export function ChatWorkspacePanel({
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
+        aria-busy={isAsking || undefined}
         aria-label="Chat transcript"
         className="min-h-0 overflow-y-auto px-0.5 pr-1"
         data-slot="chat-transcript"
@@ -179,7 +180,8 @@ export function ChatWorkspacePanel({
               <Textarea
                 className={cn(
                   'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
-                  'placeholder:text-muted-foreground focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0',
+                  'placeholder:text-muted-foreground',
+                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1',
                 )}
                 id="chat-question"
                 name="question"
@@ -384,28 +386,40 @@ function ResponsePanel({
       )
     }
     return (
-      <div aria-live="polite" className="grid min-h-[8rem] place-items-center px-3 py-6">
-        <p
-          className="text-sm text-muted-foreground"
+      <div
+        aria-live="polite"
+        className="grid min-h-[10rem] place-items-center px-3 py-6"
+      >
+        <div
+          className="w-full max-w-md space-y-3"
           data-slot="empty-state"
           data-slot-state="loading"
         >
-          Waiting for response...
-        </p>
+          <p className="text-center text-sm text-muted-foreground">
+            Waiting for response...
+          </p>
+          <div aria-hidden="true" className="space-y-2 px-6">
+            <div className="h-3 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (response === null) {
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-6">
-        <p
-          className="text-sm text-muted-foreground"
-          data-slot="empty-state"
+      <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+        <EmptyState
+          className="max-w-md border-border/60 bg-muted/30 p-5"
           data-slot-state="empty"
         >
-          No response yet.
-        </p>
+          <p className="font-medium text-foreground/90">No response yet.</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            Ask about indexed sources. Enter to send · Shift+Enter for a new line.
+          </p>
+        </EmptyState>
       </div>
     )
   }
@@ -661,7 +675,10 @@ function QuestionPrompt({ question }: { question: string | null }) {
       : trimmedQuestion
 
   return (
-    <div className="sticky top-0 z-10" data-slot="chat-question-sticky">
+    <div
+      className="sticky top-0 z-10 border-b border-border/50 bg-background/95 pb-2 backdrop-blur-sm"
+      data-slot="chat-question-sticky"
+    >
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
