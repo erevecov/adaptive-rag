@@ -2501,7 +2501,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
     expect(await screen.findByText('Attempt 1/3')).toBeTruthy()
-    expect(screen.getByText('unlocked')).toBeTruthy()
+    expect(screen.getByText('Unlocked')).toBeTruthy()
     expect(
       screen.getByText(`source ${sourceSummary.id}`, { exact: false }),
     ).toBeTruthy()
@@ -2511,7 +2511,7 @@ describe('App chat workspace', () => {
     const lastRun = await screen.findByText('Last run')
     expect(lastRun).toBeTruthy()
     const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
-    expect(lastRunCard?.textContent).toMatch(/Idle/)
+    expect(lastRunCard?.textContent).toMatch(/Idle/i)
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
   })
 
@@ -3877,14 +3877,14 @@ describe('App chat workspace', () => {
       name: 'Capabilities',
     })
     expect(
-      screen.getByRole('button', { name: 'Remove chat capability' }),
+      screen.getByRole('button', { name: 'Remove Chat capability' }),
     ).toBeTruthy()
     const saveConnectionButton = screen.getByRole('button', {
       name: 'Save connection',
     }) as HTMLButtonElement
     await user.click(
       screen.getByRole('button', {
-        name: 'Remove chat capability',
+        name: 'Remove Chat capability',
       }),
     )
     expect(saveConnectionButton.disabled).toBe(true)
@@ -3892,7 +3892,7 @@ describe('App chat workspace', () => {
     await user.type(capabilitiesCombobox, 'chat')
     await user.click(
       await screen.findByRole('option', {
-        name: 'Add chat capability',
+        name: 'Add Chat capability',
       }),
     )
     await user.type(capabilitiesCombobox, 'dense')
@@ -3943,7 +3943,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Global slot'),
-      'dense_embedding',
+      'Dense Embedding',
     )
     await chooseRadixSelectOption(
       user,
@@ -4303,7 +4303,7 @@ describe('App chat workspace', () => {
     expect(within(projectSettings).getAllByText('Inherited').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('Overridden').length).toBeGreaterThan(0)
 
-    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'Chat')
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Project slot connection'),
@@ -4397,7 +4397,7 @@ describe('App chat workspace', () => {
     expect(
       (await within(projectSettings).findAllByText('Overridden')).length,
     ).toBeGreaterThan(0)
-    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'Chat')
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Project slot connection'),
@@ -4514,11 +4514,11 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Global slot'),
-      'dense_embedding',
+      'Dense Embedding',
     )
     await user.click(screen.getByLabelText('Global slot connection'))
     const hostedQwenOption = await screen.findByRole('option', {
-      name: /Hosted Qwen/,
+      name: /Qwen hosted \(Qwen\/Hosted\)/,
     })
     expect(hostedQwenOption).toBeTruthy()
     await user.click(hostedQwenOption)
