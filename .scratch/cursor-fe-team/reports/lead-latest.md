@@ -3,13 +3,16 @@
 **Date:** 2026-08-05  
 **Branch:** `feat/ui-obsessional-polish`  
 **Model:** cursor-grok-4.5-high  
-**STATUS:** polishing — local ahead, **no push**
+**STATUS:** polishing — ~37 local commits ahead, **no push**
+
+## Guardrail
+Stay on `feat/ui-obsessional-polish`. Concurrent agents may switch to `feat/user-memory-parity` — switch back immediately and drop backend leaks.
 
 ## Sync
-`git pull origin main` — up to date post-#213. Stay on `feat/ui-obsessional-polish` (do not switch branches).
+`git pull origin main` — up to date post-#213.
 
-## Shipped this continue loop
-DS soft EmptyState/Callout/Popover/Dropdown; primary/15 hovers; Title Case across history/chat/runtime/obs/settings; soft skeletons; secret Last Four chips; Refresh Summary / Project Overrides / Save Connection.
+## Latest
+History Tool Calls / Retrieval Runs / Provider Usage; authoring Loading Projects; retrieval Dense Only; observability empty Title Case; soft skeletons.
 
 ## Next
 Hostile purple ≤680 residual; Tab-cycle deferred. Grok merges green CI only.
