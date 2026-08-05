@@ -220,7 +220,7 @@ describe('ObservabilityPanel', () => {
       statusSection.querySelector('[data-slot="data-list-item"]'),
     ).toBeTruthy()
 
-    expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Provider Usage' })).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="table-scroll"]'),
     ).toBeTruthy()
@@ -233,7 +233,7 @@ describe('ObservabilityPanel', () => {
       activeSubmodule: 'costs',
     })
 
-    expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Provider Usage' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Operation' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Tokens' })).toBeTruthy()
     expect(screen.getByText('1,840')).toBeTruthy()
@@ -262,7 +262,7 @@ describe('ObservabilityPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('region', { name: 'Provider latency' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Provider Latency' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Avg' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Max' })).toBeTruthy()
     expect(screen.getByText('420 ms')).toBeTruthy()

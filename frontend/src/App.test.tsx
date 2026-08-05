@@ -3795,11 +3795,11 @@ describe('App chat workspace', () => {
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
     expect(within(statusSection).getByText('2 Sessions')).toBeTruthy()
 
-    const errorsSection = screen.getByRole('region', { name: 'Error messages' })
+    const errorsSection = screen.getByRole('region', { name: 'Error Messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
     expect(within(errorsSection).getByText('2 Occurrences')).toBeTruthy()
 
-    const providerSection = screen.getByRole('region', { name: 'Provider usage' })
+    const providerSection = screen.getByRole('region', { name: 'Provider Usage' })
     expect(within(providerSection).getByText('chat')).toBeTruthy()
     expect(within(providerSection).getByText('qwen')).toBeTruthy()
     expect(within(providerSection).getByText('qwen-plus')).toBeTruthy()
@@ -3824,8 +3824,8 @@ describe('App chat workspace', () => {
     const metrics = await screen.findByLabelText('Cost Observability Metrics')
     expect(within(metrics).getByText('Estimated Cost')).toBeTruthy()
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
-    expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
+    expect(screen.getByRole('region', { name: 'Provider Usage' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Error Messages' })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Session Health' })).toBeNull()
   })
 
@@ -3844,10 +3844,10 @@ describe('App chat workspace', () => {
     const metrics = await screen.findByLabelText('Error Observability Metrics')
     expect(within(metrics).getByText('Errors')).toBeTruthy()
     expect(within(metrics).getByText('3')).toBeTruthy()
-    const errorsSection = screen.getByRole('region', { name: 'Error messages' })
+    const errorsSection = screen.getByRole('region', { name: 'Error Messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Session Health' })).toBeTruthy()
-    expect(screen.queryByRole('region', { name: 'Provider usage' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Provider Usage' })).toBeNull()
   })
 
   test('renders latency observability content without error or cost metrics', async () => {
@@ -3865,9 +3865,9 @@ describe('App chat workspace', () => {
     const metrics = await screen.findByLabelText('Latency Observability Metrics')
     expect(within(metrics).getByText('Latency')).toBeTruthy()
     expect(within(metrics).getByText('410 ms')).toBeTruthy()
-    const latencySection = screen.getByRole('region', { name: 'Provider latency' })
+    const latencySection = screen.getByRole('region', { name: 'Provider Latency' })
     expect(within(latencySection).getByText('qwen-plus')).toBeTruthy()
-    expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Error Messages' })).toBeNull()
     expect(screen.queryByText('Estimated Cost')).toBeNull()
   })
 

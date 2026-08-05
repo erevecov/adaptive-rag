@@ -680,7 +680,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
   return (
     <BreakdownCard
       label={`${summary.errors.top_messages.length} messages`}
-      title="Error messages"
+      title="Error Messages"
     >
       {summary.errors.top_messages.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
@@ -714,7 +714,7 @@ function ProviderUsageTable({
     <div className="lg:col-span-2">
       <BreakdownCard
         label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider usage"
+        title="Provider Usage"
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
@@ -772,7 +772,7 @@ function ProviderLatencyTable({
     <div className="lg:col-span-2">
       <BreakdownCard
         label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider latency"
+        title="Provider Latency"
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
