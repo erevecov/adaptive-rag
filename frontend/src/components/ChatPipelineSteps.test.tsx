@@ -68,20 +68,20 @@ describe('ChatPipelineSteps', () => {
       />,
     )
 
-    const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
     expect(within(stepper).getByText('retrieval')).toBeTruthy()
     expect(within(stepper).queryByText('alpha')).toBeNull()
 
     await user.click(
       within(stepper).getByRole('button', {
-        name: /Expand Chat Steps, retrieval, running/,
+        name: /Expand chat steps, retrieval, running/,
       }),
     )
 
     expect(localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY)).toBe('true')
     expect(within(stepper).getByText('alpha')).toBeTruthy()
     expect(
-      within(stepper).getByRole('button', { name: /Collapse Chat Steps/ }).getAttribute(
+      within(stepper).getByRole('button', { name: /Collapse chat steps/ }).getAttribute(
         'aria-expanded',
       ),
     ).toBe('true')
@@ -103,7 +103,7 @@ describe('ChatPipelineSteps', () => {
     )
 
     const toggle = screen.getByRole('button', {
-      name: /Expand Chat Steps, retrieval, running/,
+      name: /Expand chat steps, retrieval, running/,
     })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
   })
@@ -135,16 +135,16 @@ describe('ChatPipelineSteps', () => {
       />,
     )
 
-    const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
     expect(
       within(stepper).getByRole('button', {
-        name: 'Expand Chat Steps, 2.4 s, 2 Sources',
+        name: 'Expand chat steps, 2.4 s, 2 Sources',
       }),
     ).toBeTruthy()
 
     await user.click(
       within(stepper).getByRole('button', {
-        name: 'Expand Chat Steps, 2.4 s, 2 Sources',
+        name: 'Expand chat steps, 2.4 s, 2 Sources',
       }),
     )
 
@@ -173,12 +173,12 @@ describe('ChatPipelineSteps', () => {
       />,
     )
 
-    const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
     expect(stepper.getAttribute('data-slot')).toBe('chat-pipeline-steps')
 
     await user.click(
       within(stepper).getByRole('button', {
-        name: 'Expand Chat Steps, 900 ms, 1 Source',
+        name: 'Expand chat steps, 900 ms, 1 Source',
       }),
     )
 

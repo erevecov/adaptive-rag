@@ -2039,11 +2039,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.queryByLabelText('Workspace Inspector')).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(screen.getByLabelText('Workspace Inspector')).toBeTruthy()
+    expect(screen.getByLabelText('Workspace inspector')).toBeTruthy()
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
@@ -2061,7 +2061,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
 
-    expect(screen.queryByLabelText('Workspace Inspector')).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
   })
 
   test('renders the right dock inline on xl viewports and as an overlay below xl', async () => {
@@ -2075,7 +2075,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const inlineInspector = screen.getByRole('complementary', {
-      name: 'Workspace Inspector',
+      name: 'Workspace inspector',
     })
     expect(inlineInspector.className).toContain('workspace-inspector-inline')
     expect(screen.queryByTestId('inspector-backdrop')).toBeNull()
@@ -2091,7 +2091,7 @@ describe('App chat workspace', () => {
 
     // Overlay uses dialog role for modal keyboard semantics.
     const overlayInspector = screen.getByRole('dialog', {
-      name: 'Workspace Inspector',
+      name: 'Workspace inspector',
     })
     expect(overlayInspector.className).toContain('workspace-inspector-overlay')
     expect(overlayInspector.className).toMatch(/max-\[680px\]:inset-0/)
@@ -2327,7 +2327,7 @@ describe('App chat workspace', () => {
     expect(skip.hasAttribute('inert')).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
-    await screen.findByRole('dialog', { name: 'Workspace Inspector' })
+    await screen.findByRole('dialog', { name: 'Workspace inspector' })
 
     expect(skip.hasAttribute('inert')).toBe(true)
     expect(
@@ -2789,10 +2789,10 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat transcript' })
     const stepper = within(transcript).getByRole('region', {
-      name: 'Chat Pipeline Steps',
+      name: 'Chat pipeline steps',
     })
     const detailsToggle = within(stepper).getByRole('button', {
-      name: /Expand Chat Steps/,
+      name: /Expand chat steps/,
     })
     expect(detailsToggle.textContent).toContain('1 Source')
 
@@ -2943,11 +2943,11 @@ describe('App chat workspace', () => {
 
     expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
     const stepper = screen.getByRole('region', {
-      name: 'Chat Pipeline Steps',
+      name: 'Chat pipeline steps',
     })
     expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
     expect(
-      within(stepper).getByRole('button', { name: /Expand Chat Steps/ }),
+      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
     ).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
     expect(screen.queryByText('No citations returned.')).toBeNull()
@@ -2955,7 +2955,7 @@ describe('App chat workspace', () => {
       screen.queryByText('Citations appear after the final response.'),
     ).toBeNull()
     await user.click(
-      within(stepper).getByRole('button', { name: /Expand Chat Steps/ }),
+      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
     )
     expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
@@ -3051,7 +3051,7 @@ describe('App chat workspace', () => {
 
     await user.type(screen.getByLabelText('Question'), 'Cancel this request')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
-    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancel Request' }))
 
     expect(capturedSignal?.aborted).toBe(true)
     expect(await screen.findByRole('button', { name: 'Ask' })).toBeTruthy()
@@ -3278,7 +3278,7 @@ describe('App chat workspace', () => {
     })
     expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
     expect(
-      screen.queryByRole('complementary', { name: 'Workspace Inspector' }),
+      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
     ).toBeNull()
     expect(screen.getByLabelText('Question')).toBeTruthy()
     const transcript = screen.getByRole('region', { name: 'Chat transcript' })
@@ -3477,7 +3477,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionMessages = await screen.findByRole('list', {
-      name: 'Session Messages',
+      name: 'Session messages',
     })
     expect(
       within(sessionMessages).getByText(

@@ -81,7 +81,7 @@ describe('SegmentedControl', () => {
 
   test('uses Radix tab state for tablist controls', () => {
     render(
-      <SegmentedControl aria-label="Inspector Panels" role="tablist">
+      <SegmentedControl aria-label="Inspector panels" role="tablist">
         <SegmentedControlItem active role="tab" value="context">
           Context
         </SegmentedControlItem>
@@ -91,7 +91,7 @@ describe('SegmentedControl', () => {
       </SegmentedControl>,
     )
 
-    const tablist = screen.getByRole('tablist', { name: 'Inspector Panels' })
+    const tablist = screen.getByRole('tablist', { name: 'Inspector panels' })
     const contextTab = screen.getByRole('tab', { name: 'Context' })
     const minimapTab = screen.getByRole('tab', { name: 'Minimap' })
 
@@ -106,7 +106,7 @@ describe('SegmentedControl', () => {
     const onMinimap = vi.fn()
 
     render(
-      <SegmentedControl aria-label="Inspector Panels" role="tablist">
+      <SegmentedControl aria-label="Inspector panels" role="tablist">
         <SegmentedControlItem active onClick={onContext} role="tab" value="context">
           Context
         </SegmentedControlItem>

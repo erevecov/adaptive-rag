@@ -492,7 +492,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     expect(
       within(screen.getByRole('region', { name: 'Selected Session Detail' })).getByText(
-        'No messages in this session.',
+        'No Messages In This Session.',
       ),
     ).toBeTruthy()
   })
@@ -520,9 +520,9 @@ describe('WorkspaceInspectorPanel', () => {
     )
     expect(screen.getByLabelText('Loading session context')).toBeTruthy()
     expect(screen.getByLabelText('Loading action stepper')).toBeTruthy()
-    expect(screen.getByLabelText('Loading Session Detail')).toBeTruthy()
-    expect(screen.queryByText('Select a session to inspect model, prompt and usage context.')).toBeNull()
-    expect(screen.queryByText('No stored internal actions for this session.')).toBeNull()
+    expect(screen.getByLabelText('Loading session detail')).toBeTruthy()
+    expect(screen.queryByText('Select A Session To Inspect Model, Prompt And Usage Context.')).toBeNull()
+    expect(screen.queryByText('No Stored Internal Actions For This Session.')).toBeNull()
   })
 
   test('renders context details and source viewer with tokenized sections', async () => {
@@ -549,7 +549,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('complementary', { name: 'Workspace Inspector' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: 'Workspace inspector' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected')).toBe(
       'true',
     )
@@ -702,7 +702,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('dialog', { name: 'Workspace Inspector' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Workspace inspector' })).toBeTruthy()
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Close Right Sidebar' }),
     )
@@ -736,7 +736,7 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     expect(
-      screen.getByRole('complementary', { name: 'Workspace Inspector' }),
+      screen.getByRole('complementary', { name: 'Workspace inspector' }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
     expect(onClose).not.toHaveBeenCalled()
@@ -765,7 +765,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    const dialog = screen.getByRole('dialog', { name: 'Workspace Inspector' })
+    const dialog = screen.getByRole('dialog', { name: 'Workspace inspector' })
     const close = screen.getByRole('button', { name: 'Close Right Sidebar' })
     expect(document.activeElement).toBe(close)
 

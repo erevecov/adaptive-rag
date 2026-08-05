@@ -175,7 +175,7 @@ export function SessionNavigationPanel({
       </Button>
 
       <SegmentedControl
-        aria-label="Session Filters"
+        aria-label="Session filters"
         className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
       >
         {SESSION_FILTERS.map((filter) => (
@@ -210,7 +210,7 @@ export function SessionNavigationPanel({
         </InlineFeedback>
       ) : null}
 
-      <DataList aria-label="Project Sessions" className="min-w-0 gap-0.5">
+      <DataList aria-label="Project sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
             <div
@@ -514,7 +514,7 @@ export function WorkspaceInspectorPanel({
 
   return (
     <Panel
-      aria-label="Workspace Inspector"
+      aria-label="Workspace inspector"
       aria-modal={isOverlay ? true : undefined}
       className={
         layout === 'inline'
@@ -527,7 +527,7 @@ export function WorkspaceInspectorPanel({
     >
       <div className="flex items-center justify-between gap-2">
         <SegmentedControl
-          aria-label="Inspector Panels"
+          aria-label="Inspector panels"
           className="max-w-full flex-wrap"
           role="tablist"
         >
@@ -604,7 +604,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
   return (
     <Panel aria-label="Source Viewer" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
@@ -731,7 +731,7 @@ function ConversationMinimap({
 }) {
   return (
     <Panel aria-label="Conversation Minimap" role="navigation">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
@@ -745,9 +745,9 @@ function ConversationMinimap({
             slot="conversation-minimap-loading"
           />
         ) : detail === null || detail.messages.length === 0 ? (
-          <EmptyState>Select a session to navigate messages.</EmptyState>
+          <EmptyState>Select A Session To Navigate Messages.</EmptyState>
         ) : (
-          <DataList aria-label="Conversation Messages">
+          <DataList aria-label="Conversation messages">
             {detail.messages.map((message) => (
               <DataListItem className="p-0 shadow-none" key={message.message_id}>
                 <Button
@@ -786,7 +786,7 @@ function SessionContextPanel({
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
@@ -800,7 +800,7 @@ function SessionContextPanel({
           />
         ) : detail === null ? (
           <EmptyState>
-            Select a session to inspect model, prompt and usage context.
+            Select A Session To Inspect Model, Prompt And Usage Context.
           </EmptyState>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -873,7 +873,7 @@ function InternalActionStepper({
 }) {
   return (
     <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
@@ -886,7 +886,7 @@ function InternalActionStepper({
             slot="action-stepper-loading"
           />
         ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState>No stored internal actions for this session.</EmptyState>
+          <EmptyState>No Stored Internal Actions For This Session.</EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -969,18 +969,18 @@ function SessionDetailPanel({
   if (state === 'loading') {
     return (
       <Panel aria-live="polite" role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <div
             aria-busy="true"
-            aria-label="Loading Session Detail"
+            aria-label="Loading session detail"
             className="grid w-full gap-3"
             data-slot="session-detail-loading"
             role="status"
           >
-            <span className="sr-only">Loading Session Detail...</span>
+            <span className="sr-only">Loading session detail...</span>
             <div aria-hidden="true" className="grid gap-2">
               <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/25" />
               <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
@@ -1001,7 +1001,7 @@ function SessionDetailPanel({
   if (error) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
@@ -1016,11 +1016,11 @@ function SessionDetailPanel({
   if (detail === null) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <EmptyState>Select a session to inspect stored history.</EmptyState>
+          <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
     )
@@ -1028,7 +1028,7 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground">
@@ -1044,9 +1044,9 @@ function SessionDetailPanel({
           <h4 id="messages-title" className="text-sm font-semibold text-foreground">
             Messages
           </h4>
-          <DataList aria-label="Session Messages">
+          <DataList aria-label="Session messages">
             {detail.messages.length === 0 ? (
-              <EmptyState>No messages in this session.</EmptyState>
+              <EmptyState>No Messages In This Session.</EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>
