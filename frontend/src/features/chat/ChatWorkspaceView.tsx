@@ -32,6 +32,7 @@ import type {
   ChatResponseBody,
   ChatToolCall,
   KnowledgeProposal,
+  UserMemory,
 } from '@/lib/apiClient'
 import type { ChatStep } from '@/lib/chatSteps'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
@@ -73,6 +74,7 @@ type ChatKnowledgeLifecycleEvent = {
 
 export type ChatWorkspacePanelProps = {
   activeResponseQuestion: string | null
+  appliedMemories?: UserMemory[]
   drafts: ChatKnowledgeDraftMap
   isAsking: boolean
   isContextInspectorActive: boolean
@@ -117,6 +119,7 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 
 export function ChatWorkspacePanel({
   activeResponseQuestion,
+  appliedMemories = [],
   drafts,
   isAsking,
   isContextInspectorActive,
@@ -172,6 +175,7 @@ export function ChatWorkspacePanel({
         role="region"
       >
         <ResponsePanel
+          appliedMemories={appliedMemories}
           drafts={drafts}
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -415,6 +419,7 @@ function SpeechInputControl({
 }
 
 function ResponsePanel({
+  appliedMemories,
   drafts,
   onOpenSource,
   onRefineKnowledgeDraft,
@@ -425,6 +430,7 @@ function ResponsePanel({
   setDrafts,
   state,
 }: {
+  appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
@@ -442,6 +448,7 @@ function ResponsePanel({
     if (response !== null) {
       return (
         <ResponseContent
+          appliedMemories={appliedMemories}
           drafts={drafts}
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -563,6 +570,7 @@ function ResponsePanel({
     <div className="grid gap-3">
       {terminalBanner}
       <ResponseContent
+        appliedMemories={appliedMemories}
         drafts={drafts}
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -578,6 +586,7 @@ function ResponsePanel({
 }
 
 function ResponseContent({
+  appliedMemories,
   drafts,
   onOpenSource,
   onRefineKnowledgeDraft,
@@ -588,6 +597,7 @@ function ResponseContent({
   setDrafts,
   state,
 }: {
+  appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
@@ -830,6 +840,35 @@ function ResponseContent({
           providerUsage={providerUsage}
           response={response}
         />
+      ) : null}
+
+      {appliedMemories.length > 0 ? (
+        <section
+          aria-label="Memory applied"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3"
+          data-slot="chat-memory-applied"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge className="w-fit" tone="success">
+              Memory applied
+            </StatusBadge>
+            <span className="text-xs text-muted-foreground">
+              {appliedMemories.length} approved item
+              {appliedMemories.length === 1 ? '' : 's'} injected as system
+              context (not a user turn).
+            </span>
+          </div>
+          <ul className="grid gap-1.5">
+            {appliedMemories.map((memory) => (
+              <li
+                className="text-sm leading-relaxed text-foreground"
+                key={memory.id}
+              >
+                {memory.content}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (

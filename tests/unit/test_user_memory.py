@@ -269,3 +269,70 @@ def test_superadmin_can_propose_and_approve_without_membership() -> None:
         is_superadmin=True,
     )
     assert approved.status == "approved"
+
+
+def test_update_proposed_memory_content() -> None:
+    session = _session()
+    user = UserRepository(session).create_user(
+        login="edit-user",
+        display_name="Edit",
+        system_role="user",
+    )
+    proposed = user_memory.propose_memory(
+        session, user_id=user.id, content="Original preference"
+    )
+    updated = user_memory.update_proposed_memory(
+        session,
+        memory_id=proposed.id,
+        content="  Revised preference  ",
+        owner_user_id=user.id,
+    )
+    assert updated.content == "Revised preference"
+    assert updated.status == "proposed"
+
+    approved = user_memory.approve_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    try:
+        user_memory.update_proposed_memory(
+            session,
+            memory_id=approved.id,
+            content="Too late",
+            owner_user_id=user.id,
+        )
+        raise AssertionError("expected conflict on approved edit")
+    except user_memory.UserMemoryError as exc:
+        assert exc.status_code == 409
+
+
+def test_reject_approved_removes_injection() -> None:
+    session = _session()
+    user = UserRepository(session).create_user(
+        login="soft-remove",
+        display_name="Soft",
+        system_role="user",
+    )
+    proposed = user_memory.propose_memory(
+        session, user_id=user.id, content="Temporary preference"
+    )
+    user_memory.approve_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    assert "Temporary preference" in user_memory.approved_injection_text(
+        session, user_id=user.id
+    )
+
+    rejected = user_memory.reject_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    assert rejected.status == "rejected"
+    assert user_memory.approved_injection_text(session, user_id=user.id) == ""

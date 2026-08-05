@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
+import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
 import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
 import { RetrievalPlaygroundPanel } from '@/features/retrieval/RetrievalPlaygroundView'
@@ -48,6 +49,7 @@ import {
   type ChatSessionDetailResponse,
   type ChatSessionStatus,
   type ChatSessionSummary,
+  type UserMemory,
   type ChatToolCall,
   type IngestionJob,
   type IngestionRunResponse,
@@ -160,6 +162,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
     useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [appliedMemories, setAppliedMemories] = useState<UserMemory[]>([])
   const [activeResponseQuestion, setActiveResponseQuestion] = useState<
     string | null
   >(null)
@@ -595,6 +598,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHistoryError(null)
     setResponse(null)
+    setAppliedMemories([])
     setActiveResponseQuestion(trimmedQuestion)
     setSessionDetail(null)
     setDetailState('idle')
@@ -657,6 +661,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       }
       setRequestState('succeeded')
       setQuestion('')
+      try {
+        const memories = await client.listUserMemories({
+          project_id: trimmedProjectId,
+          status: 'approved',
+        })
+        setAppliedMemories(memories.items)
+      } catch {
+        setAppliedMemories([])
+      }
       await handleRefreshHistory(trimmedProjectId, 'active')
       if (nextSessionId !== null) {
         setSessions((current) =>
@@ -687,6 +700,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           }
           setRequestState('succeeded')
           setQuestion('')
+          try {
+            const memories = await client.listUserMemories({
+              project_id: trimmedProjectId,
+              status: 'approved',
+            })
+            setAppliedMemories(memories.items)
+          } catch {
+            setAppliedMemories([])
+          }
           await handleRefreshHistory(trimmedProjectId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
@@ -2366,6 +2388,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             >
               <ChatWorkspacePanel
                 activeResponseQuestion={activeResponseQuestion}
+                appliedMemories={appliedMemories}
                 drafts={knowledgeDrafts}
                 isAsking={isAsking}
                 isContextInspectorActive={
@@ -2426,7 +2449,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           accountModule === 'appearance' ? (
             <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
           ) : (
-            <DeferredAccountModulePanel moduleName="Memory" />
+            <UserMemoryPanel apiClient={client} projectId={projectId} />
           )
         ) : (
           <SettingsPanel>
@@ -2788,34 +2811,6 @@ function AppearanceSettingsPanel({
           )
         })}
       </div>
-    </Panel>
-  )
-}
-
-function DeferredAccountModulePanel({ moduleName }: { moduleName: string }) {
-  return (
-    <Panel
-      role="region"
-      className="grid gap-4 p-6"
-      aria-labelledby="deferred-account-title"
-    >
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
-            My account
-          </p>
-          <h2
-            className="text-xl font-semibold leading-tight text-foreground"
-            id="deferred-account-title"
-          >
-            {moduleName}
-          </h2>
-        </div>
-        <StatusBadge className="w-fit">Deferred</StatusBadge>
-      </header>
-      <PanelDescription>
-        This module is not available until a durable backend contract exists.
-      </PanelDescription>
     </Panel>
   )
 }

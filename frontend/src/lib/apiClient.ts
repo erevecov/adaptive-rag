@@ -708,6 +708,42 @@ export type ProjectRuntimeSettings = {
   chat_retrieval: ProjectChatRetrievalSettings
 }
 
+
+export type UserMemoryStatus = 'proposed' | 'approved' | 'rejected'
+
+export type UserMemory = {
+  id: string
+  user_id: string
+  project_id: string | null
+  content: string
+  status: UserMemoryStatus
+  created_at: string | null
+  reviewed_at: string | null
+  reviewed_by_user_id: string | null
+}
+
+export type UserMemoryListResponse = {
+  items: UserMemory[]
+}
+
+export type UserMemoryListParams = {
+  project_id?: string | null
+  status?: UserMemoryStatus | null
+}
+
+export type UserMemoryProposeBody = {
+  content: string
+  project_id?: string | null
+}
+
+export type UserMemoryUpdateBody = {
+  content: string
+}
+
+/** Backend hard limit; FE shows a soft hint earlier. */
+export const USER_MEMORY_MAX_CHARS = 4000
+export const USER_MEMORY_SOFT_HINT_CHARS = 500
+
 export class ApiClientError extends Error {
   readonly detail: unknown
   readonly status: number
@@ -898,6 +934,16 @@ export type ApiClient = {
     body: ChatRetrievalSettingsUpsertBody,
   ): Promise<ProjectChatRetrievalSettings>
   deleteProjectChatRetrievalSettings(projectId: string): Promise<DeleteResponse>
+  listUserMemories(
+    params?: UserMemoryListParams,
+  ): Promise<UserMemoryListResponse>
+  proposeUserMemory(body: UserMemoryProposeBody): Promise<UserMemory>
+  updateUserMemory(
+    memoryId: string,
+    body: UserMemoryUpdateBody,
+  ): Promise<UserMemory>
+  approveUserMemory(memoryId: string): Promise<UserMemory>
+  rejectUserMemory(memoryId: string): Promise<UserMemory>
 }
 
 export type ApiClientOptions = {
@@ -1440,6 +1486,42 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/projects/${encodePathSegment(
           projectId,
         )}/runtime-settings/chat/retrieval`,
+      })
+    },
+    listUserMemories(params = {}) {
+      const url = new URL(`${baseUrl}/users/me/memories`)
+      appendSearchParam(url, 'project_id', params.project_id)
+      appendSearchParam(url, 'status', params.status)
+
+      return requestJson<UserMemoryListResponse>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    proposeUserMemory(body) {
+      return requestJson<UserMemory>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/users/me/memories`,
+      })
+    },
+    updateUserMemory(memoryId, body) {
+      return requestJson<UserMemory>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/users/me/memories/${encodePathSegment(memoryId)}`,
+      })
+    },
+    approveUserMemory(memoryId) {
+      return requestJson<UserMemory>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/users/me/memories/${encodePathSegment(memoryId)}/approve`,
+      })
+    },
+    rejectUserMemory(memoryId) {
+      return requestJson<UserMemory>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/users/me/memories/${encodePathSegment(memoryId)}/reject`,
       })
     },
   }

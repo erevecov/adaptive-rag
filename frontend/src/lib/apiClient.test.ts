@@ -1346,4 +1346,49 @@ describe('createApiClient', () => {
       detail: 'runner failed',
     } satisfies Partial<ApiClientError>)
   })
+
+  test('lists and mutates user memories', async () => {
+    const memory = {
+      content: 'Prefer concise answers',
+      created_at: '2026-08-05T00:00:00Z',
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      project_id: null,
+      reviewed_at: null,
+      reviewed_by_user_id: null,
+      status: 'proposed',
+      user_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({ items: [memory] }),
+      jsonResponse({ ...memory, content: 'Edited' }),
+      jsonResponse({ ...memory, status: 'approved' }),
+      jsonResponse({ ...memory, status: 'rejected' }),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await expect(client.listUserMemories({ status: 'proposed' })).resolves.toEqual({
+      items: [memory],
+    })
+    expect(String(calls[0].input)).toBe(
+      'http://api.local/users/me/memories?status=proposed',
+    )
+
+    await expect(
+      client.updateUserMemory(memory.id, { content: 'Edited' }),
+    ).resolves.toMatchObject({ content: 'Edited' })
+    expect(calls[1].init?.method).toBe('PATCH')
+
+    await expect(client.approveUserMemory(memory.id)).resolves.toMatchObject({
+      status: 'approved',
+    })
+    expect(String(calls[2].input)).toContain('/approve')
+
+    await expect(client.rejectUserMemory(memory.id)).resolves.toMatchObject({
+      status: 'rejected',
+    })
+    expect(String(calls[3].input)).toContain('/reject')
+  })
 })

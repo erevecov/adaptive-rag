@@ -87,6 +87,12 @@ def reject_memory(
     reviewer_user_id: UUID,
     owner_user_id: UUID | None = None,
 ) -> UserMemory:
+    """Reject a proposed memory, or soft-remove an approved one from injection.
+
+    Approved → rejected is intentional product behavior: remove injection without
+    adding a fourth status. Already-rejected items stay 409.
+    """
+
     return _review(
         session,
         memory_id=memory_id,
@@ -95,7 +101,37 @@ def reject_memory(
         status="rejected",
         require_project_access=False,
         is_superadmin=False,
+        allowed_from_statuses=("proposed", "approved"),
     )
+
+
+def update_proposed_memory(
+    session: Session,
+    *,
+    memory_id: UUID,
+    content: str,
+    owner_user_id: UUID,
+) -> UserMemory:
+    """Edit proposed memory content before approve/reject."""
+
+    text = content.strip()
+    if not text:
+        raise UserMemoryError("content must not be empty", status_code=422)
+    if len(text) > 4000:
+        raise UserMemoryError("content exceeds 4000 characters", status_code=422)
+    repo = UserMemoryRepository(session)
+    memory = repo.get(memory_id=memory_id, user_id=owner_user_id)
+    if memory is None:
+        raise UserMemoryError("memory not found", status_code=404)
+    if memory.status != "proposed":
+        raise UserMemoryError(
+            f"only proposed memories can be edited (status is {memory.status})",
+            status_code=409,
+        )
+    updated = repo.update_content(memory_id=memory_id, content=text)
+    if updated is None:
+        raise UserMemoryError("memory not found", status_code=404)
+    return updated
 
 
 def list_memories(
@@ -191,12 +227,13 @@ def _review(
     status: str,
     require_project_access: bool,
     is_superadmin: bool,
+    allowed_from_statuses: tuple[str, ...] = ("proposed",),
 ) -> UserMemory:
     repo = UserMemoryRepository(session)
     memory = repo.get(memory_id=memory_id, user_id=owner_user_id)
     if memory is None:
         raise UserMemoryError("memory not found", status_code=404)
-    if memory.status != "proposed":
+    if memory.status not in allowed_from_statuses:
         raise UserMemoryError(
             f"memory is already {memory.status}",
             status_code=409,
