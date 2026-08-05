@@ -57,7 +57,7 @@ export const TableHeader = forwardRef<
   <thead
     className={cn(
       // Opaque card sticky header stays legible on purple/dark nested panels.
-      'sticky top-0 z-10 border-b border-border bg-card',
+      'sticky top-0 z-10 border-b border-border bg-card shadow-[0_1px_0_0] shadow-primary/15',
       className,
     )}
     ref={ref}

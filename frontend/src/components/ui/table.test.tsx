@@ -68,6 +68,7 @@ describe('Table density', () => {
     expect(scroll?.className).toContain('max-[680px]:max-h-[min(60vh,28rem)]')
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card')
+    expect(header?.className).toContain('shadow-primary/15')
     expect(header?.className).not.toContain('bg-card/95')
     expect(header?.className).not.toContain('backdrop-blur')
     expect(screen.getByText('Latency').className).toContain('tracking-wide')
