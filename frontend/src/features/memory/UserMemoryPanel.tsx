@@ -392,7 +392,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </form>
 
       <div
-        aria-label="Memory status filters"
+        aria-label="Memory Status Filters"
         className="flex flex-wrap gap-1.5"
         role="group"
       >
@@ -435,7 +435,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </div>
 
       {listState === 'loading' && items.length === 0 ? (
-        <EmptyState className="p-3 text-left">Loading memories…</EmptyState>
+        <EmptyState className="p-3 text-left">Loading Memories…</EmptyState>
       ) : null}
 
       {listState !== 'loading' && items.length === 0 ? (
@@ -446,7 +446,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       ) : null}
 
       {items.length > 0 ? (
-        <DataList aria-label="User memories" className="gap-1.5">
+        <DataList aria-label="User Memories" className="gap-1.5">
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
@@ -497,7 +497,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
                   {isEditing ? (
                     <Textarea
-                      aria-label="Edit memory content"
+                      aria-label="Edit Memory Content"
                       className="min-h-16"
                       maxLength={USER_MEMORY_MAX_CHARS}
                       onChange={(event) => setEditDraft(event.target.value)}
@@ -729,7 +729,7 @@ function focusAfterReview(memoryId: string, rowIndex: number): void {
     empty.focus()
     return
   }
-  document.querySelector<HTMLElement>('[aria-label="Propose memory"]')?.focus()
+  document.querySelector<HTMLElement>('[aria-label="Propose Memory"]')?.focus()
 }
 
 function formatRelativeTime(iso: string | null): string | null {
