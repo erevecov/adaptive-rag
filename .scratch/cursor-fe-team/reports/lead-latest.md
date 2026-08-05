@@ -6,18 +6,18 @@
 **STATUS:** polishing — local commits, **no push**
 
 ## Sync
-`git pull origin main` — already up to date (`d7089f5` / post-#212 tip). Local ahead of remote feature branch.
+`git pull origin main` — up to date post-#213 (`e2aea33`). Local feature branch ahead (unpushed).
 
 ## This loop
 | Slice | Change |
 |-------|--------|
-| Chat | Solid answer card; focus-within/focus-visible primary; citation chips ≤680; URL/PDF source labels |
-| Observability | Status breakdown Title Case; App Status select Failed |
-| DS | Ghost/secondary hover `primary/15` |
+| DS | Textarea ≤680; Segmented/table/list `primary` hovers; Callout soft wash + ≤680; Badge denser ≤680 |
+| Chat / shell | Soft `bg-muted/15` washes; Title Case source chips; View Source; Unknown Cost/Tokens |
+| History | Title Case stepper/ranks/scores/RRF; Unknown Cost/Tokens/Latency |
+| Obs (prior) | Safe error copy; canceled empty; Title Case counts |
 
 ## Verify
-chat + observability + button unit → green  
-App: chat submit + observability filters/breakdown/errors → green
+badge/feedback/chat/history/pipeline + App session/obs filters → green
 
 ## Next
-Tab-cycle deferred; shell ≤680 residual. Grok opens/merges only all-green CI.
+Hostile purple ≤680 residual; Tab-cycle deferred. Grok merges green CI only.
