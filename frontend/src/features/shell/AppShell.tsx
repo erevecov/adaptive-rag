@@ -78,7 +78,7 @@ const SETTINGS_NAVIGATION = [
       { id: 'connections', label: 'Connections' },
       { id: 'model_catalog', label: 'Model Catalog' },
       { id: 'global_defaults', label: 'Global Defaults' },
-      { id: 'project_overrides', label: 'Project overrides' },
+      { id: 'project_overrides', label: 'Project Overrides' },
     ],
   },
 ] as const
@@ -940,7 +940,7 @@ function SidebarProjectSelector({
                   className="m-0 text-xs font-bold text-muted-foreground"
                   data-slot="project-selector-empty"
                 >
-                  No projects match.
+                  No Projects match.
                 </p>
               )}
             </div>

@@ -670,7 +670,7 @@ export function RuntimeConnectionsPanel({
                           type="submit"
                           variant="danger"
                         >
-                          Delete connection
+                          Delete Connection
                         </Button>
                       </DataListItemActions>
                     </form>
@@ -687,7 +687,7 @@ export function RuntimeConnectionsPanel({
           <h3 className="text-base font-semibold leading-none">
             {isEditingConnection
               ? `Edit connection ${editingConnectionId}`
-              : 'New connection'}
+              : 'New Connection'}
           </h3>
           {isEditingConnection ? (
             <Button
@@ -720,7 +720,7 @@ export function RuntimeConnectionsPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-connection-type"
-            label="Connection type"
+            label="Connection Type"
           >
             {(fieldId) => (
               <Select
@@ -790,7 +790,7 @@ export function RuntimeConnectionsPanel({
           </RuntimeField>
         </div>
         <Button disabled={!canSaveConnection} type="submit">
-          {isEditingConnection ? 'Update connection' : 'Save connection'}
+          {isEditingConnection ? 'Update Connection' : 'Save Connection'}
         </Button>
       </form>
     </RuntimePanel>
@@ -903,7 +903,7 @@ export function CapabilitySelector({
                 }}
                 onFocus={() => setIsOpen(true)}
                 onKeyDown={handleFilterKeyDown}
-                placeholder={value.length === 0 ? 'Select capabilities' : ''}
+                placeholder={value.length === 0 ? 'Select Capabilities' : ''}
                 ref={inputRef}
                 role="combobox"
                 value={query}
@@ -1211,7 +1211,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global chat models" className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat models</h3>
+        <h3 className="text-base font-semibold leading-none">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
@@ -1290,7 +1290,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global chat retrieval" className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
+        <h3 className="text-base font-semibold leading-none">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
@@ -1314,8 +1314,8 @@ export function RuntimeGlobalDefaultsPanel({
               </div>
               <Badge tone="neutral">
                 {chatRetrievalSettings.rerank_enabled
-                  ? 'Rerank on'
-                  : 'Rerank off'}
+                  ? 'Rerank On'
+                  : 'Rerank Off'}
               </Badge>
             </DataListItem>
           </DataList>
@@ -1444,11 +1444,11 @@ export function RuntimeProjectOverridesPanel({
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2">
           <RuntimeStatus state={state} />
           <StatusBadge className="max-w-full break-all text-left" tone="neutral">
-            {projectId.trim() || 'No project'}
+            {projectId.trim() || 'No Project'}
           </StatusBadge>
         </div>
       }
-      title="Project overrides"
+      title="Project Overrides"
     >
       <Button
         disabled={state === 'loading'}
@@ -1638,7 +1638,7 @@ export function ConnectionCheckSummary({
 
   if (result === undefined) {
     return (
-      <small className="text-xs text-muted-foreground">Not checked</small>
+      <small className="text-xs text-muted-foreground">Not Checked</small>
     )
   }
 
@@ -1692,7 +1692,7 @@ export function ConnectionSelect({
       options={[
         {
           label:
-            connections.length === 0 ? emptyLabel : 'Select connection',
+            connections.length === 0 ? emptyLabel : 'Select Connection',
           value: '',
         },
         ...connections.map((connection) => ({
@@ -1729,7 +1729,7 @@ export function ProviderModelSelect({
       onValueChange={onChange}
       options={[
         {
-          label: models.length === 0 ? emptyLabel : 'Select model',
+          label: models.length === 0 ? emptyLabel : 'Select Model',
           value: '',
         },
         ...models.map((model) => ({
@@ -1873,14 +1873,14 @@ export function ProjectRuntimeSettingsView({
   if (settings === null) {
     return (
       <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-        No project runtime settings yet.
+        No Project runtime settings yet.
       </EmptyState>
     )
   }
   return (
     <div className="grid gap-4 xl:grid-cols-3">
       <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Effective slots</h3>
+        <h3 className="text-base font-semibold leading-none">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
             className="p-4 text-left"
@@ -1918,7 +1918,7 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat pool</h3>
+        <h3 className="text-base font-semibold leading-none">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
             className="p-4 text-left"
@@ -1955,7 +1955,7 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
+        <h3 className="text-base font-semibold leading-none">Chat Retrieval</h3>
         <DataList>
           <DataListItem className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
@@ -1964,7 +1964,7 @@ export function ProjectRuntimeSettingsView({
               </strong>
               <small className="text-xs text-muted-foreground">
                 Candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
-                {settings.chat_retrieval.rerank_enabled ? 'Rerank on' : 'Rerank off'}
+                {settings.chat_retrieval.rerank_enabled ? 'Rerank On' : 'Rerank Off'}
               </small>
             </div>
             <Badge tone="neutral">
