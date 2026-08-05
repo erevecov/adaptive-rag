@@ -144,11 +144,14 @@ def test_enqueue_source_ingestion_dedupes_running_job() -> None:
         project_id=project.id,
         source_id=source.id,
     )
-    now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    # Lease clock must be >= run_after (enqueue uses wall-clock now).
+    now = first.run_after
+    from datetime import timedelta
+
     leased = JobRepository(session).lease_next(
         project_id=project.id,
         worker_id="worker-1",
-        lease_until=now,
+        lease_until=now + timedelta(minutes=5),
         now=now,
         job_type=INGEST_SOURCE_JOB_TYPE,
     )
