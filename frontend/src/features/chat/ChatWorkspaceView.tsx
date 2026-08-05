@@ -569,7 +569,7 @@ function ResponsePanel({
     ) : null
 
   return (
-    <div className="grid gap-3 max-[680px]:gap-1.5">
+    <div className="grid gap-3 max-[680px]:gap-1">
       {terminalBanner}
       <ResponseContent
         appliedMemories={appliedMemories}
@@ -753,7 +753,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-1.5" role="region">
+    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-1" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -874,7 +874,7 @@ function ResponseContent({
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
-        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-1.5">
+        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-1">
           {knowledgeDrafts.map((draft) => (
             <KnowledgeDraftCard
               draft={draft}
