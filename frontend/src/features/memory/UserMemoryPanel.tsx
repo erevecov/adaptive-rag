@@ -346,7 +346,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         Propose → approve required. No automatic capture in this build.
       </PanelDescription>
 
-      <form className="grid gap-2" onSubmit={(event) => void handlePropose(event)}>
+      <form className="grid gap-2 max-[680px]:gap-1.5" onSubmit={(event) => void handlePropose(event)}>
         <Field>
           <FieldLabel htmlFor={draftFieldId}>Propose Memory</FieldLabel>
           <FieldControl>
