@@ -220,6 +220,121 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
     }
 
 
+def test_list_messages_limit_returns_last_n_in_chronological_order() -> None:
+    """limit loads only the tail via SQL; order stays oldest→newest."""
+    session = _make_session()
+    project = _make_project(session)
+    repo = ChatAuditRepository(session)
+    chat_session = repo.create_session(project_id=project.id)
+
+    for index, content in enumerate(
+        ["m0", "m1", "m2", "m3", "m4"],
+        start=1,
+    ):
+        message = repo.add_message(
+            project_id=project.id,
+            session_id=chat_session.id,
+            role="user" if index % 2 else "assistant",
+            content=content,
+        )
+        # Distinct timestamps so ORDER BY created_at is deterministic on SQLite.
+        message.created_at = datetime(2026, 6, 21, 12, 0, index, tzinfo=UTC)
+
+    session.flush()
+
+    all_messages = repo.list_messages(
+        project_id=project.id,
+        session_id=chat_session.id,
+    )
+    limited = repo.list_messages(
+        project_id=project.id,
+        session_id=chat_session.id,
+        limit=3,
+    )
+    empty = repo.list_messages(
+        project_id=project.id,
+        session_id=chat_session.id,
+        limit=0,
+    )
+    oversized = repo.list_messages(
+        project_id=project.id,
+        session_id=chat_session.id,
+        limit=50,
+    )
+
+    assert [message.content for message in all_messages] == [
+        "m0",
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+    ]
+    assert [message.content for message in limited] == ["m2", "m3", "m4"]
+    assert empty == []
+    assert [message.content for message in oversized] == [
+        "m0",
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+    ]
+
+
+def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
+    """Writer must return last N user/assistant turns without full-list slice."""
+    session = _make_session()
+    project = _make_project(session)
+    audit_repo = ChatAuditRepository(session)
+    writer = SqlAlchemyChatAuditWriter(
+        session=session,
+        chat_audit_repository=audit_repo,
+        provider_usage_repository=ProviderUsageRepository(session),
+    )
+    session_id = writer.start_session(
+        ChatRequest(project_id=project.id, message="first"),
+        "first",
+    )
+    assert session_id is not None
+
+    turns = [
+        ("user", "u0"),
+        ("assistant", "a0"),
+        ("user", "u1"),
+        ("assistant", "a1"),
+        ("user", "u2"),
+        ("assistant", "a2"),
+    ]
+    for index, (role, content) in enumerate(turns, start=1):
+        message = audit_repo.add_message(
+            project_id=project.id,
+            session_id=session_id,
+            role=role,
+            content=content,
+        )
+        message.created_at = datetime(2026, 6, 21, 13, 0, index, tzinfo=UTC)
+    session.flush()
+
+    history = writer.list_history_turns(
+        project_id=project.id,
+        session_id=session_id,
+        limit=4,
+    )
+    assert history == [
+        ("user", "u1"),
+        ("assistant", "a1"),
+        ("user", "u2"),
+        ("assistant", "a2"),
+    ]
+    assert (
+        writer.list_history_turns(
+            project_id=project.id,
+            session_id=session_id,
+            limit=0,
+        )
+        == []
+    )
+
+
 def test_repository_scopes_session_history_to_owner_user() -> None:
     session = _make_session()
     project = _make_project(session, "demo")

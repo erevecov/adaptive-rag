@@ -571,18 +571,17 @@ class SqlAlchemyChatAuditWriter:
         session_id: UUID,
         limit: int,
     ) -> list[tuple[str, str]]:
+        # Push limit into SQL (last N by created_at/id), keep chronological order.
         messages = self._chat_audit_repository.list_messages(
             project_id=project_id,
             session_id=session_id,
+            limit=limit,
         )
-        turns = [
+        return [
             (message.role, message.content)
             for message in messages
             if message.role in {"user", "assistant"}
         ]
-        if limit <= 0:
-            return []
-        return turns[-limit:]
 
     def record_message(
         self,

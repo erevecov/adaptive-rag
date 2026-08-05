@@ -146,16 +146,33 @@ class ChatAuditRepository:
         *,
         project_id: UUID,
         session_id: UUID,
+        limit: int | None = None,
     ) -> list[ChatMessage]:
-        statement = (
-            select(ChatMessage)
-            .where(
-                ChatMessage.project_id == project_id,
-                ChatMessage.session_id == session_id,
-            )
-            .order_by(ChatMessage.created_at, ChatMessage.id)
+        """List messages for a session in chronological order.
+
+        When ``limit`` is set, only the last ``limit`` messages are loaded
+        (SQL ``ORDER BY created_at DESC, id DESC LIMIT n``, then reversed so
+        callers still receive oldest→newest). ``limit <= 0`` returns [].
+        """
+        if limit is not None and limit <= 0:
+            return []
+
+        statement = select(ChatMessage).where(
+            ChatMessage.project_id == project_id,
+            ChatMessage.session_id == session_id,
         )
-        return list(self._session.scalars(statement))
+        if limit is None:
+            statement = statement.order_by(ChatMessage.created_at, ChatMessage.id)
+            return list(self._session.scalars(statement))
+
+        # Last N in chronological order: fetch newest-first, reverse.
+        statement = statement.order_by(
+            ChatMessage.created_at.desc(),
+            ChatMessage.id.desc(),
+        ).limit(limit)
+        messages = list(self._session.scalars(statement))
+        messages.reverse()
+        return messages
 
     def succeed_session(
         self,
@@ -654,8 +671,7 @@ class ChatAuditRepository:
             )
         )
         retrieved_chunks_by_run_id: dict[UUID, tuple[RetrievedChunk, ...]] = {
-            retrieval_run.id: ()
-            for retrieval_run in retrieval_runs
+            retrieval_run.id: () for retrieval_run in retrieval_runs
         }
         if retrieval_runs:
             retrieval_run_ids = [retrieval_run.id for retrieval_run in retrieval_runs]
@@ -671,9 +687,7 @@ class ChatAuditRepository:
                 retrieval_run.id: [] for retrieval_run in retrieval_runs
             }
             for retrieved_chunk in retrieved_chunks:
-                grouped_chunks[retrieved_chunk.retrieval_run_id].append(
-                    retrieved_chunk
-                )
+                grouped_chunks[retrieved_chunk.retrieval_run_id].append(retrieved_chunk)
             retrieved_chunks_by_run_id = {
                 retrieval_run_id: tuple(chunks)
                 for retrieval_run_id, chunks in grouped_chunks.items()
