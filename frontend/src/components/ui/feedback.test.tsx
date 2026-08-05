@@ -19,11 +19,16 @@ describe('EmptyState', () => {
       </EmptyState>,
     )
 
-    const empty = screen.getByText('No projects yet.').parentElement
-    expect(empty?.getAttribute('data-slot')).toBe('empty-state')
-    expect(empty?.className).toMatch(/flex/)
-    expect(empty?.className).toMatch(/flex-col/)
-    expect(empty?.className).toMatch(/gap-1\.5/)
+    const empty = screen.getByRole('status')
+    expect(empty.getAttribute('data-slot')).toBe('empty-state')
+    expect(empty.className).toMatch(/flex/)
+    expect(empty.className).toMatch(/flex-col/)
+    expect(empty.className).toMatch(/gap-1\.5/)
+  })
+
+  test('allows role override for failed empties', () => {
+    render(<EmptyState role="alert">Search failed</EmptyState>)
+    expect(screen.getByRole('alert').textContent).toContain('Search failed')
   })
 })
 

@@ -1708,7 +1708,7 @@ export function ProviderModelCatalogView({
           Loading provider models…
         </EmptyState>
       ) : providerModels.length === 0 ? (
-        <EmptyState className="p-4 text-left" data-slot-state="empty">
+        <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
           No provider models yet.
         </EmptyState>
       ) : (
@@ -1815,7 +1815,7 @@ export function ProjectRuntimeSettingsView({
   }
   if (settings === null) {
     return (
-      <EmptyState className="p-4 text-left" data-slot-state="empty">
+      <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
         No project runtime settings yet.
       </EmptyState>
     )

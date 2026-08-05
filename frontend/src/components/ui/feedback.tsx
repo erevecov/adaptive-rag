@@ -6,13 +6,14 @@ import { cn } from '@/lib/utils'
 export type EmptyStateProps = HTMLAttributes<HTMLDivElement>
 
 export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, role = 'status', ...props }, ref) => (
     <div
       className={cn(
         'flex flex-col gap-1.5 rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground',
         className,
       )}
       ref={ref}
+      role={role}
       {...props}
       data-slot="empty-state"
     />

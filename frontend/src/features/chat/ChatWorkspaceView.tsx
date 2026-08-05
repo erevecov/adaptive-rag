@@ -38,7 +38,10 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-2.5'
+
+const COMPOSER_PRIMARY_ACTION_CLASS =
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:px-4'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -168,14 +171,23 @@ export function ChatWorkspacePanel({
         />
       </div>
 
-      <div className="relative shrink-0 bg-background" data-slot="chat-composer-shell">
+      <div
+        className={cn(
+          'relative shrink-0 bg-background',
+          // Keep Ask docked above the fold on narrow shells / soft keyboards.
+          'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
+          'max-[680px]:border-t max-[680px]:border-border/60',
+          'max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+        )}
+        data-slot="chat-composer-shell"
+      >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background"
           data-slot="chat-composer-gradient"
         />
         <form
-          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4"
+          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:pb-2"
           data-slot="chat-composer"
           id="chat-composer"
           onSubmit={onSubmit}
@@ -275,7 +287,10 @@ export function ChatWorkspacePanel({
 
             {isAsking ? (
               <Button
-                className="shrink-0 rounded-md border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive sm:px-4"
+                className={cn(
+                  COMPOSER_PRIMARY_ACTION_CLASS,
+                  'border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive',
+                )}
                 onClick={onCancelRequest}
                 size="sm"
                 type="button"
@@ -286,7 +301,7 @@ export function ChatWorkspacePanel({
             ) : (
               <Button
                 aria-label="Ask"
-                className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
+                className={COMPOSER_PRIMARY_ACTION_CLASS}
                 disabled={question.trim().length === 0}
                 size="sm"
                 title="Enter to send"
