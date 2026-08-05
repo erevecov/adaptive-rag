@@ -206,7 +206,7 @@ export function ChatWorkspacePanel({
           data-slot="chat-composer-gradient"
         />
         <form
-          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:px-0.5 max-[680px]:pb-2 max-[680px]:pt-0.5"
+          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:px-0.5 max-[680px]:pb-1.5 max-[680px]:pt-0.5"
           data-slot="chat-composer"
           id="chat-composer"
           onSubmit={onSubmit}
