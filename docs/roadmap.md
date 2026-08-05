@@ -46,7 +46,7 @@
 - M41 Job queue hardening: completo.
 - M42 Chat multi-turn + query condenser: completo.
 - M43 Authoring lifecycle + RBAC closeout: completo.
-- **M44 CI + compose all-in-one + gate reconcile: planificado (activo, pre-v1.0 demo).**
+- M44 CI + compose all-in-one + gate reconcile: completo.
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
 - M45 PDF + DOCX ingestion: planificado (post-v1.0).
 - M46 Security pack: planificado (post-v1.0).
@@ -1862,20 +1862,14 @@ Entregado:
 
 #### M44 CI + compose all-in-one + gate reconcile
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- GitHub Actions minima: ruff, mypy, pytest, frontend test/typecheck/lint/build,
-  openspec strict (sin Qwen live obligatorio).
-- Compose con frontend (o API sirviendo build) + migraciones documentadas.
-- Reconciliar `deferred_defaults` del quality gate (p. ej. `auth_multi_user`
-  ya parcialmente entregado en M37) y config muerta.
-
-Criterio de exito:
-
-- `docker compose up` levanta demo usable; CI verde en PR; quality gate
-  refleja deferrals reales.
+- `.github/workflows/ci.yml` (backend + frontend + openspec).
+- Compose `frontend` (nginx static build) + docs de migraciones.
+- `auth_multi_user` removido de deferred_defaults.
+- OpenSpec `2026-08-05-m44-ci-compose-gate`. **Sin tag v1.0.**
 
 → **Tag / GitHub release v1.0 es accion humana** solo despues de re-ejecutar
 el gate desde `main` con M40–M44 cerrados.

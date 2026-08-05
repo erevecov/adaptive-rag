@@ -19,16 +19,20 @@ Instala dependencias de desarrollo:
 uv sync --extra dev
 ```
 
-Arranca Postgres local:
+Arranca Postgres local (o el stack all-in-one con API/frontend):
 
 ```bash
 docker compose up --build postgres
+# Demo UI (opcional):
+# docker compose up --build postgres api frontend
 ```
 
-En otra terminal, aplica migraciones:
+En otra terminal, aplica migraciones **antes** de first-run o de usar la API:
 
 ```bash
 uv run alembic upgrade head
+# con stack compose:
+# docker compose exec api uv run alembic upgrade head
 ```
 
 ## Smoke de producto

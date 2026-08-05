@@ -2,9 +2,17 @@
 
 ## Milestone activo
 
-**M44 CI + compose all-in-one + gate reconcile** (planificado, pre-v1.0).
+Bloque pre-v1 A cerrado (M40–M44). Proximo: re-gate humano y tag v1.0
+(humano). Post-v1: M45–M50.
 
 ## Ultimo milestone completado
+
+M44 CI + compose all-in-one + gate reconcile cerrado el 2026-08-05.
+
+GitHub Actions CI, compose frontend service, deferred_defaults sin
+`auth_multi_user`. **No se creo tag v1.0 ni GitHub Release.**
+
+## Milestone anterior completado
 
 M43 Authoring lifecycle + RBAC closeout cerrado el 2026-08-05.
 

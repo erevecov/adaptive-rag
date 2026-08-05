@@ -1,3 +1,9 @@
+# Local all-in-one demo stack.
+# 1) docker compose up --build postgres api
+# 2) docker compose exec api uv run alembic upgrade head
+# 3) docker compose up --build frontend
+# Frontend proxies API at http://localhost:5173 (VITE_API_BASE_URL=/api or :8000).
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -29,6 +35,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 
   worker:
     build: .
