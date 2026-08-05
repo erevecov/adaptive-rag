@@ -2733,15 +2733,15 @@ function AppearanceSettingsPanel({
     <Panel
       role="region"
       aria-labelledby="appearance-settings-title"
-      className="grid gap-6 p-6"
+      className="grid gap-4 p-4 max-[680px]:p-3"
     >
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
           <h2
-            className="text-xl font-semibold leading-tight text-foreground"
+            className="text-lg font-semibold leading-tight text-foreground"
             id="appearance-settings-title"
           >
             Appearance

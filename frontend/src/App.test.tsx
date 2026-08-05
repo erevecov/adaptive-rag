@@ -1040,6 +1040,7 @@ describe('App chat workspace', () => {
     expect(
       await within(memoryList).findByText('Approved'),
     ).toBeTruthy()
+  
   })
 
   test('shows settings modules and submodules in the sidebar', async () => {
