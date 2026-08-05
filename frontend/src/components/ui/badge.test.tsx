@@ -23,6 +23,7 @@ describe('Badge', () => {
     expect(badge.className).toContain('max-[680px]:px-1.5')
     expect(badge.className).toContain('max-[680px]:py-0')
     expect(badge.className).toContain('max-[680px]:text-[0.6875rem]')
+    expect(badge.className).toContain('max-[680px]:tracking-tighter')
     expect(badge.className).toContain('leading-none')
   })
 
