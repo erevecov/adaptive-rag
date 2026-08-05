@@ -1,5 +1,16 @@
 # Progreso de Adaptive RAG
 
+## Local re-gate evidence (2026-08-05 tip feat/m50-dense-reindex)
+
+- `uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json`
+  - status=succeeded release_decision=ready_for_v1_0
+- `uv run adaptive-rag acceptance runtime-settings-smoke --output artifacts/acceptance-runtime-settings-smoke.json`
+  - status=succeeded (6 criteria)
+- `uv tool run bandit -r src -q` exit 0 after B101 fix (a8a7fdb + stack backports)
+- **No v1.0 tag created** (human only)
+
+
+
 ## Milestone activo
 
 Bloque B post-v1 M45–M50 cerrados en stack tip `feat/m50-dense-reindex`.
