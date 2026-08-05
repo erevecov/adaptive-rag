@@ -2,20 +2,22 @@
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-polish-post-218` → **PR #222**  
-Note: #218 and #220 MERGED. Stale `feat/ui-obsessional-polish` / `feat/ui-polish-post-215` unused.
+Branch: `feat/ui-polish-post-218` → **https://github.com/erevecov/adaptive-rag/pull/222**  
+#218 + #220 MERGED. Not using stale obsessional/post-215 branches.
 
-## Shipped
-- Runtime slots / chat retrieval / project: canceled≠empty + Title Case
-- Authoring: list empties Title Case; knowledge proposals canceled; No File Selected
-- Retrieval: No Chunks Returned + tip lines Title Case
-- Obs: Summary/Refresh/Status Breakdown/Session Health Title Case
-- Memory: untouched (on main)
+## Shipped on #222
+| Commit | Summary |
+|--------|---------|
+| `5291126` | Runtime/authoring/obs/retrieval canceled≠empty + Title Case |
+| tip | Retrieval “Select a Project…” required copy Title Case |
 
 ## Verify
-Focused vitest authoring/retrieval/observability/runtime: **57 passed**.
+Focused vitest authoring/retrieval/obs/runtime: **57+ passed**; retrieval suite **7 passed**.
+
+## Memory
+Untouched — already on main (#214/#216).
 
 ## Next
-Continue operator densify on tip while #222 CI runs.
+Continue densify; land #222 when CI green.
 
 Grok merges green PRs.
