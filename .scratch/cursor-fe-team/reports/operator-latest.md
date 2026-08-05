@@ -1,19 +1,20 @@
-# FE OPERATOR report — 20260805 Title Case wave
+# FE OPERATOR report — post-#213 push loop
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (local ahead; **no push**)
+Branch: `feat/ui-obsessional-polish` (tip includes new commits after #213 open)
 
-## Commits this loop
-| SHA | Summary |
-|-----|---------|
-| `6ef8ce6` | Title Case job/proposal/obs status + denser knowledge empty |
-| `63a9e37` | Title Case runtime/authoring select labels (+ App.test sync) |
+## This pass
+| Finding | Fix |
+|---------|-----|
+| Soft-deleted metadata vs Deleted badge | Timestamp copy → `Deleted …` |
+| Source type badge/raw metadata lowercase | `sourceTypeLabel` (Markdown/PDF/…) |
+| `no tags` | `No tags` |
+| Runtime secret chip `configured` | `Configured` / `Not configured` |
+| Global retrieval summary lowercase | `Global defaults`, `Limit`, `Rerank on/off` |
 
 ## Verify
-authoring + runtime vitest — **34 passed** (last batch).
+authoring + runtime vitest — **36 passed**.
 
-## Next
-Hostile scan: runtime slot badges / connection type chips still raw; FileHelp density already denser via DS peers.
-
-No push. Grok opens/merges when CI all-green.
+## Coordination
+PR **#213** open (bulk fleet). Keep shipping on tip; Grok merges when CI green. No push from operator unless asked.
