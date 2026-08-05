@@ -2,7 +2,10 @@
 
 STATUS: ready-for-lead-review
 
-Role: operator · Branch: `feat/post-marathon-hardening`
+Commit: `b20eee9` — `fix(ui): operator secret-safe runtime and truthful status UX` (no push)
+
+Note: authoring empty≠loading / soft-delete tones / badge emerald+amber and observability stale banner were already on branch tip from prior hardening commits; this commit lands runtime secret-safe + tests + coordination artifacts.
+
 
 ## Pass summary
 Obsessive audit + P0/P1 implementation across authoring, retrieval, observability, runtime, and shared badge/feedback tones.
