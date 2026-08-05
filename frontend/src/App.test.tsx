@@ -1868,7 +1868,7 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('User login'), viewerUser.login)
     await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
     await user.type(screen.getByLabelText('Access token'), 'viewer-token')
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
+    await user.click(screen.getByRole('button', { name: 'Create User' }))
 
     await waitFor(() =>
       expect(createUser).toHaveBeenCalledWith({
@@ -1885,7 +1885,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Project role'),
       'Admin',
     )
-    await user.click(screen.getByRole('button', { name: 'Save membership' }))
+    await user.click(screen.getByRole('button', { name: 'Save Membership' }))
 
     await waitFor(() =>
       expect(upsertProjectMembership).toHaveBeenCalledWith(
@@ -1924,7 +1924,7 @@ describe('App chat workspace', () => {
     )
 
     await openSettingsSubmodule(user, 'Authoring', 'Knowledge')
-    await user.click(screen.getByRole('button', { name: 'Refresh proposals' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Proposals' }))
 
     expect(
       await screen.findByText('Document the escalation runbook from chat.'),
@@ -2318,7 +2318,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('Demo')).toBeTruthy()
 
     await user.type(screen.getByLabelText('Project name'), 'Demo')
-    await user.click(screen.getByRole('button', { name: 'Create project' }))
+    await user.click(screen.getByRole('button', { name: 'Create Project' }))
 
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
     expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
@@ -2332,7 +2332,7 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
     await user.type(screen.getByLabelText('Tags'), 'docs, local')
-    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    await user.click(screen.getByRole('button', { name: 'Create Source' }))
 
     expect(client.createSource).toHaveBeenCalledWith(projectId, {
       external_id: 'notes.md',
@@ -2371,7 +2371,7 @@ describe('App chat workspace', () => {
       await screen.findByText('pdf source file exceeds the 5 MiB limit.'),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    await user.click(screen.getByRole('button', { name: 'Create Source' }))
     expect(client.createSource).not.toHaveBeenCalled()
   })
 
@@ -2396,7 +2396,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Sources' }))
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
     await user.click(
@@ -2409,7 +2409,7 @@ describe('App chat workspace', () => {
     )
     expect((await screen.findAllByText('Queued')).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Jobs' }))
 
     expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
       job_type: 'ingest_source',
@@ -2494,11 +2494,11 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Sources' }))
 
     expect(await screen.findByText('Markdown · docs, local')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Jobs' }))
 
     expect(await screen.findByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('Unlocked')).toBeTruthy()
@@ -2726,7 +2726,7 @@ describe('App chat workspace', () => {
     const detailsToggle = within(stepper).getByRole('button', {
       name: /Expand chat steps/,
     })
-    expect(detailsToggle.textContent).toContain('1 source')
+    expect(detailsToggle.textContent).toContain('1 Source')
 
     await user.click(detailsToggle)
 
@@ -3476,7 +3476,7 @@ describe('App chat workspace', () => {
     const detailsToggle = within(transcript).getByRole('button', {
       name: 'Expand response details',
     })
-    expect(detailsToggle.textContent).toContain('1 source')
+    expect(detailsToggle.textContent).toContain('1 Source')
     expect(detailsToggle.textContent).toContain('1 tool call')
     expect(detailsToggle.textContent).toContain('usage')
 

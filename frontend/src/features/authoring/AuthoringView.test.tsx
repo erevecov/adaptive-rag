@@ -216,9 +216,9 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 describe('AuthoringPanel', () => {
   test('primary Create buttons keep min-h and stable Creating labels', () => {
     const idle = renderAuthoringPanel({ activeSubmodule: 'projects' })
-    const create = screen.getByRole('button', { name: 'Create project' })
+    const create = screen.getByRole('button', { name: 'Create Project' })
     expect(create.className).toMatch(/min-h-9/)
-    expect(create.textContent).toContain('Create project')
+    expect(create.textContent).toContain('Create Project')
     idle.view.unmount()
 
     renderAuthoringPanel({
@@ -537,7 +537,7 @@ describe('AuthoringPanel', () => {
       screen.getByText(/Selected: handbook\.pdf/).getAttribute('data-slot'),
     ).toBe('source-file-status')
     await userDriver.click(
-      screen.getByRole('button', { name: 'Clear selected file' }),
+      screen.getByRole('button', { name: 'Clear Selected File' }),
     )
     expect(onSourceFileChange).toHaveBeenCalledWith(null)
   })

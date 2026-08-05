@@ -459,7 +459,7 @@ function ProjectsPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create project"
+              idleLabel="Create Project"
             />
           </Button>
         </div>
@@ -633,7 +633,7 @@ function ProjectAccessPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring users"
-      description="Create users and assign project membership."
+      description="Create Users and assign project membership."
       eyebrow="Users"
       id="project-access-title"
       status={<RequestStatus state={state} />}
@@ -708,7 +708,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create user"
+              idleLabel="Create User"
             />
           </Button>
           <Button
@@ -720,7 +720,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Refreshing…"
-              idleLabel="Refresh access"
+              idleLabel="Refresh Access"
             />
           </Button>
           <Button
@@ -771,7 +771,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Saving…"
-              idleLabel="Save membership"
+              idleLabel="Save Membership"
             />
           </Button>
         </div>
@@ -979,7 +979,7 @@ function SourceFileField({
               : null}
           </span>
           <Button
-            aria-label="Clear selected file"
+            aria-label="Clear Selected File"
             disabled={isBusy}
             onClick={() => {
               setSizeBytes(null)
@@ -1163,7 +1163,7 @@ function SourcesPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create source"
+              idleLabel="Create Source"
             />
           </Button>
           <Button
@@ -1175,7 +1175,7 @@ function SourcesPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Refreshing…"
-              idleLabel="Refresh sources"
+              idleLabel="Refresh Sources"
             />
           </Button>
         </div>
@@ -1340,7 +1340,7 @@ function KnowledgeReviewPanel({
           <ButtonLabel
             busy={isBusy}
             busyLabel="Refreshing…"
-            idleLabel="Refresh proposals"
+            idleLabel="Refresh Proposals"
           />
         </Button>
       </div>
@@ -1501,7 +1501,7 @@ function IngestionJobsPanel({
           <ButtonLabel
             busy={isBusy}
             busyLabel="Refreshing…"
-            idleLabel="Refresh jobs"
+            idleLabel="Refresh Jobs"
           />
         </Button>
         <Button disabled={isBusy} onClick={onRunNext} type="button">
