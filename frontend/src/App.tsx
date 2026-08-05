@@ -700,6 +700,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           }
           setRequestState('succeeded')
           setQuestion('')
+          try {
+            const memories = await client.listUserMemories({
+              project_id: trimmedProjectId,
+              status: 'approved',
+            })
+            setAppliedMemories(memories.items)
+          } catch {
+            setAppliedMemories([])
+          }
           await handleRefreshHistory(trimmedProjectId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
