@@ -465,7 +465,7 @@ export function AppSidebar({
           aria-hidden={!isOpen}
           data-slot="sidebar-brand"
         >
-          <strong className="truncate text-sm font-extrabold leading-tight tracking-tight text-foreground max-[680px]:text-[0.8125rem]">
+          <strong className="truncate text-sm font-extrabold leading-tight tracking-tight text-foreground max-[680px]:text-[0.75rem]">
             Adaptive RAG
           </strong>
           <span className="truncate text-[11px] font-medium leading-tight tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem]">
