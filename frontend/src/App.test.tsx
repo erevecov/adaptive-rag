@@ -2496,7 +2496,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
 
-    expect(await screen.findByText('markdown · docs, local')).toBeTruthy()
+    expect(await screen.findByText('Markdown · docs, local')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
@@ -3898,12 +3898,12 @@ describe('App chat workspace', () => {
     await user.type(capabilitiesCombobox, 'dense')
     await user.click(
       await screen.findByRole('option', {
-        name: 'Add dense_embedding capability',
+        name: 'Add Dense Embedding capability',
       }),
     )
     expect(saveConnectionButton.disabled).toBe(false)
     expect(
-      screen.getByRole('button', { name: 'Remove dense_embedding capability' }),
+      screen.getByRole('button', { name: 'Remove Dense Embedding capability' }),
     ).toBeTruthy()
     fireEvent.change(screen.getByLabelText('API key'), {
       target: { value: 'sk-hosted-secret' },
@@ -4299,7 +4299,7 @@ describe('App chat workspace', () => {
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(projectSettings).getAllByText('dense_embedding').length).toBeGreaterThan(0)
+    expect(within(projectSettings).getAllByText('Dense Embedding').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('Inherited').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('Overridden').length).toBeGreaterThan(0)
 
@@ -4349,7 +4349,7 @@ describe('App chat workspace', () => {
       },
     )
 
-    await user.click(screen.getByRole('button', { name: 'Reset chat to global' }))
+    await user.click(screen.getByRole('button', { name: 'Reset Chat to global' }))
 
     expect(client.deleteProjectRuntimeSlotOverride).toHaveBeenCalledWith(
       projectId,
@@ -4525,7 +4525,7 @@ describe('App chat workspace', () => {
 
     expect(
       screen.getByText(
-        'Sync models for qwen-hosted before saving dense_embedding.',
+        'Sync models for qwen-hosted before saving Dense Embedding.',
       ),
     ).toBeTruthy()
     const saveButton = screen.getByRole('button', {
