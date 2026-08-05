@@ -3788,9 +3788,9 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
-    expect(await screen.findByText('No status data yet.')).toBeTruthy()
-    expect(screen.getByText('No provider usage groups yet.')).toBeTruthy()
-    expect(screen.getByText('No error messages yet.')).toBeTruthy()
+    expect(await screen.findByText('No Status Data Yet.')).toBeTruthy()
+    expect(screen.getByText('No Provider Usage Groups Yet.')).toBeTruthy()
+    expect(screen.getByText('No Error Messages Yet.')).toBeTruthy()
     expect(screen.getByText('No sessions in this filter window.')).toBeTruthy()
   })
 

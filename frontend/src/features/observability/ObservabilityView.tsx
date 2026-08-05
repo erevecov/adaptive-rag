@@ -650,7 +650,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
     <BreakdownCard label={`${summary.sessions.total} total`} title="Status breakdown">
       {rows.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-          No status data yet.
+          No Status Data Yet.
         </EmptyState>
       ) : (
         <DataList>
@@ -684,7 +684,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
     >
       {summary.errors.top_messages.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-          No error messages yet.
+          No Error Messages Yet.
         </EmptyState>
       ) : (
         <DataList>
@@ -718,7 +718,7 @@ function ProviderUsageTable({
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-            No provider usage groups yet.
+            No Provider Usage Groups Yet.
           </EmptyState>
         ) : (
           <TableScroll>

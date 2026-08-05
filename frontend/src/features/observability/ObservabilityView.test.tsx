@@ -366,7 +366,7 @@ describe('ObservabilityPanel', () => {
       '[data-slot="empty-state"][data-slot-state="empty"]',
     )
     expect(empties.length).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText('No status data yet.')).toBeTruthy()
-    expect(screen.getByText('No error messages yet.')).toBeTruthy()
+    expect(screen.getByText('No Status Data Yet.')).toBeTruthy()
+    expect(screen.getByText('No Error Messages Yet.')).toBeTruthy()
   })
 })
