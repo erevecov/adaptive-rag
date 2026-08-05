@@ -38,6 +38,13 @@ from adaptive_rag.evals.hosted import (
     validate_hosted_eval_options,
     validate_hosted_rerank_eval_options,
 )
+from adaptive_rag.evals.llm_judge import (
+    FakeDeterministicJudge,
+    JudgeScores,
+    PromptLlmJudge,
+    apply_llm_judge,
+    validate_llm_judge_options,
+)
 from adaptive_rag.evals.models import (
     ChatEvalCase,
     EvalCaseComparison,
@@ -98,6 +105,9 @@ __all__ = [
     "EvalRunReport",
     "EvalSuite",
     "EvalThresholds",
+    "FakeDeterministicJudge",
+    "JudgeScores",
+    "PromptLlmJudge",
     "GraphQualityGateDecision",
     "GraphQualityGateReport",
     "GraphLiveEvidenceReport",
@@ -108,6 +118,7 @@ __all__ = [
     "StrategyGateRow",
     "StrategyGateRowStatus",
     "StrategyGateStrategy",
+    "apply_llm_judge",
     "build_candidate_limit_eval_matrix",
     "build_graph_live_evidence_report",
     "load_eval_suite",
@@ -137,4 +148,5 @@ __all__ = [
     "validate_hosted_eval_credentials",
     "validate_hosted_eval_options",
     "validate_hosted_rerank_eval_options",
+    "validate_llm_judge_options",
 ]

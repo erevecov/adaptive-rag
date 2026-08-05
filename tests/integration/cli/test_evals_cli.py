@@ -1027,6 +1027,69 @@ def test_evals_run_command_reports_missing_suite(tmp_path: Path) -> None:
     assert "could not read eval suite" in result.output
 
 
+def test_evals_run_llm_judge_requires_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-judge-no-budget",
+            "thresholds": {},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["evals", "run", str(suite_path), "--llm-judge"],
+    )
+
+    assert result.exit_code == 1
+    assert "LLM-as-judge requires --max-cost-usd" in result.output
+
+
+def test_evals_run_offline_llm_judge_adds_metrics(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session = _make_session()
+    _patch_evals_dependencies(monkeypatch, session=session)
+    suite_path = _write_suite(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "suite_id": "cli-judge-ok",
+            "thresholds": {},
+            "evidence": [],
+            "retrieval_cases": [],
+            "chat_cases": [],
+        },
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "evals",
+            "run",
+            str(suite_path),
+            "--llm-judge",
+            "--max-cost-usd",
+            "0.5",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "passed"
+    assert payload["metrics"]["judge_case_count"] == 0.0
+
+
 def _patch_evals_dependencies(
     monkeypatch: pytest.MonkeyPatch,
     *,

@@ -41,6 +41,11 @@ from adaptive_rag.evals import (
     summarize_provider_usage,
     validate_hosted_rerank_eval_options,
 )
+from adaptive_rag.evals.llm_judge import (
+    FakeDeterministicJudge,
+    apply_llm_judge,
+    validate_llm_judge_options,
+)
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
@@ -66,6 +71,16 @@ def run(
         RetrievalStrategy | None,
         typer.Option("--retrieval-strategy"),
     ] = None,
+    llm_judge: Annotated[
+        bool,
+        typer.Option(
+            "--llm-judge/--no-llm-judge",
+            help=(
+                "Opt-in LLM-as-judge metrics for chat cases "
+                "(requires --max-cost-usd > 0; offline uses deterministic fake)"
+            ),
+        ),
+    ] = False,
 ) -> None:
     try:
         suite = load_eval_suite(suite_path)
@@ -78,6 +93,7 @@ def run(
         "dense" if active_mode == "hosted" else "dense_sparse"
     )
     try:
+        validate_llm_judge_options(enabled=llm_judge, max_cost_usd=max_cost_usd)
         if active_mode == "hosted":
             if retrieval_strategy is not None and active_retrieval_strategy != "dense":
                 raise EvalConfigurationError(
@@ -118,6 +134,13 @@ def run(
                     chat_runner=get_cli_chat_runner(),
                     retrieval_strategy=active_retrieval_strategy,
                 )
+        if llm_judge:
+            questions = {case.id: case.message for case in suite.chat_cases}
+            report = apply_llm_judge(
+                report,
+                judge=FakeDeterministicJudge(),
+                questions_by_case_id=questions,
+            )
     except (
         EvalConfigurationError,
         ProviderBudgetExceededError,

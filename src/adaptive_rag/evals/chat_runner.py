@@ -189,6 +189,10 @@ def _run_chat_case(
             )
         ),
         observed_tool_queries=observed_tool_queries,
+        answer=response.answer,
+        context_snippets=tuple(
+            citation["citation"]["snippet"] for citation in response.citations
+        ),
     )
 
 

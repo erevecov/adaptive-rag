@@ -13,13 +13,20 @@
 
 ## Milestone activo
 
-Bloque C: user memory minima en `feat/c-user-memory-minima` (stacked on
-`feat/m50-dense-reindex`). Residual experimental: LLM-as-judge opt-in,
-retrieval playground UI, UI polish sidebar/chat PR separado. Graph live:
-hold documentado en `docs/architecture/graph-live-bloque-c-decision.md`.
-Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
+Bloque C residual: retrieval playground UI y UI polish sidebar/chat (PR
+separado). Stack tip experimental: `feat/c-llm-as-judge-opt-in` sobre
+user-memory. Graph live: hold documentado. Tag v1.0 decision humana.
 
 ## Ultimo milestone completado
+
+Bloque C — LLM-as-judge opt-in (2026-08-05):
+
+- CLI `evals run --llm-judge` requiere `--max-cost-usd > 0`
+- Offline: `FakeDeterministicJudge` (citation coverage / non-empty answer)
+- Live hook: `PromptLlmJudge` + `eval_judge` usage; suite status no cambia
+- OpenSpec `llm-judge` + unit/CLI tests
+
+## Milestone anterior completado
 
 Bloque C — User memory minima (2026-08-05):
 
@@ -218,9 +225,10 @@ camino de producto UI/API; el tag espera ese cierre.
 ## Change OpenSpec activo
 
 No active changes found. Archives M40–M50 under
-`openspec/changes/archive/2026-08-05-m*` plus Bloque C user-memory under
-`openspec/changes/archive/2026-08-05-c-user-memory-minima/`.
-Proximo opcional: Bloque C residual (LLM-as-judge, playground UI, polish).
+`openspec/changes/archive/2026-08-05-m*` plus Bloque C under
+`openspec/changes/archive/2026-08-05-c-user-memory-minima/` and
+`openspec/changes/archive/2026-08-05-c-llm-as-judge-opt-in/`.
+Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Planificacion reciente
 
@@ -271,11 +279,12 @@ Proximo opcional: Bloque C residual (LLM-as-judge, playground UI, polish).
 - `openspec/specs/v1-release-readiness/spec.md`
 - `openspec/specs/v1-product-completion/spec.md`
 - `openspec/specs/user-memory/spec.md`
+- `openspec/specs/llm-judge/spec.md`
 
 ## Siguiente tarea recomendada
 
-- Merge stack M40–M50 + user-memory (human). Residual Bloque C: LLM-as-judge
-  opt-in budgeted, retrieval playground UI, o UI polish PR separado.
+- Merge stack M40–M50 + user-memory + llm-judge (human). Residual Bloque C:
+  retrieval playground UI o UI polish PR separado.
   Tag/GitHub release v1.0 sigue siendo decision humana.
 
 ## Reglas de coordinacion

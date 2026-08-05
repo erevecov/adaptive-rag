@@ -55,8 +55,9 @@
 - M49 MCP stdio minimo: completo.
 - M50 Dense reindex + contextualizacion LLM opt-in: completo.
 - Bloque C user memory minima: completo (tabla + API + inject; sin UI).
-- Bloque experimental residual (LLM-as-judge, retrieval playground, UI polish):
-  diferido. Graph live: hold documentado.
+- Bloque C LLM-as-judge opt-in: completo (`--llm-judge` + budget; fake offline).
+- Bloque experimental residual (retrieval playground, UI polish): diferido.
+  Graph live: hold documentado.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
 `artifacts/roadmap-research/`, decision del owner: aceptar secuencia unificada
@@ -1932,10 +1933,12 @@ Estado: completo (2026-08-05).
 - **User memory minima**: completo (2026-08-05). Tabla `user_memories`,
   API `/users/me/memories` propose/list/approve/reject, chat inject solo
   approved; OpenSpec `user-memory`. Sin UI de memoria.
+- **LLM-as-judge** en evals: completo (2026-08-05). Opt-in `--llm-judge`
+  requiere `--max-cost-usd > 0`; fake offline + `PromptLlmJudge` hook;
+  OpenSpec `llm-judge`. No cambia pass/fail del suite por defecto.
 - **Graph live evidence + vista force-graph**: hold documentado en
   `docs/architecture/graph-live-bloque-c-decision.md` (no_go hasta Neo4j
   live + evidence report).
-- **LLM-as-judge** en evals (solo opt-in con `--max-cost-usd`): pendiente.
 - **Retrieval playground** en UI (quick win): pendiente.
 - **UI polish sidebar/chat** (PR separado; no mezcla backend M40+): pendiente.
 
