@@ -32,7 +32,11 @@ jobs:
       - name: Bandit
         run: uv tool run bandit -r src -q
       - name: Pip audit
-        run: uv tool run pip-audit --strict
+        # Audit the project environment (uv tool run would only audit the
+        # isolated pip-audit tool env). No --strict: the local project
+        # package is not on PyPI and strict turns that skip into an error;
+        # real vulnerabilities still fail the gate.
+        run: uv run --with pip-audit pip-audit
 
   frontend:
     name: frontend (test, typecheck, lint, build)
