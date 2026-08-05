@@ -23,6 +23,7 @@ export const DataListItem = forwardRef<HTMLLIElement, DataListItemProps>(
     <li
       className={cn(
         'min-w-0 rounded-md border border-border bg-card p-3 text-card-foreground',
+        'motion-safe:transition-colors hover:bg-muted/30',
         className,
       )}
       ref={ref}

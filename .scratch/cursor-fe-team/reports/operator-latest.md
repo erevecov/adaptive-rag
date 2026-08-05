@@ -4,17 +4,17 @@ STATUS: ready-for-lead-review
 
 Branch: `feat/ui-obsessional-polish` (local ahead of origin; **no push**)
 
-## Operator commits since #212
-| SHA | Summary |
-|-----|---------|
+## Operator work since #212
+| Commit | Summary |
+|--------|---------|
 | `6fb3997` | form gap-4 + runtime loading pulse chrome |
 | `4c09482` | FieldHelp outside FieldControl + describedby |
 | `5bf64ca` | retrieval rerank hint → FieldHelp |
 | `912c694` | unicode ellipsis on busy labels |
-| (pending) | users/memberships per-column empties |
+| `1dde3c1` | includes users/memberships per-column empties (+ peer DS/chat) |
 
 ## Verify
-Focused vitest authoring/runtime/observability/retrieval — green on each batch.
+Focused vitest authoring/runtime/observability/retrieval — green per batch (authoring **13** on last pass).
 
 ## Coordination
-Grok opens/merges PR only when CI all-green. Operator continues taste loop on tip.
+No push from operator. Grok opens/merges PR only when CI all-green.

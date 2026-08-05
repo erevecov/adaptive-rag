@@ -5,7 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { DataList, DataListItem } from './data-list'
-import { Field, FieldLabel } from './field'
+import { Field, FieldHelp, FieldLabel } from './field'
 import { Panel, PanelBody, PanelHeader } from './panel'
 
 afterEach(() => {
@@ -44,6 +44,22 @@ describe('Field disabled styling', () => {
   })
 })
 
+describe('FieldHelp density', () => {
+  test('uses compact xs help copy for operator forms', () => {
+    render(
+      <Field>
+        <FieldLabel htmlFor="token">Token</FieldLabel>
+        <FieldHelp id="token-help">Paste once; never shown after save.</FieldHelp>
+      </Field>,
+    )
+
+    const help = screen.getByText('Paste once; never shown after save.')
+    expect(help.getAttribute('data-slot')).toBe('field-help')
+    expect(help.className).toContain('text-xs')
+    expect(help.className).toContain('leading-relaxed')
+  })
+})
+
 describe('DataListItem', () => {
   test('allows truncation inside flex rows via min-w-0', () => {
     render(
@@ -52,6 +68,9 @@ describe('DataListItem', () => {
       </DataList>,
     )
 
-    expect(screen.getByText('row').className).toContain('min-w-0')
+    const row = screen.getByText('row')
+    expect(row.className).toContain('min-w-0')
+    expect(row.className).toContain('motion-safe:transition-colors')
+    expect(row.className).toContain('hover:bg-muted/30')
   })
 })
