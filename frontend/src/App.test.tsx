@@ -1991,7 +1991,7 @@ describe('App chat workspace', () => {
         .getAttribute('aria-pressed'),
     ).toBe('true')
 
-    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
 
     expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
   })
@@ -2273,7 +2273,7 @@ describe('App chat workspace', () => {
         ?.hasAttribute('inert'),
     ).toBe(true)
 
-    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
     expect(skip.hasAttribute('inert')).toBe(false)
   })
 

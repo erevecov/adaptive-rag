@@ -221,7 +221,7 @@ export function SessionNavigationPanel({
               role="status"
             >
               <span className="sr-only">Cargando...</span>
-              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/40" />
+              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/25" />
               <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/35" />
               <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/30" />
             </div>
@@ -553,7 +553,7 @@ export function WorkspaceInspectorPanel({
           </SegmentedControlItem>
         </SegmentedControl>
         <IconButton
-          label="Close right sidebar"
+          label="Close Right Sidebar"
           onClick={onClose}
           ref={closeButtonRef}
           variant="ghost"
@@ -623,7 +623,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </span>
             <div
               aria-hidden="true"
-              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/40"
+              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25"
             />
             <div
               aria-hidden="true"
@@ -960,15 +960,15 @@ function SessionDetailPanel({
           >
             <span className="sr-only">Loading session detail...</span>
             <div aria-hidden="true" className="grid gap-2">
-              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/25" />
               <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
             </div>
             <div aria-hidden="true" className="grid gap-2 pt-1">
-              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/25" />
               <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/40" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
             </div>
           </div>
         </PanelBody>
@@ -1047,9 +1047,9 @@ function SessionDetailPanel({
           </DataList>
         </section>
 
-        <DetailSection id="history-tools-title" title="Tool calls">
+        <DetailSection id="history-tools-title" title="Tool Calls">
           <CompactStateList
-            emptyLabel="No stored tool calls."
+            emptyLabel="No Stored Tool Calls."
             items={detail.tool_calls}
             renderItem={(call) => (
               <ToolCallDetail call={call} key={call.tool_call_id} />
@@ -1057,9 +1057,9 @@ function SessionDetailPanel({
           />
         </DetailSection>
 
-        <DetailSection id="retrieval-runs-title" title="Retrieval runs">
+        <DetailSection id="retrieval-runs-title" title="Retrieval Runs">
           <CompactStateList
-            emptyLabel="No stored retrieval runs."
+            emptyLabel="No Stored Retrieval Runs."
             items={detail.retrieval_runs}
             renderItem={(run) => (
               <RetrievalRunDetail
@@ -1071,9 +1071,9 @@ function SessionDetailPanel({
           />
         </DetailSection>
 
-        <DetailSection id="provider-usage-title" title="Provider usage">
+        <DetailSection id="provider-usage-title" title="Provider Usage">
           <CompactStateList
-            emptyLabel="No provider usage stored."
+            emptyLabel="No Provider Usage Stored."
             items={detail.provider_usage}
             renderItem={(usage) => (
               <ProviderUsageDetail key={usage.provider_usage_id} usage={usage} />
@@ -1535,13 +1535,13 @@ function formatJsonValue(value: unknown): string {
 
 function getCitationText(value: unknown, key: string): string {
   if (value === null || typeof value !== 'object' || !(key in value)) {
-    return 'No citation text stored.'
+    return 'No Citation Text Stored.'
   }
 
   const nextValue = (value as Record<string, unknown>)[key]
   return typeof nextValue === 'string' && nextValue.length > 0
     ? nextValue
-    : 'No citation text stored.'
+    : 'No Citation Text Stored.'
 }
 
 function getJsonString(value: unknown, key: string): string | null {

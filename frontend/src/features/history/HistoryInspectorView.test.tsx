@@ -676,7 +676,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     expect(screen.getByRole('dialog', { name: 'Workspace inspector' })).toBeTruthy()
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: 'Close right sidebar' }),
+      screen.getByRole('button', { name: 'Close Right Sidebar' }),
     )
 
     await user.keyboard('{Escape}')
@@ -738,7 +738,7 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const dialog = screen.getByRole('dialog', { name: 'Workspace inspector' })
-    const close = screen.getByRole('button', { name: 'Close right sidebar' })
+    const close = screen.getByRole('button', { name: 'Close Right Sidebar' })
     expect(document.activeElement).toBe(close)
 
     await user.tab()
