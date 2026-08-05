@@ -31,7 +31,7 @@ describe('Badge', () => {
   test('primary tone uses foreground on tinted fill; success uses emerald contrast', () => {
     const { rerender } = render(<Badge tone="primary">12</Badge>)
     expect(screen.getByText('12').className).toContain('text-foreground')
-    expect(screen.getByText('12').className).toContain('bg-primary/15')
+    expect(screen.getByText('12').className).toContain('bg-primary/25')
 
     rerender(<Badge tone="success">ok</Badge>)
     expect(screen.getByText('ok').className).toContain('text-emerald-800')
