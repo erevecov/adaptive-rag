@@ -55,7 +55,8 @@
   --destructive-foreground: #ffffff;
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: #a3a3a3;
+  /* Darker ring for ≥3:1 against white (non-text focus AA) */
+  --ring: #737373;
   --radius: 8px;
   --shadow-sidebar-toggle: 0 14px 32px color-mix(in srgb, var(--foreground) 16%, transparent);
   --shadow-popover: 0 18px 42px color-mix(in srgb, var(--foreground) 28%, transparent);
@@ -97,8 +98,9 @@
   --card-foreground: #f4f0ff;
   --popover: #100d1e;
   --popover-foreground: #f4f0ff;
-  --primary: #8f7dff;
-  --primary-foreground: #ffffff;
+  /* Slightly brighter primary + dark FG for ≥4.5:1 on primary buttons */
+  --primary: #a898ff;
+  --primary-foreground: #120b28;
   --secondary: #17122a;
   --secondary-foreground: #f4f0ff;
   --muted: #120f22;
@@ -111,7 +113,7 @@
   --border: #2a2247;
   --input: #382e61;
   /* Match primary so purple focus rings remain legible on deep violet bg */
-  --ring: #a898ff;
+  --ring: #b8aaff;
 }
 
 * {
