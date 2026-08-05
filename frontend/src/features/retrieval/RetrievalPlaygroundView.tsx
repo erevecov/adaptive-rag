@@ -331,7 +331,7 @@ export function RetrievalPlaygroundPanel({
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
-                    <p className="line-clamp-4 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+                    <p className="line-clamp-4 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.6875rem] max-[680px]:leading-snug">
                       {result.citation.snippet}
                     </p>
                   </div>
