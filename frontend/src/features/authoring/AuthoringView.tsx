@@ -44,6 +44,10 @@ export type AuthoringPanelProps = {
   onCreateProject(event: FormEvent<HTMLFormElement>): void
   onCreateSource(event: FormEvent<HTMLFormElement>): void
   onCreateUser(event: FormEvent<HTMLFormElement>): void
+  onDeactivateUser(user: User): void
+  onDeleteMembership(membership: ProjectMembership): void
+  onDeleteProject(project: Project): void
+  onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
   onApproveKnowledgeProposal(proposal: KnowledgeProposal): void
   onMemberRoleChange(value: string): void
@@ -59,11 +63,13 @@ export type AuthoringPanelProps = {
   onRefineKnowledgeProposal(proposal: KnowledgeProposal): void
   onRejectKnowledgeProposal(proposal: KnowledgeProposal): void
   onRetryIngestionJob(job: IngestionJob): void
+  onRevokeAccessToken(): void
   onRunNextIngestion(): void
   onSaveProjectMembership(event: FormEvent<HTMLFormElement>): void
   onSelectProject(project: Project): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
+  onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
   onUserAccessTokenChange(value: string): void
@@ -80,6 +86,7 @@ export type AuthoringPanelProps = {
   sourceContent: string
   sourceError: string | null
   sourceExternalId: string
+  sourceFileName: string
   sourceState: RequestState
   sourceTags: string
   sourceType: string
@@ -108,6 +115,10 @@ export function AuthoringPanel({
   onCreateProject,
   onCreateSource,
   onCreateUser,
+  onDeactivateUser,
+  onDeleteMembership,
+  onDeleteProject,
+  onDeleteSource,
   onEnqueueIngestion,
   onApproveKnowledgeProposal,
   onMemberRoleChange,
@@ -123,11 +134,13 @@ export function AuthoringPanel({
   onRefineKnowledgeProposal,
   onRejectKnowledgeProposal,
   onRetryIngestionJob,
+  onRevokeAccessToken,
   onRunNextIngestion,
   onSaveProjectMembership,
   onSelectProject,
   onSourceContentChange,
   onSourceExternalIdChange,
+  onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
   onUserAccessTokenChange,
@@ -144,6 +157,7 @@ export function AuthoringPanel({
   sourceContent,
   sourceError,
   sourceExternalId,
+  sourceFileName,
   sourceState,
   sourceTags,
   sourceType,
@@ -167,6 +181,7 @@ export function AuthoringPanel({
           error={projectError}
           isBusy={isProjectBusy}
           onCreateProject={onCreateProject}
+          onDeleteProject={onDeleteProject}
           onProjectNameChange={onProjectNameChange}
           onSelectProject={onSelectProject}
           projectId={projectId}
@@ -184,9 +199,12 @@ export function AuthoringPanel({
           memberUserId={memberUserId}
           memberships={memberships}
           onCreateUser={onCreateUser}
+          onDeactivateUser={onDeactivateUser}
+          onDeleteMembership={onDeleteMembership}
           onMemberRoleChange={onMemberRoleChange}
           onMemberUserIdChange={onMemberUserIdChange}
           onRefresh={onRefreshAccess}
+          onRevokeAccessToken={onRevokeAccessToken}
           onSaveMembership={onSaveProjectMembership}
           onUserAccessTokenChange={onUserAccessTokenChange}
           onUserDisplayNameChange={onUserDisplayNameChange}
@@ -207,16 +225,19 @@ export function AuthoringPanel({
             error={sourceError}
             isBusy={isSourceBusy}
             onCreateSource={onCreateSource}
+            onDeleteSource={onDeleteSource}
             onEnqueueIngestion={onEnqueueIngestion}
             onProjectIdChange={onProjectIdChange}
             onRefreshSources={onRefreshSources}
             onSourceContentChange={onSourceContentChange}
             onSourceExternalIdChange={onSourceExternalIdChange}
+            onSourceFileChange={onSourceFileChange}
             onSourceTagsChange={onSourceTagsChange}
             onSourceTypeChange={onSourceTypeChange}
             projectId={projectId}
             sourceContent={sourceContent}
             sourceExternalId={sourceExternalId}
+            sourceFileName={sourceFileName}
             sourceState={sourceState}
             sourceTags={sourceTags}
             sourceType={sourceType}
@@ -347,6 +368,7 @@ function ProjectsPanel({
   error,
   isBusy,
   onCreateProject,
+  onDeleteProject,
   onProjectNameChange,
   onSelectProject,
   projectId,
@@ -357,6 +379,7 @@ function ProjectsPanel({
   error: string | null
   isBusy: boolean
   onCreateProject(event: FormEvent<HTMLFormElement>): void
+  onDeleteProject(project: Project): void
   onProjectNameChange(value: string): void
   onSelectProject(project: Project): void
   projectId: string
@@ -397,6 +420,8 @@ function ProjectsPanel({
 
       <ProjectList
         activeProjectId={projectId}
+        isBusy={isBusy}
+        onDeleteProject={onDeleteProject}
         onSelectProject={onSelectProject}
         projects={projects}
       />
@@ -406,10 +431,14 @@ function ProjectsPanel({
 
 function ProjectList({
   activeProjectId,
+  isBusy,
+  onDeleteProject,
   onSelectProject,
   projects,
 }: {
   activeProjectId: string
+  isBusy: boolean
+  onDeleteProject(project: Project): void
   onSelectProject(project: Project): void
   projects: Project[]
 }) {
@@ -426,10 +455,11 @@ function ProjectList({
           : 'no access'
         return (
           <DataListItem className="p-0" key={project.id}>
+            <div className="flex items-stretch gap-1 p-1">
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
-              className="h-auto w-full justify-between gap-3 whitespace-normal p-3 text-left"
+              className="h-auto min-w-0 flex-1 justify-between gap-3 whitespace-normal p-3 text-left"
               disabled={!canAccess}
               onClick={() => onSelectProject(project)}
               variant="ghost"
@@ -446,6 +476,17 @@ function ProjectList({
                 {roleLabel}
               </Badge>
             </Button>
+            <Button
+              aria-label={`Delete project ${project.name}`}
+              className="shrink-0 self-center"
+              disabled={isBusy || !canAccess}
+              onClick={() => onDeleteProject(project)}
+              type="button"
+              variant="secondary"
+            >
+              Delete
+            </Button>
+            </div>
           </DataListItem>
         )
       })}
@@ -460,9 +501,12 @@ function ProjectAccessPanel({
   memberUserId,
   memberships,
   onCreateUser,
+  onDeactivateUser,
+  onDeleteMembership,
   onMemberRoleChange,
   onMemberUserIdChange,
   onRefresh,
+  onRevokeAccessToken,
   onSaveMembership,
   onUserAccessTokenChange,
   onUserDisplayNameChange,
@@ -481,9 +525,12 @@ function ProjectAccessPanel({
   memberUserId: string
   memberships: ProjectMembership[]
   onCreateUser(event: FormEvent<HTMLFormElement>): void
+  onDeactivateUser(user: User): void
+  onDeleteMembership(membership: ProjectMembership): void
   onMemberRoleChange(value: string): void
   onMemberUserIdChange(value: string): void
   onRefresh(): void
+  onRevokeAccessToken(): void
   onSaveMembership(event: FormEvent<HTMLFormElement>): void
   onUserAccessTokenChange(value: string): void
   onUserDisplayNameChange(value: string): void
@@ -576,6 +623,14 @@ function ProjectAccessPanel({
           >
             {isBusy ? 'Refreshing...' : 'Refresh access'}
           </Button>
+          <Button
+            disabled={isBusy || userAccessToken.trim() === ''}
+            onClick={onRevokeAccessToken}
+            type="button"
+            variant="secondary"
+          >
+            Revoke access token
+          </Button>
         </div>
       </form>
 
@@ -618,16 +673,28 @@ function ProjectAccessPanel({
 
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
-      <UserAccessLists memberships={memberships} users={users} />
+      <UserAccessLists
+        isBusy={isBusy}
+        memberships={memberships}
+        onDeactivateUser={onDeactivateUser}
+        onDeleteMembership={onDeleteMembership}
+        users={users}
+      />
     </AuthoringSectionPanel>
   )
 }
 
 function UserAccessLists({
+  isBusy,
   memberships,
+  onDeactivateUser,
+  onDeleteMembership,
   users,
 }: {
+  isBusy: boolean
   memberships: ProjectMembership[]
+  onDeactivateUser(user: User): void
+  onDeleteMembership(membership: ProjectMembership): void
   users: User[]
 }) {
   if (users.length === 0 && memberships.length === 0) {
@@ -650,7 +717,20 @@ function UserAccessLists({
                 {user.id}
               </small>
             </div>
-            <Badge className="w-fit">{user.system_role}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="w-fit">
+                {user.is_active ? user.system_role : `${user.system_role} (inactive)`}
+              </Badge>
+              <Button
+                aria-label={`Deactivate user ${user.login}`}
+                disabled={isBusy || !user.is_active}
+                onClick={() => onDeactivateUser(user)}
+                type="button"
+                variant="secondary"
+              >
+                Deactivate
+              </Button>
+            </div>
           </DataListItem>
         ))}
       </DataList>
@@ -665,7 +745,18 @@ function UserAccessLists({
                 {membership.project_id}
               </small>
             </div>
-            <Badge className="w-fit">{membership.role}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="w-fit">{membership.role}</Badge>
+              <Button
+                aria-label={`Remove membership ${membership.user_id}`}
+                disabled={isBusy}
+                onClick={() => onDeleteMembership(membership)}
+                type="button"
+                variant="secondary"
+              >
+                Remove
+              </Button>
+            </div>
           </DataListItem>
         ))}
       </DataList>
@@ -673,20 +764,31 @@ function UserAccessLists({
   )
 }
 
+function isBinarySourceType(sourceType: string): boolean {
+  return sourceType === 'pdf' || sourceType === 'docx'
+}
+
+function isTextSourceType(sourceType: string): boolean {
+  return sourceType === 'markdown' || sourceType === 'text' || sourceType === 'txt'
+}
+
 function SourcesPanel({
   error,
   isBusy,
   onCreateSource,
+  onDeleteSource,
   onEnqueueIngestion,
   onProjectIdChange,
   onRefreshSources,
   onSourceContentChange,
   onSourceExternalIdChange,
+  onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
   projectId,
   sourceContent,
   sourceExternalId,
+  sourceFileName,
   sourceState,
   sourceTags,
   sourceType,
@@ -695,21 +797,26 @@ function SourcesPanel({
   error: string | null
   isBusy: boolean
   onCreateSource(event: FormEvent<HTMLFormElement>): void
+  onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
   onProjectIdChange(value: string): void
   onRefreshSources(): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
+  onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
   projectId: string
   sourceContent: string
   sourceExternalId: string
+  sourceFileName: string
   sourceState: RequestState
   sourceTags: string
   sourceType: string
   sources: Source[]
 }) {
+  const binaryType = isBinarySourceType(sourceType)
+  const textType = isTextSourceType(sourceType)
   return (
     <AuthoringSectionPanel
       ariaLabel="Authoring sources"
@@ -744,6 +851,8 @@ function SourcesPanel({
                   { label: 'text', value: 'text' },
                   { label: 'txt', value: 'txt' },
                   { label: 'url', value: 'url' },
+                  { label: 'pdf', value: 'pdf' },
+                  { label: 'docx', value: 'docx' },
                 ]}
                 value={sourceType}
               />
@@ -764,18 +873,50 @@ function SourcesPanel({
             )}
           </AuthoringField>
         </div>
-        <AuthoringField id="authoring-source-content" label="Content">
-          {(fieldId) => (
-            <Textarea
-              id={fieldId}
-              name="source-content"
-              onChange={(event) => onSourceContentChange(event.currentTarget.value)}
-              placeholder="# Notes"
-              rows={5}
-              value={sourceContent}
-            />
-          )}
-        </AuthoringField>
+        {binaryType ? (
+          <AuthoringField id="authoring-source-file" label="File">
+            {(fieldId) => (
+              <div className="grid gap-1">
+                <Input
+                  accept={
+                    sourceType === 'pdf'
+                      ? 'application/pdf,.pdf'
+                      : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                  }
+                  id={fieldId}
+                  name="source-file"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0] ?? null
+                    onSourceFileChange(file)
+                  }}
+                  type="file"
+                />
+                {sourceFileName.length > 0 ? (
+                  <span className="text-xs text-muted-foreground">
+                    Selected: {sourceFileName}
+                  </span>
+                ) : null}
+              </div>
+            )}
+          </AuthoringField>
+        ) : textType ? (
+          <AuthoringField id="authoring-source-content" label="Content">
+            {(fieldId) => (
+              <Textarea
+                id={fieldId}
+                name="source-content"
+                onChange={(event) => onSourceContentChange(event.currentTarget.value)}
+                placeholder="# Notes"
+                rows={5}
+                value={sourceContent}
+              />
+            )}
+          </AuthoringField>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            URL sources are fetched during ingestion; no content is required here.
+          </p>
+        )}
         <AuthoringField id="authoring-source-tags" label="Tags">
           {(fieldId) => (
             <Input
@@ -805,15 +946,24 @@ function SourcesPanel({
 
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
-      <SourceList onEnqueueIngestion={onEnqueueIngestion} sources={sources} />
+      <SourceList
+        isBusy={isBusy}
+        onDeleteSource={onDeleteSource}
+        onEnqueueIngestion={onEnqueueIngestion}
+        sources={sources}
+      />
     </AuthoringSectionPanel>
   )
 }
 
 function SourceList({
+  isBusy,
+  onDeleteSource,
   onEnqueueIngestion,
   sources,
 }: {
+  isBusy: boolean
+  onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
   sources: Source[]
 }) {
@@ -846,12 +996,23 @@ function SourceList({
             <Badge>{source.source_type}</Badge>
             <Button
               aria-label={`Enqueue ingestion for ${source.external_id}`}
+              disabled={isBusy}
               onClick={() => onEnqueueIngestion(source)}
               size="sm"
               type="button"
               variant="secondary"
             >
               Queue
+            </Button>
+            <Button
+              aria-label={`Delete source ${source.external_id}`}
+              disabled={isBusy}
+              onClick={() => onDeleteSource(source)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Delete
             </Button>
           </DataListItemActions>
         </DataListItem>

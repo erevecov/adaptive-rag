@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -44,9 +45,12 @@ class SourceRepository:
         *,
         project_id: UUID,
         filters: SourceFilters | None = None,
+        include_deleted: bool = False,
     ) -> list[Source]:
         active_filters = filters or SourceFilters()
         statement = select(Source).where(Source.project_id == project_id)
+        if not include_deleted:
+            statement = statement.where(Source.deleted_at.is_(None))
 
         if active_filters.source_type is not None:
             statement = statement.where(
@@ -77,11 +81,19 @@ class SourceRepository:
             if source.tags is not None and active_filters.tag in source.tags
         ]
 
-    def get(self, *, project_id: UUID, source_id: UUID) -> Source | None:
+    def get(
+        self,
+        *,
+        project_id: UUID,
+        source_id: UUID,
+        include_deleted: bool = False,
+    ) -> Source | None:
         statement = select(Source).where(
             Source.id == source_id,
             Source.project_id == project_id,
         )
+        if not include_deleted:
+            statement = statement.where(Source.deleted_at.is_(None))
         return self._session.scalars(statement).one_or_none()
 
     def get_by_identity(
@@ -95,5 +107,35 @@ class SourceRepository:
             Source.project_id == project_id,
             Source.source_type == source_type,
             Source.external_id == external_id,
+            Source.deleted_at.is_(None),
         )
         return self._session.scalars(statement).one_or_none()
+
+    def update(
+        self,
+        *,
+        project_id: UUID,
+        source_id: UUID,
+        tags: Sequence[str] | None = None,
+        extra_metadata: Mapping[str, Any] | None = None,
+        external_id: str | None = None,
+    ) -> Source | None:
+        source = self.get(project_id=project_id, source_id=source_id)
+        if source is None:
+            return None
+        if tags is not None:
+            source.tags = list(tags)
+        if extra_metadata is not None:
+            source.extra_metadata = dict(extra_metadata)
+        if external_id is not None:
+            source.external_id = external_id
+        self._session.flush()
+        return source
+
+    def soft_delete(self, *, project_id: UUID, source_id: UUID) -> Source | None:
+        source = self.get(project_id=project_id, source_id=source_id)
+        if source is None:
+            return None
+        source.deleted_at = datetime.now(UTC)
+        self._session.flush()
+        return source

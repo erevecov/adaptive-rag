@@ -150,14 +150,13 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
         )
     )
 
-    assert runner.requests == [
-        ChatRunnerRequest(
-            project_id=project_id,
-            message="What supports alpha?",
-            retrieval_limit=2,
-            metadata_filter=metadata_filter,
-        )
-    ]
+    assert len(runner.requests) == 1
+    assert runner.requests[0].project_id == project_id
+    assert runner.requests[0].message == "What supports alpha?"
+    assert runner.requests[0].retrieval_limit == 2
+    assert runner.requests[0].metadata_filter == metadata_filter
+    assert runner.requests[0].retrieval_query == "What supports alpha?"
+    assert runner.requests[0].history == ()
     assert retrieval.requests == [
         RetrievalSearchRequest(
             project_id=project_id,
@@ -307,15 +306,12 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
     assert events[0].data == {"session_id": str(session_id)}
     assert events[1].data["id"] == "answer"
     assert events[1].data["status"] == "start"
-    assert events[2].data == {
-        "detail": {
-            "limit": 2,
-            "query": "alpha evidence",
-            "strategy": "dense_sparse",
-        },
-        "id": "retrieval",
-        "status": "start",
-    }
+    assert events[2].data["id"] == "retrieval"
+    assert events[2].data["status"] == "start"
+    assert events[2].data["detail"]["limit"] == 2
+    assert events[2].data["detail"]["query"] == "alpha evidence"
+    assert events[2].data["detail"]["strategy"] == "dense_sparse"
+    assert events[2].data["detail"]["route"] == "dense_sparse"
     assert events[3].data["id"] == "retrieval"
     assert events[3].data["status"] == "done"
     assert isinstance(events[3].data["elapsed_ms"], int)

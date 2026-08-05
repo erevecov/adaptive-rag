@@ -277,6 +277,7 @@ class InMemoryChatAuditWriter:
 
     session_id: UUID = field(default_factory=uuid4)
     events: list[dict[str, object]] = field(default_factory=list)
+    messages: list[tuple[UUID, str, str]] = field(default_factory=list)
 
     def start_session(
         self,
@@ -286,11 +287,14 @@ class InMemoryChatAuditWriter:
         model_config_json: Mapping[str, Any] | None = None,
         prompt_version: str | None = None,
     ) -> UUID | None:
+        if request.session_id is not None:
+            self.session_id = request.session_id
         event: dict[str, object] = {
             "event": "start_session",
             "project_id": str(request.project_id),
             "message": message,
             "retrieval_limit": request.retrieval_limit,
+            "session_id": str(self.session_id),
         }
         if request.user_id is not None:
             event["user_id"] = str(request.user_id)
@@ -318,7 +322,25 @@ class InMemoryChatAuditWriter:
         if metadata_json is not None:
             event["metadata_json"] = dict(metadata_json)
         self.events.append(event)
+        self.messages.append((session_id, role, content))
         return message_id
+
+    def list_history_turns(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        limit: int,
+    ) -> list[tuple[str, str]]:
+        _ = project_id
+        turns = [
+            (role, content)
+            for stored_session_id, role, content in self.messages
+            if stored_session_id == session_id and role in {"user", "assistant"}
+        ]
+        if limit <= 0:
+            return []
+        return turns[-limit:]
 
     def record_retrieval_tool(
         self,
@@ -501,6 +523,20 @@ class SqlAlchemyChatAuditWriter:
         model_config_json: Mapping[str, Any] | None = None,
         prompt_version: str | None = None,
     ) -> UUID | None:
+        if request.session_id is not None:
+            existing = self._chat_audit_repository.get_session(
+                project_id=request.project_id,
+                session_id=request.session_id,
+                user_id=request.user_id,
+            )
+            if existing is None:
+                raise ValueError("chat session not found")
+            # Re-open for multi-turn follow-ups after a prior succeed/fail.
+            existing.status = "running"
+            existing.error_message = None
+            self._session.flush()
+            return existing.id
+
         chat_session = self._chat_audit_repository.create_session(
             project_id=request.project_id,
             user_id=request.user_id,
@@ -508,6 +544,26 @@ class SqlAlchemyChatAuditWriter:
             prompt_version=prompt_version,
         )
         return chat_session.id
+
+    def list_history_turns(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        limit: int,
+    ) -> list[tuple[str, str]]:
+        messages = self._chat_audit_repository.list_messages(
+            project_id=project_id,
+            session_id=session_id,
+        )
+        turns = [
+            (message.role, message.content)
+            for message in messages
+            if message.role in {"user", "assistant"}
+        ]
+        if limit <= 0:
+            return []
+        return turns[-limit:]
 
     def record_message(
         self,

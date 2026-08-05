@@ -17,10 +17,18 @@ export type Project = {
   can_access?: boolean
   created_at: string
   updated_at: string
+  deleted_at?: string | null
 }
 
 export type ProjectCreateBody = {
   name: string
+  embedding_mode?: string
+  retrieval_contextualization_enabled?: boolean
+  budget_config_json?: JsonObject | null
+}
+
+export type ProjectUpdateBody = {
+  name?: string
   embedding_mode?: string
   retrieval_contextualization_enabled?: boolean
   budget_config_json?: JsonObject | null
@@ -92,6 +100,7 @@ export type Source = {
   extra_metadata: JsonObject | null
   created_at: string
   updated_at: string
+  deleted_at?: string | null
 }
 
 export type SourceCreateBody = {
@@ -99,6 +108,16 @@ export type SourceCreateBody = {
   external_id: string
   tags?: string[] | null
   extra_metadata?: JsonObject | null
+}
+
+export type SourceUpdateBody = {
+  external_id?: string
+  tags?: string[] | null
+  extra_metadata?: JsonObject | null
+}
+
+export type AccessTokenRevokeBody = {
+  access_token: string
 }
 
 export type SourceListParams = {
@@ -213,11 +232,33 @@ export type RetrievalResult = {
   score: number
   citation: RetrievalCitation
   embedding_metadata: JsonObject | null
+  strategy?: string
+  fallback_reason?: string | null
+  retrieval_metadata?: JsonObject | null
   rerank_metadata?: JsonObject | null
+}
+
+export type RetrievalStrategy =
+  | 'dense'
+  | 'sparse'
+  | 'dense_sparse'
+  | 'graph'
+
+export type RetrievalSearchRequestBody = {
+  query: string
+  limit?: number
+  strategy?: RetrievalStrategy
+  metadata_filter?: RetrievalMetadataFilter | null
+  rerank?: { candidate_limit: number } | null
+}
+
+export type RetrievalSearchResponse = {
+  results: RetrievalResult[]
 }
 
 export type ChatRequestBody = {
   message: string
+  session_id?: string | null
   retrieval_limit?: number
   metadata_filter?: RetrievalMetadataFilter | null
 }
@@ -693,15 +734,26 @@ export type ApiClient = {
     userId: string,
     body: ProjectMembershipUpsertBody,
   ): Promise<ProjectMembership>
+  deleteProjectMembership(projectId: string, userId: string): Promise<void>
+  deactivateUser(userId: string): Promise<User>
+  revokeAccessToken(body: AccessTokenRevokeBody): Promise<{ revoked: boolean }>
   createProject(body: ProjectCreateBody): Promise<Project>
   listProjects(): Promise<ProjectListResponse>
   getProject(projectId: string): Promise<Project>
+  updateProject(projectId: string, body: ProjectUpdateBody): Promise<Project>
+  deleteProject(projectId: string): Promise<Project>
   createSource(projectId: string, body: SourceCreateBody): Promise<Source>
   listSources(
     projectId: string,
     params?: SourceListParams,
   ): Promise<SourceListResponse>
   getSource(projectId: string, sourceId: string): Promise<Source>
+  updateSource(
+    projectId: string,
+    sourceId: string,
+    body: SourceUpdateBody,
+  ): Promise<Source>
+  deleteSource(projectId: string, sourceId: string): Promise<Source>
   enqueueIngestionJob(
     projectId: string,
     sourceId: string,
@@ -731,6 +783,10 @@ export type ApiClient = {
     handlers?: ChatStreamHandlers,
     options?: ChatStreamOptions,
   ): Promise<ChatResponseBody>
+  searchRetrieval(
+    projectId: string,
+    body: RetrievalSearchRequestBody,
+  ): Promise<RetrievalSearchResponse>
   listChatSessions(
     projectId: string,
     params?: ChatSessionListParams,
@@ -898,6 +954,27 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         )}/memberships/${encodePathSegment(userId)}`,
       })
     },
+    deleteProjectMembership(projectId, userId) {
+      return requestVoid(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/memberships/${encodePathSegment(userId)}`,
+      })
+    },
+    deactivateUser(userId) {
+      return requestJson<User>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/admin/users/${encodePathSegment(userId)}/deactivate`,
+      })
+    },
+    revokeAccessToken(body) {
+      return requestJson<{ revoked: boolean }>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/access-tokens/revoke`,
+      })
+    },
     createProject(body) {
       return requestJson<Project>(fetchImpl, {
         body,
@@ -914,6 +991,19 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     getProject(projectId) {
       return requestJson<Project>(fetchImpl, {
         method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+      })
+    },
+    updateProject(projectId, body) {
+      return requestJson<Project>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+      })
+    },
+    deleteProject(projectId) {
+      return requestJson<Project>(fetchImpl, {
+        method: 'DELETE',
         url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
       })
     },
@@ -940,6 +1030,23 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     getSource(projectId, sourceId) {
       return requestJson<Source>(fetchImpl, {
         method: 'GET',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/sources/${encodePathSegment(sourceId)}`,
+      })
+    },
+    updateSource(projectId, sourceId, body) {
+      return requestJson<Source>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/sources/${encodePathSegment(sourceId)}`,
+      })
+    },
+    deleteSource(projectId, sourceId) {
+      return requestJson<Source>(fetchImpl, {
+        method: 'DELETE',
         url: `${baseUrl}/projects/${encodePathSegment(
           projectId,
         )}/sources/${encodePathSegment(sourceId)}`,
@@ -998,6 +1105,15 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         body,
         method: 'POST',
         url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat`,
+      })
+    },
+    searchRetrieval(projectId, body) {
+      return requestJson<RetrievalSearchResponse>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/retrieval/search`,
       })
     },
     askChatStream(projectId, body, handlers = {}, requestOptions = {}) {

@@ -15,8 +15,20 @@ from adaptive_rag.api.routes.runtime_settings import (
     project_router as project_runtime_settings_router,
 )
 from adaptive_rag.api.routes.runtime_settings import router as runtime_settings_router
+from adaptive_rag.api.routes.user_memory import router as user_memory_router
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
+from adaptive_rag.security.headers import SecurityHeadersMiddleware
+
+# Explicit CORS surface (no method/header wildcards).
+CORS_ALLOW_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+CORS_ALLOW_HEADERS = (
+    "Authorization",
+    "Content-Type",
+    "Accept",
+    "X-Request-Id",
+    "X-Access-Token",
+)
 
 
 def create_app() -> FastAPI:
@@ -24,12 +36,15 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level)
 
     app = FastAPI(title="Adaptive RAG", version="0.1.0")
+    # Outer middleware runs last on response; headers middleware is outermost
+    # so security headers apply to CORS responses too.
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allowed_origins),
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=list(CORS_ALLOW_METHODS),
+        allow_headers=list(CORS_ALLOW_HEADERS),
     )
     app.include_router(health_router)
     app.include_router(auth_router)
@@ -38,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(retrieval_router)
     app.include_router(chat_router)
     app.include_router(knowledge_router)
+    app.include_router(user_memory_router)
     app.include_router(provider_connections_router)
     app.include_router(runtime_settings_router)
     app.include_router(project_runtime_settings_router)

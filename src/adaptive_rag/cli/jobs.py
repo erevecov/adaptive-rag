@@ -6,7 +6,6 @@ import json
 import os
 import socket
 import time
-from datetime import UTC, datetime, timedelta
 from typing import Annotated, NoReturn
 from uuid import UUID
 
@@ -14,7 +13,6 @@ import typer
 
 from adaptive_rag import ingestion_ops
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.ingestion.pipeline import IngestionBlockedResult, IngestionPipeline
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -130,7 +128,7 @@ def run_worker(
     ] = 300,
     max_jobs: Annotated[int | None, typer.Option("--max-jobs", min=1)] = None,
 ) -> None:
-    """Procesa jobs `ingest_source` de un proyecto usando el pipeline local."""
+    """Procesa jobs `ingest_source` e `index_document_version` del proyecto."""
 
     active_worker_id = worker_id or _default_worker_id()
     processed_jobs = 0
@@ -163,58 +161,44 @@ def _run_worker_once(
     lease_seconds: int,
     processed_jobs: int,
 ) -> dict[str, object]:
-    now = datetime.now(UTC)
-    lease_until = now + timedelta(seconds=lease_seconds)
     with session_scope() as session:
-        result = IngestionPipeline(session).run_next(
+        report = ingestion_ops.run_next_ingestion_job(
+            session,
             project_id=project_id,
             worker_id=worker_id,
-            now=now,
-            lease_until=lease_until,
+            lease_seconds=lease_seconds,
         )
         session.commit()
 
-    if result is None:
-        return {
-            "status": "idle",
-            "project_id": str(project_id),
-            "worker_id": worker_id,
-            "processed_jobs": processed_jobs,
-        }
-
-    if isinstance(result, IngestionBlockedResult):
-        return {
-            "status": "blocked",
-            "project_id": str(project_id),
-            "worker_id": worker_id,
-            "processed_jobs": processed_jobs,
-            "job_id": str(result.job.id),
-            "source_id": _source_id_from_job_payload(result.job.payload_json),
-            "error_message": result.error_message,
-        }
-
-    return {
-        "status": "processed",
-        "project_id": str(project_id),
-        "worker_id": worker_id,
+    payload: dict[str, object] = {
+        "status": report.status,
+        "project_id": str(report.project_id),
+        "worker_id": report.worker_id,
         "processed_jobs": processed_jobs,
-        "job_id": str(result.job.id),
-        "source_id": str(result.source.id),
-        "document_id": str(result.document.id),
-        "document_version_id": str(result.document_version.id),
-        "created_document_version": result.created_document_version,
     }
+    if report.job_id is not None:
+        payload["job_id"] = str(report.job_id)
+    if report.job_type is not None:
+        payload["job_type"] = report.job_type
+    if report.source_id is not None:
+        payload["source_id"] = str(report.source_id)
+    if report.document_id is not None:
+        payload["document_id"] = str(report.document_id)
+    if report.document_version_id is not None:
+        payload["document_version_id"] = str(report.document_version_id)
+    if report.created_document_version is not None:
+        payload["created_document_version"] = report.created_document_version
+    if report.chunk_count is not None:
+        payload["chunk_count"] = report.chunk_count
+    if report.embedded_chunk_count is not None:
+        payload["embedded_chunk_count"] = report.embedded_chunk_count
+    if report.error_message is not None:
+        payload["error_message"] = report.error_message
+    return payload
 
 
 def _default_worker_id() -> str:
     return f"{socket.gethostname()}-{os.getpid()}"
-
-
-def _source_id_from_job_payload(payload: object) -> str | None:
-    if not isinstance(payload, dict):
-        return None
-    source_id = payload.get("source_id")
-    return source_id if isinstance(source_id, str) else None
 
 
 def _exit_ingestion_ops_error(error: ingestion_ops.IngestionOpsError) -> NoReturn:

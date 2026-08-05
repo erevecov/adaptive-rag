@@ -38,6 +38,13 @@ from adaptive_rag.evals.hosted import (
     validate_hosted_eval_options,
     validate_hosted_rerank_eval_options,
 )
+from adaptive_rag.evals.llm_judge import (
+    FakeDeterministicJudge,
+    JudgeScores,
+    PromptLlmJudge,
+    apply_llm_judge,
+    validate_llm_judge_options,
+)
 from adaptive_rag.evals.models import (
     ChatEvalCase,
     EvalCaseComparison,
@@ -58,6 +65,13 @@ from adaptive_rag.evals.models import (
 )
 from adaptive_rag.evals.reports import serialize_eval_report
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.evals.routing_runner import (
+    RoutingEvalCase,
+    RoutingEvalCaseResult,
+    RoutingEvalReport,
+    run_routing_eval_suite,
+    serialize_routing_eval_report,
+)
 from adaptive_rag.evals.runner import run_eval_suite
 from adaptive_rag.evals.strategy_gate_runner import (
     StrategyGateDecision,
@@ -91,6 +105,9 @@ __all__ = [
     "EvalRunReport",
     "EvalSuite",
     "EvalThresholds",
+    "FakeDeterministicJudge",
+    "JudgeScores",
+    "PromptLlmJudge",
     "GraphQualityGateDecision",
     "GraphQualityGateReport",
     "GraphLiveEvidenceReport",
@@ -101,6 +118,7 @@ __all__ = [
     "StrategyGateRow",
     "StrategyGateRowStatus",
     "StrategyGateStrategy",
+    "apply_llm_judge",
     "build_candidate_limit_eval_matrix",
     "build_graph_live_evidence_report",
     "load_eval_suite",
@@ -110,7 +128,11 @@ __all__ = [
     "run_candidate_limit_ab_retrieval_eval_suite",
     "run_eval_suite",
     "run_graph_quality_gate_eval_suite",
+    "RoutingEvalCase",
+    "RoutingEvalCaseResult",
+    "RoutingEvalReport",
     "run_retrieval_strategy_gate_eval_suite",
+    "run_routing_eval_suite",
     "run_hosted_eval_suite",
     "run_hosted_chat_eval_suite",
     "run_hosted_retrieval_eval_suite",
@@ -119,10 +141,12 @@ __all__ = [
     "serialize_graph_quality_gate_report",
     "serialize_graph_live_evidence_report",
     "serialize_retrieval_strategy_gate_report",
+    "serialize_routing_eval_report",
     "serialize_candidate_limit_ab_run_report",
     "serialize_candidate_limit_eval_matrix",
     "summarize_provider_usage",
     "validate_hosted_eval_credentials",
     "validate_hosted_eval_options",
     "validate_hosted_rerank_eval_options",
+    "validate_llm_judge_options",
 ]

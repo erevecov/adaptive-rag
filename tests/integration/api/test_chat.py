@@ -46,6 +46,7 @@ from adaptive_rag.db.models import (
     ToolCall,
     User,
     UserAccessToken,
+    UserMemory,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
@@ -319,6 +320,7 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
             RetrievalRun.__table__,
             RetrievedChunk.__table__,
             ProviderUsage.__table__,
+            UserMemory.__table__,
         ],
     )
     return create_session_factory(engine)

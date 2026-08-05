@@ -14,6 +14,7 @@ import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
 import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
+import { RetrievalPlaygroundPanel } from '@/features/retrieval/RetrievalPlaygroundView'
 import { RuntimeSettingsPanel } from '@/features/runtime/RuntimeSettingsView'
 import {
   CHAT_RETRIEVAL_MAX_LIMIT,
@@ -232,6 +233,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [sourceType, setSourceType] = useState('markdown')
   const [sourceExternalId, setSourceExternalId] = useState('')
   const [sourceContent, setSourceContent] = useState('')
+  const [sourceContentBase64, setSourceContentBase64] = useState('')
+  const [sourceFileName, setSourceFileName] = useState('')
   const [sourceTags, setSourceTags] = useState('')
   const [userLogin, setUserLogin] = useState('')
   const [userDisplayName, setUserDisplayName] = useState('')
@@ -590,14 +593,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSessionDetail(null)
     setDetailState('idle')
     setDetailError(null)
-    setSelectedSessionId(null)
+    // Keep selectedSessionId so follow-ups continue the same multi-turn session.
     setHistoryStatusFilter('active')
     setVisibleSessionCount(SESSION_PAGE_SIZE)
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
+    const continueSessionId = selectedSessionId
     const requestBody = {
       message: trimmedQuestion,
+      ...(continueSessionId === null ? {} : { session_id: continueSessionId }),
     }
     const controller = new AbortController()
     let streamOpened = false
@@ -1173,9 +1178,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setSourceAuthoringError(`${sourceType} source requires content.`)
       return
     }
+    if (isBinarySourceType(sourceType) && sourceContentBase64.trim().length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(`${sourceType} source requires a file.`)
+      return
+    }
 
     const body = buildSourceCreateBody({
       content,
+      contentBase64: sourceContentBase64,
       externalId: trimmedExternalId,
       sourceType,
       tags: sourceTags,
@@ -1189,11 +1200,32 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setSources((current) => upsertSource(current, source))
       setSourceExternalId('')
       setSourceContent('')
+      setSourceContentBase64('')
+      setSourceFileName('')
       setSourceTags('')
       setSourceAuthoringState('succeeded')
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSourceFileChange(file: File | null) {
+    if (file === null) {
+      setSourceContentBase64('')
+      setSourceFileName('')
+      return
+    }
+    const buffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let index = 0; index < bytes.length; index += 1) {
+      binary += String.fromCharCode(bytes[index]!)
+    }
+    setSourceContentBase64(btoa(binary))
+    setSourceFileName(file.name)
+    if (sourceExternalId.trim().length === 0) {
+      setSourceExternalId(file.name)
     }
   }
 
@@ -1286,6 +1318,118 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         { role: memberRole },
       )
       setProjectMemberships((current) => upsertMembership(current, membership))
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeleteProject(project: Project) {
+    const confirmed = window.confirm(
+      `Soft-delete project "${project.name}"? This hides it from lists.`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setProjectAuthoringState('loading')
+    setProjectAuthoringError(null)
+    try {
+      await client.deleteProject(project.id)
+      setProjects((current) => current.filter((item) => item.id !== project.id))
+      if (projectId === project.id) {
+        setSelectedProjectId('')
+        setSources([])
+        setIngestionJobs([])
+        setIngestionRun(null)
+      }
+      setProjectAuthoringState('succeeded')
+    } catch (error) {
+      setProjectAuthoringState('failed')
+      setProjectAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeleteSource(source: Source) {
+    const confirmed = window.confirm(
+      `Soft-delete source "${source.external_id}" and cascade its index?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setSourceAuthoringState('loading')
+    setSourceAuthoringError(null)
+    try {
+      await client.deleteSource(source.project_id, source.id)
+      setSources((current) => current.filter((item) => item.id !== source.id))
+      setSourceAuthoringState('succeeded')
+    } catch (error) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeleteMembership(membership: ProjectMembership) {
+    const confirmed = window.confirm(
+      `Remove membership for user ${membership.user_id}?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      await client.deleteProjectMembership(
+        membership.project_id,
+        membership.user_id,
+      )
+      setProjectMemberships((current) =>
+        current.filter((item) => item.id !== membership.id),
+      )
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeactivateUser(user: User) {
+    const confirmed = window.confirm(
+      `Deactivate user "${user.login}"? They will not authenticate while inactive.`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      const updated = await client.deactivateUser(user.id)
+      setUsers((current) => upsertUser(current, updated))
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRevokeAccessToken() {
+    const trimmedToken = userAccessToken.trim()
+    if (trimmedToken.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('Access token is required to revoke.')
+      return
+    }
+    const confirmed = window.confirm(
+      'Revoke this access token? It will stop authenticating immediately.',
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      await client.revokeAccessToken({ access_token: trimmedToken })
+      setUserAccessToken('')
       setAccessManagementState('succeeded')
     } catch (error) {
       setAccessManagementState('failed')
@@ -2372,6 +2516,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 slots={runtimeSlots}
                 state={runtimeState}
               />
+            ) : authoringSubmodule === 'retrieval' ? (
+              <RetrievalPlaygroundPanel client={client} projectId={projectId} />
             ) : (
               <AuthoringPanel
                 activeSubmodule={authoringSubmodule}
@@ -2390,6 +2536,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onCreateProject={(event) => void handleCreateProject(event)}
                 onCreateSource={(event) => void handleCreateSource(event)}
                 onCreateUser={(event) => void handleCreateUser(event)}
+                onDeactivateUser={(user) => void handleDeactivateUser(user)}
+                onDeleteMembership={(membership) =>
+                  void handleDeleteMembership(membership)
+                }
+                onDeleteProject={(project) => void handleDeleteProject(project)}
+                onDeleteSource={(source) => void handleDeleteSource(source)}
                 onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
                 onApproveKnowledgeProposal={(proposal) =>
                   void handleApproveKnowledgeProposal(proposal)
@@ -2423,6 +2575,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   void handleRejectKnowledgeProposal(proposal)
                 }
                 onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
+                onRevokeAccessToken={() => void handleRevokeAccessToken()}
                 onRunNextIngestion={() => void handleRunNextIngestion()}
                 onSaveProjectMembership={(event) =>
                   void handleSaveProjectMembership(event)
@@ -2430,8 +2583,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSelectProject={handleSelectProject}
                 onSourceContentChange={setSourceContent}
                 onSourceExternalIdChange={setSourceExternalId}
+                onSourceFileChange={(file) => void handleSourceFileChange(file)}
                 onSourceTagsChange={setSourceTags}
-                onSourceTypeChange={setSourceType}
+                onSourceTypeChange={(value) => {
+                  setSourceType(value)
+                  if (!isBinarySourceType(value)) {
+                    setSourceContentBase64('')
+                    setSourceFileName('')
+                  }
+                  if (!isTextSourceType(value)) {
+                    setSourceContent('')
+                  }
+                }}
                 onUserAccessTokenChange={setUserAccessToken}
                 onUserDisplayNameChange={setUserDisplayName}
                 onUserLoginChange={setUserLogin}
@@ -2446,6 +2609,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 sourceContent={sourceContent}
                 sourceError={sourceAuthoringError}
                 sourceExternalId={sourceExternalId}
+                sourceFileName={sourceFileName}
                 sourceState={sourceAuthoringState}
                 sourceTags={sourceTags}
                 sourceType={sourceType}
@@ -3028,11 +3192,13 @@ function getJsonNumber(value: unknown, key: string): number | null {
 
 function buildSourceCreateBody({
   content,
+  contentBase64,
   externalId,
   sourceType,
   tags,
 }: {
   content: string
+  contentBase64: string
   externalId: string
   sourceType: string
   tags: string
@@ -3046,6 +3212,10 @@ function buildSourceCreateBody({
   if (parsedTags.length > 0) {
     body.tags = parsedTags
   }
+  if (isBinarySourceType(sourceType)) {
+    body.extra_metadata = { content_base64: contentBase64 }
+    return body
+  }
   if (trimmedContent.length > 0 || isTextSourceType(sourceType)) {
     body.extra_metadata = { content }
   }
@@ -3054,6 +3224,10 @@ function buildSourceCreateBody({
 
 function isTextSourceType(sourceType: string): boolean {
   return sourceType === 'markdown' || sourceType === 'text' || sourceType === 'txt'
+}
+
+function isBinarySourceType(sourceType: string): boolean {
+  return sourceType === 'pdf' || sourceType === 'docx'
 }
 
 function parseTags(value: string): string[] {

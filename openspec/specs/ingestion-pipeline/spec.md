@@ -44,36 +44,70 @@ source que no pertenece al `project_id` del job leaseado.
 
 ### Requirement: URL ingestion usa fetch seguro antes del extractor HTML
 
-El sistema MUST usar `URLFetcher` o un adapter compatible para descargar sources
-`url` antes de pasar HTML ya descargado al extractor. El pipeline MUST pasar al
-extractor solo respuestas con content type base `text/html` o
-`application/xhtml+xml`.
+El sistema MUST usar `URLFetcher` o un adapter compatible para descargar
+sources `url` antes de parsear. Tras el fetch, el pipeline MUST seleccionar el
+parser registrado segun el content-type base de la respuesta:
+
+- `text/html` y `application/xhtml+xml` → extractor HTML (Trafilatura o
+  equivalente)
+- `application/pdf` → parser PDF de texto embebido
+- `application/vnd.openxmlformats-officedocument.wordprocessingml.document` →
+  parser DOCX
+
+Content-types allowlisted en fetch pero sin parser registrado MUST bloquear el
+job sin llamar al extractor HTML.
 
 #### Scenario: Source URL usa resultado del fetcher
 
 - **WHEN** un job `ingest_source` procesa una source `url`
+- **AND** el fetcher devuelve content-type HTML o XHTML
 - **THEN** el pipeline llama al fetcher con `source.external_id`
 - **AND** pasa el HTML descargado y la URL final al extractor HTML
-- **AND** persiste el texto normalizado devuelto por el extractor en
-  `document_versions.normalized_text`
+- **AND** persiste el texto normalizado en `document_versions.normalized_text`
+
+#### Scenario: Source URL PDF extrae texto embebido
+
+- **WHEN** un job `ingest_source` procesa una source `url`
+- **AND** el fetcher devuelve `application/pdf` con texto embebido
+- **THEN** el pipeline no llama al extractor HTML
+- **AND** extrae texto con el parser PDF registrado
+- **AND** crea o reutiliza una document version con texto normalizado no vacio
+- **AND** registra `parser_metadata` con id/version del parser PDF
+- **AND** marca el job como `succeeded`
+- **AND** encola `index_document_version` (contrato M40)
 
 #### Scenario: Source URL no HTML bloquea el job
 
 - **WHEN** un job `ingest_source` procesa una source `url`
-- **AND** el fetcher devuelve un content type distinto de HTML o XHTML
+- **AND** el fetcher devuelve un content-type allowlisted sin parser
+  registrado (por ejemplo `text/plain`) o un tipo que el registry no soporta
 - **THEN** el pipeline no llama al extractor HTML
 - **AND** marca el job como `blocked`
+- **AND** no crea document versions
+
+#### Scenario: Source URL con content-type sin parser bloquea el job
+
+- **WHEN** un job `ingest_source` procesa una source `url`
+- **AND** el fetcher devuelve un content-type allowlisted sin parser
+  (por ejemplo `text/plain` si no hay parser de plain URL) o un tipo que el
+  registry no soporta para parse
+- **THEN** el pipeline no llama al extractor HTML
+- **AND** marca el job como `blocked`
+- **AND** no crea document versions
 
 ### Requirement: Ingestion pipeline no implementa chunking ni embeddings
 
-El sistema MUST mantener `m3-ingestion-pipeline` limitado a parsing y
-persistencia de `document_versions`.
+El sistema MUST mantener el procesamiento de `ingest_source` limitado a parsing
+y persistencia de `document_versions`. El indexing (chunks/embeddings) MUST
+ocurrir solo via jobs `index_document_version` u operaciones de index explicitas
+equivalentes, no como efecto colateral silencioso de `ingest_source`.
 
-#### Scenario: Pipeline no crea chunks
+#### Scenario: Pipeline de ingest no crea chunks
 
-- **WHEN** un job `ingest_source` termina exitosamente en este slice
-- **THEN** no se crean chunks
-- **AND** no se llaman providers de embeddings
+- **WHEN** un job `ingest_source` termina exitosamente
+- **THEN** no se crean chunks en ese mismo job
+- **AND** no se llaman providers de embeddings en ese mismo job
+- **AND** el sistema encola el trabajo de indexing por separado
 
 ### Requirement: Approved knowledge proposals feed ingestion
 
@@ -124,3 +158,127 @@ The system MUST preserve who submitted and who reviewed each proposal.
 - **WHEN** a contributor rejects a proposal
 - **THEN** the request requires a non-empty reason
 - **AND** the reason is stored for future review
+
+### Requirement: Successful ingest enqueues public indexing job
+
+The system MUST enqueue a follow-up `index_document_version` job when an
+`ingest_source` job completes successfully, so chunking and embeddings run on
+the public worker path rather than only inside privileged smokes.
+
+#### Scenario: Ingest success enqueues indexing without creating chunks yet
+
+- **WHEN** a worker completes an `ingest_source` job successfully
+- **THEN** a new job with `job_type = index_document_version` is created in the
+  same project
+- **AND** the payload includes the resulting `document_version_id` and
+  `source_id`
+- **AND** the indexing job starts with `status = queued`
+- **AND** the completed ingest alone still does not create chunks or embeddings
+
+#### Scenario: Idempotent re-ingest still enqueues indexing
+
+- **WHEN** an `ingest_source` job reuses an existing document version
+- **THEN** the system still enqueues an `index_document_version` job for that
+  version
+- **AND** indexing pipelines remain free to reuse existing chunks/embeddings
+
+### Requirement: Public indexing job builds searchable corpus
+
+The system MUST process `index_document_version` jobs by running chunking,
+contextualization, dense embeddings and sparse embeddings for the target
+document version inside the project.
+
+#### Scenario: Index job produces chunks and embeddings
+
+- **WHEN** a worker processes a queued `index_document_version` job for a
+  document version in the same project
+- **THEN** the system creates or reuses chunks for that version
+- **AND** generates or reuses contextual summaries for those chunks
+- **AND** writes dense and sparse embeddings for those chunks
+- **AND** marks the indexing job as `succeeded`
+- **AND** records lease/complete job events
+
+#### Scenario: Missing document version blocks indexing job
+
+- **WHEN** an `index_document_version` job references a document version outside
+  the job project
+- **THEN** the job is marked `blocked`
+- **AND** no chunks or embeddings are written for foreign projects
+
+### Requirement: PDF sources extract embedded text into document versions
+
+El sistema MUST parsear sources de tipo `pdf` (payload binario en
+`extra_metadata.content_base64`) y respuestas URL `application/pdf` usando un
+parser de **texto embebido** (sin OCR). El resultado MUST ser
+`document_versions.normalized_text` con `parser_metadata` e
+`index_fingerprint` como el resto de sources.
+
+#### Scenario: PDF tipado con texto embebido crea document version
+
+- **WHEN** un job `ingest_source` procesa una source `pdf` con
+  `extra_metadata.content_base64` que decodifica a un PDF con texto embebido
+- **THEN** el pipeline crea o reutiliza una document version con texto
+  normalizado no vacio
+- **AND** `parser_metadata` incluye el parser PDF y su version
+- **AND** el job queda `succeeded`
+- **AND** se encola indexing por separado (sin chunks en el job de ingest)
+
+#### Scenario: PDF sin texto embebido bloquea sin OCR
+
+- **WHEN** el parser PDF no produce texto usable (strip vacio)
+- **THEN** el job se marca `blocked` con un error estable de extraccion vacia
+- **AND** el sistema no invoca OCR ni vision
+- **AND** no se indexa un corpus vacio como exito
+
+### Requirement: DOCX sources extract document text into document versions
+
+El sistema MUST parsear sources de tipo `docx` (payload
+`extra_metadata.content_base64`) y respuestas URL con content-type DOCX OOXML
+produciendo texto normalizado y metadata de parser.
+
+#### Scenario: DOCX tipado crea document version
+
+- **WHEN** un job `ingest_source` procesa una source `docx` con body text
+- **THEN** se persiste `normalized_text` no vacio
+- **AND** el job queda `succeeded`
+- **AND** se encola `index_document_version` por separado
+
+#### Scenario: DOCX sin texto bloquea
+
+- **WHEN** el parser DOCX no produce texto usable
+- **THEN** el job se marca `blocked` con error estable de extraccion vacia
+
+### Requirement: Document parser registry selects parser by type
+
+El sistema MUST enrutar ingest mediante un registry (mapa o equivalente) de
+`source_type` y/o content-type hacia parsers concretos, de modo que
+markdown/text, HTML URL, PDF y DOCX no dependan de un unico branch opaco sin
+extension points.
+
+#### Scenario: Source type no soportado sigue bloqueado
+
+- **WHEN** un job referencia un `source_type` fuera del conjunto soportado
+- **THEN** el job se marca `blocked`
+- **AND** no se crean document versions
+
+#### Scenario: content_base64 invalido o ausente en pdf/docx bloquea
+
+- **WHEN** una source `pdf` o `docx` no tiene `content_base64` decodificable
+- **THEN** el job se marca `blocked` con error estable
+- **AND** no se crean document versions
+
+### Requirement: Ingestion content guard redacts secrets before persistence
+
+The system MUST run the content guard on `normalized_text` after parsing and
+before computing content hash / creating a document version, so secret-like
+literals are not indexed as-is.
+
+#### Scenario: Ingest redacts secret-like markdown content
+
+- **WHEN** an `ingest_source` job parses a text source whose body contains a
+  secret-like token matching the content guard
+- **THEN** the stored `document_versions.normalized_text` does not contain the
+  original secret literal
+- **AND** the job can still succeed when remaining text is non-empty
+- **AND** extraction or parser metadata records that redactions occurred
+

@@ -11,12 +11,7 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring, ingestion_ops
 from adaptive_rag.chat import ChatRequest, ChatService
-from adaptive_rag.chunking import ChunkingPipeline, ChunkingPipelineError
 from adaptive_rag.config.settings import get_settings
-from adaptive_rag.contextualization import (
-    ContextualizationPipeline,
-    ContextualizationPipelineError,
-)
 from adaptive_rag.db.models import ProviderConnection, ProviderModelCatalog
 from adaptive_rag.db.repositories import (
     ProjectRuntimeSettingsRepository,
@@ -24,22 +19,16 @@ from adaptive_rag.db.repositories import (
     ProviderModelCatalogRepository,
     RuntimeSettingsRepository,
 )
-from adaptive_rag.embeddings import (
-    DenseEmbeddingPipeline,
-    DenseEmbeddingPipelineError,
-    SparseEmbeddingPipeline,
-    SparseEmbeddingPipelineError,
-)
 from adaptive_rag.first_run import (
     DEFAULT_QUESTION,
     FirstRunError,
     FirstRunReport,
     first_run_report_payload,
 )
+from adaptive_rag.ingestion.pipeline import INGEST_SOURCE_JOB_TYPE
 from adaptive_rag.provider_models import HTTPProviderModelLister, ProviderModelLister
 from adaptive_rag.provider_runtime import (
     get_chat_runner,
-    get_contextualizer,
     get_dense_embedding_provider,
     get_sparse_embedding_provider,
 )
@@ -345,59 +334,58 @@ def _run_project_flow(
         project_id=project.id,
         source_id=source.id,
     )
-    run = ingestion_ops.run_next_ingestion_job(
+    dense_embedding_provider = get_dense_embedding_provider(
+        project_id=project.id,
+        session=session,
+    )
+    sparse_embedding_provider = get_sparse_embedding_provider(
+        project_id=project.id,
+        session=session,
+    )
+    reports = ingestion_ops.run_ingestion_family_until_idle(
         session,
         project_id=project.id,
         worker_id=worker_id,
+        dense_embedding_provider=dense_embedding_provider,
+        sparse_embedding_provider=sparse_embedding_provider,
     )
-    if run.status != "processed" or run.document_version_id is None:
-        detail = run.error_message or run.status
-        raise AcceptanceError(f"runtime acceptance ingestion did not process: {detail}")
+    if not reports:
+        raise AcceptanceError(
+            "runtime acceptance ingestion did not process: idle"
+        )
 
-    try:
-        chunk_result = ChunkingPipeline(session).chunk_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
+    blocked = next((item for item in reports if item.status == "blocked"), None)
+    if blocked is not None:
+        detail = blocked.error_message or blocked.status
+        raise AcceptanceError(
+            f"runtime acceptance ingestion did not process: {detail}"
         )
-        contextualization_result = ContextualizationPipeline(
-            session,
-            contextualizer=get_contextualizer(
-                project_id=project.id,
-                session=session,
-            ),
-        ).contextualize_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
+
+    ingest_report = next(
+        (
+            item
+            for item in reports
+            if item.job_type == INGEST_SOURCE_JOB_TYPE and item.status == "processed"
+        ),
+        None,
+    )
+    if ingest_report is None or ingest_report.document_version_id is None:
+        raise AcceptanceError(
+            "runtime acceptance ingestion did not process: missing ingest job"
         )
-        dense_embedding_provider = get_dense_embedding_provider(
-            project_id=project.id,
-            session=session,
+
+    index_report = next(
+        (
+            item
+            for item in reports
+            if item.chunk_count is not None and item.status == "processed"
+        ),
+        None,
+    )
+    if index_report is None or index_report.chunk_count is None:
+        raise AcceptanceError(
+            "runtime acceptance indexing did not process: missing index job"
         )
-        embedding_result = DenseEmbeddingPipeline(
-            session,
-            provider=dense_embedding_provider,
-        ).embed_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
-        )
-        sparse_embedding_provider = get_sparse_embedding_provider(
-            project_id=project.id,
-            session=session,
-        )
-        SparseEmbeddingPipeline(
-            session,
-            provider=sparse_embedding_provider,
-        ).embed_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
-        )
-    except (
-        ChunkingPipelineError,
-        ContextualizationPipelineError,
-        DenseEmbeddingPipelineError,
-        SparseEmbeddingPipelineError,
-    ) as exc:
-        raise AcceptanceError(str(exc)) from exc
 
     chat_runner = get_chat_runner(project_id=project.id, session=session)
     chat = ChatService(
@@ -417,22 +405,26 @@ def _run_project_flow(
     if not chat.citations:
         raise AcceptanceError("runtime acceptance chat returned no citations")
 
+    refreshed_job = ingestion_ops.get_ingestion_job_detail(
+        session,
+        project_id=project.id,
+        job_id=job.id,
+    ).job
+
     return FirstRunReport(
         status="succeeded",
         project=project,
         source=source,
-        job=job,
+        job=refreshed_job,
         question=question,
-        document_version_id=run.document_version_id,
-        chunk_count=len(chunk_result.chunks),
-        contextualized_chunk_count=(
-            contextualization_result.contextualized_chunk_count
-        ),
+        document_version_id=ingest_report.document_version_id,
+        chunk_count=index_report.chunk_count,
+        contextualized_chunk_count=index_report.contextualized_chunk_count or 0,
         reused_contextualized_chunk_count=(
-            contextualization_result.reused_contextualized_chunk_count
+            index_report.reused_contextualized_chunk_count or 0
         ),
-        embedded_chunk_count=embedding_result.embedded_chunk_count,
-        reused_chunk_count=embedding_result.reused_chunk_count,
+        embedded_chunk_count=index_report.embedded_chunk_count or 0,
+        reused_chunk_count=index_report.reused_chunk_count or 0,
         answer=chat.answer,
         citation_count=len(chat.citations),
     )

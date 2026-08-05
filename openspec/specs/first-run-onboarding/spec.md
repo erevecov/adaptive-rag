@@ -7,7 +7,8 @@ TBD - created by archiving change m25-first-run-onboarding. Update Purpose after
 
 The system MUST provide a local first-run command that starts from public
 product inputs and reaches a cited chat answer without hidden fixtures or
-hosted credentials.
+hosted credentials, using the same public ingestion and indexing job path as
+API/CLI workers.
 
 #### Scenario: User runs first-run smoke with default sample content
 
@@ -15,9 +16,12 @@ hosted credentials.
   local database
 - **THEN** the command creates a project and Markdown source through public
   authoring services
-- **AND** enqueues and processes an `ingest_source` job
-- **AND** chunks and embeds the resulting document version with the default fake
-  provider path
+- **AND** enqueues and processes an `ingest_source` job through the public
+  worker path
+- **AND** processes the follow-up `index_document_version` job through the same
+  worker path (chunk → contextualize → dense/sparse embed)
+- **AND** does not call privileged inline indexing pipelines outside that job
+  path
 - **AND** asks a chat question and returns at least one citation
 - **AND** emits a JSON report with ids, job status, chunk/embed counts, answer
   and citation count
@@ -62,13 +66,13 @@ commands.
 ### Requirement: First-run reports contextualized indexing
 
 The system MUST expose generated Contextual Retrieval evidence in the local
-first-run report before frontend polish depends on advanced retrieval modes.
+first-run report, produced by the public indexing job path.
 
 #### Scenario: First-run contextualizes before embedding
 
 - **WHEN** a user runs `adaptive-rag first-run smoke`
-- **THEN** the command generates contextual summaries after chunking and before
-  dense embedding
+- **THEN** the indexing job generates contextual summaries after chunking and
+  before dense embedding
 - **AND** the JSON report includes `contextualized_chunk_count` and
   `reused_contextualized_chunk_count`
 - **AND** the contextualized plus reused count covers every reported chunk
@@ -98,3 +102,4 @@ data that can produce cited chat answers.
 - **THEN** the resulting project id can be reused in the frontend workspace
 - **AND** the frontend can proceed to chat/history using public API contracts
   rather than fixtures or direct database access
+

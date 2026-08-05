@@ -32,6 +32,7 @@ from adaptive_rag.auth import CurrentPrincipal, get_project_role, role_meets
 from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
     ChatRetrievalSettingsRepository,
+    ProjectRepository,
     ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
 )
@@ -42,7 +43,8 @@ def _require_project_runtime_admin_access(
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> tuple[Project, str]:
-    project = session.get(Project, project_id)
+    # Soft-deleted projects are not found (same contract as get_project_access).
+    project = ProjectRepository(session).get(project_id)
     if project is None:
         raise HTTPException(
             status_code=404,

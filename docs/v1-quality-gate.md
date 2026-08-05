@@ -78,7 +78,6 @@ ese reporte. La salida esperada tiene esta forma:
     "hosted_qwen",
     "hosted_rerank",
     "neo4j_graph",
-    "auth_multi_user",
     "pdf_office_ingestion",
     "voice",
     "mcp_server",

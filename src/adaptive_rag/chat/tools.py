@@ -27,6 +27,7 @@ from adaptive_rag.retrieval.payloads import (
     RetrievalResultPayload,
     serialize_retrieval_results,
 )
+from adaptive_rag.routing import QueryRouter, RuleBasedQueryRouter
 
 
 class RetrievalSearcher(Protocol):
@@ -108,6 +109,8 @@ class ChatRetrievalTool:
         default_metadata_filter: RetrievalMetadataFilter | None,
         audit_writer: ChatAuditWriter | None = None,
         audit_session_id: UUID | None = None,
+        query_router: QueryRouter | None = None,
+        graph_ready: bool = False,
     ) -> None:
         self._retrieval_service = retrieval_service
         self._project_id = project_id
@@ -119,6 +122,8 @@ class ChatRetrievalTool:
             audit_writer if audit_writer is not None else NullChatAuditWriter()
         )
         self._audit_session_id = audit_session_id
+        self._query_router = query_router or RuleBasedQueryRouter()
+        self._graph_ready = graph_ready
         self._tool_calls: list[ChatToolCall] = []
         self._retrieved_results: dict[UUID, RetrievalResultPayload] = {}
         self._steps: list[ChatStep] = []
@@ -148,6 +153,7 @@ class ChatRetrievalTool:
             if metadata_filter is None
             else metadata_filter
         )
+        decision = self._query_router.route(query, graph_ready=self._graph_ready)
         start = monotonic()
         self._record_step(
             ChatStep(
@@ -156,10 +162,31 @@ class ChatRetrievalTool:
                 detail={
                     "query": query,
                     "limit": active_limit,
-                    "strategy": "dense_sparse",
+                    "strategy": decision.strategy,
+                    "route": decision.route,
+                    "route_reason": decision.reason,
                 },
             )
         )
+        if decision.route == "skip_retrieval":
+            latency_ms = elapsed_ms(start)
+            self._record_step(
+                ChatStep(
+                    id="retrieval",
+                    status="done",
+                    elapsed_ms=latency_ms,
+                    detail={
+                        "query": query,
+                        "limit": active_limit,
+                        "strategy": decision.strategy,
+                        "route": decision.route,
+                        "route_reason": decision.reason,
+                        "result_count": 0,
+                    },
+                )
+            )
+            return ChatRetrievalToolResult(results=())
+
         audit_tool_call_id = (
             self._audit_writer.start_retrieval_tool(
                 self._project_id,
@@ -179,7 +206,7 @@ class ChatRetrievalTool:
                     limit=active_limit,
                     metadata_filter=active_filter,
                     rerank=self._rerank_options(),
-                    strategy="dense_sparse",
+                    strategy=decision.strategy,  # type: ignore[arg-type]
                 )
             )
         except RetrievalServiceError as exc:

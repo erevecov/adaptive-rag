@@ -1,15 +1,26 @@
 """Ingestion helpers de Adaptive RAG."""
 
+from adaptive_rag.ingestion.indexing import (
+    INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    IndexingBlockedResult,
+    IndexingPipeline,
+    IndexingPipelineError,
+    IndexingRunResult,
+    enqueue_index_document_version_job,
+)
 from adaptive_rag.ingestion.pipeline import (
     INGEST_SOURCE_JOB_TYPE,
+    INGESTION_FAMILY_JOB_TYPES,
     BasicTextParser,
     HTMLExtractor,
     IngestionPipeline,
-    IngestionPipelineError,
     IngestionRunResult,
-    ParsedDocument,
     TrafilaturaHTMLExtractor,
     URLContentFetcher,
+)
+from adaptive_rag.ingestion.types import (
+    IngestionPipelineError,
+    ParsedDocument,
     normalize_text,
 )
 from adaptive_rag.ingestion.url_fetch_policy import (
@@ -29,7 +40,13 @@ __all__ = [
     "DisallowedContentTypeError",
     "FetchResult",
     "HTMLExtractor",
+    "INDEX_DOCUMENT_VERSION_JOB_TYPE",
+    "INGESTION_FAMILY_JOB_TYPES",
     "INGEST_SOURCE_JOB_TYPE",
+    "IndexingBlockedResult",
+    "IndexingPipeline",
+    "IndexingPipelineError",
+    "IndexingRunResult",
     "IngestionPipeline",
     "IngestionPipelineError",
     "IngestionRunResult",
@@ -42,6 +59,7 @@ __all__ = [
     "URLFetchPolicy",
     "URLFetchPolicyError",
     "UnsafeURLError",
+    "enqueue_index_document_version_job",
     "normalize_text",
     "resolve_hostname",
 ]

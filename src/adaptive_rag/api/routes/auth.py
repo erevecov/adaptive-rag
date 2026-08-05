@@ -15,6 +15,7 @@ from adaptive_rag.api.dependencies import (
     require_superadmin,
 )
 from adaptive_rag.api.schemas.auth import (
+    AccessTokenRevokeRequestBody,
     CurrentUserPreferencesRequestBody,
     CurrentUserResponse,
     ProjectMembershipListResponse,
@@ -25,8 +26,11 @@ from adaptive_rag.api.schemas.auth import (
     UserResponse,
 )
 from adaptive_rag.auth import CurrentPrincipal, get_project_role, hash_access_token
-from adaptive_rag.db.models import Project
-from adaptive_rag.db.repositories import ProjectMembershipRepository, UserRepository
+from adaptive_rag.db.repositories import (
+    ProjectMembershipRepository,
+    ProjectRepository,
+    UserRepository,
+)
 
 router = APIRouter(tags=["auth"])
 
@@ -48,7 +52,7 @@ def update_me_preferences(
         raise HTTPException(status_code=401, detail="authenticated user required")
 
     if body.last_project_id is not None:
-        if session.get(Project, body.last_project_id) is None:
+        if ProjectRepository(session).get(body.last_project_id) is None:
             raise HTTPException(status_code=404, detail="project not found")
         if (
             get_project_role(
@@ -153,3 +157,54 @@ def upsert_project_membership(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     session.commit()
     return ProjectMembershipResponse.from_membership(membership)
+
+
+@router.delete(
+    "/projects/{project_id}/memberships/{user_id}",
+    status_code=204,
+)
+def delete_project_membership(
+    project_id: UUID,
+    user_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    _access: Annotated[tuple[object, str], Depends(get_project_admin_access)],
+) -> None:
+    removed = ProjectMembershipRepository(session).remove_membership(
+        project_id=project_id,
+        user_id=user_id,
+    )
+    if not removed:
+        raise HTTPException(status_code=404, detail="membership not found")
+    session.commit()
+
+
+@router.post("/admin/users/{user_id}/deactivate", response_model=UserResponse)
+def deactivate_user(
+    user_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> UserResponse:
+    require_superadmin(current)
+    user = UserRepository(session).update_user(user_id, is_active=False)
+    if user is None:
+        raise HTTPException(status_code=404, detail="user not found")
+    session.commit()
+    return UserResponse.from_user(user)
+
+
+@router.post("/admin/access-tokens/revoke")
+def revoke_access_token(
+    body: AccessTokenRevokeRequestBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> dict[str, bool]:
+    require_superadmin(current)
+    if not body.access_token.strip():
+        raise HTTPException(status_code=422, detail="access_token is required")
+    revoked = UserRepository(session).revoke_access_token(
+        hash_access_token(body.access_token)
+    )
+    if not revoked:
+        raise HTTPException(status_code=404, detail="access token not found")
+    session.commit()
+    return {"revoked": True}

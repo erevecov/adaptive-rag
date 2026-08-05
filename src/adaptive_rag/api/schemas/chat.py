@@ -46,6 +46,7 @@ class ChatRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str
+    session_id: UUID | None = None
     retrieval_limit: int | None = None
     metadata_filter: RetrievalMetadataFilterRequest | None = None
 
@@ -65,6 +66,7 @@ class ChatRequestBody(BaseModel):
         return ChatRequest(
             project_id=project_id,
             user_id=user_id,
+            session_id=self.session_id,
             message=self.message,
             retrieval_limit=(
                 self.retrieval_limit

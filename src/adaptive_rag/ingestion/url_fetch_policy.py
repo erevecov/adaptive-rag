@@ -67,6 +67,7 @@ class URLFetchPolicy:
     allowed_content_types: frozenset[str] = frozenset(
         {
             "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/xhtml+xml",
             "text/html",
             "text/plain",

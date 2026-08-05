@@ -22,7 +22,11 @@ from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.chat.knowledge import SqlAlchemyKnowledgeProposalSubmitter
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.models import Project
-from adaptive_rag.db.repositories import ChatAuditRepository, ProviderUsageRepository
+from adaptive_rag.db.repositories import (
+    ChatAuditRepository,
+    ProjectRepository,
+    ProviderUsageRepository,
+)
 from adaptive_rag.db.repositories.users import UserRepository
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
@@ -89,7 +93,8 @@ def get_project_access(
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
 ) -> tuple[Project, str]:
-    project = session.get(Project, project_id)
+    # ProjectRepository.get omits soft-deleted rows (deleted_at set).
+    project = ProjectRepository(session).get(project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="project not found")
     role = get_project_role(session, principal=current, project_id=project_id)
@@ -417,6 +422,18 @@ def get_chat_service(
         Depends(get_provider_usage_tracker),
     ],
 ) -> ChatService:
+    def _graph_ready(project_id: UUID) -> bool:
+        # Fail closed: missing table/projection → dense_sparse, never crash chat.
+        try:
+            from adaptive_rag.db.repositories import GraphProjectionRepository
+
+            projection = GraphProjectionRepository(session).get(
+                project_id=project_id
+            )
+        except Exception:
+            return False
+        return projection is not None and projection.status == "ready"
+
     return ChatService(
         runner=runner,
         retrieval_service=retrieval_service,
@@ -426,4 +443,5 @@ def get_chat_service(
             session=session,
             project_role=access[1],
         ),
+        graph_readiness=_graph_ready,
     )

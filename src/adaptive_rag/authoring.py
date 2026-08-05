@@ -16,8 +16,13 @@ from adaptive_rag.db.repositories import (
     SourceFilters,
     SourceRepository,
 )
+from adaptive_rag.ingestion.parsers import (
+    BINARY_SOURCE_TYPES,
+    MAX_BINARY_SOURCE_BYTES,
+    decode_content_base64,
+)
 
-SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url")
+SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url", "pdf", "docx")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 
 
@@ -115,6 +120,151 @@ def get_source(session: Session, *, project_id: UUID, source_id: UUID) -> Source
     return source
 
 
+def update_project(
+    session: Session,
+    project_id: UUID,
+    *,
+    name: str | None = None,
+    embedding_mode: str | None = None,
+    retrieval_contextualization_enabled: bool | None = None,
+    budget_config_json: Mapping[str, Any] | None = None,
+) -> Project:
+    get_project(session, project_id)
+    if embedding_mode is not None and embedding_mode not in {"dense", "dense_sparse"}:
+        raise AuthoringError(
+            "project embedding_mode must be dense or dense_sparse",
+            status_code=422,
+        )
+    if name is not None and not name.strip():
+        raise AuthoringError("project name must not be empty", status_code=422)
+    project = ProjectRepository(session).update(
+        project_id,
+        name=name.strip() if name is not None else None,
+        embedding_mode=embedding_mode,
+        retrieval_contextualization_enabled=retrieval_contextualization_enabled,
+        budget_config_json=budget_config_json,
+    )
+    if project is None:
+        raise AuthoringError("project not found", status_code=404)
+    return project
+
+
+def soft_delete_project(session: Session, project_id: UUID) -> Project:
+    project = ProjectRepository(session).soft_delete(project_id)
+    if project is None:
+        raise AuthoringError("project not found", status_code=404)
+    return project
+
+
+def update_source(
+    session: Session,
+    *,
+    project_id: UUID,
+    source_id: UUID,
+    tags: Sequence[str] | None = None,
+    extra_metadata: Mapping[str, Any] | None = None,
+    external_id: str | None = None,
+) -> Source:
+    get_source(session, project_id=project_id, source_id=source_id)
+    if external_id is not None and not external_id.strip():
+        raise AuthoringError("external_id must not be empty", status_code=422)
+    if extra_metadata is not None:
+        source = SourceRepository(session).get(
+            project_id=project_id, source_id=source_id
+        )
+        if source is None:
+            raise AuthoringError("source not found", status_code=404)
+        validate_source_create(
+            source_type=source.source_type,
+            extra_metadata=extra_metadata,
+        )
+    updated = SourceRepository(session).update(
+        project_id=project_id,
+        source_id=source_id,
+        tags=tags,
+        extra_metadata=extra_metadata,
+        external_id=external_id.strip() if external_id is not None else None,
+    )
+    if updated is None:
+        raise AuthoringError("source not found", status_code=404)
+    return updated
+
+
+def soft_delete_source(
+    session: Session,
+    *,
+    project_id: UUID,
+    source_id: UUID,
+) -> Source:
+    source = SourceRepository(session).soft_delete(
+        project_id=project_id,
+        source_id=source_id,
+    )
+    if source is None:
+        raise AuthoringError("source not found", status_code=404)
+    _cascade_delete_source_index(session, project_id=project_id, source_id=source_id)
+    return source
+
+
+def _cascade_delete_source_index(
+    session: Session,
+    *,
+    project_id: UUID,
+    source_id: UUID,
+) -> None:
+    """Remove searchable index rows for a soft-deleted source."""
+
+    from sqlalchemy import delete, select
+
+    from adaptive_rag.db.models import (
+        Chunk,
+        ChunkSparseEmbedding,
+        Document,
+        DocumentVersion,
+    )
+
+    document_ids = list(
+        session.scalars(
+            select(Document.id).where(
+                Document.project_id == project_id,
+                Document.source_id == source_id,
+            )
+        )
+    )
+    if not document_ids:
+        return
+    version_ids = list(
+        session.scalars(
+            select(DocumentVersion.id).where(
+                DocumentVersion.document_id.in_(document_ids)
+            )
+        )
+    )
+    if version_ids:
+        chunk_ids = list(
+            session.scalars(
+                select(Chunk.id).where(Chunk.document_version_id.in_(version_ids))
+            )
+        )
+        if chunk_ids:
+            session.execute(
+                delete(ChunkSparseEmbedding).where(
+                    ChunkSparseEmbedding.chunk_id.in_(chunk_ids)
+                )
+            )
+            session.execute(delete(Chunk).where(Chunk.id.in_(chunk_ids)))
+        session.execute(
+            delete(DocumentVersion).where(DocumentVersion.id.in_(version_ids))
+        )
+    session.execute(
+        delete(Document).where(
+            Document.project_id == project_id,
+            Document.id.in_(document_ids),
+        )
+    )
+    session.flush()
+
+
 def validate_source_create(
     *,
     source_type: str,
@@ -122,16 +272,21 @@ def validate_source_create(
 ) -> None:
     if source_type not in SUPPORTED_SOURCE_TYPES:
         raise AuthoringError(
-            "source_type must be one of markdown, text, txt, url",
+            "source_type must be one of markdown, text, txt, url, pdf, docx",
             status_code=422,
         )
-    if source_type not in TEXT_SOURCE_TYPES:
+    if source_type in TEXT_SOURCE_TYPES:
+        if extra_metadata is None:
+            _raise_missing_text_content(source_type)
+        content = extra_metadata.get("content")
+        if not isinstance(content, str) or content.strip() == "":
+            _raise_missing_text_content(source_type)
         return
-    if extra_metadata is None:
-        _raise_missing_text_content(source_type)
-    content = extra_metadata.get("content")
-    if not isinstance(content, str) or content.strip() == "":
-        _raise_missing_text_content(source_type)
+    if source_type in BINARY_SOURCE_TYPES:
+        _validate_binary_source_metadata(
+            source_type=source_type,
+            extra_metadata=extra_metadata,
+        )
 
 
 def project_payload(project: Project) -> dict[str, Any]:
@@ -166,6 +321,26 @@ def _raise_missing_text_content(source_type: str) -> NoReturn:
         f"{source_type} source requires extra_metadata.content",
         status_code=422,
     )
+
+
+def _validate_binary_source_metadata(
+    *,
+    source_type: str,
+    extra_metadata: Mapping[str, Any] | None,
+) -> None:
+    if extra_metadata is None:
+        raise AuthoringError(
+            f"{source_type} source requires extra_metadata.content_base64",
+            status_code=422,
+        )
+    try:
+        decode_content_base64(
+            extra_metadata.get("content_base64"),
+            max_bytes=MAX_BINARY_SOURCE_BYTES,
+            source_type=source_type,
+        )
+    except ValueError as exc:
+        raise AuthoringError(str(exc), status_code=422) from exc
 
 
 def _datetime_payload(value: datetime) -> str:

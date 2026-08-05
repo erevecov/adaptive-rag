@@ -1,42 +1,154 @@
 # Progreso de Adaptive RAG
 
+## Local re-gate evidence (2026-08-05 tip feat/c-retrieval-playground-ui)
+
+- Merged `origin/main` (#186 UI polish sidebar/chat) into tip without force-push.
+- `uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json`
+  - status=succeeded release_decision=ready_for_v1_0
+- `uv run adaptive-rag acceptance runtime-settings-smoke --output artifacts/acceptance-runtime-settings-smoke.json`
+  - status=succeeded (6 criteria)
+- Frontend polish + playground tests: 16 passed; tsc/eslint clean on touched UI
+- **No v1.0 tag created** (human only)
+
 ## Milestone activo
 
-**M40 Indexing job publico** (planificado, pre-v1.0 blocker).
-
-Plan unificado post-M39 adoptado el 2026-08-05 tras research Qwen (gaps
-internos) + Kimi (comparacion beflow-graph-rag). Bloque pre-v1: M40 → M41 →
-M42 → M43 → M44, luego tag v1.0 humano. Post-v1: M45–M50. Detalle en
-`docs/roadmap.md` seccion "Plan unificado post-M39". Evidencia en
-`artifacts/roadmap-research/`.
-
-Aun no hay OpenSpec change activo de implementacion: el siguiente paso de
-ejecucion es abrir el change OpenSpec de M40 desde `origin/main`.
+Marathon tip ready for human merge to `main`: `feat/c-retrieval-playground-ui`
+(M40–M50 + Bloque C + main polish). Graph live: hold. Tag v1.0 decision humana.
 
 ## Ultimo milestone completado
 
-M39 closeout cerrado el 2026-07-06.
+Bloque C — Retrieval playground UI (2026-08-05):
 
-Los changes quedaron archivados en
-`openspec/changes/archive/2026-07-06-m39-chat-stepper-live-events/` y
-`openspec/changes/archive/2026-07-06-m39-qwen-runtime-production-defaults/`.
-Actualizan las specs canonicas `chat-frontend`, `chat-history`,
-`chat-streaming` y `provider-runtime`.
+- `apiClient.searchRetrieval` + Settings → Authoring → Retrieval playground
+- Strategy/limit/rerank form, ranked hits table, component tests
+- OpenSpec `retrieval-playground`
+
+## Milestone anterior completado
+
+Bloque C — LLM-as-judge opt-in (2026-08-05):
+
+- CLI `evals run --llm-judge` requiere `--max-cost-usd > 0`
+- Offline: `FakeDeterministicJudge` (citation coverage / non-empty answer)
+- Live hook: `PromptLlmJudge` + `eval_judge` usage; suite status no cambia
+- OpenSpec `llm-judge` + unit/CLI tests
+
+## Milestone anterior completado
+
+Bloque C — User memory minima (2026-08-05):
+
+- Tabla durable `user_memories` (proposed/approved/rejected) + alembic
+  `h7i8j9k0l1m2`.
+- Service propose/approve/reject/list + injection text (solo approved).
+- API `POST/GET /users/me/memories`, approve/reject; chat inject en
+  `/chat` y `/stream` cuando hay `user_id`.
+- OpenSpec `openspec/changes/archive/2026-08-05-c-user-memory-minima` +
+  `openspec/specs/user-memory`.
+- Tests unit + API (IDOR 404, double-review 409, injection path).
+- **No se creo tag v1.0.** Sin UI de memoria (anti-roadmap).
+
+## Milestone anterior completado
+
+M50 Dense reindex + contextualizacion LLM opt-in cerrado el 2026-08-05.
+
+CLI `dense reindex` con force/watermark/JSON; CLI `contextualize reindex` /
+`ab-compare` (slot `llm_opt_in` vs deterministico). OpenSpec
+`2026-08-05-m50-dense-reindex`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M49 MCP stdio minimo cerrado el 2026-08-05.
+
+FastMCP stdio: list_projects, list_sources, search, ask, ingest_text;
+CLI `adaptive-rag mcp serve`; docs/mcp.md. OpenSpec `2026-08-05-m49-mcp-stdio`.
+**No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M48 Knowledge lifecycle cerrado el 2026-08-05.
+
+Resync CLI/API, watermarks content-hash en sources, dedup report.
+OpenSpec `2026-08-05-m48-knowledge-lifecycle`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M47 Query routing medible cerrado el 2026-08-05.
+
+Router por reglas (`skip_retrieval` / `dense_sparse` / `graph`), cableado en
+`ChatRetrievalTool`, suite `eval_routing` CI-safe y decision record. OpenSpec
+`2026-08-05-m47-query-routing`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M46 Security pack cerrado el 2026-08-05.
+
+Content guard de secretos en ingesta (redact), filtro de salida en chat
+stream/non-stream, security headers + CORS explicito, bandit/pip-audit en CI.
+OpenSpec `2026-08-05-m46-security-pack`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M45 PDF + DOCX ingestion (texto embebido) cerrado el 2026-08-05.
+
+Parsers `pdf_embedded` / `docx_text` con registry por content-type y
+`source_type`, authoring `pdf`/`docx` via `content_base64`, CLI `--file`,
+URL PDF/DOCX post-fetch, frontend file picker, path publico ingest+index+chat.
+`pdf_office_ingestion` permanece en quality-gate deferred (sin smoke gate
+dedicado). OpenSpec `2026-08-05-m45-pdf-docx-ingestion`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M44 CI + compose all-in-one + gate reconcile cerrado el 2026-08-05.
+
+GitHub Actions CI, compose frontend service, deferred_defaults sin
+`auth_multi_user`. **No se creo tag v1.0 ni GitHub Release.**
+
+## Milestone anterior completado
+
+M43 Authoring lifecycle + RBAC closeout cerrado el 2026-08-05.
+
+PATCH/DELETE soft projects/sources (cascade index), DELETE membership,
+deactivate user, revoke token, role matrix tests. OpenSpec
+`2026-08-05-m43-authoring-lifecycle-rbac`.
+
+## Milestone anterior completado
+
+M42 Chat multi-turn + query condenser cerrado el 2026-08-05.
+
+`session_id` opcional en chat/stream, historial acotado, condensador
+deterministico, UI continua sesion seleccionada. OpenSpec archivado
+`2026-08-05-m42-chat-multi-turn`.
+
+## Milestone anterior completado
+
+M41 Job queue hardening cerrado el 2026-08-05.
+
+Change archivado en
+`openspec/changes/archive/2026-08-05-m41-job-queue-hardening/`.
+Worker `run_next` llama `release_expired_leases` y enruta errores inesperados
+por `fail()` con backoff/dead-letter. Test kill mid-job (lease vencido)
+reencola y re-procesa.
+
+## Milestone anterior completado
+
+M40 Indexing job publico cerrado el 2026-08-05.
+
+Change archivado en
+`openspec/changes/archive/2026-08-05-m40-indexing-job-publico/`.
+Actualiza specs `ingestion-pipeline`, `ingestion-ops-surface`,
+`first-run-onboarding`, `job-queue` y `v1-product-completion`.
+
+Entregado:
+
+- Job publico `index_document_version` (chunk → contextualize → dense/sparse).
+- Encadenado tras `ingest_source` exitoso; worker/API `run-next` procesan la
+  family de jobs de ingestion/indexing.
+- first-run, acceptance y quality-gate drenan el mismo path de jobs (sin
+  pipelines de indexing inline privilegiados).
+- Tests: source → worker → chunks/embeddings → chat con citations.
 
 ## Ultimo slice completado
 
-Post-M39 design system closeout: se eliminaron los ultimos botones crudos de
-`App`, shell y chat stepper en favor de `Button`; los iconos SVG inline de
-shell/chat/history fueron reemplazados por `lucide-react`; y se removieron los
-selectores globales `.ui-icon`, `.brain-icon` y `.context-ring-*` de `App.css`.
-El cierre agrego tests fuente para impedir regresiones a botones/SVG legacy y
-paso el gate frontend completo.
-
-M39 Qwen runtime production defaults: model sync ahora materializa defaults
-idempotentes para Qwen conectado sin sobrescribir elecciones del usuario, usa
-capability inference conocida por modelo para evitar slots incompatibles y
-mantiene `adaptive_rag.provider_runtime` como facade compatible tras separar
-runtime en modulos enfocados.
+M40 indexing job publico: path authoring → enqueue → worker → corpus citable.
 
 M39 Chat stepper live events: streaming SSE emite eventos `step`, el snapshot
 terminal queda persistido en `ChatHistoryMessage.metadata.steps`, y frontend
@@ -118,8 +230,11 @@ camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found. Proximo: change OpenSpec `m40-indexing-job-publico`
-(o nombre equivalente) al iniciar implementacion.
+No active changes found. Archives M40–M50 under
+`openspec/changes/archive/2026-08-05-m*` plus Bloque C under
+`openspec/changes/archive/2026-08-05-c-user-memory-minima/` and
+`openspec/changes/archive/2026-08-05-c-llm-as-judge-opt-in/`.
+Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Planificacion reciente
 
@@ -169,14 +284,13 @@ No active changes found. Proximo: change OpenSpec `m40-indexing-job-publico`
 - `openspec/specs/project-rbac/spec.md`
 - `openspec/specs/v1-release-readiness/spec.md`
 - `openspec/specs/v1-product-completion/spec.md`
+- `openspec/specs/user-memory/spec.md`
+- `openspec/specs/llm-judge/spec.md`
 
 ## Siguiente tarea recomendada
 
-- No quedan changes por archivar. La opcion recomendada es re-ejecutar desde
-  `origin/main` el release gate final, registrar la evidencia y mantener
-  diferida la creacion de tag/GitHub release v1.0 por decision de producto. Si
-  se decide una feature adicional antes de release, abrir primero un nuevo
-  change OpenSpec desde `origin/main`.
+- Merge marathon tip to `main` (PR tip→main or bottom-up #181 then stack).
+  UI polish already on main (#186) and integrated into tip. Tag v1.0 human.
 
 ## Reglas de coordinacion
 

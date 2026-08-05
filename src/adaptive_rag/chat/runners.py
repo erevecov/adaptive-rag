@@ -16,8 +16,9 @@ class RetrievalGroundedChatRunner:
         request: ChatRunnerRequest,
         tools: ChatTools,
     ) -> ChatRunnerOutput:
+        query = request.retrieval_query or request.message
         retrieval = tools.retrieval.search(
-            query=request.message,
+            query=query,
             limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
         )

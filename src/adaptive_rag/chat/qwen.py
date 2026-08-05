@@ -214,14 +214,16 @@ class QwenHTTPChatClient:
 
 
 def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
-    return [
+    messages: list[ChatMessage] = [
         {
             "role": "system",
             "content": (
                 "You are Adaptive RAG's retrieval-grounded chat runner. "
                 "Use the retrieval_search tool before answering when evidence "
-                "is needed. When the user explicitly asks to save, learn, "
-                "remember, or capture project knowledge, call commit_knowledge. "
+                "is needed. Prefer the retrieval query when provided in the "
+                "latest user turn metadata. When the user explicitly asks to "
+                "save, learn, remember, or capture project knowledge, call "
+                "commit_knowledge. "
                 "Choose scope=message when the knowledge is only in the latest "
                 "user message, or scope=session when it summarizes this chat "
                 "session. If the user asks to change an existing knowledge "
@@ -234,11 +236,18 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
                 "retrieval_search."
             ),
         },
-        {
-            "role": "user",
-            "content": request.message,
-        },
     ]
+    for turn in request.history:
+        if turn.role in {"user", "assistant"} and turn.content.strip():
+            messages.append({"role": turn.role, "content": turn.content})
+    user_content = request.message
+    if request.retrieval_query and request.retrieval_query != request.message:
+        user_content = (
+            f"{request.message}\n\n"
+            f"[retrieval_query] {request.retrieval_query}"
+        )
+    messages.append({"role": "user", "content": user_content})
+    return messages
 
 
 def _tool_schemas(tools: ChatTools) -> list[ChatToolDefinition]:

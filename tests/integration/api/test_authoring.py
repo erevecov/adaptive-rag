@@ -62,6 +62,7 @@ def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
         "can_access",
         "created_at",
         "updated_at",
+        "deleted_at",
     }
 
     list_response = client.get("/projects")
@@ -134,6 +135,7 @@ def test_create_text_source_requires_content_and_lists_sources() -> None:
         "extra_metadata",
         "created_at",
         "updated_at",
+        "deleted_at",
     }
 
     list_response = client.get(f"/projects/{project.id}/sources")
@@ -239,11 +241,21 @@ def test_create_source_rejects_unknown_project_and_source_type() -> None:
 
     unsupported = client.post(
         f"/projects/{project.id}/sources",
-        json={"source_type": "pdf", "external_id": "file.pdf"},
+        json={"source_type": "pptx", "external_id": "deck.pptx"},
     )
 
     assert unsupported.status_code == 422
     assert (
         unsupported.json()["detail"]
-        == "source_type must be one of markdown, text, txt, url"
+        == "source_type must be one of markdown, text, txt, url, pdf, docx"
+    )
+
+    missing_payload = client.post(
+        f"/projects/{project.id}/sources",
+        json={"source_type": "pdf", "external_id": "file.pdf"},
+    )
+    assert missing_payload.status_code == 422
+    assert (
+        missing_payload.json()["detail"]
+        == "pdf source requires extra_metadata.content_base64"
     )

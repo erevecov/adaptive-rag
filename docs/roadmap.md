@@ -42,19 +42,23 @@
 - M39 Chat stepper live events: completo.
 - M39 Qwen runtime production defaults: completo.
 - Post-M39 Design system shadcn/Radix closeout: completo.
-- **M40 Indexing job publico: planificado (activo, pre-v1.0 blocker).**
-- M41 Job queue hardening: planificado (pre-v1.0).
-- M42 Chat multi-turn + query condenser: planificado (pre-v1.0).
-- M43 Authoring lifecycle + RBAC closeout: planificado (pre-v1.0).
-- M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
+- M40 Indexing job publico: completo.
+- M41 Job queue hardening: completo.
+- M42 Chat multi-turn + query condenser: completo.
+- M43 Authoring lifecycle + RBAC closeout: completo.
+- M44 CI + compose all-in-one + gate reconcile: completo.
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
-- M45 PDF + DOCX ingestion: planificado (post-v1.0).
-- M46 Security pack: planificado (post-v1.0).
-- M47 Query routing medible: planificado (post-v1.0).
-- M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
-- M49 MCP stdio minimo: planificado (post-v1.0).
-- M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
-- Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
+- M45 PDF + DOCX ingestion: completo.
+- M46 Security pack: completo.
+- M47 Query routing medible: completo.
+- M48 Knowledge lifecycle (dedup/resync): completo.
+- M49 MCP stdio minimo: completo.
+- M50 Dense reindex + contextualizacion LLM opt-in: completo.
+- Bloque C user memory minima: completo (tabla + API + inject; sin UI).
+- Bloque C LLM-as-judge opt-in: completo (`--llm-judge` + budget; fake offline).
+- Bloque C retrieval playground UI: completo.
+- Bloque C UI polish sidebar/chat: completo en `main` (#186) e integrado en tip.
+  Graph live: hold documentado.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
 `artifacts/roadmap-research/`, decision del owner: aceptar secuencia unificada
@@ -1820,83 +1824,56 @@ paralelo si comparten schema/worker.
 
 #### M40 Indexing job publico
 
-Estado: planificado (activo).
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- Encadenar el camino publico authoring → `ingest_source` → **indexing**
-  (chunking → contextualizacion → dense/sparse embeddings) como job(s)
-  observables en worker y API.
-- Hacer que first-run, acceptance y quality-gate usen el **mismo** camino (sin
-  orquestacion inline privilegiada).
-
-Criterio de exito:
-
-- Source creada por UI/API + worker produce chunks y embeddings.
-- Chat citado funciona sobre ese corpus sin smoke inline.
-- Spec nueva o delta de indexing-ops + tests de integracion.
+- Job publico `index_document_version` encadenado tras `ingest_source`.
+- Worker/API procesan family `ingest_source` + `index_document_version`.
+- first-run / acceptance / quality-gate usan el mismo path de jobs.
+- OpenSpec archivado: `2026-08-05-m40-indexing-job-publico`.
 
 #### M41 Job queue hardening
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- Worker llama `release_expired_leases` al arrancar/por ciclo.
-- Errores inesperados → `fail()` con backoff y dead-letter real.
-- Eventos visibles en ingestion ops UI.
-
-Criterio de exito:
-
-- Test de integracion: kill mid-job ⇒ reencola o dead-letter; no queda
-  `running` eterno.
+- `run_next` libera leases vencidos antes de leasear.
+- Errores inesperados → `fail()` con backoff y dead-letter.
+- Eventos `released` / `failed_attempt` / `dead_lettered` en job detail.
+- OpenSpec archivado: `2026-08-05-m41-job-queue-hardening`.
 
 #### M42 Chat multi-turn + query condenser
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- `session_id` opcional en `POST /chat` y `/chat/stream`.
-- Historial acotado al runner (presupuesto de tokens / ultimos N mensajes).
-- UI continua la sesion seleccionada.
-- Condensador de query conversacional (historial → query autocontenida) con
-  fake deterministico para tests.
-
-Criterio de exito:
-
-- Eval multi-turn con follow-ups; specs `chat-tool-calling` / `chat-history` /
-  `chat-streaming` actualizadas.
+- `session_id` opcional en chat/stream; historial acotado + condenser fake.
+- UI envia sesion seleccionada en follow-ups.
+- OpenSpec archivado: `2026-08-05-m42-chat-multi-turn`.
 
 #### M43 Authoring lifecycle + RBAC closeout
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- PATCH/DELETE (soft) de projects y sources con cascada de indices.
-- DELETE membership, desactivar usuario, revocar access token + UI minima.
-
-Criterio de exito:
-
-- Tests de rol por operacion; UI renombra/borra con confirmacion.
+- Soft delete `deleted_at` + cascade index en sources.
+- Membership delete, user deactivate, token revoke.
+- Role matrix tests. OpenSpec `2026-08-05-m43-authoring-lifecycle-rbac`.
 
 #### M44 CI + compose all-in-one + gate reconcile
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- GitHub Actions minima: ruff, mypy, pytest, frontend test/typecheck/lint/build,
-  openspec strict (sin Qwen live obligatorio).
-- Compose con frontend (o API sirviendo build) + migraciones documentadas.
-- Reconciliar `deferred_defaults` del quality gate (p. ej. `auth_multi_user`
-  ya parcialmente entregado en M37) y config muerta.
-
-Criterio de exito:
-
-- `docker compose up` levanta demo usable; CI verde en PR; quality gate
-  refleja deferrals reales.
+- `.github/workflows/ci.yml` (backend + frontend + openspec).
+- Compose `frontend` (nginx static build) + docs de migraciones.
+- `auth_multi_user` removido de deferred_defaults.
+- OpenSpec `2026-08-05-m44-ci-compose-gate`. **Sin tag v1.0.**
 
 → **Tag / GitHub release v1.0 es accion humana** solo despues de re-ejecutar
 el gate desde `main` con M40–M44 cerrados.
@@ -1905,23 +1882,24 @@ el gate desde `main` con M40–M44 cerrados.
 
 #### M45 PDF + DOCX ingestion
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
 - Parser PDF (texto embebido primero) + DOCX; registry por content-type.
-- Vision/OCR opt-in despues; no antes de M40.
+- Authoring `pdf`/`docx` con `content_base64`, CLI `--file`, URL post-fetch.
+- Vision/OCR opt-in despues; PDFs sin texto embebido bloquean el job.
 
 #### M46 Security pack
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- Content guard de secretos en ingesta.
-- Filtros defensivos de salida en streaming (citas fabricadas / secrets).
+- Content guard de secretos en ingesta (redact + metadata).
+- Filtros defensivos de salida en streaming (secrets; citas via resolve).
 - Security headers + CORS explicito.
-- Tests en CI (leccion beflow: control sin test = teatro).
+- Tests en CI + bandit/pip-audit en workflow.
 
 #### M47 Query routing medible
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
 - Clasificador liviano (reglas + fallback `dense_sparse`) hacia
   skip-retrieval / dense_sparse / graph-si-ready.
@@ -1930,36 +1908,42 @@ Estado: planificado (post-v1.0).
 
 #### M48 Knowledge lifecycle (dedup + resync)
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- Content-hash / estados de sync por fuente.
-- Resync CLI/API; dedup silencioso con reporte.
+- Content-hash watermarks en source metadata tras ingest.
+- Resync CLI/API via job publico `ingest_source`.
+- Dedup report por content_hash compartido (sin borrado).
 
 #### M49 MCP stdio minimo
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- 3–5 tools: search, ask, ingest_text, list_projects, list_sources.
-- Auth = token local existente; sin OAuth/hosted.
-- README Claude Code / Cursor.
+- FastMCP stdio: list_projects, list_sources, search, ask, ingest_text.
+- CLI `adaptive-rag mcp serve`; docs/mcp.md.
+- Auth proceso local (mismo DB/env que CLI); sin OAuth/hosted.
 
 #### M50 Dense reindex + contextualizacion LLM opt-in
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- `dense reindex` por proyecto con watermark y report JSON.
-- Slot contextualization con provider LLM opt-in + A/B vs deterministico.
+- CLI `dense reindex` por proyecto con force, watermark y report JSON.
+- CLI `contextualize reindex` / `ab-compare` con slot `llm_opt_in` vs deterministico.
 
 ### Bloque C — Experimental / por decision
 
-No numerar como milestone activo hasta decidir:
-
-- **Graph live evidence + vista force-graph** o retiro ordenado a `no_go`.
-- **LLM-as-judge** en evals (solo opt-in con `--max-cost-usd`).
-- **User memory minima** (tabla durable + propuesta/aprobacion + inyeccion;
-  nunca UI-first sin storage).
-- **Retrieval playground** en UI (quick win).
-- **UI polish sidebar/chat** (trabajo paralelo de design; no bloquea M40).
+- **User memory minima**: completo (2026-08-05). Tabla `user_memories`,
+  API `/users/me/memories` propose/list/approve/reject, chat inject solo
+  approved; OpenSpec `user-memory`. Sin UI de memoria.
+- **LLM-as-judge** en evals: completo (2026-08-05). Opt-in `--llm-judge`
+  requiere `--max-cost-usd > 0`; fake offline + `PromptLlmJudge` hook;
+  OpenSpec `llm-judge`. No cambia pass/fail del suite por defecto.
+- **Graph live evidence + vista force-graph**: hold documentado en
+  `docs/architecture/graph-live-bloque-c-decision.md` (no_go hasta Neo4j
+  live + evidence report).
+- **Retrieval playground** en UI: completo (2026-08-05). Authoring nav +
+  `POST .../retrieval/search` client.
+- **UI polish sidebar/chat**: completo en `main` (#186 beflow density) y
+  merged into marathon tip (2026-08-05).
 
 ### Anti-roadmap (acuerdo adoptado)
 

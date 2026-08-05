@@ -180,6 +180,10 @@ function createClientStub(options: {
   createProviderConnection?: ApiClient['createProviderConnection']
   createSource?: ApiClient['createSource']
   createUser?: ApiClient['createUser']
+  deactivateUser?: ApiClient['deactivateUser']
+  deleteProject?: ApiClient['deleteProject']
+  deleteProjectMembership?: ApiClient['deleteProjectMembership']
+  deleteSource?: ApiClient['deleteSource']
   enqueueIngestionJob?: ApiClient['enqueueIngestionJob']
   getChatObservabilitySummary?: ApiClient['getChatObservabilitySummary']
   getChatSession?: ApiClient['getChatSession']
@@ -204,11 +208,15 @@ function createClientStub(options: {
   updateChatSessionTitle?: ApiClient['updateChatSessionTitle']
   updateChatRetrievalSettings?: ApiClient['updateChatRetrievalSettings']
   updateCurrentUserPreferences?: ApiClient['updateCurrentUserPreferences']
+  updateProject?: ApiClient['updateProject']
+  updateSource?: ApiClient['updateSource']
   refineKnowledgeProposal?: ApiClient['refineKnowledgeProposal']
   approveKnowledgeProposal?: ApiClient['approveKnowledgeProposal']
   rejectKnowledgeProposal?: ApiClient['rejectKnowledgeProposal']
   retryIngestionJob?: ApiClient['retryIngestionJob']
+  revokeAccessToken?: ApiClient['revokeAccessToken']
   runNextIngestionJob?: ApiClient['runNextIngestionJob']
+  searchRetrieval?: ApiClient['searchRetrieval']
   submitKnowledgeProposal?: ApiClient['submitKnowledgeProposal']
   upsertChatModel?: ApiClient['upsertChatModel']
   upsertProjectChatRetrievalSettings?: ApiClient['upsertProjectChatRetrievalSettings']
@@ -226,12 +234,17 @@ function createClientStub(options: {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
+    searchRetrieval: options.searchRetrieval ?? vi.fn(),
     archiveChatSession: options.archiveChatSession ?? vi.fn(),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
     createUser: options.createUser ?? vi.fn(),
+    deactivateUser: options.deactivateUser ?? vi.fn(),
+    deleteProject: options.deleteProject ?? vi.fn(),
+    deleteProjectMembership: options.deleteProjectMembership ?? vi.fn(),
+    deleteSource: options.deleteSource ?? vi.fn(),
     enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
     getCurrentUser:
       options.getCurrentUser ??
@@ -293,6 +306,8 @@ function createClientStub(options: {
         login: 'bootstrap',
         system_role: 'superadmin',
     })),
+    updateProject: options.updateProject ?? vi.fn(),
+    updateSource: options.updateSource ?? vi.fn(),
     upsertChatModel: options.upsertChatModel ?? vi.fn(),
     upsertProjectChatRetrievalSettings:
       options.upsertProjectChatRetrievalSettings ?? vi.fn(),
@@ -312,6 +327,7 @@ function createClientStub(options: {
     deleteProviderConnection: options.deleteProviderConnection ?? vi.fn(),
     deleteProviderSecret: vi.fn(),
     deleteRuntimeSlotDefault: vi.fn(),
+    revokeAccessToken: options.revokeAccessToken ?? vi.fn(),
     setDefaultChatModel: vi.fn(),
     setDefaultProjectChatModel: vi.fn(),
     syncProviderModels: options.syncProviderModels ?? vi.fn(),

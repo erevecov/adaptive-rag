@@ -123,6 +123,8 @@ class EvalCaseResult:
     observed_citations: tuple[EvalObservedCitation, ...] = ()
     observed_tool_queries: tuple[str, ...] = ()
     case_metadata: EvalCaseMetadata | None = None
+    answer: str | None = None
+    context_snippets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

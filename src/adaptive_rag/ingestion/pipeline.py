@@ -20,6 +20,22 @@ from adaptive_rag.db.repositories import (
     JobRepository,
     SourceRepository,
 )
+from adaptive_rag.ingestion.indexing import (
+    INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    enqueue_index_document_version_job,
+)
+from adaptive_rag.ingestion.parsers import (
+    BINARY_SOURCE_TYPES,
+    MAX_BINARY_SOURCE_BYTES,
+    decode_content_base64,
+    parser_for_content_type,
+    parser_for_source_type,
+)
+from adaptive_rag.ingestion.types import (
+    IngestionPipelineError,
+    ParsedDocument,
+    normalize_text,
+)
 from adaptive_rag.ingestion.url_fetch_policy import (
     FetchResult,
     URLFetcher,
@@ -27,12 +43,15 @@ from adaptive_rag.ingestion.url_fetch_policy import (
 )
 
 INGEST_SOURCE_JOB_TYPE = "ingest_source"
+INGESTION_FAMILY_JOB_TYPES = frozenset(
+    {
+        INGEST_SOURCE_JOB_TYPE,
+        INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    }
+)
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 HTML_SOURCE_CONTENT_TYPES = frozenset({"application/xhtml+xml", "text/html"})
-
-
-class IngestionPipelineError(ValueError):
-    """Error no retryable de ingestion."""
+DEFAULT_MAX_BINARY_BYTES = MAX_BINARY_SOURCE_BYTES
 
 
 class URLContentFetcher(Protocol):
@@ -43,13 +62,6 @@ class URLContentFetcher(Protocol):
 class HTMLExtractor(Protocol):
     def extract(self, *, html: str, url: str) -> ParsedDocument:
         """Extrae texto principal y metadata desde HTML descargado."""
-
-
-@dataclass(frozen=True, slots=True)
-class ParsedDocument:
-    normalized_text: str
-    parser_metadata: Mapping[str, Any]
-    extraction_metadata: Mapping[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +127,7 @@ class IngestionPipeline:
         url_fetcher: URLContentFetcher | None = None,
         html_extractor: HTMLExtractor | None = None,
         text_parser: BasicTextParser | None = None,
+        max_binary_bytes: int = DEFAULT_MAX_BINARY_BYTES,
     ) -> None:
         self._session = session
         self._source_repo = SourceRepository(session)
@@ -123,6 +136,7 @@ class IngestionPipeline:
         self._url_fetcher = url_fetcher or URLFetcher()
         self._html_extractor = html_extractor or TrafilaturaHTMLExtractor()
         self._text_parser = text_parser or BasicTextParser()
+        self._max_binary_bytes = max_binary_bytes
 
     def run_next(
         self,
@@ -142,6 +156,18 @@ class IngestionPipeline:
         if job is None:
             return None
 
+        return self.process_leased_job(project_id=project_id, job=job)
+
+    def process_leased_job(
+        self,
+        *,
+        project_id: UUID,
+        job: Job,
+    ) -> IngestionRunResult | IngestionBlockedResult:
+        if job.job_type != INGEST_SOURCE_JOB_TYPE:
+            raise IngestionPipelineError(
+                f"unsupported job_type for ingestion pipeline: {job.job_type}"
+            )
         try:
             result = self._process_job(project_id=project_id, job=job)
         except (IngestionPipelineError, URLFetchPolicyError) as exc:
@@ -153,6 +179,12 @@ class IngestionPipeline:
             return IngestionBlockedResult(job=blocked_job, error_message=str(exc))
 
         self._job_repo.complete(project_id=project_id, job_id=job.id)
+        enqueue_index_document_version_job(
+            self._session,
+            project_id=project_id,
+            document_version_id=result.document_version.id,
+            source_id=result.source.id,
+        )
         return result
 
     def _process_job(self, *, project_id: UUID, job: Job) -> IngestionRunResult:
@@ -162,11 +194,14 @@ class IngestionPipeline:
             raise IngestionPipelineError("source does not belong to project")
 
         parsed = self._parse_source(source)
-        content_hash = _sha256_text(parsed.normalized_text)
+        guarded_text, redaction_count = _apply_content_guard(parsed.normalized_text)
+        content_hash = _sha256_text(guarded_text)
         parser_metadata = dict(parsed.parser_metadata)
         extraction_metadata = _source_extraction_metadata(source) | dict(
             parsed.extraction_metadata
         )
+        if redaction_count:
+            extraction_metadata["content_guard_redactions"] = redaction_count
         index_fingerprint = _index_fingerprint(
             content_hash=content_hash,
             parser_metadata=parser_metadata,
@@ -183,6 +218,14 @@ class IngestionPipeline:
             and latest.content_hash == content_hash
             and latest.index_fingerprint == index_fingerprint
         ):
+            from adaptive_rag.knowledge_lifecycle import mark_source_synced
+
+            mark_source_synced(
+                self._session,
+                project_id=project_id,
+                source_id=source.id,
+                content_hash=content_hash,
+            )
             return IngestionRunResult(
                 job=job,
                 source=source,
@@ -196,11 +239,19 @@ class IngestionPipeline:
             project_id=project_id,
             document_id=document.id,
             version_number=next_version,
-            normalized_text=parsed.normalized_text,
+            normalized_text=guarded_text,
             content_hash=content_hash,
             index_fingerprint=index_fingerprint,
             parser_metadata=parser_metadata,
             extraction_metadata=extraction_metadata,
+        )
+        from adaptive_rag.knowledge_lifecycle import mark_source_synced
+
+        mark_source_synced(
+            self._session,
+            project_id=project_id,
+            source_id=source.id,
+            content_hash=content_hash,
         )
         return IngestionRunResult(
             job=job,
@@ -212,14 +263,7 @@ class IngestionPipeline:
 
     def _parse_source(self, source: Source) -> ParsedDocument:
         if source.source_type == "url":
-            fetched = self._url_fetcher.fetch(source.external_id)
-            content_type = _base_content_type(fetched.content_type)
-            if content_type not in HTML_SOURCE_CONTENT_TYPES:
-                raise IngestionPipelineError(
-                    f"URL source content type is not HTML: {content_type}"
-                )
-            html = fetched.content.decode("utf-8", errors="replace")
-            return self._html_extractor.extract(html=html, url=fetched.final_url)
+            return self._parse_url_source(source)
 
         if source.source_type in TEXT_SOURCE_TYPES:
             return self._text_parser.parse(
@@ -227,7 +271,36 @@ class IngestionPipeline:
                 source_type=source.source_type,
             )
 
+        if source.source_type in BINARY_SOURCE_TYPES:
+            parser = parser_for_source_type(source.source_type)
+            if parser is None:
+                raise IngestionPipelineError(
+                    f"Unsupported source_type: {source.source_type}"
+                )
+            return parser.parse(
+                _binary_content_from_metadata(
+                    source,
+                    max_bytes=self._max_binary_bytes,
+                )
+            )
+
         raise IngestionPipelineError(f"Unsupported source_type: {source.source_type}")
+
+    def _parse_url_source(self, source: Source) -> ParsedDocument:
+        fetched = self._url_fetcher.fetch(source.external_id)
+        content_type = _base_content_type(fetched.content_type)
+
+        if content_type in HTML_SOURCE_CONTENT_TYPES:
+            html = fetched.content.decode("utf-8", errors="replace")
+            return self._html_extractor.extract(html=html, url=fetched.final_url)
+
+        binary_parser = parser_for_content_type(content_type)
+        if binary_parser is not None:
+            return binary_parser.parse(fetched.content)
+
+        raise IngestionPipelineError(
+            f"URL source content type has no registered parser: {content_type}"
+        )
 
     def _get_or_create_document(self, *, project_id: UUID, source: Source) -> Document:
         documents = self._document_repo.list(
@@ -241,12 +314,6 @@ class IngestionPipeline:
             source_id=source.id,
             stable_id=source.external_id,
         )
-
-
-def normalize_text(content: str) -> str:
-    """Normaliza line endings y whitespace exterior sin cambiar el cuerpo."""
-
-    return content.replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
 def _source_id_from_payload(payload: Mapping[str, Any] | None) -> UUID:
@@ -271,6 +338,28 @@ def _inline_text_content(source: Source) -> str:
             f"{source.source_type} source requires extra_metadata.content"
         )
     return content
+
+
+def _binary_content_from_metadata(
+    source: Source,
+    *,
+    max_bytes: int,
+) -> bytes:
+    metadata = source.extra_metadata or {}
+    try:
+        return decode_content_base64(
+            metadata.get("content_base64"),
+            max_bytes=max_bytes,
+            source_type=source.source_type,
+        )
+    except ValueError as exc:
+        raise IngestionPipelineError(str(exc)) from exc
+
+
+def _apply_content_guard(text: str) -> tuple[str, int]:
+    from adaptive_rag.security.secrets import redact_secrets
+
+    return redact_secrets(text)
 
 
 def _base_content_type(content_type: str) -> str:

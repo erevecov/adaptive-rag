@@ -7,6 +7,7 @@ repositories existentes, sin crear chunks ni llamar providers live.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import func, select
 
@@ -31,8 +32,8 @@ from adaptive_rag.ingestion import FetchResult
 from adaptive_rag.ingestion.pipeline import (
     IngestionBlockedResult,
     IngestionPipeline,
-    ParsedDocument,
 )
+from adaptive_rag.ingestion.types import ParsedDocument
 
 
 class FakeURLFetcher:
@@ -286,21 +287,23 @@ def test_run_next_fetches_url_and_uses_html_extractor() -> None:
     }
 
 
-def test_run_next_blocks_url_source_when_fetch_result_is_not_html() -> None:
+def test_run_next_blocks_url_source_when_content_type_has_no_parser() -> None:
+    """Allowlisted types without a registered parser still block (e.g. text/plain)."""
+
     session = _make_session()
     project = ProjectRepository(session).create(name="demo")
     source = SourceRepository(session).create(
         project_id=project.id,
         source_type="url",
-        external_id="https://example.com/file.pdf",
+        external_id="https://example.com/notes.txt",
     )
     job = _enqueue_ingest_job(session, project=project, source=source)
     fetcher = FakeURLFetcher(
         FetchResult(
-            final_url="https://example.com/file.pdf",
+            final_url="https://example.com/notes.txt",
             status_code=200,
-            content_type="application/pdf",
-            content=b"%PDF-1.7",
+            content_type="text/plain",
+            content=b"plain text body",
         )
     )
     extractor = FakeHTMLExtractor(
@@ -327,9 +330,9 @@ def test_run_next_blocks_url_source_when_fetch_result_is_not_html() -> None:
     assert result.job.id == job.id
     assert (
         result.error_message
-        == "URL source content type is not HTML: application/pdf"
+        == "URL source content type has no registered parser: text/plain"
     )
-    assert fetcher.requested_urls == ["https://example.com/file.pdf"]
+    assert fetcher.requested_urls == ["https://example.com/notes.txt"]
     assert extractor.calls == []
     assert DocumentRepository(session).list(project_id=project.id) == []
     assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
@@ -340,3 +343,203 @@ def test_run_next_blocks_url_source_when_fetch_result_is_not_html() -> None:
         "leased",
         "blocked",
     ]
+
+
+def test_run_next_ingests_url_pdf_with_embedded_text() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="url",
+        external_id="https://example.com/file.pdf",
+    )
+    job = _enqueue_ingest_job(session, project=project, source=source)
+    pdf_bytes = (
+        Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "sample.pdf"
+    ).read_bytes()
+    fetcher = FakeURLFetcher(
+        FetchResult(
+            final_url="https://example.com/file.pdf",
+            status_code=200,
+            content_type="application/pdf",
+            content=pdf_bytes,
+        )
+    )
+    extractor = FakeHTMLExtractor(
+        ParsedDocument(
+            normalized_text="should not be used",
+            parser_metadata={"parser": "fake_html"},
+            extraction_metadata={},
+        )
+    )
+    session.commit()
+
+    result = IngestionPipeline(
+        session,
+        url_fetcher=fetcher,
+        html_extractor=extractor,
+    ).run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+
+    assert not isinstance(result, IngestionBlockedResult)
+    assert result is not None
+    assert "ALPHA-PDF-442" in result.document_version.normalized_text
+    assert result.document_version.parser_metadata["parser"] == "pdf_embedded"
+    assert extractor.calls == []
+    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
+        "succeeded"
+    )
+
+
+def test_run_next_ingests_url_docx_with_body_text() -> None:
+    from adaptive_rag.ingestion.parsers.registry import DOCX_CONTENT_TYPE
+
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="url",
+        external_id="https://example.com/file.docx",
+    )
+    job = _enqueue_ingest_job(session, project=project, source=source)
+    docx_bytes = (
+        Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "sample.docx"
+    ).read_bytes()
+    fetcher = FakeURLFetcher(
+        FetchResult(
+            final_url="https://example.com/file.docx",
+            status_code=200,
+            content_type=DOCX_CONTENT_TYPE,
+            content=docx_bytes,
+        )
+    )
+    extractor = FakeHTMLExtractor(
+        ParsedDocument(
+            normalized_text="should not be used",
+            parser_metadata={"parser": "fake_html"},
+            extraction_metadata={},
+        )
+    )
+    session.commit()
+
+    result = IngestionPipeline(
+        session,
+        url_fetcher=fetcher,
+        html_extractor=extractor,
+    ).run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+
+    assert not isinstance(result, IngestionBlockedResult)
+    assert result is not None
+    assert "ALPHA-DOCX-991" in result.document_version.normalized_text
+    assert result.document_version.parser_metadata["parser"] == "docx_text"
+    assert extractor.calls == []
+    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
+        "succeeded"
+    )
+
+
+def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
+    import base64
+
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    fixtures = Path(__file__).resolve().parents[2] / "fixtures" / "m45"
+    pdf_source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="pdf",
+        external_id="local.pdf",
+        extra_metadata={
+            "content_base64": base64.b64encode(
+                (fixtures / "sample.pdf").read_bytes()
+            ).decode("ascii")
+        },
+    )
+    docx_source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="docx",
+        external_id="local.docx",
+        extra_metadata={
+            "content_base64": base64.b64encode(
+                (fixtures / "sample.docx").read_bytes()
+            ).decode("ascii")
+        },
+    )
+    pdf_job = _enqueue_ingest_job(session, project=project, source=pdf_source)
+    docx_job = _enqueue_ingest_job(session, project=project, source=docx_source)
+    session.commit()
+
+    pipeline = IngestionPipeline(session)
+    pdf_result = pipeline.run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+    docx_result = pipeline.run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+
+    assert pdf_result is not None and not isinstance(pdf_result, IngestionBlockedResult)
+    assert docx_result is not None and not isinstance(
+        docx_result, IngestionBlockedResult
+    )
+    assert "ALPHA-PDF-442" in pdf_result.document_version.normalized_text
+    assert "ALPHA-DOCX-991" in docx_result.document_version.normalized_text
+    assert (
+        JobRepository(session).get(project_id=project.id, job_id=pdf_job.id).status
+        == "succeeded"
+    )
+    assert (
+        JobRepository(session).get(project_id=project.id, job_id=docx_job.id).status
+        == "succeeded"
+    )
+
+
+def test_run_next_blocks_empty_pdf_without_ocr() -> None:
+    import base64
+
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    empty_pdf = (
+        Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "empty_text.pdf"
+    ).read_bytes()
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="pdf",
+        external_id="empty.pdf",
+        extra_metadata={
+            "content_base64": base64.b64encode(empty_pdf).decode("ascii")
+        },
+    )
+    job = _enqueue_ingest_job(session, project=project, source=source)
+    session.commit()
+
+    result = IngestionPipeline(session).run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+
+    assert isinstance(result, IngestionBlockedResult)
+    assert result.job.id == job.id
+    assert result.error_message == "PDF extraction produced no text"
+    assert DocumentRepository(session).list(project_id=project.id) == []
+    index_jobs = [
+        item
+        for item in JobRepository(session).list(project_id=project.id)
+        if item.job_type == "index_document_version"
+    ]
+    assert index_jobs == []

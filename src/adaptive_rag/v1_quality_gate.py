@@ -24,11 +24,14 @@ CriterionStatus = Literal["passed", "failed"]
 
 RELEASE_DECISION_READY = "ready_for_v1_0"
 RELEASE_DECISION_BLOCKED = "blocked_for_v1_0"
+# Defaults NOT exercised by the offline first-run quality-gate path.
+# Several are already shipped as opt-in surfaces (pdf/docx authoring, MCP
+# stdio CLI) but remain out of the mandatory local gate. Hosted providers,
+# Neo4j graph live, voice, and hosted observability stay non-default.
 DEFERRED_DEFAULTS = (
     "hosted_qwen",
     "hosted_rerank",
     "neo4j_graph",
-    "auth_multi_user",
     "pdf_office_ingestion",
     "voice",
     "mcp_server",

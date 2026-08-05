@@ -20,6 +20,15 @@ class ProjectCreateRequestBody(BaseModel):
     budget_config_json: dict[str, Any] | None = None
 
 
+class ProjectUpdateRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    embedding_mode: str | None = None
+    retrieval_contextualization_enabled: bool | None = None
+    budget_config_json: dict[str, Any] | None = None
+
+
 class ProjectResponse(BaseModel):
     id: UUID
     name: str
@@ -30,6 +39,7 @@ class ProjectResponse(BaseModel):
     can_access: bool
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 
     @classmethod
     def from_project(
@@ -51,6 +61,7 @@ class ProjectResponse(BaseModel):
             can_access=can_access,
             created_at=project.created_at,
             updated_at=project.updated_at,
+            deleted_at=project.deleted_at,
         )
 
 
@@ -73,6 +84,14 @@ class SourceCreateRequestBody(BaseModel):
     extra_metadata: dict[str, Any] | None = None
 
 
+class SourceUpdateRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    external_id: str | None = None
+    tags: list[str] | None = None
+    extra_metadata: dict[str, Any] | None = None
+
+
 class SourceResponse(BaseModel):
     id: UUID
     project_id: UUID
@@ -82,6 +101,7 @@ class SourceResponse(BaseModel):
     extra_metadata: dict[str, Any] | None
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 
     @classmethod
     def from_source(cls, source: Source) -> SourceResponse:
@@ -94,6 +114,7 @@ class SourceResponse(BaseModel):
             extra_metadata=source.extra_metadata,
             created_at=source.created_at,
             updated_at=source.updated_at,
+            deleted_at=source.deleted_at,
         )
 
 

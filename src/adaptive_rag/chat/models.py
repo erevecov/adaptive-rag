@@ -13,6 +13,14 @@ from adaptive_rag.db.models import (
 from adaptive_rag.retrieval import RetrievalMetadataFilter
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
+DEFAULT_CHAT_HISTORY_MESSAGES = 8
+
+
+@dataclass(frozen=True, slots=True)
+class ChatHistoryTurn:
+    role: str
+    content: str
+
 
 @dataclass(frozen=True, slots=True)
 class ChatRequest:
@@ -21,6 +29,7 @@ class ChatRequest:
     project_id: UUID
     message: str
     user_id: UUID | None = None
+    session_id: UUID | None = None
     retrieval_limit: int = DEFAULT_CHAT_RETRIEVAL_LIMIT
     rerank_enabled: bool = False
     rerank_candidate_limit: int = DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT
@@ -36,6 +45,8 @@ class ChatRunnerRequest:
     retrieval_limit: int
     metadata_filter: RetrievalMetadataFilter | None
     user_id: UUID | None = None
+    history: tuple[ChatHistoryTurn, ...] = ()
+    retrieval_query: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

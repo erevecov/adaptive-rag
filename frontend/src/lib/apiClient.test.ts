@@ -259,6 +259,109 @@ describe('createApiClient', () => {
     expect(calls[0].init?.body).toBe(JSON.stringify({ name: 'Demo' }))
   })
 
+  test('deletes project, source, membership and revokes token', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const sourceId = '22222222-2222-4222-8222-222222222222'
+    const userId = '33333333-3333-4333-8333-333333333333'
+    const createdAt = '2026-06-22T00:00:00Z'
+    const project = {
+      budget_config_json: null,
+      created_at: createdAt,
+      deleted_at: createdAt,
+      embedding_mode: 'dense_sparse',
+      id: projectId,
+      name: 'Demo',
+      retrieval_contextualization_enabled: true,
+      updated_at: createdAt,
+    }
+    const source = {
+      created_at: createdAt,
+      deleted_at: createdAt,
+      external_id: 'notes.md',
+      extra_metadata: null,
+      id: sourceId,
+      project_id: projectId,
+      source_type: 'markdown',
+      tags: null,
+      updated_at: createdAt,
+    }
+    const user = {
+      created_at: createdAt,
+      display_name: 'Temp',
+      id: userId,
+      is_active: false,
+      last_project_id: null,
+      login: 'temp',
+      system_role: 'user',
+      updated_at: createdAt,
+    }
+
+    const { fetch: deleteProjectFetch, calls: deleteProjectCalls } =
+      createFetchStub(jsonResponse(project))
+    const deleteProjectClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: deleteProjectFetch,
+    })
+    await deleteProjectClient.deleteProject(projectId)
+    expect(String(deleteProjectCalls[0].input)).toBe(
+      `http://api.local/projects/${projectId}`,
+    )
+    expect(deleteProjectCalls[0].init?.method).toBe('DELETE')
+
+    const { fetch: deleteSourceFetch, calls: deleteSourceCalls } =
+      createFetchStub(jsonResponse(source))
+    const deleteSourceClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: deleteSourceFetch,
+    })
+    await deleteSourceClient.deleteSource(projectId, sourceId)
+    expect(String(deleteSourceCalls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/sources/${sourceId}`,
+    )
+    expect(deleteSourceCalls[0].init?.method).toBe('DELETE')
+
+    const { fetch: membershipFetch, calls: membershipCalls } = createFetchStub(
+      new Response(null, { status: 204 }),
+    )
+    const membershipClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: membershipFetch,
+    })
+    await membershipClient.deleteProjectMembership(projectId, userId)
+    expect(String(membershipCalls[0].input)).toBe(
+      `http://api.local/projects/${projectId}/memberships/${userId}`,
+    )
+    expect(membershipCalls[0].init?.method).toBe('DELETE')
+
+    const { fetch: deactivateFetch, calls: deactivateCalls } =
+      createFetchStub(jsonResponse(user))
+    const deactivateClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: deactivateFetch,
+    })
+    await deactivateClient.deactivateUser(userId)
+    expect(String(deactivateCalls[0].input)).toBe(
+      `http://api.local/admin/users/${userId}/deactivate`,
+    )
+    expect(deactivateCalls[0].init?.method).toBe('POST')
+
+    const { fetch: revokeFetch, calls: revokeCalls } = createFetchStub(
+      jsonResponse({ revoked: true }),
+    )
+    const revokeClient = createApiClient({
+      baseUrl: 'http://api.local/',
+      fetch: revokeFetch,
+    })
+    await revokeClient.revokeAccessToken({ access_token: 'temp-token' })
+    expect(String(revokeCalls[0].input)).toBe(
+      'http://api.local/admin/access-tokens/revoke',
+    )
+    expect(revokeCalls[0].init?.method).toBe('POST')
+    expect(revokeCalls[0].init?.body).toBe(
+      JSON.stringify({ access_token: 'temp-token' }),
+    )
+  })
+
   test('lists projects and loads a project by id', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const createdAt = '2026-06-22T00:00:00Z'
