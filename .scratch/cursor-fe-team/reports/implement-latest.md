@@ -1,17 +1,10 @@
-# Implement / lead pass — post-#213 continue
+# FE Implement — implement-latest
 
-**STATUS:** ready-for-lead-review  
-**Branch:** `feat/ui-obsessional-polish`  
-**Base:** main `#213`
+**Date:** 2026-08-05  
+**STATUS:** re-tasked after #218 DS batch
 
-## Shipped this turn (local, no push)
-| Area | What |
-|------|------|
-| DS | primary-tint row/segment hovers; Textarea ≤680; Callout `bg-muted/15` + ≤680; Badge ≤680 pad |
-| Chat | muted/15 washes; Title Case source/score chips; View Source; Unknown Cost/Tokens |
-| History | Title Case stepper + RRF scores; Unknown Cost/Tokens/Latency |
+## Shipped in #218
+Overlay triggers, DataList/Nav gaps, TableHead/InlineFeedback motion-safe, Select chevron ≤680.
 
-## Verify
-focused vitest green on touched suites
-
-Grok opens/merges only all-green CI.
+## Next
+Invent next DS ≤680 / purple residual once #218 merges. Stay on `feat/ui-obsessional-polish`.
