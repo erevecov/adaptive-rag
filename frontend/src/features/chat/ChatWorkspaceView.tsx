@@ -194,6 +194,8 @@ export function ChatWorkspacePanel({
           // Keep Ask docked above the fold on narrow shells / soft keyboards.
           'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
           'max-[680px]:border-t max-[680px]:border-border/60',
+          // Purple hairline above sticky Ask dock (mirrors question sticky).
+          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/15',
           'max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"

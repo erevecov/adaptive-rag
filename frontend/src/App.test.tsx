@@ -4347,7 +4347,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Model Sync Connection'),
       /Hosted Qwen/,
     )
-    await user.click(screen.getByRole('button', { name: 'Edit connection' }))
+    await user.click(screen.getByRole('button', { name: 'Edit Connection' }))
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'Connections' }),

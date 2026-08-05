@@ -405,6 +405,9 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/max-\[680px\]:sticky/)
+    expect(
+      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+    ).toMatch(/max-\[680px\]:shadow-primary\/15/)
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 

@@ -45,6 +45,7 @@ describe('InlineFeedback', () => {
     expect(feedback.className).toContain('text-emerald-800')
     expect(feedback.className).toContain('dark:text-emerald-200')
     expect(feedback.className).toContain('motion-safe:transition-colors')
+    expect(feedback.className).toContain('max-[680px]:leading-snug')
     expect(feedback.getAttribute('data-tone')).toBe('success')
   })
 })
