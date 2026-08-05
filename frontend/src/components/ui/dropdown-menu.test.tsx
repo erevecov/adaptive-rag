@@ -50,6 +50,7 @@ describe('DropdownMenu', () => {
     expect(archiveItem.className).toContain('focus-visible:ring-inset')
     expect(archiveItem.className).toContain('data-[highlighted]:bg-primary/15')
     expect(archiveItem.className).toContain('max-[680px]:min-h-11')
+    expect(archiveItem.className).toContain('max-[680px]:text-[0.8125rem]')
     expect(trigger.parentElement?.contains(menu)).toBe(false)
 
     await user.click(archiveItem)
