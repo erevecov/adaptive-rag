@@ -198,7 +198,7 @@ export function ObservabilityPanel({
             )}
           </ObservabilityField>
           <Button className="whitespace-nowrap" disabled={isRefreshing} type="submit">
-            {isRefreshing ? 'Refreshing...' : 'Refresh summary'}
+            {isRefreshing ? 'Refreshing…' : 'Refresh summary'}
           </Button>
         </form>
 

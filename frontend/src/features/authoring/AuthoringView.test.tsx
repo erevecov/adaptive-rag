@@ -225,9 +225,9 @@ describe('AuthoringPanel', () => {
       activeSubmodule: 'projects',
       projectState: 'loading',
     })
-    const busy = screen.getByRole('button', { name: 'Creating...' })
+    const busy = screen.getByRole('button', { name: 'Creating…' })
     expect(busy.className).toMatch(/min-h-9/)
-    expect(busy.textContent).toContain('Creating...')
+    expect(busy.textContent).toContain('Creating…')
   })
 
   test('projects submodule uses tokenized panels, controls, and data rows', async () => {

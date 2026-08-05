@@ -566,7 +566,7 @@ export function RuntimeConnectionsPanel({
                       size="sm"
                       variant="secondary"
                     >
-                      {isChecking ? 'Checking...' : 'Check'}
+                      {isChecking ? 'Checking…' : 'Check'}
                     </Button>
                     <Button
                       aria-label={`Edit ${connection.connection_id} connection`}
@@ -961,7 +961,7 @@ export function RuntimeModelCatalogPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Refresh catalog'}
+        {state === 'loading' ? 'Refreshing…' : 'Refresh catalog'}
       </Button>
 
       <form className="grid gap-4" onSubmit={onSyncProviderModels}>
@@ -1108,7 +1108,7 @@ export function RuntimeGlobalDefaultsPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload global defaults'}
       </Button>
 
       <RuntimeSlotList isLoading={state === 'loading'} slots={slots} />
@@ -1412,7 +1412,7 @@ export function RuntimeProjectOverridesPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Reload project settings'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload project settings'}
       </Button>
 
       <ProjectRuntimeSettingsView

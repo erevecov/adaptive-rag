@@ -457,7 +457,7 @@ function ProjectsPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create project"
             />
           </Button>
@@ -706,7 +706,7 @@ function ProjectAccessPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create user"
             />
           </Button>
@@ -1141,7 +1141,7 @@ function SourcesPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create source"
             />
           </Button>
