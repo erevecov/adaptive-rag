@@ -596,7 +596,7 @@ function AccountNavigationPanel({
       >
         My Account
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-2 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         {ACCOUNT_MODULES.map((module) => {
           const active = module.id === activeModule
           return (
@@ -666,7 +666,7 @@ function SettingsNavigationPanel({
       >
         Settings
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-2 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === AUTHORING_NAVIGATION.id}
           onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
