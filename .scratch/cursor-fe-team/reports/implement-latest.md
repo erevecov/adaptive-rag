@@ -1,17 +1,11 @@
-# Implement latest — feat/ui-polish-post-218
+# Implement latest — feat/ui-polish-cont
 
-**Branch:** `feat/ui-polish-post-218` (post-#218 / origin/main) — do NOT use `feat/ui-obsessional-polish` or stale `feat/ui-polish-post-215`.
+**Branch:** `feat/ui-polish-cont` (merged #226+). Continuous `components/ui` micro-polish.
 
-## Context
-PR #218 MERGED. Continuing polish from `origin/main`.
+## Recent (post-#226)
+- DS ≤680 density restore across primitives
+- Nav/Select gaps + TableScroll overscroll-y
+- Button tracking-tight; Panel flatter shadow
+- EmptyState `max-[680px]:text-xs`
 
-## Shipped this pass
-- `Badge`: `shrink-0`
-- `FieldLabel`: `tracking-tight`
-- `NavSection` content: `max-[680px]:gap-0.5`
-- `SegmentedControl` track: `max-[680px]:gap-0.5 max-[680px]:p-0.5`
-- `Select` check indicator: `max-[680px]:size-5`
-- Tests updated
-
-## Worktree
-`.worktrees/ui-polish-218`
+Worktree: `.worktrees/ui-polish-cont`. Memory untouched.
