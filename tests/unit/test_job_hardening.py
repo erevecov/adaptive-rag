@@ -178,6 +178,74 @@ def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
     assert stored_final.status != "running"
 
 
+def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
+    """A poisoned session (failed mid-pipeline flush) must not bypass fail()."""
+
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="poison.md",
+        extra_metadata={"content": "# Poison\n\nFlush failure."},
+    )
+    job = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+    )
+    session.commit()
+
+    def poison_session(self, *, project_id, job):  # type: ignore[no-untyped-def]
+        # Force a failed flush so the session needs a rollback, then raise an
+        # unexpected error like a real mid-pipeline IntegrityError would.
+        session.add(
+            Job(
+                id=job.id,
+                project_id=project.id,
+                job_type="ingest_source",
+                run_after=_now(),
+            )
+        )
+        try:
+            session.flush()
+        except Exception:
+            pass
+        raise RuntimeError("integrity blow-up")
+
+    with patch(
+        "adaptive_rag.ingestion_ops.IngestionPipeline.process_leased_job",
+        poison_session,
+    ):
+        report = run_next_ingestion_job(
+            session,
+            project_id=project.id,
+            worker_id="worker-1",
+            now=_now(),
+        )
+    session.commit()
+
+    assert report.status == "failed"
+    assert report.job_id == job.id
+    assert report.error_message == "integrity blow-up"
+
+    stored = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    assert stored is not None
+    assert stored.status == "queued"
+    assert stored.locked_by is None
+    assert stored.run_after > _now()
+    assert stored.last_error == "integrity blow-up"
+
+    events = [
+        event.event_type
+        for event in JobRepository(session).list_events(
+            project_id=project.id,
+            job_id=job.id,
+        )
+    ]
+    assert "failed_attempt" in events
+
+
 def test_run_next_calls_release_expired_leases_before_lease() -> None:
     session = _make_session()
     project = ProjectRepository(session).create(name="demo")
