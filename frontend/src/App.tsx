@@ -1,4 +1,4 @@
-﻿import {
+import {
   type FormEvent,
   type ReactNode,
   useEffect,
@@ -1214,6 +1214,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     if (file === null) {
       setSourceContentBase64('')
       setSourceFileName('')
+      return
+    }
+    if (file.size > MAX_SOURCE_FILE_BYTES) {
+      setSourceContentBase64('')
+      setSourceFileName('')
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(
+        `${sourceType} source file exceeds the 5 MiB limit.`,
+      )
       return
     }
     const buffer = await file.arrayBuffer()
@@ -3229,6 +3238,10 @@ function isTextSourceType(sourceType: string): boolean {
 function isBinarySourceType(sourceType: string): boolean {
   return sourceType === 'pdf' || sourceType === 'docx'
 }
+
+// Matches the backend MAX_BINARY_SOURCE_BYTES (5 MiB decoded) so oversize
+// files are rejected before base64-encoding them in the browser.
+const MAX_SOURCE_FILE_BYTES = 5 * 1024 * 1024
 
 function parseTags(value: string): string[] {
   return value

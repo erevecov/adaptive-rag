@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @vitest-environment jsdom
  */
 import {
@@ -2218,6 +2218,35 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Chat' }))
     expect(screen.getByRole('button', { name: /Project selector: Demo/ })).toBeTruthy()
+  })
+
+  test('rejects binary source files over the 5 MiB limit before upload', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      createSource: vi.fn(async () => sourceSummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Source type'),
+      'pdf',
+    )
+
+    const oversize = new File([new Uint8Array(1)], 'huge.pdf', {
+      type: 'application/pdf',
+    })
+    Object.defineProperty(oversize, 'size', { value: 6 * 1024 * 1024 })
+    await user.upload(screen.getByLabelText('File'), oversize)
+
+    expect(
+      await screen.findByText('pdf source file exceeds the 5 MiB limit.'),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    expect(client.createSource).not.toHaveBeenCalled()
   })
 
   test('runs ingestion operations from the authoring workspace', async () => {
