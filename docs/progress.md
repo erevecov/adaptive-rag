@@ -2,14 +2,16 @@
 
 ## Milestone activo
 
-No hay milestone activo ni changes OpenSpec pendientes tras archivar M39.
+**M40 Indexing job publico** (planificado, pre-v1.0 blocker).
 
-Estado post-M39: M36 Functional chat workspace, M37 Project RBAC/chat
-knowledge, M38 Chat retrieval/rerank settings, M39 Chat stepper live events y
-M39 Qwen runtime production defaults quedaron implementados, validados y
-archivados. El cierre post-M39 de design system tambien migro los controles e
-iconos restantes a primitives shadcn/Radix locales y lucide. No quedan active
-changes OpenSpec.
+Plan unificado post-M39 adoptado el 2026-08-05 tras research Qwen (gaps
+internos) + Kimi (comparacion beflow-graph-rag). Bloque pre-v1: M40 → M41 →
+M42 → M43 → M44, luego tag v1.0 humano. Post-v1: M45–M50. Detalle en
+`docs/roadmap.md` seccion "Plan unificado post-M39". Evidencia en
+`artifacts/roadmap-research/`.
+
+Aun no hay OpenSpec change activo de implementacion: el siguiente paso de
+ejecucion es abrir el change OpenSpec de M40 desde `origin/main`.
 
 ## Ultimo milestone completado
 
@@ -110,12 +112,26 @@ git diff --check
 ```
 
 Resultado: el producto queda listo segun el gate local (`ready_for_v1_0`), pero
-no se creo tag ni GitHub release v1.0. La decision queda diferida
-intencionalmente para permitir una feature pre-v1 adicional.
+no se creo tag ni GitHub release v1.0. La decision de 2026-08-05 reabre trabajo
+pre-v1 (M40–M44) porque el indexing publico y el multi-turn no estan en el
+camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found.
+No active changes found. Proximo: change OpenSpec `m40-indexing-job-publico`
+(o nombre equivalente) al iniciar implementacion.
+
+## Planificacion reciente
+
+2026-08-05 — Plan unificado M40–M50 adoptado:
+
+- Pre-v1 blocker: indexing en job queue (worker hoy solo `document_versions`).
+- Pre-v1: job hardening, chat multi-turn + condenser, authoring/RBAC closeout,
+  CI + compose all-in-one.
+- Post-v1: PDF/DOCX, security pack, query routing, knowledge lifecycle, MCP
+  stdio, dense reindex.
+- Anti-roadmap: no copiar SaaS/infra de beflow (Supabase, Redis/ARQ, SPLADE,
+  voice realtime, sharing publico, etc.).
 
 ## Ultimo change archivado
 
