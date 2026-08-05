@@ -41,7 +41,7 @@ const COMPOSER_TOOL_BUTTON_CLASS =
   'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-2.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:px-4'
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -212,7 +212,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted px-4 py-2.5 text-sm leading-relaxed',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -267,7 +267,7 @@ export function ChatWorkspacePanel({
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
                   isContextInspectorActive &&
-                    'border-primary/40 bg-primary/10 text-foreground',
+                    'border-primary bg-primary/25 text-foreground',
                 )}
                 onClick={onOpenContextInspector}
                 type="button"
@@ -281,7 +281,7 @@ export function ChatWorkspacePanel({
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
                   isMinimapInspectorActive &&
-                    'border-primary/40 bg-primary/10 text-foreground',
+                    'border-primary bg-primary/25 text-foreground',
                 )}
                 onClick={onOpenMinimapInspector}
                 type="button"
@@ -379,7 +379,7 @@ function SpeechInputControl({
         aria-label={buttonLabel}
         className={cn(
           COMPOSER_TOOL_BUTTON_CLASS,
-          isListening && 'border-primary/40 bg-primary/10 text-foreground',
+          isListening && 'border-primary bg-primary/25 text-foreground',
         )}
         disabled={!isSupported}
         onClick={isListening ? onStop : onStart}

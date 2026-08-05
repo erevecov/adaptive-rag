@@ -4,28 +4,26 @@
 **Branch:** `feat/ui-obsessional-polish` (post #212)  
 **STATUS:** ready-for-lead-review
 
-## Commits this loop (local, no push)
+## This pass
 
-| Commit | What |
-|--------|------|
-| tip | Inspector refresh after ask (dock open) + latest-turn hydrate |
-| prior | Title Case draft/session badges; minimap messages; composer polish |
+| Change | Surface |
+|--------|---------|
+| Ask/Cancel full-width ≤680 | composer |
+| Composer textarea `border-border` (not `/50`) | composer |
+| Session ⋮ menu keeps DS `primary/15` highlight | history |
+| Empty messages EmptyState + capitalize roles | inspector detail |
+
+## Prior tip
+
+Inspector refresh after ask + latest-turn hydrate (already on branch)
 
 ## Verify
 
-`App.test` P0: **refreshes open inspector** + **hydrates latest turn** → passed  
-Broader session/inspector/knowledge filter → run before commit
-
-## Tip state (chat/shell)
-
-- After ask with inspector open → `getChatSession` reloads detail (no empty dock)
-- `chatResponseFromSessionDetail` scopes tools/citations to latest turn only
-- Soft-delete: `Deleted` / `source removed`
-- Minimap: `N messages`; speech tools full-width ≤680
+`ChatWorkspaceView` + `HistoryInspectorView` → **30 passed**
 
 ## Next
 
-- Live purple residual ≤680 composer / theme cards
-- Tab-cycle focus trap residual (deferred)
+- Citation chip touch targets ≤680 (P2)
+- Tab-cycle focus trap (deferred)
 
 Grok merges; agent does not push.

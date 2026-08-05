@@ -4,18 +4,17 @@ Status: open | claimed:<role> | done | deferred
 Branch: `feat/ui-obsessional-polish`
 
 ## Seed / fleet
-- [x] done:chat — Chat transcript / composer / session / inspector
-- [x] done:implement — DS density / soft-delete / EmptyState / focus rings / badges
-- [x] done:implement — SidebarItem primary/10; FieldHelp xs; feedback tones
-- [x] done:implement — DataListItem soft hover + FieldHelp test lock
-- [x] done:implement — Select/dropdown primary/15 highlight (purple menus)
-- [x] done:operator — Form gaps / FieldHelp / memberships empty / ellipsis
-- [x] done:fe-chat — Popover/speech (#212); Title Case badges; pipeline dots
-- [ ] claimed:implement — Panel / table residual density
+- [x] done:implement — Panel/table; nav/EmptyState; aria-invalid; Select invalid
+- [x] done:implement — SegmentedControl active pill + primary ring
+- [x] done:implement — FieldError xs; secondary + ghost primary-tint hover
+- [x] done:fe-chat — Inspector refresh after ask + latest-turn hydrate
+- [x] done:fe-chat — ≤680 Ask full-width; composer border; menu primary/15; empty messages
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
+- [ ] open:implement — Callout motion-safe residual (optional)
 
 ## Lead queue (next)
-1. Panel/table micro-density — implement (in progress)
-2. Tab-cycle focus trap residual (Radix portal menus)
+1. Callout residual or invent next DS hostile pass
+2. Citation chip touch targets ≤680 (chat P2)
+3. Tab-cycle focus trap residual (Radix portal menus)
 
-Reports: `reports/implement-latest.md`
+Reports: `reports/implement-latest.md` · `reports/chat-latest.md`

@@ -392,7 +392,7 @@ export function SessionNavigationPanel({
                           sideOffset={4}
                         >
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="justify-between gap-3 px-3 py-1.5 text-left"
                             data-testid={`copy-id-${session.session_id}`}
                             onClick={() => {
                               void handleCopySessionId(session.session_id)
@@ -401,7 +401,7 @@ export function SessionNavigationPanel({
                             <span>Copiar ID de sesión</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="px-3 py-1.5 text-left"
                             data-testid={`rename-${session.session_id}`}
                             onClick={() => {
                               setRenamingSessionId(session.session_id)
@@ -411,7 +411,7 @@ export function SessionNavigationPanel({
                             Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="px-3 py-1.5 text-left"
                             data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
                             onClick={() => {
                               if (isArchived) {
@@ -1012,21 +1012,27 @@ function SessionDetailPanel({
             Messages
           </h4>
           <DataList aria-label="Session messages">
-            {detail.messages.map((message) => (
-              <DataListItem key={message.message_id}>
-                <article
-                  aria-label={`${message.role} message`}
-                  className="grid gap-1"
-                  id={messageElementId(message.message_id)}
-                  tabIndex={-1}
-                >
-                  <strong className="text-sm text-foreground">{message.role}</strong>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {message.content}
-                  </p>
-                </article>
-              </DataListItem>
-            ))}
+            {detail.messages.length === 0 ? (
+              <EmptyState>No messages in this session.</EmptyState>
+            ) : (
+              detail.messages.map((message) => (
+                <DataListItem key={message.message_id}>
+                  <article
+                    aria-label={`${message.role} message`}
+                    className="grid gap-1"
+                    id={messageElementId(message.message_id)}
+                    tabIndex={-1}
+                  >
+                    <strong className="text-sm capitalize text-foreground">
+                      {message.role}
+                    </strong>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {message.content}
+                    </p>
+                  </article>
+                </DataListItem>
+              ))
+            )}
           </DataList>
         </section>
 

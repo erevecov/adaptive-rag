@@ -359,6 +359,13 @@ describe('ChatWorkspacePanel', () => {
     expect(screen.getByRole('button', { name: 'Ask' }).className).toMatch(
       /max-\[680px\]:min-h-11/,
     )
+    expect(screen.getByRole('button', { name: 'Ask' }).className).toMatch(
+      /max-\[680px\]:w-full/,
+    )
+    expect(screen.getByLabelText('Question').className).toMatch(/border-border/)
+    expect(screen.getByLabelText('Question').className).not.toMatch(
+      /border-border\/50/,
+    )
     expect(
       screen.getByRole('button', { name: 'Open context sidebar' }).className,
     ).toMatch(/max-\[680px\]:min-h-11/)
