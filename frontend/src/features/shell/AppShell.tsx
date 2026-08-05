@@ -587,7 +587,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-2.5"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-2"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -657,7 +657,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-2.5"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-2"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -900,7 +900,7 @@ function SidebarProjectSelector({
                       className={cn(
                         [
                           'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-1',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1.5 max-[680px]:text-[0.75rem]',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1 max-[680px]:text-[0.75rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',
