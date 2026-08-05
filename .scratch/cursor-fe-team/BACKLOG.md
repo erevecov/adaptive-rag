@@ -12,16 +12,22 @@ Branch: `feat/ui-obsessional-polish`
 - [x] done:fe-lead — Composer sticky ≤680 + EmptyState default `role=status`
 - [x] done — Global focus-visible diluted rings (no remaining `ring-ring/` in features)
 - [x] done — reduced-motion: pulses use `motion-safe:` across surfaces
-- [x] done:operator — Form gap-4 / FieldHelp / unicode ellipsis
-- [x] done:implement — StatusBadge + primary badge tint; skip-link/danger/dropdown; segmented inset
-- [x] done:implement — SidebarItem primary/10 active; FieldHelp xs; feedback tones
-- [x] claimed:fe-chat — Popover Trigger focus + speech mobile
-- [ ] claimed:implement — DataListItem hover + FieldHelp test lock
+- [x] done:operator — Form gap-4 parity + runtime loading pulse chrome (post-#212)
+- [x] done:operator — FieldHelp outside FieldControl + describedby (authoring/runtime/retrieval)
+- [x] done:operator — Unicode ellipsis on operator busy labels
+- [x] done:operator — Memberships-only empty when users list non-empty
+- [x] done:implement — StatusBadge contrast (emerald/amber) + primary badge tint
+- [x] done:implement — Skip-link/danger/dropdown focus; segmented inset
+- [x] done:implement — SidebarItem active tint + denser FieldHelp
+- [x] done:fe-chat — Popover Trigger focus + speech mobile (#212)
+- [x] done:fe-chat — Title Case draft/session badges; Deleted / Source Removed; minimap messages
+- [x] done:fe-chat — Pipeline done dots emerald (not primary)
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
-- [ ] open:operator — Memberships-only empty when users list non-empty
+- [ ] open — DataListItem hover surface (staged) + live purple residual pass
 
 ## Lead queue (next)
-1. DataListItem hover — implement (in progress)
-2. Tab-cycle focus trap residual (Radix portal menus)
+1. Ship DataListItem hover + App Title Case test sync
+2. Live purple residual (theme cards / primary-tint chrome ≤680)
+3. Tab-cycle focus trap residual (Radix portal menus)
 
-Reports: `reports/implement-latest.md`
+Reports: `reports/lead-latest.md`
