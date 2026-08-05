@@ -40,21 +40,31 @@ type InlineFeedbackTone = NonNullable<
 >
 
 export type InlineFeedbackProps = HTMLAttributes<HTMLParagraphElement> &
-  VariantProps<typeof inlineFeedbackVariants>
+  VariantProps<typeof inlineFeedbackVariants> & {
+    'data-slot'?: string
+  }
 
 export const InlineFeedback = forwardRef<
   HTMLParagraphElement,
   InlineFeedbackProps
 >(({ className, role, tone, ...props }, ref) => {
   const feedbackTone: InlineFeedbackTone = tone ?? 'neutral'
+  const {
+    'data-slot': dataSlot,
+    ...rest
+  } = props
+  const slot =
+    typeof dataSlot === 'string' && dataSlot.length > 0
+      ? dataSlot
+      : 'inline-feedback'
 
   return (
     <p
       className={cn(inlineFeedbackVariants({ tone: feedbackTone }), className)}
       ref={ref}
       role={role ?? (feedbackTone === 'danger' ? 'alert' : undefined)}
-      {...props}
-      data-slot="inline-feedback"
+      {...rest}
+      data-slot={slot}
       data-tone={feedbackTone}
     />
   )

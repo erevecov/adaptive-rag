@@ -474,6 +474,22 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('#chat-composer')).toBeTruthy()
   })
 
+  test('stacks speech status full-width under the mic on narrow layouts', () => {
+    const { view } = renderChatWorkspace({
+      speechFeedback: 'Listening…',
+      speechState: 'loading',
+    })
+
+    const status = view.container.querySelector('[data-slot="speech-status"]')
+    expect(status).toBeTruthy()
+    expect(status?.textContent).toContain('Listening…')
+    expect(status?.className).toMatch(/max-\[680px\]:basis-full/)
+    expect(status?.className).toMatch(/max-\[680px\]:order-last/)
+    expect(
+      view.container.querySelector('[data-slot="speech-input"]')?.className,
+    ).toMatch(/flex-wrap/)
+  })
+
   test('shows terminal banner when cancel/fail keeps a partial response', () => {
     const canceled = renderChatWorkspace({
       requestState: 'canceled',
