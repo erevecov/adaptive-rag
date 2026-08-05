@@ -758,7 +758,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-3"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-2.5"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.75rem] max-[680px]:leading-snug">
