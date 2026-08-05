@@ -753,7 +753,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4" role="region">
+    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-3" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -908,7 +908,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15"
+      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:pb-1.5"
       data-slot="chat-question-sticky"
     >
       {shouldCollapse ? (
