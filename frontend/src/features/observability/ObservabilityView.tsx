@@ -312,7 +312,7 @@ function ObservabilityContent({
     return (
       <div className="grid gap-3" data-slot="observability-stale-failed">
         <Callout className="p-3" role="alert" tone="danger">
-          Showing last successful summary — refresh failed.
+          Showing last successful summary — Refresh Failed.
         </Callout>
         <div className="pointer-events-none" data-stale="">
           {content}
@@ -425,11 +425,11 @@ function ObservabilitySummaryMetrics({
       <MetricCard
         detail={
           slowestP95 === null
-            ? 'No known provider latency'
-            : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
+            ? 'No Known Provider Latency'
+            : `Slowest P95 ${slowestP95.provider} / ${slowestP95.model}`
         }
         label="Latency"
-        value={slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`}
+        value={slowestP95 === null ? 'No P95' : `${slowestP95.latency_ms.p95} ms`}
       />
     </MetricGrid>
   )
@@ -515,12 +515,12 @@ function ObservabilityLatencyContent({
         <MetricCard
           detail={
             slowestP95 === null
-              ? 'No known provider latency'
-              : `Slowest p95 ${slowestP95.provider} / ${slowestP95.model}`
+              ? 'No Known Provider Latency'
+              : `Slowest P95 ${slowestP95.provider} / ${slowestP95.model}`
           }
           label="Latency"
           value={
-            slowestP95 === null ? 'No p95' : `${slowestP95.latency_ms.p95} ms`
+            slowestP95 === null ? 'No P95' : `${slowestP95.latency_ms.p95} ms`
           }
         />
         <MetricCard
@@ -835,12 +835,12 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
     <BreakdownCard label="Current filter" title="Session health">
       {total === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-          No sessions in this filter window.
+          No Sessions in This Filter Window.
         </EmptyState>
       ) : (
         <div className="grid gap-2">
           <strong className="text-2xl font-semibold leading-none tabular-nums">
-            {formatPercent(succeeded, total)} success
+            {formatPercent(succeeded, total)} Success
           </strong>
           <span className="text-sm text-muted-foreground">
             {formatCount(failed, 'Failed session')}

@@ -3898,7 +3898,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('No Status Data Yet.')).toBeTruthy()
     expect(screen.getByText('No Provider Usage Groups Yet.')).toBeTruthy()
     expect(screen.getByText('No Error Messages Yet.')).toBeTruthy()
-    expect(screen.getByText('No sessions in this filter window.')).toBeTruthy()
+    expect(screen.getByText('No Sessions in This Filter Window.')).toBeTruthy()
   })
 
   test('shows observability errors without clearing filters', async () => {
