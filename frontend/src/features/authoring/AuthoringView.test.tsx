@@ -214,6 +214,22 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 }
 
 describe('AuthoringPanel', () => {
+  test('primary Create buttons keep min-h and stable Creating labels', () => {
+    const idle = renderAuthoringPanel({ activeSubmodule: 'projects' })
+    const create = screen.getByRole('button', { name: 'Create project' })
+    expect(create.className).toMatch(/min-h-9/)
+    expect(create.textContent).toContain('Create project')
+    idle.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+    })
+    const busy = screen.getByRole('button', { name: 'Creating...' })
+    expect(busy.className).toMatch(/min-h-9/)
+    expect(busy.textContent).toContain('Creating...')
+  })
+
   test('projects submodule uses tokenized panels, controls, and data rows', async () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel()

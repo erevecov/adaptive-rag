@@ -261,7 +261,7 @@ export function ChatWorkspacePanel({
 
             {isAsking ? (
               <Button
-                className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
+                className="shrink-0 rounded-md border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive sm:px-4"
                 onClick={onCancelRequest}
                 size="sm"
                 type="button"

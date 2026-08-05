@@ -233,14 +233,14 @@ export function WorkspaceTopline({
       data-slot="workspace-topline"
     >
       <h1
-        className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] text-foreground"
+        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] text-foreground"
         id="workspace-title"
         title={sessionName}
       >
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-w-[34vw]"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground"
         data-slot="workspace-project-chip"
         title={projectName}
       >

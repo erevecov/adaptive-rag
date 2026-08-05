@@ -605,14 +605,27 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.source ? (
           <div className="grid gap-3">
-            <p className="break-all text-xs text-muted-foreground">
-              {viewer.source.external_id}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <p className="min-w-0 break-all text-xs text-muted-foreground">
+                {viewer.source.external_id}
+              </p>
+              {viewer.source.deleted_at ? (
+                <StatusBadge className="w-fit shrink-0" tone="warning">
+                  deleted
+                </StatusBadge>
+              ) : null}
+            </div>
             <dl className="grid gap-2">
               <MetadataItem label="ID" value={viewer.source.id} />
               <MetadataItem label="Type" value={viewer.source.source_type} />
               <MetadataItem label="Created" value={viewer.source.created_at} />
               <MetadataItem label="Updated" value={viewer.source.updated_at} />
+              {viewer.source.deleted_at ? (
+                <MetadataItem
+                  label="Deleted"
+                  value={viewer.source.deleted_at}
+                />
+              ) : null}
             </dl>
 
             <section className="grid gap-2">

@@ -140,6 +140,15 @@ function expectNoLegacyChatClasses(container: HTMLElement) {
 }
 
 describe('ChatWorkspacePanel', () => {
+  test('cancel request button uses a destructive secondary tone while asking', () => {
+    renderChatWorkspace({ isAsking: true, question: 'Stop me' })
+
+    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    expect(cancel.className).toMatch(/border-destructive\/30/)
+    expect(cancel.className).toMatch(/text-destructive/)
+    expect(cancel.getAttribute('data-slot')).toBe('button')
+  })
+
   test('renders the composer with tokenized controls and actions', async () => {
     const user = userEvent.setup()
     const onQuestionChange = vi.fn()

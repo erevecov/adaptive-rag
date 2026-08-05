@@ -369,6 +369,42 @@ describe('WorkspaceInspectorPanel', () => {
     expectNoLegacyHistoryClasses(container)
   })
 
+
+  test('shows a warning badge when the source is soft-deleted', () => {
+    const deletedSource: Source = {
+      ...source,
+      deleted_at: '2026-06-22T12:00:00Z',
+    }
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: deletedSource,
+          sourceId: deletedSource.id,
+          state: 'succeeded',
+        }}
+      />,
+    )
+
+    const viewer = screen.getByRole('region', { name: 'Source viewer' })
+    const badge = within(viewer).getByText('deleted')
+    expect(badge.getAttribute('data-slot')).toBe('badge')
+    expect(badge.getAttribute('data-tone')).toBe('warning')
+    expect(within(viewer).getByText('Deleted')).toBeTruthy()
+    expect(within(viewer).getByText('2026-06-22T12:00:00Z')).toBeTruthy()
+    expectNoLegacyHistoryClasses(container)
+  })
+
   test('renders minimap tab navigation without legacy lists', async () => {
     const user = userEvent.setup()
     const onNavigateMessage = vi.fn()

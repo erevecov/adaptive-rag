@@ -178,6 +178,16 @@ describe('ObservabilityPanel', () => {
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
   })
 
+  test('metric card values use tabular-nums for raw counts', () => {
+    renderObservabilityPanel()
+
+    const metrics = screen.getByLabelText('Chat observability metrics')
+    const sessionsValue = within(metrics).getByText('12')
+    expect(sessionsValue.className).toMatch(/tabular-nums/)
+    const callsValue = within(metrics).getByText('18')
+    expect(callsValue.className).toMatch(/tabular-nums/)
+  })
+
   test('summary view renders metric cards and data-list breakdowns', () => {
     const { view } = renderObservabilityPanel()
 

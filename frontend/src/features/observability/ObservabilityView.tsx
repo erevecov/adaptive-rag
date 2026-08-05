@@ -511,7 +511,7 @@ function MetricCard({
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </span>
-      <strong className="break-words text-2xl font-semibold leading-none">
+      <strong className="break-words text-2xl font-semibold leading-none tabular-nums">
         {value}
       </strong>
       <small className="text-sm leading-relaxed text-muted-foreground">

@@ -410,8 +410,8 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create project'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <CreatingSubmitLabel busy={isBusy} idleLabel="Create project" />
           </Button>
         </div>
       </form>
@@ -639,8 +639,8 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create user'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <CreatingSubmitLabel busy={isBusy} idleLabel="Create user" />
           </Button>
           <Button
             disabled={isBusy}
@@ -960,8 +960,8 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create source'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <CreatingSubmitLabel busy={isBusy} idleLabel="Create source" />
           </Button>
           <Button
             disabled={isBusy}
@@ -1372,6 +1372,26 @@ function IngestionJobList({
         )
       })}
     </DataList>
+  )
+}
+
+
+function CreatingSubmitLabel({
+  busy,
+  idleLabel,
+}: {
+  busy: boolean
+  idleLabel: string
+}) {
+  return (
+    <span className="inline-grid place-items-center">
+      <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+        {idleLabel}
+      </span>
+      <span className="col-start-1 row-start-1">
+        {busy ? 'Creating...' : idleLabel}
+      </span>
+    </span>
   )
 }
 
