@@ -28,7 +28,7 @@ describe('EmptyState', () => {
     expect(empty.className).toContain('bg-muted/20')
     expect(empty.className).toContain('motion-safe:transition-colors')
     expect(empty.className).toContain('max-[680px]:p-2.5')
-    expect(empty.className).toContain('max-[680px]:gap-1')
+    expect(empty.className).toContain('max-[680px]:gap-0.5')
     expect(empty.className).toContain('max-[680px]:rounded-sm')
   })
 
