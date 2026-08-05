@@ -190,7 +190,7 @@ export function AppShell({
             ? [
                 'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
                 'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:px-1.5 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                'max-[680px]:gap-0 max-[680px]:px-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : 'mx-auto max-w-[1240px]',
         )}
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-1 max-[680px]:px-1.5 max-[680px]:pb-1.5 max-[680px]:pt-1',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-1 max-[680px]:px-1 max-[680px]:pb-1.5 max-[680px]:pt-1',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
