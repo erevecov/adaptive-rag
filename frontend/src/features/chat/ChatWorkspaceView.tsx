@@ -422,20 +422,22 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[12rem] place-items-center px-3 py-8"
+        className="grid min-h-[8rem] place-items-center px-3 py-4"
       >
-        <div
-          className="w-full max-w-lg space-y-4"
-          data-slot="empty-state"
+        <EmptyState
+          aria-busy="true"
+          className="w-full max-w-lg border-border/60 bg-muted/30 p-4 text-center"
           data-slot-state="loading"
+          role="status"
         >
-          <p className="text-center text-sm font-medium text-foreground/80">
-            Waiting for response...
-          </p>
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="font-medium text-foreground/80">Waiting for response...</p>
+          <p className="text-xs text-muted-foreground">
             Retrieving sources and drafting an answer
           </p>
-          <div aria-hidden="true" className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4">
+          <div
+            aria-hidden="true"
+            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left"
+          >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted" />
             <div className="space-y-2">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted" />
@@ -449,7 +451,7 @@ function ResponsePanel({
               <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted" />
             </div>
           </div>
-        </div>
+        </EmptyState>
       </div>
     )
   }
@@ -457,14 +459,14 @@ function ResponsePanel({
   if (response === null) {
     if (state === 'failed') {
       return (
-        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-5 text-left"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left"
             data-slot-state="failed"
             role="alert"
           >
             <p className="font-medium text-destructive">Request failed.</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Edit the question and resend, or open another session. Details are
               under the composer when available.
             </p>
@@ -474,14 +476,14 @@ function ResponsePanel({
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/30 p-5 text-left"
+            className="max-w-md border-border/60 bg-muted/30 p-4 text-left"
             data-slot-state="canceled"
             role="status"
           >
             <p className="font-medium text-foreground/90">Request canceled.</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Nothing was stored for this turn. Ask again when ready.
             </p>
           </EmptyState>
@@ -489,13 +491,14 @@ function ResponsePanel({
       )
     }
     return (
-      <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-4">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/30 p-5"
+          className="max-w-md border-border/60 bg-muted/30 p-4"
           data-slot-state="empty"
+          role="status"
         >
           <p className="font-medium text-foreground/90">No response yet.</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Ask about indexed sources. Enter to send · Shift+Enter for a new line.
           </p>
         </EmptyState>

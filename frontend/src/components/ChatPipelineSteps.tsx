@@ -156,8 +156,9 @@ function StepList({ steps }: { steps: ChatStep[] }) {
   if (steps.length === 0) {
     return (
       <p
-        className="rounded-md border border-dashed border-border bg-background/60 p-3 text-sm text-muted-foreground"
+        className="rounded-md border border-dashed border-border bg-background/60 p-2 text-xs text-muted-foreground"
         data-slot="chat-pipeline-empty"
+        role="status"
       >
         Waiting for pipeline steps.
       </p>
