@@ -414,6 +414,48 @@ function runtimeStatusTone(
   return 'neutral'
 }
 
+function providerLabel(provider: string): string {
+  if (provider === 'local_openai_compatible') {
+    return 'Local OpenAI-compatible'
+  }
+  if (provider === 'qwen') {
+    return 'Qwen'
+  }
+  if (provider === 'fake') {
+    return 'Fake'
+  }
+  return provider.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function connectionTypeLabel(connectionType: string): string {
+  if (connectionType === 'hosted') {
+    return 'Hosted'
+  }
+  if (connectionType === 'local') {
+    return 'Local'
+  }
+  if (connectionType === 'fake') {
+    return 'Fake'
+  }
+  return connectionType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function sourceLabel(source: string): string {
+  if (source === 'overridden') {
+    return 'Overridden'
+  }
+  if (source === 'global') {
+    return 'Global'
+  }
+  if (source === 'project') {
+    return 'Project'
+  }
+  if (source === 'default') {
+    return 'Default'
+  }
+  return source.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 function RuntimeField({
   children,
   className,
@@ -535,7 +577,8 @@ export function RuntimeConnectionsPanel({
                       </strong>
                       <div className="flex flex-wrap gap-2">
                         <Badge className="max-w-full truncate">
-                          {connection.provider} / {connection.connection_type}
+                          {providerLabel(connection.provider)} /{' '}
+                          {connectionTypeLabel(connection.connection_type)}
                         </Badge>
                         <Badge className="max-w-full truncate" tone="neutral">
                           {connection.capabilities.join(', ')}
@@ -1449,11 +1492,11 @@ export function RuntimeProjectOverridesPanel({
                 onValueChange={(nextValue) =>
                   onProjectChatRerankEnabledChange(nextValue === 'true')
                 }
-                  options={[
-                    { label: 'On', value: 'true' },
-                    { label: 'Off', value: 'false' },
-                  ]}
-                  value={String(projectChatRerankEnabled)}
+                options={[
+                  { label: 'On', value: 'true' },
+                  { label: 'Off', value: 'false' },
+                ]}
+                value={String(projectChatRerankEnabled)}
               />
             )}
           </RuntimeField>
@@ -1837,7 +1880,7 @@ export function ProjectRuntimeSettingsView({
                 </small>
               </div>
               <DataListItemActions>
-                <Badge tone="neutral">{slot.source}</Badge>
+                <Badge tone="neutral">{sourceLabel(slot.source)}</Badge>
                 {slot.source === 'overridden' ? (
                   <Button
                     onClick={() => onResetProjectSlot(slot.slot)}
@@ -1880,9 +1923,9 @@ export function ProjectRuntimeSettingsView({
                   </small>
                 </div>
                 <DataListItemActions>
-                  <Badge tone="neutral">{model.source}</Badge>
+                  <Badge tone="neutral">{sourceLabel(model.source)}</Badge>
                   <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                    {model.is_default ? 'default' : 'enabled'}
+                    {model.is_default ? 'Default' : 'Enabled'}
                   </Badge>
                 </DataListItemActions>
               </DataListItem>
@@ -1900,10 +1943,12 @@ export function ProjectRuntimeSettingsView({
               </strong>
               <small className="text-xs text-muted-foreground">
                 candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
-                {settings.chat_retrieval.rerank_enabled ? 'rerank on' : 'rerank off'}
+                {settings.chat_retrieval.rerank_enabled ? 'Rerank on' : 'Rerank off'}
               </small>
             </div>
-            <Badge tone="neutral">{settings.chat_retrieval.source}</Badge>
+            <Badge tone="neutral">
+              {sourceLabel(settings.chat_retrieval.source)}
+            </Badge>
           </DataListItem>
         </DataList>
       </section>

@@ -420,6 +420,7 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
     expect(screen.getByLabelText('API key')).toBeTruthy()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
+    expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
   })
 
   test('wires API key FieldHelp outside control when editing a connection', () => {
