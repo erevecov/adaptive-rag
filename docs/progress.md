@@ -1,6 +1,6 @@
 # Progreso de Adaptive RAG
 
-## Local re-gate evidence (2026-08-05 tip `f4253ff`)
+## Local re-gate evidence (2026-08-05 tip `3d8ebf0`)
 
 - quality-gate → succeeded / `ready_for_v1_0`
 - acceptance runtime-settings-smoke → succeeded (6 criteria)
