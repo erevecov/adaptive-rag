@@ -9,7 +9,7 @@ import {
 import { cn } from '@/lib/utils'
 
 /** Numeric columns: right-align + stable digit width while values refresh. */
-export const tableNumericClass = 'text-right tabular-nums'
+export const tableNumericClass = 'text-right font-medium tabular-nums'
 
 export type TableScrollProps = HTMLAttributes<HTMLDivElement>
 
@@ -51,7 +51,8 @@ export const TableHeader = forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     className={cn(
-      'sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm',
+      // Card-tinted sticky header stays legible on purple/dark nested panels.
+      'sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm',
       className,
     )}
     ref={ref}
@@ -81,7 +82,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
       className={cn(
-        'border-b border-border motion-safe:transition-colors',
+        'border-b border-border motion-safe:transition-colors hover:bg-muted/40',
         className,
       )}
       ref={ref}
@@ -98,7 +99,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, scope = 'col', ...props }, ref) => (
     <th
       className={cn(
-        'h-10 whitespace-nowrap bg-background/95 px-3 text-left align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground',
+        'h-9 whitespace-nowrap bg-card/95 px-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground',
         className,
       )}
       ref={ref}
