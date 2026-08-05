@@ -183,7 +183,7 @@ export function SessionNavigationPanel({
             active={statusFilter === filter.value}
             aria-label={filter.title}
             className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11',
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.625rem] max-[680px]:leading-snug',
               statusFilter === filter.value
                 ? 'font-semibold shadow-sm'
                 : 'font-medium',
@@ -1118,7 +1118,7 @@ function DetailSection({
 }) {
   return (
     <section className="grid gap-2 max-[680px]:gap-1.5" aria-labelledby={id}>
-      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.8125rem]">
+      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.8125rem] max-[680px]:leading-snug">
         {title}
       </h4>
       {children}
