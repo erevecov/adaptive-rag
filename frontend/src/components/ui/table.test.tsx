@@ -77,7 +77,7 @@ describe('Table density', () => {
       'max-[680px]:min-w-[560px]',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'hover:bg-muted/40',
+      'hover:bg-primary/10',
     )
   })
 })

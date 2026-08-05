@@ -87,7 +87,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
       className={cn(
-        'border-b border-border motion-safe:transition-colors hover:bg-muted/40',
+        'border-b border-border motion-safe:transition-colors hover:bg-primary/10',
         className,
       )}
       ref={ref}
