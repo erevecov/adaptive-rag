@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-12 max-[680px]:gap-2 max-[680px]:px-2.5 max-[680px]:py-2',
+          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-11 max-[680px]:gap-1.5 max-[680px]:px-2 max-[680px]:py-1.5',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
