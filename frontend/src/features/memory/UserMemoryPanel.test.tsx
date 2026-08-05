@@ -149,9 +149,9 @@ describe('UserMemoryPanel', () => {
     await waitFor(() => expect(update).toHaveBeenCalled())
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove From Injection' }),
+      screen.getByRole('button', { name: 'Remove from injection' }),
     )
-    await user.click(screen.getByRole('button', { name: 'Confirm Remove' }))
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
@@ -250,9 +250,9 @@ describe('UserMemoryPanel', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: /^Rejected/ }))
-    expect(await screen.findByText('No rejected memories')).toBeTruthy()
+    expect(await screen.findByText('No Rejected Memories')).toBeTruthy()
     expect(screen.getByText(/never inject into chat/i)).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
@@ -321,8 +321,8 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByLabelText(/Proposed memory/i)).toBeTruthy()
     expect(screen.getByText(/Focus a proposed row/i)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: /^Approved/ }))
-    expect(await screen.findByText('No approved memories')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    expect(await screen.findByText('No Approved Memories')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
@@ -477,17 +477,68 @@ describe('UserMemoryPanel', () => {
     expect(stamped.getAttribute('title')).toBeTruthy()
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove From Injection' }),
+      screen.getByRole('button', { name: 'Remove from injection' }),
     )
     expect(
-      await screen.findByRole('button', { name: 'Confirm Remove' }),
+      await screen.findByRole('button', { name: /Confirm remove/ }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('button', { name: 'Confirm Remove' })).toBeNull()
-    expect(
-      screen.getByRole('button', { name: 'Remove From Injection' }),
-    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Confirm remove/ })).toBeNull()
+    const removeButton = screen.getByRole('button', {
+      name: 'Remove from injection',
+    })
+    expect(removeButton).toBeTruthy()
+    await waitFor(() => expect(document.activeElement).toBe(removeButton))
     expect(reject).not.toHaveBeenCalled()
+  })
+
+  test('focuses the edit textarea when Edit is clicked', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Draft text', id: 'mem-1', status: 'proposed' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Draft text')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Edit memory content'),
+      ),
+    )
+  })
+
+  test('lists Proposed before Approved on the All filter', async () => {
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-approved', status: 'approved' }),
+        memory({ content: 'Needs review', id: 'mem-proposed', status: 'proposed' }),
+        memory({ content: 'Dropped', id: 'mem-rejected', status: 'rejected' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Needs review')).toBeTruthy()
+    const texts = screen.getAllByText(/Needs review|Live preference|Dropped/)
+    expect(texts.map((node) => node.textContent)).toEqual([
+      'Needs review',
+      'Live preference',
+      'Dropped',
+    ])
   })
 
 })
