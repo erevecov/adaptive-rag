@@ -42,6 +42,7 @@ describe('DropdownMenu', () => {
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(menu.getAttribute('data-slot')).toBe('dropdown-menu-content')
     expect(menu.className).toContain('focus-visible:ring-ring')
+    expect(menu.className).toContain('max-[680px]:p-1.5')
     expect(archiveItem.getAttribute('data-slot')).toBe('dropdown-menu-item')
     expect(archiveItem.className).toContain('focus-visible:ring-2')
     expect(archiveItem.className).toContain('focus-visible:ring-inset')
