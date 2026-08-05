@@ -52,7 +52,7 @@
 - M46 Security pack: completo.
 - M47 Query routing medible: completo.
 - M48 Knowledge lifecycle (dedup/resync): completo.
-- M49 MCP stdio minimo: planificado (post-v1.0).
+- M49 MCP stdio minimo: completo.
 - M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
 - Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
 
@@ -1912,11 +1912,11 @@ Estado: completo (2026-08-05).
 
 #### M49 MCP stdio minimo
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- 3–5 tools: search, ask, ingest_text, list_projects, list_sources.
-- Auth = token local existente; sin OAuth/hosted.
-- README Claude Code / Cursor.
+- FastMCP stdio: list_projects, list_sources, search, ask, ingest_text.
+- CLI `adaptive-rag mcp serve`; docs/mcp.md.
+- Auth proceso local (mismo DB/env que CLI); sin OAuth/hosted.
 
 #### M50 Dense reindex + contextualizacion LLM opt-in
 

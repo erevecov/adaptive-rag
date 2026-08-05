@@ -8,6 +8,7 @@ from adaptive_rag.cli.evals import app as evals_app
 from adaptive_rag.cli.first_run import app as first_run_app
 from adaptive_rag.cli.graph import app as graph_app
 from adaptive_rag.cli.jobs import app as jobs_app
+from adaptive_rag.cli.mcp_cmd import app as mcp_app
 from adaptive_rag.cli.projects import app as projects_app
 from adaptive_rag.cli.providers import app as providers_app
 from adaptive_rag.cli.retrieval import app as retrieval_app
@@ -24,6 +25,7 @@ app.add_typer(evals_app, name="evals")
 app.add_typer(first_run_app, name="first-run")
 app.add_typer(graph_app, name="graph")
 app.add_typer(jobs_app, name="jobs")
+app.add_typer(mcp_app, name="mcp")
 app.add_typer(providers_app, name="providers")
 app.add_typer(projects_app, name="projects")
 app.add_typer(retrieval_app, name="retrieval")
