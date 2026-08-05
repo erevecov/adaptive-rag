@@ -83,7 +83,7 @@ describe('UserMemoryPanel', () => {
     expect(screen.getByText(/Only approved items inject/i)).toBeTruthy()
 
     await user.type(
-      screen.getByLabelText('Propose memory'),
+      screen.getByLabelText('Propose Memory'),
       'Prefer Spanish answers',
     )
     await user.click(screen.getByRole('button', { name: 'Propose' }))
@@ -142,7 +142,7 @@ describe('UserMemoryPanel', () => {
 
     expect(await screen.findByText('Draft text')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    const editor = screen.getByLabelText('Edit memory content')
+    const editor = screen.getByLabelText('Edit Memory Content')
     await user.clear(editor)
     await user.type(editor, 'Edited draft')
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -219,7 +219,7 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText('Live preference')).toBeTruthy()
 
     await user.type(
-      screen.getByLabelText('Propose memory'),
+      screen.getByLabelText('Propose Memory'),
       'New preference',
     )
     await user.click(screen.getByRole('button', { name: 'Propose' }))
@@ -440,7 +440,7 @@ describe('UserMemoryPanel', () => {
 
     expect(await screen.findByText('Draft text')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    const editor = screen.getByLabelText('Edit memory content')
+    const editor = screen.getByLabelText('Edit Memory Content')
     expect(screen.getByText(/⌘\/Ctrl\+Enter save/)).toBeTruthy()
     await user.clear(editor)
     await user.type(editor, 'Edited via shortcut')

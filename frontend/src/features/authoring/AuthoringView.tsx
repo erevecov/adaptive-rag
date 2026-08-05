@@ -884,7 +884,7 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project memberships">
+        <DataList aria-label="Project Memberships">
           {memberships.map((membership) => (
             <DataListItem className="grid gap-2" key={membership.id}>
               <div className="grid min-w-0 gap-1">
@@ -1374,7 +1374,7 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge proposals">
+        <DataList aria-label="Knowledge Proposals">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''

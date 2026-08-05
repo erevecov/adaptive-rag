@@ -160,14 +160,14 @@ export function ChatWorkspacePanel({
 
   return (
     <Panel
-      aria-label="Chat workspace"
+      aria-label="Chat Workspace"
       className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
       role="region"
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
-        aria-label="Chat transcript"
+        aria-label="Chat Transcript"
         className="min-h-0 overflow-y-auto px-0.5 pr-1"
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
@@ -267,7 +267,7 @@ export function ChatWorkspacePanel({
           >
             <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end">
               <Button
-                aria-label="Open context sidebar"
+                aria-label="Open Context Sidebar"
                 aria-pressed={isContextInspectorActive}
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
@@ -281,7 +281,7 @@ export function ChatWorkspacePanel({
                 <CircleDot aria-hidden="true" className="size-4" />
               </Button>
               <Button
-                aria-label="Open minimap sidebar"
+                aria-label="Open Minimap Sidebar"
                 aria-pressed={isMinimapInspectorActive}
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
@@ -376,7 +376,7 @@ function SpeechInputControl({
 
   return (
     <section
-      aria-label="Transcript input"
+      aria-label="Transcript Input"
       className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full"
       data-slot="speech-input"
     >
@@ -539,7 +539,7 @@ function ResponsePanel({
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90">No response yet.</p>
+          <p className="font-medium text-foreground/90">No Response Yet.</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Ask about indexed sources. Enter to send · Shift+Enter for a new line.
           </p>
@@ -751,7 +751,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat response" className="grid gap-4" role="region">
+    <div aria-label="Chat Response" className="grid gap-4" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -774,7 +774,7 @@ function ResponseContent({
           </p>
           {response.citations.length > 0 ? (
             <div
-              aria-label="Answer citations"
+              aria-label="Answer Citations"
               className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5"
               data-slot="chat-answer-citations"
               role="group"
@@ -872,7 +872,7 @@ function ResponseContent({
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
-        <section aria-label="Knowledge drafts" className="grid gap-3">
+        <section aria-label="Knowledge Drafts" className="grid gap-3">
           {knowledgeDrafts.map((draft) => (
             <KnowledgeDraftCard
               draft={draft}
@@ -959,7 +959,7 @@ function ResponseDetailsPanel({
 
   return (
     <section
-      aria-label="Response details"
+      aria-label="Response Details"
       className="rounded-md border border-border bg-muted/15 p-3"
     >
       <Button
@@ -1027,7 +1027,7 @@ function ResponseDetailsContent({
               >
                 <strong className="text-sm text-foreground">{call.name}</strong>
                 <span className="text-sm text-muted-foreground">
-                  {call.query ?? 'No query stored.'}
+                  {call.query ?? 'No Query Stored.'}
                 </span>
                 <small className="text-xs text-muted-foreground">
                   Limit {call.limit ?? 'Unknown'} /{' '}
@@ -1039,7 +1039,7 @@ function ResponseDetailsContent({
         </section>
       ) : null}
       {sourceCount > 0 ? (
-        <section aria-label="Sources detail" className="grid gap-2">
+        <section aria-label="Sources Detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
             Sources · {sourceCount}
           </h3>
@@ -1168,7 +1168,7 @@ function KnowledgeDraftCard({
         </FieldLabel>
         <FieldControl>
           <Textarea
-            aria-label="Knowledge draft text"
+            aria-label="Knowledge Draft Text"
             className="focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!canEdit}
             id={`knowledge-draft-${draft.draftId}`}

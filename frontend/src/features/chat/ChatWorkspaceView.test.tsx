@@ -175,7 +175,7 @@ describe('ChatWorkspacePanel', () => {
 
     const view = render(<QuestionHarness />)
 
-    const workspace = screen.getByRole('region', { name: 'Chat workspace' })
+    const workspace = screen.getByRole('region', { name: 'Chat Workspace' })
     expect(workspace.getAttribute('data-slot')).toBe('panel')
     expect(screen.getByLabelText('Question').getAttribute('data-slot')).toBe(
       'textarea',
@@ -200,12 +200,12 @@ describe('ChatWorkspacePanel', () => {
     )
 
     expect(screen.getByRole('region', { name: 'Tool Calls Detail' })).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Sources detail' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Sources Detail' })).toBeTruthy()
     expect(view.container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(screen.getByText('$0.0123')).toBeTruthy()
 
     await user.click(
-      within(screen.getByRole('region', { name: 'Sources detail' })).getByRole(
+      within(screen.getByRole('region', { name: 'Sources Detail' })).getByRole(
         'button',
         { name: 'View source architecture.md' },
       ),
@@ -366,7 +366,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="empty"]',
     )
     expect(emptyState).toBeTruthy()
-    expect(emptyState?.textContent).toContain('No response yet.')
+    expect(emptyState?.textContent).toContain('No Response Yet.')
     expect(emptyState?.textContent).toMatch(/Enter to send/)
     expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
@@ -384,18 +384,18 @@ describe('ChatWorkspacePanel', () => {
       /border-border\/50/,
     )
     expect(
-      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
     ).toMatch(/max-\[680px\]:min-h-11/)
     expect(
-      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
     ).toMatch(/hover:bg-primary\/15/)
     expect(
-      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
     ).not.toMatch(/hover:bg-muted/)
     empty.view.unmount()
 
     const { view } = renderChatWorkspace()
-    const workspace = screen.getByRole('region', { name: 'Chat workspace' })
+    const workspace = screen.getByRole('region', { name: 'Chat Workspace' })
     expect(
       view.container.querySelector('[data-slot="chat-transcript"]')?.parentElement,
     ).toBe(workspace)
@@ -441,7 +441,7 @@ describe('ChatWorkspacePanel', () => {
     })
 
     const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
-    expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
+    expect(within(draft).getByLabelText('Knowledge Draft Text')).toBeTruthy()
     const approve = within(draft).getByRole('button', { name: 'Approve Knowledge' })
     expect(approve).toBeTruthy()
     expect((approve as HTMLButtonElement).disabled).toBe(false)
@@ -492,12 +492,12 @@ describe('ChatWorkspacePanel', () => {
     })
 
     expect(
-      screen.getByRole('button', { name: 'Open context sidebar' }).getAttribute(
+      screen.getByRole('button', { name: 'Open Context Sidebar' }).getAttribute(
         'aria-pressed',
       ),
     ).toBe('true')
     expect(
-      screen.getByRole('button', { name: 'Open minimap sidebar' }).getAttribute(
+      screen.getByRole('button', { name: 'Open Minimap Sidebar' }).getAttribute(
         'aria-pressed',
       ),
     ).toBe('false')

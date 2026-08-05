@@ -492,7 +492,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     expect(
       within(screen.getByRole('region', { name: 'Selected Session Detail' })).getByText(
-        'No messages in this session.',
+        'No Messages in This Session.',
       ),
     ).toBeTruthy()
   })
@@ -518,11 +518,11 @@ describe('WorkspaceInspectorPanel', () => {
         }}
       />,
     )
-    expect(screen.getByLabelText('Loading session context')).toBeTruthy()
-    expect(screen.getByLabelText('Loading action stepper')).toBeTruthy()
+    expect(screen.getByLabelText('Loading Session Context')).toBeTruthy()
+    expect(screen.getByLabelText('Loading Action Stepper')).toBeTruthy()
     expect(screen.getByLabelText('Loading Session Detail')).toBeTruthy()
-    expect(screen.queryByText('Select a session to inspect model, prompt and usage context.')).toBeNull()
-    expect(screen.queryByText('No stored internal actions for this session.')).toBeNull()
+    expect(screen.queryByText('Select a Session to Inspect Model, Prompt and Usage Context.')).toBeNull()
+    expect(screen.queryByText('No Stored Internal Actions for This Session.')).toBeNull()
   })
 
   test('renders context details and source viewer with tokenized sections', async () => {
