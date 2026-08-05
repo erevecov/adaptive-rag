@@ -225,7 +225,7 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'succeeded',
       response,
     })
-    const chip = screen.getByRole('button', { name: 'Open source architecture.md' })
+    const chip = screen.getByRole('button', { name: 'View source architecture.md' })
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
