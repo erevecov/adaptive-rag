@@ -117,7 +117,7 @@ export function RetrievalPlaygroundPanel({
     >
       <PanelHeader className="p-4">
         <PanelTitle id="retrieval-playground-title">
-          Retrieval playground
+          Retrieval Playground
         </PanelTitle>
         <PanelDescription>
           Run project retrieval without chat. Inspect ranked chunks, scores, and

@@ -23,7 +23,7 @@ describe('SegmentedControl', () => {
     render(
       <SegmentedControl aria-label="Runtime sections">
         <SegmentedControlItem active>Connections</SegmentedControlItem>
-        <SegmentedControlItem>Model catalog</SegmentedControlItem>
+        <SegmentedControlItem>Model Catalog</SegmentedControlItem>
       </SegmentedControl>,
     )
 
@@ -49,7 +49,7 @@ describe('SegmentedControl', () => {
       screen.getByRole('group', { name: 'Runtime sections' }).className,
     ).toContain('bg-muted/40')
     expect(
-      screen.getByRole('button', { name: 'Model catalog' }).getAttribute('aria-pressed'),
+      screen.getByRole('button', { name: 'Model Catalog' }).getAttribute('aria-pressed'),
     ).toBe('false')
   })
 
@@ -60,12 +60,12 @@ describe('SegmentedControl', () => {
     render(
       <SegmentedControl aria-label="Runtime sections">
         <SegmentedControlItem disabled onClick={handleClick}>
-          Model catalog
+          Model Catalog
         </SegmentedControlItem>
       </SegmentedControl>,
     )
 
-    const item = screen.getByRole('button', { name: 'Model catalog' })
+    const item = screen.getByRole('button', { name: 'Model Catalog' })
     expect(item.getAttribute('disabled')).toBe('')
 
     await user.click(item)

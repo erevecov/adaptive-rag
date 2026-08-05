@@ -58,7 +58,7 @@ const SETTINGS_NAVIGATION = [
       { id: 'users', label: 'Users' },
       { id: 'knowledge', label: 'Knowledge' },
       { id: 'sources', label: 'Sources' },
-      { id: 'retrieval', label: 'Retrieval playground' },
+      { id: 'retrieval', label: 'Retrieval Playground' },
     ],
   },
   {
@@ -76,8 +76,8 @@ const SETTINGS_NAVIGATION = [
     label: 'Runtime',
     submodules: [
       { id: 'connections', label: 'Connections' },
-      { id: 'model_catalog', label: 'Model catalog' },
-      { id: 'global_defaults', label: 'Global defaults' },
+      { id: 'model_catalog', label: 'Model Catalog' },
+      { id: 'global_defaults', label: 'Global Defaults' },
       { id: 'project_overrides', label: 'Project overrides' },
     ],
   },

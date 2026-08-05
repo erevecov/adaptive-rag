@@ -353,7 +353,7 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByRole('heading', { name: 'Global defaults' }),
+      screen.getByRole('heading', { name: 'Global Defaults' }),
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
   })

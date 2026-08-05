@@ -990,7 +990,7 @@ export function RuntimeModelCatalogPanel({
     <RuntimePanel
       id="runtime-model-catalog-title"
       status={<RuntimeStatus state={state} />}
-      title="Model catalog"
+      title="Model Catalog"
     >
       <Button
         disabled={state === 'loading'}
@@ -1140,7 +1140,7 @@ export function RuntimeGlobalDefaultsPanel({
     <RuntimePanel
       id="runtime-global-defaults-title"
       status={<RuntimeStatus state={state} />}
-      title="Global defaults"
+      title="Global Defaults"
     >
       <Button
         disabled={state === 'loading'}
@@ -1305,7 +1305,7 @@ export function RuntimeGlobalDefaultsPanel({
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
                 <strong className="text-sm font-semibold">
-                  Global defaults
+                  Global Defaults
                 </strong>
                 <small className="text-xs text-muted-foreground">
                   Limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
@@ -1751,7 +1751,7 @@ export function ProviderModelCatalogView({
 }) {
   return (
     <section aria-label="Provider model catalog" className="grid gap-3">
-      <h3 className="text-base font-semibold leading-none">Model catalog</h3>
+      <h3 className="text-base font-semibold leading-none">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"

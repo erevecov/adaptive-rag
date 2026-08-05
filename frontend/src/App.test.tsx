@@ -1035,12 +1035,12 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Connections' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Refresh connections' })).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
-    expect(screen.getByRole('heading', { level: 2, name: 'Model catalog' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
+    expect(screen.getByRole('heading', { level: 2, name: 'Model Catalog' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Refresh catalog' })).toBeTruthy()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
-    expect(screen.getByRole('heading', { level: 2, name: 'Global defaults' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
+    expect(screen.getByRole('heading', { level: 2, name: 'Global Defaults' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
@@ -1076,17 +1076,17 @@ describe('App chat workspace', () => {
 
     await user.click(
       within(settingsNavigation).getByRole('button', {
-        name: 'Model catalog',
+        name: 'Model Catalog',
       }),
     )
 
     expect(
       within(settingsNavigation)
-        .getByRole('button', { name: 'Model catalog' })
+        .getByRole('button', { name: 'Model Catalog' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Model catalog' }),
+      screen.getByRole('heading', { level: 2, name: 'Model Catalog' }),
     ).toBeTruthy()
   })
 
@@ -3921,7 +3921,7 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
 
     expect(client.listProviderModels).toHaveBeenCalled()
@@ -3937,7 +3937,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.queryByRole('button', { name: 'Save secret' })).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
     await chooseRadixSelectOption(
@@ -4148,7 +4148,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
     await chooseRadixSelectOption(
       user,
@@ -4189,7 +4189,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
 
     await waitFor(() =>
       expect(listProviderModels).toHaveBeenCalledWith({
@@ -4228,7 +4228,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
     await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
     await chooseRadixSelectOption(
       user,
@@ -4508,7 +4508,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
     await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
 
     await chooseRadixSelectOption(
