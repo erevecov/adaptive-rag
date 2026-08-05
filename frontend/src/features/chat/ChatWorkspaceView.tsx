@@ -1,6 +1,7 @@
 import {
   type Dispatch,
   type FormEvent,
+  type KeyboardEvent,
   type Ref,
   type SetStateAction,
   useCallback,
@@ -9,16 +10,16 @@ import {
   useRef,
   useState,
 } from 'react'
-import { CircleDot, Map as MapIcon, Mic, Send, Square } from 'lucide-react'
+import { CircleDot, Map as MapIcon, Mic, Square } from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { Badge, StatusBadge } from '@/components/ui/badge'
-import { Button, IconButton } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
-import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
-import { Panel, PanelBody } from '@/components/ui/panel'
+import { Panel } from '@/components/ui/panel'
 import type {
   ChatHistoryProviderUsage,
   ChatResponseBody,
@@ -26,6 +27,11 @@ import type {
   KnowledgeProposal,
 } from '@/lib/apiClient'
 import type { ChatStep } from '@/lib/chatSteps'
+import { cn } from '@/lib/utils'
+
+/** Compact circular tool control — beflow-style dock chrome. */
+const COMPOSER_TOOL_BUTTON_CLASS =
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -129,64 +135,101 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat workspace"
-      className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]"
+      className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
       role="region"
     >
-      <PanelBody className="grid min-h-0 gap-4 p-4">
-        <div
-          aria-label="Chat transcript"
-          className="min-h-0 overflow-y-auto pr-1"
-          onScroll={onTranscriptScroll}
-          ref={transcriptRef}
-          role="region"
-        >
-          <ResponsePanel
-            drafts={drafts}
-            onOpenSource={onOpenSource}
-            onRefineKnowledgeDraft={onRefineKnowledgeDraft}
-            onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
-            providerUsage={providerUsage}
-            question={activeResponseQuestion}
-            response={response}
-            setDrafts={setDrafts}
-            state={requestState}
-          />
-        </div>
+      {/* Transcript + composer are direct grid children so the form pins bottom. */}
+      <div
+        aria-label="Chat transcript"
+        className="min-h-0 overflow-y-auto px-0.5 pr-1"
+        data-slot="chat-transcript"
+        onScroll={onTranscriptScroll}
+        ref={transcriptRef}
+        role="region"
+      >
+        <ResponsePanel
+          drafts={drafts}
+          onOpenSource={onOpenSource}
+          onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+          onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+          providerUsage={providerUsage}
+          question={activeResponseQuestion}
+          response={response}
+          setDrafts={setDrafts}
+          state={requestState}
+        />
+      </div>
 
-        <form className="grid gap-3 border-t border-border pt-4" onSubmit={onSubmit}>
-          <Field>
-            <FieldLabel htmlFor="chat-question">Question</FieldLabel>
-            <FieldControl>
+      <div className="relative shrink-0 bg-background" data-slot="chat-composer-shell">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background"
+          data-slot="chat-composer-gradient"
+        />
+        <form
+          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4"
+          data-slot="chat-composer"
+          onSubmit={onSubmit}
+        >
+          <Field className="gap-0">
+            <FieldLabel className="sr-only" htmlFor="chat-question">
+              Question
+            </FieldLabel>
+            <FieldControl className="gap-0">
               <Textarea
-                className="min-h-24"
+                className={cn(
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
+                  'placeholder:text-muted-foreground focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0',
+                )}
                 id="chat-question"
                 name="question"
                 onChange={(event) => onQuestionChange(event.currentTarget.value)}
+                onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                    event.preventDefault()
+                    event.currentTarget.form?.requestSubmit()
+                  }
+                }}
                 placeholder="Ask a question about indexed sources"
-                rows={3}
+                rows={2}
                 value={question}
               />
             </FieldControl>
           </Field>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <IconButton
+          <div
+            className="mt-2 flex flex-wrap items-center justify-end gap-2"
+            data-slot="chat-composer-actions"
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <Button
+                aria-label="Open context sidebar"
                 aria-pressed={isContextInspectorActive}
-                label="Open context sidebar"
+                className={cn(
+                  COMPOSER_TOOL_BUTTON_CLASS,
+                  isContextInspectorActive &&
+                    'border-primary/40 bg-primary/10 text-foreground',
+                )}
                 onClick={onOpenContextInspector}
-                variant={isContextInspectorActive ? 'primary' : 'secondary'}
+                type="button"
+                variant="ghost"
               >
-                <CircleDot aria-hidden="true" className="size-5" />
-              </IconButton>
-              <IconButton
+                <CircleDot aria-hidden="true" className="size-4" />
+              </Button>
+              <Button
+                aria-label="Open minimap sidebar"
                 aria-pressed={isMinimapInspectorActive}
-                label="Open minimap sidebar"
+                className={cn(
+                  COMPOSER_TOOL_BUTTON_CLASS,
+                  isMinimapInspectorActive &&
+                    'border-primary/40 bg-primary/10 text-foreground',
+                )}
                 onClick={onOpenMinimapInspector}
-                variant={isMinimapInspectorActive ? 'primary' : 'secondary'}
+                type="button"
+                variant="ghost"
               >
-                <MapIcon aria-hidden="true" className="size-5" />
-              </IconButton>
+                <MapIcon aria-hidden="true" className="size-4" />
+              </Button>
               <SpeechInputControl
                 feedback={speechFeedback}
                 isSupported={isSpeechSupported}
@@ -194,24 +237,38 @@ export function ChatWorkspacePanel({
                 onStop={onStopSpeechRecognition}
                 state={speechState}
               />
-              <Button disabled={isAsking} type="submit">
-                <Send aria-hidden="true" className="size-4" />
-                <span>{isAsking ? 'Asking...' : 'Ask'}</span>
-              </Button>
             </div>
 
             {isAsking ? (
-              <Button onClick={onCancelRequest} type="button" variant="secondary">
+              <Button
+                className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
+                onClick={onCancelRequest}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
                 Cancel
               </Button>
-            ) : null}
+            ) : (
+              <Button
+                aria-label="Ask"
+                className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
+                disabled={question.trim().length === 0}
+                size="sm"
+                type="submit"
+              >
+                Ask ↵
+              </Button>
+            )}
           </div>
 
           {requestError ? (
-            <InlineFeedback tone="danger">{requestError}</InlineFeedback>
+            <InlineFeedback className="mt-2" tone="danger">
+              {requestError}
+            </InlineFeedback>
           ) : null}
         </form>
-      </PanelBody>
+      </div>
     </Panel>
   )
 }
@@ -235,36 +292,53 @@ function SpeechInputControl({
     : isListening
       ? 'Stop transcript'
       : 'Start transcript'
+  // Idle "Speech input ready." crowded the toolbar — only show status when useful.
+  const showStatus =
+    feedback !== null ||
+    state === 'failed' ||
+    state === 'loading' ||
+    !isSupported
   const message =
     feedback ??
-    (isSupported
-      ? 'Speech input ready.'
-      : 'Speech recognition is not supported in this browser.')
+    (isListening
+      ? 'Listening…'
+      : isSupported
+        ? null
+        : 'Speech recognition is not supported in this browser.')
 
   return (
     <section
       aria-label="Transcript input"
-      className="flex min-w-0 items-center gap-2"
+      className="flex min-w-0 items-center gap-1.5"
+      data-slot="speech-input"
     >
-      <IconButton
+      <Button
+        aria-label={buttonLabel}
+        className={cn(
+          COMPOSER_TOOL_BUTTON_CLASS,
+          isListening && 'border-primary/40 bg-primary/10 text-foreground',
+        )}
         disabled={!isSupported}
-        label={buttonLabel}
         onClick={isListening ? onStop : onStart}
-        variant={isListening ? 'primary' : 'secondary'}
+        title={buttonLabel}
+        type="button"
+        variant="ghost"
       >
         {isListening ? (
           <Square aria-hidden="true" className="size-4" />
         ) : (
           <Mic aria-hidden="true" className="size-4" />
         )}
-      </IconButton>
-      <InlineFeedback
-        className="min-w-0 max-w-72"
-        role={state === 'failed' ? 'alert' : 'status'}
-        tone={state === 'failed' ? 'danger' : 'neutral'}
-      >
-        {message}
-      </InlineFeedback>
+      </Button>
+      {showStatus && message !== null ? (
+        <InlineFeedback
+          className="min-w-0 max-w-48 truncate text-xs"
+          role={state === 'failed' ? 'alert' : 'status'}
+          tone={state === 'failed' ? 'danger' : 'neutral'}
+        >
+          {message}
+        </InlineFeedback>
+      ) : null}
     </section>
   )
 }
@@ -309,11 +383,31 @@ function ResponsePanel({
         />
       )
     }
-    return <EmptyState aria-live="polite">Waiting for response...</EmptyState>
+    return (
+      <div aria-live="polite" className="grid min-h-[8rem] place-items-center px-3 py-6">
+        <p
+          className="text-sm text-muted-foreground"
+          data-slot="empty-state"
+          data-slot-state="loading"
+        >
+          Waiting for response...
+        </p>
+      </div>
+    )
   }
 
   if (response === null) {
-    return <EmptyState>No response yet.</EmptyState>
+    return (
+      <div className="grid min-h-[8rem] place-items-center px-3 py-6">
+        <p
+          className="text-sm text-muted-foreground"
+          data-slot="empty-state"
+          data-slot-state="empty"
+        >
+          No response yet.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -499,7 +593,10 @@ function ResponseContent({
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
-        <article className="rounded-md border border-border bg-card p-4 text-card-foreground">
+        <article
+          className="rounded-lg border border-border/70 bg-card p-3.5 text-card-foreground transition-colors hover:border-border focus-within:border-primary/40"
+          data-slot="chat-message"
+        >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {response.answer}
           </p>

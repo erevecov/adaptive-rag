@@ -111,7 +111,8 @@ export function AppShell({
       data-slot="app-shell"
       style={
         {
-          '--left-sidebar-width': isLeftSidebarOpen ? '306px' : '0px',
+          // Wide enough for 2-col primary nav + Activos/Train/Archivados without clipping.
+          '--left-sidebar-width': isLeftSidebarOpen ? '280px' : '0px',
         } as CSSProperties
       }
     >
@@ -290,7 +291,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[306px] max-[680px]:w-[min(86vw,306px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,280px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -298,8 +299,8 @@ export function AppSidebar({
     >
       <div
         className={cn(
-          'grid min-h-[72px] grid-cols-[42px_minmax(0,1fr)] items-center gap-3 px-4 py-3.5',
-          !isOpen && 'min-h-0 p-0',
+          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5',
+          !isOpen && 'min-h-0 border-b-transparent p-0',
         )}
         data-slot="app-sidebar-chrome"
       >
@@ -317,20 +318,24 @@ export function AppSidebar({
         </IconButton>
         <div
           className={cn(
-            'grid min-w-0 gap-1 transition-[opacity,transform] duration-150',
+            'grid min-w-0 gap-0.5 transition-[opacity,transform] duration-150',
             !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
           )}
           aria-hidden={!isOpen}
           data-slot="sidebar-brand"
         >
-          <strong>Adaptive RAG</strong>
-          <span>Workspace</span>
+          <strong className="truncate text-sm font-extrabold leading-tight text-foreground">
+            Adaptive RAG
+          </strong>
+          <span className="truncate text-[11px] font-medium leading-tight text-muted-foreground">
+            Workspace
+          </span>
         </div>
       </div>
 
       <div
         className={cn(
-          'grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-[18px] overflow-x-hidden overflow-y-auto px-4 pb-[18px] transition-[opacity,transform] duration-150',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 transition-[opacity,transform] duration-150',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -344,7 +349,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary navigation"
-          className="grid grid-cols-[minmax(56px,auto)_minmax(104px,1fr)_minmax(74px,auto)] gap-2 border-b border-border pb-3.5"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
@@ -359,6 +364,7 @@ export function AppSidebar({
           />
           <SidebarNavButton
             active={primaryView === 'settings'}
+            className="col-span-2"
             label="Settings"
             onClick={() => onPrimaryViewChange('settings')}
           />
@@ -402,18 +408,27 @@ export function AppSidebar({
 
 function SidebarNavButton({
   active,
+  className,
   label,
   onClick,
 }: {
   active: boolean
+  className?: string
   label: string
   onClick(): void
 }) {
   return (
     <UiSidebarItem
       active={active}
-      className="min-h-10 justify-center overflow-hidden px-2 text-center text-xs"
+      className={cn(
+        // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight',
+        'hover:bg-muted/50 hover:text-foreground',
+        active && 'bg-muted font-semibold text-foreground',
+        className,
+      )}
       onClick={onClick}
+      title={label}
     >
       {label}
     </UiSidebarItem>
