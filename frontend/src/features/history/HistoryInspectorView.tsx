@@ -614,13 +614,13 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
         {viewer.state === 'loading' ? (
           <div
             aria-busy="true"
-            aria-label={`Loading source ${viewer.sourceId ?? ''}`}
+            aria-label={`Loading Source ${viewer.sourceId ?? ''}`}
             className="grid w-full gap-2"
             data-slot="source-viewer-loading"
             role="status"
           >
             <span className="sr-only">
-              Loading source {viewer.sourceId}...
+              Loading Source {viewer.sourceId}...
             </span>
             <div
               aria-hidden="true"
@@ -745,7 +745,7 @@ function ConversationMinimap({
             slot="conversation-minimap-loading"
           />
         ) : detail === null || detail.messages.length === 0 ? (
-          <EmptyState>Select a Session to Navigate Messages.</EmptyState>
+          <EmptyState>Select A Session To Navigate Messages.</EmptyState>
         ) : (
           <DataList aria-label="Conversation Messages">
             {detail.messages.map((message) => (
@@ -800,7 +800,7 @@ function SessionContextPanel({
           />
         ) : detail === null ? (
           <EmptyState>
-            Select a Session to Inspect Model, Prompt and Usage Context.
+            Select A Session To Inspect Model, Prompt And Usage Context.
           </EmptyState>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1020,7 +1020,7 @@ function SessionDetailPanel({
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <EmptyState>Select a Session to Inspect Stored History.</EmptyState>
+          <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
     )
@@ -1229,7 +1229,7 @@ function RetrievedChunkDetail({
         ) : null}
         {sourceId !== null ? (
           <Button
-            aria-label={`View source ${sourceLabel}`}
+            aria-label={`View Source ${sourceLabel}`}
             onClick={() => onOpenSource(sourceId, citationSnippet)}
             size="sm"
             type="button"
