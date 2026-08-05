@@ -602,7 +602,7 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByText(/No global slot defaults loaded\. Save a global slot/),
+      screen.getByText(/No global slot defaults yet\. Save a global slot/),
     ).toBeTruthy()
   })
 
@@ -616,7 +616,7 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByText(/No chat models in the project pool/),
+      screen.getByText(/No chat models in the project pool yet/),
     ).toBeTruthy()
   })
 })

@@ -1631,7 +1631,7 @@ export function ConnectionSelect({
         {
           label:
             connections.length === 0
-              ? 'No connections loaded'
+              ? 'No connections yet'
               : 'Select connection',
           value: '',
         },
@@ -1666,7 +1666,7 @@ export function ProviderModelSelect({
       onValueChange={onChange}
       options={[
         {
-          label: models.length === 0 ? 'No models loaded' : 'Select model',
+          label: models.length === 0 ? 'No models yet' : 'Select model',
           value: '',
         },
         ...models.map((model) => ({
@@ -1741,7 +1741,7 @@ export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
         data-slot-state="empty"
         role="status"
       >
-        No global slot defaults loaded. Save a global slot below.
+        No global slot defaults yet. Save a global slot below.
       </EmptyState>
     )
   }
@@ -1831,7 +1831,7 @@ export function ProjectRuntimeSettingsView({
             data-slot-state="empty"
             role="status"
           >
-            No chat models in the project pool. Save a global chat default or
+            No chat models in the project pool yet. Save a global chat default or
             sync models.
           </EmptyState>
         ) : (
