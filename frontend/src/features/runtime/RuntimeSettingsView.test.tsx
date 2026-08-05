@@ -594,4 +594,29 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByText('Loading provider models…')).toBeTruthy()
     expect(screen.queryByText('No provider models loaded.')).toBeNull()
   })
+
+  test('uses EmptyState for empty global slots', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      slots: [],
+    })
+
+    expect(
+      screen.getByText(/No global slot defaults loaded\. Save a global slot/),
+    ).toBeTruthy()
+  })
+
+  test('shows EmptyState when project chat pool is empty', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'project_overrides',
+      projectRuntimeSettings: {
+        ...projectRuntimeSettings,
+        chat_models: [],
+      },
+    })
+
+    expect(
+      screen.getByText(/No chat models in the project pool/),
+    ).toBeTruthy()
+  })
 })

@@ -188,6 +188,17 @@ describe('ObservabilityPanel', () => {
     expect(callsValue.className).toMatch(/tabular-nums/)
   })
 
+  test('metric cards expose labelledby for label and value', () => {
+    renderObservabilityPanel()
+    const sessions = screen.getByRole('article', { name: /Sessions 12/i })
+    expect(sessions.getAttribute('aria-labelledby')).toContain(
+      'metric-label-sessions',
+    )
+    expect(sessions.getAttribute('aria-labelledby')).toContain(
+      'metric-value-sessions',
+    )
+  })
+
   test('summary view renders metric cards and data-list breakdowns', () => {
     const { view } = renderObservabilityPanel()
 

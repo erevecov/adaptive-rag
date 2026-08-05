@@ -573,12 +573,24 @@ function MetricCard({
   label: string
   value: string
 }) {
+  const slug = label.toLowerCase().replace(/\s+/g, '-')
+  const labelId = `metric-label-${slug}`
+  const valueId = `metric-value-${slug}`
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
-      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+    <article
+      aria-labelledby={`${labelId} ${valueId}`}
+      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground"
+    >
+      <span
+        className="text-xs font-semibold uppercase tracking-normal text-muted-foreground"
+        id={labelId}
+      >
         {label}
       </span>
-      <strong className="break-words text-2xl font-semibold leading-none tabular-nums">
+      <strong
+        className="break-words text-2xl font-semibold leading-none tabular-nums"
+        id={valueId}
+      >
         {value}
       </strong>
       <small className="text-sm leading-relaxed text-muted-foreground">

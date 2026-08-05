@@ -112,6 +112,7 @@ export type SessionNavigationFilter = 'active' | 'training' | 'archived'
 
 export function AppShell({
   children,
+  isBackgroundInert = false,
   isLeftSidebarOpen,
   isRightDockOpen,
   primaryView,
@@ -119,6 +120,8 @@ export function AppShell({
   topline,
 }: {
   children: ReactNode
+  /** When true (inspector overlay), sidebar + topline leave the a11y tree. */
+  isBackgroundInert?: boolean
   isLeftSidebarOpen: boolean
   isRightDockOpen: boolean
   primaryView: PrimaryView
@@ -163,11 +166,17 @@ export function AppShell({
         )}
         data-slot="skip-link"
         href={skipHref}
+        {...(isBackgroundInert ? { inert: true } : {})}
       >
         {skipLabel}
       </a>
 
-      {sidebar}
+      <div
+        data-slot="app-shell-sidebar-host"
+        {...(isBackgroundInert ? { inert: true } : {})}
+      >
+        {sidebar}
+      </div>
 
       <section
         aria-labelledby="workspace-title"
@@ -187,7 +196,12 @@ export function AppShell({
         id="main-content"
         tabIndex={-1}
       >
-        {topline}
+        <div
+          data-slot="workspace-topline-host"
+          {...(isBackgroundInert ? { inert: true } : {})}
+        >
+          {topline}
+        </div>
         {children}
       </section>
     </main>
@@ -393,7 +407,7 @@ export function AppSidebar({
       className={cn(
         [
           'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
-          'border-r border-border bg-card/90 transition-[background,border-color,opacity,width] duration-200',
+          'border-r border-border bg-card/90 motion-safe:transition-[background,border-color,opacity,width] motion-safe:duration-200',
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen

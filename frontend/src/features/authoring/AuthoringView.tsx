@@ -924,6 +924,8 @@ function SourceFileField({
             ? 'application/pdf,.pdf'
             : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
+        aria-describedby={`${fieldId}-file-help`}
+        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium"
         disabled={isBusy}
         id={fieldId}
         name="source-file"
@@ -937,7 +939,12 @@ function SourceFileField({
       />
       {sourceFileName.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground" id={`${fieldId}-selected`}>
+          <span
+            className="text-xs text-muted-foreground"
+            data-slot="source-file-status"
+            id={`${fieldId}-file-help`}
+            role="status"
+          >
             Selected: {sourceFileName}
             {sizeBytes !== null ? ` · ${formatFileSize(sizeBytes)}` : null}
           </span>
@@ -959,8 +966,13 @@ function SourceFileField({
           </Button>
         </div>
       ) : (
-        <span className="text-xs text-muted-foreground">
-          PDF or DOCX up to 5 MiB.
+        <span
+          className="text-xs text-muted-foreground"
+          data-slot="source-file-status"
+          id={`${fieldId}-file-help`}
+          role="status"
+        >
+          No file selected.
         </span>
       )}
     </div>

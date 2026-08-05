@@ -479,10 +479,9 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const viewer = screen.getByRole('region', { name: 'Source viewer' })
-    const badge = within(viewer).getByText('eliminada')
+    const badge = within(viewer).getByText('Deleted', { selector: '[data-slot="badge"]' })
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.getAttribute('data-tone')).toBe('warning')
-    expect(within(viewer).getByText('Deleted')).toBeTruthy()
     expect(within(viewer).getByText('2026-06-22T12:00:00Z')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
@@ -515,6 +514,48 @@ describe('WorkspaceInspectorPanel', () => {
     expect(onNavigateMessage).toHaveBeenCalledWith('message-assistant')
     expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 turns')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
+  })
+
+  test('truncates long minimap aria-labels', () => {
+    const longContent = 'x'.repeat(140)
+    const longDetail: ChatSessionDetailResponse = {
+      ...detail,
+      messages: [
+        {
+          content: longContent,
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'message-long',
+          metadata: null,
+          role: 'user',
+        },
+      ],
+    }
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="minimap"
+        detail={longDetail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: /^user: / })
+    const label = button.getAttribute('aria-label') ?? ''
+    expect(label.startsWith('user: ')).toBe(true)
+    expect(label.length).toBeLessThanOrEqual('user: '.length + 96)
+    expect(label.endsWith('…')).toBe(true)
   })
 
   test('overlay Escape closes inspector and focuses close control on open', async () => {

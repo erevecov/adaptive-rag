@@ -430,7 +430,8 @@ describe('AuthoringPanel', () => {
     ).toBeTruthy()
   })
 
-  test('binary source upload shows idle and selected file status', () => {
+  test('binary source upload shows idle and selected file status', async () => {
+    const userDriver = userEvent.setup()
     const idle = renderAuthoringPanel({
       activeSubmodule: 'sources',
       sourceType: 'pdf',
@@ -443,13 +444,19 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('File').className).toMatch(/min-h-9/)
     idle.view.unmount()
 
+    const onSourceFileChange = vi.fn()
     renderAuthoringPanel({
       activeSubmodule: 'sources',
+      onSourceFileChange,
       sourceFileName: 'handbook.pdf',
       sourceType: 'pdf',
     })
     expect(
-      screen.getByText('Selected: handbook.pdf').getAttribute('data-slot'),
+      screen.getByText(/Selected: handbook\.pdf/).getAttribute('data-slot'),
     ).toBe('source-file-status')
+    await userDriver.click(
+      screen.getByRole('button', { name: 'Clear selected file' }),
+    )
+    expect(onSourceFileChange).toHaveBeenCalledWith(null)
   })
 })

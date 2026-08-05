@@ -1734,26 +1734,33 @@ export function ProviderModelCatalogView({
 }
 
 export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
+  if (slots.length === 0) {
+    return (
+      <EmptyState
+        className="p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        No global slot defaults loaded. Save a global slot below.
+      </EmptyState>
+    )
+  }
   return (
     <DataList aria-label="Global runtime slots">
-      {slots.length === 0 ? (
-        <DataListItem>No global slot defaults loaded.</DataListItem>
-      ) : (
-        slots.map((slot) => (
-          <DataListItem
-            className="flex flex-wrap items-center justify-between gap-3"
-            key={slot.slot}
-          >
-            <div className="grid gap-1">
-              <strong className="text-sm font-semibold">{slot.slot}</strong>
-              <small className="text-xs text-muted-foreground">
-                {slot.connection_id} / {slot.model_id}
-              </small>
-            </div>
-            <Badge tone="neutral">global</Badge>
-          </DataListItem>
-        ))
-      )}
+      {slots.map((slot) => (
+        <DataListItem
+          className="flex flex-wrap items-center justify-between gap-3"
+          key={slot.slot}
+        >
+          <div className="grid gap-1">
+            <strong className="text-sm font-semibold">{slot.slot}</strong>
+            <small className="text-xs text-muted-foreground">
+              {slot.connection_id} / {slot.model_id}
+            </small>
+          </div>
+          <Badge tone="neutral">global</Badge>
+        </DataListItem>
+      ))}
     </DataList>
   )
 }
@@ -1818,29 +1825,40 @@ export function ProjectRuntimeSettingsView({
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat pool</h3>
-        <DataList>
-          {settings.chat_models.map((model) => (
-            <DataListItem
-              className="grid gap-3"
-              key={`${model.connection_id}-${model.model_id}`}
-            >
-              <div className="grid gap-1">
-                <strong className="text-sm font-semibold">
-                  {model.model_id}
-                </strong>
-                <small className="text-xs text-muted-foreground">
-                  {model.connection_id}
-                </small>
-              </div>
-              <DataListItemActions>
-                <Badge tone="neutral">{model.source}</Badge>
-                <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                  {model.is_default ? 'default' : 'enabled'}
-                </Badge>
-              </DataListItemActions>
-            </DataListItem>
-          ))}
-        </DataList>
+        {settings.chat_models.length === 0 ? (
+          <EmptyState
+            className="p-4 text-left"
+            data-slot-state="empty"
+            role="status"
+          >
+            No chat models in the project pool. Save a global chat default or
+            sync models.
+          </EmptyState>
+        ) : (
+          <DataList>
+            {settings.chat_models.map((model) => (
+              <DataListItem
+                className="grid gap-3"
+                key={`${model.connection_id}-${model.model_id}`}
+              >
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">
+                    {model.model_id}
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    {model.connection_id}
+                  </small>
+                </div>
+                <DataListItemActions>
+                  <Badge tone="neutral">{model.source}</Badge>
+                  <Badge tone={model.is_default ? 'primary' : 'neutral'}>
+                    {model.is_default ? 'default' : 'enabled'}
+                  </Badge>
+                </DataListItemActions>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
