@@ -3801,7 +3801,7 @@ describe('App chat workspace', () => {
     expect(within(providerSection).getByText('1,840')).toBeTruthy()
 
     const healthSection = screen.getByRole('region', { name: 'Session health' })
-    expect(within(healthSection).getByText('83.3% success')).toBeTruthy()
+    expect(within(healthSection).getByText(/83\.3%\s*Success/i)).toBeTruthy()
   })
 
   test('renders costs observability content without error or health sections', async () => {
@@ -4531,7 +4531,7 @@ describe('App chat workspace', () => {
       'Select Connection',
     )
     expect(screen.getByLabelText('Project slot model').textContent).toContain(
-      'No models yet',
+      'No Models Yet',
     )
   })
 
