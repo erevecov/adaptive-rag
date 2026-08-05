@@ -214,7 +214,7 @@ export function ChatWorkspacePanel({
                 className={cn(
                   'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted px-4 py-2.5 text-sm leading-relaxed',
                   'placeholder:text-muted-foreground',
-                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
                 id="chat-question"
                 name="question"
@@ -745,7 +745,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border/70 bg-card p-3.5 text-card-foreground focus-within:border-primary/40"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground focus-within:border-primary"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -764,7 +764,7 @@ function ResponseContent({
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border/50 pt-2.5"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5"
               data-slot="chat-answer-citations"
               role="group"
             >
@@ -781,7 +781,11 @@ function ResponseContent({
                 return (
                   <Button
                     aria-label={`Open source ${label}`}
-                    className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    className={cn(
+                      'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
+                      'hover:border-primary/50 hover:bg-primary/15',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-3 max-[680px]:py-2 max-[680px]:text-xs',
+                    )}
                     key={chipKey}
                     onClick={() =>
                       onOpenSource(
@@ -1013,7 +1017,7 @@ function ResponseDetailsContent({
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>{result.citation.source_type} source</Badge>
+                    <Badge>{sourceTypeLabel(result.citation.source_type)} source</Badge>
                     <Badge>
                       version {result.citation.document_version_number}
                     </Badge>
@@ -1123,7 +1127,7 @@ function KnowledgeDraftCard({
         <FieldControl>
           <Textarea
             aria-label="Knowledge draft text"
-            className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!canEdit}
             id={`knowledge-draft-${draft.draftId}`}
             onChange={(event) => onTextChange(event.currentTarget.value)}
@@ -1161,6 +1165,25 @@ function KnowledgeDraftCard({
       </div>
     </article>
   )
+}
+
+function sourceTypeLabel(sourceType: string | null | undefined): string {
+  if (sourceType === null || sourceType === undefined || sourceType === '') {
+    return 'Unknown'
+  }
+  if (sourceType === 'url') {
+    return 'URL'
+  }
+  if (sourceType === 'pdf') {
+    return 'PDF'
+  }
+  if (sourceType === 'docx') {
+    return 'DOCX'
+  }
+  if (sourceType === 'txt') {
+    return 'TXT'
+  }
+  return sourceType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function knowledgeDraftStatusLabel(status: ChatKnowledgeDraftStatus): string {

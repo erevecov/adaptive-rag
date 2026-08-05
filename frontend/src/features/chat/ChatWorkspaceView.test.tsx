@@ -229,6 +229,23 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
+    expect(chip.className).toMatch(/hover:bg-primary\/15/)
+    expect(chip.className).toMatch(/max-\[680px\]:min-h-11/)
+    expect(
+      view.container.querySelector('[data-slot="chat-message"]')?.className,
+    ).toMatch(/focus-within:border-primary/)
+    expect(
+      view.container.querySelector('[data-slot="chat-message"]')?.className,
+    ).not.toMatch(/focus-within:border-primary\/40/)
+    expect(
+      view.container.querySelector('[data-slot="chat-message"]')?.className,
+    ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
+    expect(
+      view.container.querySelector('[data-slot="chat-message"]')?.className,
+    ).not.toMatch(/border-border\/70/)
+    expect(
+      view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
+    ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
     await user.click(chip)
     expect(onOpenSource).toHaveBeenCalledWith(
       'source-1',
