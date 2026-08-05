@@ -166,6 +166,8 @@ def run_next_ingestion_job(
     active_now = now or datetime.now(UTC)
     lease_until = active_now + timedelta(seconds=lease_seconds)
     job_repo = JobRepository(session)
+    # Recover kill-mid-job / crashed workers before selecting new work.
+    job_repo.release_expired_leases(project_id=project_id, now=active_now)
     job = job_repo.lease_next(
         project_id=project_id,
         worker_id=worker_id,
@@ -180,31 +182,50 @@ def run_next_ingestion_job(
             worker_id=worker_id,
         )
 
-    if job.job_type == INGEST_SOURCE_JOB_TYPE:
-        ingest_result = IngestionPipeline(session).process_leased_job(
-            project_id=project_id,
-            job=job,
-        )
-        return _report_from_ingest_result(
-            project_id=project_id,
-            worker_id=worker_id,
-            result=ingest_result,
-        )
+    try:
+        if job.job_type == INGEST_SOURCE_JOB_TYPE:
+            ingest_result = IngestionPipeline(session).process_leased_job(
+                project_id=project_id,
+                job=job,
+            )
+            return _report_from_ingest_result(
+                project_id=project_id,
+                worker_id=worker_id,
+                result=ingest_result,
+            )
 
-    if job.job_type == INDEX_DOCUMENT_VERSION_JOB_TYPE:
-        index_result = IndexingPipeline(
-            session,
-            dense_embedding_provider=dense_embedding_provider,
-            sparse_embedding_provider=sparse_embedding_provider,
-            contextualizer=contextualizer,
-        ).process_leased_job(
+        if job.job_type == INDEX_DOCUMENT_VERSION_JOB_TYPE:
+            index_result = IndexingPipeline(
+                session,
+                dense_embedding_provider=dense_embedding_provider,
+                sparse_embedding_provider=sparse_embedding_provider,
+                contextualizer=contextualizer,
+            ).process_leased_job(
+                project_id=project_id,
+                job=job,
+            )
+            return _report_from_index_result(
+                project_id=project_id,
+                worker_id=worker_id,
+                result=index_result,
+            )
+    except Exception as exc:  # noqa: BLE001 — unexpected worker failures
+        backoff = _retry_backoff_seconds(job.attempts)
+        failed = job_repo.fail(
             project_id=project_id,
-            job=job,
+            job_id=job.id,
+            error_message=str(exc) or exc.__class__.__name__,
+            retry_after=active_now + timedelta(seconds=backoff),
         )
-        return _report_from_index_result(
+        return IngestionRunReport(
+            status="failed" if failed.status == "queued" else "dead_letter",
             project_id=project_id,
             worker_id=worker_id,
-            result=index_result,
+            job_id=failed.id,
+            job_type=failed.job_type,
+            source_id=_job_source_id(failed),
+            document_version_id=_job_document_version_id(failed),
+            error_message=failed.last_error,
         )
 
     blocked = job_repo.block(
@@ -221,6 +242,13 @@ def run_next_ingestion_job(
         source_id=_job_source_id(blocked),
         error_message=blocked.last_error,
     )
+
+
+def _retry_backoff_seconds(attempts: int) -> int:
+    """Deterministic exponential backoff capped at 60s."""
+
+    safe_attempts = max(1, attempts)
+    return min(60, int(2 ** (safe_attempts - 1)))
 
 
 def run_ingestion_family_until_idle(

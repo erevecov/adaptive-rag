@@ -43,8 +43,8 @@
 - M39 Qwen runtime production defaults: completo.
 - Post-M39 Design system shadcn/Radix closeout: completo.
 - M40 Indexing job publico: completo.
-- **M41 Job queue hardening: planificado (activo, pre-v1.0).**
-- M42 Chat multi-turn + query condenser: planificado (pre-v1.0).
+- M41 Job queue hardening: completo.
+- **M42 Chat multi-turn + query condenser: planificado (activo, pre-v1.0).**
 - M43 Authoring lifecycle + RBAC closeout: planificado (pre-v1.0).
 - M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
@@ -1831,18 +1831,14 @@ Entregado:
 
 #### M41 Job queue hardening
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- Worker llama `release_expired_leases` al arrancar/por ciclo.
-- Errores inesperados → `fail()` con backoff y dead-letter real.
-- Eventos visibles en ingestion ops UI.
-
-Criterio de exito:
-
-- Test de integracion: kill mid-job ⇒ reencola o dead-letter; no queda
-  `running` eterno.
+- `run_next` libera leases vencidos antes de leasear.
+- Errores inesperados → `fail()` con backoff y dead-letter.
+- Eventos `released` / `failed_attempt` / `dead_lettered` en job detail.
+- OpenSpec archivado: `2026-08-05-m41-job-queue-hardening`.
 
 #### M42 Chat multi-turn + query condenser
 

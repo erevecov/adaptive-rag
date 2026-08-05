@@ -2,13 +2,23 @@
 
 ## Milestone activo
 
-**M41 Job queue hardening** (planificado, pre-v1.0).
+**M42 Chat multi-turn + query condenser** (planificado, pre-v1.0).
 
-Plan unificado post-M39: bloque pre-v1 restante M41 → M42 → M43 → M44, luego
-tag v1.0 humano. Post-v1: M45–M50. Detalle en `docs/roadmap.md` seccion
+Plan unificado post-M39: bloque pre-v1 restante M42 → M43 → M44, luego tag
+v1.0 humano. Post-v1: M45–M50. Detalle en `docs/roadmap.md` seccion
 "Plan unificado post-M39".
 
 ## Ultimo milestone completado
+
+M41 Job queue hardening cerrado el 2026-08-05.
+
+Change archivado en
+`openspec/changes/archive/2026-08-05-m41-job-queue-hardening/`.
+Worker `run_next` llama `release_expired_leases` y enruta errores inesperados
+por `fail()` con backoff/dead-letter. Test kill mid-job (lease vencido)
+reencola y re-procesa.
+
+## Milestone anterior completado
 
 M40 Indexing job publico cerrado el 2026-08-05.
 
