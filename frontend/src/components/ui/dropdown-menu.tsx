@@ -39,7 +39,7 @@ export const Trigger = forwardRef<
     className={cn(
       // Bare triggers render a button — match Popover / DS focus-visible rings.
       !asChild &&
-        'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'rounded-md max-[680px]:min-h-11 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       className,
     )}
     ref={ref}
