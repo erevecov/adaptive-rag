@@ -199,7 +199,36 @@ describe('RetrievalPlaygroundPanel', () => {
 
     await user.clear(screen.getByLabelText('Query'))
     await user.click(screen.getByRole('button', { name: 'Search' }))
-    expect(screen.getByText(/non-empty query/i)).toBeTruthy()
+    const failed = screen.getByRole('alert')
+    expect(failed.textContent).toMatch(/non-empty query/i)
+    expect(
+      document.querySelector(
+        '[aria-label="Retrieval results"] [data-slot-state="failed"]',
+      ),
+    ).toBeTruthy()
     expect(screen.queryByText('#1')).toBeNull()
+  })
+
+  test('keeps API failure inside the results region', async () => {
+    const user = userEvent.setup()
+    const search = vi.fn().mockRejectedValue(
+      new ApiClientError('budget', { detail: 'graph not ready', status: 422 }),
+    )
+    render(
+      <RetrievalPlaygroundPanel
+        client={createClient(search)}
+        projectId="project-1"
+      />,
+    )
+    await user.type(screen.getByLabelText('Query'), 'graph query')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => {
+      expect(
+        document.querySelector(
+          '[aria-label="Retrieval results"] [data-slot-state="failed"]',
+        ),
+      ).toBeTruthy()
+    })
+    expect(screen.getByText('graph not ready')).toBeTruthy()
   })
 })

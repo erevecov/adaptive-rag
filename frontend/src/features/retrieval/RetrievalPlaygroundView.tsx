@@ -223,7 +223,7 @@ export function RetrievalPlaygroundPanel({
           </div>
         </form>
 
-        {error ? (
+        {error && state !== 'failed' ? (
           <InlineFeedback role="alert" tone="danger">
             {error}
           </InlineFeedback>
@@ -244,6 +244,19 @@ export function RetrievalPlaygroundPanel({
             >
               <p className="font-medium text-foreground/90">Searching…</p>
               <span className="sr-only">Searching retrieval…</span>
+            </EmptyState>
+          ) : null}
+
+          {state === 'failed' ? (
+            <EmptyState
+              className="border-destructive/40 bg-destructive/5 p-4 text-left"
+              data-slot-state="failed"
+              role="alert"
+            >
+              <p className="font-semibold text-destructive">Search failed</p>
+              <p className="text-xs text-muted-foreground">
+                {error ?? 'Adjust query or strategy and retry.'}
+              </p>
             </EmptyState>
           ) : null}
 
