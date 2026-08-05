@@ -13,11 +13,18 @@
 
 ## Milestone activo
 
-Bloque C residual: retrieval playground UI y UI polish sidebar/chat (PR
-separado). Stack tip experimental: `feat/c-llm-as-judge-opt-in` sobre
-user-memory. Graph live: hold documentado. Tag v1.0 decision humana.
+Bloque C residual: UI polish sidebar/chat (PR separado si hay WIP). Stack tip:
+`feat/c-retrieval-playground-ui`. Graph live: hold. Tag v1.0 decision humana.
 
 ## Ultimo milestone completado
+
+Bloque C — Retrieval playground UI (2026-08-05):
+
+- `apiClient.searchRetrieval` + Settings → Authoring → Retrieval playground
+- Strategy/limit/rerank form, ranked hits table, component tests
+- OpenSpec `retrieval-playground`
+
+## Milestone anterior completado
 
 Bloque C — LLM-as-judge opt-in (2026-08-05):
 

@@ -56,7 +56,8 @@
 - M50 Dense reindex + contextualizacion LLM opt-in: completo.
 - Bloque C user memory minima: completo (tabla + API + inject; sin UI).
 - Bloque C LLM-as-judge opt-in: completo (`--llm-judge` + budget; fake offline).
-- Bloque experimental residual (retrieval playground, UI polish): diferido.
+- Bloque C retrieval playground UI: completo.
+- Bloque experimental residual (UI polish sidebar/chat): diferido.
   Graph live: hold documentado.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
@@ -1939,7 +1940,8 @@ Estado: completo (2026-08-05).
 - **Graph live evidence + vista force-graph**: hold documentado en
   `docs/architecture/graph-live-bloque-c-decision.md` (no_go hasta Neo4j
   live + evidence report).
-- **Retrieval playground** en UI (quick win): pendiente.
+- **Retrieval playground** en UI: completo (2026-08-05). Authoring nav +
+  `POST .../retrieval/search` client.
 - **UI polish sidebar/chat** (PR separado; no mezcla backend M40+): pendiente.
 
 ### Anti-roadmap (acuerdo adoptado)

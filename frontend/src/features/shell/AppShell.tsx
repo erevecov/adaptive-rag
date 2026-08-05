@@ -27,6 +27,7 @@ const SETTINGS_NAVIGATION = [
       { id: 'users', label: 'Users' },
       { id: 'knowledge', label: 'Knowledge' },
       { id: 'sources', label: 'Sources' },
+      { id: 'retrieval', label: 'Retrieval playground' },
     ],
   },
   {

@@ -216,6 +216,7 @@ function createClientStub(options: {
   retryIngestionJob?: ApiClient['retryIngestionJob']
   revokeAccessToken?: ApiClient['revokeAccessToken']
   runNextIngestionJob?: ApiClient['runNextIngestionJob']
+  searchRetrieval?: ApiClient['searchRetrieval']
   submitKnowledgeProposal?: ApiClient['submitKnowledgeProposal']
   upsertChatModel?: ApiClient['upsertChatModel']
   upsertProjectChatRetrievalSettings?: ApiClient['upsertProjectChatRetrievalSettings']
@@ -233,6 +234,7 @@ function createClientStub(options: {
   return {
     askChat: options.askChat ?? vi.fn(),
     askChatStream: options.askChatStream ?? vi.fn(),
+    searchRetrieval: options.searchRetrieval ?? vi.fn(),
     archiveChatSession: options.archiveChatSession ?? vi.fn(),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),

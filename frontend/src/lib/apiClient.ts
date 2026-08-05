@@ -232,7 +232,28 @@ export type RetrievalResult = {
   score: number
   citation: RetrievalCitation
   embedding_metadata: JsonObject | null
+  strategy?: string
+  fallback_reason?: string | null
+  retrieval_metadata?: JsonObject | null
   rerank_metadata?: JsonObject | null
+}
+
+export type RetrievalStrategy =
+  | 'dense'
+  | 'sparse'
+  | 'dense_sparse'
+  | 'graph'
+
+export type RetrievalSearchRequestBody = {
+  query: string
+  limit?: number
+  strategy?: RetrievalStrategy
+  metadata_filter?: RetrievalMetadataFilter | null
+  rerank?: { candidate_limit: number } | null
+}
+
+export type RetrievalSearchResponse = {
+  results: RetrievalResult[]
 }
 
 export type ChatRequestBody = {
@@ -762,6 +783,10 @@ export type ApiClient = {
     handlers?: ChatStreamHandlers,
     options?: ChatStreamOptions,
   ): Promise<ChatResponseBody>
+  searchRetrieval(
+    projectId: string,
+    body: RetrievalSearchRequestBody,
+  ): Promise<RetrievalSearchResponse>
   listChatSessions(
     projectId: string,
     params?: ChatSessionListParams,
@@ -1080,6 +1105,15 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         body,
         method: 'POST',
         url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat`,
+      })
+    },
+    searchRetrieval(projectId, body) {
+      return requestJson<RetrievalSearchResponse>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/retrieval/search`,
       })
     },
     askChatStream(projectId, body, handlers = {}, requestOptions = {}) {

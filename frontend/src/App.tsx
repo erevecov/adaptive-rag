@@ -14,6 +14,7 @@ import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
 import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
+import { RetrievalPlaygroundPanel } from '@/features/retrieval/RetrievalPlaygroundView'
 import { RuntimeSettingsPanel } from '@/features/runtime/RuntimeSettingsView'
 import {
   CHAT_RETRIEVAL_MAX_LIMIT,
@@ -2515,6 +2516,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 slots={runtimeSlots}
                 state={runtimeState}
               />
+            ) : authoringSubmodule === 'retrieval' ? (
+              <RetrievalPlaygroundPanel client={client} projectId={projectId} />
             ) : (
               <AuthoringPanel
                 activeSubmodule={authoringSubmodule}
