@@ -22,6 +22,7 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from '@/components/ui/tabs'
+import { useFocusTrap } from '@/lib/focusTrap'
 import type {
   ChatHistoryProviderUsage,
   ChatHistoryRetrievedChunk,
@@ -217,19 +218,21 @@ export function SessionNavigationPanel({
               role="status"
             >
               <span className="sr-only">Cargando...</span>
-              <div aria-hidden="true" className="h-7 animate-pulse rounded-md bg-muted/80" />
-              <div aria-hidden="true" className="h-7 w-11/12 animate-pulse rounded-md bg-muted/70" />
-              <div aria-hidden="true" className="h-7 w-4/5 animate-pulse rounded-md bg-muted/60" />
+              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/80" />
+              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/70" />
+              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/60" />
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
-            <span
-              className="text-xs text-muted-foreground"
+            <div
               data-slot="session-list-empty"
+              data-status-filter={statusFilter}
             >
-              {sessionEmptyCopy(statusFilter)}
-            </span>
+              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs">
+                {sessionEmptyCopy(statusFilter)}
+              </EmptyState>
+            </div>
           </DataListItem>
         ) : (
           sessions.map((session) => {
@@ -238,10 +241,19 @@ export function SessionNavigationPanel({
             const isArchived = session.archived_at !== null
             const hasTraining = sessionHasTraining(session)
             const isRenaming = renamingSessionId === session.session_id
+            const trainingStatusLabel = hasTraining
+              ? session.has_approved_training
+                ? 'entrenamiento aprobado'
+                : 'entrenamiento pendiente'
+              : null
+            const openSessionLabel =
+              trainingStatusLabel === null
+                ? `Abrir sesión ${title}`
+                : `Abrir sesión ${title} (${trainingStatusLabel})`
             return (
               <DataListItem
                 className={cn(
-                  'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-colors',
+                  'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
                     ? 'bg-muted text-foreground'
                     : 'hover:bg-muted/50 hover:text-foreground',
@@ -263,8 +275,8 @@ export function SessionNavigationPanel({
                         className={cn(
                           'size-3.5 shrink-0',
                           session.has_approved_training
-                            ? 'fill-primary/20 text-muted-foreground/70'
-                            : 'text-muted-foreground/50',
+                            ? 'fill-primary/40 text-primary'
+                            : 'text-primary/80',
                         )}
                       />
                     ) : null}
@@ -305,8 +317,8 @@ export function SessionNavigationPanel({
                   ) : (
                     <Button
                       aria-current={isSelected ? 'true' : undefined}
-                      aria-label={`Abrir sesión ${title}`}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent"
+                      aria-label={openSessionLabel}
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -314,7 +326,7 @@ export function SessionNavigationPanel({
                     >
                       <span
                         className={cn(
-                          'block w-full min-w-0 truncate text-xs transition-[mask-image,-webkit-mask-image] duration-150',
+                          'block w-full min-w-0 truncate text-xs motion-safe:transition-[mask-image,-webkit-mask-image] motion-safe:duration-150',
                           // Soft trailing fade so glyphs don't collide with age/⋮.
                           'group-hover:text-clip group-focus-within:text-clip',
                           SESSION_TITLE_GROUP_HOVER_MASK,
@@ -332,7 +344,7 @@ export function SessionNavigationPanel({
                   )}
                   <span
                     className={cn(
-                      'justify-self-end text-[10px] tabular-nums text-muted-foreground transition-opacity duration-150',
+                      'justify-self-end min-w-[3ch] text-[10px] tabular-nums text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150',
                       // beflow: age yields to the ⋮ on row hover / open menu
                       'group-hover:opacity-0 group-focus-within:opacity-0',
                       'group-has-[[data-state=open]]:opacity-0',
@@ -350,7 +362,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Trigger asChild>
                         <Button
                           aria-label={`Opciones de ${title}`}
-                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           type="button"
                           variant="ghost"
                         >
@@ -445,16 +457,23 @@ export function WorkspaceInspectorPanel({
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   sourceViewer: SourceViewerState
 }) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const isOverlay = layout === 'overlay'
+  useFocusTrap(panelRef, isOverlay)
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') {
+      if (event.key !== 'Escape' || event.defaultPrevented) {
         return
       }
       // Don't steal Escape from open menus/dialogs inside the panel.
       const target = event.target
       if (
         target instanceof HTMLElement &&
-        target.closest('[data-state="open"][role="menu"]')
+        target.closest(
+          '[data-state="open"][role="menu"], [data-state="open"][role="listbox"], [role="dialog"][data-state="open"]',
+        )
       ) {
         return
       }
@@ -465,16 +484,25 @@ export function WorkspaceInspectorPanel({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  useEffect(() => {
+    if (!isOverlay) {
+      return
+    }
+    closeButtonRef.current?.focus()
+  }, [isOverlay])
+
   return (
     <Panel
       aria-label="Workspace inspector"
-      aria-modal={layout === 'overlay' ? true : undefined}
+      aria-modal={isOverlay ? true : undefined}
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
           : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
       }
-      role={layout === 'overlay' ? 'dialog' : 'complementary'}
+      ref={panelRef}
+      role={isOverlay ? 'dialog' : 'complementary'}
+      tabIndex={isOverlay ? -1 : undefined}
     >
       <div className="flex items-center justify-between gap-2">
         <SegmentedControl
@@ -503,7 +531,12 @@ export function WorkspaceInspectorPanel({
             Minimap
           </SegmentedControlItem>
         </SegmentedControl>
-        <IconButton label="Close right sidebar" onClick={onClose} variant="ghost">
+        <IconButton
+          label="Close right sidebar"
+          onClick={onClose}
+          ref={closeButtonRef}
+          variant="ghost"
+        >
           <X aria-hidden="true" className="size-4" />
         </IconButton>
       </div>
@@ -611,7 +644,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               </p>
               {viewer.source.deleted_at ? (
                 <StatusBadge className="w-fit shrink-0" tone="warning">
-                  deleted
+                  eliminada
                 </StatusBadge>
               ) : null}
             </div>
@@ -916,7 +949,7 @@ function SessionDetailPanel({
           <PanelTitle>Session detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <InlineFeedback role="status" tone="danger">
+          <InlineFeedback role="alert" tone="danger">
             {error}
           </InlineFeedback>
         </PanelBody>
@@ -1112,7 +1145,7 @@ function RetrievedChunkDetail({
         <Badge>rank {chunk.rank}</Badge>
         {isCascadeDeleted ? (
           <StatusBadge className="w-fit" tone="warning">
-            source removed
+            fuente eliminada
           </StatusBadge>
         ) : null}
       </div>

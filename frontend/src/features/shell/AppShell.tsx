@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -19,6 +20,7 @@ import {
   type ChatSessionSummary,
   type Project,
 } from '@/lib/apiClient'
+import { useFocusTrap } from '@/lib/focusTrap'
 import { cn } from '@/lib/utils'
 
 const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
@@ -132,7 +134,7 @@ export function AppShell({
       className={cn(
         [
           'app-shell grid h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground',
-          'grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)] transition-[grid-template-columns] duration-200 ease-out',
+            'grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)] motion-safe:transition-[grid-template-columns] motion-safe:duration-200 motion-safe:ease-out',
           'max-[680px]:grid-cols-1',
         ],
         isLeftSidebarOpen
@@ -153,11 +155,11 @@ export function AppShell({
       {/* First focusable control for keyboard users (Tab from document start). */}
       <a
         className={cn(
-          'sr-only focus:not-sr-only',
-          'focus:absolute focus:left-4 focus:top-4 focus:z-[100]',
-          'focus:rounded-md focus:bg-primary focus:px-3 focus:py-2',
-          'focus:text-sm focus:font-semibold focus:text-primary-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+          'sr-only focus-visible:not-sr-only',
+          'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100]',
+          'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2',
+          'focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )}
         data-slot="skip-link"
         href={skipHref}
@@ -333,6 +335,26 @@ export function AppSidebar({
   statusFilter: SessionNavigationFilter
 }) {
   const isMobileShell = useIsShellMobileViewport()
+  const sidebarRef = useRef<HTMLElement>(null)
+  const trapMobileSidebar = isOpen && isMobileShell
+  useFocusTrap(sidebarRef, trapMobileSidebar)
+
+  useEffect(() => {
+    if (!trapMobileSidebar) {
+      return
+    }
+    const main = document.getElementById('main-content')
+    if (main === null) {
+      return
+    }
+    const hadInert = main.hasAttribute('inert')
+    main.setAttribute('inert', '')
+    return () => {
+      if (!hadInert) {
+        main.removeAttribute('inert')
+      }
+    }
+  }, [trapMobileSidebar])
 
   useEffect(() => {
     if (!isOpen) {
@@ -341,6 +363,10 @@ export function AppSidebar({
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape' || event.defaultPrevented) {
+        return
+      }
+      // Inspector overlay owns Escape while aria-modal dialog is open.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
         return
       }
       // Don't steal Escape from open menus/dialogs (e.g. project selector).
@@ -376,16 +402,19 @@ export function AppSidebar({
       )}
       data-slot="app-sidebar"
       data-state={isOpen ? 'open' : 'closed'}
+      ref={sidebarRef}
     >
       {isOpen && isMobileShell && typeof document !== 'undefined'
         ? createPortal(
             <Button
               aria-label="Close left sidebar"
               // z-30 sits below fixed mobile sidebar (z-40); matches inspector overlay-backdrop language.
+              // tabIndex=-1: clickable scrim stays out of sequential keyboard focus.
               className="fixed inset-0 z-30 h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
               data-testid="sidebar-backdrop"
               onClick={onToggle}
               slotName="sidebar-backdrop"
+              tabIndex={-1}
               type="button"
               variant="ghost"
             />,
@@ -404,7 +433,8 @@ export function AppSidebar({
           className={cn(
             'border-border bg-card text-foreground hover:border-primary hover:bg-accent hover:text-accent-foreground',
             !isOpen &&
-              'pointer-events-auto fixed left-3.5 top-3.5 z-[70] bg-card/90 shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-3 max-[680px]:top-3',
+              // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card/90 shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-3 max-[680px]:top-3',
           )}
           label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
           onClick={onToggle}
@@ -413,7 +443,7 @@ export function AppSidebar({
         </IconButton>
         <div
           className={cn(
-            'grid min-w-0 gap-0.5 transition-[opacity,transform] duration-150',
+            'grid min-w-0 gap-0.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150',
             !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
           )}
           aria-hidden={!isOpen}
@@ -430,10 +460,11 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 transition-[opacity,transform] duration-150',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
+        {...(!isOpen ? { inert: true } : {})}
       >
         <SidebarProjectSelector
           onProjectIdChange={onProjectIdChange}
@@ -775,7 +806,7 @@ function SidebarProjectSelector({
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
-                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground transition-colors',
+                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors',
                 'hover:border-primary',
               ],
               isOpen && 'border-primary bg-accent',
