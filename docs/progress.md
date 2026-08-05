@@ -1,5 +1,14 @@
 # Progreso de Adaptive RAG
 
+## Local re-gate evidence (2026-08-05 tip `c81854a`)
+
+- quality-gate → succeeded / `ready_for_v1_0`
+- acceptance runtime-settings-smoke → succeeded (6 criteria)
+- marathon unit/API bundle → green; bandit → exit 0
+- OpenSpec archives m40–m50 + bloque C present
+- #178 closed deferred (non-milestone, conflicts)
+- **No v1.0 tag**
+
 ## Local re-gate evidence (2026-08-05 on `main` after #200)
 
 - Marathon tip merged: https://github.com/erevecov/adaptive-rag/pull/200
@@ -19,10 +28,10 @@
 
 ## Milestone activo
 
-Marathon goal **implementation complete on `main`** (#200). Post-marathon
-residuals merged: #201 GHSA, #202 coverage, #204 error surfacing, #205 Radix
-lucide cleanup. Residual **human only**: v1.0 tag/release. Graph live: hold.
-Open non-marathon: #178 large CLI/API error-util refactor (deferred: high risk).
+**Marathon closed on `main`.** M40–M50 + Bloque C (#200) + post-marathon
+hygiene (#201–#205) landed. #178 large error-util refactor closed deferred
+(conflicts; non-milestone). Residual **human only**: optional clean-clone
+re-gate and v1.0 tag/release. Graph live: hold. No open marathon PRs.
 
 ## Ultimo milestone completado
 
