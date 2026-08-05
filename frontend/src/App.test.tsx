@@ -1022,7 +1022,7 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('heading', { name: 'Memory' })).toBeTruthy()
     expect(screen.queryByText('Deferred')).toBeNull()
     expect(
-      screen.getByText(/Only approved memories inject into chat/i),
+      screen.getByText(/Only approved items inject as system context/i),
     ).toBeTruthy()
 
     await user.type(
