@@ -58,6 +58,7 @@ describe('Field disabled styling', () => {
 
     const field = screen.getByText('Name').closest('[data-slot="field"]')
     expect(field?.className).toContain('group/field')
+    expect(field?.className).toContain('max-[680px]:gap-1.5')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )

@@ -9,7 +9,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, role = 'status', ...props }, ref) => (
     <div
       className={cn(
-        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 bg-muted/40 p-4 text-center text-sm text-muted-foreground',
+        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 bg-muted/40 p-4 text-center text-sm text-muted-foreground max-[680px]:p-3',
         'motion-safe:transition-colors',
         className,
       )}
@@ -22,7 +22,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
 )
 EmptyState.displayName = 'EmptyState'
 
-const inlineFeedbackVariants = cva('text-sm font-medium', {
+const inlineFeedbackVariants = cva('text-sm font-medium leading-relaxed', {
   defaultVariants: {
     tone: 'neutral',
   },

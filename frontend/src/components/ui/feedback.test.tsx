@@ -26,6 +26,7 @@ describe('EmptyState', () => {
     expect(empty.className).toMatch(/gap-1\.5/)
     expect(empty.className).toContain('border-border/80')
     expect(empty.className).toContain('motion-safe:transition-colors')
+    expect(empty.className).toContain('max-[680px]:p-3')
   })
 
   test('allows role override for failed empties', () => {
