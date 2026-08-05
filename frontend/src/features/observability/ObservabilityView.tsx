@@ -104,7 +104,7 @@ export function ObservabilityPanel({
       aria-label={`Observability ${activeSubmodule}`}
       role="region"
     >
-      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-1 max-[680px]:p-2.5">
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-1 max-[680px]:p-2">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:tracking-wider">
             Observability
@@ -125,7 +125,7 @@ export function ObservabilityPanel({
           </StatusBadge>
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-2.5 max-[680px]:pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-2 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
           className="max-w-full flex-wrap justify-start"
@@ -275,7 +275,7 @@ function ObservabilityContent({
     if (state === 'canceled') {
       return (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-2.5"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-2"
           data-slot-state="canceled"
           role="status"
         >
