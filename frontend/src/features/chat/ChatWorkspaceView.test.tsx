@@ -203,6 +203,25 @@ describe('ChatWorkspacePanel', () => {
     expectNoLegacyChatClasses(view.container)
   })
 
+  test('renders citation chips under the answer card', async () => {
+    const user = userEvent.setup()
+    const onOpenSource = vi.fn()
+    const { view } = renderChatWorkspace({
+      onOpenSource,
+      requestState: 'succeeded',
+      response,
+    })
+    const chip = screen.getByRole('button', { name: 'architecture.md' })
+    expect(
+      view.container.querySelector('[data-slot="chat-answer-citations"]'),
+    ).toBeTruthy()
+    await user.click(chip)
+    expect(onOpenSource).toHaveBeenCalledWith(
+      'source-1',
+      'Architecture notes mention adaptive retrieval.',
+    )
+  })
+
   test('renders waiting and error states with feedback primitives', () => {
     const { view } = renderChatWorkspace({
       requestError: 'Request failed',
