@@ -9,6 +9,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from adaptive_rag.ingestion.types import (
+    MAX_EXTRACTED_TEXT_CHARS,
     IngestionPipelineError,
     ParsedDocument,
     normalize_text,
@@ -33,8 +34,16 @@ class PdfEmbeddedTextParser:
         except Exception as exc:  # pragma: no cover - defensive
             raise IngestionPipelineError("PDF content is not a readable PDF") from exc
 
+        # Page-tree access is lazy in pypdf; materialize it so broken trees
+        # surface here instead of leaking parser-internal exceptions.
+        try:
+            pages = list(reader.pages)
+        except Exception as exc:
+            raise IngestionPipelineError("PDF content is not a readable PDF") from exc
+
         page_texts: list[str] = []
-        for page in reader.pages:
+        extracted_chars = 0
+        for page in pages:
             try:
                 extracted = page.extract_text() or ""
             except Exception as exc:  # pragma: no cover - pypdf edge cases
@@ -42,6 +51,11 @@ class PdfEmbeddedTextParser:
                     "PDF extraction produced no text"
                 ) from exc
             if extracted.strip():
+                extracted_chars += len(extracted)
+                if extracted_chars > MAX_EXTRACTED_TEXT_CHARS:
+                    raise IngestionPipelineError(
+                        "PDF extracted text exceeds max size"
+                    )
                 page_texts.append(extracted)
 
         joined = "\n\n".join(page_texts)
@@ -50,7 +64,7 @@ class PdfEmbeddedTextParser:
             raise IngestionPipelineError("PDF extraction produced no text")
 
         metadata: dict[str, Any] = {
-            "page_count": len(reader.pages),
+            "page_count": len(pages),
             "pages_with_text": len(page_texts),
         }
         return ParsedDocument(
