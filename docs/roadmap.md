@@ -49,7 +49,7 @@
 - M44 CI + compose all-in-one + gate reconcile: completo.
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
 - M45 PDF + DOCX ingestion: completo.
-- M46 Security pack: planificado (post-v1.0).
+- M46 Security pack: completo.
 - M47 Query routing medible: planificado (post-v1.0).
 - M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
 - M49 MCP stdio minimo: planificado (post-v1.0).
@@ -1886,12 +1886,12 @@ Estado: completo (2026-08-05).
 
 #### M46 Security pack
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- Content guard de secretos en ingesta.
-- Filtros defensivos de salida en streaming (citas fabricadas / secrets).
+- Content guard de secretos en ingesta (redact + metadata).
+- Filtros defensivos de salida en streaming (secrets; citas via resolve).
 - Security headers + CORS explicito.
-- Tests en CI (leccion beflow: control sin test = teatro).
+- Tests en CI + bandit/pip-audit en workflow.
 
 #### M47 Query routing medible
 

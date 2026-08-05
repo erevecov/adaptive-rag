@@ -153,7 +153,7 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=output.answer,
+                answer=_redact_chat_answer(output.answer),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -267,7 +267,7 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=output.answer,
+                answer=_redact_chat_answer(output.answer),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -530,3 +530,10 @@ def _resolve_citations(
                 f"citation {chunk_id} was not returned by retrieval"
             ) from exc
     return tuple(citations)
+
+
+def _redact_chat_answer(answer: str) -> str:
+    from adaptive_rag.security.secrets import redact_secrets
+
+    redacted, _count = redact_secrets(answer)
+    return redacted

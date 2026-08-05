@@ -29,6 +29,10 @@ jobs:
         run: uv run mypy src
       - name: Pytest
         run: uv run pytest -q
+      - name: Bandit
+        run: uv tool run bandit -r src -q
+      - name: Pip audit
+        run: uv tool run pip-audit --strict
 
   frontend:
     name: frontend (test, typecheck, lint, build)

@@ -194,11 +194,14 @@ class IngestionPipeline:
             raise IngestionPipelineError("source does not belong to project")
 
         parsed = self._parse_source(source)
-        content_hash = _sha256_text(parsed.normalized_text)
+        guarded_text, redaction_count = _apply_content_guard(parsed.normalized_text)
+        content_hash = _sha256_text(guarded_text)
         parser_metadata = dict(parsed.parser_metadata)
         extraction_metadata = _source_extraction_metadata(source) | dict(
             parsed.extraction_metadata
         )
+        if redaction_count:
+            extraction_metadata["content_guard_redactions"] = redaction_count
         index_fingerprint = _index_fingerprint(
             content_hash=content_hash,
             parser_metadata=parser_metadata,
@@ -228,7 +231,7 @@ class IngestionPipeline:
             project_id=project_id,
             document_id=document.id,
             version_number=next_version,
-            normalized_text=parsed.normalized_text,
+            normalized_text=guarded_text,
             content_hash=content_hash,
             index_fingerprint=index_fingerprint,
             parser_metadata=parser_metadata,
@@ -335,6 +338,12 @@ def _binary_content_from_metadata(
         )
     except ValueError as exc:
         raise IngestionPipelineError(str(exc)) from exc
+
+
+def _apply_content_guard(text: str) -> tuple[str, int]:
+    from adaptive_rag.security.secrets import redact_secrets
+
+    return redact_secrets(text)
 
 
 def _base_content_type(content_type: str) -> str:

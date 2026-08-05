@@ -2,10 +2,18 @@
 
 ## Milestone activo
 
-Bloque B post-v1 en curso. M45 cerrado. Proximo: M46 Security pack.
+Bloque B post-v1 en curso. M45–M46 cerrados. Proximo: M47 Query routing.
 Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
 
 ## Ultimo milestone completado
+
+M46 Security pack cerrado el 2026-08-05.
+
+Content guard de secretos en ingesta (redact), filtro de salida en chat
+stream/non-stream, security headers + CORS explicito, bandit/pip-audit en CI.
+OpenSpec `m46-security-pack`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
 
 M45 PDF + DOCX ingestion (texto embebido) cerrado el 2026-08-05.
 
@@ -150,9 +158,9 @@ camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found. M45 archivado en
-`openspec/changes/archive/2026-08-05-m45-pdf-docx-ingestion/`.
-Proximo: OpenSpec `m46-security-pack` (o nombre equivalente).
+No active changes found. M46 archivado en
+`openspec/changes/archive/2026-08-05-m46-security-pack/`.
+Proximo: OpenSpec `m47-query-routing` (o nombre equivalente).
 
 ## Planificacion reciente
 
