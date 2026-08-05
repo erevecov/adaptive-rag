@@ -95,6 +95,9 @@ describe('Button', () => {
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
       'max-[680px]:gap-1.5',
     )
+    expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
+      'tracking-tight',
+    )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
       'max-[680px]:min-h-11',
     )
