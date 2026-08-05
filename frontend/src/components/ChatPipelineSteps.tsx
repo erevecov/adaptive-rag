@@ -172,18 +172,20 @@ function StepRow({ step }: { step: ChatStep }) {
     Object.keys(step.detail ?? {}).length > 0 || step.usage !== undefined
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className="w-3 shrink-0 text-muted-foreground group-open:rotate-90"
-      >
-        {hasDetail ? '>' : ''}
-      </span>
+      {hasDetail ? (
+        <ChevronRight
+          aria-hidden="true"
+          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+        />
+      ) : (
+        <span aria-hidden="true" className="size-3.5 shrink-0" />
+      )}
       <StatusDot status={step.status} />
       <span className="grid min-w-0 flex-1 gap-1">
         <strong className="text-sm text-foreground">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
-      <small className="text-xs text-muted-foreground">
+      <small className="text-xs text-muted-foreground tabular-nums">
         {formatStepDuration(step.elapsed_ms)}
       </small>
     </>

@@ -301,7 +301,7 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
-    expect(screen.getByText('attempt 1 of 3')).toBeTruthy()
+    expect(screen.getByText('attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),

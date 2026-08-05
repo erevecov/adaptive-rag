@@ -183,13 +183,15 @@ describe('SessionNavigationPanel', () => {
 
     expect(screen.getByRole('complementary', { name: 'Sesiones' })).toBeTruthy()
     expect(container.querySelector('[data-slot="segmented-control"]')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ACTIVOS' }).getAttribute('aria-pressed')).toBe(
-      'true',
+    expect(
+      screen.getByRole('button', { name: 'Sesiones activas' }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(screen.getByRole('button', { name: 'Sesiones con entrenamiento' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sesiones archivadas' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sesiones activas' }).textContent).toMatch(
+      /Activos/i,
     )
-    expect(screen.getByRole('button', { name: 'TRAIN' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ARCHIVADOS' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ACTIVOS' }).textContent).toMatch(/Activos/i)
-    expect(screen.getByRole('button', { name: 'nuevo chat' }).className).toMatch(
+    expect(screen.getByRole('button', { name: 'Nuevo chat' }).className).toMatch(
       /border-dashed/,
     )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
@@ -210,7 +212,7 @@ describe('SessionNavigationPanel', () => {
     expect(titleEl?.className).toMatch(/mask-image:linear-gradient/)
     expect(titleEl?.className).toMatch(/group-hover/)
 
-    await user.click(screen.getByRole('button', { name: 'TRAIN' }))
+    await user.click(screen.getByRole('button', { name: 'Sesiones con entrenamiento' }))
     expect(onStatusFilterChange).toHaveBeenCalledWith('training')
     await user.click(screen.getByRole('button', { name: 'Abrir sesión Architecture review' }))
     expect(onSelectSession).toHaveBeenCalledWith('session-1')

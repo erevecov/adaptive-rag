@@ -10,7 +10,14 @@ import {
   useRef,
   useState,
 } from 'react'
-import { CircleDot, Map as MapIcon, Mic, Square } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleDot,
+  Map as MapIcon,
+  Mic,
+  Square,
+} from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { Badge, StatusBadge } from '@/components/ui/badge'
@@ -185,7 +192,17 @@ export function ChatWorkspacePanel({
                 )}
                 id="chat-question"
                 name="question"
-                onChange={(event) => onQuestionChange(event.currentTarget.value)}
+                onChange={(event) => {
+                  const el = event.currentTarget
+                  onQuestionChange(el.value)
+                  el.style.height = 'auto'
+                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                }}
+                onInput={(event) => {
+                  const el = event.currentTarget
+                  el.style.height = 'auto'
+                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                }}
                 onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
                   if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                     event.preventDefault()
@@ -194,6 +211,7 @@ export function ChatWorkspacePanel({
                 }}
                 placeholder="Ask a question about indexed sources"
                 rows={2}
+                title="Enter to send · Shift+Enter for a new line"
                 value={question}
               />
             </FieldControl>
@@ -257,9 +275,10 @@ export function ChatWorkspacePanel({
                 className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
                 disabled={question.trim().length === 0}
                 size="sm"
+                title="Enter to send"
                 type="submit"
               >
-                Ask ↵
+                Ask
               </Button>
             )}
           </div>
@@ -388,20 +407,32 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[10rem] place-items-center px-3 py-6"
+        className="grid min-h-[12rem] place-items-center px-3 py-8"
       >
         <div
-          className="w-full max-w-md space-y-3"
+          className="w-full max-w-lg space-y-4"
           data-slot="empty-state"
           data-slot-state="loading"
         >
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm font-medium text-foreground/80">
             Waiting for response...
           </p>
-          <div aria-hidden="true" className="space-y-2 px-6">
-            <div className="h-3 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-5/6 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+          <p className="text-center text-xs text-muted-foreground">
+            Retrieving sources and drafting an answer
+          </p>
+          <div aria-hidden="true" className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4">
+            <div className="h-2.5 w-1/3 animate-pulse rounded-full bg-muted" />
+            <div className="space-y-2">
+              <div className="h-3 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-11/12 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+            </div>
+            <div className="flex gap-1.5 pt-1">
+              <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-14 animate-pulse rounded-full bg-muted" />
+            </div>
           </div>
         </div>
       </div>
@@ -409,6 +440,39 @@ function ResponsePanel({
   }
 
   if (response === null) {
+    if (state === 'failed') {
+      return (
+        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+          <EmptyState
+            className="max-w-md border-destructive/30 bg-destructive/5 p-5 text-left"
+            data-slot-state="failed"
+            role="alert"
+          >
+            <p className="font-medium text-destructive">Request failed.</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Edit the question and resend, or open another session. Details are
+              under the composer when available.
+            </p>
+          </EmptyState>
+        </div>
+      )
+    }
+    if (state === 'canceled') {
+      return (
+        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+          <EmptyState
+            className="max-w-md border-border/60 bg-muted/30 p-5 text-left"
+            data-slot-state="canceled"
+            role="status"
+          >
+            <p className="font-medium text-foreground/90">Request canceled.</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Nothing was stored for this turn. Ask again when ready.
+            </p>
+          </EmptyState>
+        </div>
+      )
+    }
     return (
       <div className="grid min-h-[10rem] place-items-center px-3 py-6">
         <EmptyState
@@ -612,7 +676,17 @@ function ResponseContent({
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {response.answer}
+            {response.answer.trim().length > 0 ? (
+              response.answer
+            ) : (
+              <span className="inline-flex items-center gap-2 text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
+                />
+                Drafting answer…
+              </span>
+            )}
           </p>
           {response.citations.length > 0 ? (
             <div
@@ -625,10 +699,15 @@ function ResponseContent({
                   citation.citation.source_external_id ||
                   citation.citation.source_id ||
                   `Source ${index + 1}`
+                const chipKey = [
+                  citation.chunk_id ?? 'no-chunk',
+                  citation.citation.source_id ?? 'no-source',
+                  index,
+                ].join('-')
                 return (
                   <Button
                     className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                    key={`${citation.chunk_id}-${index}`}
+                    key={chipKey}
                     onClick={() =>
                       onOpenSource(
                         citation.citation.source_id,
@@ -636,6 +715,7 @@ function ResponseContent({
                       )
                     }
                     size="sm"
+                    title={label}
                     type="button"
                     variant="secondary"
                   >
@@ -766,13 +846,19 @@ function ResponseDetailsPanel({
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
-        className="w-full justify-start"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
       >
-        <span aria-hidden="true">{expanded ? 'v' : '>'}</span>
-        details - {summaryParts.join(' - ')}
+        {expanded ? (
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 truncate">
+          Details · {summaryParts.join(' · ')}
+        </span>
       </Button>
 
       {expanded ? (
@@ -812,13 +898,13 @@ function ResponseDetailsContent({
       {toolCallCount > 0 ? (
         <section aria-label="Tool calls detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            tool calls - {toolCallCount}
+            Tool calls · {toolCallCount}
           </h3>
           <DataList>
-            {response.tool_calls.map((call) => (
+            {response.tool_calls.map((call, index) => (
               <DataListItem
                 className="grid gap-1"
-                key={`${call.name}-${call.query}`}
+                key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
               >
                 <strong className="text-sm text-foreground">{call.name}</strong>
                 <span className="text-sm text-muted-foreground">
@@ -836,13 +922,13 @@ function ResponseDetailsContent({
       {sourceCount > 0 ? (
         <section aria-label="Sources detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            sources - {sourceCount}
+            Sources · {sourceCount}
           </h3>
           <DataList>
-            {response.citations.map((result) => (
+            {response.citations.map((result, index) => (
               <DataListItem
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-                key={result.chunk_id}
+                key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
                   <strong className="break-words text-sm text-foreground">

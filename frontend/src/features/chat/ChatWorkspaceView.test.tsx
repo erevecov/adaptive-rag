@@ -245,6 +245,31 @@ describe('ChatWorkspacePanel', () => {
         ?.getAttribute('aria-busy'),
     ).toBe('true')
     expectNoLegacyChatClasses(view.container)
+    view.unmount()
+
+    const failed = renderChatWorkspace({
+      requestError: 'Upstream timeout',
+      requestState: 'failed',
+      response: null,
+    })
+    const failedState = failed.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="failed"]',
+    )
+    expect(failedState).toBeTruthy()
+    expect(failedState?.textContent).toContain('Request failed.')
+    expect(failedState?.getAttribute('role')).toBe('alert')
+    failed.view.unmount()
+
+    const canceled = renderChatWorkspace({
+      requestState: 'canceled',
+      response: null,
+    })
+    const canceledState = canceled.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="canceled"]',
+    )
+    expect(canceledState).toBeTruthy()
+    expect(canceledState?.textContent).toContain('Request canceled.')
+    canceled.view.unmount()
   })
 
   test('renders empty transcript and beflow-like composer layout', () => {

@@ -2883,14 +2883,18 @@ describe('App chat workspace', () => {
       limit: 15,
     })
 
-    await user.click(within(navigation).getByRole('button', { name: 'TRAIN' }))
+    await user.click(
+      within(navigation).getByRole('button', { name: 'Sesiones con entrenamiento' }),
+    )
     expect(
       await within(navigation).findByRole('button', {
         name: 'Abrir sesión Deployment question',
       }),
     ).toBeTruthy()
 
-    await user.click(within(navigation).getByRole('button', { name: 'ARCHIVADOS' }))
+    await user.click(
+      within(navigation).getByRole('button', { name: 'Sesiones archivadas' }),
+    )
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
         archived: true,
@@ -2923,7 +2927,7 @@ describe('App chat workspace', () => {
     await screen.findByRole('button', {
       name: 'Abrir sesión Deployment question',
     })
-    await user.click(screen.getByRole('button', { name: 'ver más' }))
+    await user.click(screen.getByRole('button', { name: 'Ver más' }))
 
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
@@ -3028,7 +3032,7 @@ describe('App chat workspace', () => {
     )
     await screen.findByText('The import failed because the worker was not running.')
 
-    await user.click(screen.getByRole('button', { name: 'nuevo chat' }))
+    await user.click(screen.getByRole('button', { name: 'Nuevo chat' }))
 
     expect(
       screen

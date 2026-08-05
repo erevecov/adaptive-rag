@@ -169,7 +169,7 @@ export function SessionNavigationPanel({
         variant="ghost"
       >
         <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-        nuevo chat
+        Nuevo chat
       </Button>
 
       <SegmentedControl
@@ -179,7 +179,7 @@ export function SessionNavigationPanel({
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
             active={statusFilter === filter.value}
-            aria-label={filter.name}
+            aria-label={filter.title}
             className={cn(
               'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight',
               statusFilter === filter.value
@@ -195,7 +195,7 @@ export function SessionNavigationPanel({
         ))}
       </SegmentedControl>
 
-      {error ? <InlineFeedback role="status" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
       {copyFeedback ? (
         <InlineFeedback
           data-slot="session-copy-feedback"
@@ -209,12 +209,18 @@ export function SessionNavigationPanel({
       <DataList aria-label="Project sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
-            <span
-              className="text-xs text-muted-foreground"
+            <div
+              aria-busy="true"
+              aria-label="Cargando sesiones"
+              className="grid w-full gap-2"
               data-slot="session-list-loading"
+              role="status"
             >
-              Cargando...
-            </span>
+              <span className="sr-only">Cargando...</span>
+              <div aria-hidden="true" className="h-7 animate-pulse rounded-md bg-muted/80" />
+              <div aria-hidden="true" className="h-7 w-11/12 animate-pulse rounded-md bg-muted/70" />
+              <div aria-hidden="true" className="h-7 w-4/5 animate-pulse rounded-md bg-muted/60" />
+            </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
@@ -298,6 +304,7 @@ export function SessionNavigationPanel({
                     </form>
                   ) : (
                     <Button
+                      aria-current={isSelected ? 'true' : undefined}
                       aria-label={`Abrir sesión ${title}`}
                       className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent"
                       onClick={() => onSelectSession(session.session_id)}
@@ -408,7 +415,7 @@ export function SessionNavigationPanel({
           type="button"
           variant="ghost"
         >
-          {isLoading ? 'cargando...' : 'ver más'}
+          {isLoading ? 'Cargando…' : 'Ver más'}
         </Button>
       ) : null}
     </Panel>
@@ -438,15 +445,36 @@ export function WorkspaceInspectorPanel({
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   sourceViewer: SourceViewerState
 }) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return
+      }
+      // Don't steal Escape from open menus/dialogs inside the panel.
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        target.closest('[data-state="open"][role="menu"]')
+      ) {
+        return
+      }
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   return (
     <Panel
       aria-label="Workspace inspector"
+      aria-modal={layout === 'overlay' ? true : undefined}
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
           : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
       }
-      role="complementary"
+      role={layout === 'overlay' ? 'dialog' : 'complementary'}
     >
       <div className="flex items-center justify-between gap-2">
         <SegmentedControl
@@ -652,7 +680,9 @@ function SessionContextPanel({
     <Panel aria-label="Session context" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Session context</PanelTitle>
-        <StatusBadge>{detail?.session.status ?? 'empty'}</StatusBadge>
+        <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
+          {detail?.session.status ?? 'empty'}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null ? (
@@ -858,7 +888,9 @@ function SessionDetailPanel({
             {detail.session.session_id}
           </p>
         </div>
-        <StatusBadge>{detail.session.status}</StatusBadge>
+        <StatusBadge tone={sessionStatusTone(detail.session.status)}>
+          {detail.session.status}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0">
         <section className="grid gap-2" aria-labelledby="messages-title">
@@ -1014,12 +1046,25 @@ function RetrievedChunkDetail({
   const citationSnippet = getJsonString(chunk.citation, 'snippet')
   const sourceLabel =
     getJsonString(chunk.citation, 'source_external_id') ?? sourceId
+  const isCascadeDeleted = chunk.chunk_id === null
 
   return (
     <DataListItem className="grid gap-2">
-      <Badge>rank {chunk.rank}</Badge>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge>rank {chunk.rank}</Badge>
+        {isCascadeDeleted ? (
+          <StatusBadge className="w-fit" tone="warning">
+            source removed
+          </StatusBadge>
+        ) : null}
+      </div>
       <div className="grid gap-2">
-        <p className="text-sm text-muted-foreground">
+        <p
+          className={cn(
+            'text-sm text-muted-foreground',
+            isCascadeDeleted && 'italic',
+          )}
+        >
           {getCitationText(chunk.citation, 'snippet')}
         </p>
         {scores.length > 0 ? (
@@ -1037,7 +1082,11 @@ function RetrievedChunkDetail({
           >
             View source
           </Button>
-        ) : null}
+        ) : (
+          <span className="text-xs text-muted-foreground" role="status">
+            No openable source (deleted or uncited)
+          </span>
+        )}
       </div>
     </DataListItem>
   )
@@ -1186,6 +1235,21 @@ function countInternalSteps(detail: ChatSessionDetailResponse | null): number {
 
 function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
+}
+
+function sessionStatusTone(
+  status: string | null | undefined,
+): 'danger' | 'neutral' | 'success' | 'warning' {
+  if (status === 'failed') {
+    return 'danger'
+  }
+  if (status === 'succeeded') {
+    return 'success'
+  }
+  if (status === 'running' || status === 'loading') {
+    return 'warning'
+  }
+  return 'neutral'
 }
 
 function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {

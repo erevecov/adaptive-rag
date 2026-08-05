@@ -968,55 +968,86 @@ function SourceList({
   sources: Source[]
 }) {
   if (sources.length === 0) {
-    return <EmptyState>No sources loaded.</EmptyState>
+    return (
+      <EmptyState className="border-border/60 bg-muted/20 p-4 text-left">
+        <p className="font-medium text-foreground/90">No sources yet.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Create a source above, then queue ingestion.
+        </p>
+      </EmptyState>
+    )
   }
 
   return (
     <DataList aria-label="Sources">
-      {sources.map((source) => (
-        <DataListItem
-          className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-          key={source.id}
-        >
-          <div className="grid min-w-0 gap-1">
-            <strong className="break-words text-sm font-semibold">
-              {source.external_id}
-            </strong>
-            <small className="break-all text-xs text-muted-foreground">
-              {source.id}
-            </small>
-            <small className="text-xs text-muted-foreground">
-              Ready to queue ingestion
-            </small>
-            <small className="text-xs text-muted-foreground">
-              Queue ingestion when this source should be indexed.
-            </small>
-          </div>
-          <DataListItemActions className="justify-start md:justify-end">
-            <Badge>{source.source_type}</Badge>
-            <Button
-              aria-label={`Enqueue ingestion for ${source.external_id}`}
-              disabled={isBusy}
-              onClick={() => onEnqueueIngestion(source)}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              Queue
-            </Button>
-            <Button
-              aria-label={`Delete source ${source.external_id}`}
-              disabled={isBusy}
-              onClick={() => onDeleteSource(source)}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              Delete
-            </Button>
-          </DataListItemActions>
-        </DataListItem>
-      ))}
+      {sources.map((source) => {
+        const isDeleted = Boolean(source.deleted_at)
+        const tags =
+          Array.isArray(source.tags) && source.tags.length > 0
+            ? source.tags.join(', ')
+            : 'no tags'
+        return (
+          <DataListItem
+            className={
+              isDeleted
+                ? 'grid gap-3 opacity-70 md:grid-cols-[minmax(0,1fr)_auto]'
+                : 'grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]'
+            }
+            data-deleted={isDeleted ? '' : undefined}
+            key={source.id}
+          >
+            <div className="grid min-w-0 gap-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <strong
+                  className={
+                    isDeleted
+                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      : 'break-words text-sm font-semibold'
+                  }
+                >
+                  {source.external_id}
+                </strong>
+                {isDeleted ? (
+                  <StatusBadge className="w-fit" tone="warning">
+                    deleted
+                  </StatusBadge>
+                ) : null}
+              </div>
+              <small className="break-all font-mono text-[11px] text-muted-foreground">
+                {source.id}
+              </small>
+              <small className="text-xs text-muted-foreground">
+                {isDeleted
+                  ? `Soft-deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
+                  : `${source.source_type} · ${tags}`}
+              </small>
+            </div>
+            <DataListItemActions className="justify-start md:justify-end">
+              <Badge>{source.source_type}</Badge>
+              <Button
+                aria-label={`Enqueue ingestion for ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onEnqueueIngestion(source)}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Queue
+              </Button>
+              <Button
+                aria-label={`Delete source ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onDeleteSource(source)}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Delete
+              </Button>
+            </DataListItemActions>
+          </DataListItem>
+        )
+      })}
     </DataList>
   )
 }
@@ -1229,52 +1260,87 @@ function IngestionJobList({
   onRetry(job: IngestionJob): void
 }) {
   if (jobs.length === 0) {
-    return <EmptyState>No ingestion jobs loaded.</EmptyState>
+    return (
+      <EmptyState className="border-border/60 bg-muted/20 p-5">
+        <p className="font-medium text-foreground/90">No ingestion jobs yet.</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          Enqueue a source from the content registry, then run the next job.
+        </p>
+      </EmptyState>
+    )
   }
 
   return (
     <DataList aria-label="Ingestion jobs">
-      {jobs.map((job) => (
-        <DataListItem
-          className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-          key={job.id}
-        >
-          <div className="grid min-w-0 gap-1">
-            <StatusBadge className="w-fit" tone={jobTone(job.status)}>
-              {job.status}
-            </StatusBadge>
-            <small className="break-all text-xs text-muted-foreground">
-              {job.id}
-            </small>
-            <small className="text-xs text-muted-foreground">
-              {formatAttempts(job)}
-            </small>
-            <small className="break-words text-xs text-muted-foreground">
-              {formatRunAfter(job)}
-            </small>
-            <small className="break-words text-xs text-muted-foreground">
-              {formatLockState(job)}
-            </small>
-            {job.last_error ? (
-              <InlineFeedback tone="danger">{job.last_error}</InlineFeedback>
-            ) : null}
-          </div>
-          <DataListItemActions className="justify-start md:justify-end">
-            <Badge>{job.job_type}</Badge>
-            {isRetryableIngestionJob(job) ? (
-              <Button
-                aria-label={`Retry ingestion job ${job.id}`}
-                onClick={() => onRetry(job)}
-                size="sm"
-                type="button"
-                variant="secondary"
+      {jobs.map((job) => {
+        const isRunning = job.status === 'running'
+        const sourceId = ingestionJobSourceId(job)
+        return (
+          <DataListItem
+            aria-label={
+              sourceId
+                ? `Ingestion job ${job.status} for source ${sourceId}`
+                : `Ingestion job ${job.status}`
+            }
+            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            data-job-status={job.status}
+            key={job.id}
+          >
+            <div className="grid min-w-0 gap-1.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {isRunning ? (
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
+                    data-slot="ingestion-job-pulse"
+                  />
+                ) : null}
+                <StatusBadge className="w-fit" tone={jobTone(job.status)}>
+                  {jobStatusLabel(job.status)}
+                </StatusBadge>
+                <Badge className="w-fit">{job.job_type}</Badge>
+              </div>
+              {sourceId ? (
+                <small
+                  className="break-all text-xs text-muted-foreground"
+                  title="source_id from job payload"
+                >
+                  source {sourceId}
+                </small>
+              ) : null}
+              <small
+                className="break-all font-mono text-[11px] text-muted-foreground"
+                title={job.id}
               >
-                Retry
-              </Button>
-            ) : null}
-          </DataListItemActions>
-        </DataListItem>
-      ))}
+                {job.id}
+              </small>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <span>{formatAttempts(job)}</span>
+                <span>{formatRunAfter(job)}</span>
+                <span>{formatLockState(job)}</span>
+              </div>
+              {job.last_error ? (
+                <InlineFeedback className="text-xs" tone="danger">
+                  {job.last_error}
+                </InlineFeedback>
+              ) : null}
+            </div>
+            <DataListItemActions className="justify-start md:justify-end">
+              {isRetryableIngestionJob(job) ? (
+                <Button
+                  aria-label={`Retry ingestion job ${job.id}`}
+                  onClick={() => onRetry(job)}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  Retry
+                </Button>
+              ) : null}
+            </DataListItemActions>
+          </DataListItem>
+        )
+      })}
     </DataList>
   )
 }
@@ -1317,11 +1383,11 @@ function isRetryableIngestionJob(job: IngestionJob): boolean {
 }
 
 function formatAttempts(job: IngestionJob): string {
-  return `attempt ${job.attempts} of ${job.max_attempts}`
+  return `attempt ${job.attempts}/${job.max_attempts}`
 }
 
 function formatRunAfter(job: IngestionJob): string {
-  return `run after ${job.run_after}`
+  return `run after ${formatOperatorTimestamp(job.run_after)}`
 }
 
 function formatLockState(job: IngestionJob): string {
@@ -1329,12 +1395,56 @@ function formatLockState(job: IngestionJob): string {
     return 'unlocked'
   }
   if (job.locked_by !== null && job.locked_until !== null) {
-    return `locked by ${job.locked_by} until ${job.locked_until}`
+    return `locked by ${job.locked_by} until ${formatOperatorTimestamp(job.locked_until)}`
   }
   if (job.locked_by !== null) {
     return `locked by ${job.locked_by}`
   }
-  return `locked until ${job.locked_until}`
+  return `locked until ${formatOperatorTimestamp(job.locked_until)}`
+}
+
+function formatOperatorTimestamp(value: string | null): string {
+  if (value === null || value.length === 0) {
+    return 'unknown'
+  }
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) {
+    return value
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(parsed))
+}
+
+function jobStatusLabel(status: string): string {
+  switch (status) {
+    case 'queued':
+      return 'queued'
+    case 'running':
+      return 'running'
+    case 'processed':
+      return 'processed'
+    case 'blocked':
+      return 'blocked'
+    case 'dead_letter':
+      return 'dead letter'
+    case 'failed':
+      return 'failed'
+    case 'idle':
+      return 'idle'
+    default:
+      return status.replace(/_/g, ' ')
+  }
+}
+
+function ingestionJobSourceId(job: IngestionJob): string | null {
+  const payload = job.payload_json
+  if (payload === null || typeof payload !== 'object') {
+    return null
+  }
+  const sourceId = payload.source_id
+  return typeof sourceId === 'string' && sourceId.length > 0 ? sourceId : null
 }
 
 function ingestionRunMessage(run: IngestionRunResponse): string {
@@ -1356,10 +1466,11 @@ function jobTone(status: string): 'danger' | 'neutral' | 'success' | 'warning' {
   if (status === 'blocked' || status === 'dead_letter' || status === 'failed') {
     return 'danger'
   }
-  if (status === 'processed' || status === 'succeeded' || status === 'queued') {
+  if (status === 'processed' || status === 'succeeded') {
     return 'success'
   }
-  if (status === 'running' || status === 'idle') {
+  // queued/running/idle are in-flight — not success
+  if (status === 'queued' || status === 'running' || status === 'idle') {
     return 'warning'
   }
   return 'neutral'

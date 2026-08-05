@@ -190,7 +190,7 @@ class IngestionPipeline:
             )
             try:
                 self._session.rollback()
-            except Exception:  # noqa: BLE001 — best-effort clear
+            except Exception:  # noqa: BLE001 — best-effort clear  # nosec B110
                 pass
             try:
                 blocked_job = self._job_repo.block(
