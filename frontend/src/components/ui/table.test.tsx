@@ -81,7 +81,7 @@ describe('Table density', () => {
     expect(screen.getByText('12ms').className).toContain('max-[680px]:py-2')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:text-[0.75rem]')
     expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
-      'max-[680px]:min-w-[560px]',
+      'max-[680px]:min-w-[520px]',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'hover:bg-primary/15',
