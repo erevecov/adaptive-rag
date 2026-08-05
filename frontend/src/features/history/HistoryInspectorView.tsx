@@ -662,7 +662,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               </p>
               {viewer.source.deleted_at ? (
                 <StatusBadge className="w-fit shrink-0" tone="danger">
-                  Soft-deleted
+                  Deleted
                 </StatusBadge>
               ) : null}
             </div>
@@ -727,7 +727,10 @@ function ConversationMinimap({
     <Panel aria-label="Conversation minimap" role="navigation">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Minimap</PanelTitle>
-        <StatusBadge>{detail?.messages.length ?? 0} turns</StatusBadge>
+        <StatusBadge>
+          {detail?.messages.length ?? 0}{' '}
+          {(detail?.messages.length ?? 0) === 1 ? 'message' : 'messages'}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null || detail.messages.length === 0 ? (
@@ -773,7 +776,7 @@ function SessionContextPanel({
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Session context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
-          {detail?.session.status ?? 'empty'}
+          {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
@@ -1000,7 +1003,7 @@ function SessionDetailPanel({
           </p>
         </div>
         <StatusBadge tone={sessionStatusTone(detail.session.status)}>
-          {detail.session.status}
+          {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0">
@@ -1364,6 +1367,28 @@ function countInternalSteps(detail: ChatSessionDetailResponse | null): number {
 
 function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
+}
+
+function sessionStatusLabel(status: string | null | undefined): string {
+  if (status === null || status === undefined || status === '') {
+    return 'Empty'
+  }
+  if (status === 'failed') {
+    return 'Failed'
+  }
+  if (status === 'succeeded') {
+    return 'Succeeded'
+  }
+  if (status === 'running') {
+    return 'Running'
+  }
+  if (status === 'loading') {
+    return 'Loading'
+  }
+  if (status === 'canceled' || status === 'cancelled') {
+    return 'Canceled'
+  }
+  return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 function sessionStatusTone(

@@ -142,6 +142,18 @@ export function ChatWorkspacePanel({
   speechState,
   transcriptRef,
 }: ChatWorkspacePanelProps) {
+  const questionInputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (question.length > 0) {
+      return
+    }
+    const el = questionInputRef.current
+    if (el !== null) {
+      el.style.height = ''
+    }
+  }, [question])
+
   return (
     <Panel
       aria-label="Chat workspace"
@@ -236,6 +248,7 @@ export function ChatWorkspacePanel({
                   }
                 }}
                 placeholder="Ask a question about indexed sources"
+                ref={questionInputRef}
                 rows={2}
                 title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
@@ -247,7 +260,7 @@ export function ChatWorkspacePanel({
             className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end">
               <Button
                 aria-label="Open context sidebar"
                 aria-pressed={isContextInspectorActive}
@@ -732,7 +745,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border/70 bg-card p-3.5 text-card-foreground transition-colors hover:border-border focus-within:border-primary/40"
+          className="rounded-lg border border-border/70 bg-card p-3.5 text-card-foreground focus-within:border-primary/40"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -1099,7 +1112,9 @@ function KnowledgeDraftCard({
             {draft.scope}
           </strong>
         </div>
-        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>{draft.status}</StatusBadge>
+        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>
+          {knowledgeDraftStatusLabel(draft.status)}
+        </StatusBadge>
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
@@ -1146,6 +1161,22 @@ function KnowledgeDraftCard({
       </div>
     </article>
   )
+}
+
+function knowledgeDraftStatusLabel(status: ChatKnowledgeDraftStatus): string {
+  if (status === 'approved') {
+    return 'Approved'
+  }
+  if (status === 'pending') {
+    return 'Pending'
+  }
+  if (status === 'cancelled') {
+    return 'Canceled'
+  }
+  if (status === 'draft') {
+    return 'Draft'
+  }
+  return status
 }
 
 function knowledgeDraftStatusTone(

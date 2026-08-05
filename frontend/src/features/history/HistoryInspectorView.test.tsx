@@ -493,7 +493,7 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const viewer = screen.getByRole('region', { name: 'Source viewer' })
-    const badge = within(viewer).getByText('Soft-deleted', {
+    const badge = within(viewer).getByText('Deleted', {
       selector: '[data-slot="badge"]',
     })
     expect(badge.getAttribute('data-slot')).toBe('badge')
@@ -528,7 +528,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'assistant: The retrieval flow changed.' }))
     expect(onNavigateMessage).toHaveBeenCalledWith('message-assistant')
-    expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 turns')).toBeTruthy()
+    expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 messages')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 

@@ -415,7 +415,7 @@ describe('ChatWorkspacePanel', () => {
     const approve = within(draft).getByRole('button', { name: 'Approve knowledge' })
     expect(approve).toBeTruthy()
     expect((approve as HTMLButtonElement).disabled).toBe(false)
-    expect(within(draft).getByText('draft').getAttribute('data-tone')).toBe('primary')
+    expect(within(draft).getByText('Draft').getAttribute('data-tone')).toBe('primary')
     expectNoLegacyChatClasses(view.container)
   })
 
@@ -542,13 +542,13 @@ describe('ChatWorkspacePanel', () => {
 
   test('maps knowledge draft status badges to lifecycle tones', () => {
     const statuses = [
-      { status: 'draft', tone: 'primary' },
-      { status: 'pending', tone: 'warning' },
-      { status: 'approved', tone: 'success' },
-      { status: 'cancelled', tone: 'neutral' },
+      { status: 'draft', label: 'Draft', tone: 'primary' },
+      { status: 'pending', label: 'Pending', tone: 'warning' },
+      { status: 'approved', label: 'Approved', tone: 'success' },
+      { status: 'cancelled', label: 'Canceled', tone: 'neutral' },
     ] as const
 
-    for (const { status, tone } of statuses) {
+    for (const { status, label, tone } of statuses) {
       cleanup()
       renderChatWorkspace({
         drafts: {
@@ -566,7 +566,7 @@ describe('ChatWorkspacePanel', () => {
       })
 
       const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
-      expect(within(card).getByText(status).getAttribute('data-tone')).toBe(tone)
+      expect(within(card).getByText(label).getAttribute('data-tone')).toBe(tone)
     }
   })
 

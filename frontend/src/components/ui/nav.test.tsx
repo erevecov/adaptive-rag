@@ -17,6 +17,8 @@ describe('SidebarItem', () => {
     const item = screen.getByRole('button', { name: 'Projects' })
     expect(item.getAttribute('aria-current')).toBe('page')
     expect(item.getAttribute('data-active')).toBe('')
+    expect(item.className).toContain('data-[active]:bg-primary/10')
+    expect(item.className).toContain('data-[active]:text-foreground')
   })
 
   test('does not expose aria-current when inactive', () => {

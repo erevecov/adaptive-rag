@@ -267,7 +267,6 @@ export function WorkspaceTopline({
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px]',
         !isLeftSidebarOpen && 'pl-12',
-        'max-[680px]:pl-12',
       )}
       data-slot="workspace-topline"
     >

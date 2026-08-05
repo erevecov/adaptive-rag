@@ -37,7 +37,8 @@ describe('InlineFeedback', () => {
     render(<InlineFeedback tone="success">Saved</InlineFeedback>)
 
     const feedback = screen.getByText('Saved')
-    expect(feedback.className).toContain('text-emerald-700')
+    expect(feedback.className).toContain('text-emerald-800')
+    expect(feedback.className).toContain('dark:text-emerald-200')
     expect(feedback.getAttribute('data-tone')).toBe('success')
   })
 })
@@ -47,7 +48,8 @@ describe('Callout', () => {
     render(<Callout tone="success">Ready</Callout>)
 
     const callout = screen.getByText('Ready')
-    expect(callout.className).toContain('text-emerald-700')
+    expect(callout.className).toContain('text-emerald-800')
+    expect(callout.className).toContain('dark:text-emerald-200')
     expect(callout.className).toContain('bg-emerald-500/15')
   })
 })

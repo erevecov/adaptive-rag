@@ -406,6 +406,25 @@ describe('AuthoringPanel', () => {
     expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
 
+  test('shows per-column empties when users or memberships are missing', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'users',
+      memberships: [],
+      users: [user],
+    })
+    expect(screen.getByText('No project memberships yet.')).toBeTruthy()
+    expect(screen.getByText(user.login)).toBeTruthy()
+    cleanup()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'users',
+      memberships: [membership],
+      users: [],
+    })
+    expect(screen.getByText('No users yet.')).toBeTruthy()
+    expect(screen.getByText(membership.user_id)).toBeTruthy()
+  })
+
   test('Title Case soft-delete and inactive badges keep full contrast', () => {
     const deletedSource: Source = {
       ...source,

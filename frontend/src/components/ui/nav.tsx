@@ -48,7 +48,8 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
           'text-muted-foreground motion-safe:transition-colors hover:bg-accent hover:text-accent-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
-          'data-[active]:bg-accent data-[active]:text-accent-foreground',
+          // Primary tint reads clearer than accent wash on purple/dark sidebars.
+          'data-[active]:bg-primary/10 data-[active]:font-semibold data-[active]:text-foreground',
         ],
         className,
       )}

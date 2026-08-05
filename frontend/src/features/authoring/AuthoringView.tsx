@@ -820,76 +820,96 @@ function UserAccessLists({
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      <DataList aria-label="Users">
-        {users.map((user) => (
-          <DataListItem
-            className="grid gap-2"
-            data-inactive={!user.is_active ? '' : undefined}
-            key={user.id}
-          >
-            <div className="grid min-w-0 gap-1">
-              <strong
-                className={
-                  user.is_active
-                    ? 'break-words text-sm font-semibold'
-                    : 'break-words text-sm font-semibold text-muted-foreground'
-                }
-              >
-                {user.login}
-              </strong>
-              <small className="break-words text-xs text-muted-foreground">
-                {user.display_name}
-              </small>
-              <small className="break-all text-xs text-muted-foreground">
-                {user.id}
-              </small>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">{user.system_role}</Badge>
-              {!user.is_active ? (
-                <StatusBadge className="w-fit" tone="warning">
-                  Inactive
-                </StatusBadge>
-              ) : null}
-              <Button
-                aria-label={`Deactivate user ${user.login}`}
-                disabled={isBusy || !user.is_active}
-                onClick={() => onDeactivateUser(user)}
-                type="button"
-                variant="danger"
-              >
-                Deactivate
-              </Button>
-            </div>
-          </DataListItem>
-        ))}
-      </DataList>
-      <DataList aria-label="Project memberships">
-        {memberships.map((membership) => (
-          <DataListItem className="grid gap-2" key={membership.id}>
-            <div className="grid min-w-0 gap-1">
-              <strong className="break-all text-sm font-semibold">
-                {membership.user_id}
-              </strong>
-              <small className="break-all text-xs text-muted-foreground">
-                {membership.project_id}
-              </small>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">{membership.role}</Badge>
-              <Button
-                aria-label={`Remove membership ${membership.user_id}`}
-                disabled={isBusy}
-                onClick={() => onDeleteMembership(membership)}
-                type="button"
-                variant="danger"
-              >
-                Remove
-              </Button>
-            </div>
-          </DataListItem>
-        ))}
-      </DataList>
+      {users.length === 0 ? (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No users yet.
+        </EmptyState>
+      ) : (
+        <DataList aria-label="Users">
+          {users.map((user) => (
+            <DataListItem
+              className="grid gap-2"
+              data-inactive={!user.is_active ? '' : undefined}
+              key={user.id}
+            >
+              <div className="grid min-w-0 gap-1">
+                <strong
+                  className={
+                    user.is_active
+                      ? 'break-words text-sm font-semibold'
+                      : 'break-words text-sm font-semibold text-muted-foreground'
+                  }
+                >
+                  {user.login}
+                </strong>
+                <small className="break-words text-xs text-muted-foreground">
+                  {user.display_name}
+                </small>
+                <small className="break-all text-xs text-muted-foreground">
+                  {user.id}
+                </small>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="w-fit">{user.system_role}</Badge>
+                {!user.is_active ? (
+                  <StatusBadge className="w-fit" tone="warning">
+                    Inactive
+                  </StatusBadge>
+                ) : null}
+                <Button
+                  aria-label={`Deactivate user ${user.login}`}
+                  disabled={isBusy || !user.is_active}
+                  onClick={() => onDeactivateUser(user)}
+                  type="button"
+                  variant="danger"
+                >
+                  Deactivate
+                </Button>
+              </div>
+            </DataListItem>
+          ))}
+        </DataList>
+      )}
+      {memberships.length === 0 ? (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No project memberships yet.
+        </EmptyState>
+      ) : (
+        <DataList aria-label="Project memberships">
+          {memberships.map((membership) => (
+            <DataListItem className="grid gap-2" key={membership.id}>
+              <div className="grid min-w-0 gap-1">
+                <strong className="break-all text-sm font-semibold">
+                  {membership.user_id}
+                </strong>
+                <small className="break-all text-xs text-muted-foreground">
+                  {membership.project_id}
+                </small>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="w-fit">{membership.role}</Badge>
+                <Button
+                  aria-label={`Remove membership ${membership.user_id}`}
+                  disabled={isBusy}
+                  onClick={() => onDeleteMembership(membership)}
+                  type="button"
+                  variant="danger"
+                >
+                  Remove
+                </Button>
+              </div>
+            </DataListItem>
+          ))}
+        </DataList>
+      )}
     </div>
   )
 }

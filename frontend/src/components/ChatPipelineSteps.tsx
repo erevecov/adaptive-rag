@@ -58,7 +58,7 @@ export function ChatPipelineSteps({
             variant="secondary"
           >
             <StatusDot status={current.status} />
-            <strong className="min-w-0 truncate">{current.label}</strong>
+            <strong className="min-w-0 flex-1 truncate">{current.label}</strong>
             <small className="min-w-[4.5ch] text-right text-muted-foreground tabular-nums">
               {current.elapsed}
             </small>
@@ -326,7 +326,7 @@ function StatusDot({ status }: { status: ChatStep['status'] }) {
     status === 'error'
       ? 'bg-destructive'
       : status === 'done'
-        ? 'bg-primary'
+        ? 'bg-emerald-500'
         : 'bg-muted-foreground motion-safe:animate-pulse'
   return (
     <span className="inline-flex shrink-0 items-center" data-slot="chat-pipeline-status">
