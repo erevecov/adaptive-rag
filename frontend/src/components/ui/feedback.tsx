@@ -9,7 +9,8 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, role = 'status', ...props }, ref) => (
     <div
       className={cn(
-        'flex flex-col gap-1.5 rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground',
+        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 bg-muted/40 p-4 text-center text-sm text-muted-foreground',
+        'motion-safe:transition-colors',
         className,
       )}
       ref={ref}

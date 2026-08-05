@@ -11,6 +11,8 @@ const controlClasses = [
   'motion-safe:transition-colors placeholder:text-muted-foreground',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
   'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+  // Invalid fields: destructive ring against fill (parity with danger Button).
+  'aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive',
 ]
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>

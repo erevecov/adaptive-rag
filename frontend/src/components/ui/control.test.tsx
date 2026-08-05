@@ -54,6 +54,14 @@ describe('control primitives', () => {
     expect(tokens).not.toContain('h-9')
   })
 
+  test('Input marks invalid fields with destructive border and focus ring', () => {
+    render(<Input aria-invalid="true" aria-label="Broken field" />)
+
+    const tokens = classTokens(screen.getByRole('textbox', { name: 'Broken field' }))
+    expect(tokens).toContain('aria-invalid:border-destructive')
+    expect(tokens).toContain('aria-invalid:focus-visible:ring-destructive')
+  })
+
   test('Textarea uses tokenized control classes and a stable slot', () => {
     render(<Textarea aria-label="Prompt" className="min-h-32" />)
 

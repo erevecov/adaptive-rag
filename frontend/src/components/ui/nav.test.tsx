@@ -4,10 +4,22 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { SidebarItem } from './nav'
+import { NavSection, SidebarItem } from './nav'
 
 afterEach(() => {
   cleanup()
+})
+
+describe('NavSection', () => {
+  test('renders compact uppercase section titles', () => {
+    render(<NavSection title="Activos">child</NavSection>)
+
+    const title = screen.getByRole('heading', { name: 'Activos' })
+    expect(title.getAttribute('data-slot')).toBe('nav-section-title')
+    expect(title.className).toContain('uppercase')
+    expect(title.className).toContain('tracking-wide')
+    expect(title.className).toContain('font-semibold')
+  })
 })
 
 describe('SidebarItem', () => {
