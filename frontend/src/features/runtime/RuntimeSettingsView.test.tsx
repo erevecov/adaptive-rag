@@ -422,6 +422,20 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
   })
 
+  test('wires API key FieldHelp outside control when editing a connection', () => {
+    renderRuntimeSettingsPanel({
+      editingConnectionId: 'qwen-hosted',
+    })
+
+    const apiKey = screen.getByLabelText('API key')
+    expect(apiKey.getAttribute('aria-describedby')).toBe(
+      'runtime-connection-api-key-help',
+    )
+    const help = screen.getByText(/Leave blank to keep the existing key/)
+    expect(help.getAttribute('data-slot')).toBe('field-help')
+    expect(help.closest('[data-slot="field-control"]')).toBeNull()
+  })
+
   test('renders runtime form selects with the Radix Select primitive', async () => {
     const user = userEvent.setup()
     const onConnectionProviderChange = vi.fn()

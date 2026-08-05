@@ -433,7 +433,7 @@ function RuntimeField({
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
-      {help ? <FieldHelp>{help}</FieldHelp> : null}
+      {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </Field>
   )
@@ -741,6 +741,9 @@ export function RuntimeConnectionsPanel({
           >
             {(fieldId) => (
               <Input
+                aria-describedby={
+                  isEditingConnection ? `${fieldId}-help` : undefined
+                }
                 autoComplete="new-password"
                 id={fieldId}
                 onChange={(event) =>

@@ -269,7 +269,14 @@ describe('AuthoringPanel', () => {
     const accessToken = screen.getByLabelText('Access token')
     expect(accessToken.getAttribute('data-slot')).toBe('input')
     expect(accessToken.getAttribute('type')).toBe('password')
-    expect(screen.getByText('Paste once; never shown after save.')).toBeTruthy()
+    expect(accessToken.getAttribute('aria-describedby')).toBe(
+      'authoring-user-access-token-help',
+    )
+    const tokenHelp = screen.getByText('Paste once; never shown after save.')
+    expect(tokenHelp.getAttribute('data-slot')).toBe('field-help')
+    expect(tokenHelp.id).toBe('authoring-user-access-token-help')
+    expect(tokenHelp.closest('[data-slot="field-control"]')).toBeNull()
+    expect(tokenHelp.closest('[data-slot="field"]')).toBeTruthy()
     expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )

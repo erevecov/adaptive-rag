@@ -388,11 +388,13 @@ function LoadingListState({ label }: { label: string }) {
 function AuthoringField({
   children,
   className,
+  help,
   id,
   label,
 }: {
   children(id: string): ReactNode
   className?: string
+  help?: ReactNode
   id: string
   label: string
 }) {
@@ -400,6 +402,7 @@ function AuthoringField({
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
+      {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
     </Field>
   )
 }
@@ -679,23 +682,23 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-user-access-token" label="Access token">
+          <AuthoringField
+            help="Paste once; never shown after save."
+            id="authoring-user-access-token"
+            label="Access token"
+          >
             {(fieldId) => (
-              <>
-                <Input
-                  autoComplete="off"
-                  id={fieldId}
-                  name="user-access-token"
-                  onChange={(event) =>
-                    onUserAccessTokenChange(event.currentTarget.value)
-                  }
-                  type="password"
-                  value={userAccessToken}
-                />
-                <FieldHelp>
-                  Paste once; never shown after save.
-                </FieldHelp>
-              </>
+              <Input
+                aria-describedby={`${fieldId}-help`}
+                autoComplete="off"
+                id={fieldId}
+                name="user-access-token"
+                onChange={(event) =>
+                  onUserAccessTokenChange(event.currentTarget.value)
+                }
+                type="password"
+                value={userAccessToken}
+              />
             )}
           </AuthoringField>
         </div>
