@@ -2604,7 +2604,10 @@ describe('App chat workspace', () => {
     expect(within(transcript).getAllByText('$0.0042').length).toBeGreaterThan(0)
     expect(within(transcript).getByText('rag_search')).toBeTruthy()
     expect(within(transcript).getByText('deployment retry runbook')).toBeTruthy()
-    expect(within(transcript).getByText('https://docs.local/runbook')).toBeTruthy()
+    // Source id may appear on answer citation chips and in expanded details.
+    expect(
+      within(transcript).getAllByText('https://docs.local/runbook').length,
+    ).toBeGreaterThan(0)
     expect(
       within(transcript).getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
