@@ -172,7 +172,8 @@ def update_source(
         source = SourceRepository(session).get(
             project_id=project_id, source_id=source_id
         )
-        assert source is not None
+        if source is None:
+            raise AuthoringError("source not found", status_code=404)
         validate_source_create(
             source_type=source.source_type,
             extra_metadata=extra_metadata,
