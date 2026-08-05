@@ -34,6 +34,7 @@ import type {
   KnowledgeProposal,
 } from '@/lib/apiClient'
 import type { ChatStep } from '@/lib/chatSteps'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
@@ -327,7 +328,7 @@ export function ChatWorkspacePanel({
 
           {requestError ? (
             <InlineFeedback className="mt-2" tone="danger">
-              {requestError}
+              {operatorSafeMessage(requestError)}
             </InlineFeedback>
           ) : null}
         </form>
@@ -1140,7 +1141,7 @@ function KnowledgeDraftCard({
         <p className="text-sm text-muted-foreground">Proposal {draft.proposalId}</p>
       )}
       {draft.error === null ? null : (
-        <InlineFeedback tone="danger">{draft.error}</InlineFeedback>
+        <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
       <div className="flex flex-wrap gap-2">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
@@ -1393,7 +1394,9 @@ function getJsonObject(
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Request failed.'
+  return error instanceof Error
+    ? operatorSafeMessage(error.message)
+    : 'Request failed.'
 }
 
 function formatScore(score: number): string {

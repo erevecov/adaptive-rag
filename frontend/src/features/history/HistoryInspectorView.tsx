@@ -32,6 +32,7 @@ import type {
   ChatSessionSummary,
   Source,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
@@ -196,7 +197,9 @@ export function SessionNavigationPanel({
         ))}
       </SegmentedControl>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? (
+        <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
+      ) : null}
       {copyFeedback ? (
         <InlineFeedback
           data-slot="session-copy-feedback"
@@ -639,7 +642,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.error ? (
           <InlineFeedback role="alert" tone="danger">
-            {viewer.error}
+            {operatorSafeMessage(viewer.error)}
           </InlineFeedback>
         ) : null}
 
@@ -973,7 +976,7 @@ function SessionDetailPanel({
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <InlineFeedback role="alert" tone="danger">
-            {error}
+            {operatorSafeMessage(error)}
           </InlineFeedback>
         </PanelBody>
       </Panel>

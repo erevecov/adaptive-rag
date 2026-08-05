@@ -14,6 +14,7 @@ import {
   PanelTitle,
 } from '@/components/ui/panel'
 import { Select } from '@/components/ui/select'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import {
   Table,
   TableBody,
@@ -204,7 +205,7 @@ export function ObservabilityPanel({
 
         {error ? (
           <Callout className="p-3" role="alert" tone="danger">
-            {error}
+            {operatorSafeMessage(error)}
           </Callout>
         ) : null}
 

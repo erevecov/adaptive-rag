@@ -78,6 +78,7 @@ import {
   type ChatStepEvent,
 } from './lib/chatSteps'
 import { cn } from '@/lib/utils'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -2984,10 +2985,10 @@ function persistProjectId(projectId: string): void {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   if (error instanceof Error) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   return 'Request failed.'
 }

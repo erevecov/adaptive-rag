@@ -2982,6 +2982,36 @@ describe('App chat workspace', () => {
     })
   })
 
+  test('redacts secrets from chat request error copy', async () => {
+    const user = userEvent.setup()
+    const leak = new ApiClientError('auth failed with sk-abcdefghijklmnop', {
+      detail: 'auth failed with sk-abcdefghijklmnop',
+      status: 401,
+    })
+    const client = createClientStub({
+      askChat: vi.fn(async () => {
+        throw leak
+      }),
+      askChatStream: vi.fn(async () => {
+        throw leak
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'Leak?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    const alerts = await screen.findAllByRole('alert')
+    expect(alerts.some((node) => node.textContent?.includes('[redacted]'))).toBe(
+      true,
+    )
+    expect(
+      alerts.some((node) => node.textContent?.includes('sk-abcdefghijklmnop')),
+    ).toBe(false)
+  })
+
   test('filters project sessions by active training and archived tabs', async () => {
     const user = userEvent.setup()
     const archivedResponse: ChatSessionListResponse = {

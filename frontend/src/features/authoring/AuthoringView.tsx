@@ -23,6 +23,7 @@ import type {
   Source,
   User,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type AuthoringSubmodule = 'projects' | 'users' | 'knowledge' | 'sources'
@@ -1533,7 +1534,7 @@ function IngestionJobsPanel({
           </p>
           {run.error_message ? (
             <InlineFeedback className="text-xs" tone="danger">
-              {run.error_message}
+              {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
         </div>
@@ -1636,7 +1637,7 @@ function IngestionJobList({
                     </div>
                     {job.last_error ? (
                       <InlineFeedback className="text-xs" tone="danger">
-                        {job.last_error}
+                        {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
                   </div>

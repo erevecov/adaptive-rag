@@ -1,26 +1,22 @@
 # Chat+Shell FE report — continuous polish
 
-**Role:** FE CHAT+SHELL (also closed runtime P0 this loop)  
-**Branch:** `feat/ui-obsessional-polish` (post #206–#209 on main)  
+**Role:** FE CHAT+SHELL  
+**Branch:** `feat/ui-obsessional-polish` (post #206–#209)  
 **STATUS:** ready-for-lead-review
 
-## This pass
+## This loop
 
-| Change | Surface |
-|--------|---------|
-| Select placeholders Loading… vs empty while busy | runtime Connection/Model selects |
-| Empty effective slots EmptyState | project overrides |
-| Capabilities empty `data-slot-state` | runtime |
-| Chat model Default/Enabled Title Case | runtime |
-| `operatorSafeMessage` on API failures | retrieval playground |
+| Commit theme | What |
+|--------------|------|
+| Runtime empty≠loading | Select Loading… placeholders; empty effective slots |
+| Retrieval + shell-wide | `operatorSafeMessage` on App errors + chat/history/authoring/obs displays |
 
 ## Verify
 
-`RuntimeSettingsView` + `RetrievalPlaygroundView` → **29 passed**
+Runtime+retrieval **29** · App redaction **2** · history/authoring/obs/chat **56**
 
 ## Next
 
-- Theme contrast tokens (`index.css`) — implement
-- operatorSafeMessage → chat/history/authoring/obs
+Hostile live purple/dark ≤680 · Tab-cycle trap deferred
 
 Grok merges; agent does not push.
