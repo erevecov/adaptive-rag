@@ -13,13 +13,27 @@
 
 ## Milestone activo
 
-Bloque B post-v1 M45–M50 cerrados en stack tip `feat/m50-dense-reindex`.
-Residual: Bloque C experimental (graph live/no_go, LLM-as-judge, memory,
-retrieval playground, UI polish PR). LLM contextualize opt-in CLI shipped
-en M50; A/B vs deterministico disponible.
+Bloque C: user memory minima en `feat/c-user-memory-minima` (stacked on
+`feat/m50-dense-reindex`). Residual experimental: LLM-as-judge opt-in,
+retrieval playground UI, UI polish sidebar/chat PR separado. Graph live:
+hold documentado en `docs/architecture/graph-live-bloque-c-decision.md`.
 Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
 
 ## Ultimo milestone completado
+
+Bloque C — User memory minima (2026-08-05):
+
+- Tabla durable `user_memories` (proposed/approved/rejected) + alembic
+  `h7i8j9k0l1m2`.
+- Service propose/approve/reject/list + injection text (solo approved).
+- API `POST/GET /users/me/memories`, approve/reject; chat inject en
+  `/chat` y `/stream` cuando hay `user_id`.
+- OpenSpec `openspec/changes/archive/2026-08-05-c-user-memory-minima` +
+  `openspec/specs/user-memory`.
+- Tests unit + API (IDOR 404, double-review 409, injection path).
+- **No se creo tag v1.0.** Sin UI de memoria (anti-roadmap).
+
+## Milestone anterior completado
 
 M50 Dense reindex + contextualizacion LLM opt-in cerrado el 2026-08-05.
 
@@ -204,8 +218,9 @@ camino de producto UI/API; el tag espera ese cierre.
 ## Change OpenSpec activo
 
 No active changes found. Archives M40–M50 under
-`openspec/changes/archive/2026-08-05-m*`.
-Proximo opcional: Bloque C (experimental).
+`openspec/changes/archive/2026-08-05-m*` plus Bloque C user-memory under
+`openspec/changes/archive/2026-08-05-c-user-memory-minima/`.
+Proximo opcional: Bloque C residual (LLM-as-judge, playground UI, polish).
 
 ## Planificacion reciente
 
@@ -255,14 +270,13 @@ Proximo opcional: Bloque C (experimental).
 - `openspec/specs/project-rbac/spec.md`
 - `openspec/specs/v1-release-readiness/spec.md`
 - `openspec/specs/v1-product-completion/spec.md`
+- `openspec/specs/user-memory/spec.md`
 
 ## Siguiente tarea recomendada
 
-- No quedan changes por archivar. La opcion recomendada es re-ejecutar desde
-  `origin/main` el release gate final, registrar la evidencia y mantener
-  diferida la creacion de tag/GitHub release v1.0 por decision de producto. Si
-  se decide una feature adicional antes de release, abrir primero un nuevo
-  change OpenSpec desde `origin/main`.
+- Merge stack M40–M50 + user-memory (human). Residual Bloque C: LLM-as-judge
+  opt-in budgeted, retrieval playground UI, o UI polish PR separado.
+  Tag/GitHub release v1.0 sigue siendo decision humana.
 
 ## Reglas de coordinacion
 

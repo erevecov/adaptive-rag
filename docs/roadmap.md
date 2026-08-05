@@ -54,7 +54,9 @@
 - M48 Knowledge lifecycle (dedup/resync): completo.
 - M49 MCP stdio minimo: completo.
 - M50 Dense reindex + contextualizacion LLM opt-in: completo.
-- Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
+- Bloque C user memory minima: completo (tabla + API + inject; sin UI).
+- Bloque experimental residual (LLM-as-judge, retrieval playground, UI polish):
+  diferido. Graph live: hold documentado.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
 `artifacts/roadmap-research/`, decision del owner: aceptar secuencia unificada
@@ -1927,14 +1929,15 @@ Estado: completo (2026-08-05).
 
 ### Bloque C — Experimental / por decision
 
-No numerar como milestone activo hasta decidir:
-
-- **Graph live evidence + vista force-graph** o retiro ordenado a `no_go`.
-- **LLM-as-judge** en evals (solo opt-in con `--max-cost-usd`).
-- **User memory minima** (tabla durable + propuesta/aprobacion + inyeccion;
-  nunca UI-first sin storage).
-- **Retrieval playground** en UI (quick win).
-- **UI polish sidebar/chat** (trabajo paralelo de design; no bloquea M40).
+- **User memory minima**: completo (2026-08-05). Tabla `user_memories`,
+  API `/users/me/memories` propose/list/approve/reject, chat inject solo
+  approved; OpenSpec `user-memory`. Sin UI de memoria.
+- **Graph live evidence + vista force-graph**: hold documentado en
+  `docs/architecture/graph-live-bloque-c-decision.md` (no_go hasta Neo4j
+  live + evidence report).
+- **LLM-as-judge** en evals (solo opt-in con `--max-cost-usd`): pendiente.
+- **Retrieval playground** en UI (quick win): pendiente.
+- **UI polish sidebar/chat** (PR separado; no mezcla backend M40+): pendiente.
 
 ### Anti-roadmap (acuerdo adoptado)
 

@@ -1,0 +1,171 @@
+"""User memory minima: durable propose/approve and chat injection text."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from adaptive_rag.db.models.user_memory import (
+    USER_MEMORY_STATUS_VALUES,
+    UserMemory,
+)
+from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
+
+
+class UserMemoryError(Exception):
+    def __init__(self, detail: str, *, status_code: int) -> None:
+        super().__init__(detail)
+        self.detail = detail
+        self.status_code = status_code
+
+
+@dataclass(frozen=True, slots=True)
+class UserMemoryView:
+    id: UUID
+    user_id: UUID
+    project_id: UUID | None
+    content: str
+    status: str
+
+
+def propose_memory(
+    session: Session,
+    *,
+    user_id: UUID,
+    content: str,
+    project_id: UUID | None = None,
+) -> UserMemory:
+    text = content.strip()
+    if not text:
+        raise UserMemoryError("content must not be empty", status_code=422)
+    if len(text) > 4000:
+        raise UserMemoryError("content exceeds 4000 characters", status_code=422)
+    return UserMemoryRepository(session).create(
+        user_id=user_id,
+        project_id=project_id,
+        content=text,
+        status="proposed",
+    )
+
+
+def approve_memory(
+    session: Session,
+    *,
+    memory_id: UUID,
+    reviewer_user_id: UUID,
+    owner_user_id: UUID | None = None,
+) -> UserMemory:
+    return _review(
+        session,
+        memory_id=memory_id,
+        reviewer_user_id=reviewer_user_id,
+        owner_user_id=owner_user_id,
+        status="approved",
+    )
+
+
+def reject_memory(
+    session: Session,
+    *,
+    memory_id: UUID,
+    reviewer_user_id: UUID,
+    owner_user_id: UUID | None = None,
+) -> UserMemory:
+    return _review(
+        session,
+        memory_id=memory_id,
+        reviewer_user_id=reviewer_user_id,
+        owner_user_id=owner_user_id,
+        status="rejected",
+    )
+
+
+def list_memories(
+    session: Session,
+    *,
+    user_id: UUID,
+    project_id: UUID | None = None,
+    status: str | None = None,
+) -> list[UserMemory]:
+    if status is not None and status not in USER_MEMORY_STATUS_VALUES:
+        raise UserMemoryError(
+            f"status must be one of {', '.join(USER_MEMORY_STATUS_VALUES)}",
+            status_code=422,
+        )
+    return UserMemoryRepository(session).list_for_user(
+        user_id=user_id,
+        project_id=project_id,
+        status=status,
+        include_global=True,
+    )
+
+
+def approved_injection_text(
+    session: Session,
+    *,
+    user_id: UUID,
+    project_id: UUID | None = None,
+    max_items: int = 8,
+) -> str:
+    """Return approved memory text for optional chat context injection."""
+
+    memories = UserMemoryRepository(session).list_for_user(
+        user_id=user_id,
+        project_id=project_id,
+        status="approved",
+        include_global=True,
+    )
+    if not memories:
+        return ""
+    lines = [f"- {item.content.strip()}" for item in memories[:max_items]]
+    return "User memory (approved):\n" + "\n".join(lines)
+
+
+def memory_payload(memory: UserMemory) -> dict[str, Any]:
+    return {
+        "id": str(memory.id),
+        "user_id": str(memory.user_id),
+        "project_id": str(memory.project_id) if memory.project_id else None,
+        "content": memory.content,
+        "status": memory.status,
+        "created_at": memory.created_at.isoformat() if memory.created_at else None,
+        "reviewed_at": memory.reviewed_at.isoformat() if memory.reviewed_at else None,
+        "reviewed_by_user_id": (
+            str(memory.reviewed_by_user_id) if memory.reviewed_by_user_id else None
+        ),
+    }
+
+
+def memories_payload(items: Sequence[UserMemory]) -> dict[str, Any]:
+    return {"items": [memory_payload(item) for item in items]}
+
+
+def _review(
+    session: Session,
+    *,
+    memory_id: UUID,
+    reviewer_user_id: UUID,
+    owner_user_id: UUID | None,
+    status: str,
+) -> UserMemory:
+    repo = UserMemoryRepository(session)
+    memory = repo.get(memory_id=memory_id, user_id=owner_user_id)
+    if memory is None:
+        raise UserMemoryError("memory not found", status_code=404)
+    if memory.status != "proposed":
+        raise UserMemoryError(
+            f"memory is already {memory.status}",
+            status_code=409,
+        )
+    updated = repo.set_status(
+        memory_id=memory_id,
+        status=status,
+        reviewed_by_user_id=reviewer_user_id,
+    )
+    if updated is None:
+        raise UserMemoryError("memory not found", status_code=404)
+    return updated

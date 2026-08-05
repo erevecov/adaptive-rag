@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import replace
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -28,7 +29,7 @@ from adaptive_rag.api.schemas.chat import (
     ChatSessionTitleUpdateResponse,
 )
 from adaptive_rag.auth import CurrentPrincipal
-from adaptive_rag.chat import ChatService, ChatServiceError
+from adaptive_rag.chat import ChatRequest, ChatService, ChatServiceError
 from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
 from adaptive_rag.db.models import Project
 from adaptive_rag.db.repositories import (
@@ -190,13 +191,18 @@ def stream_chat(
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
         ).get_effective_project_settings(project_id)
-        events = service.stream(
-            body.to_service_request(
-                project_id,
-                chat_retrieval_settings=chat_retrieval_settings,
-                user_id=current.user_id,
-            )
+        request = body.to_service_request(
+            project_id,
+            chat_retrieval_settings=chat_retrieval_settings,
+            user_id=current.user_id,
         )
+        request = _with_approved_user_memory(
+            session,
+            request=request,
+            user_id=current.user_id,
+            project_id=project_id,
+        )
+        events = service.stream(request)
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
@@ -222,13 +228,18 @@ def chat(
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
         ).get_effective_project_settings(project_id)
-        response = service.respond(
-            body.to_service_request(
-                project_id,
-                chat_retrieval_settings=chat_retrieval_settings,
-                user_id=current.user_id,
-            )
+        request = body.to_service_request(
+            project_id,
+            chat_retrieval_settings=chat_retrieval_settings,
+            user_id=current.user_id,
         )
+        request = _with_approved_user_memory(
+            session,
+            request=request,
+            user_id=current.user_id,
+            project_id=project_id,
+        )
+        response = service.respond(request)
         session.commit()
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
@@ -264,3 +275,26 @@ def _commit_or_rollback_chat_error(session: Session) -> None:
 
 def _history_user_id(current: CurrentPrincipal) -> UUID | None:
     return None if current.is_superadmin else current.user_id
+
+
+def _with_approved_user_memory(
+    session: Session,
+    *,
+    request: ChatRequest,
+    user_id: UUID | None,
+    project_id: UUID,
+) -> ChatRequest:
+    """Prefix approved durable memories into the chat message (Bloque C minima)."""
+
+    if user_id is None:
+        return request
+    from adaptive_rag.user_memory import approved_injection_text
+
+    injection = approved_injection_text(
+        session,
+        user_id=user_id,
+        project_id=project_id,
+    )
+    if not injection:
+        return request
+    return replace(request, message=f"{injection}\n\n{request.message}")

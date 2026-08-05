@@ -41,6 +41,7 @@ from adaptive_rag.db.repositories.runtime_settings import (
 )
 from adaptive_rag.db.repositories.sources import SourceRepository
 from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingRepository
+from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
 from adaptive_rag.db.repositories.users import (
     ProjectMembershipRepository,
     UserRepository,
@@ -83,4 +84,5 @@ __all__ = [
     "SourceRepository",
     "SparseEmbeddingRepository",
     "UserRepository",
+    "UserMemoryRepository",
 ]

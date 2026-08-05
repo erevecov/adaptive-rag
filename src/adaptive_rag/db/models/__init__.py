@@ -57,6 +57,10 @@ from adaptive_rag.db.models.user import (
     User,
     UserAccessToken,
 )
+from adaptive_rag.db.models.user_memory import (
+    USER_MEMORY_STATUS_VALUES,
+    UserMemory,
+)
 
 __all__ = [
     "CHAT_MESSAGE_ROLE_VALUES",
@@ -110,5 +114,7 @@ __all__ = [
     "ToolCall",
     "SYSTEM_ROLE_VALUES",
     "User",
+    "UserMemory",
+    "USER_MEMORY_STATUS_VALUES",
     "UserAccessToken",
 ]
