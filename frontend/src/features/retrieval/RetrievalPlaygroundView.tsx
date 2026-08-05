@@ -265,7 +265,7 @@ export function RetrievalPlaygroundPanel({
               role="status"
             >
               <p className="font-medium text-foreground/90">
-                Run a query to inspect ranked chunks.
+                Run A Query To Inspect Ranked Chunks.
               </p>
               <p className="text-xs text-muted-foreground">
                 Choose Strategy, Optional Rerank, Then Search.

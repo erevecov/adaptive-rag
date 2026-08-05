@@ -196,7 +196,7 @@ describe('RetrievalPlaygroundPanel', () => {
       />,
     )
 
-    expect(screen.getByText(/Run a query to inspect ranked chunks/)).toBeTruthy()
+    expect(screen.getByText(/Run A Query To Inspect Ranked Chunks/)).toBeTruthy()
 
     await user.type(screen.getByLabelText('Query'), 'refund')
     await user.click(screen.getByRole('button', { name: 'Search' }))
