@@ -269,7 +269,7 @@ export function RetrievalPlaygroundPanel({
               <p className="font-medium text-foreground/90">
                 No chunks returned
               </p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
                 <li>Try strategy dense or sparse</li>
                 <li>Confirm sources are ingested for this project</li>
                 <li>Raise limit or adjust the query</li>

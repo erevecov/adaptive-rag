@@ -42,13 +42,16 @@ export function statusClassName(state: RequestState): string {
 
 export function runtimeStatusLabel(state: RequestState): string {
   if (state === 'loading') {
-    return 'Refreshing'
+    return 'Working…'
   }
   if (state === 'failed') {
     return 'Error'
   }
   if (state === 'succeeded') {
     return 'Saved'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }

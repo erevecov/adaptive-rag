@@ -163,10 +163,37 @@ describe('RetrievalPlaygroundPanel', () => {
       expect(badge.getAttribute('data-slot')).toBe('badge')
       expect(badge.getAttribute('data-tone')).toBe('warning')
     })
+    expect(
+      document.querySelector('[data-slot-state="loading"]'),
+    ).toBeTruthy()
 
     resolveSearch(sampleResponse)
     await waitFor(() => {
       expect(screen.getByText('Done')).toBeTruthy()
     })
+  })
+
+  test('shows idle empty and clears stale results on validation failure', async () => {
+    const user = userEvent.setup()
+    const search = vi.fn().mockResolvedValue(sampleResponse)
+    render(
+      <RetrievalPlaygroundPanel
+        client={createClient(search)}
+        projectId="project-1"
+      />,
+    )
+
+    expect(screen.getByText(/Run a query to inspect ranked chunks/)).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Query'), 'refund')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => {
+      expect(screen.getByText('rank 1')).toBeTruthy()
+    })
+
+    await user.clear(screen.getByLabelText('Query'))
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    expect(screen.getByText(/non-empty query/i)).toBeTruthy()
+    expect(screen.queryByText('rank 1')).toBeNull()
   })
 })

@@ -299,4 +299,20 @@ describe('ObservabilityPanel', () => {
       ),
     ).toBeNull()
   })
+
+  test('failed refresh with prior summary shows stale banner', () => {
+    const { view } = renderObservabilityPanel({
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-stale-failed"]'),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(/Showing last successful summary — refresh failed/),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Chat observability metrics')).toBeTruthy()
+  })
 })
