@@ -57,7 +57,7 @@ export const PanelDescription = forwardRef<
   <p
     className={cn(
       // Match FieldHelp density: compact supporting copy under titles.
-      'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug',
+      'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.6875rem] max-[680px]:leading-snug',
       className,
     )}
     ref={ref}

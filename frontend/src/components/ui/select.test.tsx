@@ -42,6 +42,7 @@ describe('Select', () => {
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
     expect(trigger.className).toContain('max-[680px]:gap-1.5')
+    expect(trigger.className).toContain('max-[680px]:leading-snug')
     expect(
       trigger.querySelector('[aria-hidden="true"]')?.className,
     ).toContain('max-[680px]:size-5')
