@@ -389,7 +389,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
                           align="end"
-                          className="z-50 grid min-w-[140px] gap-0 rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-md"
+                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:p-1.5"
                           data-slot="session-actions-menu"
                           onCloseAutoFocus={(event) => event.preventDefault()}
                           sideOffset={4}
