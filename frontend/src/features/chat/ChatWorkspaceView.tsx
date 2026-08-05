@@ -863,7 +863,7 @@ function ResponseContent({
           <ul className="grid gap-1.5">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-relaxed text-foreground"
+                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.8125rem] max-[680px]:leading-snug"
                 key={memory.id}
               >
                 {memory.content}
@@ -1055,7 +1055,7 @@ function ResponseDetailsContent({
                   <strong className="break-words text-sm text-foreground">
                     {result.citation.source_external_id}
                   </strong>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2">

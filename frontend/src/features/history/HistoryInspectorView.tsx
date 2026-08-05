@@ -652,7 +652,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             <h4 className="text-sm font-semibold text-foreground">
               Citation Snippet
             </h4>
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
               {viewer.citationSnippet}
             </p>
           </section>
@@ -1059,7 +1059,7 @@ function SessionDetailPanel({
                     <strong className="text-sm capitalize text-foreground">
                       {message.role}
                     </strong>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
                       {message.content}
                     </p>
                   </article>
