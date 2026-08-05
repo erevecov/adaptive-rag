@@ -20,6 +20,10 @@ from adaptive_rag.db.repositories import (
     JobRepository,
     SourceRepository,
 )
+from adaptive_rag.ingestion.indexing import (
+    INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    enqueue_index_document_version_job,
+)
 from adaptive_rag.ingestion.url_fetch_policy import (
     FetchResult,
     URLFetcher,
@@ -27,6 +31,12 @@ from adaptive_rag.ingestion.url_fetch_policy import (
 )
 
 INGEST_SOURCE_JOB_TYPE = "ingest_source"
+INGESTION_FAMILY_JOB_TYPES = frozenset(
+    {
+        INGEST_SOURCE_JOB_TYPE,
+        INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    }
+)
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 HTML_SOURCE_CONTENT_TYPES = frozenset({"application/xhtml+xml", "text/html"})
 
@@ -142,6 +152,18 @@ class IngestionPipeline:
         if job is None:
             return None
 
+        return self.process_leased_job(project_id=project_id, job=job)
+
+    def process_leased_job(
+        self,
+        *,
+        project_id: UUID,
+        job: Job,
+    ) -> IngestionRunResult | IngestionBlockedResult:
+        if job.job_type != INGEST_SOURCE_JOB_TYPE:
+            raise IngestionPipelineError(
+                f"unsupported job_type for ingestion pipeline: {job.job_type}"
+            )
         try:
             result = self._process_job(project_id=project_id, job=job)
         except (IngestionPipelineError, URLFetchPolicyError) as exc:
@@ -153,6 +175,12 @@ class IngestionPipeline:
             return IngestionBlockedResult(job=blocked_job, error_message=str(exc))
 
         self._job_repo.complete(project_id=project_id, job_id=job.id)
+        enqueue_index_document_version_job(
+            self._session,
+            project_id=project_id,
+            document_version_id=result.document_version.id,
+            source_id=result.source.id,
+        )
         return result
 
     def _process_job(self, *, project_id: UUID, job: Job) -> IngestionRunResult:

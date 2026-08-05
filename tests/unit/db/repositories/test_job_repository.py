@@ -93,6 +93,46 @@ def test_lease_next_takes_highest_priority_available_job_for_project():
     assert _event_types(repo, project, wanted) == ["created", "leased"]
 
 
+def test_lease_next_filters_by_job_types_family():
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    graph_job = repo.create(
+        project_id=project.id,
+        job_type="graph_backfill",
+        priority=100,
+        run_after=now,
+    )
+    index_job = repo.create(
+        project_id=project.id,
+        job_type="index_document_version",
+        priority=5,
+        run_after=now,
+    )
+    ingest_job = repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        priority=1,
+        run_after=now,
+    )
+    session.commit()
+
+    leased = repo.lease_next(
+        project_id=project.id,
+        worker_id="worker-family",
+        lease_until=now + timedelta(minutes=10),
+        now=now,
+        job_types=("ingest_source", "index_document_version"),
+    )
+
+    assert leased is not None
+    assert leased.id == index_job.id
+    assert leased.job_type == "index_document_version"
+    assert repo.get(project_id=project.id, job_id=graph_job.id).status == "queued"
+    assert repo.get(project_id=project.id, job_id=ingest_job.id).status == "queued"
+
+
 def test_complete_marks_running_job_succeeded_and_clears_lease():
     session = _make_session()
     project = _make_project(session)

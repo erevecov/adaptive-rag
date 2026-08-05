@@ -42,8 +42,8 @@
 - M39 Chat stepper live events: completo.
 - M39 Qwen runtime production defaults: completo.
 - Post-M39 Design system shadcn/Radix closeout: completo.
-- **M40 Indexing job publico: planificado (activo, pre-v1.0 blocker).**
-- M41 Job queue hardening: planificado (pre-v1.0).
+- M40 Indexing job publico: completo.
+- **M41 Job queue hardening: planificado (activo, pre-v1.0).**
 - M42 Chat multi-turn + query condenser: planificado (pre-v1.0).
 - M43 Authoring lifecycle + RBAC closeout: planificado (pre-v1.0).
 - M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
@@ -1820,21 +1820,14 @@ paralelo si comparten schema/worker.
 
 #### M40 Indexing job publico
 
-Estado: planificado (activo).
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- Encadenar el camino publico authoring → `ingest_source` → **indexing**
-  (chunking → contextualizacion → dense/sparse embeddings) como job(s)
-  observables en worker y API.
-- Hacer que first-run, acceptance y quality-gate usen el **mismo** camino (sin
-  orquestacion inline privilegiada).
-
-Criterio de exito:
-
-- Source creada por UI/API + worker produce chunks y embeddings.
-- Chat citado funciona sobre ese corpus sin smoke inline.
-- Spec nueva o delta de indexing-ops + tests de integracion.
+- Job publico `index_document_version` encadenado tras `ingest_source`.
+- Worker/API procesan family `ingest_source` + `index_document_version`.
+- first-run / acceptance / quality-gate usan el mismo path de jobs.
+- OpenSpec archivado: `2026-08-05-m40-indexing-job-publico`.
 
 #### M41 Job queue hardening
 

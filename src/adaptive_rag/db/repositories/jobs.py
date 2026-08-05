@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import builtins
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -72,13 +72,16 @@ class JobRepository:
         lease_until: datetime,
         now: datetime,
         job_type: str | None = None,
+        job_types: Sequence[str] | None = None,
     ) -> Job | None:
         statement = select(Job).where(
             Job.project_id == project_id,
             Job.status == "queued",
             Job.run_after <= now,
         )
-        if job_type is not None:
+        if job_types is not None:
+            statement = statement.where(Job.job_type.in_(tuple(job_types)))
+        elif job_type is not None:
             statement = statement.where(Job.job_type == job_type)
 
         statement = (

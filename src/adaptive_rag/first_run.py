@@ -9,21 +9,13 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring, ingestion_ops
 from adaptive_rag.chat import ChatRequest, ChatRunner, ChatService
-from adaptive_rag.chunking import ChunkingPipeline, ChunkingPipelineError
-from adaptive_rag.contextualization import (
-    ContextualizationPipeline,
-    ContextualizationPipelineError,
-)
 from adaptive_rag.db.models import Job, Project, Source
 from adaptive_rag.embeddings import (
-    DenseEmbeddingPipeline,
-    DenseEmbeddingPipelineError,
     DenseEmbeddingProvider,
     FakeSparseEmbeddingProvider,
-    SparseEmbeddingPipeline,
-    SparseEmbeddingPipelineError,
     SparseEmbeddingProvider,
 )
+from adaptive_rag.ingestion.pipeline import INGEST_SOURCE_JOB_TYPE
 from adaptive_rag.retrieval import RetrievalService
 
 DEFAULT_PROJECT_NAME = "Adaptive RAG First Run"
@@ -92,47 +84,42 @@ def run_first_run_smoke(
         project_id=project.id,
         source_id=source.id,
     )
-    run = ingestion_ops.run_next_ingestion_job(
+    reports = ingestion_ops.run_ingestion_family_until_idle(
         session,
         project_id=project.id,
         worker_id=worker_id,
+        dense_embedding_provider=dense_embedding_provider,
+        sparse_embedding_provider=active_sparse_embedding_provider,
     )
-    if run.status != "processed" or run.document_version_id is None:
-        detail = run.error_message or run.status
+    if not reports:
+        raise FirstRunError("first-run ingestion did not process: idle")
+
+    blocked = next((item for item in reports if item.status == "blocked"), None)
+    if blocked is not None:
+        detail = blocked.error_message or blocked.status
         raise FirstRunError(f"first-run ingestion did not process: {detail}")
 
-    try:
-        chunk_result = ChunkingPipeline(session).chunk_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
-        )
-        contextualization_result = (
-            ContextualizationPipeline(session).contextualize_document_version(
-                project_id=project.id,
-                document_version_id=run.document_version_id,
-            )
-        )
-        embedding_result = DenseEmbeddingPipeline(
-            session,
-            provider=dense_embedding_provider,
-        ).embed_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
-        )
-        SparseEmbeddingPipeline(
-            session,
-            provider=active_sparse_embedding_provider,
-        ).embed_document_version(
-            project_id=project.id,
-            document_version_id=run.document_version_id,
-        )
-    except (
-        ChunkingPipelineError,
-        ContextualizationPipelineError,
-        DenseEmbeddingPipelineError,
-        SparseEmbeddingPipelineError,
-    ) as exc:
-        raise FirstRunError(str(exc)) from exc
+    ingest_report = next(
+        (
+            item
+            for item in reports
+            if item.job_type == INGEST_SOURCE_JOB_TYPE and item.status == "processed"
+        ),
+        None,
+    )
+    if ingest_report is None or ingest_report.document_version_id is None:
+        raise FirstRunError("first-run ingestion did not process: missing ingest job")
+
+    index_report = next(
+        (
+            item
+            for item in reports
+            if item.chunk_count is not None and item.status == "processed"
+        ),
+        None,
+    )
+    if index_report is None or index_report.chunk_count is None:
+        raise FirstRunError("first-run indexing did not process: missing index job")
 
     chat = ChatService(
         runner=chat_runner,
@@ -151,22 +138,29 @@ def run_first_run_smoke(
     if not chat.citations:
         raise FirstRunError("first-run chat returned no citations")
 
+    # Refresh ingest job for final status in the report.
+    refreshed_job = (
+        ingestion_ops.get_ingestion_job_detail(
+            session,
+            project_id=project.id,
+            job_id=job.id,
+        ).job
+    )
+
     return FirstRunReport(
         status="succeeded",
         project=project,
         source=source,
-        job=job,
+        job=refreshed_job,
         question=question,
-        document_version_id=run.document_version_id,
-        chunk_count=len(chunk_result.chunks),
-        contextualized_chunk_count=(
-            contextualization_result.contextualized_chunk_count
-        ),
+        document_version_id=ingest_report.document_version_id,
+        chunk_count=index_report.chunk_count,
+        contextualized_chunk_count=index_report.contextualized_chunk_count or 0,
         reused_contextualized_chunk_count=(
-            contextualization_result.reused_contextualized_chunk_count
+            index_report.reused_contextualized_chunk_count or 0
         ),
-        embedded_chunk_count=embedding_result.embedded_chunk_count,
-        reused_chunk_count=embedding_result.reused_chunk_count,
+        embedded_chunk_count=index_report.embedded_chunk_count or 0,
+        reused_chunk_count=index_report.reused_chunk_count or 0,
         answer=chat.answer,
         citation_count=len(chat.citations),
     )

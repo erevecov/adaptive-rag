@@ -2,41 +2,33 @@
 
 ## Milestone activo
 
-**M40 Indexing job publico** (planificado, pre-v1.0 blocker).
+**M41 Job queue hardening** (planificado, pre-v1.0).
 
-Plan unificado post-M39 adoptado el 2026-08-05 tras research Qwen (gaps
-internos) + Kimi (comparacion beflow-graph-rag). Bloque pre-v1: M40 → M41 →
-M42 → M43 → M44, luego tag v1.0 humano. Post-v1: M45–M50. Detalle en
-`docs/roadmap.md` seccion "Plan unificado post-M39". Evidencia en
-`artifacts/roadmap-research/`.
-
-Aun no hay OpenSpec change activo de implementacion: el siguiente paso de
-ejecucion es abrir el change OpenSpec de M40 desde `origin/main`.
+Plan unificado post-M39: bloque pre-v1 restante M41 → M42 → M43 → M44, luego
+tag v1.0 humano. Post-v1: M45–M50. Detalle en `docs/roadmap.md` seccion
+"Plan unificado post-M39".
 
 ## Ultimo milestone completado
 
-M39 closeout cerrado el 2026-07-06.
+M40 Indexing job publico cerrado el 2026-08-05.
 
-Los changes quedaron archivados en
-`openspec/changes/archive/2026-07-06-m39-chat-stepper-live-events/` y
-`openspec/changes/archive/2026-07-06-m39-qwen-runtime-production-defaults/`.
-Actualizan las specs canonicas `chat-frontend`, `chat-history`,
-`chat-streaming` y `provider-runtime`.
+Change archivado en
+`openspec/changes/archive/2026-08-05-m40-indexing-job-publico/`.
+Actualiza specs `ingestion-pipeline`, `ingestion-ops-surface`,
+`first-run-onboarding`, `job-queue` y `v1-product-completion`.
+
+Entregado:
+
+- Job publico `index_document_version` (chunk → contextualize → dense/sparse).
+- Encadenado tras `ingest_source` exitoso; worker/API `run-next` procesan la
+  family de jobs de ingestion/indexing.
+- first-run, acceptance y quality-gate drenan el mismo path de jobs (sin
+  pipelines de indexing inline privilegiados).
+- Tests: source → worker → chunks/embeddings → chat con citations.
 
 ## Ultimo slice completado
 
-Post-M39 design system closeout: se eliminaron los ultimos botones crudos de
-`App`, shell y chat stepper en favor de `Button`; los iconos SVG inline de
-shell/chat/history fueron reemplazados por `lucide-react`; y se removieron los
-selectores globales `.ui-icon`, `.brain-icon` y `.context-ring-*` de `App.css`.
-El cierre agrego tests fuente para impedir regresiones a botones/SVG legacy y
-paso el gate frontend completo.
-
-M39 Qwen runtime production defaults: model sync ahora materializa defaults
-idempotentes para Qwen conectado sin sobrescribir elecciones del usuario, usa
-capability inference conocida por modelo para evitar slots incompatibles y
-mantiene `adaptive_rag.provider_runtime` como facade compatible tras separar
-runtime en modulos enfocados.
+M40 indexing job publico: path authoring → enqueue → worker → corpus citable.
 
 M39 Chat stepper live events: streaming SSE emite eventos `step`, el snapshot
 terminal queda persistido en `ChatHistoryMessage.metadata.steps`, y frontend

@@ -120,10 +120,18 @@ class IngestionRunResponse(BaseModel):
     project_id: UUID
     worker_id: str
     job_id: UUID | None
+    job_type: str | None = None
     source_id: UUID | None
     document_id: UUID | None
     document_version_id: UUID | None
     created_document_version: bool | None
+    chunk_count: int | None = None
+    contextualized_chunk_count: int | None = None
+    reused_contextualized_chunk_count: int | None = None
+    embedded_chunk_count: int | None = None
+    reused_chunk_count: int | None = None
+    sparse_embedded_chunk_count: int | None = None
+    sparse_reused_chunk_count: int | None = None
     error_message: str | None
 
     @classmethod
@@ -133,9 +141,19 @@ class IngestionRunResponse(BaseModel):
             project_id=report.project_id,
             worker_id=report.worker_id,
             job_id=report.job_id,
+            job_type=report.job_type,
             source_id=report.source_id,
             document_id=report.document_id,
             document_version_id=report.document_version_id,
             created_document_version=report.created_document_version,
+            chunk_count=report.chunk_count,
+            contextualized_chunk_count=report.contextualized_chunk_count,
+            reused_contextualized_chunk_count=(
+                report.reused_contextualized_chunk_count
+            ),
+            embedded_chunk_count=report.embedded_chunk_count,
+            reused_chunk_count=report.reused_chunk_count,
+            sparse_embedded_chunk_count=report.sparse_embedded_chunk_count,
+            sparse_reused_chunk_count=report.sparse_reused_chunk_count,
             error_message=report.error_message,
         )

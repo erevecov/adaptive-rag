@@ -10,12 +10,22 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring
+from adaptive_rag.contextualization import Contextualizer
 from adaptive_rag.db.models import Job, JobEvent
 from adaptive_rag.db.repositories import JobRepository
+from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
+from adaptive_rag.ingestion.indexing import (
+    INDEX_DOCUMENT_VERSION_JOB_TYPE,
+    IndexingBlockedResult,
+    IndexingPipeline,
+    IndexingRunResult,
+)
 from adaptive_rag.ingestion.pipeline import (
     INGEST_SOURCE_JOB_TYPE,
+    INGESTION_FAMILY_JOB_TYPES,
     IngestionBlockedResult,
     IngestionPipeline,
+    IngestionRunResult,
 )
 
 
@@ -40,10 +50,18 @@ class IngestionRunReport:
     project_id: UUID
     worker_id: str
     job_id: UUID | None = None
+    job_type: str | None = None
     source_id: UUID | None = None
     document_id: UUID | None = None
     document_version_id: UUID | None = None
     created_document_version: bool | None = None
+    chunk_count: int | None = None
+    contextualized_chunk_count: int | None = None
+    reused_contextualized_chunk_count: int | None = None
+    embedded_chunk_count: int | None = None
+    reused_chunk_count: int | None = None
+    sparse_embedded_chunk_count: int | None = None
+    sparse_reused_chunk_count: int | None = None
     error_message: str | None = None
 
 
@@ -140,40 +158,101 @@ def run_next_ingestion_job(
     worker_id: str,
     lease_seconds: int = 300,
     now: datetime | None = None,
+    dense_embedding_provider: DenseEmbeddingProvider | None = None,
+    sparse_embedding_provider: SparseEmbeddingProvider | None = None,
+    contextualizer: Contextualizer | None = None,
 ) -> IngestionRunReport:
     _ensure_project_exists(session=session, project_id=project_id)
     active_now = now or datetime.now(UTC)
-    result = IngestionPipeline(session).run_next(
+    lease_until = active_now + timedelta(seconds=lease_seconds)
+    job_repo = JobRepository(session)
+    job = job_repo.lease_next(
         project_id=project_id,
         worker_id=worker_id,
         now=active_now,
-        lease_until=active_now + timedelta(seconds=lease_seconds),
+        lease_until=lease_until,
+        job_types=tuple(sorted(INGESTION_FAMILY_JOB_TYPES)),
     )
-    if result is None:
+    if job is None:
         return IngestionRunReport(
             status="idle",
             project_id=project_id,
             worker_id=worker_id,
         )
-    if isinstance(result, IngestionBlockedResult):
-        return IngestionRunReport(
-            status="blocked",
+
+    if job.job_type == INGEST_SOURCE_JOB_TYPE:
+        ingest_result = IngestionPipeline(session).process_leased_job(
+            project_id=project_id,
+            job=job,
+        )
+        return _report_from_ingest_result(
             project_id=project_id,
             worker_id=worker_id,
-            job_id=result.job.id,
-            source_id=_job_source_id(result.job),
-            error_message=result.error_message,
+            result=ingest_result,
         )
+
+    if job.job_type == INDEX_DOCUMENT_VERSION_JOB_TYPE:
+        index_result = IndexingPipeline(
+            session,
+            dense_embedding_provider=dense_embedding_provider,
+            sparse_embedding_provider=sparse_embedding_provider,
+            contextualizer=contextualizer,
+        ).process_leased_job(
+            project_id=project_id,
+            job=job,
+        )
+        return _report_from_index_result(
+            project_id=project_id,
+            worker_id=worker_id,
+            result=index_result,
+        )
+
+    blocked = job_repo.block(
+        project_id=project_id,
+        job_id=job.id,
+        reason=f"unsupported ingestion-family job_type: {job.job_type}",
+    )
     return IngestionRunReport(
-        status="processed",
+        status="blocked",
         project_id=project_id,
         worker_id=worker_id,
-        job_id=result.job.id,
-        source_id=result.source.id,
-        document_id=result.document.id,
-        document_version_id=result.document_version.id,
-        created_document_version=result.created_document_version,
+        job_id=blocked.id,
+        job_type=blocked.job_type,
+        source_id=_job_source_id(blocked),
+        error_message=blocked.last_error,
     )
+
+
+def run_ingestion_family_until_idle(
+    session: Session,
+    *,
+    project_id: UUID,
+    worker_id: str,
+    lease_seconds: int = 300,
+    max_jobs: int = 32,
+    dense_embedding_provider: DenseEmbeddingProvider | None = None,
+    sparse_embedding_provider: SparseEmbeddingProvider | None = None,
+    contextualizer: Contextualizer | None = None,
+) -> list[IngestionRunReport]:
+    """Process ready ingest/index jobs until idle or max_jobs."""
+
+    reports: list[IngestionRunReport] = []
+    for _ in range(max_jobs):
+        report = run_next_ingestion_job(
+            session,
+            project_id=project_id,
+            worker_id=worker_id,
+            lease_seconds=lease_seconds,
+            dense_embedding_provider=dense_embedding_provider,
+            sparse_embedding_provider=sparse_embedding_provider,
+            contextualizer=contextualizer,
+        )
+        if report.status == "idle":
+            break
+        reports.append(report)
+        if report.status == "blocked":
+            break
+    return reports
 
 
 def job_payload(job: Job) -> dict[str, object]:
@@ -209,6 +288,70 @@ def job_event_payload(event: JobEvent) -> dict[str, object]:
     }
 
 
+def _report_from_ingest_result(
+    *,
+    project_id: UUID,
+    worker_id: str,
+    result: IngestionRunResult | IngestionBlockedResult,
+) -> IngestionRunReport:
+    if isinstance(result, IngestionBlockedResult):
+        return IngestionRunReport(
+            status="blocked",
+            project_id=project_id,
+            worker_id=worker_id,
+            job_id=result.job.id,
+            job_type=result.job.job_type,
+            source_id=_job_source_id(result.job),
+            error_message=result.error_message,
+        )
+    return IngestionRunReport(
+        status="processed",
+        project_id=project_id,
+        worker_id=worker_id,
+        job_id=result.job.id,
+        job_type=result.job.job_type,
+        source_id=result.source.id,
+        document_id=result.document.id,
+        document_version_id=result.document_version.id,
+        created_document_version=result.created_document_version,
+    )
+
+
+def _report_from_index_result(
+    *,
+    project_id: UUID,
+    worker_id: str,
+    result: IndexingRunResult | IndexingBlockedResult,
+) -> IngestionRunReport:
+    if isinstance(result, IndexingBlockedResult):
+        return IngestionRunReport(
+            status="blocked",
+            project_id=project_id,
+            worker_id=worker_id,
+            job_id=result.job.id,
+            job_type=result.job.job_type,
+            source_id=_job_source_id(result.job),
+            document_version_id=_job_document_version_id(result.job),
+            error_message=result.error_message,
+        )
+    return IngestionRunReport(
+        status="processed",
+        project_id=project_id,
+        worker_id=worker_id,
+        job_id=result.job.id,
+        job_type=result.job.job_type,
+        source_id=result.source_id,
+        document_version_id=result.document_version.id,
+        chunk_count=result.chunk_count,
+        contextualized_chunk_count=result.contextualized_chunk_count,
+        reused_contextualized_chunk_count=result.reused_contextualized_chunk_count,
+        embedded_chunk_count=result.embedded_chunk_count,
+        reused_chunk_count=result.reused_chunk_count,
+        sparse_embedded_chunk_count=result.sparse_embedded_chunk_count,
+        sparse_reused_chunk_count=result.sparse_reused_chunk_count,
+    )
+
+
 def _ensure_project_exists(*, session: Session, project_id: UUID) -> None:
     try:
         authoring.get_project(session, project_id)
@@ -223,5 +366,16 @@ def _job_source_id(job: Job) -> UUID | None:
         return None
     try:
         return UUID(raw_source_id)
+    except ValueError:
+        return None
+
+
+def _job_document_version_id(job: Job) -> UUID | None:
+    payload = job.payload_json or {}
+    raw_id = payload.get("document_version_id")
+    if not isinstance(raw_id, str):
+        return None
+    try:
+        return UUID(raw_id)
     except ValueError:
         return None

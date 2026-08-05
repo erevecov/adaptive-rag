@@ -1,8 +1,5 @@
-# first-run-onboarding Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change m25-first-run-onboarding. Update Purpose after archive.
-## Requirements
 ### Requirement: First-run smoke reaches cited chat
 
 The system MUST provide a local first-run command that starts from public
@@ -33,36 +30,6 @@ API/CLI workers.
 - **AND** the chat question uses the supplied question
 - **AND** the report remains machine-readable JSON
 
-### Requirement: First-run failures are actionable
-
-The first-run command MUST fail fast with stable messages when the default path
-cannot reach usable chat.
-
-#### Scenario: Ingestion blocks
-
-- **WHEN** the ingestion job returns `blocked`
-- **THEN** the command exits non-zero
-- **AND** stderr includes the job error message
-
-#### Scenario: Chat has no citations
-
-- **WHEN** the first-run chat response has zero citations
-- **THEN** the command exits non-zero
-- **AND** stderr says `first-run chat returned no citations`
-
-### Requirement: First-run runbook documents the local default
-
-The system MUST document a clean local first run using fake providers and public
-commands.
-
-#### Scenario: User follows the runbook
-
-- **WHEN** a user opens the first-run documentation
-- **THEN** it lists dependency setup, database startup, Alembic migrations and
-  `adaptive-rag first-run smoke`
-- **AND** it marks hosted providers and graph services as opt-in
-- **AND** it shows expected evidence fields from the JSON report
-
 ### Requirement: First-run reports contextualized indexing
 
 The system MUST expose generated Contextual Retrieval evidence in the local
@@ -83,23 +50,3 @@ first-run report, produced by the public indexing job path.
 - **THEN** citation snippets are sourced from the original normalized document
   text
 - **AND** generated contextual summaries do not become citation snippets
-
-### Requirement: First-run polish connects setup to the frontend workspace
-
-The first-run guidance MUST help a local user reach the polished frontend with
-data that can produce cited chat answers.
-
-#### Scenario: Empty workspace points to a local setup path
-
-- **WHEN** the frontend has no selected project or no usable source data
-- **THEN** it points the user toward the documented local setup path or public
-  authoring and ingestion controls
-- **AND** it does not require hosted provider credentials for the default path
-
-#### Scenario: First-run report can seed the workspace
-
-- **WHEN** a user runs `adaptive-rag first-run smoke`
-- **THEN** the resulting project id can be reused in the frontend workspace
-- **AND** the frontend can proceed to chat/history using public API contracts
-  rather than fixtures or direct database access
-
