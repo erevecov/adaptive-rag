@@ -176,7 +176,7 @@ export function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 tracking-tight max-[680px]:p-3">
       {activeSubmodule === 'projects' ? (
         <ProjectsPanel
           error={projectError}
@@ -441,7 +441,7 @@ function ProjectsPanel({
       status={<RequestStatus state={state} />}
       title="Projects"
     >
-      <form className="grid gap-4" onSubmit={onCreateProject}>
+      <form className="grid gap-4 tracking-tight max-[680px]:p-3" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
@@ -639,8 +639,8 @@ function ProjectAccessPanel({
       status={<RequestStatus state={state} />}
       title="Users"
     >
-      <form className="grid gap-4" onSubmit={onCreateUser}>
-        <div className="grid gap-4 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:p-3" onSubmit={onCreateUser}>
+        <div className="grid gap-4 tracking-tight max-[680px]:p-3 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
@@ -668,7 +668,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 tracking-tight max-[680px]:p-3 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
@@ -736,8 +736,8 @@ function ProjectAccessPanel({
 
       <div className="h-px bg-border" role="separator" />
 
-      <form className="grid gap-4" onSubmit={onSaveMembership}>
-        <div className="grid gap-4 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:p-3" onSubmit={onSaveMembership}>
+        <div className="grid gap-4 tracking-tight max-[680px]:p-3 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
@@ -1069,7 +1069,7 @@ function SourcesPanel({
       status={<RequestStatus state={sourceState} />}
       title="Content Registry"
     >
-      <form className="grid gap-4" onSubmit={onCreateSource}>
+      <form className="grid gap-4 tracking-tight max-[680px]:p-3" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
@@ -1082,7 +1082,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 tracking-tight max-[680px]:p-3 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
@@ -1395,7 +1395,7 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="grid gap-4">
+                <div className="grid gap-4 tracking-tight max-[680px]:p-3">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined Text"
