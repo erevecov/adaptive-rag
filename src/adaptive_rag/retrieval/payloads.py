@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, NotRequired, TypedDict
 
 from adaptive_rag.retrieval.service import RetrievalSearchResult
+from adaptive_rag.retrieval.source_extra_metadata import sanitize_source_extra_metadata
 
 
 class RetrievalCitationPayload(TypedDict):
@@ -53,7 +54,9 @@ def serialize_retrieval_result(result: RetrievalSearchResult) -> RetrievalResult
             "source_type": citation.source_type,
             "source_external_id": citation.source_external_id,
             "source_tags": list(citation.source_tags),
-            "source_extra_metadata": _copy_dict(citation.source_extra_metadata),
+            "source_extra_metadata": sanitize_source_extra_metadata(
+                citation.source_extra_metadata
+            ),
             "document_id": str(citation.document_id),
             "document_stable_id": citation.document_stable_id,
             "document_version_id": str(citation.document_version_id),
@@ -78,4 +81,3 @@ def serialize_retrieval_result(result: RetrievalSearchResult) -> RetrievalResult
 
 def _copy_dict(value: dict[str, Any] | None) -> dict[str, Any] | None:
     return dict(value) if value is not None else None
-
