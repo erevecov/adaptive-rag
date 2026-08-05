@@ -49,6 +49,7 @@ describe('Panel density', () => {
     expect(description.getAttribute('data-slot')).toBe('panel-description')
     expect(description.className).toContain('text-xs')
     expect(description.className).toContain('leading-relaxed')
+    expect(description.className).toContain('max-[680px]:text-[0.6875rem]')
   })
 })
 
