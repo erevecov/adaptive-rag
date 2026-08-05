@@ -356,6 +356,12 @@ describe('ChatWorkspacePanel', () => {
     expect(composer?.className).toMatch(/max-w-3xl/)
     expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
     expect(screen.getByRole('button', { name: 'Ask' }).textContent).toMatch(/Ask/)
+    expect(screen.getByRole('button', { name: 'Ask' }).className).toMatch(
+      /max-\[680px\]:min-h-11/,
+    )
+    expect(
+      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+    ).toMatch(/max-\[680px\]:min-h-11/)
     empty.view.unmount()
 
     const { view } = renderChatWorkspace()
