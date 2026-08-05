@@ -35,6 +35,7 @@ def propose_my_memory(
             user_id=current.user_id,
             content=body.content,
             project_id=body.project_id,
+            is_superadmin=current.is_superadmin,
         )
     except user_memory.UserMemoryError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
@@ -77,6 +78,7 @@ def approve_my_memory(
             memory_id=memory_id,
             reviewer_user_id=current.user_id,
             owner_user_id=current.user_id,
+            is_superadmin=current.is_superadmin,
         )
     except user_memory.UserMemoryError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

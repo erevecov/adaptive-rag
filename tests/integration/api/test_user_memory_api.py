@@ -60,9 +60,15 @@ def _client(*, session: Session) -> TestClient:
     return TestClient(app)
 
 
-def _create_user(session: Session, *, login: str, token: str) -> User:
+def _create_user(
+    session: Session,
+    *,
+    login: str,
+    token: str,
+    system_role: str = "user",
+) -> User:
     repo = UserRepository(session)
-    user = repo.create_user(login=login, display_name=login)
+    user = repo.create_user(login=login, display_name=login, system_role=system_role)
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
@@ -221,3 +227,96 @@ def test_empty_content_validation() -> None:
         json={"content": "   "},
     )
     assert whitespace.status_code == 422
+
+
+def test_propose_project_scoped_without_membership_forbidden() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Secret Project")
+    _create_user(session, login="outsider@example.com", token="out-token")
+    session.commit()
+    client = _client(session=session)
+
+    denied = client.post(
+        "/users/me/memories",
+        headers=_bearer("out-token"),
+        json={
+            "content": "Inject into foreign project",
+            "project_id": str(project.id),
+        },
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project access required"
+
+    listed = client.get("/users/me/memories", headers=_bearer("out-token"))
+    assert listed.status_code == 200
+    assert listed.json()["items"] == []
+
+
+def test_approve_project_scoped_without_membership_forbidden() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Revoked Access")
+    user = _create_user(session, login="member@example.com", token="mem-token")
+    memberships = ProjectMembershipRepository(session)
+    memberships.upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role="contributor",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    proposed = client.post(
+        "/users/me/memories",
+        headers=_bearer("mem-token"),
+        json={"content": "Project preference", "project_id": str(project.id)},
+    )
+    assert proposed.status_code == 201, proposed.text
+    memory_id = proposed.json()["id"]
+
+    assert memberships.remove_membership(project_id=project.id, user_id=user.id)
+    session.commit()
+
+    denied = client.post(
+        f"/users/me/memories/{memory_id}/approve",
+        headers=_bearer("mem-token"),
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "project access required"
+
+    request = ChatRequest(
+        project_id=project.id,
+        message="Hello",
+        user_id=user.id,
+    )
+    not_injected = _with_approved_user_memory(
+        session, request=request, user_id=user.id, project_id=project.id
+    )
+    assert not_injected.user_memory is None
+
+
+def test_superadmin_can_propose_project_scoped_without_membership() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Any Project")
+    _create_user(
+        session,
+        login="admin@example.com",
+        token="admin-token",
+        system_role="superadmin",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    proposed = client.post(
+        "/users/me/memories",
+        headers=_bearer("admin-token"),
+        json={"content": "Admin note", "project_id": str(project.id)},
+    )
+    assert proposed.status_code == 201, proposed.text
+    memory_id = proposed.json()["id"]
+
+    approved = client.post(
+        f"/users/me/memories/{memory_id}/approve",
+        headers=_bearer("admin-token"),
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
