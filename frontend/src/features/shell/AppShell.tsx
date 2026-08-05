@@ -564,7 +564,7 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:text-[0.6875rem]',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.625rem]',
         'hover:bg-primary/15 hover:text-foreground',
         active && 'bg-primary/15 font-semibold text-foreground',
         className,
