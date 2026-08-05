@@ -306,7 +306,7 @@ describe('AuthoringPanel', () => {
       projects: [],
     })
 
-    expect(screen.queryByText('No projects yet.')).toBeNull()
+    expect(screen.queryByText('No Projects Yet.')).toBeNull()
     const loadingState = view.container.querySelector(
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
@@ -345,7 +345,7 @@ describe('AuthoringPanel', () => {
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
     expect(screen.getByText('Attempt 1/3')).toBeTruthy()
-    expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
+    expect(screen.getByText('No Ingestion Job Was Processed.')).toBeTruthy()
     const lastRun = view.container.querySelector(
       '[data-slot="ingestion-last-run"]',
     )
@@ -412,7 +412,7 @@ describe('AuthoringPanel', () => {
       memberships: [],
       users: [user],
     })
-    expect(screen.getByText('No project memberships yet.')).toBeTruthy()
+    expect(screen.getByText('No Project Memberships Yet.')).toBeTruthy()
     expect(screen.getByText(user.login)).toBeTruthy()
     cleanup()
 
@@ -421,7 +421,7 @@ describe('AuthoringPanel', () => {
       memberships: [membership],
       users: [],
     })
-    expect(screen.getByText('No users yet.')).toBeTruthy()
+    expect(screen.getByText('No Users Yet.')).toBeTruthy()
     expect(screen.getByText(membership.user_id)).toBeTruthy()
   })
 
@@ -466,7 +466,7 @@ describe('AuthoringPanel', () => {
     })
     expect(screen.getByText('No Pending Proposals.')).toBeTruthy()
     expect(
-      screen.getByText(/Refresh after chat surfaces a knowledge draft/),
+      screen.getByText(/Refresh After Chat Surfaces a Knowledge Draft/),
     ).toBeTruthy()
     cleanup()
 
@@ -521,7 +521,7 @@ describe('AuthoringPanel', () => {
     const status = idle.view.container.querySelector(
       '[data-slot="source-file-status"]',
     )
-    expect(status?.textContent).toBe('No file selected.')
+    expect(status?.textContent).toBe('No File Selected.')
     expect(screen.getByLabelText('File').getAttribute('type')).toBe('file')
     expect(screen.getByLabelText('File').className).toMatch(/min-h-9/)
     idle.view.unmount()

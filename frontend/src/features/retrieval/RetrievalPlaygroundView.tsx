@@ -64,7 +64,7 @@ export function RetrievalPlaygroundPanel({
     }
     const trimmed = query.trim()
     if (!trimmed) {
-      setError('Enter a non-empty query.')
+      setError('Enter a Non-Empty Query.')
       setState('failed')
       setResults([])
       return
@@ -280,12 +280,12 @@ export function RetrievalPlaygroundPanel({
               role="status"
             >
               <p className="font-medium text-foreground/90">
-                No chunks returned
+                No Chunks Returned
               </p>
               <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
-                <li>Try strategy Dense or Sparse</li>
-                <li>Confirm sources are ingested for this project</li>
-                <li>Raise limit or adjust the query</li>
+                <li>Try Strategy Dense or Sparse</li>
+                <li>Confirm Sources Are Ingested for This Project</li>
+                <li>Raise Limit or Adjust the Query</li>
               </ul>
             </EmptyState>
           ) : null}

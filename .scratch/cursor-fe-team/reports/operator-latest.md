@@ -2,22 +2,19 @@
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (ahead of origin; **no push**)
+Branch: `feat/ui-polish-post-218` (PR #220) · **#218 MERGED** — not using stale `feat/ui-obsessional-polish` / `feat/ui-polish-post-215`
 
-## Shipped this loop
-| SHA | Summary |
-|-----|---------|
-| `cd40fc3` / `acdbc15` | Runtime connections/chat models canceled≠empty; obs P95 / Refresh Failed; retrieval tips; ingestion Loading Title Case |
-| `4826780` | Runtime slots / chat retrieval / project canceled≠empty + Title Case; authoring list empties; No Chunks Returned; obs callout Title Case |
-| `220eb7d` | App.test: 83.3% Success / No Models Yet / Project Runtime Settings Title Case |
+## Shipped on tip
+- Runtime: slots / chat retrieval / project canceled≠empty + Title Case empties
+- Authoring: list empties Title Case; knowledge proposals canceled; No File Selected
+- Retrieval: No Chunks Returned + tip lines Title Case
+- Obs: Summary/Refresh/Status Breakdown/Session Health Title Case
+- Memory: preserved (on main via #214/#216) — not touched for deletion
 
 ## Verify
-Focused vitest authoring + retrieval + observability + runtime: **57 passed**.
+Focused vitest authoring + retrieval + observability + runtime (+ Memory App test).
 
-## Next pass candidates
-- Authoring: FieldHelp for file field still inside control (if residual)
-- Knowledge / proposals empty Title Case residuals
-- Obs: remaining sentence-case helper copy
-- Runtime: capability filter empty already Title Case; denser connection row chrome
+## Next
+Continue densify on operator surfaces; chat owns purple residual.
 
-Grok merges green PRs. Operator keeps looping on tip.
+Grok merges green PRs.

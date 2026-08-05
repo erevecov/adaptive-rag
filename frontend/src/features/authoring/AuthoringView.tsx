@@ -502,7 +502,7 @@ function ProjectList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90">No projects yet.</p>
+        <p className="font-medium text-foreground/90">No Projects Yet.</p>
         <p className="text-xs text-muted-foreground">
           Create a project above to start indexing sources.
         </p>
@@ -814,7 +814,7 @@ function UserAccessLists({
         data-slot-state="empty"
         role="status"
       >
-        No users or memberships yet.
+        No Users or Memberships Yet.
       </EmptyState>
     )
   }
@@ -827,7 +827,7 @@ function UserAccessLists({
           data-slot-state="empty"
           role="status"
         >
-          No users yet.
+          No Users Yet.
         </EmptyState>
       ) : (
         <DataList aria-label="Users">
@@ -881,7 +881,7 @@ function UserAccessLists({
           data-slot-state="empty"
           role="status"
         >
-          No project memberships yet.
+          No Project Memberships Yet.
         </EmptyState>
       ) : (
         <DataList aria-label="Project memberships">
@@ -999,7 +999,7 @@ function SourceFileField({
           id={`${fieldId}-file-help`}
           role="status"
         >
-          No file selected.
+          No File Selected.
         </span>
       )}
     </div>
@@ -1215,7 +1215,7 @@ function SourceList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90">No sources yet.</p>
+        <p className="font-medium text-foreground/90">No Sources Yet.</p>
         <p className="text-xs text-muted-foreground">
           Create a source above, then queue ingestion.
         </p>
@@ -1349,6 +1349,18 @@ function KnowledgeReviewPanel({
 
       {isBusy && proposals.length === 0 ? (
         <LoadingListState label="Loading Proposals…" />
+      ) : state === 'canceled' && proposals.length === 0 ? (
+        <EmptyState
+          aria-label="Proposals Load Canceled"
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="canceled"
+          role="status"
+        >
+          <p className="font-medium text-foreground/90">Proposals Load Canceled.</p>
+          <p className="text-xs text-muted-foreground">
+            Refresh Again When Ready to Review Knowledge Drafts.
+          </p>
+        </EmptyState>
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
@@ -1358,7 +1370,7 @@ function KnowledgeReviewPanel({
         >
           <p className="font-medium text-foreground/90">No Pending Proposals.</p>
           <p className="text-xs text-muted-foreground">
-            Refresh after chat surfaces a knowledge draft for this project.
+            Refresh After Chat Surfaces a Knowledge Draft for This Project.
           </p>
         </EmptyState>
       ) : (
@@ -1565,7 +1577,7 @@ function IngestionJobList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90">No ingestion jobs yet.</p>
+        <p className="font-medium text-foreground/90">No Ingestion Jobs Yet.</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Enqueue a source from the content registry, then run the next job.
         </p>
@@ -1898,7 +1910,7 @@ function ingestionJobSourceId(job: IngestionJob): string | null {
 
 function ingestionRunMessage(run: IngestionRunResponse): string {
   if (run.status === 'idle') {
-    return 'No ingestion job was processed.'
+    return 'No Ingestion Job Was Processed.'
   }
   if (run.status === 'blocked') {
     return 'The backend blocked the job before indexing completed.'

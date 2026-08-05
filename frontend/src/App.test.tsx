@@ -1726,7 +1726,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByDisplayValue('Viewer draft knowledge.')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Refine in chat' }))
+    await user.click(screen.getByRole('button', { name: 'Refine In Chat' }))
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       [
         '[refining knowledge draft draft-viewer]',
@@ -1745,7 +1745,7 @@ describe('App chat workspace', () => {
     )
     expect(await screen.findByText('Pending')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Cancel draft' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel Draft' }))
     expect(screen.getByText('Canceled')).toBeTruthy()
   })
 
@@ -2724,7 +2724,7 @@ describe('App chat workspace', () => {
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
     expect(within(viewer).getByText('url')).toBeTruthy()
     expect(within(viewer).getByText('runbook')).toBeTruthy()
@@ -2847,7 +2847,7 @@ describe('App chat workspace', () => {
       })[0],
     )
 
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByRole('alert').textContent).toContain(
       'source not found',
     )
@@ -3341,7 +3341,7 @@ describe('App chat workspace', () => {
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
-    await screen.findByRole('region', { name: 'Selected session detail' })
+    await screen.findByRole('region', { name: 'Selected Session Detail' })
     expect(getChatSession).toHaveBeenCalledTimes(1)
 
     await user.type(screen.getByLabelText('Question'), 'Follow-up question')
@@ -3351,7 +3351,7 @@ describe('App chat workspace', () => {
     await waitFor(() => expect(getChatSession).toHaveBeenCalledTimes(2))
     expect(getChatSession).toHaveBeenLastCalledWith(projectId, 'session-123')
     expect(
-      await screen.findByRole('region', { name: 'Selected session detail' }),
+      await screen.findByRole('region', { name: 'Selected Session Detail' }),
     ).toBeTruthy()
   })
 
@@ -3484,7 +3484,7 @@ describe('App chat workspace', () => {
       ),
     ).toBeTruthy()
     const sessionDetail = screen.getByRole('region', {
-      name: 'Selected session detail',
+      name: 'Selected Session Detail',
     })
     expect(within(sessionDetail).getByText('rag_search')).toBeTruthy()
     expect(within(sessionDetail).getByText('deployment import failure')).toBeTruthy()
@@ -3520,7 +3520,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionDetail = await screen.findByRole('region', {
-      name: 'Selected session detail',
+      name: 'Selected Session Detail',
     })
     await user.click(
       within(sessionDetail).getByRole('button', {
@@ -3529,7 +3529,7 @@ describe('App chat workspace', () => {
     )
 
     expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
     expect(
       within(viewer).getByText(
@@ -3557,7 +3557,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
-      name: 'Session context',
+      name: 'Session Context',
     })
     expect(within(context).getByText('Prompt default')).toBeTruthy()
     expect(within(context).getByText('qwen-plus')).toBeTruthy()
@@ -3615,7 +3615,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
-      name: 'Session context',
+      name: 'Session Context',
     })
     expect(within(context).getByText('Unknown Cost')).toBeTruthy()
     expect(within(context).getByText('Unknown Tokens')).toBeTruthy()
@@ -3639,7 +3639,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
 
     const minimap = await screen.findByRole('navigation', {
-      name: 'Conversation minimap',
+      name: 'Conversation Minimap',
     })
     expect(
       within(minimap).getByRole('button', {
@@ -3680,7 +3680,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const stepper = await screen.findByRole('region', {
-      name: 'Internal action stepper',
+      name: 'Internal Action Stepper',
     })
     expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
@@ -3787,7 +3787,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const statusSection = await screen.findByRole('region', {
-      name: 'Status breakdown',
+      name: 'Status Breakdown',
     })
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('10 Sessions')).toBeTruthy()
@@ -3804,7 +3804,7 @@ describe('App chat workspace', () => {
     expect(within(providerSection).getByText('qwen-plus')).toBeTruthy()
     expect(within(providerSection).getByText('1,840')).toBeTruthy()
 
-    const healthSection = screen.getByRole('region', { name: 'Session health' })
+    const healthSection = screen.getByRole('region', { name: 'Session Health' })
     expect(within(healthSection).getByText(/83\.3%\s*Success/i)).toBeTruthy()
   })
 
@@ -3825,7 +3825,7 @@ describe('App chat workspace', () => {
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
-    expect(screen.queryByRole('region', { name: 'Session health' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Session Health' })).toBeNull()
   })
 
   test('renders errors observability content without provider usage', async () => {
@@ -3845,7 +3845,7 @@ describe('App chat workspace', () => {
     expect(within(metrics).getByText('3')).toBeTruthy()
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Session health' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Session Health' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Provider usage' })).toBeNull()
   })
 
@@ -4529,7 +4529,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(screen.getByLabelText('Project slot connection').textContent).toContain(
       'Select Connection',
@@ -4583,7 +4583,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
