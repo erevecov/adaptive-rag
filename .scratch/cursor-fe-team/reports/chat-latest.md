@@ -3,20 +3,22 @@
 **Date:** 2026-08-05  
 **Branch:** `feat/ui-polish-post-218` (PR #222)  
 **Model:** cursor-grok-4.5-high  
-**STATUS:** polishing — commit + push to #222
+**STATUS:** pushed polish to #222
 
 ## Context
-- #218 MERGED; remote `feat/ui-polish-post-215` gone.
-- This workspace is locked to `feat/ui-polish-post-218` (successor polish).
-- Account Memory on main — untouched.
+- #218 MERGED; remote `feat/ui-polish-post-215` gone → continue on `feat/ui-polish-post-218`.
+- Account Memory on main — untouched (`frontend/src/features/memory` present).
 
-## This loop
+## Shipped
 | Slice | Change |
 |-------|--------|
-| History | `detailState` → Context/Stepper/Minimap; loading skeletons ≠ EmptyState; Title Case EN panels |
-| Shell | Sidebar primary `max-[680px]:min-h-11` |
-| Chat | Tool Calls · / Refine In Chat / Cancel Draft |
-| Pipeline | Waiting For Pipeline Steps / No Step Detail Recorded |
+| History | `detailState` loading skeletons ≠ EmptyState; Title Case EN panels |
+| Shell | ≤680 sidebar touch + opaque purple rail (`bg-card` + primary hairline) |
+| Chat | Tool Calls / Refine In Chat / Cancel Draft / Memory Applied Title Case |
+| App tests | Ingestion + Memory Applied selectors synced |
+
+## Verify
+history loading skeletons + focused App memory/ingestion → green
 
 ## Next
-Push #222. Invent next residual. No idle.
+Invent next residual. No idle.
