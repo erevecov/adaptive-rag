@@ -5,16 +5,22 @@
 - Marathon tip merged: https://github.com/erevecov/adaptive-rag/pull/200
   (`c239d72` on `main`) — M40–M50 + Bloque C + UI polish (#186).
 - Intermediate stacked PRs #181–#199 closed as superseded by #200.
-- Post-merge on `main`:
-  - `uv run adaptive-rag v1 quality-gate` → succeeded / `ready_for_v1_0`
-  - acceptance runtime-settings-smoke was green on tip pre-merge
+- Independent re-verify on `main` @ `84ee3c3`:
+  - quality-gate → succeeded / `ready_for_v1_0`
+  - acceptance runtime-settings-smoke → succeeded (6 criteria)
+  - pytest marathon bundle (indexing/jobs/multi-turn/authoring/M44–M50/
+    security/routing/user-memory/llm-judge/RBAC) → green
+  - integration chat + security headers + first-run + llm-judge CLI → green
+  - frontend chat/history/playground vitest 16 passed; tsc/eslint clean
+  - bandit on `src` exit 0
+  - GitHub CI on main push `84ee3c3` → backend/frontend/openspec **success**
+- Follow-up: security dep bump PR #201 (`pydantic-settings>=2.14.2`, GHSA).
 - **No v1.0 tag created** (human only)
 
 ## Milestone activo
 
-Marathon pre-v1 + Bloque C **landed on `main`** via #200. Residual for
-humans: optional re-gate from clean clone, then decide v1.0 tag. Graph live:
-hold documentado.
+Marathon goal **implementation complete on `main`**. Residual **human only**:
+optional clean-clone re-gate + decide v1.0 tag/release. Graph live: hold.
 
 ## Ultimo milestone completado
 
@@ -290,8 +296,8 @@ Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Siguiente tarea recomendada
 
-- Human: review `main` @ `c239d72`, optional clean-clone re-gate, then
-  decide whether to tag v1.0 / GitHub Release. No agent-created tag.
+- Human: optional clean-clone re-gate; merge/monitor #201 security bump if
+  still open; decide whether to tag v1.0 / GitHub Release. No agent-created tag.
 
 ## Reglas de coordinacion
 

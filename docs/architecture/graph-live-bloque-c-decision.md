@@ -4,8 +4,8 @@
 
 ## Context
 
-Marathon Bloque A+B (M40–M50) is implemented on stacked PRs with tip
-`feat/m50-dense-reindex`. Graph remains in quality-gate `deferred_defaults`
+Marathon Bloque A+B+C (M40–M50 + memory/judge/playground) landed on `main`
+via PR #200 (2026-08-05). Graph remains in quality-gate `deferred_defaults`
 as `neo4j_graph`.
 
 ## Decision
