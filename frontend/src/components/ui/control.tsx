@@ -20,7 +20,7 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement>
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = 'text', ...props }, ref) => (
     <input
-      className={cn('h-9 max-[680px]:min-h-11 max-[680px]:px-2.5 max-[680px]:text-base', controlClasses, className)}
+      className={cn('h-9 max-[680px]:min-h-11 max-[680px]:px-2.5 max-[680px]:text-base max-[680px]:leading-snug', controlClasses, className)}
       ref={ref}
       type={type}
       {...props}
