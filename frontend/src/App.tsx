@@ -3044,19 +3044,24 @@ function retrievalResultFromHistory(
   chunk: ChatHistoryRetrievedChunk,
 ): RetrievalResult {
   const citation = chunk.citation
+  // chunk_id may be null after source soft-delete cascade (ON DELETE SET NULL).
+  const resolvedChunkId =
+    chunk.chunk_id ??
+    getCitationString(citation, 'chunk_id') ??
+    chunk.retrieved_chunk_id
   const sourceId =
     getCitationString(citation, 'source_id') ??
     getCitationString(citation, 'source_external_id') ??
-    chunk.chunk_id
+    resolvedChunkId
   const sourceExternalId =
     getCitationString(citation, 'source_external_id') ?? sourceId
 
   return {
-    chunk_id: chunk.chunk_id,
+    chunk_id: resolvedChunkId,
     citation: {
       char_end: getJsonNumber(citation, 'char_end') ?? 0,
       char_start: getJsonNumber(citation, 'char_start') ?? 0,
-      chunk_id: getCitationString(citation, 'chunk_id') ?? chunk.chunk_id,
+      chunk_id: getCitationString(citation, 'chunk_id') ?? resolvedChunkId,
       document_id: getCitationString(citation, 'document_id') ?? '',
       document_stable_id:
         getCitationString(citation, 'document_stable_id') ?? sourceExternalId,
