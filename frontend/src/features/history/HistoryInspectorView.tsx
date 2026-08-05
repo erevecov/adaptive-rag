@@ -673,7 +673,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               <MetadataItem label="Updated" value={viewer.source.updated_at} />
               {viewer.source.deleted_at ? (
                 <MetadataItem
-                  label="Soft-deleted"
+                  label="Deleted"
                   value={formatSourceTimestamp(viewer.source.deleted_at)}
                 />
               ) : null}

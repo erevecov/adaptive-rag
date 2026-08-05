@@ -3,22 +3,20 @@
 Status: open | claimed:<role> | done | deferred  
 Branch: `feat/ui-obsessional-polish`
 
-## Seed / fleet
-- [x] done:chat — Chat transcript / composer / session / inspector
-- [x] done:implement — DS density / soft-delete / EmptyState / focus rings / badges
-- [x] done:implement — Panel / table / FieldHelp / Select / nav / invalid controls
-- [x] done:operator — Form gaps / memberships empty / Title Case selects & badges
-- [x] done:fe-chat — Popover/speech; Title Case; pipeline emerald; inspector refresh
-- [x] done:fe-chat — Purple pressed chrome; Ask full-width ≤680
-- [x] done:fe-chat — Solid answer card + citation chips + source type labels
-- [x] done:operator — Inherited/Overridden/Qwen Hosted Title Case labels
-- [x] done:operator — Observability status breakdown Title Case
-- [x] done:implement — Ghost/secondary hover primary/15
-- [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
+## Seed / fleet (shipped recently)
+- [x] done — Chat/history/runtime Title Case, purple chrome, citation card solids
+- [x] done — Ghost/secondary hover primary/15; observability status labels
+- [x] done:fe-chat — Soft-deleted→Deleted; shell primary/15; skip-link inert under overlay
+- [ ] open:operator — Runtime empty≠loading residual (models/catalog/slots/retrieval)
+- [ ] open:implement — Light `--ring` ≥3:1; purple primary text AA ≥4.5:1 (`index.css`)
+- [ ] open:operator — Binary upload Clear + size; Working vs Saving badge copy
+- [ ] open — Wire `operatorSafeMessage` beyond Runtime (chat/history/authoring/obs errors)
+- [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
 
 ## Lead queue (next)
-1. Tab-cycle focus trap residual (Radix portal menus)
-2. Live ≤680 purple residual (shell rail / inspector overlay)
-3. History soft-delete metadata label Soft-deleted → Deleted? (parity)
+1. Runtime loading EmptyStates P0 — operator
+2. Theme contrast tokens P0 — implement
+3. operatorSafeMessage shell-wide — lead
 
-Reports: `reports/lead-latest.md`
+Reports: `reports/lead-latest.md` · `reports/chat-latest.md`
+Audits: focus contain `078ffd20`; taste bar `94c52538`; shell WIP review `645153e6`

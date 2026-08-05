@@ -1,29 +1,25 @@
 # Chat+Shell FE report — continuous polish
 
 **Role:** FE CHAT+SHELL  
-**Branch:** `feat/ui-obsessional-polish` (post #212)  
+**Branch:** `feat/ui-obsessional-polish` (post #206/#207)  
 **STATUS:** ready-for-lead-review
 
 ## This pass
 
 | Change | Surface |
 |--------|---------|
-| Ask/Cancel full-width ≤680 | composer |
-| Composer textarea `border-border` (not `/50`) | composer |
-| Session ⋮ menu keeps DS `primary/15` highlight | history |
-| Empty messages EmptyState + capitalize roles | inspector detail |
-
-## Prior tip
-
-Inspector refresh after ask + latest-turn hydrate (already on branch)
+| Source viewer `Soft-deleted` → `Deleted` | history |
+| Sidebar toggle / nav / project selector `primary/15` | shell purple |
+| Assert skip-link + hosts `inert` under inspector overlay | App focus-contain |
 
 ## Verify
 
-`ChatWorkspaceView` + `HistoryInspectorView` → **30 passed**
+`HistoryInspectorView` → **15 passed**  
+App: burger / tokenized / skip-link inert → **passed**
 
 ## Next
 
-- Citation chip touch targets ≤680 (P2)
-- Tab-cycle focus trap (deferred)
+- Full Tab-cycle focus trap (deferred)
+- Leave operator/implement P0s to those roles
 
 Grok merges; agent does not push.

@@ -1198,6 +1198,8 @@ describe('App chat workspace', () => {
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(toggle.className).toMatch(/hover:bg-primary\/15/)
+    expect(toggle.className).not.toMatch(/hover:bg-accent/)
     // Desktop viewport: no mobile scrim.
     expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
 
@@ -1337,6 +1339,11 @@ describe('App chat workspace', () => {
     )
     expect(selector.getAttribute('data-slot')).toBe('project-selector-trigger')
     expect(selector.closest('[data-slot="project-selector"]')).toBeTruthy()
+
+    await user.click(selector)
+    expect(selector.className).toMatch(/bg-primary\/15/)
+    expect(selector.className).not.toMatch(/bg-accent/)
+    await user.keyboard('{Escape}')
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
@@ -2239,6 +2246,33 @@ describe('App chat workspace', () => {
     expect(skip.className).toContain('focus-visible:ring-primary-foreground')
     expect(document.getElementById('chat-composer')).toBeTruthy()
     expect(document.getElementById('main-content')).toBeTruthy()
+  })
+
+  test('marks skip-link and shell hosts inert while the inspector overlay is open', async () => {
+    const user = userEvent.setup()
+    setViewportWidth(900)
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
+    expect(skip.hasAttribute('inert')).toBe(false)
+
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await screen.findByRole('dialog', { name: 'Workspace inspector' })
+
+    expect(skip.hasAttribute('inert')).toBe(true)
+    expect(
+      document
+        .querySelector('[data-slot="app-shell-sidebar-host"]')
+        ?.hasAttribute('inert'),
+    ).toBe(true)
+    expect(
+      document
+        .querySelector('[data-slot="chat-workspace-inert-host"]')
+        ?.hasAttribute('inert'),
+    ).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+    expect(skip.hasAttribute('inert')).toBe(false)
   })
 
   test('does not keep legacy inspector backdrop class markers in App.tsx', () => {

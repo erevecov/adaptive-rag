@@ -558,7 +558,7 @@ describe('WorkspaceInspectorPanel', () => {
     })
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.getAttribute('data-tone')).toBe('danger')
-    expect(within(viewer).getByText('Soft-deleted', { selector: 'dt' })).toBeTruthy()
+    expect(within(viewer).getByText('Deleted', { selector: 'dt' })).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 
