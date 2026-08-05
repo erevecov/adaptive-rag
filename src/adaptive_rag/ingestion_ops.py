@@ -223,6 +223,7 @@ def run_next_ingestion_job(
                 job_id=job_id,
                 error_message=error_message,
                 retry_after=active_now + timedelta(seconds=backoff),
+                worker_id=worker_id,
             )
         except Exception:  # noqa: BLE001 — session poisoned by a failed flush
             # A mid-pipeline flush failure leaves the session unable to run
@@ -234,6 +235,7 @@ def run_next_ingestion_job(
                 job_id=job_id,
                 error_message=error_message,
                 retry_after=active_now + timedelta(seconds=backoff),
+                worker_id=worker_id,
             )
         return IngestionRunReport(
             status="failed" if failed.status == "queued" else "dead_letter",
@@ -250,6 +252,7 @@ def run_next_ingestion_job(
         project_id=project_id,
         job_id=job.id,
         reason=f"unsupported ingestion-family job_type: {job.job_type}",
+        worker_id=worker_id,
     )
     return IngestionRunReport(
         status="blocked",
