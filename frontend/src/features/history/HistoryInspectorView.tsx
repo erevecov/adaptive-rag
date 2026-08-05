@@ -232,7 +232,7 @@ export function SessionNavigationPanel({
               data-slot="session-list-empty"
               data-status-filter={statusFilter}
             >
-              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs">
+              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-2 max-[680px]:leading-snug">
                 {sessionEmptyCopy(statusFilter)}
               </EmptyState>
             </div>

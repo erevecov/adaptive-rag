@@ -587,16 +587,16 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px]"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-3"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight text-foreground uppercase"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.8125rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         My Account
       </h2>
-      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-2 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         {ACCOUNT_MODULES.map((module) => {
           const active = module.id === activeModule
           return (
