@@ -9,8 +9,11 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter, elapsed_ms
+from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
+    DEFAULT_CHAT_HISTORY_MESSAGES,
+    ChatHistoryTurn,
     ChatRequest,
     ChatResponse,
     ChatRunnerOutput,
@@ -69,6 +72,8 @@ class ChatService:
         ]
         | None = None,
         knowledge_proposal_submitter: KnowledgeProposalSubmitter | None = None,
+        query_condenser: QueryCondenser | None = None,
+        history_message_limit: int = DEFAULT_CHAT_HISTORY_MESSAGES,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
@@ -81,23 +86,39 @@ class ChatService:
             else _empty_provider_usage_records
         )
         self._knowledge_proposal_submitter = knowledge_proposal_submitter
+        self._query_condenser = (
+            query_condenser
+            if query_condenser is not None
+            else DeterministicQueryCondenser()
+        )
+        self._history_message_limit = history_message_limit
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_request(request)
 
-        session_id = self._audit_writer.start_session(
-            request,
-            message,
-            model_config_json=_runner_model_config(self._runner),
-            prompt_version=_runner_prompt_version(self._runner),
-        )
+        try:
+            session_id = self._audit_writer.start_session(
+                request,
+                message,
+                model_config_json=_runner_model_config(self._runner),
+                prompt_version=_runner_prompt_version(self._runner),
+            )
+        except ValueError as exc:
+            raise ChatServiceError(str(exc)) from exc
         provider_usage_recorded = False
+        history = self._load_history(request.project_id, session_id)
+        retrieval_query = self._query_condenser.condense(
+            history=history,
+            message=message,
+        )
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
             message=message,
             user_id=request.user_id,
             retrieval_limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
+            history=history,
+            retrieval_query=retrieval_query,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
@@ -167,11 +188,19 @@ class ChatService:
 
     def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
         message = _validate_request(request)
-        session_id = self._audit_writer.start_session(
-            request,
-            message,
-            model_config_json=_runner_model_config(self._runner),
-            prompt_version=_runner_prompt_version(self._runner),
+        try:
+            session_id = self._audit_writer.start_session(
+                request,
+                message,
+                model_config_json=_runner_model_config(self._runner),
+                prompt_version=_runner_prompt_version(self._runner),
+            )
+        except ValueError as exc:
+            raise ChatServiceError(str(exc)) from exc
+        history = self._load_history(request.project_id, session_id)
+        retrieval_query = self._query_condenser.condense(
+            history=history,
+            message=message,
         )
         runner_request = ChatRunnerRequest(
             project_id=request.project_id,
@@ -179,6 +208,8 @@ class ChatService:
             user_id=request.user_id,
             retrieval_limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
+            history=history,
+            retrieval_query=retrieval_query,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
@@ -310,6 +341,26 @@ class ChatService:
                     str(exc),
                 )
             yield chat_stream_error_event(str(exc))
+
+    def _load_history(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+    ) -> tuple[ChatHistoryTurn, ...]:
+        if session_id is None:
+            return ()
+        list_history = getattr(self._audit_writer, "list_history_turns", None)
+        if list_history is None:
+            return ()
+        raw_turns = list_history(
+            project_id=project_id,
+            session_id=session_id,
+            limit=self._history_message_limit,
+        )
+        return tuple(
+            ChatHistoryTurn(role=role, content=content)
+            for role, content in raw_turns
+        )
 
     def _build_knowledge_tool(
         self,

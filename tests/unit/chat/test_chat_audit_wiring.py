@@ -108,6 +108,7 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
         "project_id": str(project_id),
         "message": "What supports alpha?",
         "retrieval_limit": 1,
+        "session_id": str(audit.session_id),
     }
     assert {
         "event": "message",

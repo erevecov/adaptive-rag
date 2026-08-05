@@ -218,6 +218,7 @@ export type RetrievalResult = {
 
 export type ChatRequestBody = {
   message: string
+  session_id?: string | null
   retrieval_limit?: number
   metadata_filter?: RetrievalMetadataFilter | null
 }

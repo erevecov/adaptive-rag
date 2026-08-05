@@ -2,13 +2,20 @@
 
 ## Milestone activo
 
-**M42 Chat multi-turn + query condenser** (planificado, pre-v1.0).
+**M43 Authoring lifecycle + RBAC closeout** (planificado, pre-v1.0).
 
-Plan unificado post-M39: bloque pre-v1 restante M42 → M43 → M44, luego tag
-v1.0 humano. Post-v1: M45–M50. Detalle en `docs/roadmap.md` seccion
-"Plan unificado post-M39".
+Plan unificado post-M39: bloque pre-v1 restante M43 → M44, luego tag v1.0
+humano. Post-v1: M45–M50.
 
 ## Ultimo milestone completado
+
+M42 Chat multi-turn + query condenser cerrado el 2026-08-05.
+
+`session_id` opcional en chat/stream, historial acotado, condensador
+deterministico, UI continua sesion seleccionada. OpenSpec archivado
+`2026-08-05-m42-chat-multi-turn`.
+
+## Milestone anterior completado
 
 M41 Job queue hardening cerrado el 2026-08-05.
 

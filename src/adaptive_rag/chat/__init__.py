@@ -6,8 +6,11 @@ from adaptive_rag.chat.audit import (
     NullChatAuditWriter,
     SqlAlchemyChatAuditWriter,
 )
+from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import (
+    DEFAULT_CHAT_HISTORY_MESSAGES,
+    ChatHistoryTurn,
     ChatRequest,
     ChatResponse,
     ChatRunnerOutput,
@@ -35,6 +38,7 @@ from adaptive_rag.chat.streaming import (
 
 __all__ = [
     "ChatAuditWriter",
+    "ChatHistoryTurn",
     "ChatRequest",
     "ChatResponse",
     "ChatRunner",
@@ -47,8 +51,11 @@ __all__ = [
     "ChatStreamEvent",
     "ChatStreamEventName",
     "ChatToolCall",
+    "DEFAULT_CHAT_HISTORY_MESSAGES",
+    "DeterministicQueryCondenser",
     "InMemoryChatAuditWriter",
     "NullChatAuditWriter",
+    "QueryCondenser",
     "QwenChatRunner",
     "QwenChatRunnerError",
     "RetrievalGroundedChatRunner",

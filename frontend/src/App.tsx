@@ -590,14 +590,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSessionDetail(null)
     setDetailState('idle')
     setDetailError(null)
-    setSelectedSessionId(null)
+    // Keep selectedSessionId so follow-ups continue the same multi-turn session.
     setHistoryStatusFilter('active')
     setVisibleSessionCount(SESSION_PAGE_SIZE)
     resetSourceViewer()
     chatAutoFollowRef.current = true
 
+    const continueSessionId = selectedSessionId
     const requestBody = {
       message: trimmedQuestion,
+      ...(continueSessionId === null ? {} : { session_id: continueSessionId }),
     }
     const controller = new AbortController()
     let streamOpened = false

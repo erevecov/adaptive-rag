@@ -44,8 +44,8 @@
 - Post-M39 Design system shadcn/Radix closeout: completo.
 - M40 Indexing job publico: completo.
 - M41 Job queue hardening: completo.
-- **M42 Chat multi-turn + query condenser: planificado (activo, pre-v1.0).**
-- M43 Authoring lifecycle + RBAC closeout: planificado (pre-v1.0).
+- M42 Chat multi-turn + query condenser: completo.
+- **M43 Authoring lifecycle + RBAC closeout: planificado (activo, pre-v1.0).**
 - M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
 - M45 PDF + DOCX ingestion: planificado (post-v1.0).
@@ -1842,20 +1842,13 @@ Entregado:
 
 #### M42 Chat multi-turn + query condenser
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- `session_id` opcional en `POST /chat` y `/chat/stream`.
-- Historial acotado al runner (presupuesto de tokens / ultimos N mensajes).
-- UI continua la sesion seleccionada.
-- Condensador de query conversacional (historial → query autocontenida) con
-  fake deterministico para tests.
-
-Criterio de exito:
-
-- Eval multi-turn con follow-ups; specs `chat-tool-calling` / `chat-history` /
-  `chat-streaming` actualizadas.
+- `session_id` opcional en chat/stream; historial acotado + condenser fake.
+- UI envia sesion seleccionada en follow-ups.
+- OpenSpec archivado: `2026-08-05-m42-chat-multi-turn`.
 
 #### M43 Authoring lifecycle + RBAC closeout
 
