@@ -136,6 +136,7 @@ class ChatService:
             metadata_filter=request.metadata_filter,
             history=history,
             retrieval_query=retrieval_query,
+            user_memory=request.user_memory,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
@@ -228,6 +229,7 @@ class ChatService:
             metadata_filter=request.metadata_filter,
             history=history,
             retrieval_query=retrieval_query,
+            user_memory=request.user_memory,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,

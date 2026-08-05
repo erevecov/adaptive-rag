@@ -121,6 +121,7 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
         session, request=request, user_id=user.id, project_id=project.id
     )
     assert not_injected.message == "Hello"
+    assert not_injected.user_memory is None
 
     approved = client.post(
         f"/users/me/memories/{memory_id}/approve",
@@ -132,9 +133,11 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
     injected = _with_approved_user_memory(
         session, request=request, user_id=user.id, project_id=project.id
     )
-    assert "User memory (approved):" in injected.message
-    assert "Prefer concise answers" in injected.message
-    assert injected.message.endswith("Hello")
+    # Raw user turn must stay untouched for audit/history/condenser.
+    assert injected.message == "Hello"
+    assert injected.user_memory is not None
+    assert "User memory (approved):" in injected.user_memory
+    assert "Prefer concise answers" in injected.user_memory
 
 
 def test_reject_and_double_review_via_api() -> None:

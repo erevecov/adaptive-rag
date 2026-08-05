@@ -200,10 +200,7 @@ def test_qwen_chat_runner_executes_commit_knowledge_tool_when_requested() -> Non
     assert knowledge.commits == [
         ("Document this deployment exception.", "message", None)
     ]
-    tool_names = [
-        tool["function"]["name"]
-        for tool in client.requests[0]["tools"]
-    ]
+    tool_names = [tool["function"]["name"] for tool in client.requests[0]["tools"]]
     assert tool_names == [
         "retrieval_search",
         "commit_knowledge",
@@ -403,3 +400,42 @@ def _retrieval_result(
         citation=citation,
         embedding_metadata=None,
     )
+
+
+def test_qwen_chat_runner_injects_user_memory_into_system_not_user() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    retrieval = RecordingRetrievalService(
+        [_retrieval_result(chunk_id=chunk_id, snippet="Alpha smoke evidence")]
+    )
+    client = RecordingChatClient(
+        [
+            _final_response(
+                {
+                    "answer": "Alpha answer",
+                    "cited_chunk_ids": [str(chunk_id)],
+                }
+            ),
+        ]
+    )
+    memory = "User memory (approved):\n- Prefer concise answers"
+
+    QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="What supports alpha?",
+            retrieval_limit=2,
+            metadata_filter=None,
+            user_memory=memory,
+        ),
+        _tools(project_id=project_id, retrieval=retrieval, default_limit=2),
+    )
+
+    messages = client.requests[0]["messages"]
+    system_msgs = [m for m in messages if m["role"] == "system"]
+    user_msgs = [m for m in messages if m["role"] == "user"]
+    assert len(system_msgs) == 1
+    assert memory in system_msgs[0]["content"]
+    assert len(user_msgs) == 1
+    assert user_msgs[0]["content"] == "What supports alpha?"
+    assert "User memory (approved)" not in user_msgs[0]["content"]

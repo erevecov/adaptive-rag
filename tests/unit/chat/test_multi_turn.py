@@ -253,3 +253,77 @@ def test_deterministic_condenser_short_confirmation_uses_assistant() -> None:
     query = condenser.condense(history=history, message="dale")
     assert "reporte de costos" in query.lower()
     assert "dale" in query.lower()
+
+
+def test_user_memory_not_stored_in_history_or_retrieval_query() -> None:
+    """Approved memory is runner context only — never audited user text."""
+
+    audit = InMemoryChatAuditWriter()
+    runner = RecordingRunner()
+    chunk_id = uuid4()
+    retrieval = StaticRetrieval([_result(chunk_id, "evidence")])
+    service = ChatService(
+        runner=runner,
+        retrieval_service=retrieval,
+        audit_writer=audit,
+        query_condenser=DeterministicQueryCondenser(),
+    )
+    project_id = uuid4()
+    memory = "User memory (approved):\n- Prefer concise answers"
+
+    first = service.respond(
+        ChatRequest(
+            project_id=project_id,
+            message="What is Adaptive RAG indexing?",
+            user_memory=memory,
+        )
+    )
+    assert first.session_id is not None
+
+    second = service.respond(
+        ChatRequest(
+            project_id=project_id,
+            session_id=first.session_id,
+            message="Why does it matter?",
+            user_memory=memory,
+        )
+    )
+    assert second.session_id == first.session_id
+
+    # Each turn receives memory for the runner once (not stitched into message).
+    assert len(runner.requests) == 2
+    for req in runner.requests:
+        assert req.user_memory == memory
+        assert "User memory (approved)" not in req.message
+        assert req.message in {
+            "What is Adaptive RAG indexing?",
+            "Why does it matter?",
+        }
+
+    # Condenser must not pull memory from prior audited turns.
+    follow_up = runner.requests[1]
+    assert follow_up.retrieval_query is not None
+    assert "User memory (approved)" not in follow_up.retrieval_query
+    assert "Prefer concise answers" not in follow_up.retrieval_query
+    assert "Adaptive RAG indexing" in follow_up.retrieval_query
+
+    # Audit/history stores raw user turns only.
+    history_turns = audit.list_history_turns(
+        project_id=project_id,
+        session_id=first.session_id,
+        limit=20,
+    )
+    user_contents = [content for role, content in history_turns if role == "user"]
+    assert user_contents == [
+        "What is Adaptive RAG indexing?",
+        "Why does it matter?",
+    ]
+    for content in user_contents:
+        assert "User memory (approved)" not in content
+        assert memory not in content
+
+    # start_session event also sees the raw message (not memory-prefixed).
+    start_events = [e for e in audit.events if e.get("event") == "start_session"]
+    assert len(start_events) == 2
+    assert start_events[0]["message"] == "What is Adaptive RAG indexing?"
+    assert start_events[1]["message"] == "Why does it matter?"
