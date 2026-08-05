@@ -619,4 +619,25 @@ describe('RuntimeSettingsPanel', () => {
       screen.getByText(/No chat models in the project pool yet/),
     ).toBeTruthy()
   })
+
+  test('distinguishes loading vs empty for slots and chat retrieval', () => {
+    const loading = renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      chatRetrievalSettings: null,
+      slots: [],
+      state: 'loading',
+    })
+    expect(screen.getByText('Loading global slots…')).toBeTruthy()
+    expect(screen.getByText('Loading chat retrieval defaults…')).toBeTruthy()
+    expect(screen.queryByText(/No global slot defaults yet/)).toBeNull()
+    loading.unmount()
+
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      chatModels: [],
+      state: 'loading',
+    })
+    expect(screen.getByText('Loading chat models…')).toBeTruthy()
+    expect(screen.queryByText('No chat models yet.')).toBeNull()
+  })
 })
