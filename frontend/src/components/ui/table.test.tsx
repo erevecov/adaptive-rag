@@ -64,6 +64,11 @@ describe('Table density', () => {
     expect(header?.className).toContain('bg-card/95')
     expect(screen.getByText('Latency').className).toContain('tracking-wide')
     expect(screen.getByText('Latency').className).toContain('h-9')
+    expect(screen.getByText('Latency').className).toContain('max-[680px]:h-11')
+    expect(screen.getByText('12ms').className).toContain('max-[680px]:py-2.5')
+    expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
+      'max-[680px]:min-w-[560px]',
+    )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'hover:bg-muted/40',
     )
