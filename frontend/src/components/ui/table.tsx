@@ -122,7 +122,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, ...props }, ref) => (
     <td
       className={cn(
-        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-2.5 align-middle text-foreground',
+        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:py-2.5 align-middle text-foreground tracking-tight',
         className,
       )}
       ref={ref}

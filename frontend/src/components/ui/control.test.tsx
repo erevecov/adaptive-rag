@@ -21,6 +21,7 @@ function expectSharedControlTokens(element: Element): void {
   expect(tokens).toContain('px-3')
   expect(tokens).toContain('py-2')
   expect(tokens).toContain('text-sm')
+  expect(tokens).toContain('tracking-tight')
   expect(tokens).toContain('text-foreground')
   expect(tokens).toContain('motion-safe:transition-colors')
   expect(tokens).toContain('placeholder:text-muted-foreground')

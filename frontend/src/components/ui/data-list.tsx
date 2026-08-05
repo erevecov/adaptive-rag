@@ -7,7 +7,7 @@ export type DataListProps = HTMLAttributes<HTMLUListElement>
 export const DataList = forwardRef<HTMLUListElement, DataListProps>(
   ({ className, ...props }, ref) => (
     <ul
-      className={cn('grid gap-2 max-[680px]:gap-1.5', className)}
+      className={cn('grid gap-2 max-[680px]:gap-1', className)}
       ref={ref}
       {...props}
       data-slot="data-list"
@@ -22,7 +22,7 @@ export const DataListItem = forwardRef<HTMLLIElement, DataListItemProps>(
   ({ className, ...props }, ref) => (
     <li
       className={cn(
-        'min-w-0 rounded-md border border-border bg-card p-3 text-card-foreground max-[680px]:p-2.5',
+        'min-w-0 rounded-md border border-border bg-card p-3 text-sm tracking-tight text-card-foreground max-[680px]:p-2',
         'motion-safe:transition-colors hover:bg-primary/15',
         className,
       )}
@@ -42,7 +42,7 @@ export const DataListItemActions = forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     className={cn(
-      'flex flex-wrap items-center gap-2 max-[680px]:gap-1.5',
+      'flex flex-wrap items-center gap-2 max-[680px]:gap-1',
       className,
     )}
     ref={ref}
