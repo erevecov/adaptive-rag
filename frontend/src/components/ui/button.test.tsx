@@ -96,6 +96,9 @@ describe('Button', () => {
       'max-[680px]:gap-1.5',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
+      'max-[680px]:text-[0.8125rem]',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
       'tracking-tight',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
@@ -103,6 +106,9 @@ describe('Button', () => {
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
       'max-[680px]:px-2.5',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
+      'max-[680px]:text-[0.6875rem]',
     )
     expect(classTokens(screen.getByRole('button', { name: 'More actions' }))).toContain(
       'max-[680px]:size-11',
