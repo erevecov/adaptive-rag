@@ -34,7 +34,8 @@ export const SegmentedControl = forwardRef<
     ref,
   ) => {
   const controlClassName = cn(
-    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted p-1',
+    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted/80 p-1',
+    'motion-safe:transition-colors',
     className,
   )
 
@@ -129,12 +130,13 @@ export const SegmentedControlItem = forwardRef<
     const itemClassName = cn(
       [
         'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium',
-        'text-muted-foreground motion-safe:transition-colors hover:bg-background hover:text-foreground',
+        'text-muted-foreground motion-safe:transition-colors hover:bg-background/80 hover:text-foreground',
         // Inset ring stays inside the muted track (offset rings clip / wash on purple).
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         'disabled:pointer-events-none disabled:opacity-50',
-        'data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm',
-        'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+        // Card pill + light primary ring: clearer active state on purple/dark tracks.
+        'data-[active]:bg-card data-[active]:font-semibold data-[active]:text-foreground data-[active]:shadow-sm data-[active]:ring-1 data-[active]:ring-primary/30',
+        'data-[state=active]:bg-card data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/30',
       ],
       className,
     )
