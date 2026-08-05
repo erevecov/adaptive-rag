@@ -3147,6 +3147,172 @@ describe('App chat workspace', () => {
     )
   })
 
+  test('refreshes open inspector session detail after a successful ask', async () => {
+    const user = userEvent.setup()
+    const getChatSession = vi.fn(async () => sessionDetailResponse)
+    const client = createClientStub({
+      askChatStream: vi.fn(async () => chatResponse),
+      getChatSession,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await screen.findByRole('region', { name: 'Selected session detail' })
+    expect(getChatSession).toHaveBeenCalledTimes(1)
+
+    await user.type(screen.getByLabelText('Question'), 'Follow-up question')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+
+    await waitFor(() => expect(getChatSession).toHaveBeenCalledTimes(2))
+    expect(getChatSession).toHaveBeenLastCalledWith(projectId, 'session-123')
+    expect(
+      await screen.findByRole('region', { name: 'Selected session detail' }),
+    ).toBeTruthy()
+  })
+
+  test('refreshes open inspector session detail after a successful ask', async () => {
+    const user = userEvent.setup()
+    const getChatSession = vi.fn(async () => sessionDetailResponse)
+    const client = createClientStub({
+      askChatStream: vi.fn(async () => chatResponse),
+      getChatSession,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await screen.findByRole('region', { name: 'Selected session detail' })
+    expect(getChatSession).toHaveBeenCalledTimes(1)
+
+    await user.type(screen.getByLabelText('Question'), 'Follow-up question')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+
+    await waitFor(() => expect(getChatSession).toHaveBeenCalledTimes(2))
+    expect(getChatSession).toHaveBeenLastCalledWith(projectId, 'session-123')
+    expect(
+      await screen.findByRole('region', { name: 'Selected session detail' }),
+    ).toBeTruthy()
+  })
+
+  test('hydrates chat response tools from only the latest turn', async () => {
+    const user = userEvent.setup()
+    const multiTurnDetail: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      messages: [
+        {
+          content: 'First question',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'message-user-1',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'First answer',
+          created_at: '2026-06-21T00:00:02Z',
+          message_id: 'message-assistant-1',
+          metadata: null,
+          role: 'assistant',
+        },
+        {
+          content: 'Second question',
+          created_at: '2026-06-21T00:01:00Z',
+          message_id: 'message-user-2',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'Second answer only',
+          created_at: '2026-06-21T00:01:02Z',
+          message_id: 'message-assistant-2',
+          metadata: null,
+          role: 'assistant',
+        },
+      ],
+      retrieval_runs: [
+        {
+          ...sessionDetailResponse.retrieval_runs[0],
+          created_at: '2026-06-21T00:00:01Z',
+          query: 'first turn query',
+          retrieval_run_id: 'retrieval-run-1',
+          tool_call_id: 'tool-call-1',
+        },
+        {
+          ...sessionDetailResponse.retrieval_runs[0],
+          created_at: '2026-06-21T00:01:01Z',
+          query: 'second turn query',
+          retrieval_run_id: 'retrieval-run-2',
+          retrieved_chunks: [
+            {
+              ...sessionDetailResponse.retrieval_runs[0].retrieved_chunks[0],
+              citation: {
+                snippet: 'Second turn citation only.',
+                source_external_id: 'https://docs.local/second',
+                source_id: 'source-2',
+              },
+              retrieved_chunk_id: 'retrieved-chunk-2',
+            },
+          ],
+          tool_call_id: 'tool-call-2',
+        },
+      ],
+      tool_calls: [
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'first turn query' },
+          created_at: '2026-06-21T00:00:01Z',
+          tool_call_id: 'tool-call-1',
+          tool_name: 'rag_search',
+          updated_at: '2026-06-21T00:00:01Z',
+        },
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'second turn query' },
+          created_at: '2026-06-21T00:01:01Z',
+          tool_call_id: 'tool-call-2',
+          tool_name: 'web_lookup',
+          updated_at: '2026-06-21T00:01:01Z',
+        },
+      ],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => multiTurnDetail),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+
+    expect(await screen.findByText('Second answer only')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Expand response details' }),
+    )
+    expect(screen.getByText('web_lookup')).toBeTruthy()
+    expect(screen.getByText('second turn query')).toBeTruthy()
+    expect(screen.queryByText('rag_search')).toBeNull()
+    expect(screen.queryByText('first turn query')).toBeNull()
+    expect(screen.getByText('Second turn citation only.')).toBeTruthy()
+  })
+
   test('refreshes history and renders selected session detail read-only', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
