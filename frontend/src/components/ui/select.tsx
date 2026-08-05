@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
+import { Check, ChevronDown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -66,7 +67,7 @@ export function Select({
       >
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon aria-hidden="true" className="text-muted-foreground">
-          v
+          <ChevronDown className="size-4" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
@@ -74,7 +75,6 @@ export function Select({
           className={cn(
             [
               'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
-              'data-[state=open]:animate-in data-[state=closed]:animate-out',
             ],
             contentClassName,
           )}
@@ -102,9 +102,9 @@ export function Select({
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator
                   aria-hidden="true"
-                  className="ml-auto pl-2 text-xs text-muted-foreground"
+                  className="ml-auto pl-2 text-muted-foreground"
                 >
-                  check
+                  <Check className="size-4" />
                 </SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>
             ))}

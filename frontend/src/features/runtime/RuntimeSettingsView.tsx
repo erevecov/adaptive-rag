@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -829,9 +830,10 @@ export function CapabilitySelector({
                 value={query}
               />
             </div>
-            <span aria-hidden="true" className="text-muted-foreground">
-              v
-            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className="size-4 text-muted-foreground"
+            />
           </div>
         </Popover.Trigger>
         <Popover.Portal>
