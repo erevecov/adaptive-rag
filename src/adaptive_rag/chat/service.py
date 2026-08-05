@@ -45,6 +45,10 @@ from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 logger = logging.getLogger(__name__)
 
+# Bound single-turn user messages to limit request size and prompt cost.
+# 32k chars is well below typical context windows yet blocks accidental/abusive dumps.
+MAX_CHAT_MESSAGE_CHARS = 32_000
+
 
 class ChatRunner(Protocol):
     """Runner conversacional inyectable para aislar frameworks agentic."""
@@ -167,9 +171,7 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_sanitize_chat_answer(
-                    output.answer, max_doc=len(citations)
-                ),
+                answer=_sanitize_chat_answer(output.answer, max_doc=len(citations)),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -284,9 +286,7 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_sanitize_chat_answer(
-                    output.answer, max_doc=len(citations)
-                ),
+                answer=_sanitize_chat_answer(output.answer, max_doc=len(citations)),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -341,9 +341,7 @@ class ChatService:
                     id="answer",
                     status="error",
                     elapsed_ms=(
-                        elapsed_ms(answer_start)
-                        if answer_start is not None
-                        else None
+                        elapsed_ms(answer_start) if answer_start is not None else None
                     ),
                     detail={"error": str(exc)},
                 )
@@ -374,8 +372,7 @@ class ChatService:
             limit=self._history_message_limit,
         )
         return tuple(
-            ChatHistoryTurn(role=role, content=content)
-            for role, content in raw_turns
+            ChatHistoryTurn(role=role, content=content) for role, content in raw_turns
         )
 
     def _build_knowledge_tool(
@@ -529,6 +526,10 @@ def _validate_request(request: ChatRequest) -> str:
 
 
 def _validate_message(message: str) -> str:
+    if len(message) > MAX_CHAT_MESSAGE_CHARS:
+        raise ChatServiceError(
+            f"message must be at most {MAX_CHAT_MESSAGE_CHARS} characters"
+        )
     value = message.strip()
     if not value:
         raise ChatServiceError("message must not be empty")

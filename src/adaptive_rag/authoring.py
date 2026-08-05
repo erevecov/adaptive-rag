@@ -24,6 +24,9 @@ from adaptive_rag.ingestion.parsers import (
 
 SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url", "pdf", "docx")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
+# Align text body cap with binary payload limit (5 MiB) so JSON content stays
+# in the same order of magnitude as content_base64 uploads.
+MAX_TEXT_SOURCE_CONTENT_CHARS = MAX_BINARY_SOURCE_BYTES
 
 
 class AuthoringError(Exception):
@@ -302,6 +305,12 @@ def validate_source_create(
         content = extra_metadata.get("content")
         if not isinstance(content, str) or content.strip() == "":
             _raise_missing_text_content(source_type)
+        if len(content) > MAX_TEXT_SOURCE_CONTENT_CHARS:
+            raise AuthoringError(
+                f"{source_type} source content exceeds max size of "
+                f"{MAX_TEXT_SOURCE_CONTENT_CHARS} characters",
+                status_code=422,
+            )
         return
     if source_type in BINARY_SOURCE_TYPES:
         _validate_binary_source_metadata(

@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 
 from adaptive_rag.authoring import (
+    MAX_TEXT_SOURCE_CONTENT_CHARS,
     AuthoringError,
     create_project,
     create_source,
@@ -126,6 +127,29 @@ def test_validate_source_create_rejects_blank_or_non_string_content(
     assert excinfo.value.status_code == 422
 
 
+@pytest.mark.parametrize("source_type", ["markdown", "text", "txt"])
+def test_validate_source_create_rejects_oversized_text_content(
+    source_type: str,
+) -> None:
+    oversized = "x" * (MAX_TEXT_SOURCE_CONTENT_CHARS + 1)
+    with pytest.raises(AuthoringError) as excinfo:
+        validate_source_create(
+            source_type=source_type,
+            extra_metadata={"content": oversized},
+        )
+
+    assert excinfo.value.status_code == 422
+    assert "exceeds max size" in excinfo.value.detail
+    assert str(MAX_TEXT_SOURCE_CONTENT_CHARS) in excinfo.value.detail
+
+
+def test_validate_source_create_accepts_text_content_at_max_size() -> None:
+    validate_source_create(
+        source_type="markdown",
+        extra_metadata={"content": "y" * MAX_TEXT_SOURCE_CONTENT_CHARS},
+    )
+
+
 def test_project_payload_serializes_all_fields() -> None:
     project = _project()
 
@@ -193,9 +217,9 @@ def test_create_source_persists_and_is_listable_and_gettable() -> None:
         extra_metadata={"content": "hello"},
     )
 
-    assert get_source(
-        session, project_id=project.id, source_id=source.id
-    ).id == source.id
+    assert (
+        get_source(session, project_id=project.id, source_id=source.id).id == source.id
+    )
     listed = list_sources(
         session,
         project_id=project.id,

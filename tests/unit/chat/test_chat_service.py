@@ -17,6 +17,7 @@ from adaptive_rag.chat import (
 )
 from adaptive_rag.chat.audit import InMemoryChatAuditWriter
 from adaptive_rag.chat.payloads import serialize_chat_response
+from adaptive_rag.chat.service import MAX_CHAT_MESSAGE_CHARS
 from adaptive_rag.chat.streaming import chat_stream_error_event
 from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.provider_usage import ProviderCallRecord, ProviderTokenUsage
@@ -449,6 +450,13 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
             ),
             "rerank_candidate_limit must be greater than or equal to retrieval_limit",
         ),
+        (
+            ChatRequest(
+                project_id=uuid4(),
+                message="x" * (MAX_CHAT_MESSAGE_CHARS + 1),
+            ),
+            f"message must be at most {MAX_CHAT_MESSAGE_CHARS} characters",
+        ),
     ],
 )
 def test_chat_service_rejects_invalid_requests_without_runner_or_retrieval_call(
@@ -463,6 +471,20 @@ def test_chat_service_rejects_invalid_requests_without_runner_or_retrieval_call(
 
     assert runner.requests == []
     assert retrieval.requests == []
+
+
+def test_chat_service_accepts_message_at_max_length() -> None:
+    project_id = uuid4()
+    runner = NoToolRunner()
+    retrieval = RecordingRetrievalService([])
+    message = "a" * MAX_CHAT_MESSAGE_CHARS
+
+    ChatService(runner=runner, retrieval_service=retrieval).respond(
+        ChatRequest(project_id=project_id, message=message)
+    )
+
+    assert len(runner.requests) == 1
+    assert runner.requests[0].message == message
 
 
 def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
@@ -528,9 +550,7 @@ def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
             retrieval_service=retrieval,
             audit_writer=audit,
             provider_usage_records=_raise_usage,
-        ).respond(
-            ChatRequest(project_id=project_id, message="What supports alpha?")
-        )
+        ).respond(ChatRequest(project_id=project_id, message="What supports alpha?"))
 
     assert response.answer == "Alpha is backed by retrieved evidence."
     warnings = [
