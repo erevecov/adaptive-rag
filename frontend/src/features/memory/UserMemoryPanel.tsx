@@ -398,7 +398,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </label>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
           <Button
             disabled={
               draft.trim().length === 0 ||
@@ -459,7 +459,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
             <InlineFeedback role="alert" tone="danger">
               {listError}
             </InlineFeedback>
