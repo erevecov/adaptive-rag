@@ -604,13 +604,13 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
   return (
     <Panel aria-label="Source Viewer" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
         <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-3 max-[680px]:pt-0">
+      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-2.5 max-[680px]:pt-0">
         {viewer.state === 'loading' ? (
           <div
             aria-busy="true"
@@ -731,14 +731,14 @@ function ConversationMinimap({
 }) {
   return (
     <Panel aria-label="Conversation Minimap" role="navigation">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
           {(detail?.messages.length ?? 0) === 1 ? 'Message' : 'Messages'}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Conversation Minimap"
@@ -786,13 +786,13 @@ function SessionContextPanel({
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
         <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Session Context"
@@ -850,7 +850,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-1 max-[680px]:p-3">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-1 max-[680px]:p-2.5">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:tracking-wider">
         {label}
       </span>
@@ -873,13 +873,13 @@ function InternalActionStepper({
 }) {
   return (
     <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
         <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Action Stepper"
@@ -969,10 +969,10 @@ function SessionDetailPanel({
   if (state === 'loading') {
     return (
       <Panel aria-live="polite" role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4 max-[680px]:p-2.5">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
           <div
             aria-busy="true"
             aria-label="Loading Session Detail"
@@ -1001,10 +1001,10 @@ function SessionDetailPanel({
   if (error) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4 max-[680px]:p-2.5">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
           <InlineFeedback role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </InlineFeedback>
@@ -1016,10 +1016,10 @@ function SessionDetailPanel({
   if (detail === null) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-3">
+        <PanelHeader className="p-4 max-[680px]:p-2.5">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-2.5 max-[680px]:pt-0">
           <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
@@ -1028,7 +1028,7 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-3">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground">
