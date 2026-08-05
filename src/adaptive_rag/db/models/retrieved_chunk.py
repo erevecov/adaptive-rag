@@ -50,7 +50,11 @@ class RetrievedChunk(Base):
     retrieval_run_id: Mapped[UUID] = mapped_column(
         ForeignKey("retrieval_runs.id", ondelete="CASCADE"), nullable=False
     )
-    chunk_id: Mapped[UUID] = mapped_column(ForeignKey("chunks.id"), nullable=False)
+    # Nullable so source soft-delete can cascade-delete chunks without
+    # violating past retrieval audit rows that still cite those chunks.
+    chunk_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("chunks.id", ondelete="SET NULL"), nullable=True
+    )
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
     dense_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     lexical_score: Mapped[float | None] = mapped_column(Float, nullable=True)

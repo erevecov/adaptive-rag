@@ -32,7 +32,8 @@ jobs:
       - name: Bandit
         run: uv tool run bandit -r src -q
       - name: Pip audit
-        run: uv tool run pip-audit --strict
+        # Must audit the *project* environment, not the isolated tool env.
+        run: uv run --with pip-audit pip-audit
 
   frontend:
     name: frontend (test, typecheck, lint, build)

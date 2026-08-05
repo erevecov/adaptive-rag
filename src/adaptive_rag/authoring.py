@@ -89,6 +89,23 @@ def create_source(
     )
     if existing is not None:
         raise AuthoringError("source already exists", status_code=409)
+    deleted = source_repository.get_by_identity(
+        project_id=project_id,
+        source_type=source_type,
+        external_id=external_id,
+        include_deleted=True,
+    )
+    if deleted is not None:
+        # Unique identity still counts soft-deleted rows; revive instead of 409 forever.
+        restored = source_repository.restore(
+            project_id=project_id,
+            source_id=deleted.id,
+            tags=tags,
+            extra_metadata=extra_metadata,
+        )
+        if restored is None:
+            raise AuthoringError("source not found", status_code=404)
+        return restored
     try:
         return source_repository.create(
             project_id=project_id,
@@ -178,13 +195,17 @@ def update_source(
             source_type=source.source_type,
             extra_metadata=extra_metadata,
         )
-    updated = SourceRepository(session).update(
-        project_id=project_id,
-        source_id=source_id,
-        tags=tags,
-        extra_metadata=extra_metadata,
-        external_id=external_id.strip() if external_id is not None else None,
-    )
+    try:
+        updated = SourceRepository(session).update(
+            project_id=project_id,
+            source_id=source_id,
+            tags=tags,
+            extra_metadata=extra_metadata,
+            external_id=external_id.strip() if external_id is not None else None,
+        )
+    except IntegrityError as exc:
+        session.rollback()
+        raise AuthoringError("source already exists", status_code=409) from exc
     if updated is None:
         raise AuthoringError("source not found", status_code=404)
     return updated

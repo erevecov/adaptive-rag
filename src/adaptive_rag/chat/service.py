@@ -167,7 +167,9 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_redact_chat_answer(output.answer),
+                answer=_sanitize_chat_answer(
+                    output.answer, max_doc=len(citations)
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -282,7 +284,9 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_redact_chat_answer(output.answer),
+                answer=_sanitize_chat_answer(
+                    output.answer, max_doc=len(citations)
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -552,3 +556,14 @@ def _redact_chat_answer(answer: str) -> str:
 
     redacted, _count = redact_secrets(answer)
     return redacted
+
+
+def _sanitize_chat_answer(answer: str, *, max_doc: int) -> str:
+    """Secret redaction + beflow-parity fabricated citation marker scrub."""
+
+    from adaptive_rag.security.citation_markers import filter_citation_markers
+    from adaptive_rag.security.secrets import redact_secrets
+
+    redacted, _count = redact_secrets(answer)
+    filtered, _fabricated = filter_citation_markers(redacted, max_doc=max_doc)
+    return filtered
