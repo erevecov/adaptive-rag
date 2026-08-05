@@ -21,7 +21,7 @@ export const NavSection = forwardRef<HTMLElement, NavSectionProps>(
     >
       {title ? (
         <h2
-          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground"
+          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:px-1.5"
           data-slot="nav-section-title"
         >
           {title}
