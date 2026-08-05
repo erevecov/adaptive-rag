@@ -1,32 +1,31 @@
 # Chat+Shell FE report — continuous polish
 
 **Role:** FE CHAT+SHELL  
-**Branch:** `feat/ui-obsessional-polish` (post #208 merge)  
+**Branch:** `feat/ui-obsessional-polish` (post #212)  
 **STATUS:** ready-for-lead-review
 
 ## Commits this loop (local, no push)
 
 | Commit | What |
 |--------|------|
-| `71b1b97` | Solid primary focus ring; knowledge draft DS rings; rename blur-save |
-| `45ac5f5` | Streaming pipeline toggle → secondary (Escape gate already on tip) |
+| tip | Inspector refresh after ask (dock open) + latest-turn hydrate |
+| prior | Title Case draft/session badges; minimap messages; composer polish |
 
 ## Verify
 
-`HistoryInspectorView` + `ChatPipelineSteps` → **18 passed**  
-`button` + `chat` + `history` (prior) → **34 passed**
+`App.test` P0: **refreshes open inspector** + **hydrates latest turn** → passed  
+Broader session/inspector/knowledge filter → run before commit
 
 ## Tip state (chat/shell)
 
-- Overlay inert: chat host + sidebar + topline  
-- Soft-delete: `Deleted` / `source removed`  
-- Minimap aria truncate; speech mobile full-width status  
-- Escape closes overlay only (not inline dock)  
-- Purple primary ring solid; draft textarea full ring tokens  
+- After ask with inspector open → `getChatSession` reloads detail (no empty dock)
+- `chatResponseFromSessionDetail` scopes tools/citations to latest turn only
+- Soft-delete: `Deleted` / `source removed`
+- Minimap: `N messages`; speech tools full-width ≤680
 
 ## Next
 
-- Locale consistency (rail ES vs inspector EN leftovers)  
-- Live purple/dark ≤680 composer pass  
+- Live purple residual ≤680 composer / theme cards
+- Tab-cycle focus trap residual (deferred)
 
 Grok merges; agent does not push.

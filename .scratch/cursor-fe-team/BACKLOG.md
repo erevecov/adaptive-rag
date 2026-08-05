@@ -11,11 +11,11 @@ Branch: `feat/ui-obsessional-polish`
 - [x] done:implement — Select/dropdown primary/15 highlight (purple menus)
 - [x] done:operator — Form gaps / FieldHelp / memberships empty / ellipsis
 - [x] done:fe-chat — Popover/speech (#212); Title Case badges; pipeline dots
+- [ ] claimed:implement — Panel / table residual density
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
-- [ ] open:implement — Panel / table residual density (optional)
 
 ## Lead queue (next)
-1. Panel/table micro-density (implement) or leave for next loop
+1. Panel/table micro-density — implement (in progress)
 2. Tab-cycle focus trap residual (Radix portal menus)
 
 Reports: `reports/implement-latest.md`
