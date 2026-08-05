@@ -1036,7 +1036,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Approve' }))
     expect(approveUserMemory).toHaveBeenCalled()
     // Status badge text "Approved" collides with the filter button of the same name.
-    const memoryList = await screen.findByRole('list', { name: 'User memories' })
+    const memoryList = await screen.findByRole('list', { name: 'User Memories' })
     expect(
       await within(memoryList).findByText('Approved'),
     ).toBeTruthy()

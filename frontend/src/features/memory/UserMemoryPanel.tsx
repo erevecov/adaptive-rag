@@ -410,7 +410,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </form>
 
       <div
-        aria-label="Memory status filters"
+        aria-label="Memory Status Filters"
         className="flex flex-wrap gap-1.5"
         role="group"
       >
@@ -467,7 +467,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </div>
 
       {listState === 'loading' && items.length === 0 ? (
-        <EmptyState className="p-3 text-left">Loading memories…</EmptyState>
+        <EmptyState className="p-3 text-left">Loading Memories…</EmptyState>
       ) : null}
 
       {listState !== 'loading' && items.length === 0 ? (
@@ -480,7 +480,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       {items.length > 0 ? (
         <DataList
           aria-busy={listState === 'loading' || undefined}
-          aria-label="User memories"
+          aria-label="User Memories"
           className="gap-1.5"
         >
           {items.map((memory) => {
@@ -539,7 +539,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <div className="grid gap-1">
                       <Textarea
                         aria-describedby={`edit-memory-help-${memory.id}`}
-                        aria-label="Edit memory content"
+                        aria-label="Edit Memory Content"
                         className="min-h-16"
                         maxLength={USER_MEMORY_MAX_CHARS}
                         onChange={(event) => setEditDraft(event.target.value)}
