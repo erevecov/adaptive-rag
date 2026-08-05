@@ -9,7 +9,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, ...props }, ref) => (
     <div
       className={cn(
-        'rounded-md border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground',
+        'rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground',
         className,
       )}
       ref={ref}

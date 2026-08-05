@@ -557,7 +557,33 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
       </PanelHeader>
       <PanelBody className="grid gap-3 p-4 pt-0">
         {viewer.state === 'loading' ? (
-          <EmptyState>Loading source {viewer.sourceId}...</EmptyState>
+          <div
+            aria-busy="true"
+            aria-label={`Loading source ${viewer.sourceId ?? ''}`}
+            className="grid w-full gap-2"
+            data-slot="source-viewer-loading"
+            role="status"
+          >
+            <span className="sr-only">
+              Loading source {viewer.sourceId}...
+            </span>
+            <div
+              aria-hidden="true"
+              className="h-3 w-1/3 animate-pulse rounded bg-muted/80"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-full animate-pulse rounded bg-muted/70"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-11/12 animate-pulse rounded bg-muted/60"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-4/5 animate-pulse rounded bg-muted/50"
+            />
+          </div>
         ) : null}
 
         {viewer.error ? (
@@ -845,7 +871,26 @@ function SessionDetailPanel({
           <PanelTitle>Session detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <EmptyState>Loading session detail...</EmptyState>
+          <div
+            aria-busy="true"
+            aria-label="Loading session detail"
+            className="grid w-full gap-3"
+            data-slot="session-detail-loading"
+            role="status"
+          >
+            <span className="sr-only">Loading session detail...</span>
+            <div aria-hidden="true" className="grid gap-2">
+              <div className="h-3 w-1/4 animate-pulse rounded bg-muted/80" />
+              <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
+              <div className="h-3 w-11/12 animate-pulse rounded bg-muted/60" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-muted/50" />
+            </div>
+            <div aria-hidden="true" className="grid gap-2 pt-1">
+              <div className="h-3 w-1/5 animate-pulse rounded bg-muted/80" />
+              <div className="h-16 w-full animate-pulse rounded-md bg-muted/50" />
+              <div className="h-16 w-full animate-pulse rounded-md bg-muted/40" />
+            </div>
+          </div>
         </PanelBody>
       </Panel>
     )

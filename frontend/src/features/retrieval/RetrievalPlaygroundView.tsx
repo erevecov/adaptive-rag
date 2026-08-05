@@ -129,6 +129,7 @@ export function RetrievalPlaygroundPanel({
             <FieldLabel htmlFor="retrieval-query">Query</FieldLabel>
             <FieldControl>
               <Textarea
+                className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
                 id="retrieval-query"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -156,6 +157,7 @@ export function RetrievalPlaygroundPanel({
               <FieldLabel htmlFor="retrieval-limit">Limit</FieldLabel>
               <FieldControl>
                 <Input
+                  className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
                   id="retrieval-limit"
                   inputMode="numeric"
                   value={limit}
@@ -181,6 +183,7 @@ export function RetrievalPlaygroundPanel({
               </FieldLabel>
               <FieldControl>
                 <Input
+                  className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
                   id="retrieval-rerank-limit"
                   inputMode="numeric"
                   disabled={!rerankEnabled}
@@ -214,7 +217,7 @@ export function RetrievalPlaygroundPanel({
         ) : null}
 
         {state === 'succeeded' && results.length === 0 ? (
-          <EmptyState>
+          <EmptyState className="p-4 text-left">
             No hits. Retrieval returned zero chunks for this query and strategy.
           </EmptyState>
         ) : null}

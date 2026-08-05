@@ -498,7 +498,7 @@ export function RuntimeConnectionsPanel({
       <section aria-label="Provider connections" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Connections</h3>
         {connections.length === 0 ? (
-          <EmptyState>No runtime connections loaded.</EmptyState>
+          <EmptyState className="p-4 text-left">No runtime connections loaded.</EmptyState>
         ) : (
           <DataList>
             {connections.map((connection) => {
@@ -1118,7 +1118,7 @@ export function RuntimeGlobalDefaultsPanel({
       <section aria-label="Global chat models" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat models</h3>
         {chatModels.length === 0 ? (
-          <EmptyState>No chat models loaded.</EmptyState>
+          <EmptyState className="p-4 text-left">No chat models loaded.</EmptyState>
         ) : (
           <DataList>
             {chatModels.map((model) => (
@@ -1199,7 +1199,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState>No chat retrieval defaults loaded.</EmptyState>
+          <EmptyState className="p-4 text-left">No chat retrieval defaults loaded.</EmptyState>
         )}
         <form className="grid gap-4" onSubmit={onSaveGlobalChatRetrieval}>
           <div className="grid gap-4 md:grid-cols-3">
@@ -1587,7 +1587,7 @@ export function ProviderModelCatalogView({
     <section aria-label="Provider model catalog" className="grid gap-3">
       <h3 className="text-base font-semibold leading-none">Model catalog</h3>
       {providerModels.length === 0 ? (
-        <EmptyState>No provider models loaded.</EmptyState>
+        <EmptyState className="p-4 text-left">No provider models loaded.</EmptyState>
       ) : (
         <DataList>
           {providerModels.map((model) => (
@@ -1652,7 +1652,7 @@ export function ProjectRuntimeSettingsView({
   settings: ProjectRuntimeSettings | null
 }) {
   if (settings === null) {
-    return <EmptyState>No project runtime settings loaded.</EmptyState>
+    return <EmptyState className="p-4 text-left">No project runtime settings loaded.</EmptyState>
   }
   return (
     <div className="grid gap-4 xl:grid-cols-3">
