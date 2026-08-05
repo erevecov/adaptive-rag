@@ -74,6 +74,28 @@ describe('Button', () => {
     const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
     expect(tokens).toContain('hover:bg-primary/15')
   })
+
+  test('sizes grow to 44px touch targets at ≤680px', () => {
+    render(
+      <>
+        <Button>Save</Button>
+        <Button size="sm">Edit</Button>
+        <IconButton label="More actions">
+          <span aria-hidden="true">⋯</span>
+        </IconButton>
+      </>,
+    )
+
+    expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
+      'max-[680px]:min-h-11',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
+      'max-[680px]:min-h-11',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'More actions' }))).toContain(
+      'max-[680px]:size-11',
+    )
+  })
 })
 
 describe('ButtonLabel', () => {

@@ -31,6 +31,7 @@ describe('SidebarItem', () => {
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/10')
     expect(item.className).toContain('data-[active]:text-foreground')
+    expect(item.className).toContain('max-[680px]:min-h-11')
   })
 
   test('does not expose aria-current when inactive', () => {

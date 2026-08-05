@@ -53,5 +53,7 @@ describe('Callout', () => {
     expect(callout.className).toContain('text-emerald-800')
     expect(callout.className).toContain('dark:text-emerald-200')
     expect(callout.className).toContain('bg-emerald-500/15')
+    expect(callout.className).toContain('leading-relaxed')
+    expect(callout.className).toContain('motion-safe:transition-colors')
   })
 })

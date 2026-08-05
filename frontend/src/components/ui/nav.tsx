@@ -44,7 +44,7 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
     <button
       className={cn(
         [
-          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium',
+          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium max-[680px]:min-h-11',
           'text-muted-foreground motion-safe:transition-colors hover:bg-accent hover:text-accent-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',

@@ -72,21 +72,24 @@ export const InlineFeedback = forwardRef<
 })
 InlineFeedback.displayName = 'InlineFeedback'
 
-const calloutVariants = cva('rounded-md border p-4 text-sm', {
-  defaultVariants: {
-    tone: 'neutral',
-  },
-  variants: {
-    tone: {
-      danger: 'border-destructive/30 bg-destructive/10 text-destructive',
-      neutral: 'border-border bg-muted text-foreground',
-      success:
-        'border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
-      warning:
-        'border-amber-500/35 bg-amber-500/15 text-amber-900 dark:text-amber-100',
+const calloutVariants = cva(
+  'rounded-md border p-4 text-sm leading-relaxed motion-safe:transition-colors',
+  {
+    defaultVariants: {
+      tone: 'neutral',
+    },
+    variants: {
+      tone: {
+        danger: 'border-destructive/30 bg-destructive/10 text-destructive',
+        neutral: 'border-border bg-muted text-foreground',
+        success:
+          'border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
+        warning:
+          'border-amber-500/35 bg-amber-500/15 text-amber-900 dark:text-amber-100',
+      },
     },
   },
-})
+)
 
 type CalloutTone = NonNullable<VariantProps<typeof calloutVariants>['tone']>
 

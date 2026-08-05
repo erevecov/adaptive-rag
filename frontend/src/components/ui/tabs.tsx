@@ -129,7 +129,7 @@ export const SegmentedControlItem = forwardRef<
   ) => {
     const itemClassName = cn(
       [
-        'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium',
+        'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium max-[680px]:min-h-11',
         'text-muted-foreground motion-safe:transition-colors hover:bg-background/80 hover:text-foreground',
         // Inset ring stays inside the muted track (offset rings clip / wash on purple).
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',

@@ -40,6 +40,9 @@ describe('SegmentedControl', () => {
       screen.getByRole('button', { name: 'Connections' }).className,
     ).toContain('data-[active]:bg-card')
     expect(
+      screen.getByRole('button', { name: 'Connections' }).className,
+    ).toContain('max-[680px]:min-h-11')
+    expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
     ).toContain('bg-muted/80')
     expect(
