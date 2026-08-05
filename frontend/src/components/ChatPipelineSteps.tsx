@@ -45,13 +45,13 @@ export function ChatPipelineSteps({
     if (!expanded) {
       return (
         <section
-          aria-label="Chat pipeline steps"
+          aria-label="Chat Pipeline Steps"
           className="rounded-md border border-border bg-muted/15 p-3"
           data-slot="chat-pipeline-steps"
         >
           <Button
             aria-expanded={false}
-            aria-label={`Expand chat steps, ${current.label}, ${statusLabel}, ${current.elapsed}`}
+            aria-label={`Expand Chat Steps, ${current.label}, ${statusLabel}, ${current.elapsed}`}
             className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
             onClick={() => handleToggle(true)}
             type="button"
@@ -73,13 +73,13 @@ export function ChatPipelineSteps({
 
     return (
       <section
-        aria-label="Chat pipeline steps"
+        aria-label="Chat Pipeline Steps"
         className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={true}
-          aria-label={`Collapse chat steps, ${summary}`}
+          aria-label={`Collapse Chat Steps, ${summary}`}
           className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(false)}
           type="button"
@@ -106,13 +106,13 @@ export function ChatPipelineSteps({
   if (!expanded) {
     return (
       <section
-        aria-label="Chat pipeline steps"
+        aria-label="Chat Pipeline Steps"
         className="rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={false}
-          aria-label={`Expand chat steps, ${label}`}
+          aria-label={`Expand Chat Steps, ${label}`}
           className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(true)}
           type="button"
@@ -127,13 +127,13 @@ export function ChatPipelineSteps({
 
   return (
     <section
-      aria-label="Chat pipeline steps"
+      aria-label="Chat Pipeline Steps"
       className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
       data-slot="chat-pipeline-steps"
     >
       <Button
         aria-expanded={true}
-        aria-label={`Collapse chat steps, ${label}`}
+        aria-label={`Collapse Chat Steps, ${label}`}
         className="h-auto min-w-0 justify-start text-left"
         onClick={() => handleToggle(false)}
         type="button"
@@ -160,7 +160,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
         data-slot="chat-pipeline-empty"
         role="status"
       >
-        Waiting for pipeline steps.
+        Waiting For Pipeline Steps.
       </p>
     )
   }
@@ -266,7 +266,7 @@ function StepDetail({ step }: { step: ChatStep }) {
         className="px-3 pb-3 text-sm text-muted-foreground"
         data-slot="chat-pipeline-empty"
       >
-        No step detail recorded.
+        No Step Detail Recorded.
       </p>
     )
   }

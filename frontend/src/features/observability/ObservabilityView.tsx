@@ -111,7 +111,7 @@ export function ObservabilityPanel({
           </p>
           <PanelTitle id="observability-title">{activeLabel}</PanelTitle>
           <PanelDescription>
-            Inspect chat health, cost, error, and latency rollups.
+            Inspect Chat Health, Cost, Error, and Latency Rollups.
           </PanelDescription>
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end">
@@ -265,9 +265,9 @@ function ObservabilityContent({
           data-slot-state="failed"
           role="alert"
         >
-          <p className="font-semibold text-destructive">Summary unavailable.</p>
+          <p className="font-semibold text-destructive">Summary Unavailable.</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            The last refresh failed. Adjust filters and try again.
+            The Last Refresh Failed. Adjust Filters and Try Again.
           </p>
         </EmptyState>
       )
@@ -279,9 +279,9 @@ function ObservabilityContent({
           data-slot-state="canceled"
           role="status"
         >
-          <p className="font-medium text-foreground/90">Refresh canceled.</p>
+          <p className="font-medium text-foreground/90">Refresh Canceled.</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            No summary loaded. Run refresh again when ready.
+            No Summary Loaded. Run Refresh Again When Ready.
           </p>
         </EmptyState>
       )
@@ -362,7 +362,7 @@ function ObservabilityMetricSkeleton({
       data-slot="observability-metric-skeleton"
       role="status"
     >
-      <span className="sr-only">Loading observability metrics…</span>
+      <span className="sr-only">Loading Observability Metrics…</span>
       {Array.from({ length: cardCount }, (_, index) => (
         <article
           aria-hidden="true"
@@ -484,7 +484,7 @@ function ObservabilityErrorsContent({
         />
         <MetricCard
           detail={`${summary.sessions.total} sessions in filter`}
-          label="Failed sessions"
+          label="Failed Sessions"
           value={String(summary.sessions.by_status.failed ?? 0)}
         />
         <MetricCard
@@ -647,7 +647,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
   const rows = getStatusBreakdown(summary.sessions.by_status)
 
   return (
-    <BreakdownCard label={`${summary.sessions.total} total`} title="Status breakdown">
+    <BreakdownCard label={`${summary.sessions.total} total`} title="Status Breakdown">
       {rows.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
           No Status Data Yet.
@@ -832,7 +832,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   const running = summary.sessions.by_status.running ?? 0
 
   return (
-    <BreakdownCard label="Current filter" title="Session health">
+    <BreakdownCard label="Current filter" title="Session Health">
       {total === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
           No Sessions in This Filter Window.

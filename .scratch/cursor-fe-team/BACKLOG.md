@@ -1,21 +1,20 @@
 # FE UI/UX Backlog (Cursor team)
 
 Status: open | claimed:<role> | done | deferred  
-Branch: `feat/ui-polish-post-218` (= tip of #218 / post-#215)
+Branch: `feat/ui-obsessional-polish` (= `feat/ui-polish-post-218`, PR #222)
+Worktree: `.worktrees/ui-polish-218` (main workspace thrash elsewhere)
 
 ## Seed / fleet
-- [x] done — #213 / #215 FE polish merged
-- [x] done — #214 / #216 Account Memory on main
-- [x] done:operator — Runtime canceled≠empty + Title Case loading/empties
-- [x] done:implement — DS ≤680 density / motion-safe / Select chevron (in #218)
-- [ ] open:chat — Hostile live purple residual (shell rail / inspector)
+- [x] done — #213/#214/#215/#216/#218/#220/#221 on main
+- [x] done:operator — canceled empties + Title Case saves (in #222)
+- [x] done:chat — inspector skeletons + Title Case + shell ≤680 + purple rail
+- [x] done:chat — Title Case pipeline/inspector aria + denser ≤680 PanelHeader
 - [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
-- [ ] open:implement — Invent next DS ≤680 / purple residual
+- [ ] open:implement — Invent next DS ≤680 / purple residual after #222
 
 ## Lead queue (next)
-1. Land #218 when CI green
-2. Chat: purple shell/inspector residual
-3. Implement: invent next DS P0
-4. Tab-cycle deferred
+1. Land #222 when CI green (Grok merges)
+2. Invent next hostile purple/DS P0
+3. Tab-cycle focus trap residual
 
-Reports: `reports/operator-latest.md` · `reports/chat-latest.md` · `reports/implement-latest.md` · `reports/lead-latest.md`
+Reports: `reports/chat-latest.md` · `reports/operator-latest.md`

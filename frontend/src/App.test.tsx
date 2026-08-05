@@ -1727,7 +1727,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     expect(await screen.findByDisplayValue('Viewer draft knowledge.')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Refine in chat' }))
+    await user.click(screen.getByRole('button', { name: 'Refine In Chat' }))
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       [
         '[refining knowledge draft draft-viewer]',
@@ -1746,7 +1746,7 @@ describe('App chat workspace', () => {
     )
     expect(await screen.findByText('Pending')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Cancel draft' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel Draft' }))
     expect(screen.getByText('Canceled')).toBeTruthy()
   })
 
@@ -2039,11 +2039,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
+    expect(screen.queryByLabelText('Workspace Inspector')).toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(screen.getByLabelText('Workspace inspector')).toBeTruthy()
+    expect(screen.getByLabelText('Workspace Inspector')).toBeTruthy()
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
@@ -2061,7 +2061,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
 
-    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
+    expect(screen.queryByLabelText('Workspace Inspector')).toBeNull()
   })
 
   test('renders the right dock inline on xl viewports and as an overlay below xl', async () => {
@@ -2075,7 +2075,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const inlineInspector = screen.getByRole('complementary', {
-      name: 'Workspace inspector',
+      name: 'Workspace Inspector',
     })
     expect(inlineInspector.className).toContain('workspace-inspector-inline')
     expect(screen.queryByTestId('inspector-backdrop')).toBeNull()
@@ -2091,7 +2091,7 @@ describe('App chat workspace', () => {
 
     // Overlay uses dialog role for modal keyboard semantics.
     const overlayInspector = screen.getByRole('dialog', {
-      name: 'Workspace inspector',
+      name: 'Workspace Inspector',
     })
     expect(overlayInspector.className).toContain('workspace-inspector-overlay')
     expect(overlayInspector.className).toMatch(/max-\[680px\]:inset-0/)
@@ -2327,7 +2327,7 @@ describe('App chat workspace', () => {
     expect(skip.hasAttribute('inert')).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
-    await screen.findByRole('dialog', { name: 'Workspace inspector' })
+    await screen.findByRole('dialog', { name: 'Workspace Inspector' })
 
     expect(skip.hasAttribute('inert')).toBe(true)
     expect(
@@ -2580,7 +2580,7 @@ describe('App chat workspace', () => {
     expect(lastRun).toBeTruthy()
     const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
     expect(lastRunCard?.textContent).toMatch(/Idle/i)
-    expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
+    expect(screen.getByText('No Ingestion Job Was Processed.')).toBeTruthy()
   })
 
   test('submits a chat question and renders response details', async () => {
@@ -2725,7 +2725,7 @@ describe('App chat workspace', () => {
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
     expect(within(viewer).getByText('url')).toBeTruthy()
     expect(within(viewer).getByText('runbook')).toBeTruthy()
@@ -2789,10 +2789,10 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat transcript' })
     const stepper = within(transcript).getByRole('region', {
-      name: 'Chat pipeline steps',
+      name: 'Chat Pipeline Steps',
     })
     const detailsToggle = within(stepper).getByRole('button', {
-      name: /Expand chat steps/,
+      name: /Expand Chat Steps/,
     })
     expect(detailsToggle.textContent).toContain('1 Source')
 
@@ -2848,7 +2848,7 @@ describe('App chat workspace', () => {
       })[0],
     )
 
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByRole('alert').textContent).toContain(
       'source not found',
     )
@@ -2943,11 +2943,11 @@ describe('App chat workspace', () => {
 
     expect(await screen.findByText('Partial streaming answer')).toBeTruthy()
     const stepper = screen.getByRole('region', {
-      name: 'Chat pipeline steps',
+      name: 'Chat Pipeline Steps',
     })
     expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
     expect(
-      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
+      within(stepper).getByRole('button', { name: /Expand Chat Steps/ }),
     ).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
     expect(screen.queryByText('No citations returned.')).toBeNull()
@@ -2955,7 +2955,7 @@ describe('App chat workspace', () => {
       screen.queryByText('Citations appear after the final response.'),
     ).toBeNull()
     await user.click(
-      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
+      within(stepper).getByRole('button', { name: /Expand Chat Steps/ }),
     )
     expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
@@ -3022,7 +3022,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
     expect(client.askChat).toHaveBeenCalled()
     expect(
-      await screen.findByRole('region', { name: 'Memory applied' }),
+      await screen.findByRole('region', { name: 'Memory Applied' }),
     ).toBeTruthy()
     expect(screen.getByText('Prefer concise answers')).toBeTruthy()
     expect(listUserMemories).toHaveBeenCalledWith({
@@ -3278,7 +3278,7 @@ describe('App chat workspace', () => {
     })
     expect(client.getChatSession).toHaveBeenCalledWith(projectId, 'session-123')
     expect(
-      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
+      screen.queryByRole('complementary', { name: 'Workspace Inspector' }),
     ).toBeNull()
     expect(screen.getByLabelText('Question')).toBeTruthy()
     const transcript = screen.getByRole('region', { name: 'Chat transcript' })
@@ -3342,7 +3342,7 @@ describe('App chat workspace', () => {
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
-    await screen.findByRole('region', { name: 'Selected session detail' })
+    await screen.findByRole('region', { name: 'Selected Session Detail' })
     expect(getChatSession).toHaveBeenCalledTimes(1)
 
     await user.type(screen.getByLabelText('Question'), 'Follow-up question')
@@ -3352,7 +3352,7 @@ describe('App chat workspace', () => {
     await waitFor(() => expect(getChatSession).toHaveBeenCalledTimes(2))
     expect(getChatSession).toHaveBeenLastCalledWith(projectId, 'session-123')
     expect(
-      await screen.findByRole('region', { name: 'Selected session detail' }),
+      await screen.findByRole('region', { name: 'Selected Session Detail' }),
     ).toBeTruthy()
   })
 
@@ -3477,7 +3477,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionMessages = await screen.findByRole('list', {
-      name: 'Session messages',
+      name: 'Session Messages',
     })
     expect(
       within(sessionMessages).getByText(
@@ -3485,7 +3485,7 @@ describe('App chat workspace', () => {
       ),
     ).toBeTruthy()
     const sessionDetail = screen.getByRole('region', {
-      name: 'Selected session detail',
+      name: 'Selected Session Detail',
     })
     expect(within(sessionDetail).getByText('rag_search')).toBeTruthy()
     expect(within(sessionDetail).getByText('deployment import failure')).toBeTruthy()
@@ -3521,7 +3521,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const sessionDetail = await screen.findByRole('region', {
-      name: 'Selected session detail',
+      name: 'Selected Session Detail',
     })
     await user.click(
       within(sessionDetail).getByRole('button', {
@@ -3530,7 +3530,7 @@ describe('App chat workspace', () => {
     )
 
     expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
-    const viewer = await screen.findByRole('region', { name: 'Source viewer' })
+    const viewer = await screen.findByRole('region', { name: 'Source Viewer' })
     expect(within(viewer).getByText('https://docs.local/runbook')).toBeTruthy()
     expect(
       within(viewer).getByText(
@@ -3558,7 +3558,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
-      name: 'Session context',
+      name: 'Session Context',
     })
     expect(within(context).getByText('Prompt default')).toBeTruthy()
     expect(within(context).getByText('qwen-plus')).toBeTruthy()
@@ -3616,7 +3616,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const context = await screen.findByRole('region', {
-      name: 'Session context',
+      name: 'Session Context',
     })
     expect(within(context).getByText('Unknown Cost')).toBeTruthy()
     expect(within(context).getByText('Unknown Tokens')).toBeTruthy()
@@ -3640,7 +3640,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
 
     const minimap = await screen.findByRole('navigation', {
-      name: 'Conversation minimap',
+      name: 'Conversation Minimap',
     })
     expect(
       within(minimap).getByRole('button', {
@@ -3681,7 +3681,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
     const stepper = await screen.findByRole('region', {
-      name: 'Internal action stepper',
+      name: 'Internal Action Stepper',
     })
     expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
@@ -3788,7 +3788,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const statusSection = await screen.findByRole('region', {
-      name: 'Status breakdown',
+      name: 'Status Breakdown',
     })
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('10 Sessions')).toBeTruthy()
@@ -3805,7 +3805,7 @@ describe('App chat workspace', () => {
     expect(within(providerSection).getByText('qwen-plus')).toBeTruthy()
     expect(within(providerSection).getByText('1,840')).toBeTruthy()
 
-    const healthSection = screen.getByRole('region', { name: 'Session health' })
+    const healthSection = screen.getByRole('region', { name: 'Session Health' })
     expect(within(healthSection).getByText(/83\.3%\s*Success/i)).toBeTruthy()
   })
 
@@ -3826,7 +3826,7 @@ describe('App chat workspace', () => {
     expect(within(metrics).getByText('$0.1234')).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Provider usage' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Error messages' })).toBeNull()
-    expect(screen.queryByRole('region', { name: 'Session health' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Session Health' })).toBeNull()
   })
 
   test('renders errors observability content without provider usage', async () => {
@@ -3846,7 +3846,7 @@ describe('App chat workspace', () => {
     expect(within(metrics).getByText('3')).toBeTruthy()
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Session health' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Session Health' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Provider usage' })).toBeNull()
   })
 
@@ -4067,7 +4067,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Global slot model'),
       'text-embedding-v4',
     )
-    await user.click(screen.getByRole('button', { name: 'Save global slot' }))
+    await user.click(screen.getByRole('button', { name: 'Save Global Slot' }))
 
     expect(client.upsertRuntimeSlotDefault).toHaveBeenCalledWith(
       'dense_embedding',
@@ -4086,7 +4086,7 @@ describe('App chat workspace', () => {
     fireEvent.change(within(globalRetrieval).getByLabelText('Candidate limit'), {
       target: { value: '12' },
     })
-    await user.click(screen.getByRole('button', { name: 'Save chat retrieval' }))
+    await user.click(screen.getByRole('button', { name: 'Save Chat Retrieval' }))
 
     expect(client.updateChatRetrievalSettings).toHaveBeenCalledWith({
       retrieval_limit: 7,
@@ -4120,7 +4120,7 @@ describe('App chat workspace', () => {
     )
 
     const confirmInput = screen.getByLabelText(
-      'Confirm connection ID',
+      'Confirm Connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
       name: 'Delete Connection',
@@ -4530,7 +4530,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(screen.getByLabelText('Project slot connection').textContent).toContain(
       'Select Connection',
@@ -4584,7 +4584,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
@@ -4641,7 +4641,7 @@ describe('App chat workspace', () => {
       ),
     ).toBeTruthy()
     const saveButton = screen.getByRole('button', {
-      name: 'Save global slot',
+      name: 'Save Global Slot',
     }) as HTMLButtonElement
     expect(saveButton.disabled).toBe(true)
 

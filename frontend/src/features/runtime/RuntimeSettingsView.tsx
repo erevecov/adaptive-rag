@@ -644,7 +644,7 @@ export function RuntimeConnectionsPanel({
                       </InlineFeedback>
                       <RuntimeField
                         id={`delete-${connection.connection_id}-confirmation`}
-                        label="Confirm connection ID"
+                        label="Confirm Connection ID"
                       >
                         {(fieldId) => (
                           <Input
@@ -943,7 +943,7 @@ export function CapabilitySelector({
                 data-slot-state="empty"
                 role="status"
               >
-                No capabilities found
+                No Capabilities Found.
               </p>
             ) : (
               filteredOptions.map((capability) => (
@@ -1159,7 +1159,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' ? 'Refreshing…' : 'Reload Global Defaults'}
       </Button>
 
-      <RuntimeSlotList isLoading={state === 'loading'} slots={slots} />
+      <RuntimeSlotList slots={slots} state={state} />
 
       <form className="grid gap-4" onSubmit={onSaveGlobalSlot}>
         <div className="grid gap-4 md:grid-cols-3">
@@ -1214,7 +1214,7 @@ export function RuntimeGlobalDefaultsPanel({
           </InlineFeedback>
         ) : null}
         <Button disabled={globalSlotSyncMessage !== null} type="submit">
-          Save global slot
+          Save Global Slot
         </Button>
       </form>
 
@@ -1301,7 +1301,7 @@ export function RuntimeGlobalDefaultsPanel({
           </InlineFeedback>
         ) : null}
         <Button disabled={chatSyncMessage !== null} type="submit">
-          Save chat default
+          Save Chat Default
         </Button>
       </form>
 
@@ -1314,7 +1314,15 @@ export function RuntimeGlobalDefaultsPanel({
             data-slot-state="loading"
             role="status"
           >
-            Loading chat retrieval defaults…
+            Loading Chat Retrieval Defaults…
+          </EmptyState>
+        ) : state === 'canceled' && chatRetrievalSettings === null ? (
+          <EmptyState
+            className="border-border/60 bg-muted/20 p-4 text-left"
+            data-slot-state="canceled"
+            role="status"
+          >
+            Chat Retrieval Defaults Load Canceled.
           </EmptyState>
         ) : chatRetrievalSettings ? (
           <DataList>
@@ -1337,7 +1345,7 @@ export function RuntimeGlobalDefaultsPanel({
           </DataList>
         ) : (
           <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-            No chat retrieval defaults yet.
+            No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
         <form className="grid gap-4" onSubmit={onSaveGlobalChatRetrieval}>
@@ -1396,7 +1404,7 @@ export function RuntimeGlobalDefaultsPanel({
               )}
             </RuntimeField>
           </div>
-          <Button type="submit">Save chat retrieval</Button>
+          <Button type="submit">Save Chat Retrieval</Button>
         </form>
       </section>
     </RuntimePanel>
@@ -1816,13 +1824,13 @@ export function ProviderModelCatalogView({
 }
 
 export function RuntimeSlotList({
-  isLoading = false,
   slots,
+  state = 'idle',
 }: {
-  isLoading?: boolean
   slots: RuntimeSlotDefault[]
+  state?: RequestState
 }) {
-  if (isLoading && slots.length === 0) {
+  if (state === 'loading' && slots.length === 0) {
     return (
       <EmptyState
         aria-busy="true"
@@ -1830,7 +1838,18 @@ export function RuntimeSlotList({
         data-slot-state="loading"
         role="status"
       >
-        Loading global slots…
+        Loading Global Slots…
+      </EmptyState>
+    )
+  }
+  if (state === 'canceled' && slots.length === 0) {
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="canceled"
+        role="status"
+      >
+        Global Slots Load Canceled.
       </EmptyState>
     )
   }
@@ -1841,7 +1860,7 @@ export function RuntimeSlotList({
         data-slot-state="empty"
         role="status"
       >
-        No global slot defaults yet. Save a global slot below.
+        No Global Slot Defaults Yet. Save a Global Slot Below.
       </EmptyState>
     )
   }
@@ -1882,14 +1901,25 @@ export function ProjectRuntimeSettingsView({
         data-slot-state="loading"
         role="status"
       >
-        Loading project runtime settings…
+        Loading Project Runtime Settings…
+      </EmptyState>
+    )
+  }
+  if (state === 'canceled' && settings === null) {
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="canceled"
+        role="status"
+      >
+        Project Runtime Settings Load Canceled.
       </EmptyState>
     )
   }
   if (settings === null) {
     return (
       <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-        No Project runtime settings yet.
+        No Project Runtime Settings Yet.
       </EmptyState>
     )
   }
@@ -1903,7 +1933,7 @@ export function ProjectRuntimeSettingsView({
             data-slot-state="empty"
             role="status"
           >
-            No effective slots yet.
+            No Effective Slots Yet.
           </EmptyState>
         ) : (
           <DataList>
@@ -1941,8 +1971,8 @@ export function ProjectRuntimeSettingsView({
             data-slot-state="empty"
             role="status"
           >
-            No chat models in the project pool yet. Save a global chat default or
-            sync models.
+            No Chat Models in the Project Pool Yet. Save a Global Chat Default or
+            Sync Models.
           </EmptyState>
         ) : (
           <DataList>

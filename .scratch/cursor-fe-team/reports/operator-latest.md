@@ -2,22 +2,19 @@
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (ahead of origin; **no push**)
+Branch: `feat/ui-polish-post-218` → **https://github.com/erevecov/adaptive-rag/pull/222**  
+#218 + #220 MERGED. Not using stale obsessional/post-215.
 
-## Shipped this loop
-| SHA | Summary |
-|-----|---------|
-| `cd40fc3` / `acdbc15` | Runtime connections/chat models canceled≠empty; obs P95 / Refresh Failed; retrieval tips; ingestion Loading Title Case |
-| `4826780` | Runtime slots / chat retrieval / project canceled≠empty + Title Case; authoring list empties; No Chunks Returned; obs callout Title Case |
-| `220eb7d` | App.test: 83.3% Success / No Models Yet / Project Runtime Settings Title Case |
+## Shipped on #222
+- Runtime/authoring/obs/retrieval canceled≠empty + Title Case empties
+- Retrieval project-required copy Title Case
+- Save Chat Default/Retrieval, Confirm Connection ID, Failed Sessions Title Case
+- Memory untouched
 
 ## Verify
-Focused vitest authoring + retrieval + observability + runtime: **57 passed**.
+Focused vitest suites green (50–57).
 
-## Next pass candidates
-- Authoring: FieldHelp for file field still inside control (if residual)
-- Knowledge / proposals empty Title Case residuals
-- Obs: remaining sentence-case helper copy
-- Runtime: capability filter empty already Title Case; denser connection row chrome
+## Next
+Continue densify; land #222 when CI green.
 
-Grok merges green PRs. Operator keeps looping on tip.
+Grok merges green PRs.

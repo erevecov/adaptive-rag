@@ -408,7 +408,8 @@ export function AppSidebar({
       className={cn(
         [
           'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
-          'border-r border-border bg-card/90 motion-safe:transition-[background,border-color,opacity,width] motion-safe:duration-200',
+          // Solid card (not /90) keeps the rail opaque on purple/dark backgrounds.
+          'border-r border-border bg-card shadow-[1px_0_0_0] shadow-primary/15 motion-safe:transition-[background,border-color,box-shadow,opacity,width] motion-safe:duration-200',
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
@@ -754,7 +755,7 @@ function SidebarContextualButton({
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 rounded-md px-2.5 text-sm',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}

@@ -567,7 +567,7 @@ describe('RuntimeSettingsPanel', () => {
       }),
     ).toBeTruthy()
     const confirmation = screen.getByLabelText(
-      'Confirm connection ID',
+      'Confirm Connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
       name: 'Delete Connection',
@@ -628,7 +628,7 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByText(/No global slot defaults yet\. Save a global slot/),
+      screen.getByText(/No Global Slot Defaults Yet\. Save a Global Slot/),
     ).toBeTruthy()
   })
 
@@ -642,7 +642,7 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByText(/No chat models in the project pool yet/),
+      screen.getByText(/No Chat Models in the Project Pool Yet/),
     ).toBeTruthy()
   })
 
@@ -653,9 +653,9 @@ describe('RuntimeSettingsPanel', () => {
       slots: [],
       state: 'loading',
     })
-    expect(screen.getByText('Loading global slots…')).toBeTruthy()
-    expect(screen.getByText('Loading chat retrieval defaults…')).toBeTruthy()
-    expect(screen.queryByText(/No global slot defaults yet/)).toBeNull()
+    expect(screen.getByText('Loading Global Slots…')).toBeTruthy()
+    expect(screen.getByText('Loading Chat Retrieval Defaults…')).toBeTruthy()
+    expect(screen.queryByText(/No Global Slot Defaults Yet/)).toBeNull()
     loading.unmount()
 
     renderRuntimeSettingsPanel({
@@ -664,6 +664,31 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
     expect(screen.getByText('Loading Chat Models…')).toBeTruthy()
+    expect(screen.queryByText('No Chat Models Yet.')).toBeNull()
+  })
+
+  test('shows canceled instead of empty for connections and chat models', () => {
+    const connections = renderRuntimeSettingsPanel({
+      connections: [],
+      state: 'canceled',
+    })
+    expect(screen.getByText('Connections Load Canceled.')).toBeTruthy()
+    expect(
+      screen.getByText('Connections Load Canceled.').closest('[data-slot-state="canceled"]'),
+    ).toBeTruthy()
+    expect(screen.queryByText('No Connections Yet.')).toBeNull()
+    connections.unmount()
+
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      chatModels: [],
+      chatRetrievalSettings: null,
+      slots: [],
+      state: 'canceled',
+    })
+    expect(screen.getByText('Chat Models Load Canceled.')).toBeTruthy()
+    expect(screen.getByText('Global Slots Load Canceled.')).toBeTruthy()
+    expect(screen.getByText('Chat Retrieval Defaults Load Canceled.')).toBeTruthy()
     expect(screen.queryByText('No Chat Models Yet.')).toBeNull()
   })
 
@@ -694,9 +719,9 @@ describe('RuntimeSettingsPanel', () => {
       },
     })
 
-    expect(screen.getByText('No effective slots yet.')).toBeTruthy()
+    expect(screen.getByText('No Effective Slots Yet.')).toBeTruthy()
     expect(
-      screen.getByText('No effective slots yet.').closest('[data-slot-state="empty"]'),
+      screen.getByText('No Effective Slots Yet.').closest('[data-slot-state="empty"]'),
     ).toBeTruthy()
   })
 })

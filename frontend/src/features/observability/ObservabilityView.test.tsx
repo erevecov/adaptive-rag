@@ -209,7 +209,7 @@ describe('ObservabilityPanel', () => {
     expect(within(metrics).getByText('410 ms')).toBeTruthy()
 
     const statusSection = screen.getByRole('region', {
-      name: 'Status breakdown',
+      name: 'Status Breakdown',
     })
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
@@ -294,7 +294,7 @@ describe('ObservabilityPanel', () => {
         '[data-slot="empty-state"][data-slot-state="failed"]',
       ),
     ).toBeTruthy()
-    expect(screen.getByText('Summary unavailable.')).toBeTruthy()
+    expect(screen.getByText('Summary Unavailable.')).toBeTruthy()
   })
 
   test('idle empty state stays distinct from failed empty', () => {
@@ -327,9 +327,9 @@ describe('ObservabilityPanel', () => {
         '[data-slot="empty-state"][data-slot-state="canceled"]',
       ),
     ).toBeTruthy()
-    expect(screen.getByText('Refresh canceled.')).toBeTruthy()
+    expect(screen.getByText('Refresh Canceled.')).toBeTruthy()
     expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
-    expect(screen.queryByText('Summary unavailable.')).toBeNull()
+    expect(screen.queryByText('Summary Unavailable.')).toBeNull()
   })
 
   test('failed refresh with prior summary shows stale banner', () => {

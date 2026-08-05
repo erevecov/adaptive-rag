@@ -844,13 +844,13 @@ function ResponseContent({
 
       {appliedMemories.length > 0 ? (
         <section
-          aria-label="Memory applied"
-          className="grid gap-1.5 rounded-md border border-border/80 bg-muted/20 p-2.5"
+          aria-label="Memory Applied"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3"
           data-slot="chat-memory-applied"
         >
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge className="w-fit" tone="success">
-              Memory applied
+              Memory Applied
             </StatusBadge>
             <span className="text-xs text-muted-foreground">
               {appliedMemories.length} approved item
@@ -858,10 +858,10 @@ function ResponseContent({
               context (not a user turn).
             </span>
           </div>
-          <ul className="grid gap-1">
+          <ul className="grid gap-1.5">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-snug text-foreground"
+                className="text-sm leading-relaxed text-foreground"
                 key={memory.id}
               >
                 {memory.content}
@@ -1015,9 +1015,9 @@ function ResponseDetailsContent({
     <div className={embedded ? 'grid gap-3 pt-2' : 'grid gap-3 pt-3'}>
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
-        <section aria-label="Tool calls detail" className="grid gap-2">
+        <section aria-label="Tool Calls Detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            Tool calls · {toolCallCount}
+            Tool Calls · {toolCallCount}
           </h3>
           <DataList>
             {response.tool_calls.map((call, index) => (
@@ -1194,7 +1194,7 @@ function KnowledgeDraftCard({
           type="button"
           variant="secondary"
         >
-          Refine in chat
+          Refine In Chat
         </Button>
         <Button
           disabled={!canCancel}
@@ -1202,7 +1202,7 @@ function KnowledgeDraftCard({
           type="button"
           variant="secondary"
         >
-          Cancel draft
+          Cancel Draft
         </Button>
       </div>
     </article>

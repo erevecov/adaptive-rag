@@ -1,9 +1,16 @@
 # FE Chat — chat-latest
 
 **Date:** 2026-08-05  
-**STATUS:** re-tasked — take purple shell/inspector residual next
+**STATUS:** shipped to #222 — awaiting CI green / Grok merge
 
-## Next claim
-Hostile live purple/dark ≤680 (shell rail / inspector). Tab-cycle still deferred.
+## Landed in #222
+- Inspector loading skeletons ≠ empty
+- Title Case EN inspector/chat/pipeline aria + Memory Applied
+- Shell ≤680 touch + opaque purple rail (`bg-card` + primary hairline)
+- Denser ≤680 inspector PanelHeader
 
-Do not idle after #218 lands — invent next chat taste P0.
+## Next claim (after #222 merges)
+Invent next hostile purple/dark residual or DS ≤680 P0.  
+Tab-cycle focus trap remains deferred.
+
+Worktree: `.worktrees/ui-polish-218` on `feat/ui-polish-post-218`.

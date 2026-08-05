@@ -491,10 +491,38 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     expect(
-      within(screen.getByRole('region', { name: 'Selected session detail' })).getByText(
+      within(screen.getByRole('region', { name: 'Selected Session Detail' })).getByText(
         'No messages in this session.',
       ),
     ).toBeTruthy()
+  })
+
+  test('shows loading skeletons instead of empty copy while detail loads', () => {
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={null}
+        detailError={null}
+        detailState="loading"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+    expect(screen.getByLabelText('Loading session context')).toBeTruthy()
+    expect(screen.getByLabelText('Loading action stepper')).toBeTruthy()
+    expect(screen.getByLabelText('Loading Session Detail')).toBeTruthy()
+    expect(screen.queryByText('Select a session to inspect model, prompt and usage context.')).toBeNull()
+    expect(screen.queryByText('No stored internal actions for this session.')).toBeNull()
   })
 
   test('renders context details and source viewer with tokenized sections', async () => {
@@ -521,12 +549,12 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('complementary', { name: 'Workspace inspector' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: 'Workspace Inspector' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected')).toBe(
       'true',
     )
-    expect(screen.getByRole('region', { name: 'Session context' })).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Selected session detail' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Session Context' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Selected Session Detail' })).toBeTruthy()
     expect(screen.getByLabelText('assistant message').getAttribute('tabindex')).toBe('-1')
     expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(
@@ -568,7 +596,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    const viewer = screen.getByRole('region', { name: 'Source viewer' })
+    const viewer = screen.getByRole('region', { name: 'Source Viewer' })
     const badge = within(viewer).getByText('Deleted', {
       selector: '[data-slot="badge"]',
     })
@@ -604,7 +632,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'assistant: The retrieval flow changed.' }))
     expect(onNavigateMessage).toHaveBeenCalledWith('message-assistant')
-    expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 messages')).toBeTruthy()
+    expect(within(screen.getByRole('navigation', { name: 'Conversation Minimap' })).getByText('2 Messages')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 
@@ -674,7 +702,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('dialog', { name: 'Workspace inspector' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Workspace Inspector' })).toBeTruthy()
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Close Right Sidebar' }),
     )
@@ -708,7 +736,7 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     expect(
-      screen.getByRole('complementary', { name: 'Workspace inspector' }),
+      screen.getByRole('complementary', { name: 'Workspace Inspector' }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
     expect(onClose).not.toHaveBeenCalled()
@@ -737,7 +765,7 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    const dialog = screen.getByRole('dialog', { name: 'Workspace inspector' })
+    const dialog = screen.getByRole('dialog', { name: 'Workspace Inspector' })
     const close = screen.getByRole('button', { name: 'Close Right Sidebar' })
     expect(document.activeElement).toBe(close)
 
