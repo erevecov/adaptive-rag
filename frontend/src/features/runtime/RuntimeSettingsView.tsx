@@ -392,7 +392,7 @@ function RuntimePanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-3 max-[680px]:p-3 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2.5 max-[680px]:p-2.5 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
