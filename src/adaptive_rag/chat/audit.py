@@ -150,6 +150,16 @@ class ChatAuditWriter(Protocol):
         """Registra usage/costo de providers asociado a la sesion."""
         ...
 
+    def list_history_turns(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        limit: int,
+    ) -> list[tuple[str, str]]:
+        """Devuelve los ultimos turnos user/assistant acotados por ``limit``."""
+        ...
+
 
 class NullChatAuditWriter:
     """Audit writer no-op para mantener el contrato existente por defecto."""
@@ -269,6 +279,15 @@ class NullChatAuditWriter:
         records: Sequence[ProviderCallRecord],
     ) -> None:
         return None
+
+    def list_history_turns(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        limit: int,
+    ) -> list[tuple[str, str]]:
+        return []
 
 
 @dataclass(slots=True)

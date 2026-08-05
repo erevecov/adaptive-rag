@@ -349,10 +349,7 @@ class ChatService:
     ) -> tuple[ChatHistoryTurn, ...]:
         if session_id is None:
             return ()
-        list_history = getattr(self._audit_writer, "list_history_turns", None)
-        if list_history is None:
-            return ()
-        raw_turns = list_history(
+        raw_turns = self._audit_writer.list_history_turns(
             project_id=project_id,
             session_id=session_id,
             limit=self._history_message_limit,

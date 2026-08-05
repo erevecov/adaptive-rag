@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -1732,3 +1732,195 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
     )
     assert cross_project.status_code == 404
     assert cross_project.json() == {"detail": "chat session not found"}
+
+
+def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    user = _create_user(session, login="chatter@example.com", token="chatter-token")
+    ProjectMembershipRepository(session).upsert_membership(
+        project_id=project.id,
+        user_id=user.id,
+        role="viewer",
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    first = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("chatter-token"),
+        json={"message": "What is Adaptive RAG indexing?"},
+    )
+    assert first.status_code == 200
+    session_id = first.json()["session_id"]
+
+    follow_up = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("chatter-token"),
+        json={
+            "message": "Why does it matter?",
+            "session_id": session_id,
+        },
+    )
+
+    assert follow_up.status_code == 200
+    assert follow_up.json()["session_id"] == session_id
+    assert len(runner.requests) == 2
+    follow_up_request = runner.requests[1]
+    assert [(turn.role, turn.content) for turn in follow_up_request.history] == [
+        ("user", "What is Adaptive RAG indexing?"),
+        ("assistant", "No retrieval was needed."),
+    ]
+    assert follow_up_request.retrieval_query is not None
+    assert "Adaptive RAG indexing" in follow_up_request.retrieval_query
+    assert "Why does it matter?" in follow_up_request.retrieval_query
+
+    detail = client.get(
+        f"/projects/{project.id}/chat/sessions/{session_id}",
+        headers=_bearer("chatter-token"),
+    )
+    assert detail.status_code == 200
+    assert [(item["role"], item["content"]) for item in detail.json()["messages"]] == [
+        ("user", "What is Adaptive RAG indexing?"),
+        ("assistant", "No retrieval was needed."),
+        ("user", "Why does it matter?"),
+        ("assistant", "No retrieval was needed."),
+    ]
+
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.id == UUID(session_id)
+    assert chat_session.status == "succeeded"
+    assert chat_session.user_id == user.id
+
+
+def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "Continue please.", "session_id": str(uuid4())},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "chat session not found"}
+    assert runner.requests == []
+    fresh_session = session_factory()
+    assert fresh_session.query(ChatSession).count() == 0
+
+    stream_response = client.post(
+        f"/projects/{project.id}/chat/stream",
+        json={"message": "Continue please.", "session_id": str(uuid4())},
+    )
+
+    assert stream_response.status_code == 422
+    assert stream_response.json() == {"detail": "chat session not found"}
+    assert runner.requests == []
+    fresh_session = session_factory()
+    assert fresh_session.query(ChatSession).count() == 0
+
+
+def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    owner = _create_user(session, login="owner@example.com", token="owner-token")
+    other = _create_user(session, login="other@example.com", token="other-token")
+    memberships = ProjectMembershipRepository(session)
+    memberships.upsert_membership(
+        project_id=project.id,
+        user_id=owner.id,
+        role="viewer",
+    )
+    memberships.upsert_membership(
+        project_id=project.id,
+        user_id=other.id,
+        role="viewer",
+    )
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    first = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("owner-token"),
+        json={"message": "Private first turn."},
+    )
+    assert first.status_code == 200
+    session_id = first.json()["session_id"]
+
+    hijack = client.post(
+        f"/projects/{project.id}/chat",
+        headers=_bearer("other-token"),
+        json={"message": "Hijack attempt.", "session_id": session_id},
+    )
+
+    assert hijack.status_code == 422
+    assert hijack.json() == {"detail": "chat session not found"}
+    assert len(runner.requests) == 1
+    fresh_session = session_factory()
+    messages = fresh_session.query(ChatMessage).filter_by(session_id=UUID(session_id))
+    assert [message.role for message in messages] == ["user", "assistant"]
+
+
+def test_chat_stream_endpoint_continues_session(tmp_path: Path) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    project = _create_project(session)
+    session.commit()
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    runner = RecordingNoToolChatRunner()
+    client = _client(session=session, provider=provider, runner=runner)
+
+    first = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "What is Adaptive RAG indexing?"},
+    )
+    assert first.status_code == 200
+    session_id = first.json()["session_id"]
+
+    follow_up = client.post(
+        f"/projects/{project.id}/chat/stream",
+        json={
+            "message": "Why does it matter?",
+            "session_id": session_id,
+        },
+    )
+
+    assert follow_up.status_code == 200
+    assert "event: session_started\n" in follow_up.text
+    assert str(session_id) in follow_up.text
+    assert "event: final\n" in follow_up.text
+    assert len(runner.requests) == 2
+    assert [(turn.role, turn.content) for turn in runner.requests[1].history] == [
+        ("user", "What is Adaptive RAG indexing?"),
+        ("assistant", "No retrieval was needed."),
+    ]
+    fresh_session = session_factory()
+    chat_session = fresh_session.query(ChatSession).one()
+    assert chat_session.id == UUID(session_id)
+    assert chat_session.status == "succeeded"
+    messages = (
+        fresh_session.query(ChatMessage)
+        .filter_by(session_id=UUID(session_id))
+        .order_by(ChatMessage.created_at, ChatMessage.id)
+        .all()
+    )
+    assert [message.role for message in messages] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
