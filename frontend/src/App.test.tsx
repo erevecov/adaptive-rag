@@ -2515,7 +2515,7 @@ describe('App chat workspace', () => {
       screen.getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
     expect(screen.getByText('score 0.88')).toBeTruthy()
-    expect(screen.getByText('url source')).toBeTruthy()
+    expect(screen.getByText('URL source')).toBeTruthy()
     expect(screen.getByText('version 2')).toBeTruthy()
     expect(screen.getByText('chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
@@ -3563,7 +3563,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Created to'),
       '2026-06-22T00:00:00Z',
     )
-    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
@@ -3612,9 +3612,9 @@ describe('App chat workspace', () => {
     const statusSection = await screen.findByRole('region', {
       name: 'Status breakdown',
     })
-    expect(within(statusSection).getByText('succeeded')).toBeTruthy()
+    expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('10 sessions')).toBeTruthy()
-    expect(within(statusSection).getByText('failed')).toBeTruthy()
+    expect(within(statusSection).getByText('Failed')).toBeTruthy()
     expect(within(statusSection).getByText('2 sessions')).toBeTruthy()
 
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
@@ -3746,7 +3746,7 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Created from'),
       '2026-06-21T00:00:00Z',
     )
-    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
     const alerts = await screen.findAllByRole('alert')
@@ -3758,7 +3758,7 @@ describe('App chat workspace', () => {
     expect(
       (screen.getByLabelText('Created from') as HTMLInputElement).value,
     ).toBe('2026-06-21T00:00:00Z')
-    expect(screen.getByLabelText('Status').textContent).toContain('failed')
+    expect(screen.getByLabelText('Status').textContent).toContain('Failed')
   })
 
   test('manages runtime settings without rendering provider secrets', async () => {

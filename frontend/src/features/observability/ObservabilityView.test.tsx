@@ -211,6 +211,8 @@ describe('ObservabilityPanel', () => {
     const statusSection = screen.getByRole('region', {
       name: 'Status breakdown',
     })
+    expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
+    expect(within(statusSection).getByText('Failed')).toBeTruthy()
     expect(
       within(statusSection).getByText('10 sessions').getAttribute('data-slot'),
     ).toBe('badge')

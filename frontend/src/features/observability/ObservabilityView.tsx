@@ -646,7 +646,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
             >
               <div className="grid min-w-0 gap-1">
                 <strong className="break-words text-sm font-semibold">
-                  {row.status}
+                  {sessionStatusDisplayLabel(row.status)}
                 </strong>
                 <small className="text-xs text-muted-foreground">
                   {formatPercent(row.count, summary.sessions.total)}
@@ -863,6 +863,22 @@ function observabilityStatusLabel(state: RequestState): string {
     return 'Canceled'
   }
   return 'Ready'
+}
+
+function sessionStatusDisplayLabel(status: string): string {
+  if (status === 'failed') {
+    return 'Failed'
+  }
+  if (status === 'succeeded') {
+    return 'Succeeded'
+  }
+  if (status === 'running') {
+    return 'Running'
+  }
+  if (status === 'canceled' || status === 'cancelled') {
+    return 'Canceled'
+  }
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function observabilitySubmoduleLabel(submodule: ObservabilitySubmodule): string {
