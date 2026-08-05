@@ -188,3 +188,39 @@ def test_list_projects_and_ingest_text_public_path(monkeypatch: Any) -> None:
     ask_payload = json.loads(ask(project_id, "What is MCP?"))
     assert "answer" in ask_payload
     assert "citation_count" in ask_payload
+
+
+def test_search_clamps_limit_to_chat_retrieval_max(monkeypatch: Any) -> None:
+    from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
+    from adaptive_rag.mcp_server import server as mcp_server
+
+    _install_memory_session(monkeypatch)
+    monkeypatch.setattr(
+        mcp_server,
+        "_providers",
+        lambda: (
+            FakeDenseEmbeddingProvider(),
+            FakeSparseEmbeddingProvider(),
+            object(),
+        ),
+    )
+    captured: dict[str, Any] = {}
+
+    class _CaptureService:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def search(self, request: Any) -> list[Any]:
+            captured["limit"] = request.limit
+            return []
+
+    monkeypatch.setattr(mcp_server, "RetrievalService", _CaptureService)
+    payload = json.loads(
+        search(
+            "00000000-0000-0000-0000-000000000001",
+            "hello",
+            limit=CHAT_RETRIEVAL_MAX_LIMIT + 100,
+        )
+    )
+    assert "error" not in payload
+    assert captured["limit"] == CHAT_RETRIEVAL_MAX_LIMIT

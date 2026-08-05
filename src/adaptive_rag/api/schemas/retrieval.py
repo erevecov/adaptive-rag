@@ -63,7 +63,8 @@ class RetrievalRerankRequest(BaseModel):
 class RetrievalSearchRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    query: str
+    # Align with chat message bound to limit request size / cost.
+    query: str = Field(max_length=32_000)
     limit: int = Field(default=10, ge=1, le=CHAT_RETRIEVAL_MAX_LIMIT)
     metadata_filter: RetrievalMetadataFilterRequest | None = None
     rerank: RetrievalRerankRequest | None = None

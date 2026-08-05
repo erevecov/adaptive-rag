@@ -10,7 +10,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
+from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT, EMBEDDING_DIMENSIONS
 from adaptive_rag.db.repositories import GraphProjectionRepository
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import (
@@ -149,12 +149,11 @@ class RetrievalService:
 
     def search(self, request: RetrievalSearchRequest) -> list[RetrievalSearchResult]:
         query = _validate_query(request.query)
-        if request.limit <= 0:
-            raise RetrievalServiceError("limit must be positive")
+        limit = _validate_limit(request.limit)
         strategy = _validate_strategy(request.strategy)
         rerank_options = _validate_rerank_options(
             request.rerank,
-            limit=request.limit,
+            limit=limit,
             reranker=self._reranker,
         )
         if strategy in ("sparse", "dense_sparse") and self._sparse_provider is None:
@@ -164,9 +163,7 @@ class RetrievalService:
 
         filters = _to_dense_filters(request.metadata_filter)
         candidate_limit = (
-            rerank_options.candidate_limit
-            if rerank_options is not None
-            else request.limit
+            rerank_options.candidate_limit if rerank_options is not None else limit
         )
 
         if strategy == "lexical":
@@ -252,7 +249,7 @@ class RetrievalService:
         return self._rerank_results(
             query=query,
             results=search_results,
-            limit=request.limit,
+            limit=limit,
             options=rerank_options,
         )
 
@@ -526,6 +523,16 @@ def _validate_strategy(strategy: str) -> RetrievalStrategy:
     return cast(RetrievalStrategy, strategy)
 
 
+def _validate_limit(limit: int) -> int:
+    if limit <= 0:
+        raise RetrievalServiceError("limit must be positive")
+    if limit > CHAT_RETRIEVAL_MAX_LIMIT:
+        raise RetrievalServiceError(
+            f"limit must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}"
+        )
+    return limit
+
+
 def _validate_rerank_options(
     rerank_options: RetrievalRerankOptions | None,
     *,
@@ -536,6 +543,10 @@ def _validate_rerank_options(
         return None
     if rerank_options.candidate_limit <= 0:
         raise RetrievalServiceError("rerank candidate_limit must be positive")
+    if rerank_options.candidate_limit > CHAT_RETRIEVAL_MAX_LIMIT:
+        raise RetrievalServiceError(
+            f"rerank candidate_limit must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}"
+        )
     if rerank_options.candidate_limit < limit:
         raise RetrievalServiceError(
             "rerank candidate_limit must be greater than or equal to limit"
@@ -729,11 +740,7 @@ def _fuse_rrf_results(
                 if accumulator.lexical_rank is not None
                 else 10**9
             ),
-            (
-                accumulator.sparse_rank
-                if accumulator.sparse_rank is not None
-                else 10**9
-            ),
+            (accumulator.sparse_rank if accumulator.sparse_rank is not None else 10**9),
             str(accumulator.chunk_id),
         ),
     )
@@ -777,10 +784,7 @@ def _to_rrf_search_result(
     if accumulator.dense_result is not None and accumulator.dense_rank is not None:
         metadata["dense_rank"] = accumulator.dense_rank
         metadata["dense_score"] = accumulator.dense_result.score
-    if (
-        accumulator.lexical_result is not None
-        and accumulator.lexical_rank is not None
-    ):
+    if accumulator.lexical_result is not None and accumulator.lexical_rank is not None:
         metadata["lexical_rank"] = accumulator.lexical_rank
         metadata["lexical_score"] = accumulator.lexical_result.score
     if accumulator.sparse_result is not None and accumulator.sparse_rank is not None:
@@ -878,4 +882,3 @@ def _validate_range(
 ) -> None:
     if start is not None and end is not None and start > end:
         raise RetrievalServiceError(f"{field_name} range is invalid")
-

@@ -15,6 +15,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_dense_embedding_provider,
     get_cli_sparse_embedding_provider,
 )
+from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.retrieval import RetrievalSearchRequest, RetrievalService
@@ -96,7 +97,7 @@ def search(project_id: str, query: str, limit: int = 5) -> str:
             RetrievalSearchRequest(
                 project_id=UUID(project_id),
                 query=query,
-                limit=max(1, limit),
+                limit=max(1, min(limit, CHAT_RETRIEVAL_MAX_LIMIT)),
                 strategy="dense_sparse",
             )
         )
