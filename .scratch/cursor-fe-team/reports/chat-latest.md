@@ -1,24 +1,16 @@
 # FE Chat — chat-latest
 
 **Date:** 2026-08-05  
-**Branch:** `feat/ui-polish-post-218` (PR #222)  
-**Model:** cursor-grok-4.5-high  
-**STATUS:** pushed polish to #222
+**STATUS:** shipped to #222 — awaiting CI green / Grok merge
 
-## Context
-- #218 MERGED; remote `feat/ui-polish-post-215` gone → continue on `feat/ui-polish-post-218`.
-- Account Memory on main — untouched (`frontend/src/features/memory` present).
+## Landed in #222
+- Inspector loading skeletons ≠ empty
+- Title Case EN inspector/chat/pipeline aria + Memory Applied
+- Shell ≤680 touch + opaque purple rail (`bg-card` + primary hairline)
+- Denser ≤680 inspector PanelHeader
 
-## Shipped
-| Slice | Change |
-|-------|--------|
-| History | `detailState` loading skeletons ≠ EmptyState; Title Case EN panels |
-| Shell | ≤680 sidebar touch + opaque purple rail (`bg-card` + primary hairline) |
-| Chat | Tool Calls / Refine In Chat / Cancel Draft / Memory Applied Title Case |
-| App tests | Ingestion + Memory Applied selectors synced |
+## Next claim (after #222 merges)
+Invent next hostile purple/dark residual or DS ≤680 P0.  
+Tab-cycle focus trap remains deferred.
 
-## Verify
-history loading skeletons + focused App memory/ingestion → green
-
-## Next
-Invent next residual. No idle.
+Worktree: `.worktrees/ui-polish-218` on `feat/ui-polish-post-218`.
