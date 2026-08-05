@@ -228,3 +228,28 @@ def test_grounded_runner_uses_retrieval_query() -> None:
         "Adaptive RAG indexing — Why does it matter?"
     )
     assert "condensed hit" in output.answer
+
+
+def test_deterministic_condenser_spanish_follow_up() -> None:
+    condenser = DeterministicQueryCondenser()
+    history = (
+        ChatHistoryTurn(role="user", content="Cual es la politica de reembolsos?"),
+        ChatHistoryTurn(role="assistant", content="Son 30 dias."),
+    )
+    query = condenser.condense(history=history, message="y cuento dias son?")
+    assert "reembolsos" in query.lower() or "reembolsos" in query
+    assert "cuento" in query.lower() or "dias" in query.lower()
+
+
+def test_deterministic_condenser_short_confirmation_uses_assistant() -> None:
+    condenser = DeterministicQueryCondenser()
+    history = (
+        ChatHistoryTurn(role="user", content="Puedes generar el reporte de costos?"),
+        ChatHistoryTurn(
+            role="assistant",
+            content="Si quieres, genero el reporte de costos del proyecto.",
+        ),
+    )
+    query = condenser.condense(history=history, message="dale")
+    assert "reporte de costos" in query.lower()
+    assert "dale" in query.lower()

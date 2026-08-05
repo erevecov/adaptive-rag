@@ -11,6 +11,7 @@ from typing import Any, Protocol
 from uuid import UUID
 
 import trafilatura
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Document, DocumentVersion, Job, Source
@@ -177,6 +178,31 @@ class IngestionPipeline:
                 reason=str(exc),
             )
             return IngestionBlockedResult(job=blocked_job, error_message=str(exc))
+        except IntegrityError as exc:
+            # Concurrent ingest on the same document version number (or other
+            # unique constraints) must not escape as an unexpected 500.
+            # Roll back any poisoned flush, then mark the job blocked.
+            job_id = job.id
+            reason = (
+                f"integrity_error: {exc.orig}"
+                if getattr(exc, "orig", None) is not None
+                else f"integrity_error: {exc}"
+            )
+            try:
+                self._session.rollback()
+            except Exception:  # noqa: BLE001 — best-effort clear
+                pass
+            try:
+                blocked_job = self._job_repo.block(
+                    project_id=project_id,
+                    job_id=job_id,
+                    reason=reason,
+                )
+            except Exception:  # noqa: BLE001 — session may still be unusable
+                # Surface as pipeline error so the outer worker fail() path can
+                # recover after its own rollback (ingestion_ops).
+                raise IngestionPipelineError(reason) from exc
+            return IngestionBlockedResult(job=blocked_job, error_message=reason)
 
         self._job_repo.complete(project_id=project_id, job_id=job.id)
         enqueue_index_document_version_job(
