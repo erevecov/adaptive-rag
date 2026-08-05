@@ -2,16 +2,42 @@
 
 ## Milestone activo
 
-Bloque B post-v1 en curso. M45–M47 cerrados. Proximo: M48 Knowledge lifecycle.
+Bloque B post-v1 M45–M50 cerrados en stack tip `feat/m50-dense-reindex`.
+Residual: Bloque C experimental (graph live/no_go, LLM-as-judge, memory,
+retrieval playground, UI polish PR). LLM contextualize opt-in CLI shipped
+en M50; A/B vs deterministico disponible.
 Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
 
 ## Ultimo milestone completado
+
+M50 Dense reindex + contextualizacion LLM opt-in cerrado el 2026-08-05.
+
+CLI `dense reindex` con force/watermark/JSON; CLI `contextualize reindex` /
+`ab-compare` (slot `llm_opt_in` vs deterministico). OpenSpec
+`2026-08-05-m50-dense-reindex`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M49 MCP stdio minimo cerrado el 2026-08-05.
+
+FastMCP stdio: list_projects, list_sources, search, ask, ingest_text;
+CLI `adaptive-rag mcp serve`; docs/mcp.md. OpenSpec `2026-08-05-m49-mcp-stdio`.
+**No se creo tag v1.0.**
+
+## Milestone anterior completado
+
+M48 Knowledge lifecycle cerrado el 2026-08-05.
+
+Resync CLI/API, watermarks content-hash en sources, dedup report.
+OpenSpec `2026-08-05-m48-knowledge-lifecycle`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
 
 M47 Query routing medible cerrado el 2026-08-05.
 
 Router por reglas (`skip_retrieval` / `dense_sparse` / `graph`), cableado en
 `ChatRetrievalTool`, suite `eval_routing` CI-safe y decision record. OpenSpec
-`m47-query-routing`. **No se creo tag v1.0.**
+`2026-08-05-m47-query-routing`. **No se creo tag v1.0.**
 
 ## Milestone anterior completado
 
@@ -19,7 +45,7 @@ M46 Security pack cerrado el 2026-08-05.
 
 Content guard de secretos en ingesta (redact), filtro de salida en chat
 stream/non-stream, security headers + CORS explicito, bandit/pip-audit en CI.
-OpenSpec `m46-security-pack`. **No se creo tag v1.0.**
+OpenSpec `2026-08-05-m46-security-pack`. **No se creo tag v1.0.**
 
 ## Milestone anterior completado
 
@@ -29,7 +55,7 @@ Parsers `pdf_embedded` / `docx_text` con registry por content-type y
 `source_type`, authoring `pdf`/`docx` via `content_base64`, CLI `--file`,
 URL PDF/DOCX post-fetch, frontend file picker, path publico ingest+index+chat.
 `pdf_office_ingestion` permanece en quality-gate deferred (sin smoke gate
-dedicado). OpenSpec `m45-pdf-docx-ingestion`. **No se creo tag v1.0.**
+dedicado). OpenSpec `2026-08-05-m45-pdf-docx-ingestion`. **No se creo tag v1.0.**
 
 ## Milestone anterior completado
 
@@ -166,9 +192,9 @@ camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found. M47 archivado en
-`openspec/changes/archive/2026-08-05-m47-query-routing/`.
-Proximo: OpenSpec `m48-knowledge-lifecycle` (o nombre equivalente).
+No active changes found. Archives M40–M50 under
+`openspec/changes/archive/2026-08-05-m*`.
+Proximo opcional: Bloque C (experimental).
 
 ## Planificacion reciente
 

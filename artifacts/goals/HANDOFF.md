@@ -1,49 +1,43 @@
-# Handoff — pre-v1 marathon (M40–M44 done)
+# Handoff — Bloque A+B complete (M40–M50)
 
 **Date:** 2026-08-05  
-**Worktree:** `/Users/ereveco/workspace/adaptive-rag/.worktrees/m40-m50-marathon`  
-**Bloque A:** complete (PRs open, stacked on each other).
+**Worktree:** `/Users/ereveco/workspace/adaptive-rag/.worktrees/m40-m50-marathon`
 
-## PRs (merge base → tip)
+## Stack tip (ordered lineage)
+
+`feat/m50-dense-reindex` @ current HEAD — **includes M40→M50** via stacked bases:
+
+M45 → M46 → M47 → M48 → M49 → M50 (not siblings).
 
 | M | Branch | PR |
 |---|--------|-----|
-| M40 | `feat/m40-indexing-job-publico` | https://github.com/erevecov/adaptive-rag/pull/181 |
-| M41 | `feat/m41-job-queue-hardening` | https://github.com/erevecov/adaptive-rag/pull/182 |
-| M42 | `feat/m42-chat-multi-turn` | https://github.com/erevecov/adaptive-rag/pull/183 |
-| M43 | `feat/m43-authoring-lifecycle-rbac` | https://github.com/erevecov/adaptive-rag/pull/184 |
-| M44 | `feat/m44-ci-compose-gate` | https://github.com/erevecov/adaptive-rag/pull/185 |
-
-Stack tip: `feat/m44-ci-compose-gate` (includes M40–M44). Prefer merge stack in order or squash stack tip.
-
-## Not done (Bloque B — post-v1)
-
-- M45 PDF+DOCX
-- M46 Security pack
-- M47 Query routing
-- M48 Knowledge lifecycle
-- M49 MCP stdio
-- M50 Dense reindex / contextualization LLM opt-in
+| M40–M44 | feat/m44-ci-compose-gate | #181–#185 |
+| M45 | feat/m45-pdf-docx-ingestion | #188 |
+| M46 | feat/m46-security-pack | #189 |
+| M47 | feat/m47-query-routing | #190 |
+| M48 | feat/m48-knowledge-lifecycle | #194 |
+| M49 | feat/m49-mcp-stdio | #195 |
+| M50 | feat/m50-dense-reindex | #196 |
 
 ## Explicit non-actions
 
-- No `v1.0` git tag
-- No GitHub Release
+- **No v1.0 git tag**
+- **No GitHub Release**
 
-## Local re-gate evidence (fake, this worktree)
+## Residual (not done)
+
+- Bloque C experimental: graph live evidence / no_go, LLM-as-judge budgeted,
+  durable user memory, retrieval playground UI, UI polish PR
+- Human merge of stack + re-gate on `main` before any v1.0 tag
+
+## Verify tip
 
 ```bash
-uv run alembic upgrade head
-uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json
-# status=succeeded release_decision=ready_for_v1_0
-# deferred_defaults without auth_multi_user
-
-uv run adaptive-rag acceptance runtime-settings-smoke
-# status=succeeded (saved artifacts/acceptance-runtime-settings-smoke.json)
+git checkout feat/m50-dense-reindex && git pull
+test -f src/adaptive_rag/cli/dense.py
+test -f src/adaptive_rag/knowledge_lifecycle.py
+test -d src/adaptive_rag/mcp_server
+uv run pytest tests/unit/test_dense_reindex_cli.py tests/unit/test_mcp_tools.py \
+  tests/unit/test_knowledge_lifecycle.py tests/unit/routing tests/unit/security -q
+uv run adaptive-rag v1 quality-gate
 ```
-
-## Next human step
-
-1. Review/merge PR stack M40→M44 (tip `feat/m44-ci-compose-gate` includes all).
-2. After merge, re-run quality-gate + acceptance on `main` if desired.
-3. Tag v1.0 only after human re-gate.
