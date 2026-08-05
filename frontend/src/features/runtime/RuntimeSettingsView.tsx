@@ -539,11 +539,19 @@ export function RuntimeConnectionsPanel({
             data-slot-state="loading"
             role="status"
           >
-            Loading connections…
+            Loading Connections…
+          </EmptyState>
+        ) : state === 'canceled' && connections.length === 0 ? (
+          <EmptyState
+            className="border-border/60 bg-muted/20 p-4 text-left"
+            data-slot-state="canceled"
+            role="status"
+          >
+            Connections Load Canceled.
           </EmptyState>
         ) : connections.length === 0 ? (
           <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-            No connections yet.
+            No Connections Yet.
           </EmptyState>
         ) : (
           <DataList>
@@ -1219,11 +1227,19 @@ export function RuntimeGlobalDefaultsPanel({
             data-slot-state="loading"
             role="status"
           >
-            Loading chat models…
+            Loading Chat Models…
+          </EmptyState>
+        ) : state === 'canceled' && chatModels.length === 0 ? (
+          <EmptyState
+            className="border-border/60 bg-muted/20 p-4 text-left"
+            data-slot-state="canceled"
+            role="status"
+          >
+            Chat Models Load Canceled.
           </EmptyState>
         ) : chatModels.length === 0 ? (
           <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-            No chat models yet.
+            No Chat Models Yet.
           </EmptyState>
         ) : (
           <DataList>
@@ -1682,7 +1698,7 @@ export function ConnectionSelect({
   testId?: string
   value: string
 }) {
-  const emptyLabel = isLoading ? 'Loading connections…' : 'No connections yet'
+  const emptyLabel = isLoading ? 'Loading Connections…' : 'No Connections Yet'
   return (
     <Select
       data-testid={testId}
@@ -1720,7 +1736,7 @@ export function ProviderModelSelect({
   testId?: string
   value: string
 }) {
-  const emptyLabel = isLoading ? 'Loading models…' : 'No models yet'
+  const emptyLabel = isLoading ? 'Loading Models…' : 'No Models Yet'
   return (
     <Select
       data-testid={testId}
@@ -1759,11 +1775,11 @@ export function ProviderModelCatalogView({
           data-slot-state="loading"
           role="status"
         >
-          Loading provider models…
+          Loading Provider Models…
         </EmptyState>
       ) : providerModels.length === 0 ? (
         <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
-          No provider models yet.
+          No Provider Models Yet.
         </EmptyState>
       ) : (
         <DataList>

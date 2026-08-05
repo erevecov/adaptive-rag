@@ -587,7 +587,7 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading connections…')).toBeTruthy()
+    expect(screen.getByText('Loading Connections…')).toBeTruthy()
     expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
     expect(
       container.querySelector('[data-slot-state="loading"]')?.className,
@@ -617,7 +617,7 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading provider models…')).toBeTruthy()
+    expect(screen.getByText('Loading Provider Models…')).toBeTruthy()
     expect(screen.queryByText('No provider models loaded.')).toBeNull()
   })
 
@@ -663,8 +663,8 @@ describe('RuntimeSettingsPanel', () => {
       chatModels: [],
       state: 'loading',
     })
-    expect(screen.getByText('Loading chat models…')).toBeTruthy()
-    expect(screen.queryByText('No chat models yet.')).toBeNull()
+    expect(screen.getByText('Loading Chat Models…')).toBeTruthy()
+    expect(screen.queryByText('No Chat Models Yet.')).toBeNull()
   })
 
   test('select placeholders say loading instead of empty while busy', () => {
@@ -679,10 +679,10 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
 
-    expect(screen.getAllByText('Loading connections…').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Loading models…').length).toBeGreaterThan(0)
-    expect(screen.queryByText('No connections yet')).toBeNull()
-    expect(screen.queryByText('No models yet')).toBeNull()
+    expect(screen.getAllByText('Loading Connections…').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Loading Models…').length).toBeGreaterThan(0)
+    expect(screen.queryByText('No Connections Yet')).toBeNull()
+    expect(screen.queryByText('No Models Yet')).toBeNull()
   })
 
   test('shows EmptyState when project effective slots are empty', () => {
