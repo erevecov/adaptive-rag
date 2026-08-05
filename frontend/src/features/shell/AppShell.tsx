@@ -919,7 +919,7 @@ function SidebarProjectSelector({
                       variant="ghost"
                     >
                       <span className="grid min-w-0 gap-0.5 max-[680px]:gap-0">
-                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold tracking-tight text-foreground max-[680px]:text-[0.6875rem]">
+                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold tracking-tight text-foreground max-[680px]:text-[0.625rem]">
                           {project.name}
                         </strong>
                       </span>
