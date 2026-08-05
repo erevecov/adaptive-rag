@@ -1265,6 +1265,9 @@ describe('App chat workspace', () => {
 
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(sidebar.getAttribute('data-state')).toBe('open')
+    expect(
+      sidebar.querySelector('[data-slot="app-sidebar-chrome"]')?.className,
+    ).toMatch(/shadow-primary\/15/)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(toggle.className).toMatch(/hover:bg-primary\/15/)
     expect(toggle.className).not.toMatch(/hover:bg-accent/)
