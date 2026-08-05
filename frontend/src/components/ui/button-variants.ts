@@ -22,7 +22,7 @@ export const buttonVariants = cva(
           // Solid ring against destructive fill (parity with primary; purple/dark).
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground',
         ghost:
-          'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
+          'bg-transparent text-foreground hover:bg-primary/10 hover:text-foreground',
         // Contrast ring against primary fill (dark near-white / purple violet)
         primary:
           'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',

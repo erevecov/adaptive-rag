@@ -67,6 +67,13 @@ describe('Button', () => {
     expect(tokens).toContain('hover:bg-primary/10')
     expect(tokens).toContain('hover:border-primary/40')
   })
+
+  test('ghost variant uses primary-tint hover for purple chrome', () => {
+    render(<Button variant="ghost">More</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
+    expect(tokens).toContain('hover:bg-primary/10')
+  })
 })
 
 describe('ButtonLabel', () => {
