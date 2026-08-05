@@ -468,7 +468,7 @@ export function AppSidebar({
           <strong className="truncate text-sm font-extrabold leading-tight tracking-tight text-foreground max-[680px]:text-[0.8125rem]">
             Adaptive RAG
           </strong>
-          <span className="truncate text-[11px] font-medium leading-tight tracking-tight text-muted-foreground max-[680px]:text-[0.625rem]">
+          <span className="truncate text-[11px] font-medium leading-tight tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem]">
             Workspace
           </span>
         </div>
