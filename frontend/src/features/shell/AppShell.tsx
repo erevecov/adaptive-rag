@@ -184,7 +184,7 @@ export function AppShell({
         className={cn(
           [
             'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
-            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-2.5',
+            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-2',
           ],
           primaryView === 'chat'
             ? [
@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-11 max-[680px]:gap-1.5 max-[680px]:px-2 max-[680px]:py-1.5',
+          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:px-2 max-[680px]:py-1',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-1.5 max-[680px]:px-1.5 max-[680px]:pb-2 max-[680px]:pt-1.5',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-1 max-[680px]:px-1.5 max-[680px]:pb-1.5 max-[680px]:pt-1',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
