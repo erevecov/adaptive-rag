@@ -920,10 +920,10 @@ describe('App chat workspace', () => {
       within(navigation)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Chat', 'My Account', 'Settings'])
+    ).toEqual(['Chat', 'My account', 'Settings'])
     expect(within(sidebar).getByRole('heading', { name: 'Sesiones' })).toBeTruthy()
 
-    await user.click(within(navigation).getByRole('button', { name: 'My Account' }))
+    await user.click(within(navigation).getByRole('button', { name: 'My account' }))
 
     expect(
       within(sidebar).getByRole('navigation', { name: 'My Account Navigation' }),
@@ -944,7 +944,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const chatButton = await screen.findByRole('button', { name: /^Chat$/ })
-    const accountButton = screen.getByRole('button', { name: 'My Account' })
+    const accountButton = screen.getByRole('button', { name: 'My account' })
 
     expect(chatButton.getAttribute('aria-current')).toBe('page')
     expect(accountButton.hasAttribute('aria-current')).toBe(false)
@@ -1003,7 +1003,7 @@ describe('App chat workspace', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'My Account' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
 
     const accountNavigation = screen.getByRole('navigation', {
       name: 'My Account Navigation',
@@ -1218,7 +1218,7 @@ describe('App chat workspace', () => {
       screen.getByRole('heading', { level: 2, name: 'Connections' }),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'My Account' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
     expect(window.location.pathname).toBe('/account')
     expect(screen.getByRole('heading', { name: 'Appearance' })).toBeTruthy()
 
@@ -2195,11 +2195,11 @@ describe('App chat workspace', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.querySelector('main')?.className).toContain('app-shell')
 
-    await user.click(screen.getByRole('button', { name: 'My Account' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
 
     const appearancePanel = screen.getByRole('region', { name: 'Appearance' })
     expect(within(appearancePanel).getByRole('heading', { name: 'Appearance' })).toBeTruthy()
-    expect(within(appearancePanel).getByText('My Account')).toBeTruthy()
+    expect(within(appearancePanel).getByText('My account')).toBeTruthy()
     expect(screen.getByText('Choose the interface palette.')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: /Light/ }).getAttribute('aria-pressed'),
@@ -2359,7 +2359,7 @@ describe('App chat workspace', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
-    await user.click(screen.getByRole('button', { name: 'My Account' }))
+    await user.click(screen.getByRole('button', { name: 'My account' }))
 
     expect(
       screen.getByRole('button', { name: /Dark/ }).getAttribute('aria-pressed'),
@@ -2754,7 +2754,7 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
-      name: 'Expand Full Question',
+      name: 'Expand full question',
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
@@ -2763,7 +2763,7 @@ describe('App chat workspace', () => {
     await user.click(prompt)
 
     expect(prompt.textContent).toBe(longQuestion)
-    expect(prompt.getAttribute('aria-label')).toBe('Collapse Full Question')
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
   })
 
   test('consolidates response sources and tool calls under a compact details panel', async () => {
