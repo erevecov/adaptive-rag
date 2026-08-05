@@ -57,6 +57,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [injectableCount, setInjectableCount] = useState(0)
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -474,9 +475,34 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       value={editDraft}
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-snug text-foreground">
-                      {memory.content}
-                    </p>
+                    <div className="grid gap-1">
+                      <p
+                        className={cn(
+                          'whitespace-pre-wrap text-sm leading-snug text-foreground',
+                          !expandedIds[memory.id] &&
+                            memory.content.length > 220 &&
+                            'line-clamp-3',
+                        )}
+                      >
+                        {memory.content}
+                      </p>
+                      {memory.content.length > 220 ? (
+                        <Button
+                          className="h-auto w-fit px-0 py-0 text-xs"
+                          onClick={() =>
+                            setExpandedIds((current) => ({
+                              ...current,
+                              [memory.id]: !current[memory.id],
+                            }))
+                          }
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          {expandedIds[memory.id] ? 'Show less' : 'Show more'}
+                        </Button>
+                      ) : null}
+                    </div>
                   )}
 
                   <DataListItemActions className="gap-1.5">

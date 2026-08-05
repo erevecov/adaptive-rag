@@ -357,4 +357,35 @@ describe('UserMemoryPanel', () => {
     expect(screen.getByText('5m ago')).toBeTruthy()
   })
 
+
+  test('toggles Show more for long memory content', async () => {
+    const user = userEvent.setup()
+    const longContent = 'Prefer concise answers. '.repeat(20).trim()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'approved') {
+        return { items: [] }
+      }
+      return {
+        items: [
+          memory({
+            content: longContent,
+            id: 'mem-long',
+            status: 'proposed',
+          }),
+        ],
+      }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByRole('button', { name: 'Show more' })).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Show more' }))
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy()
+  })
+
 })
