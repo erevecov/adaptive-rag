@@ -12,16 +12,16 @@ Branch: `feat/ui-obsessional-polish`
 - [x] done:fe-lead — Composer sticky ≤680 + EmptyState default `role=status`
 - [x] done — Global focus-visible diluted rings (no remaining `ring-ring/` in features)
 - [x] done — reduced-motion: pulses use `motion-safe:` across surfaces
-- [x] done:operator — Form gap-4 parity + runtime loading pulse chrome (post-#212)
-- [x] done:fe-chat — Popover Trigger focus + speech mobile (#212)
-- [x] done:implement — Purple primary hostile: skip-link + danger + dropdown trigger rings
-- [x] done:implement — Theme option active ring + StatusBadge success/warning contrast
-- [ ] claimed:operator — FieldHelp density (AuthoringField help prop) — in flight locally?
+- [x] done:operator — Form gap-4 / FieldHelp / unicode ellipsis
+- [x] done:implement — StatusBadge + primary badge tint; skip-link/danger/dropdown; segmented inset
+- [x] done:implement — SidebarItem primary/10 active; FieldHelp xs; feedback tones
+- [x] claimed:fe-chat — Popover Trigger focus + speech mobile
+- [ ] claimed:implement — DataListItem hover + FieldHelp test lock
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
+- [ ] open:operator — Memberships-only empty when users list non-empty
 
 ## Lead queue (next)
-1. Finish FieldHelp AuthoringField wiring + tests (operator)
-2. Tabs / nav active-state ring audit on purple
-3. Tab-cycle focus trap residual (Radix portal menus)
+1. DataListItem hover — implement (in progress)
+2. Tab-cycle focus trap residual (Radix portal menus)
 
-Reports: `reports/implement-latest.md` · `reports/operator-latest.md`
+Reports: `reports/implement-latest.md`

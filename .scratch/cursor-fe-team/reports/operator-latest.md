@@ -1,31 +1,20 @@
-# FE OPERATOR report — 20260805 pass-4 (post-#212)
+# FE OPERATOR report — 20260805 post-#212 loop
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (local tip ahead of origin; no push)
+Branch: `feat/ui-obsessional-polish` (local ahead of origin; **no push**)
 
-## Commits this loop
-- `6fb3997` fix(ui): align operator form gaps and loading pulse chrome
-- `4c09482` fix(ui): place FieldHelp outside FieldControl with describedby
+## Operator commits since #212
+| SHA | Summary |
+|-----|---------|
+| `6fb3997` | form gap-4 + runtime loading pulse chrome |
+| `4c09482` | FieldHelp outside FieldControl + describedby |
+| `5bf64ca` | retrieval rerank hint → FieldHelp |
+| `912c694` | unicode ellipsis on busy labels |
+| (pending) | users/memberships per-column empties |
 
-## Pass-3
-| Finding | Fix |
-|---------|-----|
-| Source/obs forms `gap-3` | `gap-4` parity with runtime |
-| Runtime loading empties without pulse chrome | Shared muted + `motion-safe:animate-pulse` |
-| Thin Title Case coverage | Tests for `Deleted` / `Inactive` / loading pulse |
+## Verify
+Focused vitest authoring/runtime/observability/retrieval — green on each batch.
 
-## Pass-4
-| Finding | Fix |
-|---------|-----|
-| Authoring access-token FieldHelp inside FieldControl | `AuthoringField.help` sibling slot + `aria-describedby` |
-| Runtime edit API key help undiagnosed | FieldHelp `id` + input `aria-describedby` when editing |
-
-### Tests
-authoring + runtime focused vitest — **32 passed** (last batch).
-
-## Next open
-- Hostile purple StatusBadge contrast (shared badge DS — coordinate with fe-implement)
-- Retrieval FieldHelp / describedby residual audit
-
-No push. Grok opens/merges when CI green.
+## Coordination
+Grok opens/merges PR only when CI all-green. Operator continues taste loop on tip.
