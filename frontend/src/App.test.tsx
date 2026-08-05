@@ -2405,20 +2405,20 @@ describe('App chat workspace', () => {
       projectId,
       sourceSummary.id,
     )
-    expect((await screen.findAllByText('queued')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Queued')).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
     expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
       job_type: 'ingest_source',
     })
-    expect((await screen.findAllByText('blocked')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Blocked')).length).toBeGreaterThan(0)
     expect(screen.getByText('missing content')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
     expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
-    expect((await screen.findAllByText('processed')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Processed')).length).toBeGreaterThan(0)
 
     await user.click(
       screen.getByRole('button', {
@@ -2509,7 +2509,7 @@ describe('App chat workspace', () => {
     const lastRun = await screen.findByText('Last run')
     expect(lastRun).toBeTruthy()
     const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
-    expect(lastRunCard?.textContent).toMatch(/idle/)
+    expect(lastRunCard?.textContent).toMatch(/Idle/)
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
   })
 
@@ -4392,7 +4392,9 @@ describe('App chat workspace', () => {
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(projectSettings).getAllByText('overridden').length).toBeGreaterThan(0)
+    expect(
+      (await within(projectSettings).findAllByText('Overridden')).length,
+    ).toBeGreaterThan(0)
     await chooseRadixSelectOption(user, screen.getByLabelText('Project slot'), 'chat')
     await chooseRadixSelectOption(
       user,
