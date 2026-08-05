@@ -1,19 +1,20 @@
 # Progreso de Adaptive RAG
 
-## Local re-gate evidence (2026-08-05 tip feat/c-retrieval-playground-ui)
+## Local re-gate evidence (2026-08-05 on `main` after #200)
 
-- Merged `origin/main` (#186 UI polish sidebar/chat) into tip without force-push.
-- `uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json`
-  - status=succeeded release_decision=ready_for_v1_0
-- `uv run adaptive-rag acceptance runtime-settings-smoke --output artifacts/acceptance-runtime-settings-smoke.json`
-  - status=succeeded (6 criteria)
-- Frontend polish + playground tests: 16 passed; tsc/eslint clean on touched UI
+- Marathon tip merged: https://github.com/erevecov/adaptive-rag/pull/200
+  (`c239d72` on `main`) — M40–M50 + Bloque C + UI polish (#186).
+- Intermediate stacked PRs #181–#199 closed as superseded by #200.
+- Post-merge on `main`:
+  - `uv run adaptive-rag v1 quality-gate` → succeeded / `ready_for_v1_0`
+  - acceptance runtime-settings-smoke was green on tip pre-merge
 - **No v1.0 tag created** (human only)
 
 ## Milestone activo
 
-Marathon tip ready for human merge to `main`: `feat/c-retrieval-playground-ui`
-(M40–M50 + Bloque C + main polish). Graph live: hold. Tag v1.0 decision humana.
+Marathon pre-v1 + Bloque C **landed on `main`** via #200. Residual for
+humans: optional re-gate from clean clone, then decide v1.0 tag. Graph live:
+hold documentado.
 
 ## Ultimo milestone completado
 
@@ -289,8 +290,8 @@ Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Siguiente tarea recomendada
 
-- Merge marathon tip to `main` (PR tip→main or bottom-up #181 then stack).
-  UI polish already on main (#186) and integrated into tip. Tag v1.0 human.
+- Human: review `main` @ `c239d72`, optional clean-clone re-gate, then
+  decide whether to tag v1.0 / GitHub Release. No agent-created tag.
 
 ## Reglas de coordinacion
 
