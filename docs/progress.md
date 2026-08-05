@@ -20,9 +20,9 @@
 ## Milestone activo
 
 Marathon goal **implementation complete on `main`** (#200). Post-marathon
-quality residuals #202 (coverage) + #204 (error surfacing) merged.
-Residual **human only**: v1.0 tag/release. Graph live: hold.
-Open non-marathon: #178 refactor, #179 Radix cleanup.
+residuals merged: #201 GHSA, #202 coverage, #204 error surfacing, #205 Radix
+lucide cleanup. Residual **human only**: v1.0 tag/release. Graph live: hold.
+Open non-marathon: #178 large CLI/API error-util refactor (deferred: high risk).
 
 ## Ultimo milestone completado
 
