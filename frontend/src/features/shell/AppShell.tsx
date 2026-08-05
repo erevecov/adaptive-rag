@@ -184,7 +184,7 @@ export function AppShell({
         className={cn(
           [
             'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
-            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-2',
+            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-1.5',
           ],
           primaryView === 'chat'
             ? [
