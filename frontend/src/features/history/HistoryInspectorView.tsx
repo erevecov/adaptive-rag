@@ -221,9 +221,9 @@ export function SessionNavigationPanel({
               role="status"
             >
               <span className="sr-only">Cargando...</span>
-              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/80" />
-              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/70" />
-              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/60" />
+              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/40" />
+              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/35" />
+              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/30" />
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
@@ -623,19 +623,19 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </span>
             <div
               aria-hidden="true"
-              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/80"
+              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/40"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70"
+              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60"
+              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50"
+              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25"
             />
           </div>
         ) : null}
@@ -960,14 +960,14 @@ function SessionDetailPanel({
           >
             <span className="sr-only">Loading session detail...</span>
             <div aria-hidden="true" className="grid gap-2">
-              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/80" />
-              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60" />
-              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50" />
+              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
             </div>
             <div aria-hidden="true" className="grid gap-2 pt-1">
-              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/80" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/50" />
+              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
               <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/40" />
             </div>
           </div>

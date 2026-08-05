@@ -47,7 +47,7 @@ describe('SegmentedControl', () => {
     ).toContain('max-[680px]:min-h-11')
     expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
-    ).toContain('bg-muted/80')
+    ).toContain('bg-muted/40')
     expect(
       screen.getByRole('button', { name: 'Model catalog' }).getAttribute('aria-pressed'),
     ).toBe('false')

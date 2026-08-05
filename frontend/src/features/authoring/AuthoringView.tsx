@@ -1827,7 +1827,7 @@ function formatRelativeOperatorTimestamp(value: string | null): {
   const day = 24 * hour
   let relative: string
   if (absMs < minute) {
-    relative = deltaMs >= 0 ? 'now' : 'just now'
+    relative = deltaMs >= 0 ? 'Now' : 'Just Now'
   } else if (absMs < hour) {
     const n = Math.round(absMs / minute)
     relative = deltaMs >= 0 ? `in ${n}m` : `${n}m ago`
@@ -1852,7 +1852,7 @@ function jobStatusLabel(status: string): string {
     case 'blocked':
       return 'Blocked'
     case 'dead_letter':
-      return 'Dead letter'
+      return 'Dead Letter'
     case 'failed':
       return 'Failed'
     case 'idle':

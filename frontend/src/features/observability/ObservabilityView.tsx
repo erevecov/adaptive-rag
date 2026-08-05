@@ -369,9 +369,9 @@ function ObservabilityMetricSkeleton({
           className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
           key={index}
         >
-          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted" />
-          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
-          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/40" />
+          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
+          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
         </article>
       ))}
     </div>

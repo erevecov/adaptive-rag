@@ -473,17 +473,17 @@ function ResponsePanel({
             aria-hidden="true"
             className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left"
           >
-            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted" />
+            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
             <div className="space-y-2">
-              <div className="h-3 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
             </div>
             <div className="flex gap-1.5 pt-1">
-              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted/40" />
+              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted/40" />
+              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted/40" />
             </div>
           </div>
         </EmptyState>
