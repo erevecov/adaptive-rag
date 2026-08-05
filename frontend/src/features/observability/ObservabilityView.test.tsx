@@ -135,7 +135,7 @@ describe('ObservabilityPanel', () => {
     })
 
     expect(screen.getByRole('region', { name: 'Observability latency' })).toBeTruthy()
-    expect(screen.getByText(/No latency groups available yet/)).toBeTruthy()
+    expect(screen.getByText(/No Latency Groups Available Yet/)).toBeTruthy()
     expectNoLegacyObservabilityClasses(view.container)
   })
 
@@ -149,7 +149,7 @@ describe('ObservabilityPanel', () => {
       view.container.querySelector('[data-slot="observability-metric-skeleton"]'),
     ).toBeTruthy()
     expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
-    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
     expect(screen.getByText('Refreshing').getAttribute('data-slot')).toBe('badge')
     expect(screen.getByLabelText(/metrics loading/i).getAttribute('aria-busy')).toBe(
       'true',
@@ -288,7 +288,7 @@ describe('ObservabilityPanel', () => {
         .some((node) => node.textContent?.includes('observability unavailable')),
     ).toBe(true)
     // Failed load must not reuse the idle empty copy.
-    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
     expect(
       view.container.querySelector(
         '[data-slot="empty-state"][data-slot-state="failed"]',
@@ -308,7 +308,7 @@ describe('ObservabilityPanel', () => {
         '[data-slot="empty-state"][data-slot-state="empty"]',
       ),
     ).toBeTruthy()
-    expect(screen.getByText(/No observability summary yet/)).toBeTruthy()
+    expect(screen.getByText(/No Observability Summary Yet/)).toBeTruthy()
     expect(
       view.container.querySelector(
         '[data-slot="empty-state"][data-slot-state="failed"]',
@@ -328,7 +328,7 @@ describe('ObservabilityPanel', () => {
       ),
     ).toBeTruthy()
     expect(screen.getByText('Refresh canceled.')).toBeTruthy()
-    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
     expect(screen.queryByText('Summary unavailable.')).toBeNull()
   })
 

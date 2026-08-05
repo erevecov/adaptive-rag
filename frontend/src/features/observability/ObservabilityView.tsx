@@ -49,13 +49,13 @@ const OBSERVABILITY_TABS: { label: string; value: ObservabilitySubmodule }[] = [
 
 const EMPTY_OBSERVABILITY_MESSAGES: Record<ObservabilitySubmodule, string> = {
   costs:
-    'No cost rollup available yet. Enter filters and refresh to inspect provider spend.',
+    'No Cost Rollup Available Yet. Enter filters and refresh to inspect provider spend.',
   errors:
-    'No error clusters available yet. Enter filters and refresh to inspect failures.',
+    'No Error Clusters Available Yet. Enter filters and refresh to inspect failures.',
   latency:
-    'No latency groups available yet. Enter filters and refresh to inspect response timing.',
+    'No Latency Groups Available Yet. Enter filters and refresh to inspect response timing.',
   summary:
-    'No observability summary yet. Enter filters and refresh to inspect chat health.',
+    'No Observability Summary Yet. Enter filters and refresh to inspect chat health.',
 }
 
 export type ObservabilityPanelProps = {
@@ -776,7 +776,7 @@ function ProviderLatencyTable({
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-            No provider latency groups yet.
+            No Provider Latency Groups Yet.
           </EmptyState>
         ) : (
           <TableScroll>
