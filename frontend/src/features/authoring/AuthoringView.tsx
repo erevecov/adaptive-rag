@@ -1265,14 +1265,28 @@ function IngestionJobsPanel({
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
       {run ? (
-        <div className="grid gap-1 rounded-md border border-border bg-muted/40 p-3 text-sm">
-          <span className="text-muted-foreground">{`Last run ${run.status}`}</span>
-          <StatusBadge className="w-fit" tone={jobTone(run.status)}>
-            {run.status}
-          </StatusBadge>
-          <span>{ingestionRunMessage(run)}</span>
+        <div
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug"
+          data-slot="ingestion-last-run"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <span className="font-medium text-muted-foreground tabular-nums">
+              {`Last run ${run.status}`}
+            </span>
+            <StatusBadge
+              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide"
+              tone={jobTone(run.status)}
+            >
+              {run.status}
+            </StatusBadge>
+          </div>
+          <p className="text-sm leading-snug text-foreground/90">
+            {ingestionRunMessage(run)}
+          </p>
           {run.error_message ? (
-            <InlineFeedback tone="danger">{run.error_message}</InlineFeedback>
+            <InlineFeedback className="text-xs" tone="danger">
+              {run.error_message}
+            </InlineFeedback>
           ) : null}
         </div>
       ) : null}

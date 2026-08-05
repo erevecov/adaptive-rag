@@ -59,7 +59,7 @@
   --radius: 8px;
   --shadow-sidebar-toggle: 0 14px 32px color-mix(in srgb, var(--foreground) 16%, transparent);
   --shadow-popover: 0 18px 42px color-mix(in srgb, var(--foreground) 28%, transparent);
-  --shadow-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ring) 24%, transparent);
+  --shadow-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ring) 36%, transparent);
   --shadow-mobile-sidebar: 0 18px 46px color-mix(in srgb, var(--foreground) 22%, transparent);
   --shadow-inspector-overlay: 0 24px 80px color-mix(in srgb, var(--foreground) 35%, transparent);
   --overlay-backdrop: color-mix(in srgb, var(--foreground) 45%, transparent);
@@ -85,7 +85,8 @@
   --destructive-foreground: #ffffff;
   --border: #262626;
   --input: #262626;
-  --ring: #737373;
+  /* Lighter than borders so focus rings stay visible on near-black surfaces */
+  --ring: #c4c4c4;
 }
 
 [data-theme='purple'] {
@@ -108,7 +109,8 @@
   --destructive-foreground: #170a0a;
   --border: #2a2247;
   --input: #382e61;
-  --ring: #8f7dff;
+  /* Match primary so purple focus rings remain legible on deep violet bg */
+  --ring: #a898ff;
 }
 
 * {

@@ -251,7 +251,7 @@ describe('ObservabilityPanel', () => {
   })
 
   test('error state keeps filter values and exposes alert semantics', () => {
-    renderObservabilityPanel({
+    const { view } = renderObservabilityPanel({
       createdAtFrom: '2026-06-21T00:00:00Z',
       error: 'observability unavailable',
       state: 'failed',
@@ -266,5 +266,32 @@ describe('ObservabilityPanel', () => {
     expect(screen.getByRole('alert').textContent).toContain(
       'observability unavailable',
     )
+    // Failed load must not reuse the idle empty copy.
+    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('Summary unavailable.')).toBeTruthy()
+  })
+
+  test('idle empty state stays distinct from failed empty', () => {
+    const { view } = renderObservabilityPanel({
+      summary: null,
+      state: 'idle',
+    })
+
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="empty"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText(/No observability summary yet/)).toBeTruthy()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeNull()
   })
 })

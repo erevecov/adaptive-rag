@@ -236,8 +236,25 @@ function ObservabilityContent({
     if (isLoading) {
       return <ObservabilityMetricSkeleton activeSubmodule={activeSubmodule} />
     }
+    // Keep failed load distinct from the never-loaded empty prompt.
+    if (state === 'failed') {
+      return (
+        <EmptyState
+          className="border-destructive/30 bg-destructive/5 p-4 text-left"
+          data-slot-state="failed"
+          role="status"
+        >
+          <p className="font-medium text-destructive">Summary unavailable.</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            The last refresh failed. Adjust filters and try again.
+          </p>
+        </EmptyState>
+      )
+    }
     return (
-      <EmptyState>{EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}</EmptyState>
+      <EmptyState data-slot-state="empty">
+        {EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}
+      </EmptyState>
     )
   }
 

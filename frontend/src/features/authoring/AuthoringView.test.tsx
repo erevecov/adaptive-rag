@@ -319,6 +319,14 @@ describe('AuthoringPanel', () => {
     ).toBeTruthy()
     expect(screen.getByText('attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
+    const lastRun = view.container.querySelector(
+      '[data-slot="ingestion-last-run"]',
+    )
+    expect(lastRun).toBeTruthy()
+    expect(lastRun?.textContent).toContain('Last run idle')
+    expect(lastRun?.querySelector('[data-slot="badge"]')?.className).toMatch(
+      /tabular-nums/,
+    )
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()
