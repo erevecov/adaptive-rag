@@ -142,7 +142,7 @@ describe('UserMemoryPanel', () => {
 
     expect(await screen.findByText('Draft text')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    const editor = screen.getByLabelText('Edit Memory Content')
+    const editor = screen.getByLabelText('Edit memory content')
     await user.clear(editor)
     await user.type(editor, 'Edited draft')
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -440,7 +440,7 @@ describe('UserMemoryPanel', () => {
 
     expect(await screen.findByText('Draft text')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    const editor = screen.getByLabelText('Edit Memory Content')
+    const editor = screen.getByLabelText('Edit memory content')
     expect(screen.getByText(/⌘\/Ctrl\+Enter save/)).toBeTruthy()
     await user.clear(editor)
     await user.type(editor, 'Edited via shortcut')
