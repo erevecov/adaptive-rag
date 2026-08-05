@@ -2982,6 +2982,50 @@ describe('App chat workspace', () => {
     })
   })
 
+  test('loads applied memories after JSON chat fallback succeeds', async () => {
+    const user = userEvent.setup()
+    const approvedMemory = {
+      content: 'Prefer concise answers',
+      created_at: '2026-08-05T00:00:00Z',
+      id: 'mem-applied-1',
+      project_id: null,
+      reviewed_at: '2026-08-05T00:00:00Z',
+      reviewed_by_user_id: 'user-1',
+      status: 'approved' as const,
+      user_id: 'user-1',
+    }
+    const listUserMemories = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'approved') {
+        return { items: [approvedMemory] }
+      }
+      return { items: [] }
+    })
+    const client = createClientStub({
+      askChat: vi.fn(async () => chatResponse),
+      askChatStream: vi.fn(async () => {
+        throw new TypeError('stream unavailable')
+      }),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+      listUserMemories,
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'How do I retry?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+
+    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
+    expect(client.askChat).toHaveBeenCalled()
+    expect(
+      await screen.findByRole('region', { name: 'Memory applied' }),
+    ).toBeTruthy()
+    expect(screen.getByText('Prefer concise answers')).toBeTruthy()
+    expect(listUserMemories).toHaveBeenCalledWith({
+      project_id: projectId,
+      status: 'approved',
+    })
+  })
+
   test('cancels an open streaming request without rendering a final answer', async () => {
     const user = userEvent.setup()
     let capturedSignal: AbortSignal | undefined
