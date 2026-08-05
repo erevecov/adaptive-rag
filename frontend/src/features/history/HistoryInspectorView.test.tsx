@@ -278,6 +278,8 @@ describe('SessionNavigationPanel', () => {
     expect(screen.getByRole('menu').getAttribute('data-slot')).toBe(
       'session-actions-menu',
     )
+    expect(screen.getByRole('menu').className).toContain('max-[680px]:p-1.5')
+    expect(screen.getByRole('menu').className).toContain('tracking-tight')
     // beflow-parity session menu: copy id, rename, archive
     expect(
       screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }),
@@ -521,7 +523,7 @@ describe('WorkspaceInspectorPanel', () => {
     expect(screen.getByLabelText('Loading Session Context')).toBeTruthy()
     expect(screen.getByLabelText('Loading Action Stepper')).toBeTruthy()
     expect(screen.getByLabelText('Loading Session Detail')).toBeTruthy()
-    expect(screen.queryByText('Select a Session to Inspect Model, Prompt and Usage Context.')).toBeNull()
+    expect(screen.queryByText('Select A Session To Inspect Model, Prompt And Usage Context.')).toBeNull()
     expect(screen.queryByText('No Stored Internal Actions for This Session.')).toBeNull()
   })
 
@@ -561,7 +563,7 @@ describe('WorkspaceInspectorPanel', () => {
       screen.getByLabelText('assistant message').querySelector('strong')?.className,
     ).toMatch(/capitalize/)
 
-    await user.click(screen.getByRole('button', { name: 'View source architecture.md' }))
+    await user.click(screen.getByRole('button', { name: 'View Source architecture.md' }))
     expect(onOpenSource).toHaveBeenCalledWith(
       'source-1',
       'The retrieval flow changed.',

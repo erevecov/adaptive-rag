@@ -418,7 +418,7 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByLabelText('Connection Type')).toBeTruthy()
     expect(screen.getByLabelText('Base URL')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
-    expect(screen.getByLabelText('API key')).toBeTruthy()
+    expect(screen.getByLabelText('API Key')).toBeTruthy()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
     expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
   })
@@ -428,11 +428,11 @@ describe('RuntimeSettingsPanel', () => {
       editingConnectionId: 'qwen-hosted',
     })
 
-    const apiKey = screen.getByLabelText('API key')
+    const apiKey = screen.getByLabelText('API Key')
     expect(apiKey.getAttribute('aria-describedby')).toBe(
       'runtime-connection-api-key-help',
     )
-    const help = screen.getByText(/Leave blank to keep the existing key/)
+    const help = screen.getByText(/Leave Blank to Keep the Existing Key/)
     expect(help.getAttribute('data-slot')).toBe('field-help')
     expect(help.closest('[data-slot="field-control"]')).toBeNull()
   })

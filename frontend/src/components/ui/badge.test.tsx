@@ -18,8 +18,11 @@ describe('Badge', () => {
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.className).toContain('border-border')
     expect(badge.className).toContain('tabular-nums')
+    expect(badge.className).toContain('tracking-tight')
     expect(badge.className).toContain('shrink-0')
     expect(badge.className).toContain('max-[680px]:px-1.5')
+    expect(badge.className).toContain('max-[680px]:py-0')
+    expect(badge.className).toContain('max-[680px]:text-[0.6875rem]')
     expect(badge.className).toContain('leading-none')
   })
 

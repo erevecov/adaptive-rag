@@ -272,7 +272,7 @@ describe('AuthoringPanel', () => {
     expect(accessToken.getAttribute('aria-describedby')).toBe(
       'authoring-user-access-token-help',
     )
-    const tokenHelp = screen.getByText('Paste once; never shown after save.')
+    const tokenHelp = screen.getByText('Paste Once; Never Shown After Save.')
     expect(tokenHelp.getAttribute('data-slot')).toBe('field-help')
     expect(tokenHelp.id).toBe('authoring-user-access-token-help')
     expect(tokenHelp.closest('[data-slot="field-control"]')).toBeNull()

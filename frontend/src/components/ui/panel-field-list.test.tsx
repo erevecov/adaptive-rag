@@ -40,7 +40,11 @@ describe('Panel density', () => {
 
     const panel = screen.getByText('Appearance').closest('[data-slot="panel"]')
     expect(panel?.className).toContain('motion-safe:transition-colors')
+    expect(panel?.className).toContain('max-[680px]:rounded-md')
+    expect(panel?.className).toContain('max-[680px]:shadow-none')
     expect(screen.getByText('Appearance').className).toContain('tracking-tight')
+    expect(screen.getByText('Appearance').className).toContain('max-[680px]:text-base')
+    expect(screen.getByText('Appearance').className).toContain('max-[680px]:leading-tight')
     const description = screen.getByText('Choose the interface palette.')
     expect(description.getAttribute('data-slot')).toBe('panel-description')
     expect(description.className).toContain('text-xs')
@@ -61,13 +65,14 @@ describe('Field disabled styling', () => {
 
     const field = screen.getByText('Name').closest('[data-slot="field"]')
     expect(field?.className).toContain('group/field')
-    expect(field?.className).toContain('max-[680px]:gap-1.5')
+    expect(field?.className).toContain('max-[680px]:gap-1')
     expect(
       screen.getByText('Name').closest('[data-slot="field"]')?.querySelector(
         '[data-slot="field-control"]',
       )?.className,
-    ).toContain('max-[680px]:gap-1.5')
+    ).toContain('max-[680px]:gap-1')
     expect(screen.getByText('Name').className).toContain('tracking-tight')
+    expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.8125rem]')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )
@@ -111,11 +116,13 @@ describe('DataListItem', () => {
     )
 
     const list = screen.getByText('row').closest('[data-slot="data-list"]')
-    expect(list?.className).toContain('max-[680px]:gap-1.5')
+    expect(list?.className).toContain('max-[680px]:gap-1')
     const row = screen.getByText('row')
     expect(row.className).toContain('min-w-0')
     expect(row.className).toContain('motion-safe:transition-colors')
     expect(row.className).toContain('hover:bg-primary/15')
-    expect(row.className).toContain('max-[680px]:p-2.5')
+    expect(row.className).toContain('max-[680px]:p-2')
+    expect(row.className).toContain('tracking-tight')
+    expect(row.className).toContain('max-[680px]:leading-snug')
   })
 })

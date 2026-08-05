@@ -180,7 +180,7 @@ describe('ChatWorkspacePanel', () => {
     expect(screen.getByLabelText('Question').getAttribute('data-slot')).toBe(
       'textarea',
     )
-    expect(screen.getByRole('button', { name: 'Start transcript' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Start Transcript' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Ask' }).getAttribute('data-slot')).toBe(
       'button',
     )
@@ -196,7 +196,7 @@ describe('ChatWorkspacePanel', () => {
     const { props, view } = renderChatWorkspace()
 
     await user.click(
-      screen.getByRole('button', { name: 'Expand response details' }),
+      screen.getByRole('button', { name: 'Expand Response Details' }),
     )
 
     expect(screen.getByRole('region', { name: 'Tool Calls Detail' })).toBeTruthy()
@@ -207,7 +207,7 @@ describe('ChatWorkspacePanel', () => {
     await user.click(
       within(screen.getByRole('region', { name: 'Sources Detail' })).getByRole(
         'button',
-        { name: 'View source architecture.md' },
+        { name: 'View Source architecture.md' },
       ),
     )
     expect(props.onOpenSource).toHaveBeenCalledWith(
@@ -225,7 +225,7 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'succeeded',
       response,
     })
-    const chip = screen.getByRole('button', { name: 'Open source architecture.md' })
+    const chip = screen.getByRole('button', { name: 'Open Source architecture.md' })
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
@@ -405,6 +405,9 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/max-\[680px\]:sticky/)
+    expect(
+      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+    ).toMatch(/max-\[680px\]:shadow-primary\/15/)
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 

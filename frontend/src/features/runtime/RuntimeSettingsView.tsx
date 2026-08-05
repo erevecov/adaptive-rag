@@ -694,7 +694,7 @@ export function RuntimeConnectionsPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold leading-none">
             {isEditingConnection
-              ? `Edit connection ${editingConnectionId}`
+              ? `Edit Connection ${editingConnectionId}`
               : 'New Connection'}
           </h3>
           {isEditingConnection ? (
@@ -704,7 +704,7 @@ export function RuntimeConnectionsPanel({
               size="sm"
               variant="secondary"
             >
-              Cancel edit
+              Cancel Edit
             </Button>
           ) : null}
         </div>
@@ -774,11 +774,11 @@ export function RuntimeConnectionsPanel({
             className="md:col-span-2"
             help={
               isEditingConnection
-                ? 'Leave blank to keep the existing key. A new value replaces it.'
+                ? 'Leave Blank to Keep the Existing Key. A New Value Replaces It.'
                 : undefined
             }
             id="runtime-connection-api-key"
-            label="API key"
+            label="API Key"
           >
             {(fieldId) => (
               <Input
@@ -1012,7 +1012,7 @@ export function RuntimeModelCatalogPanel({
       <form className="grid gap-4" onSubmit={onSyncProviderModels}>
         <RuntimeField
           id="runtime-model-sync-connection"
-          label="Model sync connection"
+          label="Model Sync Connection"
         >
           {(fieldId) => (
             <ConnectionSelect
@@ -1065,7 +1065,7 @@ export function RuntimeModelCatalogPanel({
                   size="sm"
                   variant="secondary"
                 >
-                  Edit connection
+                  Edit Connection
                 </Button>
               </DataListItemActions>
             </DataListItem>
@@ -1163,7 +1163,7 @@ export function RuntimeGlobalDefaultsPanel({
 
       <form className="grid gap-4" onSubmit={onSaveGlobalSlot}>
         <div className="grid gap-4 md:grid-cols-3">
-          <RuntimeField id="runtime-global-slot" label="Global slot">
+          <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
                 data-testid="global-slot-select"
@@ -1179,7 +1179,7 @@ export function RuntimeGlobalDefaultsPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-global-slot-connection"
-            label="Global slot connection"
+            label="Global Slot Connection"
           >
             {(fieldId) => (
               <ConnectionSelect
@@ -1194,7 +1194,7 @@ export function RuntimeGlobalDefaultsPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-global-slot-model"
-            label="Global slot model"
+            label="Global Slot Model"
           >
             {(fieldId) => (
               <ProviderModelSelect
@@ -1269,7 +1269,7 @@ export function RuntimeGlobalDefaultsPanel({
         <div className="grid gap-4 md:grid-cols-2">
           <RuntimeField
             id="runtime-chat-connection"
-            label="Chat connection"
+            label="Chat Connection"
           >
             {(fieldId) => (
               <ConnectionSelect
@@ -1282,7 +1282,7 @@ export function RuntimeGlobalDefaultsPanel({
               />
             )}
           </RuntimeField>
-          <RuntimeField id="runtime-chat-model" label="Chat model">
+          <RuntimeField id="runtime-chat-model" label="Chat Model">
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
@@ -1352,7 +1352,7 @@ export function RuntimeGlobalDefaultsPanel({
           <div className="grid gap-4 md:grid-cols-3">
             <RuntimeField
               id="runtime-global-retrieval-limit"
-              label="Retrieval limit"
+              label="Retrieval Limit"
             >
               {(fieldId) => (
                 <Input
@@ -1386,7 +1386,7 @@ export function RuntimeGlobalDefaultsPanel({
             </RuntimeField>
             <RuntimeField
               id="runtime-global-candidate-limit"
-              label="Candidate limit"
+              label="Candidate Limit"
             >
               {(fieldId) => (
                 <Input
@@ -1480,7 +1480,7 @@ export function RuntimeProjectOverridesPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing…' : 'Reload project settings'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload Project Settings'}
       </Button>
 
       <ProjectRuntimeSettingsView
@@ -1493,7 +1493,7 @@ export function RuntimeProjectOverridesPanel({
         <div className="grid gap-4 md:grid-cols-3">
           <RuntimeField
             id="runtime-project-retrieval-limit"
-            label="Retrieval limit"
+            label="Retrieval Limit"
           >
             {(fieldId) => (
               <Input
@@ -1527,7 +1527,7 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-project-candidate-limit"
-            label="Candidate limit"
+            label="Candidate Limit"
           >
             {(fieldId) => (
               <Input
@@ -1546,14 +1546,14 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
         </div>
         <DataListItemActions>
-          <Button type="submit">Save project retrieval override</Button>
+          <Button type="submit">Save Project Retrieval Override</Button>
           {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
             <Button
               onClick={onResetProjectChatRetrieval}
               type="button"
               variant="secondary"
             >
-              Reset chat retrieval to global
+              Reset Chat Retrieval to Global
             </Button>
           ) : null}
         </DataListItemActions>
@@ -1561,7 +1561,7 @@ export function RuntimeProjectOverridesPanel({
 
       <form className="grid gap-4" onSubmit={onSaveProjectOverride}>
         <div className="grid gap-4 md:grid-cols-3">
-          <RuntimeField id="runtime-project-slot" label="Project slot">
+          <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -1576,7 +1576,7 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-project-slot-connection"
-            label="Project slot connection"
+            label="Project Slot Connection"
           >
             {(fieldId) => (
               <ConnectionSelect
@@ -1591,7 +1591,7 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
           <RuntimeField
             id="runtime-project-slot-model"
-            label="Project slot model"
+            label="Project Slot Model"
           >
             {(fieldId) => (
               <ProviderModelSelect
@@ -1611,7 +1611,7 @@ export function RuntimeProjectOverridesPanel({
           </InlineFeedback>
         ) : null}
         <Button disabled={projectSlotSyncMessage !== null} type="submit">
-          Save project override
+          Save Project Override
         </Button>
       </form>
     </RuntimePanel>
@@ -1627,8 +1627,8 @@ export function ConnectionSecretSummary({
     return (
       <small className="text-xs text-muted-foreground">
         {connection.connection_type === 'fake'
-          ? 'Secrets not required for this connection'
-          : 'No API key on file'}
+          ? 'Secrets Not Required for This Connection'
+          : 'No API Key on File'}
       </small>
     )
   }
@@ -1681,10 +1681,10 @@ export function ConnectionCheckSummary({
 
   return (
     <Callout className="p-2" role="alert" tone="danger">
-      Connection check failed. Verify base URL, capabilities, and API key.
+      Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
         <span className="mt-1 block text-xs opacity-90">
-          {operatorSafeMessage(result.message, 'Provider rejected the check.')}
+          {operatorSafeMessage(result.message, 'Provider Rejected the Check.')}
         </span>
       ) : null}
     </Callout>
@@ -1954,7 +1954,7 @@ export function ProjectRuntimeSettingsView({
                       type="button"
                       variant="secondary"
                     >
-                      Reset {slotLabel(slot.slot)} to global
+                      Reset {slotLabel(slot.slot)} to Global
                     </Button>
                   ) : null}
                 </DataListItemActions>

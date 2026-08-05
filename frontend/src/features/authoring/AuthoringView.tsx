@@ -633,7 +633,7 @@ function ProjectAccessPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring users"
-      description="Create Users and assign project membership."
+      description="Create Users and Assign Project Membership."
       eyebrow="Users"
       id="project-access-title"
       status={<RequestStatus state={state} />}
@@ -684,7 +684,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
           <AuthoringField
-            help="Paste once; never shown after save."
+            help="Paste Once; Never Shown After Save."
             id="authoring-user-access-token"
             label="Access Token"
           >
@@ -738,7 +738,7 @@ function ProjectAccessPanel({
 
       <form className="grid gap-4" onSubmit={onSaveMembership}>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-member-user-id" label="Member user ID">
+          <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
                 autoComplete="off"
@@ -1063,7 +1063,7 @@ function SourcesPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring sources"
-      description="Register source content before queueing ingestion."
+      description="Register Source Content Before Queueing Ingestion."
       eyebrow="Sources"
       id="sources-title"
       status={<RequestStatus state={sourceState} />}
@@ -1324,7 +1324,7 @@ function KnowledgeReviewPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring knowledge"
-      description="Review and refine pending knowledge proposals."
+      description="Review and Refine Pending Knowledge Proposals."
       eyebrow="Knowledge"
       id="knowledge-review-title"
       status={<KnowledgeStatus state={state} />}
@@ -1497,7 +1497,7 @@ function IngestionJobsPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring ingestion jobs"
-      description="Run queued ingestion work and retry blocked jobs."
+      description="Run Queued Ingestion Work and Retry Blocked Jobs."
       eyebrow="Ingestion"
       id="ingestion-jobs-title"
       status={<IngestionStatus state={state} />}

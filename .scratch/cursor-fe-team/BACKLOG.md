@@ -1,18 +1,19 @@
 # FE UI/UX Backlog (Cursor team)
 
 Status: open | claimed:<role> | done | deferred  
-Branch: `feat/ui-obsessional-polish` (PR #226)
-Worktree: `.worktrees/ui-polish-218`
+Branch: `feat/ui-polish-cont` (post-#226/#227; coordinator opens PRs)
 
 ## Seed / fleet
-- [x] done — through #225 on main
-- [ ] claimed — #226 Title Case residual + inspector hairline + memory Title Case restore
+- [x] done — through #226/#227 on main
+- [x] done — Memory features preserved (focus + Title Case labels)
+- [x] done:chat — opaque sticky + Title Case transcript/source + history empties (cont tip)
+- [x] done:implement — ≤680 DS density restored after thrash
 - [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
-- [ ] open:implement — Invent next DS ≤680 / purple residual after #226
+- [ ] open:implement — Invent next additive DS ≤680 residual
 
-## Lead queue (next)
-1. Land #226 when CI green (Grok merges)
-2. Invent next hostile purple/DS P0
-3. Tab-cycle focus trap residual
+## Lead queue
+1. Open PR from `feat/ui-polish-cont`
+2. Next DS P0 (additive only)
+3. Tab-cycle focus trap when prioritized
 
 Reports: `reports/chat-latest.md`

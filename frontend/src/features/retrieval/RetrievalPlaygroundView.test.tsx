@@ -69,7 +69,7 @@ describe('RetrievalPlaygroundPanel', () => {
 
     expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
     expect(screen.getByText('Ready').getAttribute('data-tone')).toBe('neutral')
-    const rerankHelp = screen.getByText(/Enable Rerank to edit candidate limit/)
+    const rerankHelp = screen.getByText(/Enable Rerank to Edit Candidate Limit/)
     expect(rerankHelp.getAttribute('data-slot')).toBe('field-help')
     expect(
       screen.getByLabelText('Rerank candidates').getAttribute('aria-describedby'),
@@ -103,7 +103,7 @@ describe('RetrievalPlaygroundPanel', () => {
     const doneBadge = screen.getByText('Done')
     expect(doneBadge.getAttribute('data-slot')).toBe('badge')
     expect(doneBadge.getAttribute('data-tone')).toBe('success')
-    expect(screen.getByText('Dense + sparse')).toBeTruthy()
+    expect(screen.getAllByText('Dense + Sparse (Default)').length).toBeGreaterThan(0)
     expect(screen.getByText('Text')).toBeTruthy()
   })
 
@@ -196,7 +196,7 @@ describe('RetrievalPlaygroundPanel', () => {
       />,
     )
 
-    expect(screen.getByText(/Run a query to inspect ranked chunks/)).toBeTruthy()
+    expect(screen.getByText(/Run A Query To Inspect Ranked Chunks/)).toBeTruthy()
 
     await user.type(screen.getByLabelText('Query'), 'refund')
     await user.click(screen.getByRole('button', { name: 'Search' }))

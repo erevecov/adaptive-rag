@@ -194,6 +194,8 @@ export function ChatWorkspacePanel({
           // Keep Ask docked above the fold on narrow shells / soft keyboards.
           'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
           'max-[680px]:border-t max-[680px]:border-border/60',
+          // Purple hairline above sticky Ask dock (mirrors question sticky).
+          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/15',
           'max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
@@ -252,7 +254,7 @@ export function ChatWorkspacePanel({
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
-                placeholder="Ask a question about indexed sources"
+                placeholder="Ask A Question About Indexed Sources"
                 ref={questionInputRef}
                 rows={2}
                 title="Enter to send · Shift+Enter for a new line · Escape to cancel"
@@ -356,10 +358,10 @@ function SpeechInputControl({
 }) {
   const isListening = state === 'loading'
   const buttonLabel = !isSupported
-    ? 'Transcript unavailable'
+    ? 'Transcript Unavailable'
     : isListening
-      ? 'Stop transcript'
-      : 'Start transcript'
+      ? 'Stop Transcript'
+      : 'Start Transcript'
   // Idle "Speech input ready." crowded the toolbar — only show status when useful.
   const showStatus =
     feedback !== null ||
@@ -791,7 +793,7 @@ function ResponseContent({
                 ].join('-')
                 return (
                   <Button
-                    aria-label={`Open source ${label}`}
+                    aria-label={`Open Source ${label}`}
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
                       'hover:border-primary/50 hover:bg-primary/15',
@@ -906,13 +908,13 @@ function QuestionPrompt({ question }: { question: string | null }) {
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border/50 bg-background/95 pb-2 backdrop-blur-sm"
+      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15"
       data-slot="chat-question-sticky"
     >
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
+          aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
           className="max-w-full justify-start whitespace-normal text-left"
           onClick={() => setExpanded((current) => !current)}
           title={trimmedQuestion}
@@ -964,7 +966,7 @@ function ResponseDetailsPanel({
     >
       <Button
         aria-expanded={expanded}
-        aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
+        aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
         className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
@@ -1071,7 +1073,7 @@ function ResponseDetailsContent({
                 <DataListItemActions className="justify-start md:justify-end">
                   <StatusBadge>Score {formatScore(result.score)}</StatusBadge>
                   <Button
-                    aria-label={`View source ${result.citation.source_external_id}`}
+                    aria-label={`View Source ${result.citation.source_external_id}`}
                     onClick={() =>
                       onOpenSource(
                         result.citation.source_id,

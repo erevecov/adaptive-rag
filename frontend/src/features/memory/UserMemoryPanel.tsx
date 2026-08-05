@@ -75,7 +75,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       return
     }
     const editor = document.querySelector<HTMLTextAreaElement>(
-      `textarea[aria-label="Edit memory content"]`,
+      `textarea[aria-label="Edit Memory Content"]`,
     )
     editor?.focus()
     editor?.setSelectionRange(editor.value.length, editor.value.length)
@@ -325,7 +325,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
-            My account
+            My Account
           </p>
           <h2
             className="text-lg font-semibold leading-tight text-foreground"
@@ -691,7 +691,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions className="gap-1.5">
                           <Button
-                            aria-label="Confirm remove from injection"
+                            aria-label="Confirm Remove From Injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
                             onClick={() => void handleReject(memory)}
@@ -699,7 +699,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             type="button"
                             variant="danger"
                           >
-                            Confirm remove
+                            Confirm Remove
                           </Button>
                           <Button
                             disabled={busy}
@@ -728,7 +728,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           type="button"
                           variant="secondary"
                         >
-                          Remove from injection
+                          Remove From Injection
                         </Button>
                       )
                     ) : null}
