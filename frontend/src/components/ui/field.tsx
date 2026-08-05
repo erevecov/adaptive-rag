@@ -53,7 +53,7 @@ export const FieldHelp = forwardRef<HTMLParagraphElement, FieldHelpProps>(
     <p
       className={cn(
         // Dense operator help: xs + relaxed leading; muted stays readable on purple.
-        'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug',
+        'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.6875rem] max-[680px]:leading-snug',
         className,
       )}
       ref={ref}
@@ -71,7 +71,7 @@ export const FieldError = forwardRef<HTMLParagraphElement, FieldErrorProps>(
     <p
       className={cn(
         // Match FieldHelp density; keep medium weight for scan priority.
-        'text-xs font-medium leading-relaxed tracking-tight text-destructive max-[680px]:leading-snug',
+        'text-xs font-medium leading-relaxed tracking-tight text-destructive max-[680px]:text-[0.6875rem] max-[680px]:leading-snug',
         className,
       )}
       ref={ref}
