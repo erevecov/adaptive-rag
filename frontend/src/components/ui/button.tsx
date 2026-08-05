@@ -164,3 +164,31 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   },
 )
 IconButton.displayName = 'IconButton'
+
+/**
+ * Keeps button width stable when idle/busy labels differ in length.
+ * Reserve space with the longer of the two strings via invisible overlay.
+ */
+export function ButtonLabel({
+  busy = false,
+  busyLabel,
+  idleLabel,
+}: {
+  busy?: boolean
+  busyLabel: string
+  idleLabel: string
+}) {
+  const reserveLabel =
+    busyLabel.length >= idleLabel.length ? busyLabel : idleLabel
+
+  return (
+    <span className="inline-grid place-items-center">
+      <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+        {reserveLabel}
+      </span>
+      <span className="col-start-1 row-start-1">
+        {busy ? busyLabel : idleLabel}
+      </span>
+    </span>
+  )
+}

@@ -8,6 +8,9 @@ import {
 
 import { cn } from '@/lib/utils'
 
+/** Numeric columns: right-align + stable digit width while values refresh. */
+export const tableNumericClass = 'text-right tabular-nums'
+
 export type TableScrollProps = HTMLAttributes<HTMLDivElement>
 
 export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
@@ -77,7 +80,10 @@ export type TableRowProps = HTMLAttributes<HTMLTableRowElement>
 export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
-      className={cn('border-b border-border transition-colors', className)}
+      className={cn(
+        'border-b border-border motion-safe:transition-colors',
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="table-row"

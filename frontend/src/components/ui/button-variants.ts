@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority'
 export const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium',
-    'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
   ],
   {
@@ -22,7 +22,9 @@ export const buttonVariants = cva(
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         ghost:
           'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        // Contrast ring against primary fill (dark near-white / purple violet)
+        primary:
+          'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground/55',
         secondary:
           'border border-border bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground',
       },

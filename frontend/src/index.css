@@ -102,7 +102,8 @@
   --secondary: #17122a;
   --secondary-foreground: #f4f0ff;
   --muted: #120f22;
-  --muted-foreground: #b5acd5;
+  /* Slightly brighter for xs secondary copy on muted/empty surfaces */
+  --muted-foreground: #c8c0e8;
   --accent: #24185c;
   --accent-foreground: #ffffff;
   --destructive: #ffb4b4;

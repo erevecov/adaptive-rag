@@ -4,7 +4,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
 import { DataList, DataListItem } from '@/components/ui/data-list'
-import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Callout, EmptyState } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
   TableScroll,
+  tableNumericClass,
 } from '@/components/ui/table'
 import {
   SegmentedControl,
@@ -98,7 +99,10 @@ export function ObservabilityPanel({
   }
 
   return (
-    <Panel aria-label={`Observability ${activeSubmodule}`} role="region">
+    <Panel
+      aria-label={`Observability ${activeSubmodule}`}
+      role="region"
+    >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row">
         <div className="grid min-w-0 gap-1">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -111,7 +115,9 @@ export function ObservabilityPanel({
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end">
           <StatusBadge
+            aria-live="polite"
             className="max-w-full break-all text-left"
+            role="status"
             tone={requestStateTone(state)}
           >
             {observabilityStatusLabel(state)}
@@ -192,7 +198,11 @@ export function ObservabilityPanel({
           </Button>
         </form>
 
-        {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+        {error ? (
+          <Callout className="p-3" role="alert" tone="danger">
+            {error}
+          </Callout>
+        ) : null}
 
         <ObservabilityContent
           activeSubmodule={activeSubmodule}
@@ -240,11 +250,11 @@ function ObservabilityContent({
     if (state === 'failed') {
       return (
         <EmptyState
-          className="border-destructive/30 bg-destructive/5 p-4 text-left"
+          className="border-destructive/40 bg-destructive/5 p-4 text-left"
           data-slot-state="failed"
           role="status"
         >
-          <p className="font-medium text-destructive">Summary unavailable.</p>
+          <p className="font-semibold text-destructive">Summary unavailable.</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             The last refresh failed. Adjust filters and try again.
           </p>
@@ -269,12 +279,27 @@ function ObservabilityContent({
       <ObservabilitySummaryContent summary={summary} />
     )
 
-  if (!isLoading) {
+  if (!isLoading && state !== 'failed') {
     return content
   }
 
+  if (state === 'failed') {
+    return (
+      <div className="grid gap-3" data-slot="observability-stale-failed">
+        <Callout className="p-3" role="alert" tone="danger">
+          Showing last successful summary — refresh failed.
+        </Callout>
+        <div className="opacity-60">{content}</div>
+      </div>
+    )
+  }
+
   return (
-    <div aria-busy="true" data-slot="observability-refreshing">
+    <div
+      aria-busy="true"
+      className="opacity-70 motion-safe:animate-pulse"
+      data-slot="observability-refreshing"
+    >
       {content}
     </div>
   )
@@ -299,7 +324,11 @@ function ObservabilityMetricSkeleton({
     <div
       aria-busy="true"
       aria-label={label}
-      className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+      className={
+        cardCount === 5
+          ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+      }
       data-slot="observability-metric-skeleton"
       role="status"
     >
@@ -310,9 +339,9 @@ function ObservabilityMetricSkeleton({
           className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
           key={index}
         >
-          <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
-          <div className="h-7 w-2/3 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
         </article>
       ))}
     </div>
@@ -383,7 +412,7 @@ function ObservabilityCostsContent({
 }) {
   return (
     <>
-      <MetricGrid label="Cost observability metrics">
+      <MetricGrid columns={3} label="Cost observability metrics">
         <MetricCard
           detail={`${summary.provider_usage.groups.length} provider groups`}
           label="Provider calls"
@@ -417,7 +446,7 @@ function ObservabilityErrorsContent({
 
   return (
     <>
-      <MetricGrid label="Error observability metrics">
+      <MetricGrid columns={3} label="Error observability metrics">
         <MetricCard
           detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
           label="Errors"
@@ -452,7 +481,7 @@ function ObservabilityLatencyContent({
 
   return (
     <>
-      <MetricGrid label="Latency observability metrics">
+      <MetricGrid columns={3} label="Latency observability metrics">
         <MetricCard
           detail={
             slowestP95 === null
@@ -499,15 +528,21 @@ function ObservabilityBreakdowns({
 
 function MetricGrid({
   children,
+  columns = 5,
   label,
 }: {
   children: ReactNode
+  columns?: 3 | 5
   label: string
 }) {
   return (
     <div
       aria-label={label}
-      className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+      className={
+        columns === 5
+          ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+      }
     >
       {children}
     </div>
@@ -645,10 +680,10 @@ function ProviderUsageTable({
                   <TableHead>Operation</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead>Calls</TableHead>
-                  <TableHead>Tokens</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>P95</TableHead>
+                  <TableHead className={tableNumericClass}>Calls</TableHead>
+                  <TableHead className={tableNumericClass}>Tokens</TableHead>
+                  <TableHead className={tableNumericClass}>Cost</TableHead>
+                  <TableHead className={tableNumericClass}>P95</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -657,10 +692,18 @@ function ProviderUsageTable({
                     <TableCell>{group.operation}</TableCell>
                     <TableCell>{group.provider}</TableCell>
                     <TableCell>{group.model}</TableCell>
-                    <TableCell>{formatNumber(group.record_count)}</TableCell>
-                    <TableCell>{formatNullableNumber(group.total_tokens)}</TableCell>
-                    <TableCell>{formatNullableUsd(group.estimated_cost_usd)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p95)}</TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNumber(group.record_count)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableNumber(group.total_tokens)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableUsd(group.estimated_cost_usd)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p95)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -693,11 +736,11 @@ function ProviderLatencyTable({
                   <TableHead>Operation</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead>Calls</TableHead>
-                  <TableHead>Avg</TableHead>
-                  <TableHead>P50</TableHead>
-                  <TableHead>P95</TableHead>
-                  <TableHead>Max</TableHead>
+                  <TableHead className={tableNumericClass}>Calls</TableHead>
+                  <TableHead className={tableNumericClass}>Avg</TableHead>
+                  <TableHead className={tableNumericClass}>P50</TableHead>
+                  <TableHead className={tableNumericClass}>P95</TableHead>
+                  <TableHead className={tableNumericClass}>Max</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -706,11 +749,21 @@ function ProviderLatencyTable({
                     <TableCell>{group.operation}</TableCell>
                     <TableCell>{group.provider}</TableCell>
                     <TableCell>{group.model}</TableCell>
-                    <TableCell>{formatNumber(group.record_count)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.avg)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p50)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p95)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.max)}</TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNumber(group.record_count)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.avg)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p50)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p95)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.max)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -754,7 +807,8 @@ function requestStateTone(
 ): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'failed') return 'danger'
   if (state === 'succeeded') return 'success'
-  if (state === 'loading' || state === 'canceled') return 'warning'
+  if (state === 'loading') return 'warning'
+  if (state === 'canceled') return 'neutral'
   return 'neutral'
 }
 
@@ -767,6 +821,9 @@ function observabilityStatusLabel(state: RequestState): string {
   }
   if (state === 'succeeded') {
     return 'Loaded'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }

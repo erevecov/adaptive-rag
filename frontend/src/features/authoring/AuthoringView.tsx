@@ -1,11 +1,11 @@
 import { type FormEvent, type ReactNode } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLabel } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
-import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
+import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
   PanelBody,
@@ -277,6 +277,7 @@ export function AuthoringPanel({
 }
 
 function AuthoringSectionPanel({
+  ariaBusy,
   ariaLabel,
   children,
   description,
@@ -285,6 +286,7 @@ function AuthoringSectionPanel({
   status,
   title,
 }: {
+  ariaBusy?: boolean
   ariaLabel: string
   children: ReactNode
   description?: ReactNode
@@ -294,7 +296,11 @@ function AuthoringSectionPanel({
   title: string
 }) {
   return (
-    <Panel aria-label={ariaLabel} role="region">
+    <Panel
+      aria-busy={ariaBusy || undefined}
+      aria-label={ariaLabel}
+      role="region"
+    >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row">
         <div className="grid min-w-0 gap-1">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -317,7 +323,9 @@ function AuthoringSectionPanel({
 function RequestStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
+      aria-live="polite"
       className="max-w-full break-all text-left"
+      role="status"
       tone={requestStateTone(state)}
     >
       {authoringStatusLabel(state)}
@@ -328,7 +336,9 @@ function RequestStatus({ state }: { state: RequestState }) {
 function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
+      aria-live="polite"
       className="max-w-full break-all text-left"
+      role="status"
       tone={requestStateTone(state)}
     >
       {ingestionStatusLabel(state)}
@@ -341,8 +351,25 @@ function requestStateTone(
 ): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'failed') return 'danger'
   if (state === 'succeeded') return 'success'
-  if (state === 'loading' || state === 'canceled') return 'warning'
+  if (state === 'loading') return 'warning'
+  if (state === 'canceled') return 'neutral'
   return 'neutral'
+}
+
+function LoadingListState({ label }: { label: string }) {
+  return (
+    <EmptyState
+      aria-busy="true"
+      aria-label={label}
+      className="border-border/60 bg-muted/20 p-4 text-left"
+      data-slot-state="loading"
+      role="status"
+    >
+      <p aria-hidden="true" className="font-medium text-foreground/90">
+        {label}
+      </p>
+    </EmptyState>
+  )
 }
 
 function AuthoringField({
@@ -389,12 +416,13 @@ function ProjectsPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring projects"
-      description="Create projects and choose the active workspace."
+      description="Create and select the project used by sources and ingestion."
       eyebrow="Projects"
       id="projects-title"
       status={<RequestStatus state={state} />}
-      title="Authoring"
+      title="Projects"
     >
       <form className="grid gap-3" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project name">
@@ -411,7 +439,11 @@ function ProjectsPanel({
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
           <Button className="min-h-9" disabled={isBusy} type="submit">
-            <CreatingSubmitLabel busy={isBusy} idleLabel="Create project" />
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create project"
+            />
           </Button>
         </div>
       </form>
@@ -442,9 +474,17 @@ function ProjectList({
   onSelectProject(project: Project): void
   projects: Project[]
 }) {
+  if (isBusy && projects.length === 0) {
+    return <LoadingListState label="Loading projects…" />
+  }
+
   if (projects.length === 0) {
     return (
-      <EmptyState className="border-border/60 bg-muted/20 p-4 text-left">
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
         <p className="font-medium text-foreground/90">No projects yet.</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Create a project above to start indexing sources.
@@ -491,14 +531,16 @@ function ProjectList({
                 <small className="break-all font-mono text-[11px] text-muted-foreground">
                   {project.id}
                 </small>
+                {isDeleted ? (
+                  <small className="text-xs text-muted-foreground">
+                    Soft-deleted{' '}
+                    {formatOperatorTimestamp(project.deleted_at ?? null)}
+                  </small>
+                ) : null}
               </span>
               <StatusBadge
                 className="shrink-0"
-                tone={
-                  isDeleted || !canAccess
-                    ? 'warning'
-                    : 'neutral'
-                }
+                tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}
               >
                 {roleLabel}
               </StatusBadge>
@@ -509,7 +551,7 @@ function ProjectList({
               disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
-              variant="secondary"
+              variant="danger"
             >
               Delete
             </Button>
@@ -572,6 +614,7 @@ function ProjectAccessPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring users"
       description="Create users and assign project membership."
       eyebrow="Users"
@@ -625,22 +668,31 @@ function ProjectAccessPanel({
           </AuthoringField>
           <AuthoringField id="authoring-user-access-token" label="Access token">
             {(fieldId) => (
-              <Input
-                autoComplete="off"
-                id={fieldId}
-                name="user-access-token"
-                onChange={(event) =>
-                  onUserAccessTokenChange(event.currentTarget.value)
-                }
-                placeholder="token"
-                value={userAccessToken}
-              />
+              <>
+                <Input
+                  autoComplete="off"
+                  id={fieldId}
+                  name="user-access-token"
+                  onChange={(event) =>
+                    onUserAccessTokenChange(event.currentTarget.value)
+                  }
+                  type="password"
+                  value={userAccessToken}
+                />
+                <FieldHelp>
+                  Paste once; never shown after save.
+                </FieldHelp>
+              </>
             )}
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button className="min-h-9" disabled={isBusy} type="submit">
-            <CreatingSubmitLabel busy={isBusy} idleLabel="Create user" />
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create user"
+            />
           </Button>
           <Button
             disabled={isBusy}
@@ -648,7 +700,11 @@ function ProjectAccessPanel({
             type="button"
             variant="secondary"
           >
-            {isBusy ? 'Refreshing...' : 'Refresh access'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Refreshing…"
+              idleLabel="Refresh access"
+            />
           </Button>
           <Button
             disabled={isBusy || userAccessToken.trim() === ''}
@@ -660,6 +716,8 @@ function ProjectAccessPanel({
           </Button>
         </div>
       </form>
+
+      <div className="h-px bg-border" role="separator" />
 
       <form className="grid gap-3" onSubmit={onSaveMembership}>
         <div className="grid gap-3 md:grid-cols-2">
@@ -693,7 +751,11 @@ function ProjectAccessPanel({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Saving...' : 'Save membership'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Saving…"
+              idleLabel="Save membership"
+            />
           </Button>
         </div>
       </form>
@@ -724,8 +786,20 @@ function UserAccessLists({
   onDeleteMembership(membership: ProjectMembership): void
   users: User[]
 }) {
+  if (isBusy && users.length === 0 && memberships.length === 0) {
+    return <LoadingListState label="Loading users…" />
+  }
+
   if (users.length === 0 && memberships.length === 0) {
-    return <EmptyState>No users or memberships loaded.</EmptyState>
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        No users or memberships loaded.
+      </EmptyState>
+    )
   }
 
   return (
@@ -756,7 +830,7 @@ function UserAccessLists({
                 disabled={isBusy || !user.is_active}
                 onClick={() => onDeactivateUser(user)}
                 type="button"
-                variant="secondary"
+                variant="danger"
               >
                 Deactivate
               </Button>
@@ -782,7 +856,7 @@ function UserAccessLists({
                 disabled={isBusy}
                 onClick={() => onDeleteMembership(membership)}
                 type="button"
-                variant="secondary"
+                variant="danger"
               >
                 Remove
               </Button>
@@ -849,6 +923,7 @@ function SourcesPanel({
   const textType = isTextSourceType(sourceType)
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring sources"
       description="Register source content before queueing ingestion."
       eyebrow="Sources"
@@ -961,7 +1036,11 @@ function SourcesPanel({
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
           <Button className="min-h-9" disabled={isBusy} type="submit">
-            <CreatingSubmitLabel busy={isBusy} idleLabel="Create source" />
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create source"
+            />
           </Button>
           <Button
             disabled={isBusy}
@@ -997,9 +1076,17 @@ function SourceList({
   onEnqueueIngestion(source: Source): void
   sources: Source[]
 }) {
+  if (isBusy && sources.length === 0) {
+    return <LoadingListState label="Loading sources…" />
+  }
+
   if (sources.length === 0) {
     return (
-      <EmptyState className="border-border/60 bg-muted/20 p-4 text-left">
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
         <p className="font-medium text-foreground/90">No sources yet.</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Create a source above, then queue ingestion.
@@ -1038,7 +1125,7 @@ function SourceList({
                   {source.external_id}
                 </strong>
                 {isDeleted ? (
-                  <StatusBadge className="w-fit" tone="warning">
+                  <StatusBadge className="w-fit" tone="danger">
                     deleted
                   </StatusBadge>
                 ) : null}
@@ -1070,7 +1157,7 @@ function SourceList({
                 onClick={() => onDeleteSource(source)}
                 size="sm"
                 type="button"
-                variant="secondary"
+                variant="danger"
               >
                 Delete
               </Button>
@@ -1187,6 +1274,7 @@ function KnowledgeReviewPanel({
                   </AuthoringField>
                   <DataListItemActions>
                     <Button
+                      aria-label={`Refine proposal ${proposal.id}`}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
                       type="button"
@@ -1195,6 +1283,7 @@ function KnowledgeReviewPanel({
                       Refine proposal
                     </Button>
                     <Button
+                      aria-label={`Approve proposal ${proposal.id}`}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
                       type="button"
@@ -1202,6 +1291,7 @@ function KnowledgeReviewPanel({
                       Approve proposal
                     </Button>
                     <Button
+                      aria-label={`Reject proposal ${proposal.id}`}
                       disabled={isBusy}
                       onClick={() => onReject(proposal)}
                       type="button"
@@ -1241,6 +1331,7 @@ function IngestionJobsPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring ingestion jobs"
       description="Run queued ingestion work and retry blocked jobs."
       eyebrow="Ingestion"
@@ -1255,10 +1346,18 @@ function IngestionJobsPanel({
           type="button"
           variant="secondary"
         >
-          Refresh jobs
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Working…"
+            idleLabel="Refresh jobs"
+          />
         </Button>
         <Button disabled={isBusy} onClick={onRunNext} type="button">
-          Run next job
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Working…"
+            idleLabel="Run next job"
+          />
         </Button>
       </div>
 
@@ -1291,21 +1390,31 @@ function IngestionJobsPanel({
         </div>
       ) : null}
 
-      <IngestionJobList jobs={jobs} onRetry={onRetry} />
+      <IngestionJobList isBusy={isBusy} jobs={jobs} onRetry={onRetry} />
     </AuthoringSectionPanel>
   )
 }
 
 function IngestionJobList({
+  isBusy,
   jobs,
   onRetry,
 }: {
+  isBusy: boolean
   jobs: IngestionJob[]
   onRetry(job: IngestionJob): void
 }) {
+  if (isBusy && jobs.length === 0) {
+    return <LoadingListState label="Loading ingestion jobs…" />
+  }
+
   if (jobs.length === 0) {
     return (
-      <EmptyState className="border-border/60 bg-muted/20 p-5">
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
         <p className="font-medium text-foreground/90">No ingestion jobs yet.</p>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           Enqueue a source from the content registry, then run the next job.
@@ -1373,6 +1482,7 @@ function IngestionJobList({
               {isRetryableIngestionJob(job) ? (
                 <Button
                   aria-label={`Retry ingestion job ${job.id}`}
+                  disabled={isBusy}
                   onClick={() => onRetry(job)}
                   size="sm"
                   type="button"
@@ -1390,25 +1500,6 @@ function IngestionJobList({
 }
 
 
-function CreatingSubmitLabel({
-  busy,
-  idleLabel,
-}: {
-  busy: boolean
-  idleLabel: string
-}) {
-  return (
-    <span className="inline-grid place-items-center">
-      <span aria-hidden="true" className="invisible col-start-1 row-start-1">
-        {idleLabel}
-      </span>
-      <span className="col-start-1 row-start-1">
-        {busy ? 'Creating...' : idleLabel}
-      </span>
-    </span>
-  )
-}
-
 function authoringStatusLabel(state: RequestState): string {
   if (state === 'loading') {
     return 'Saving'
@@ -1418,6 +1509,9 @@ function authoringStatusLabel(state: RequestState): string {
   }
   if (state === 'succeeded') {
     return 'Saved'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }
@@ -1431,6 +1525,9 @@ function ingestionStatusLabel(state: RequestState): string {
   }
   if (state === 'succeeded') {
     return 'Updated'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }
@@ -1533,9 +1630,11 @@ function jobTone(status: string): 'danger' | 'neutral' | 'success' | 'warning' {
   if (status === 'processed' || status === 'succeeded') {
     return 'success'
   }
-  // queued/running/idle are in-flight — not success
-  if (status === 'queued' || status === 'running' || status === 'idle') {
+  if (status === 'queued' || status === 'running') {
     return 'warning'
+  }
+  if (status === 'idle') {
+    return 'neutral'
   }
   return 'neutral'
 }

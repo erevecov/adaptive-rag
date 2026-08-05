@@ -266,6 +266,10 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('Display name').getAttribute('data-slot')).toBe(
       'input',
     )
+    const accessToken = screen.getByLabelText('Access token')
+    expect(accessToken.getAttribute('data-slot')).toBe('input')
+    expect(accessToken.getAttribute('type')).toBe('password')
+    expect(screen.getByText('Paste once; never shown after save.')).toBeTruthy()
     expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
@@ -288,6 +292,22 @@ describe('AuthoringPanel', () => {
     expectNoLegacyAuthoringClasses(view.container)
   })
 
+  test('project list shows loading instead of empty while busy', () => {
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+      projects: [],
+    })
+
+    expect(screen.queryByText('No projects yet.')).toBeNull()
+    const loadingState = view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="loading"]',
+    )
+    expect(loadingState).toBeTruthy()
+    expect(loadingState?.textContent).toContain('Loading projects')
+    view.unmount()
+  })
+
   test('knowledge submodule renders proposal actions through tokenized controls', () => {
     const { view } = renderAuthoringPanel({ activeSubmodule: 'knowledge' })
 
@@ -295,9 +315,9 @@ describe('AuthoringPanel', () => {
       'textarea',
     )
     expect(screen.getByDisplayValue('Existing refined text.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refine proposal' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Approve proposal' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reject proposal' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Refine proposal/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Approve proposal/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Reject proposal/ })).toBeTruthy()
     expectNoLegacyAuthoringClasses(view.container)
   })
 
