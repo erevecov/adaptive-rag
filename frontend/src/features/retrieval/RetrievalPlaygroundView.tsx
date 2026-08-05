@@ -115,7 +115,7 @@ export function RetrievalPlaygroundPanel({
       data-testid="retrieval-playground"
       role="region"
     >
-      <PanelHeader className="p-4">
+      <PanelHeader className="p-4 max-[680px]:gap-1 max-[680px]:p-3">
         <PanelTitle id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>
@@ -124,9 +124,9 @@ export function RetrievalPlaygroundPanel({
           strategy for the selected project.
         </PanelDescription>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-3 max-[680px]:p-3 max-[680px]:pt-0">
         <form
-          className="grid gap-4"
+          className="grid gap-4 max-[680px]:gap-3"
           onSubmit={(event) => void handleSearch(event)}
         >
           <Field>
@@ -141,7 +141,7 @@ export function RetrievalPlaygroundPanel({
               />
             </FieldControl>
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-3">
             <Field>
               <FieldLabel htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
