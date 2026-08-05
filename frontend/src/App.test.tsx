@@ -1669,10 +1669,10 @@ describe('App chat workspace', () => {
         proposed_text: 'Viewer draft knowledge.',
       }),
     )
-    expect(await screen.findByText('pending')).toBeTruthy()
+    expect(await screen.findByText('Pending')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Cancel draft' }))
-    expect(screen.getByText('cancelled')).toBeTruthy()
+    expect(screen.getByText('Canceled')).toBeTruthy()
   })
 
   test('applies chat knowledge lifecycle tool calls to an existing draft card', async () => {
@@ -1762,7 +1762,7 @@ describe('App chat workspace', () => {
 
     await user.type(screen.getByLabelText('Question'), 'Cancel that draft.')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
-    expect((await screen.findAllByText('cancelled')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Canceled')).length).toBeGreaterThan(0)
   })
 
   test('approves an existing draft when chat calls approve_knowledge', async () => {
