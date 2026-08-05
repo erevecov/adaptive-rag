@@ -344,6 +344,9 @@ describe('AuthoringPanel', () => {
     )
     expect(lastRun).toBeTruthy()
     expect(lastRun?.textContent).toContain('Last run idle')
+    expect(
+      lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),
+    ).toBe('neutral')
     expect(lastRun?.querySelector('[data-slot="badge"]')?.className).toMatch(
       /tabular-nums/,
     )
@@ -357,5 +360,39 @@ describe('AuthoringPanel', () => {
     )
     expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
     expectNoLegacyAuthoringClasses(view.container)
+  })
+
+  test('distinguishes loading lists from empty and canceled status', () => {
+    const loading = renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+      projects: [],
+    })
+    expect(screen.getByText('Loading projects…')).toBeTruthy()
+    expect(
+      loading.view.container.querySelector('[data-slot-state="loading"]'),
+    ).toBeTruthy()
+    loading.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'canceled',
+      projects: [project],
+    })
+    expect(screen.getByText('Canceled').getAttribute('data-tone')).toBe(
+      'neutral',
+    )
+  })
+
+  test('shows soft-deleted project timestamp and danger tone', () => {
+    const deleted: Project = {
+      ...project,
+      deleted_at: '2026-06-22T12:00:00Z',
+      id: 'project-deleted',
+      name: 'Gone',
+    }
+    renderAuthoringPanel({ projects: [deleted] })
+    expect(screen.getByText('deleted').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
 })
