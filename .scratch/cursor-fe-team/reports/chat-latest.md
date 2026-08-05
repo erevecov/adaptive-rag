@@ -1,16 +1,15 @@
 # FE Chat — chat-latest
 
 **Date:** 2026-08-05  
-**STATUS:** shipped to #222 — awaiting CI green / Grok merge
+**STATUS:** #222 merged; active PR #224
 
-## Landed in #222
-- Inspector loading skeletons ≠ empty
-- Title Case EN inspector/chat/pipeline aria + Memory Applied
-- Shell ≤680 touch + opaque purple rail (`bg-card` + primary hairline)
-- Denser ≤680 inspector PanelHeader
+## Done
+- #222: canceled≠empty, inspector skeletons, purple rail, Title Case operator chrome
 
-## Next claim (after #222 merges)
-Invent next hostile purple/dark residual or DS ≤680 P0.  
-Tab-cycle focus trap remains deferred.
+## In flight (#224)
+- Opaque purple chrome (sidebar toggle / composer tools)
+- Cancel Request label
+- Inspector empty Title Case + pipeline/inspector aria Title Case restore
 
-Worktree: `.worktrees/ui-polish-218` on `feat/ui-polish-post-218`.
+## Next after #224
+Invent next purple/DS ≤680 P0. Tab-cycle deferred.
