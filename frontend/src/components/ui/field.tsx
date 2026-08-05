@@ -69,7 +69,11 @@ export type FieldErrorProps = HTMLAttributes<HTMLParagraphElement>
 export const FieldError = forwardRef<HTMLParagraphElement, FieldErrorProps>(
   ({ className, role = 'alert', ...props }, ref) => (
     <p
-      className={cn('text-sm font-medium text-destructive', className)}
+      className={cn(
+        // Match FieldHelp density; keep medium weight for scan priority.
+        'text-xs font-medium leading-relaxed text-destructive',
+        className,
+      )}
       ref={ref}
       role={role}
       {...props}

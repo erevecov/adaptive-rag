@@ -59,6 +59,14 @@ describe('Button', () => {
     expect(tokens).toContain('focus-visible:ring-destructive-foreground')
     expect(tokens).not.toContain('focus-visible:ring-destructive-foreground/55')
   })
+
+  test('secondary variant uses primary-tint hover for purple chrome', () => {
+    render(<Button variant="secondary">Cancel</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'Cancel' }))
+    expect(tokens).toContain('hover:bg-primary/10')
+    expect(tokens).toContain('hover:border-primary/40')
+  })
 })
 
 describe('ButtonLabel', () => {
