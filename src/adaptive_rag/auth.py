@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -11,6 +12,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import ProjectMembership, User
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROLE_RANK = {
     "viewer": 1,
@@ -62,6 +65,10 @@ def users_exist(session: Session) -> bool:
         count = session.scalar(select(func.count(User.id)))
     except OperationalError:
         session.rollback()
+        logger.warning(
+            "users_exist_check_failed; treating request as bootstrap",
+            exc_info=True,
+        )
         return False
     return bool(count)
 
