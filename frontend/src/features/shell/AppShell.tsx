@@ -190,7 +190,7 @@ export function AppShell({
             ? [
                 'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
                 'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:px-2 max-[680px]:pb-0 max-[680px]:pt-1',
+                'max-[680px]:gap-0 max-[680px]:px-1.5 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : 'mx-auto max-w-[1240px]',
         )}
