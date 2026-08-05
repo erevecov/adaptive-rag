@@ -991,8 +991,8 @@ function ResponseDetailsContent({
                   {call.query ?? 'No query stored.'}
                 </span>
                 <small className="text-xs text-muted-foreground">
-                  limit {call.limit ?? 'unknown'} /{' '}
-                  {call.result_count ?? 'unknown'} results
+                  Limit {call.limit ?? 'Unknown'} /{' '}
+                  {call.result_count ?? 'Unknown'} Results
                 </small>
               </DataListItem>
             ))}

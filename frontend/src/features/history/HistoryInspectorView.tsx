@@ -259,7 +259,7 @@ export function SessionNavigationPanel({
                   'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
                     ? 'bg-primary/15 text-foreground'
-                    : 'hover:bg-primary/10 hover:text-foreground',
+                    : 'hover:bg-primary/15 hover:text-foreground',
                 )}
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
@@ -792,19 +792,19 @@ function SessionContextPanel({
             <MetricCard
               detail={detail.session.session_id}
               label="Prompt"
-              value={`prompt ${detail.session.prompt_version ?? 'unknown'}`}
+              value={`Prompt ${detail.session.prompt_version ?? 'Unknown'}`}
             />
             <MetricCard
               detail={
                 firstUsage === null
-                  ? 'unknown provider'
-                  : `${firstUsage.provider} ${firstUsage.operation} ${firstUsage.status}`
+                  ? 'Unknown Provider'
+                  : `${firstUsage.provider} ${firstUsage.operation} ${titleCaseToken(firstUsage.status)}`
               }
               label="Model"
-              value={firstUsage?.model ?? 'unknown model'}
+              value={firstUsage?.model ?? 'Unknown Model'}
             />
             <MetricCard
-              detail={`${detail.provider_usage.length} provider records`}
+              detail={`${detail.provider_usage.length} Provider Records`}
               label="Cost"
               value={formatSessionCost(detail.provider_usage)}
             />
@@ -1232,12 +1232,14 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
         {usage.provider} / {usage.model}
       </strong>
       <p className="text-sm text-muted-foreground">
-        {usage.total_tokens ?? 'unknown'} tokens
+        {usage.total_tokens ?? 'Unknown'} Tokens
         {usage.estimated_cost_usd === null
           ? ''
           : ` / $${usage.estimated_cost_usd.toFixed(4)}`}
       </p>
-      <small className="text-xs text-muted-foreground">{usage.status}</small>
+      <small className="text-xs text-muted-foreground">
+        {titleCaseToken(usage.status)}
+      </small>
     </DataListItem>
   )
 }

@@ -276,7 +276,7 @@ function StepDetail({ step }: { step: ChatStep }) {
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
-        <div className="grid gap-1 rounded-md bg-muted/50 p-2" key={key}>
+        <div className="grid gap-1 rounded-md bg-muted/15 p-2" key={key}>
           <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
             {formatDetailKey(key)}
           </dt>
@@ -287,29 +287,29 @@ function StepDetail({ step }: { step: ChatStep }) {
       ))}
       {usage !== undefined ? (
         <>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              model
+              Model
             </dt>
             <dd className="break-words text-sm text-foreground">{usage.model}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              provider
+              Provider
             </dt>
             <dd className="break-words text-sm text-foreground">{usage.provider}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              tokens
+              Tokens
             </dt>
             <dd className="break-words text-sm text-foreground">
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              cost
+              Cost
             </dt>
             <dd className="break-words text-sm text-foreground">
               {formatCost(usage.estimated_cost_usd)}
@@ -368,12 +368,12 @@ function formatSources(value: number): string {
 }
 
 function formatDetailKey(value: string): string {
-  return value.replace(/_/g, ' ')
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return 'unknown'
+    return 'Unknown'
   }
   if (typeof value === 'string') {
     return value
