@@ -3477,7 +3477,7 @@ describe('App chat workspace', () => {
       name: 'Expand response details',
     })
     expect(detailsToggle.textContent).toContain('1 Source')
-    expect(detailsToggle.textContent).toContain('1 tool call')
+    expect(detailsToggle.textContent).toContain('1 Tool Call')
     expect(detailsToggle.textContent).toContain('usage')
 
     await user.click(detailsToggle)

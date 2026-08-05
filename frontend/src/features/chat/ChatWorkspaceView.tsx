@@ -911,11 +911,11 @@ function ResponseDetailsPanel({
   }
 
   const summaryParts = [
-    formatCount(sourceCount, 'source'),
-    formatCount(toolCallCount, 'tool call'),
+    formatCount(sourceCount, 'Source'),
+    formatCount(toolCallCount, 'Tool Call'),
   ]
   if (usage !== null) {
-    summaryParts.push('usage')
+    summaryParts.push('Usage')
   }
 
   return (
