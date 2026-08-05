@@ -1,13 +1,10 @@
 # User memory parity report
 
 ## Merged to main
-- #214 panel · #216 badge/filter · #218 Title Case/density · #221 focus-next/relative/Show more · #222/#224 purple/inspector · #223 confirm remove + filter a11y
-
-## Note
-- #224 UI rebase accidentally dropped #223 confirm-remove + filter `aria-label`/`aria-busy`. Restored in #225.
+- #214–#223 Memory core · #224 UI (regressed then restored via #225) · #225 edit shortcuts / confirm Escape / Retry / absolute time
 
 ## Active
-- **#225** `feat/memory-ux-continuum-3` — restore #223 confirm/a11y; edit Ctrl/Cmd+Enter + char counter; Escape cancel confirm; Retry; absolute `time` title; keep Cancel Request test
+- **feat/memory-ux-continuum-4** — focus restore after confirm cancel, edit autofocus, Proposed-first sort on All
 
 ## Deferred
 - injection/capture toggles · cron/embeddings/unread/MCP

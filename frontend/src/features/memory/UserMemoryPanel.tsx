@@ -71,6 +71,17 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
 
   useEffect(() => {
+    if (editingId === null) {
+      return
+    }
+    const editor = document.querySelector<HTMLTextAreaElement>(
+      `textarea[aria-label="Edit memory content"]`,
+    )
+    editor?.focus()
+    editor?.setSelectionRange(editor.value.length, editor.value.length)
+  }, [editingId])
+
+  useEffect(() => {
     if (confirmRemoveId === null) {
       return
     }
@@ -105,7 +116,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           return
         }
         const tally = tallyResponse.items
-        setItems(listResponse.items)
+        setItems(sortMemoriesForFilter(listResponse.items, statusFilter))
         setInjectableCount(
           tally.filter((item) => item.status === 'approved').length,
         )
@@ -151,7 +162,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               status: statusFilter,
             })
       const tally = tallyResponse.items
-      setItems(response.items)
+      setItems(sortMemoriesForFilter(response.items, statusFilter))
       setInjectableCount(
         tally.filter((item) => item.status === 'approved').length,
       )
@@ -268,6 +279,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     if (event.key === 'Escape' && confirmRemoveId === memory.id) {
       event.preventDefault()
       setConfirmRemoveId(null)
+      requestAnimationFrame(() => {
+        document.getElementById(`remove-injection-${memory.id}`)?.focus()
+      })
       return
     }
     const target = event.target as HTMLElement
@@ -677,6 +691,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions className="gap-1.5">
                           <Button
+                            aria-label="Confirm remove from injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
                             onClick={() => void handleReject(memory)}
@@ -688,7 +703,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           </Button>
                           <Button
                             disabled={busy}
-                            onClick={() => setConfirmRemoveId(null)}
+                            onClick={() => {
+                              const memoryId = memory.id
+                              setConfirmRemoveId(null)
+                              requestAnimationFrame(() => {
+                                document
+                                  .getElementById(`remove-injection-${memoryId}`)
+                                  ?.focus()
+                              })
+                            }}
                             size="sm"
                             type="button"
                             variant="secondary"
@@ -699,6 +722,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       ) : (
                         <Button
                           disabled={busy}
+                          id={`remove-injection-${memory.id}`}
                           onClick={() => setConfirmRemoveId(memory.id)}
                           size="sm"
                           type="button"
@@ -748,7 +772,7 @@ function FilterEmptyState({
           type="button"
           variant="secondary"
         >
-          View proposed
+          View Proposed
         </Button>
       ) : null}
     </EmptyState>
@@ -762,24 +786,24 @@ function emptyCopyForFilter(filter: MemoryStatusFilter): {
   if (filter === 'proposed') {
     return {
       body: 'Propose one above to start review. Only approved items inject.',
-      title: 'No proposed memories',
+      title: 'No Proposed Memories',
     }
   }
   if (filter === 'approved') {
     return {
       body: 'Approve a proposal to enable chat injection as system context.',
-      title: 'No approved memories',
+      title: 'No Approved Memories',
     }
   }
   if (filter === 'rejected') {
     return {
       body: 'Rejected proposals and items removed from injection appear here. They never inject into chat.',
-      title: 'No rejected memories',
+      title: 'No Rejected Memories',
     }
   }
   return {
     body: 'Propose one above, then approve it to enable chat injection.',
-    title: 'No memories yet',
+    title: 'No Memories Yet',
   }
 }
 
@@ -806,6 +830,22 @@ function statusTone(
     return 'danger'
   }
   return 'neutral'
+}
+
+
+function sortMemoriesForFilter(
+  items: UserMemory[],
+  filter: MemoryStatusFilter,
+): UserMemory[] {
+  if (filter !== 'all') {
+    return items
+  }
+  const rank: Record<UserMemoryStatus, number> = {
+    proposed: 0,
+    approved: 1,
+    rejected: 2,
+  }
+  return [...items].sort((left, right) => rank[left.status] - rank[right.status])
 }
 
 function focusAfterReview(memoryId: string, rowIndex: number): void {
