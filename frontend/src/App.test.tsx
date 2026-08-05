@@ -3798,7 +3798,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
 
-    await chooseRadixSelectOption(user, screen.getByLabelText('Provider'), 'qwen')
+    await chooseRadixSelectOption(user, screen.getByLabelText('Provider'), 'Qwen')
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Connection type'),

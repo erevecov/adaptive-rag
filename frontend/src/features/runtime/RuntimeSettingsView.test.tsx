@@ -448,7 +448,7 @@ describe('RuntimeSettingsPanel', () => {
 
     await user.click(providerSelect)
 
-    const fakeOption = await screen.findByRole('option', { name: 'fake' })
+    const fakeOption = await screen.findByRole('option', { name: 'Fake' })
     const field = providerSelect.closest('[data-slot="field"]')
 
     expect(providerSelect.getAttribute('data-state')).toBe('open')

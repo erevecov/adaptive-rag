@@ -286,12 +286,12 @@ describe('AuthoringPanel', () => {
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('System role'),
-      'superadmin',
+      'Superadmin',
     )
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('Project role'),
-      'admin',
+      'Admin',
     )
     expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
     expect(props.onMemberRoleChange).toHaveBeenCalledWith('admin')
@@ -364,7 +364,7 @@ describe('AuthoringPanel', () => {
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('Source type'),
-      'url',
+      'URL',
     )
     expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
     expectNoLegacyAuthoringClasses(view.container)

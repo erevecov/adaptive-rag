@@ -675,8 +675,8 @@ function ProjectAccessPanel({
                 name="user-system-role"
                 onValueChange={onUserSystemRoleChange}
                 options={[
-                  { label: 'user', value: 'user' },
-                  { label: 'superadmin', value: 'superadmin' },
+                  { label: 'User', value: 'user' },
+                  { label: 'Superadmin', value: 'superadmin' },
                 ]}
                 value={userSystemRole}
               />
@@ -756,9 +756,9 @@ function ProjectAccessPanel({
                 name="member-role"
                 onValueChange={onMemberRoleChange}
                 options={[
-                  { label: 'viewer', value: 'viewer' },
-                  { label: 'contributor', value: 'contributor' },
-                  { label: 'admin', value: 'admin' },
+                  { label: 'Viewer', value: 'viewer' },
+                  { label: 'Contributor', value: 'contributor' },
+                  { label: 'Admin', value: 'admin' },
                 ]}
                 value={memberRole}
               />
@@ -854,7 +854,7 @@ function UserAccessLists({
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="w-fit">{user.system_role}</Badge>
+                <Badge className="w-fit">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
                   <StatusBadge className="w-fit" tone="warning">
                     Inactive
@@ -895,7 +895,7 @@ function UserAccessLists({
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="w-fit">{membership.role}</Badge>
+                <Badge className="w-fit">{titleCaseStatus(membership.role)}</Badge>
                 <Button
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
@@ -1089,12 +1089,12 @@ function SourcesPanel({
                 name="source-type"
                 onValueChange={onSourceTypeChange}
                 options={[
-                  { label: 'markdown', value: 'markdown' },
-                  { label: 'text', value: 'text' },
-                  { label: 'txt', value: 'txt' },
-                  { label: 'url', value: 'url' },
-                  { label: 'pdf', value: 'pdf' },
-                  { label: 'docx', value: 'docx' },
+                  { label: 'Markdown', value: 'markdown' },
+                  { label: 'Text', value: 'text' },
+                  { label: 'Txt', value: 'txt' },
+                  { label: 'URL', value: 'url' },
+                  { label: 'PDF', value: 'pdf' },
+                  { label: 'DOCX', value: 'docx' },
                 ]}
                 value={sourceType}
               />

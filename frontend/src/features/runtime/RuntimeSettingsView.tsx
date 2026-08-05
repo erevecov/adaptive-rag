@@ -674,12 +674,12 @@ export function RuntimeConnectionsPanel({
                 id={fieldId}
                 onValueChange={onConnectionProviderChange}
                 options={[
-                  { label: 'qwen', value: 'qwen' },
+                  { label: 'Qwen', value: 'qwen' },
                   {
-                    label: 'local_openai_compatible',
+                    label: 'Local OpenAI-compatible',
                     value: 'local_openai_compatible',
                   },
-                  { label: 'fake', value: 'fake' },
+                  { label: 'Fake', value: 'fake' },
                 ]}
                 value={connectionProvider}
               />
@@ -694,9 +694,9 @@ export function RuntimeConnectionsPanel({
                 id={fieldId}
                 onValueChange={onConnectionTypeChange}
                 options={[
-                  { label: 'hosted', value: 'hosted' },
-                  { label: 'local', value: 'local' },
-                  { label: 'fake', value: 'fake' },
+                  { label: 'Hosted', value: 'hosted' },
+                  { label: 'Local', value: 'local' },
+                  { label: 'Fake', value: 'fake' },
                 ]}
                 value={connectionType}
               />
@@ -1309,8 +1309,8 @@ export function RuntimeGlobalDefaultsPanel({
                     onGlobalChatRerankEnabledChange(nextValue === 'true')
                   }
                   options={[
-                    { label: 'on', value: 'true' },
-                    { label: 'off', value: 'false' },
+                    { label: 'On', value: 'true' },
+                    { label: 'Off', value: 'false' },
                   ]}
                   value={String(globalChatRerankEnabled)}
                 />
@@ -1449,11 +1449,11 @@ export function RuntimeProjectOverridesPanel({
                 onValueChange={(nextValue) =>
                   onProjectChatRerankEnabledChange(nextValue === 'true')
                 }
-                options={[
-                  { label: 'on', value: 'true' },
-                  { label: 'off', value: 'false' },
-                ]}
-                value={String(projectChatRerankEnabled)}
+                  options={[
+                    { label: 'On', value: 'true' },
+                    { label: 'Off', value: 'false' },
+                  ]}
+                  value={String(projectChatRerankEnabled)}
               />
             )}
           </RuntimeField>
