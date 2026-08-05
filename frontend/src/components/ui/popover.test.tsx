@@ -8,13 +8,13 @@ import { afterEach, describe, expect, test } from 'vitest'
 import { installPointerEventMocks } from '@/test/pointerEvents'
 import * as Popover from './popover'
 
-installPointerEventMocks()
-
 afterEach(() => {
   cleanup()
 })
 
 describe('Popover', () => {
+  installPointerEventMocks()
+
   test('renders shared popover content through a Radix portal', async () => {
     const user = userEvent.setup()
 
@@ -40,6 +40,7 @@ describe('Popover', () => {
 
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(listbox.getAttribute('data-slot')).toBe('popover-content')
+    expect(listbox.className).toContain('focus-visible:ring-ring')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 })

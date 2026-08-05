@@ -255,7 +255,7 @@ function ObservabilityContent({
           role="status"
         >
           <p className="font-semibold text-destructive">Summary unavailable.</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             The last refresh failed. Adjust filters and try again.
           </p>
         </EmptyState>

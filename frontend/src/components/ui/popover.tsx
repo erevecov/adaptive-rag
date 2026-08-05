@@ -62,6 +62,7 @@ export const Content = forwardRef<
       className={cn(
         [
           'z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+          'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         ],
         className,
       )}
