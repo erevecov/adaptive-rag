@@ -140,7 +140,7 @@ export function ChatWorkspacePanel({
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
-        aria-busy={isAsking || undefined}
+        aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat transcript"
         className="min-h-0 overflow-y-auto px-0.5 pr-1"
         data-slot="chat-transcript"
