@@ -591,7 +591,7 @@ function AccountNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.8125rem] max-[680px]:tracking-wider"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.75rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         My Account
@@ -661,7 +661,7 @@ function SettingsNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.8125rem] max-[680px]:tracking-wider"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.75rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         Settings
