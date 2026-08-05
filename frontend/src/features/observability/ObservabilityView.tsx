@@ -275,7 +275,7 @@ function ObservabilityContent({
     if (state === 'canceled') {
       return (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
           data-slot-state="canceled"
           role="status"
         >
@@ -608,7 +608,7 @@ function MetricCard({
       >
         {value}
       </strong>
-      <small className="text-sm leading-relaxed text-muted-foreground">
+      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
