@@ -314,7 +314,7 @@ function StatusDot({ status }: { status: ChatStep['status'] }) {
       ? 'bg-destructive'
       : status === 'done'
         ? 'bg-primary'
-        : 'bg-muted-foreground'
+        : 'bg-muted-foreground motion-safe:animate-pulse'
   return (
     <span
       aria-hidden="true"

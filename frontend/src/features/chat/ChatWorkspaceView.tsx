@@ -614,6 +614,37 @@ function ResponseContent({
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
             {response.answer}
           </p>
+          {response.citations.length > 0 ? (
+            <div
+              aria-label="Answer citations"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border/50 pt-2.5"
+              data-slot="chat-answer-citations"
+            >
+              {response.citations.map((citation, index) => {
+                const label =
+                  citation.citation.source_external_id ||
+                  citation.citation.source_id ||
+                  `Source ${index + 1}`
+                return (
+                  <Button
+                    className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    key={`${citation.chunk_id}-${index}`}
+                    onClick={() =>
+                      onOpenSource(
+                        citation.citation.source_id,
+                        citation.citation.snippet,
+                      )
+                    }
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {label}
+                  </Button>
+                )
+              })}
+            </div>
+          ) : null}
         </article>
       ) : null}
 
