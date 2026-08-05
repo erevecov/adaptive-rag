@@ -57,7 +57,7 @@ export function RetrievalPlaygroundPanel({
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!projectId.trim()) {
-      setError('Select a project before searching.')
+      setError('Select a Project Before Searching.')
       setState('failed')
       setResults([])
       return
@@ -215,7 +215,7 @@ export function RetrievalPlaygroundPanel({
             </StatusBadge>
             {!projectId.trim() ? (
               <span className="text-sm text-muted-foreground">
-                Select a project in the sidebar first.
+                Select a Project in the Sidebar First.
               </span>
             ) : null}
           </div>

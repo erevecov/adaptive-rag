@@ -115,7 +115,7 @@ describe('RetrievalPlaygroundPanel', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Search' }))
-    expect(screen.getByText(/Select a project before searching/i)).toBeTruthy()
+    expect(screen.getByText(/Select a Project Before Searching/i)).toBeTruthy()
     expect(search).not.toHaveBeenCalled()
     const failedBadge = screen.getByText('Failed')
     expect(failedBadge.getAttribute('data-slot')).toBe('badge')
