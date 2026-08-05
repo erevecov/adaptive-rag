@@ -290,9 +290,8 @@ Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Siguiente tarea recomendada
 
-- Merge stack M40–M50 + user-memory + llm-judge (human). Residual Bloque C:
-  retrieval playground UI o UI polish PR separado.
-  Tag/GitHub release v1.0 sigue siendo decision humana.
+- Merge stack M40–M50 + Bloque C PRs #197–#199 (human). Residual: UI polish
+  sidebar/chat PR separado si hay WIP local. Tag v1.0 decision humana.
 
 ## Reglas de coordinacion
 
