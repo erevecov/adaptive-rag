@@ -23,6 +23,12 @@ describe('NavSection', () => {
     expect(
       screen.getByText('Activos').closest('[data-slot="nav-section"]')?.className,
     ).toContain('max-[680px]:gap-1.5')
+    expect(
+      screen
+        .getByText('Activos')
+        .closest('[data-slot="nav-section"]')
+        ?.querySelector('[data-slot="nav-section-content"]')?.className,
+    ).toContain('max-[680px]:gap-0.5')
   })
 })
 

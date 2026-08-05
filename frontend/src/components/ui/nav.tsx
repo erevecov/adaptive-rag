@@ -27,7 +27,7 @@ export const NavSection = forwardRef<HTMLElement, NavSectionProps>(
           {title}
         </h2>
       ) : null}
-      <div className="flex flex-col gap-1" data-slot="nav-section-content">
+      <div className="flex flex-col gap-1 max-[680px]:gap-0.5" data-slot="nav-section-content">
         {children}
       </div>
     </section>

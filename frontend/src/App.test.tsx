@@ -1035,7 +1035,11 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('Prefer concise answers')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Approve' }))
     expect(approveUserMemory).toHaveBeenCalled()
-    expect(await screen.findByText('Approved')).toBeTruthy()
+    // Status badge text "Approved" collides with the filter button of the same name.
+    const memoryList = await screen.findByRole('list', { name: 'User memories' })
+    expect(
+      await within(memoryList).findByText('Approved'),
+    ).toBeTruthy()
   })
 
   test('shows settings modules and submodules in the sidebar', async () => {
