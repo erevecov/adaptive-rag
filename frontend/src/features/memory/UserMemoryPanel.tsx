@@ -64,10 +64,21 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     proposed: 0,
     rejected: 0,
   })
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
+
+  useEffect(() => {
+    if (confirmRemoveId === null) {
+      return
+    }
+    const button = document.getElementById(`confirm-remove-${confirmRemoveId}`)
+    if (button instanceof HTMLElement) {
+      button.focus()
+    }
+  }, [confirmRemoveId])
 
   useEffect(() => {
     let cancelled = false
@@ -75,6 +86,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     async function load() {
       setListState('loading')
       setListError(null)
+      setConfirmRemoveId(null)
       try {
         const projectScope =
           trimmedProjectId.length > 0 ? trimmedProjectId : null
@@ -215,6 +227,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditingId(null)
         setEditDraft('')
       }
+      setConfirmRemoveId(null)
       await refreshList()
       requestAnimationFrame(() => {
         focusAfterReview(memory.id, rowIndex)
@@ -250,6 +263,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     memory: UserMemory,
   ) {
     if (busyMemoryId === memory.id) {
+      return
+    }
+    if (event.key === 'Escape' && confirmRemoveId === memory.id) {
+      event.preventDefault()
+      setConfirmRemoveId(null)
       return
     }
     const target = event.target as HTMLElement
@@ -400,15 +418,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           const active = statusFilter === filter.id
           return (
             <Button
+              aria-label={`${filter.label}, ${statusCounts[filter.id]} items`}
               aria-pressed={active}
               key={filter.id}
-              onClick={() => setStatusFilter(filter.id)}
+              onClick={() => {
+                setConfirmRemoveId(null)
+                setStatusFilter(filter.id)
+              }}
               size="sm"
               type="button"
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
-              <span className="tabular-nums text-[10px] opacity-80">
+              <span aria-hidden className="tabular-nums text-[10px] opacity-80">
                 {statusCounts[filter.id]}
               </span>
             </Button>
@@ -423,9 +445,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
-          <InlineFeedback role="alert" tone="danger">
-            {listError}
-          </InlineFeedback>
+          <div className="flex flex-wrap items-center gap-2">
+            <InlineFeedback role="alert" tone="danger">
+              {listError}
+            </InlineFeedback>
+            <Button
+              onClick={() => void refreshList()}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Retry
+            </Button>
+          </div>
         ) : null}
         {actionError ? (
           <InlineFeedback role="alert" tone="danger">
@@ -446,7 +478,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       ) : null}
 
       {items.length > 0 ? (
-        <DataList aria-label="User Memories" className="gap-1.5">
+        <DataList
+          aria-busy={listState === 'loading' || undefined}
+          aria-label="User Memories"
+          className="gap-1.5"
+        >
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
@@ -488,21 +524,60 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                         <span aria-hidden className="text-xs text-muted-foreground">
                           ·
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <time
+                          className="text-xs text-muted-foreground"
+                          dateTime={memory.created_at ?? undefined}
+                          title={formatAbsoluteTime(memory.created_at) ?? undefined}
+                        >
                           {formatRelativeTime(memory.created_at)}
-                        </span>
+                        </time>
                       </>
                     ) : null}
                   </div>
 
                   {isEditing ? (
-                    <Textarea
-                      aria-label="Edit Memory Content"
-                      className="min-h-16"
-                      maxLength={USER_MEMORY_MAX_CHARS}
-                      onChange={(event) => setEditDraft(event.target.value)}
-                      value={editDraft}
-                    />
+                    <div className="grid gap-1">
+                      <Textarea
+                        aria-describedby={`edit-memory-help-${memory.id}`}
+                        aria-label="Edit Memory Content"
+                        className="min-h-16"
+                        maxLength={USER_MEMORY_MAX_CHARS}
+                        onChange={(event) => setEditDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            event.preventDefault()
+                            setEditingId(null)
+                            setEditDraft('')
+                            return
+                          }
+                          if (
+                            (event.metaKey || event.ctrlKey) &&
+                            event.key === 'Enter'
+                          ) {
+                            event.preventDefault()
+                            void handleSaveEdit(memory)
+                          }
+                        }}
+                        value={editDraft}
+                      />
+                      <p
+                        className="text-xs text-muted-foreground"
+                        id={`edit-memory-help-${memory.id}`}
+                      >
+                        <span
+                          className={cn(
+                            editDraft.length > USER_MEMORY_MAX_CHARS &&
+                              'text-destructive',
+                            editDraft.length >= USER_MEMORY_SOFT_HINT_CHARS &&
+                              editDraft.length <= USER_MEMORY_MAX_CHARS &&
+                              'text-amber-900 dark:text-amber-100',
+                          )}
+                        >
+                          {editDraft.length}/{USER_MEMORY_MAX_CHARS}
+                        </span>
+                        {' · ⌘/Ctrl+Enter save · Esc cancel'}
+                      </p>
+                    </div>
                   ) : (
                     <div className="grid gap-1">
                       <p
@@ -599,15 +674,39 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     ) : null}
 
                     {memory.status === 'approved' ? (
-                      <Button
-                        disabled={busy}
-                        onClick={() => void handleReject(memory)}
-                        size="sm"
-                        type="button"
-                        variant="secondary"
-                      >
-                        Remove from injection
-                      </Button>
+                      confirmRemoveId === memory.id ? (
+                        <DataListItemActions className="gap-1.5">
+                          <Button
+                            disabled={busy}
+                            id={`confirm-remove-${memory.id}`}
+                            onClick={() => void handleReject(memory)}
+                            size="sm"
+                            type="button"
+                            variant="danger"
+                          >
+                            Confirm remove
+                          </Button>
+                          <Button
+                            disabled={busy}
+                            onClick={() => setConfirmRemoveId(null)}
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                          >
+                            Cancel
+                          </Button>
+                        </DataListItemActions>
+                      ) : (
+                        <Button
+                          disabled={busy}
+                          onClick={() => setConfirmRemoveId(memory.id)}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Remove from injection
+                        </Button>
+                      )
                     ) : null}
 
                     {memory.status === 'rejected' ? (
@@ -754,6 +853,24 @@ function formatRelativeTime(iso: string | null): string | null {
   }
   const days = Math.round(hours / 24)
   return `${days}d ago`
+}
+
+function formatAbsoluteTime(iso: string | null): string | null {
+  if (iso === null || iso.trim().length === 0) {
+    return null
+  }
+  const then = Date.parse(iso)
+  if (Number.isNaN(then)) {
+    return null
+  }
+  try {
+    return new Date(then).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+  } catch {
+    return iso
+  }
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
