@@ -23,3 +23,25 @@ or `rejected`.
 
 - **WHEN** injection text is requested
 - **THEN** only `approved` memories for the user (and project/global scope) appear
+
+### Requirement: Proposed memories MAY be edited before review
+
+The system SHALL allow the owning user to PATCH content of a memory while its
+status is `proposed`. Edits of `approved` or `rejected` memories MUST return
+conflict (409).
+
+#### Scenario: Edit proposed content
+
+- **WHEN** the owner PATCHes content on a `proposed` memory
+- **THEN** the stored content is updated and status remains `proposed`
+
+### Requirement: Approved memories MAY be soft-removed via reject
+
+Rejecting an `approved` memory SHALL transition it to `rejected` and remove it
+from injection text. This reuses the existing status set (no `archived` status).
+
+#### Scenario: Soft-remove approved memory
+
+- **WHEN** the owner rejects an `approved` memory
+- **THEN** status becomes `rejected`
+- **AND** injection text no longer includes that content

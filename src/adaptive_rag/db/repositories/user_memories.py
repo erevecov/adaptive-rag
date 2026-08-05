@@ -76,3 +76,16 @@ class UserMemoryRepository:
         memory.reviewed_by_user_id = reviewed_by_user_id
         self._session.flush()
         return memory
+
+    def update_content(
+        self,
+        *,
+        memory_id: UUID,
+        content: str,
+    ) -> UserMemory | None:
+        memory = self.get(memory_id=memory_id)
+        if memory is None:
+            return None
+        memory.content = content
+        self._session.flush()
+        return memory

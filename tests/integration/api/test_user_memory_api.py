@@ -320,3 +320,64 @@ def test_superadmin_can_propose_project_scoped_without_membership() -> None:
     )
     assert approved.status_code == 200
     assert approved.json()["status"] == "approved"
+
+
+def test_patch_proposed_and_reject_approved_via_api() -> None:
+    session = _make_session()
+    user = _create_user(session, login="patch@example.com", token="patch-token")
+    session.commit()
+    client = _client(session=session)
+
+    created = client.post(
+        "/users/me/memories",
+        headers=_bearer("patch-token"),
+        json={"content": "Draft preference"},
+    )
+    assert created.status_code == 201
+    memory_id = created.json()["id"]
+
+    patched = client.patch(
+        f"/users/me/memories/{memory_id}",
+        headers=_bearer("patch-token"),
+        json={"content": "  Edited preference  "},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["content"] == "Edited preference"
+    assert patched.json()["status"] == "proposed"
+
+    approved = client.post(
+        f"/users/me/memories/{memory_id}/approve",
+        headers=_bearer("patch-token"),
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+
+    conflict = client.patch(
+        f"/users/me/memories/{memory_id}",
+        headers=_bearer("patch-token"),
+        json={"content": "Should fail"},
+    )
+    assert conflict.status_code == 409
+
+    request = ChatRequest(
+        project_id=uuid4(),
+        message="Hello",
+        user_id=user.id,
+    )
+    injected = _with_approved_user_memory(
+        session, request=request, user_id=user.id, project_id=None
+    )
+    assert injected.user_memory is not None
+    assert "Edited preference" in injected.user_memory
+
+    removed = client.post(
+        f"/users/me/memories/{memory_id}/reject",
+        headers=_bearer("patch-token"),
+    )
+    assert removed.status_code == 200
+    assert removed.json()["status"] == "rejected"
+
+    cleared = _with_approved_user_memory(
+        session, request=request, user_id=user.id, project_id=None
+    )
+    assert cleared.user_memory is None

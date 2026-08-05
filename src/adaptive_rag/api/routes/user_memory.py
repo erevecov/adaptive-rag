@@ -21,6 +21,10 @@ class MemoryProposeBody(BaseModel):
     project_id: UUID | None = None
 
 
+class MemoryUpdateBody(BaseModel):
+    content: str = Field(min_length=1, max_length=4000)
+
+
 @router.post("/users/me/memories", status_code=201)
 def propose_my_memory(
     body: MemoryProposeBody,
@@ -62,6 +66,28 @@ def list_my_memories(
     except user_memory.UserMemoryError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return user_memory.memories_payload(items)
+
+
+@router.patch("/users/me/memories/{memory_id}")
+def update_my_memory(
+    memory_id: UUID,
+    body: MemoryUpdateBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+) -> dict[str, Any]:
+    if current.user_id is None:
+        raise HTTPException(status_code=401, detail="authentication required")
+    try:
+        memory = user_memory.update_proposed_memory(
+            session,
+            memory_id=memory_id,
+            content=body.content,
+            owner_user_id=current.user_id,
+        )
+    except user_memory.UserMemoryError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    session.commit()
+    return user_memory.memory_payload(memory)
 
 
 @router.post("/users/me/memories/{memory_id}/approve")

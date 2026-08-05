@@ -196,6 +196,11 @@ function createClientStub(options: {
   listRuntimeSlotDefaults?: ApiClient['listRuntimeSlotDefaults']
   listSources?: ApiClient['listSources']
   listUsers?: ApiClient['listUsers']
+  listUserMemories?: ApiClient['listUserMemories']
+  proposeUserMemory?: ApiClient['proposeUserMemory']
+  updateUserMemory?: ApiClient['updateUserMemory']
+  approveUserMemory?: ApiClient['approveUserMemory']
+  rejectUserMemory?: ApiClient['rejectUserMemory']
   unarchiveChatSession?: ApiClient['unarchiveChatSession']
   updateChatSessionTitle?: ApiClient['updateChatSessionTitle']
   updateChatRetrievalSettings?: ApiClient['updateChatRetrievalSettings']
@@ -278,6 +283,12 @@ function createClientStub(options: {
     listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
     listUsers: options.listUsers ?? vi.fn(),
+    listUserMemories:
+      options.listUserMemories ?? vi.fn(async () => ({ items: [] })),
+    proposeUserMemory: options.proposeUserMemory ?? vi.fn(),
+    updateUserMemory: options.updateUserMemory ?? vi.fn(),
+    approveUserMemory: options.approveUserMemory ?? vi.fn(),
+    rejectUserMemory: options.rejectUserMemory ?? vi.fn(),
     refineKnowledgeProposal: options.refineKnowledgeProposal ?? vi.fn(),
     approveKnowledgeProposal: options.approveKnowledgeProposal ?? vi.fn(),
     rejectKnowledgeProposal: options.rejectKnowledgeProposal ?? vi.fn(),
@@ -944,10 +955,53 @@ describe('App chat workspace', () => {
     expect(chatButton.hasAttribute('aria-current')).toBe(false)
   })
 
-  test('shows account modules in the sidebar without rendering fake memory state', async () => {
+  test('shows account modules and a real Memory panel with propose/approve', async () => {
     const user = userEvent.setup()
+    const memories: Array<{
+      id: string
+      user_id: string
+      project_id: string | null
+      content: string
+      status: 'proposed' | 'approved' | 'rejected'
+      created_at: string | null
+      reviewed_at: string | null
+      reviewed_by_user_id: string | null
+    }> = []
 
-    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+    const listUserMemories = vi.fn(async () => ({ items: [...memories] }))
+    const proposeUserMemory = vi.fn(async (body: { content: string }) => {
+      const item = {
+        content: body.content,
+        created_at: '2026-08-05T00:00:00Z',
+        id: `mem-${memories.length + 1}`,
+        project_id: null,
+        reviewed_at: null,
+        reviewed_by_user_id: null,
+        status: 'proposed' as const,
+        user_id: 'user-1',
+      }
+      memories.push(item)
+      return item
+    })
+    const approveUserMemory = vi.fn(async (memoryId: string) => {
+      const item = memories.find((memory) => memory.id === memoryId)
+      if (item === undefined) {
+        throw new Error('missing')
+      }
+      item.status = 'approved'
+      return item
+    })
+
+    render(
+      <App
+        apiClient={createClientStub({
+          approveUserMemory,
+          listUserMemories,
+          proposeUserMemory,
+        })}
+        initialProjectId={projectId}
+      />,
+    )
 
     await user.click(screen.getByRole('button', { name: 'My account' }))
 
@@ -966,13 +1020,22 @@ describe('App chat workspace', () => {
     })
     await user.click(memoryButton)
     expect(screen.getByRole('heading', { name: 'Memory' })).toBeTruthy()
-    expect(screen.getByText('Deferred')).toBeTruthy()
+    expect(screen.queryByText('Deferred')).toBeNull()
     expect(
-      screen.getByText(
-        'This module is not available until a durable backend contract exists.',
-      ),
+      screen.getByText(/Only approved memories inject into chat/i),
     ).toBeTruthy()
-    expect(screen.queryByText(/remembered/i)).toBeNull()
+
+    await user.type(
+      screen.getByLabelText('Propose memory'),
+      'Prefer concise answers',
+    )
+    await user.click(screen.getByRole('button', { name: 'Propose' }))
+
+    expect(proposeUserMemory).toHaveBeenCalled()
+    expect(await screen.findByText('Prefer concise answers')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(approveUserMemory).toHaveBeenCalled()
+    expect(await screen.findByText('approved')).toBeTruthy()
   })
 
   test('shows settings modules and submodules in the sidebar', async () => {

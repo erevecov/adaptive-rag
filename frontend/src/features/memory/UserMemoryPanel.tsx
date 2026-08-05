@@ -1,0 +1,468 @@
+import { type FormEvent, useEffect, useId, useState } from 'react'
+
+import { StatusBadge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/control'
+import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
+import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
+import { Panel, PanelDescription } from '@/components/ui/panel'
+import {
+  ApiClientError,
+  USER_MEMORY_MAX_CHARS,
+  USER_MEMORY_SOFT_HINT_CHARS,
+  type ApiClient,
+  type UserMemory,
+  type UserMemoryStatus,
+} from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
+import { cn } from '@/lib/utils'
+
+export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
+
+export type MemoryStatusFilter = 'all' | UserMemoryStatus
+
+const STATUS_FILTERS: Array<{ id: MemoryStatusFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'proposed', label: 'Proposed' },
+  { id: 'approved', label: 'Approved' },
+  { id: 'rejected', label: 'Rejected' },
+]
+
+export type UserMemoryPanelProps = {
+  apiClient: ApiClient
+  projectId: string
+}
+
+export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) {
+  const titleId = useId()
+  const draftFieldId = useId()
+  const [statusFilter, setStatusFilter] = useState<MemoryStatusFilter>('all')
+  const [items, setItems] = useState<UserMemory[]>([])
+  const [listState, setListState] = useState<RequestState>('idle')
+  const [listError, setListError] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
+  const [scopeToProject, setScopeToProject] = useState(false)
+  const [proposeState, setProposeState] = useState<RequestState>('idle')
+  const [proposeError, setProposeError] = useState<string | null>(null)
+  const [proposeSuccess, setProposeSuccess] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [busyMemoryId, setBusyMemoryId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
+
+  const trimmedProjectId = projectId.trim()
+  const draftLength = draft.length
+  const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setListState('loading')
+      setListError(null)
+      try {
+        const response = await apiClient.listUserMemories({
+          project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
+          status: statusFilter === 'all' ? null : statusFilter,
+        })
+        if (cancelled) {
+          return
+        }
+        setItems(response.items)
+        setListState('succeeded')
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+        setItems([])
+        setListError(getErrorMessage(error, 'Could not load memories.'))
+        setListState('failed')
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [apiClient, statusFilter, trimmedProjectId])
+
+  async function refreshList() {
+    setListState('loading')
+    setListError(null)
+    try {
+      const response = await apiClient.listUserMemories({
+        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
+        status: statusFilter === 'all' ? null : statusFilter,
+      })
+      setItems(response.items)
+      setListState('succeeded')
+    } catch (error) {
+      setItems([])
+      setListError(getErrorMessage(error, 'Could not load memories.'))
+      setListState('failed')
+    }
+  }
+
+  async function handlePropose(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const content = draft.trim()
+    if (content.length === 0 || draftOverLimit || proposeState === 'loading') {
+      return
+    }
+
+    setProposeState('loading')
+    setProposeError(null)
+    setProposeSuccess(null)
+    setActionError(null)
+    try {
+      await apiClient.proposeUserMemory({
+        content,
+        project_id:
+          scopeToProject && trimmedProjectId.length > 0 ? trimmedProjectId : null,
+      })
+      setDraft('')
+      setProposeState('succeeded')
+      setProposeSuccess('Proposed. Approve it below before chat can use it.')
+      await refreshList()
+    } catch (error) {
+      setProposeState('failed')
+      setProposeError(getErrorMessage(error, 'Could not propose memory.'))
+    }
+  }
+
+  async function handleApprove(memory: UserMemory) {
+    setBusyMemoryId(memory.id)
+    setActionError(null)
+    try {
+      await apiClient.approveUserMemory(memory.id)
+      await refreshList()
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Could not approve memory.'))
+    } finally {
+      setBusyMemoryId(null)
+    }
+  }
+
+  async function handleReject(memory: UserMemory) {
+    setBusyMemoryId(memory.id)
+    setActionError(null)
+    try {
+      await apiClient.rejectUserMemory(memory.id)
+      if (editingId === memory.id) {
+        setEditingId(null)
+        setEditDraft('')
+      }
+      await refreshList()
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Could not reject memory.'))
+    } finally {
+      setBusyMemoryId(null)
+    }
+  }
+
+  async function handleSaveEdit(memory: UserMemory) {
+    const content = editDraft.trim()
+    if (content.length === 0 || content.length > USER_MEMORY_MAX_CHARS) {
+      return
+    }
+    setBusyMemoryId(memory.id)
+    setActionError(null)
+    try {
+      await apiClient.updateUserMemory(memory.id, { content })
+      setEditingId(null)
+      setEditDraft('')
+      await refreshList()
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Could not update memory.'))
+    } finally {
+      setBusyMemoryId(null)
+    }
+  }
+
+  const approvedCount = items.filter((item) => item.status === 'approved').length
+
+  return (
+    <Panel aria-labelledby={titleId} className="grid gap-6 p-6" role="region">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+            My account
+          </p>
+          <h2
+            className="text-xl font-semibold leading-tight text-foreground"
+            id={titleId}
+          >
+            Memory
+          </h2>
+        </div>
+        <StatusBadge className="w-fit" tone="primary">
+          {listState === 'loading' ? 'Loading' : `${approvedCount} injectable`}
+        </StatusBadge>
+      </header>
+
+      <PanelDescription>
+        Only approved memories inject into chat as system context — never as a
+        user turn. Propose → approve is required. There is no automatic capture
+        or cron in this build.
+      </PanelDescription>
+
+      <form className="grid gap-3" onSubmit={(event) => void handlePropose(event)}>
+        <Field>
+          <FieldLabel htmlFor={draftFieldId}>Propose memory</FieldLabel>
+          <FieldControl>
+            <Textarea
+              aria-describedby={`${draftFieldId}-help`}
+              aria-invalid={draftOverLimit || undefined}
+              id={draftFieldId}
+              maxLength={USER_MEMORY_MAX_CHARS}
+              onChange={(event) => {
+                setDraft(event.target.value)
+                setProposeSuccess(null)
+              }}
+              placeholder="e.g. Prefer concise answers in Spanish"
+              value={draft}
+            />
+          </FieldControl>
+          <FieldHelp id={`${draftFieldId}-help`}>
+            <span
+              className={cn(
+                draftOverLimit && 'text-destructive',
+                draftLength >= USER_MEMORY_SOFT_HINT_CHARS &&
+                  !draftOverLimit &&
+                  'text-amber-900 dark:text-amber-100',
+              )}
+            >
+              {draftLength}/{USER_MEMORY_MAX_CHARS}
+            </span>
+            {draftLength >= USER_MEMORY_SOFT_HINT_CHARS
+              ? ' — keep preferences short when possible.'
+              : null}
+          </FieldHelp>
+        </Field>
+
+        {trimmedProjectId.length > 0 ? (
+          <label className="flex items-start gap-2 text-sm text-foreground">
+            <input
+              checked={scopeToProject}
+              className="mt-1"
+              onChange={(event) => setScopeToProject(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              Scope to current project
+              <span className="block text-xs text-muted-foreground">
+                Unchecked = global (all projects for this user).
+              </span>
+            </span>
+          </label>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            disabled={
+              draft.trim().length === 0 ||
+              draftOverLimit ||
+              proposeState === 'loading'
+            }
+            type="submit"
+          >
+            {proposeState === 'loading' ? 'Proposing…' : 'Propose'}
+          </Button>
+          {proposeSuccess ? (
+            <InlineFeedback role="status" tone="success">
+              {proposeSuccess}
+            </InlineFeedback>
+          ) : null}
+          {proposeError ? (
+            <InlineFeedback role="alert" tone="danger">
+              {proposeError}
+            </InlineFeedback>
+          ) : null}
+        </div>
+      </form>
+
+      <div
+        aria-label="Memory status filters"
+        className="flex flex-wrap gap-2"
+        role="group"
+      >
+        {STATUS_FILTERS.map((filter) => {
+          const active = statusFilter === filter.id
+          return (
+            <Button
+              aria-pressed={active}
+              key={filter.id}
+              onClick={() => setStatusFilter(filter.id)}
+              size="sm"
+              type="button"
+              variant={active ? 'primary' : 'secondary'}
+            >
+              {filter.label}
+            </Button>
+          )
+        })}
+      </div>
+
+      {listError ? (
+        <InlineFeedback role="alert" tone="danger">
+          {listError}
+        </InlineFeedback>
+      ) : null}
+      {actionError ? (
+        <InlineFeedback role="alert" tone="danger">
+          {actionError}
+        </InlineFeedback>
+      ) : null}
+
+      {listState === 'loading' && items.length === 0 ? (
+        <EmptyState>Loading memories…</EmptyState>
+      ) : null}
+
+      {listState !== 'loading' && items.length === 0 ? (
+        <EmptyState>
+          No memories yet. Propose one above, then approve it to enable chat
+          injection.
+        </EmptyState>
+      ) : null}
+
+      {items.length > 0 ? (
+        <DataList aria-label="User memories">
+          {items.map((memory) => {
+            const busy = busyMemoryId === memory.id
+            const isEditing = editingId === memory.id
+            return (
+              <DataListItem key={memory.id}>
+                <div className="grid gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge
+                      className="w-fit"
+                      tone={statusTone(memory.status)}
+                    >
+                      {memory.status}
+                    </StatusBadge>
+                    <span className="text-xs text-muted-foreground">
+                      {memory.project_id ? 'Project-scoped' : 'Global'}
+                    </span>
+                  </div>
+
+                  {isEditing ? (
+                    <Textarea
+                      aria-label="Edit memory content"
+                      maxLength={USER_MEMORY_MAX_CHARS}
+                      onChange={(event) => setEditDraft(event.target.value)}
+                      value={editDraft}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                      {memory.content}
+                    </p>
+                  )}
+
+                  <DataListItemActions>
+                    {memory.status === 'proposed' && !isEditing ? (
+                      <>
+                        <Button
+                          disabled={busy}
+                          onClick={() => void handleApprove(memory)}
+                          size="sm"
+                          type="button"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          disabled={busy}
+                          onClick={() => {
+                            setEditingId(memory.id)
+                            setEditDraft(memory.content)
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          disabled={busy}
+                          onClick={() => void handleReject(memory)}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    ) : null}
+
+                    {memory.status === 'proposed' && isEditing ? (
+                      <>
+                        <Button
+                          disabled={
+                            busy ||
+                            editDraft.trim().length === 0 ||
+                            editDraft.length > USER_MEMORY_MAX_CHARS
+                          }
+                          onClick={() => void handleSaveEdit(memory)}
+                          size="sm"
+                          type="button"
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          disabled={busy}
+                          onClick={() => {
+                            setEditingId(null)
+                            setEditDraft('')
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : null}
+
+                    {memory.status === 'approved' ? (
+                      <Button
+                        disabled={busy}
+                        onClick={() => void handleReject(memory)}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        Remove from injection
+                      </Button>
+                    ) : null}
+                  </DataListItemActions>
+                </div>
+              </DataListItem>
+            )
+          })}
+        </DataList>
+      ) : null}
+    </Panel>
+  )
+}
+
+function statusTone(
+  status: UserMemoryStatus,
+): 'neutral' | 'primary' | 'success' | 'warning' | 'danger' {
+  if (status === 'approved') {
+    return 'success'
+  }
+  if (status === 'proposed') {
+    return 'warning'
+  }
+  if (status === 'rejected') {
+    return 'danger'
+  }
+  return 'neutral'
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiClientError || error instanceof Error) {
+    return operatorSafeMessage(error.message, fallback)
+  }
+  return fallback
+}
