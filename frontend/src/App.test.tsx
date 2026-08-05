@@ -1010,10 +1010,10 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Authoring', 'Users')
     expect(screen.getByRole('heading', { name: 'Users' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Content registry' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Content Registry' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    expect(screen.getByRole('heading', { name: 'Content registry' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Content Registry' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeTruthy()
@@ -1608,7 +1608,7 @@ describe('App chat workspace', () => {
       draftText,
       'Document this deployment exception for import retries.',
     )
-    await user.click(screen.getByRole('button', { name: 'Approve knowledge' }))
+    await user.click(screen.getByRole('button', { name: 'Approve Knowledge' }))
 
     await waitFor(() =>
       expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
@@ -1669,7 +1669,7 @@ describe('App chat workspace', () => {
       ].join('\n'),
     )
 
-    await user.click(screen.getByRole('button', { name: 'Request approval' }))
+    await user.click(screen.getByRole('button', { name: 'Request Approval' }))
     await waitFor(() =>
       expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
         origin_session_id: 'session-123',
@@ -1865,9 +1865,9 @@ describe('App chat workspace', () => {
     )
 
     await openSettingsSubmodule(user, 'Authoring', 'Users')
-    await user.type(screen.getByLabelText('User login'), viewerUser.login)
-    await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
-    await user.type(screen.getByLabelText('Access token'), 'viewer-token')
+    await user.type(screen.getByLabelText('User Login'), viewerUser.login)
+    await user.type(screen.getByLabelText('Display Name'), viewerUser.display_name)
+    await user.type(screen.getByLabelText('Access Token'), 'viewer-token')
     await user.click(screen.getByRole('button', { name: 'Create User' }))
 
     await waitFor(() =>
@@ -1882,7 +1882,7 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Member user ID'), viewerUser.id)
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project role'),
+      screen.getByLabelText('Project Role'),
       'Admin',
     )
     await user.click(screen.getByRole('button', { name: 'Save Membership' }))
@@ -1930,7 +1930,7 @@ describe('App chat workspace', () => {
       await screen.findByText('Document the escalation runbook from chat.'),
     ).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Refined text'), 'Refined escalation runbook.')
+    await user.type(screen.getByLabelText('Refined Text'), 'Refined escalation runbook.')
     await user.click(screen.getByRole('button', { name: /^Refine / }))
 
     await waitFor(() =>
@@ -1954,7 +1954,7 @@ describe('App chat workspace', () => {
       ),
     )
 
-    await user.type(screen.getByLabelText('Reject reason'), 'Needs source owner.')
+    await user.type(screen.getByLabelText('Reject Reason'), 'Needs source owner.')
     await user.click(screen.getByRole('button', { name: /^Reject / }))
 
     await waitFor(() =>
@@ -2317,7 +2317,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Projects')
     expect(await screen.findByText('Demo')).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Project name'), 'Demo')
+    await user.type(screen.getByLabelText('Project Name'), 'Demo')
     await user.click(screen.getByRole('button', { name: 'Create Project' }))
 
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
@@ -2326,7 +2326,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Source type'),
+      screen.getByLabelText('Source Type'),
       'Markdown',
     )
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
@@ -2357,7 +2357,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Source type'),
+      screen.getByLabelText('Source Type'),
       'PDF',
     )
 
@@ -2417,7 +2417,7 @@ describe('App chat workspace', () => {
     expect((await screen.findAllByText('Blocked')).length).toBeGreaterThan(0)
     expect(screen.getByText('missing content')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+    await user.click(screen.getByRole('button', { name: 'Run Next Job' }))
 
     expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
     expect((await screen.findAllByText('Processed')).length).toBeGreaterThan(0)
@@ -2506,7 +2506,7 @@ describe('App chat workspace', () => {
       screen.getByText(`source ${sourceSummary.id}`, { exact: false }),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+    await user.click(screen.getByRole('button', { name: 'Run Next Job' }))
 
     const lastRun = await screen.findByText('Last run')
     expect(lastRun).toBeTruthy()
@@ -3478,7 +3478,7 @@ describe('App chat workspace', () => {
     })
     expect(detailsToggle.textContent).toContain('1 Source')
     expect(detailsToggle.textContent).toContain('1 Tool Call')
-    expect(detailsToggle.textContent).toContain('usage')
+    expect(detailsToggle.textContent).toContain('Usage')
 
     await user.click(detailsToggle)
 

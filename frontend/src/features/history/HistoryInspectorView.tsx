@@ -685,7 +685,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             <section className="grid gap-2">
               <h4 className="text-sm font-semibold text-foreground">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
-                <EmptyState>No tags stored.</EmptyState>
+                <EmptyState>No Tags Stored.</EmptyState>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {viewer.source.tags.map((tag) => (

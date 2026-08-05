@@ -442,7 +442,7 @@ function ProjectsPanel({
       title="Projects"
     >
       <form className="grid gap-4" onSubmit={onCreateProject}>
-        <AuthoringField id="authoring-project-name" label="Project name">
+        <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
               autoComplete="off"
@@ -519,7 +519,7 @@ function ProjectList({
           ? 'Deleted'
           : canAccess
             ? titleCaseStatus(project.access_role ?? project.embedding_mode)
-            : 'No access'
+            : 'No Access'
         return (
           <DataListItem
             className="p-0"
@@ -641,7 +641,7 @@ function ProjectAccessPanel({
     >
       <form className="grid gap-4" onSubmit={onCreateUser}>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-user-login" label="User login">
+          <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
                 autoComplete="off"
@@ -653,7 +653,7 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-user-display-name" label="Display name">
+          <AuthoringField id="authoring-user-display-name" label="Display Name">
             {(fieldId) => (
               <Input
                 autoComplete="off"
@@ -669,7 +669,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-user-system-role" label="System role">
+          <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -686,7 +686,7 @@ function ProjectAccessPanel({
           <AuthoringField
             help="Paste once; never shown after save."
             id="authoring-user-access-token"
-            label="Access token"
+            label="Access Token"
           >
             {(fieldId) => (
               <Input
@@ -750,7 +750,7 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-member-role" label="Project role">
+          <AuthoringField id="authoring-member-role" label="Project Role">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -1067,7 +1067,7 @@ function SourcesPanel({
       eyebrow="Sources"
       id="sources-title"
       status={<RequestStatus state={sourceState} />}
-      title="Content registry"
+      title="Content Registry"
     >
       <form className="grid gap-4" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
@@ -1083,7 +1083,7 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-source-type" label="Source type">
+          <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -1230,7 +1230,7 @@ function SourceList({
         const tags =
           Array.isArray(source.tags) && source.tags.length > 0
             ? source.tags.join(', ')
-            : 'No tags'
+            : 'No Tags'
         return (
           <DataListItem
             className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -1328,7 +1328,7 @@ function KnowledgeReviewPanel({
       eyebrow="Knowledge"
       id="knowledge-review-title"
       status={<KnowledgeStatus state={state} />}
-      title="Pending proposals"
+      title="Pending Proposals"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -1351,12 +1351,12 @@ function KnowledgeReviewPanel({
         <LoadingListState label="Loading proposals…" />
       ) : proposals.length === 0 ? (
         <EmptyState
-          aria-label="No pending proposals"
+          aria-label="No Pending Proposals"
           className="border-border/60 bg-muted/20 p-4 text-left"
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90">No pending proposals.</p>
+          <p className="font-medium text-foreground/90">No Pending Proposals.</p>
           <p className="text-xs text-muted-foreground">
             Refresh after chat surfaces a knowledge draft for this project.
           </p>
@@ -1386,7 +1386,7 @@ function KnowledgeReviewPanel({
                 <div className="grid gap-4">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
-                    label="Refined text"
+                    label="Refined Text"
                   >
                     {(fieldId) => (
                       <Textarea
@@ -1402,7 +1402,7 @@ function KnowledgeReviewPanel({
                   </AuthoringField>
                   <AuthoringField
                     id={`proposal-reject-${proposal.id}`}
-                    label="Reject reason"
+                    label="Reject Reason"
                   >
                     {(fieldId) => (
                       <Input
@@ -1508,7 +1508,7 @@ function IngestionJobsPanel({
           <ButtonLabel
             busy={isBusy}
             busyLabel="Running…"
-            idleLabel="Run next job"
+            idleLabel="Run Next Job"
           />
         </Button>
       </div>

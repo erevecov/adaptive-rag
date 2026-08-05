@@ -1058,15 +1058,15 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
   return (
     <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
       {usage.model !== null ? (
-        <UsageItem label="model" value={usage.model} />
+        <UsageItem label="Model" value={usage.model} />
       ) : null}
       {usage.provider !== null ? (
-        <UsageItem label="provider" value={usage.provider} />
+        <UsageItem label="Provider" value={usage.provider} />
       ) : null}
-      <UsageItem label="tokens" value={formatNullableTokens(usage.totalTokens)} />
-      <UsageItem label="input" value={formatNullableTokenCount(usage.inputTokens)} />
-      <UsageItem label="output" value={formatNullableTokenCount(usage.outputTokens)} />
-      <UsageItem label="cost" value={formatNullableUsageCost(usage.costUsd)} />
+      <UsageItem label="Tokens" value={formatNullableTokens(usage.totalTokens)} />
+      <UsageItem label="Input" value={formatNullableTokenCount(usage.inputTokens)} />
+      <UsageItem label="Output" value={formatNullableTokenCount(usage.outputTokens)} />
+      <UsageItem label="Cost" value={formatNullableUsageCost(usage.costUsd)} />
     </dl>
   )
 }
@@ -1102,7 +1102,7 @@ function KnowledgeDraftCard({
   // Primary commit only while still a draft with non-empty text.
   const canSubmitPrimary = canEdit && draft.text.trim().length > 0
   const primaryAction =
-    draft.reviewAction === 'approve' ? 'Approve knowledge' : 'Request approval'
+    draft.reviewAction === 'approve' ? 'Approve Knowledge' : 'Request Approval'
 
   return (
     <article
