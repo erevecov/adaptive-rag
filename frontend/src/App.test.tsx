@@ -2144,6 +2144,8 @@ describe('App chat workspace', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('purple')
     expect(purpleThemeButton.getAttribute('aria-pressed')).toBe('true')
+    expect(purpleThemeButton.className).toContain('focus-visible:ring-primary')
+    expect(purpleThemeButton.className).toContain('bg-primary/10')
     expect(
       darkThemeButton.querySelector<HTMLElement>('[data-slot="theme-swatch"]')?.style
         .background,

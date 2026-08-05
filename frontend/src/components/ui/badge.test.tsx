@@ -34,7 +34,8 @@ describe('Badge', () => {
     expect(screen.getByText('12').className).toContain('bg-primary/15')
 
     rerender(<Badge tone="success">ok</Badge>)
-    expect(screen.getByText('ok').className).toContain('text-emerald-700')
+    expect(screen.getByText('ok').className).toContain('text-emerald-800')
+    expect(screen.getByText('ok').className).toContain('dark:text-emerald-200')
     expect(screen.getByText('ok').className).toContain('bg-emerald-500/15')
   })
 })

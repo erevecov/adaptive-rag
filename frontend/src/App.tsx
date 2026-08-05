@@ -77,6 +77,7 @@ import {
   parseChatStepsFromMetadata,
   type ChatStepEvent,
 } from './lib/chatSteps'
+import { cn } from '@/lib/utils'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -2712,13 +2713,12 @@ function AppearanceSettingsPanel({
           return (
             <Button
               aria-pressed={active}
-              className={[
+              className={cn(
                 'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground',
                 'hover:bg-muted',
-                active ? 'border-primary bg-primary/10' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+                active &&
+                  'border-primary bg-primary/10 focus-visible:ring-primary',
+              )}
               data-state={active ? 'active' : 'inactive'}
               key={option.id}
               onClick={() => onThemeChange(option.id)}
