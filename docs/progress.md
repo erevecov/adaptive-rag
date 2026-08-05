@@ -1,13 +1,14 @@
 # Progreso de Adaptive RAG
 
-## Local re-gate evidence (2026-08-05 tip `c81854a`)
+## Local re-gate evidence (2026-08-05 tip `82ee78e`)
 
 - quality-gate → succeeded / `ready_for_v1_0`
 - acceptance runtime-settings-smoke → succeeded (6 criteria)
-- marathon unit/API bundle → green; bandit → exit 0
-- OpenSpec archives m40–m50 + bloque C present
-- #178 closed deferred (non-milestone, conflicts)
-- **No v1.0 tag**
+- marathon unit/API bundle (indexing/jobs/multi-turn/authoring/M44–M50/
+  security/routing/lifecycle/mcp/memory/judge/RBAC/auth) → green
+- bandit → exit 0; OpenSpec archives m40–m50 + bloque C → 14 entries
+- GitHub CI on tip → success; open PRs → none
+- **No v1.0 tag** (human only)
 
 ## Local re-gate evidence (2026-08-05 on `main` after #200)
 
