@@ -1246,7 +1246,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/40 p-3">
+    <div className="rounded-md border border-border bg-muted/15 p-3">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </dt>

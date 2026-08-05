@@ -750,7 +750,7 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]

@@ -40,13 +40,13 @@ export function ChatPipelineSteps({
   if (isStreaming) {
     const current = summarizeCurrentStep(steps)
     const sources = formatSources(sourceCount)
-    const summary = `steps · ${current.elapsed} · ${sources}`
+    const summary = `Steps · ${current.elapsed} · ${sources}`
     const statusLabel = statusAccessibleName(current.status)
     if (!expanded) {
       return (
         <section
           aria-label="Chat pipeline steps"
-          className="rounded-md border border-border bg-muted/40 p-3"
+          className="rounded-md border border-border bg-muted/15 p-3"
           data-slot="chat-pipeline-steps"
         >
           <Button
@@ -74,7 +74,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat pipeline steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -101,13 +101,13 @@ export function ChatPipelineSteps({
   const elapsed = formatStepDuration(totalStepElapsedMs(steps))
   const sources = formatSources(sourceCount)
   const label = `${elapsed}, ${sources}`
-  const summary = `details · ${elapsed} · ${sources}`
+  const summary = `Details · ${elapsed} · ${sources}`
 
   if (!expanded) {
     return (
       <section
         aria-label="Chat pipeline steps"
-        className="rounded-md border border-border bg-muted/40 p-3"
+        className="rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -128,7 +128,7 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat pipeline steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
       data-slot="chat-pipeline-steps"
     >
       <Button
@@ -215,7 +215,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11">
         {content}
       </summary>
       <StepDetail step={step} />
@@ -364,7 +364,7 @@ function totalStepElapsedMs(steps: ChatStep[]): number | null {
 }
 
 function formatSources(value: number): string {
-  return value === 1 ? '1 source' : `${value} sources`
+  return value === 1 ? '1 Source' : `${value} Sources`
 }
 
 function formatDetailKey(value: string): string {

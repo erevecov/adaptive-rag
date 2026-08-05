@@ -138,13 +138,13 @@ describe('ChatPipelineSteps', () => {
     const stepper = screen.getByRole('region', { name: 'Chat pipeline steps' })
     expect(
       within(stepper).getByRole('button', {
-        name: 'Expand chat steps, 2.4 s, 2 sources',
+        name: 'Expand chat steps, 2.4 s, 2 Sources',
       }),
     ).toBeTruthy()
 
     await user.click(
       within(stepper).getByRole('button', {
-        name: 'Expand chat steps, 2.4 s, 2 sources',
+        name: 'Expand chat steps, 2.4 s, 2 Sources',
       }),
     )
 
@@ -178,7 +178,7 @@ describe('ChatPipelineSteps', () => {
 
     await user.click(
       within(stepper).getByRole('button', {
-        name: 'Expand chat steps, 900 ms, 1 source',
+        name: 'Expand chat steps, 900 ms, 1 Source',
       }),
     )
 
