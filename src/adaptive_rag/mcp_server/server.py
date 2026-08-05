@@ -9,17 +9,14 @@ from uuid import UUID
 from mcp.server.fastmcp import FastMCP
 
 from adaptive_rag import authoring, ingestion_ops
-from adaptive_rag.chat import ChatRequest, ChatService, RetrievalGroundedChatRunner
+from adaptive_rag.chat import ChatRequest, ChatService
 from adaptive_rag.cli.dependencies import (
     get_cli_chat_runner,
     get_cli_dense_embedding_provider,
     get_cli_sparse_embedding_provider,
 )
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.embeddings import (
-    FakeDenseEmbeddingProvider,
-    FakeSparseEmbeddingProvider,
-)
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.retrieval import RetrievalSearchRequest, RetrievalService
 from adaptive_rag.retrieval.payloads import serialize_retrieval_results
 
@@ -35,18 +32,28 @@ mcp = FastMCP("adaptive-rag")
 
 
 def _providers() -> tuple[Any, Any, Any]:
-    try:
-        return (
-            get_cli_dense_embedding_provider(),
-            get_cli_sparse_embedding_provider(),
-            get_cli_chat_runner(),
-        )
-    except Exception:
-        return (
-            FakeDenseEmbeddingProvider(),
-            FakeSparseEmbeddingProvider(),
-            RetrievalGroundedChatRunner(),
-        )
+    """Resolve dense/sparse/chat providers from settings.
+
+    Fake providers are only used when settings explicitly set
+    ``provider_runtime_mode=fake`` (via the shared CLI/runtime factories).
+    Live misconfiguration raises ``ProviderConfigurationError`` — no silent
+    fallback to fakes.
+    """
+
+    return (
+        get_cli_dense_embedding_provider(),
+        get_cli_sparse_embedding_provider(),
+        get_cli_chat_runner(),
+    )
+
+
+def _provider_config_error_payload(exc: ProviderConfigurationError) -> str:
+    return json.dumps(
+        {
+            "error": "provider_configuration_error",
+            "message": str(exc),
+        }
+    )
 
 
 @mcp.tool()
@@ -77,7 +84,11 @@ def list_sources(project_id: str) -> str:
 def search(project_id: str, query: str, limit: int = 5) -> str:
     """Dense_sparse retrieval search over a project corpus."""
 
-    dense, sparse, _runner = _providers()
+    try:
+        dense, sparse, _runner = _providers()
+    except ProviderConfigurationError as exc:
+        return _provider_config_error_payload(exc)
+
     with session_scope() as session:
         results = RetrievalService(
             session, provider=dense, sparse_provider=sparse
@@ -99,7 +110,11 @@ def search(project_id: str, query: str, limit: int = 5) -> str:
 def ask(project_id: str, question: str) -> str:
     """Ask a grounded chat question over a project corpus."""
 
-    dense, sparse, runner = _providers()
+    try:
+        dense, sparse, runner = _providers()
+    except ProviderConfigurationError as exc:
+        return _provider_config_error_payload(exc)
+
     with session_scope() as session:
         response = ChatService(
             runner=runner,

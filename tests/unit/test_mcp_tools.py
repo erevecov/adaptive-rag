@@ -6,7 +6,11 @@ import json
 from typing import Any
 from uuid import UUID
 
-from adaptive_rag import authoring
+import pytest
+
+from adaptive_rag import authoring, provider_runtime
+from adaptive_rag.chat import RetrievalGroundedChatRunner
+from adaptive_rag.config.settings import Settings
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
@@ -19,8 +23,13 @@ from adaptive_rag.db.models import (
     Source,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.embeddings import (
+    FakeDenseEmbeddingProvider,
+    FakeSparseEmbeddingProvider,
+)
 from adaptive_rag.mcp_server.server import (
     REQUIRED_TOOL_NAMES,
+    _providers,
     ask,
     ingest_text,
     list_projects,
@@ -28,6 +37,11 @@ from adaptive_rag.mcp_server.server import (
     search,
     tool_names,
 )
+from adaptive_rag.provider_runtime import ProviderConfigurationError
+
+
+def _settings(**overrides: Any) -> Settings:
+    return Settings(_env_file=None, **overrides)
 
 
 def _install_memory_session(monkeypatch: Any) -> None:
@@ -77,8 +91,72 @@ def test_cli_registers_mcp_command() -> None:
     assert "mcp_cmd" in source
 
 
+def test_providers_use_fake_only_when_settings_request_fake(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(
+        provider_runtime,
+        "get_settings",
+        lambda: _settings(provider_runtime_mode="fake"),
+    )
+    dense, sparse, runner = _providers()
+    assert isinstance(dense, FakeDenseEmbeddingProvider)
+    assert isinstance(sparse, FakeSparseEmbeddingProvider)
+    assert isinstance(runner, RetrievalGroundedChatRunner)
+
+
+def test_providers_raise_when_live_config_broken(monkeypatch: Any) -> None:
+    monkeypatch.setattr(
+        provider_runtime,
+        "get_settings",
+        lambda: _settings(
+            provider_runtime_mode="live",
+            embedding_provider="qwen",
+            sparse_embedding_provider="qwen",
+            sparse_embedding_model="text-embedding-v4",
+            chat_provider="qwen",
+            chat_model="qwen-plus",
+        ),
+    )
+    with pytest.raises(
+        ProviderConfigurationError,
+        match="ADAPTIVE_RAG_QWEN_API_KEY is required",
+    ):
+        _providers()
+
+
+def test_search_and_ask_return_structured_error_when_live_misconfigured(
+    monkeypatch: Any,
+) -> None:
+    _install_memory_session(monkeypatch)
+    monkeypatch.setattr(
+        provider_runtime,
+        "get_settings",
+        lambda: _settings(
+            provider_runtime_mode="live",
+            embedding_provider="qwen",
+            sparse_embedding_provider="qwen",
+            sparse_embedding_model="text-embedding-v4",
+            chat_provider="qwen",
+            chat_model="qwen-plus",
+        ),
+    )
+    project_id = "00000000-0000-0000-0000-000000000001"
+    search_payload = json.loads(search(project_id, "hello", limit=1))
+    ask_payload = json.loads(ask(project_id, "hello?"))
+    assert search_payload["error"] == "provider_configuration_error"
+    assert "ADAPTIVE_RAG_QWEN_API_KEY" in search_payload["message"]
+    assert ask_payload["error"] == "provider_configuration_error"
+    assert "ADAPTIVE_RAG_QWEN_API_KEY" in ask_payload["message"]
+
+
 def test_list_projects_and_ingest_text_public_path(monkeypatch: Any) -> None:
     _install_memory_session(monkeypatch)
+    monkeypatch.setattr(
+        provider_runtime,
+        "get_settings",
+        lambda: _settings(provider_runtime_mode="fake"),
+    )
     assert json.loads(list_projects())["items"] == []
 
     from adaptive_rag.mcp_server import server as server_mod
