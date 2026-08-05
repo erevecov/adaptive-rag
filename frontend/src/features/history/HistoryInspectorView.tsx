@@ -1040,7 +1040,7 @@ function SessionDetailPanel({
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-3 max-[680px]:p-3 max-[680px]:pt-0">
-        <section className="grid gap-2" aria-labelledby="messages-title">
+        <section className="grid gap-2 max-[680px]:gap-1.5" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground">
             Messages
           </h4>
