@@ -738,7 +738,7 @@ function ConversationMinimap({
           {(detail?.messages.length ?? 0) === 1 ? 'Message' : 'Messages'}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Conversation Minimap"
@@ -792,7 +792,7 @@ function SessionContextPanel({
           {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Session Context"
@@ -879,7 +879,7 @@ function InternalActionStepper({
           {countInternalSteps(detail)} Steps
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Action Stepper"
@@ -972,7 +972,7 @@ function SessionDetailPanel({
         <PanelHeader className="p-4 max-[680px]:p-3">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
           <div
             aria-busy="true"
             aria-label="Loading Session Detail"
@@ -1004,7 +1004,7 @@ function SessionDetailPanel({
         <PanelHeader className="p-4 max-[680px]:p-3">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
           <InlineFeedback role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </InlineFeedback>
@@ -1019,7 +1019,7 @@ function SessionDetailPanel({
         <PanelHeader className="p-4 max-[680px]:p-3">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0">
           <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
