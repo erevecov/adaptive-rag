@@ -510,7 +510,7 @@ function ResponsePanel({
             role="alert"
           >
             <p className="font-medium text-destructive">Request failed.</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
               Edit the question and resend, or open another session. Details are
               under the composer when available.
             </p>
@@ -527,7 +527,7 @@ function ResponsePanel({
             role="status"
           >
             <p className="font-medium text-foreground/90">Request canceled.</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
               Nothing was stored for this turn. Ask again when ready.
             </p>
           </EmptyState>
@@ -542,7 +542,7 @@ function ResponsePanel({
           role="status"
         >
           <p className="font-medium text-foreground/90">No Response Yet.</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
             Ask about indexed sources. Enter to send · Shift+Enter for a new line.
           </p>
         </EmptyState>
@@ -758,10 +758,10 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground focus-within:border-primary"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-3"
           data-slot="chat-message"
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.8125rem] max-[680px]:leading-snug">
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (

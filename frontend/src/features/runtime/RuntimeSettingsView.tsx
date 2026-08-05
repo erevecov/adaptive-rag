@@ -535,7 +535,7 @@ export function RuntimeConnectionsPanel({
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
             data-slot-state="loading"
             role="status"
           >
@@ -543,14 +543,14 @@ export function RuntimeConnectionsPanel({
           </EmptyState>
         ) : state === 'canceled' && connections.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
             data-slot-state="canceled"
             role="status"
           >
             Connections Load Canceled.
           </EmptyState>
         ) : connections.length === 0 ? (
-          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-3" data-slot-state="empty" role="status">
             No Connections Yet.
           </EmptyState>
         ) : (
@@ -1223,7 +1223,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
             data-slot-state="loading"
             role="status"
           >
@@ -1231,14 +1231,14 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatModels.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
             data-slot-state="canceled"
             role="status"
           >
             Chat Models Load Canceled.
           </EmptyState>
         ) : chatModels.length === 0 ? (
-          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-3" data-slot-state="empty" role="status">
             No Chat Models Yet.
           </EmptyState>
         ) : (
@@ -1310,7 +1310,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
             data-slot-state="loading"
             role="status"
           >
@@ -1318,7 +1318,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatRetrievalSettings === null ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
             data-slot-state="canceled"
             role="status"
           >
@@ -1344,7 +1344,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-3" data-slot-state="empty" role="status">
             No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
@@ -1779,14 +1779,14 @@ export function ProviderModelCatalogView({
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
-          className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
           data-slot-state="loading"
           role="status"
         >
           Loading Provider Models…
         </EmptyState>
       ) : providerModels.length === 0 ? (
-        <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+        <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-3" data-slot-state="empty" role="status">
           No Provider Models Yet.
         </EmptyState>
       ) : (
@@ -1834,7 +1834,7 @@ export function RuntimeSlotList({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
         data-slot-state="loading"
         role="status"
       >
@@ -1845,7 +1845,7 @@ export function RuntimeSlotList({
   if (state === 'canceled' && slots.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="canceled"
         role="status"
       >
@@ -1856,7 +1856,7 @@ export function RuntimeSlotList({
   if (slots.length === 0) {
     return (
       <EmptyState
-        className="p-4 text-left"
+        className="p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="empty"
         role="status"
       >
@@ -1897,7 +1897,7 @@ export function ProjectRuntimeSettingsView({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
         data-slot-state="loading"
         role="status"
       >
@@ -1908,7 +1908,7 @@ export function ProjectRuntimeSettingsView({
   if (state === 'canceled' && settings === null) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="canceled"
         role="status"
       >
@@ -1918,7 +1918,7 @@ export function ProjectRuntimeSettingsView({
   }
   if (settings === null) {
     return (
-      <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+      <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-3" data-slot-state="empty" role="status">
         No Project Runtime Settings Yet.
       </EmptyState>
     )
@@ -1929,7 +1929,7 @@ export function ProjectRuntimeSettingsView({
         <h3 className="text-base font-semibold leading-none">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
-            className="p-4 text-left"
+            className="p-4 text-left tracking-tight max-[680px]:p-3"
             data-slot-state="empty"
             role="status"
           >
@@ -1967,7 +1967,7 @@ export function ProjectRuntimeSettingsView({
         <h3 className="text-base font-semibold leading-none">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
-            className="p-4 text-left"
+            className="p-4 text-left tracking-tight max-[680px]:p-3"
             data-slot-state="empty"
             role="status"
           >
