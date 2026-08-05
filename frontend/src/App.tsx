@@ -2733,7 +2733,7 @@ function AppearanceSettingsPanel({
     <Panel
       role="region"
       aria-labelledby="appearance-settings-title"
-      className="grid gap-4 p-4 max-[680px]:gap-2.5 max-[680px]:p-2.5"
+      className="grid gap-4 p-4 max-[680px]:gap-2.5 max-[680px]:p-2"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
