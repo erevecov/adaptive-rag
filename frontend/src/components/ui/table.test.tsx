@@ -65,6 +65,7 @@ describe('Table density', () => {
 
     const scroll = screen.getByText('Latency').closest('[data-slot="table-scroll"]')
     expect(scroll?.className).toContain('overscroll-contain')
+    expect(scroll?.className).toContain('max-[680px]:overscroll-y-contain')
     expect(scroll?.className).toContain('max-[680px]:max-h-[min(60vh,28rem)]')
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card')

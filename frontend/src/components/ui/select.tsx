@@ -53,7 +53,7 @@ export function Select({
         aria-labelledby={ariaLabelledBy}
         className={cn(
           [
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:px-2.5 max-[680px]:text-base',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-1.5 max-[680px]:px-2.5 max-[680px]:text-base',
             'motion-safe:transition-colors placeholder:text-muted-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
