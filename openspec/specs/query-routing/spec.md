@@ -1,7 +1,9 @@
 # query-routing Specification
 
 ## Purpose
-TBD - created by archiving change m47-query-routing. Update Purpose after archive.
+Definir el clasificador liviano de rutas de retrieval (skip / dense_sparse /
+graph-si-ready) y el suite CI-safe `eval_routing` que mide su correccion
+sin providers live.
 ## Requirements
 ### Requirement: Rule-based query router selects retrieval routes
 

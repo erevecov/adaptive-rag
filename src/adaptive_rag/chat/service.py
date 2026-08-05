@@ -57,6 +57,17 @@ class ChatRunner(Protocol):
         """Ejecuta una vuelta de chat con tools disponibles."""
 
 
+class GraphReadinessChecker(Protocol):
+    """Reports whether graph retrieval is ready for a project."""
+
+    def __call__(self, project_id: UUID) -> bool:
+        """Return True when graph strategy may be selected for the project."""
+
+
+def _graph_never_ready(_project_id: UUID) -> bool:
+    return False
+
+
 class ChatService:
     """Orquesta chat y expone retrieval como tool reutilizable."""
 
@@ -74,6 +85,7 @@ class ChatService:
         knowledge_proposal_submitter: KnowledgeProposalSubmitter | None = None,
         query_condenser: QueryCondenser | None = None,
         history_message_limit: int = DEFAULT_CHAT_HISTORY_MESSAGES,
+        graph_readiness: GraphReadinessChecker | None = None,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
@@ -92,6 +104,7 @@ class ChatService:
             else DeterministicQueryCondenser()
         )
         self._history_message_limit = history_message_limit
+        self._graph_readiness = graph_readiness or _graph_never_ready
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_request(request)
@@ -129,6 +142,7 @@ class ChatService:
             default_metadata_filter=request.metadata_filter,
             audit_writer=self._audit_writer,
             audit_session_id=session_id,
+            graph_ready=self._graph_readiness(request.project_id),
         )
         try:
             user_message_id = None
@@ -220,6 +234,7 @@ class ChatService:
             default_metadata_filter=request.metadata_filter,
             audit_writer=self._audit_writer,
             audit_session_id=session_id,
+            graph_ready=self._graph_readiness(request.project_id),
         )
         return self._stream_response(
             request=request,

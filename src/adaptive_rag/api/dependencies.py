@@ -422,6 +422,18 @@ def get_chat_service(
         Depends(get_provider_usage_tracker),
     ],
 ) -> ChatService:
+    def _graph_ready(project_id: UUID) -> bool:
+        # Fail closed: missing table/projection → dense_sparse, never crash chat.
+        try:
+            from adaptive_rag.db.repositories import GraphProjectionRepository
+
+            projection = GraphProjectionRepository(session).get(
+                project_id=project_id
+            )
+        except Exception:
+            return False
+        return projection is not None and projection.status == "ready"
+
     return ChatService(
         runner=runner,
         retrieval_service=retrieval_service,
@@ -431,4 +443,5 @@ def get_chat_service(
             session=session,
             project_role=access[1],
         ),
+        graph_readiness=_graph_ready,
     )

@@ -32,10 +32,12 @@ from adaptive_rag.evals import (
     run_graph_quality_gate_eval_suite,
     run_hosted_eval_suite,
     run_retrieval_strategy_gate_eval_suite,
+    run_routing_eval_suite,
     serialize_eval_report,
     serialize_graph_live_evidence_report,
     serialize_graph_quality_gate_report,
     serialize_retrieval_strategy_gate_report,
+    serialize_routing_eval_report,
     summarize_provider_usage,
     validate_hosted_rerank_eval_options,
 )
@@ -132,6 +134,22 @@ def run(
     else:
         output.write_text(f"{payload}\n", encoding="utf-8")
 
+    if report.status == "failed":
+        raise typer.Exit(1)
+
+
+@app.command("routing")
+def routing(
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Run CI-safe eval_routing against the rule-based query router."""
+
+    report = run_routing_eval_suite()
+    payload = json.dumps(serialize_routing_eval_report(report))
+    if output is None:
+        typer.echo(payload)
+    else:
+        output.write_text(f"{payload}\n", encoding="utf-8")
     if report.status == "failed":
         raise typer.Exit(1)
 
