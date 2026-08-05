@@ -1,20 +1,18 @@
-# FE OPERATOR report — post-#213 push loop
+# FE OPERATOR report — post-#213 continue loop
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (tip includes new commits after #213 open)
+Branch: `feat/ui-obsessional-polish` (local tip; **no push**)
 
-## This pass
-| Finding | Fix |
-|---------|-----|
-| Soft-deleted metadata vs Deleted badge | Timestamp copy → `Deleted …` |
-| Source type badge/raw metadata lowercase | `sourceTypeLabel` (Markdown/PDF/…) |
-| `no tags` | `No tags` |
-| Runtime secret chip `configured` | `Configured` / `Not configured` |
-| Global retrieval summary lowercase | `Global defaults`, `Limit`, `Rerank on/off` |
+## Shipped this session
+| SHA | Summary |
+|-----|---------|
+| `7757017` | Deleted timestamps + Title Case source/secret/retrieval chips |
+| `ad399f7` | operator report refresh |
+| `5492c42` | Title Case job chips + retrieval strategy labels |
 
 ## Verify
-authoring + runtime vitest — **36 passed**.
+authoring + runtime + retrieval focused vitest — green on last batch (**21** authoring/retrieval).
 
-## Coordination
-PR **#213** open (bulk fleet). Keep shipping on tip; Grok merges when CI green. No push from operator unless asked.
+## Note
+PR **#213** still OPEN; frontend check SUCCESS, backend FAILURE — Grok owns merge when all-green.
