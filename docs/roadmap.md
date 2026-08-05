@@ -42,6 +42,23 @@
 - M39 Chat stepper live events: completo.
 - M39 Qwen runtime production defaults: completo.
 - Post-M39 Design system shadcn/Radix closeout: completo.
+- **M40 Indexing job publico: planificado (activo, pre-v1.0 blocker).**
+- M41 Job queue hardening: planificado (pre-v1.0).
+- M42 Chat multi-turn + query condenser: planificado (pre-v1.0).
+- M43 Authoring lifecycle + RBAC closeout: planificado (pre-v1.0).
+- M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
+- Tag v1.0 humano: solo despues de re-gate con M40–M44.
+- M45 PDF + DOCX ingestion: planificado (post-v1.0).
+- M46 Security pack: planificado (post-v1.0).
+- M47 Query routing medible: planificado (post-v1.0).
+- M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
+- M49 MCP stdio minimo: planificado (post-v1.0).
+- M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
+- Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
+
+Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
+`artifacts/roadmap-research/`, decision del owner: aceptar secuencia unificada
+pre-v1 (producto usable por UI/API) antes del tag.
 
 ## M1 Foundation
 
@@ -1772,9 +1789,201 @@ Entregado:
 - Tests fuente agregados para bloquear regresiones a `<button>`, `<svg>`
   manuales y selectores legacy de iconos.
 
-Continuacion: no quedan active changes OpenSpec. La siguiente tarea recomendada
-es re-ejecutar el release gate final desde `origin/main` y documentar que no se
-creara tag ni GitHub release v1.0 por ahora.
+Continuacion: plan unificado post-research (M40–M50) adoptado el 2026-08-05.
+No re-taggear v1.0 hasta completar el bloque pre-v1 (M40–M44) y re-ejecutar el
+quality gate con indexing por job queue.
+
+## Plan unificado post-M39 (adoptado 2026-08-05)
+
+Decision del owner: fusionar el research interno de gaps (Qwen/Grok sobre
+adaptive-rag) con la comparacion beflow-graph-rag (Kimi), priorizando
+**producto usable por superficies publicas** antes del tag v1.0.
+
+Evidencia de research:
+
+- `artifacts/roadmap-research/2026-08-05-adaptive-rag-improvements-qwen.md`
+- `artifacts/roadmap-research/2026-08-05-beflow-vs-adaptive-kimi.md`
+- `artifacts/roadmap-research/BRIEF-grok-qwen-improvements.md`
+- `artifacts/roadmap-research/BRIEF-kimi-beflow-compare.md`
+
+Hallazgo blocker verificado en codigo: `IngestionPipeline` / worker solo
+persisten `document_versions`; chunking, contextualizacion y embeddings solo
+corren inline en `first_run`, `acceptance` y evals. El gate `ready_for_v1_0`
+pasa orquestando indexing fuera del job queue. Chat es single-turn (sin
+`session_id` en request). `JobRepository.fail` y `release_expired_leases` no
+tienen callers.
+
+### Bloque A — Pre-v1.0 (credibilidad del producto)
+
+Secuencia estricta. No abrir varios OpenSpec changes de este bloque en
+paralelo si comparten schema/worker.
+
+#### M40 Indexing job publico
+
+Estado: planificado (activo).
+
+Objetivo:
+
+- Encadenar el camino publico authoring → `ingest_source` → **indexing**
+  (chunking → contextualizacion → dense/sparse embeddings) como job(s)
+  observables en worker y API.
+- Hacer que first-run, acceptance y quality-gate usen el **mismo** camino (sin
+  orquestacion inline privilegiada).
+
+Criterio de exito:
+
+- Source creada por UI/API + worker produce chunks y embeddings.
+- Chat citado funciona sobre ese corpus sin smoke inline.
+- Spec nueva o delta de indexing-ops + tests de integracion.
+
+#### M41 Job queue hardening
+
+Estado: planificado.
+
+Objetivo:
+
+- Worker llama `release_expired_leases` al arrancar/por ciclo.
+- Errores inesperados → `fail()` con backoff y dead-letter real.
+- Eventos visibles en ingestion ops UI.
+
+Criterio de exito:
+
+- Test de integracion: kill mid-job ⇒ reencola o dead-letter; no queda
+  `running` eterno.
+
+#### M42 Chat multi-turn + query condenser
+
+Estado: planificado.
+
+Objetivo:
+
+- `session_id` opcional en `POST /chat` y `/chat/stream`.
+- Historial acotado al runner (presupuesto de tokens / ultimos N mensajes).
+- UI continua la sesion seleccionada.
+- Condensador de query conversacional (historial → query autocontenida) con
+  fake deterministico para tests.
+
+Criterio de exito:
+
+- Eval multi-turn con follow-ups; specs `chat-tool-calling` / `chat-history` /
+  `chat-streaming` actualizadas.
+
+#### M43 Authoring lifecycle + RBAC closeout
+
+Estado: planificado.
+
+Objetivo:
+
+- PATCH/DELETE (soft) de projects y sources con cascada de indices.
+- DELETE membership, desactivar usuario, revocar access token + UI minima.
+
+Criterio de exito:
+
+- Tests de rol por operacion; UI renombra/borra con confirmacion.
+
+#### M44 CI + compose all-in-one + gate reconcile
+
+Estado: planificado.
+
+Objetivo:
+
+- GitHub Actions minima: ruff, mypy, pytest, frontend test/typecheck/lint/build,
+  openspec strict (sin Qwen live obligatorio).
+- Compose con frontend (o API sirviendo build) + migraciones documentadas.
+- Reconciliar `deferred_defaults` del quality gate (p. ej. `auth_multi_user`
+  ya parcialmente entregado en M37) y config muerta.
+
+Criterio de exito:
+
+- `docker compose up` levanta demo usable; CI verde en PR; quality gate
+  refleja deferrals reales.
+
+→ **Tag / GitHub release v1.0 es accion humana** solo despues de re-ejecutar
+el gate desde `main` con M40–M44 cerrados.
+
+### Bloque B — Post-v1.0 inmediato (demo / portfolio)
+
+#### M45 PDF + DOCX ingestion
+
+Estado: planificado (post-v1.0).
+
+- Parser PDF (texto embebido primero) + DOCX; registry por content-type.
+- Vision/OCR opt-in despues; no antes de M40.
+
+#### M46 Security pack
+
+Estado: planificado (post-v1.0).
+
+- Content guard de secretos en ingesta.
+- Filtros defensivos de salida en streaming (citas fabricadas / secrets).
+- Security headers + CORS explicito.
+- Tests en CI (leccion beflow: control sin test = teatro).
+
+#### M47 Query routing medible
+
+Estado: planificado (post-v1.0).
+
+- Clasificador liviano (reglas + fallback `dense_sparse`) hacia
+  skip-retrieval / dense_sparse / graph-si-ready.
+- Eval `eval_routing` CI-safe; decision record; sin LLM grande por defecto.
+- Honra el nombre "adaptive" con el strategy gate existente.
+
+#### M48 Knowledge lifecycle (dedup + resync)
+
+Estado: planificado (post-v1.0).
+
+- Content-hash / estados de sync por fuente.
+- Resync CLI/API; dedup silencioso con reporte.
+
+#### M49 MCP stdio minimo
+
+Estado: planificado (post-v1.0).
+
+- 3–5 tools: search, ask, ingest_text, list_projects, list_sources.
+- Auth = token local existente; sin OAuth/hosted.
+- README Claude Code / Cursor.
+
+#### M50 Dense reindex + contextualizacion LLM opt-in
+
+Estado: planificado (post-v1.0).
+
+- `dense reindex` por proyecto con watermark y report JSON.
+- Slot contextualization con provider LLM opt-in + A/B vs deterministico.
+
+### Bloque C — Experimental / por decision
+
+No numerar como milestone activo hasta decidir:
+
+- **Graph live evidence + vista force-graph** o retiro ordenado a `no_go`.
+- **LLM-as-judge** en evals (solo opt-in con `--max-cost-usd`).
+- **User memory minima** (tabla durable + propuesta/aprobacion + inyeccion;
+  nunca UI-first sin storage).
+- **Retrieval playground** en UI (quick win).
+- **UI polish sidebar/chat** (trabajo paralelo de design; no bloquea M40).
+
+### Anti-roadmap (acuerdo adoptado)
+
+No portar / no priorizar en el horizonte M40–M50:
+
+1. Supabase Auth, OAuth/SSO, multi-tenant SaaS, sharing publico redacted.
+2. Redis + ARQ + DLQ enterprise + reapers 24/7 (preservar cola Postgres local).
+3. SPLADE self-hosted, HyDE, multi-query expansion, GraphRAG community detection.
+4. Voice realtime dual-provider; report_renderer Chromium aislado.
+5. Langfuse / alerting Slack / observability hosted como requisito.
+6. PDF/Office **antes** de indexing publico (M40 primero).
+7. Memory como feature de UI sin tabla/API durable.
+8. MCP con tools de escritura de alto privilegio sin RBAC fino.
+9. Reabrir presets de `candidate_limit` sin suites nuevas (M11 `no-go`).
+10. Copiar monolitos de beflow (`chat.tsx` 6k+ / orchestrator 3k+) como modelo.
+
+### Ventajas de adaptive-rag a preservar
+
+- Strategy gate evidence-first (`promote` / `hold` / `no_go`).
+- Runtime settings por proyecto (slots + secrets Fernet).
+- CLI operativa exhaustiva y fakes deterministas + testcontainers.
+- Graph como proyeccion derivada reconstruible con fallback.
+- Job queue en Postgres sin Redis.
+- OpenSpec con specs completas y archives con evidencia.
 
 ## Politica para reducir conflictos de merge
 
