@@ -60,7 +60,7 @@ describe('Select', () => {
       'focus-visible:ring-ring',
     )
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
-      'max-[680px]:p-1.5',
+      'max-[680px]:p-1',
     )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()

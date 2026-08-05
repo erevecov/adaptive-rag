@@ -78,7 +78,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:p-1.5',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:p-1',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
