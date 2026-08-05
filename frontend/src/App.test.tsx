@@ -4085,7 +4085,7 @@ describe('App chat workspace', () => {
     fireEvent.change(within(globalRetrieval).getByLabelText('Candidate limit'), {
       target: { value: '12' },
     })
-    await user.click(screen.getByRole('button', { name: 'Save chat retrieval' }))
+    await user.click(screen.getByRole('button', { name: 'Save Chat Retrieval' }))
 
     expect(client.updateChatRetrievalSettings).toHaveBeenCalledWith({
       retrieval_limit: 7,
@@ -4119,7 +4119,7 @@ describe('App chat workspace', () => {
     )
 
     const confirmInput = screen.getByLabelText(
-      'Confirm connection ID',
+      'Confirm Connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
       name: 'Delete Connection',

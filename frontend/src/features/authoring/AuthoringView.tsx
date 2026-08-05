@@ -435,7 +435,7 @@ function ProjectsPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring projects"
-      description="Create and select the project used by sources and ingestion."
+      description="Create and Select the Project Used by Sources and Ingestion."
       eyebrow="Projects"
       id="projects-title"
       status={<RequestStatus state={state} />}

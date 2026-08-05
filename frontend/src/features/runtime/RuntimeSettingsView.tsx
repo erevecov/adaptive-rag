@@ -644,7 +644,7 @@ export function RuntimeConnectionsPanel({
                       </InlineFeedback>
                       <RuntimeField
                         id={`delete-${connection.connection_id}-confirmation`}
-                        label="Confirm connection ID"
+                        label="Confirm Connection ID"
                       >
                         {(fieldId) => (
                           <Input
@@ -1214,7 +1214,7 @@ export function RuntimeGlobalDefaultsPanel({
           </InlineFeedback>
         ) : null}
         <Button disabled={globalSlotSyncMessage !== null} type="submit">
-          Save global slot
+          Save Global Slot
         </Button>
       </form>
 
@@ -1301,7 +1301,7 @@ export function RuntimeGlobalDefaultsPanel({
           </InlineFeedback>
         ) : null}
         <Button disabled={chatSyncMessage !== null} type="submit">
-          Save chat default
+          Save Chat Default
         </Button>
       </form>
 
@@ -1404,7 +1404,7 @@ export function RuntimeGlobalDefaultsPanel({
               )}
             </RuntimeField>
           </div>
-          <Button type="submit">Save chat retrieval</Button>
+          <Button type="submit">Save Chat Retrieval</Button>
         </form>
       </section>
     </RuntimePanel>

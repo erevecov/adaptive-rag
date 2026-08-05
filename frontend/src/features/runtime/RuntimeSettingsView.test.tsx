@@ -567,7 +567,7 @@ describe('RuntimeSettingsPanel', () => {
       }),
     ).toBeTruthy()
     const confirmation = screen.getByLabelText(
-      'Confirm connection ID',
+      'Confirm Connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
       name: 'Delete Connection',

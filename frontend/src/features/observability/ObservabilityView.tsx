@@ -484,7 +484,7 @@ function ObservabilityErrorsContent({
         />
         <MetricCard
           detail={`${summary.sessions.total} sessions in filter`}
-          label="Failed sessions"
+          label="Failed Sessions"
           value={String(summary.sessions.by_status.failed ?? 0)}
         />
         <MetricCard
