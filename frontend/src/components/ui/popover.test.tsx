@@ -34,6 +34,7 @@ describe('Popover', () => {
     const trigger = screen.getByRole('button', { name: 'Open projects' })
 
     expect(trigger.getAttribute('data-state')).toBe('closed')
+    expect(trigger.className).toContain('focus-visible:ring-ring')
     await user.click(trigger)
 
     const listbox = await screen.findByRole('listbox', { name: 'Projects' })
@@ -42,5 +43,21 @@ describe('Popover', () => {
     expect(listbox.getAttribute('data-slot')).toBe('popover-content')
     expect(listbox.className).toContain('focus-visible:ring-ring')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
+  })
+
+  test('asChild trigger does not force default focus ring on the host', () => {
+    render(
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button className="custom-trigger" type="button">
+            Custom
+          </button>
+        </Popover.Trigger>
+      </Popover.Root>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Custom' })
+    expect(trigger.className).toContain('custom-trigger')
+    expect(trigger.className).not.toContain('focus-visible:ring-ring')
   })
 })

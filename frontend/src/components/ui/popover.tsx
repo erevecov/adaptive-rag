@@ -36,7 +36,19 @@ export function Portal(props: PopoverPortalProps) {
 export const Trigger = forwardRef<
   ElementRef<typeof PopoverPrimitive.Trigger>,
   PopoverTriggerProps
->((props, ref) => <PopoverPrimitive.Trigger ref={ref} {...props} />)
+>(({ asChild, className, ...props }, ref) => (
+  <PopoverPrimitive.Trigger
+    asChild={asChild}
+    className={cn(
+      // Bare triggers render a button — match DS focus-visible rings.
+      !asChild &&
+        'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+      className,
+    )}
+    ref={ref}
+    {...props}
+  />
+))
 Trigger.displayName = PopoverPrimitive.Trigger.displayName
 
 export const Anchor = forwardRef<

@@ -374,7 +374,7 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="border-border/60 bg-muted/20 p-4 text-left"
+      className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
       data-slot-state="loading"
       role="status"
     >
@@ -437,7 +437,7 @@ function ProjectsPanel({
       status={<RequestStatus state={state} />}
       title="Projects"
     >
-      <form className="grid gap-3" onSubmit={onCreateProject}>
+      <form className="grid gap-4" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project name">
           {(fieldId) => (
             <Input
@@ -635,8 +635,8 @@ function ProjectAccessPanel({
       status={<RequestStatus state={state} />}
       title="Users"
     >
-      <form className="grid gap-3" onSubmit={onCreateUser}>
-        <div className="grid gap-3 md:grid-cols-2">
+      <form className="grid gap-4" onSubmit={onCreateUser}>
+        <div className="grid gap-4 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User login">
             {(fieldId) => (
               <Input
@@ -664,7 +664,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System role">
             {(fieldId) => (
               <Select
@@ -732,8 +732,8 @@ function ProjectAccessPanel({
 
       <div className="h-px bg-border" role="separator" />
 
-      <form className="grid gap-3" onSubmit={onSaveMembership}>
-        <div className="grid gap-3 md:grid-cols-2">
+      <form className="grid gap-4" onSubmit={onSaveMembership}>
+        <div className="grid gap-4 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member user ID">
             {(fieldId) => (
               <Input
@@ -845,7 +845,7 @@ function UserAccessLists({
               <Badge className="w-fit">{user.system_role}</Badge>
               {!user.is_active ? (
                 <StatusBadge className="w-fit" tone="warning">
-                  inactive
+                  Inactive
                 </StatusBadge>
               ) : null}
               <Button
@@ -1226,7 +1226,7 @@ function SourceList({
                 </strong>
                 {isDeleted ? (
                   <StatusBadge className="w-fit" tone="danger">
-                    deleted
+                    Deleted
                   </StatusBadge>
                 ) : null}
               </div>

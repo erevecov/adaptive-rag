@@ -359,7 +359,7 @@ function SpeechInputControl({
   return (
     <section
       aria-label="Transcript input"
-      className="flex min-w-0 max-[680px]:w-full max-[680px]:flex-wrap items-center gap-1.5"
+      className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full"
       data-slot="speech-input"
     >
       <Button
@@ -382,7 +382,13 @@ function SpeechInputControl({
       </Button>
       {showStatus && message !== null ? (
         <InlineFeedback
-          className="min-w-0 max-w-48 truncate text-xs max-[680px]:basis-full max-[680px]:max-w-none"
+          className={cn(
+            'min-w-0 text-xs',
+            // Desktop: compact chip beside mic. Mobile: full-width row under tools.
+            'max-w-48 truncate max-[680px]:order-last max-[680px]:w-full max-[680px]:max-w-none',
+            'max-[680px]:basis-full max-[680px]:whitespace-normal max-[680px]:break-words',
+          )}
+          data-slot="speech-status"
           role={state === 'failed' ? 'alert' : 'status'}
           title={message}
           tone={state === 'failed' ? 'danger' : 'neutral'}

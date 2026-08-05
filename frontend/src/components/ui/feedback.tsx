@@ -47,6 +47,10 @@ export const InlineFeedback = forwardRef<
   InlineFeedbackProps
 >(({ className, role, tone, ...props }, ref) => {
   const feedbackTone: InlineFeedbackTone = tone ?? 'neutral'
+  const slot =
+    typeof props['data-slot'] === 'string' && props['data-slot'].length > 0
+      ? props['data-slot']
+      : 'inline-feedback'
 
   return (
     <p
@@ -54,7 +58,7 @@ export const InlineFeedback = forwardRef<
       ref={ref}
       role={role ?? (feedbackTone === 'danger' ? 'alert' : undefined)}
       {...props}
-      data-slot="inline-feedback"
+      data-slot={slot}
       data-tone={feedbackTone}
     />
   )
