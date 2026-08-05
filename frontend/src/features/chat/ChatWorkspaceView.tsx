@@ -844,13 +844,13 @@ function ResponseContent({
 
       {appliedMemories.length > 0 ? (
         <section
-          aria-label="Memory applied"
+          aria-label="Memory Applied"
           className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3"
           data-slot="chat-memory-applied"
         >
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge className="w-fit" tone="success">
-              Memory applied
+              Memory Applied
             </StatusBadge>
             <span className="text-xs text-muted-foreground">
               {appliedMemories.length} approved item

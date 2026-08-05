@@ -408,7 +408,8 @@ export function AppSidebar({
       className={cn(
         [
           'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
-          'border-r border-border bg-card/90 motion-safe:transition-[background,border-color,opacity,width] motion-safe:duration-200',
+          // Solid card (not /90) keeps the rail opaque on purple/dark backgrounds.
+          'border-r border-border bg-card shadow-[1px_0_0_0] shadow-primary/15 motion-safe:transition-[background,border-color,box-shadow,opacity,width] motion-safe:duration-200',
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen

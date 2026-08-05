@@ -1,23 +1,22 @@
 # FE Chat — chat-latest
 
 **Date:** 2026-08-05  
-**Branch:** `feat/ui-obsessional-polish`  
+**Branch:** `feat/ui-polish-post-218` (PR #222)  
 **Model:** cursor-grok-4.5-high  
-**STATUS:** polishing — local commit, **no push**
+**STATUS:** polishing — commit + push to #222
 
-## Claimed
-Hostile purple residual (shell rail / inspector) — shipped as empty≠loading + Title Case + ≤680 touch.
+## Context
+- #218 MERGED; remote `feat/ui-polish-post-215` gone.
+- This workspace is locked to `feat/ui-polish-post-218` (successor polish).
+- Account Memory on main — untouched.
 
 ## This loop
 | Slice | Change |
 |-------|--------|
-| History | Wire `detailState` into Session Context / Action Stepper / Minimap; loading skeletons ≠ EmptyState; Title Case EN panel titles/aria |
-| Shell | Sidebar primary items `max-[680px]:min-h-11` |
-| Chat | `Tool Calls ·`, Refine In Chat, Cancel Draft |
+| History | `detailState` → Context/Stepper/Minimap; loading skeletons ≠ EmptyState; Title Case EN panels |
+| Shell | Sidebar primary `max-[680px]:min-h-11` |
+| Chat | Tool Calls · / Refine In Chat / Cancel Draft |
 | Pipeline | Waiting For Pipeline Steps / No Step Detail Recorded |
 
-## Verify
-history + chat + pipeline + App focused vitest (pending in this report until green)
-
 ## Next
-Invent next live purple residual. No push from FE agents.
+Push #222. Invent next residual. No idle.

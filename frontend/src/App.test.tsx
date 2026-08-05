@@ -2579,7 +2579,7 @@ describe('App chat workspace', () => {
     expect(lastRun).toBeTruthy()
     const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
     expect(lastRunCard?.textContent).toMatch(/Idle/i)
-    expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
+    expect(screen.getByText('No Ingestion Job Was Processed.')).toBeTruthy()
   })
 
   test('submits a chat question and renders response details', async () => {
@@ -3021,7 +3021,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
     expect(client.askChat).toHaveBeenCalled()
     expect(
-      await screen.findByRole('region', { name: 'Memory applied' }),
+      await screen.findByRole('region', { name: 'Memory Applied' }),
     ).toBeTruthy()
     expect(screen.getByText('Prefer concise answers')).toBeTruthy()
     expect(listUserMemories).toHaveBeenCalledWith({
