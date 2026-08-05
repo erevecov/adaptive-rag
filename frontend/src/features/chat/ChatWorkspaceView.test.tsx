@@ -143,7 +143,7 @@ describe('ChatWorkspacePanel', () => {
   test('cancel request button uses a destructive secondary tone while asking', () => {
     renderChatWorkspace({ isAsking: true, question: 'Stop me' })
 
-    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    const cancel = screen.getByRole('button', { name: 'Cancel Request' })
     expect(cancel.className).toMatch(/border-destructive\/30/)
     expect(cancel.className).toMatch(/text-destructive/)
     expect(cancel.getAttribute('data-slot')).toBe('button')
@@ -264,7 +264,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loading).toBeTruthy()
-    expect(loading?.textContent).toContain('Waiting for response…')
+    expect(loading?.textContent).toContain('Waiting For Response…')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
