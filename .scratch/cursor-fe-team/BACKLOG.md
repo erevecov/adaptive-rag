@@ -5,14 +5,13 @@ Branch: `feat/ui-obsessional-polish` (post #213)
 
 ## Seed / fleet
 - [x] done — #213 bulk FE polish merged
-- [x] done:implement — Table/Panel/DataList/Badge/Nav/Textarea ≤680 density
-- [x] done:chat — Title Case inspector/chat + Unknown* metrics + muted/15
-- [x] done:chat — primary/15 row hovers + pipeline soft wash + Prompt/Unknown Model
+- [x] done:lead — soft washes, primary/15 hovers, ≤680 density
+- [x] done:lead — Title Case history/chat/runtime/obs chrome
 - [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
-- [ ] open — Invent next hostile purple/dark live P0
+- [ ] open:implement — Hostile live purple residual (shell rail / inspector)
 
 ## Lead queue (next)
-1. Invent next live purple ≤680 P0
+1. Invent next taste-bar P0 from live UI (purple/dark ≤680)
 2. Tab-cycle focus trap residual
 
-Reports: `reports/chat-latest.md`
+Reports: `reports/lead-latest.md`
