@@ -97,7 +97,8 @@ def resync_source(
     except IngestionOpsError as exc:
         raise authoring.AuthoringError(exc.detail, status_code=exc.status_code) from exc
     source = SourceRepository(session).get(project_id=project_id, source_id=source_id)
-    assert source is not None
+    if source is None:
+        raise authoring.AuthoringError("source not found", status_code=404)
     meta = dict(source.extra_metadata or {})
     meta["last_resync_enqueued_at"] = datetime.now(UTC).isoformat()
     SourceRepository(session).update(
