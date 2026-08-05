@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from inspect import signature
 from typing import Annotated, Any, cast
@@ -46,6 +47,8 @@ from adaptive_rag.retrieval import (
     RetrievalSearchResult,
     RetrievalService,
 )
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(no_args_is_help=True)
 sessions_app = typer.Typer(no_args_is_help=True)
@@ -233,7 +236,12 @@ def observability_summary(
 def _commit_or_rollback_chat_error(session: Session) -> None:
     try:
         session.commit()
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "chat_error_audit_commit_failed; rolling back",
+            extra={"error_type": type(exc).__name__},
+            exc_info=exc,
+        )
         session.rollback()
 
 
