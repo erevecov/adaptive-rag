@@ -1084,7 +1084,7 @@ function KnowledgeDraftCard({
         <FieldControl>
           <Textarea
             aria-label="Knowledge draft text"
-            className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
+            className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!canEdit}
             id={`knowledge-draft-${draft.draftId}`}
             onChange={(event) => onTextChange(event.currentTarget.value)}

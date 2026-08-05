@@ -274,7 +274,7 @@ describe('SessionNavigationPanel', () => {
     expect(await screen.findByText('ID de sesión copiado.')).toBeTruthy()
   })
 
-  test('rename focuses the input at the end and cancels on blur', async () => {
+  test('rename focuses the input at the end; blur saves when dirty', async () => {
     const user = userEvent.setup()
     const onRenameSession = vi.fn()
     render(
@@ -311,9 +311,23 @@ describe('SessionNavigationPanel', () => {
     expect(input.selectionEnd).toBe(input.value.length)
     expect(input.value).toBe('Architecture review')
 
+    // Unchanged blur cancels without save.
     await user.click(document.body)
     expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
     expect(onRenameSession).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+    )
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
+    const dirty = (await screen.findByLabelText(
+      'Nuevo nombre de sesión',
+    )) as HTMLInputElement
+    await user.clear(dirty)
+    await user.type(dirty, 'Renamed session')
+    await user.click(document.body)
+    expect(onRenameSession).toHaveBeenCalledWith('session-1', 'Renamed session')
+    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
   })
 
   test('uses the shared DropdownMenu wrapper for session actions', () => {

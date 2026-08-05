@@ -299,8 +299,22 @@ export function SessionNavigationPanel({
                         aria-label="Nuevo nombre de sesión"
                         className="h-7 text-xs"
                         maxLength={60}
-                        onBlur={() => {
-                          // Click outside / tab away ends rename without saving.
+                        onBlur={(event) => {
+                          // Submit click blurs first — don't discard a pending save.
+                          const next = event.relatedTarget
+                          if (
+                            next instanceof Element &&
+                            next.closest('form') === event.currentTarget.form
+                          ) {
+                            return
+                          }
+                          const trimmedTitle = renameDraft.trim()
+                          if (
+                            trimmedTitle.length > 0 &&
+                            trimmedTitle !== title
+                          ) {
+                            onRenameSession(session.session_id, trimmedTitle)
+                          }
                           cancelRename()
                         }}
                         onChange={(event) => setRenameDraft(event.target.value)}

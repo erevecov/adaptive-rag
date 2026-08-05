@@ -47,7 +47,8 @@ describe('Button', () => {
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Save' }))
     expect(tokens).toContain('focus-visible:ring-2')
-    expect(tokens).toContain('focus-visible:ring-primary-foreground/55')
+    expect(tokens).toContain('focus-visible:ring-primary-foreground')
+    expect(tokens).not.toContain('focus-visible:ring-primary-foreground/55')
     expect(tokens).toContain('motion-safe:transition-colors')
   })
 
