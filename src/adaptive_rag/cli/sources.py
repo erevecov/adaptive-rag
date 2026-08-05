@@ -156,3 +156,83 @@ def _extra_metadata_from_inputs(
 def _exit_authoring_error(error: AuthoringError) -> NoReturn:
     typer.echo(error.detail, err=True)
     raise typer.Exit(1)
+
+
+@app.command("resync")
+def resync(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+    source_id: Annotated[UUID, typer.Option("--source-id")],
+) -> None:
+    """Enqueue ingest_source again for an existing source (lifecycle resync)."""
+
+    from adaptive_rag.knowledge_lifecycle import resync_source
+
+    with session_scope() as session:
+        try:
+            result = resync_source(
+                session, project_id=project_id, source_id=source_id
+            )
+        except AuthoringError as exc:
+            _exit_authoring_error(exc)
+        session.commit()
+        from adaptive_rag.ingestion_ops import job_payload
+
+        typer.echo(
+            json.dumps(
+                {
+                    "source_id": str(result.source_id),
+                    "job": job_payload(result.job),
+                }
+            )
+        )
+
+
+@app.command("dedup-report")
+def dedup_report(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+) -> None:
+    """Report document versions that share content hashes (dedup view)."""
+
+    from adaptive_rag.knowledge_lifecycle import (
+        build_dedup_report,
+        dedup_report_payload,
+    )
+
+    with session_scope() as session:
+        try:
+            report = build_dedup_report(session, project_id=project_id)
+        except AuthoringError as exc:
+            _exit_authoring_error(exc)
+        typer.echo(json.dumps(dedup_report_payload(report)))
+
+
+@app.command("sync-status")
+def sync_status(
+    project_id: Annotated[UUID, typer.Option("--project-id")],
+    source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
+) -> None:
+    """Show content-hash sync status for one or all sources."""
+
+    from adaptive_rag.knowledge_lifecycle import (
+        get_source_sync_status,
+        list_source_sync_statuses,
+        source_sync_status_payload,
+    )
+
+    with session_scope() as session:
+        try:
+            if source_id is None:
+                items = list_source_sync_statuses(session, project_id=project_id)
+                payload = {
+                    "items": [source_sync_status_payload(item) for item in items]
+                }
+            else:
+                payload = source_sync_status_payload(
+                    get_source_sync_status(
+                        session, project_id=project_id, source_id=source_id
+                    )
+                )
+        except AuthoringError as exc:
+            _exit_authoring_error(exc)
+        typer.echo(json.dumps(payload))
+

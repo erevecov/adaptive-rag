@@ -51,7 +51,7 @@
 - M45 PDF + DOCX ingestion: completo.
 - M46 Security pack: completo.
 - M47 Query routing medible: completo.
-- M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
+- M48 Knowledge lifecycle (dedup/resync): completo.
 - M49 MCP stdio minimo: planificado (post-v1.0).
 - M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
 - Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
@@ -1904,10 +1904,11 @@ Estado: completo (2026-08-05).
 
 #### M48 Knowledge lifecycle (dedup + resync)
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- Content-hash / estados de sync por fuente.
-- Resync CLI/API; dedup silencioso con reporte.
+- Content-hash watermarks en source metadata tras ingest.
+- Resync CLI/API via job publico `ingest_source`.
+- Dedup report por content_hash compartido (sin borrado).
 
 #### M49 MCP stdio minimo
 

@@ -218,6 +218,14 @@ class IngestionPipeline:
             and latest.content_hash == content_hash
             and latest.index_fingerprint == index_fingerprint
         ):
+            from adaptive_rag.knowledge_lifecycle import mark_source_synced
+
+            mark_source_synced(
+                self._session,
+                project_id=project_id,
+                source_id=source.id,
+                content_hash=content_hash,
+            )
             return IngestionRunResult(
                 job=job,
                 source=source,
@@ -236,6 +244,14 @@ class IngestionPipeline:
             index_fingerprint=index_fingerprint,
             parser_metadata=parser_metadata,
             extraction_metadata=extraction_metadata,
+        )
+        from adaptive_rag.knowledge_lifecycle import mark_source_synced
+
+        mark_source_synced(
+            self._session,
+            project_id=project_id,
+            source_id=source.id,
+            content_hash=content_hash,
         )
         return IngestionRunResult(
             job=job,
