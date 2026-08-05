@@ -11,6 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableScroll,
   tableNumericClass,
 } from './table'
 
@@ -46,26 +47,37 @@ describe('tableNumericClass', () => {
 describe('Table density', () => {
   test('sticky header uses card tint; rows hover for scan', () => {
     render(
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Latency</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell>12ms</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>,
+      <TableScroll>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Latency</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>12ms</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableScroll>,
     )
 
+    const scroll = screen.getByText('Latency').closest('[data-slot="table-scroll"]')
+    expect(scroll?.className).toContain('overscroll-contain')
+    expect(scroll?.className).toContain('max-[680px]:max-h-[min(60vh,28rem)]')
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card/95')
     expect(screen.getByText('Latency').className).toContain('tracking-wide')
     expect(screen.getByText('Latency').className).toContain('h-9')
+    expect(screen.getByText('Latency').className).toContain('max-[680px]:h-11')
+    expect(screen.getByText('12ms').className).toContain('max-[680px]:min-h-11')
+    expect(screen.getByText('12ms').className).toContain('max-[680px]:py-2.5')
+    expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
+      'max-[680px]:min-w-[560px]',
+    )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'hover:bg-muted/40',
+      'hover:bg-primary/15',
     )
   })
 })

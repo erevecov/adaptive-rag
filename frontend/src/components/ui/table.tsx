@@ -18,7 +18,8 @@ export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
     <div
       className={cn(
         // Vertical max-height so sticky TableHeader can pin while scrolling long tables.
-        'w-full max-h-[min(70vh,36rem)] overflow-auto',
+        'w-full max-h-[min(70vh,36rem)] overflow-auto overscroll-contain',
+        'max-[680px]:max-h-[min(60vh,28rem)]',
         className,
       )}
       ref={ref}
@@ -34,7 +35,11 @@ export type TableProps = TableHTMLAttributes<HTMLTableElement>
 export const Table = forwardRef<HTMLTableElement, TableProps>(
   ({ className, ...props }, ref) => (
     <table
-      className={cn('w-full min-w-[720px] border-collapse text-sm', className)}
+      className={cn(
+        // On narrow viewports shrink min-width so horizontal scroll is less extreme.
+        'w-full min-w-[720px] max-[680px]:min-w-[560px] border-collapse text-sm',
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="table"
@@ -82,7 +87,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
       className={cn(
-        'border-b border-border motion-safe:transition-colors hover:bg-muted/40',
+        'border-b border-border motion-safe:transition-colors hover:bg-primary/15',
         className,
       )}
       ref={ref}
@@ -99,7 +104,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, scope = 'col', ...props }, ref) => (
     <th
       className={cn(
-        'h-9 whitespace-nowrap bg-card/95 px-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground',
+        'h-9 max-[680px]:h-11 whitespace-nowrap bg-card/95 px-3 max-[680px]:px-2 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground',
         className,
       )}
       ref={ref}
@@ -117,7 +122,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, ...props }, ref) => (
     <td
       className={cn(
-        'whitespace-nowrap px-3 py-2 align-middle text-foreground',
+        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-2.5 align-middle text-foreground',
         className,
       )}
       ref={ref}

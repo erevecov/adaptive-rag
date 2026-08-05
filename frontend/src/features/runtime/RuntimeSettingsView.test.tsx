@@ -353,9 +353,9 @@ describe('RuntimeSettingsPanel', () => {
     })
 
     expect(
-      screen.getByRole('heading', { name: 'Global defaults' }),
+      screen.getByRole('heading', { name: 'Global Defaults' }),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload Global Defaults' })).toBeTruthy()
   })
 
   test('does not render runtime submodule segmented controls in the content panel', () => {
@@ -401,7 +401,7 @@ describe('RuntimeSettingsPanel', () => {
     const header = statusBadge.closest('[data-slot="panel-header"]')
     const titleGroup = screen.getByRole('heading', {
       level: 2,
-      name: 'Project overrides',
+      name: 'Project Overrides',
     }).parentElement
 
     expect(header?.className).toContain('flex-col')
@@ -415,7 +415,7 @@ describe('RuntimeSettingsPanel', () => {
     renderRuntimeSettingsPanel()
 
     expect(screen.getByLabelText('Provider')).toBeTruthy()
-    expect(screen.getByLabelText('Connection type')).toBeTruthy()
+    expect(screen.getByLabelText('Connection Type')).toBeTruthy()
     expect(screen.getByLabelText('Base URL')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
     expect(screen.getByLabelText('API key')).toBeTruthy()
@@ -570,7 +570,7 @@ describe('RuntimeSettingsPanel', () => {
       'Confirm connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
-      name: 'Delete connection',
+      name: 'Delete Connection',
     }) as HTMLButtonElement
 
     expect(deleteButton.disabled).toBe(true)

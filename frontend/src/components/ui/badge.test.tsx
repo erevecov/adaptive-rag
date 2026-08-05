@@ -18,6 +18,8 @@ describe('Badge', () => {
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.className).toContain('border-border')
     expect(badge.className).toContain('tabular-nums')
+    expect(badge.className).toContain('max-[680px]:px-1.5')
+    expect(badge.className).toContain('leading-none')
   })
 
   test('renders destructive status badge through tokens', () => {

@@ -1073,41 +1073,41 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Authoring', 'Users')
     expect(screen.getByRole('heading', { name: 'Users' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Content registry' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Content Registry' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    expect(screen.getByRole('heading', { name: 'Content registry' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Content Registry' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Observability', 'Costs')
     expect(screen.getByRole('heading', { name: 'Costs' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Observability', 'Errors')
     expect(screen.getByRole('heading', { name: 'Errors' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Observability', 'Latency')
     expect(screen.getByRole('heading', { name: 'Latency' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh summary' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Summary' })).toBeTruthy()
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.getByRole('heading', { level: 2, name: 'Connections' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Refresh connections' })).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
-    expect(screen.getByRole('heading', { level: 2, name: 'Model catalog' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refresh catalog' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
+    expect(screen.getByRole('heading', { level: 2, name: 'Model Catalog' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Refresh Catalog' })).toBeTruthy()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
-    expect(screen.getByRole('heading', { level: 2, name: 'Global defaults' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload global defaults' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
+    expect(screen.getByRole('heading', { level: 2, name: 'Global Defaults' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload Global Defaults' })).toBeTruthy()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
-    expect(screen.getByRole('heading', { level: 2, name: 'Project overrides' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
+    expect(screen.getByRole('heading', { level: 2, name: 'Project Overrides' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reload project settings' })).toBeTruthy()
   })
 
@@ -1139,17 +1139,17 @@ describe('App chat workspace', () => {
 
     await user.click(
       within(settingsNavigation).getByRole('button', {
-        name: 'Model catalog',
+        name: 'Model Catalog',
       }),
     )
 
     expect(
       within(settingsNavigation)
-        .getByRole('button', { name: 'Model catalog' })
+        .getByRole('button', { name: 'Model Catalog' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Model catalog' }),
+      screen.getByRole('heading', { level: 2, name: 'Model Catalog' }),
     ).toBeTruthy()
   })
 
@@ -1162,14 +1162,14 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
 
     const settingsNavigation = screen.getByRole('navigation', {
       name: 'Settings navigation',
     })
     expect(
       within(settingsNavigation)
-        .getByRole('button', { name: 'Project overrides' })
+        .getByRole('button', { name: 'Project Overrides' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
     expect(
@@ -1178,7 +1178,7 @@ describe('App chat workspace', () => {
       }),
     ).toBeNull()
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Project overrides' }),
+      screen.getByRole('heading', { level: 2, name: 'Project Overrides' }),
     ).toBeTruthy()
   })
 
@@ -1671,7 +1671,7 @@ describe('App chat workspace', () => {
       draftText,
       'Document this deployment exception for import retries.',
     )
-    await user.click(screen.getByRole('button', { name: 'Approve knowledge' }))
+    await user.click(screen.getByRole('button', { name: 'Approve Knowledge' }))
 
     await waitFor(() =>
       expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
@@ -1732,7 +1732,7 @@ describe('App chat workspace', () => {
       ].join('\n'),
     )
 
-    await user.click(screen.getByRole('button', { name: 'Request approval' }))
+    await user.click(screen.getByRole('button', { name: 'Request Approval' }))
     await waitFor(() =>
       expect(submitKnowledgeProposal).toHaveBeenCalledWith(projectId, {
         origin_session_id: 'session-123',
@@ -1928,10 +1928,10 @@ describe('App chat workspace', () => {
     )
 
     await openSettingsSubmodule(user, 'Authoring', 'Users')
-    await user.type(screen.getByLabelText('User login'), viewerUser.login)
-    await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
-    await user.type(screen.getByLabelText('Access token'), 'viewer-token')
-    await user.click(screen.getByRole('button', { name: 'Create user' }))
+    await user.type(screen.getByLabelText('User Login'), viewerUser.login)
+    await user.type(screen.getByLabelText('Display Name'), viewerUser.display_name)
+    await user.type(screen.getByLabelText('Access Token'), 'viewer-token')
+    await user.click(screen.getByRole('button', { name: 'Create User' }))
 
     await waitFor(() =>
       expect(createUser).toHaveBeenCalledWith({
@@ -1945,10 +1945,10 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Member user ID'), viewerUser.id)
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Project role'),
+      screen.getByLabelText('Project Role'),
       'Admin',
     )
-    await user.click(screen.getByRole('button', { name: 'Save membership' }))
+    await user.click(screen.getByRole('button', { name: 'Save Membership' }))
 
     await waitFor(() =>
       expect(upsertProjectMembership).toHaveBeenCalledWith(
@@ -1987,13 +1987,13 @@ describe('App chat workspace', () => {
     )
 
     await openSettingsSubmodule(user, 'Authoring', 'Knowledge')
-    await user.click(screen.getByRole('button', { name: 'Refresh proposals' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Proposals' }))
 
     expect(
       await screen.findByText('Document the escalation runbook from chat.'),
     ).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Refined text'), 'Refined escalation runbook.')
+    await user.type(screen.getByLabelText('Refined Text'), 'Refined escalation runbook.')
     await user.click(screen.getByRole('button', { name: /^Refine / }))
 
     await waitFor(() =>
@@ -2017,7 +2017,7 @@ describe('App chat workspace', () => {
       ),
     )
 
-    await user.type(screen.getByLabelText('Reject reason'), 'Needs source owner.')
+    await user.type(screen.getByLabelText('Reject Reason'), 'Needs source owner.')
     await user.click(screen.getByRole('button', { name: /^Reject / }))
 
     await waitFor(() =>
@@ -2054,7 +2054,7 @@ describe('App chat workspace', () => {
         .getAttribute('aria-pressed'),
     ).toBe('true')
 
-    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
 
     expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
   })
@@ -2336,7 +2336,7 @@ describe('App chat workspace', () => {
         ?.hasAttribute('inert'),
     ).toBe(true)
 
-    await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Close Right Sidebar' }))
     expect(skip.hasAttribute('inert')).toBe(false)
   })
 
@@ -2380,8 +2380,8 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Projects')
     expect(await screen.findByText('Demo')).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Project name'), 'Demo')
-    await user.click(screen.getByRole('button', { name: 'Create project' }))
+    await user.type(screen.getByLabelText('Project Name'), 'Demo')
+    await user.click(screen.getByRole('button', { name: 'Create Project' }))
 
     expect(client.createProject).toHaveBeenCalledWith({ name: 'Demo' })
     expect((await screen.findAllByText(projectId)).length).toBeGreaterThanOrEqual(1)
@@ -2389,13 +2389,13 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Source type'),
+      screen.getByLabelText('Source Type'),
       'Markdown',
     )
     await user.type(screen.getByLabelText('External ID'), 'notes.md')
     await user.type(screen.getByLabelText('Content'), '# Notes')
     await user.type(screen.getByLabelText('Tags'), 'docs, local')
-    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    await user.click(screen.getByRole('button', { name: 'Create Source' }))
 
     expect(client.createSource).toHaveBeenCalledWith(projectId, {
       external_id: 'notes.md',
@@ -2420,7 +2420,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Source type'),
+      screen.getByLabelText('Source Type'),
       'PDF',
     )
 
@@ -2434,7 +2434,7 @@ describe('App chat workspace', () => {
       await screen.findByText('pdf source file exceeds the 5 MiB limit.'),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    await user.click(screen.getByRole('button', { name: 'Create Source' }))
     expect(client.createSource).not.toHaveBeenCalled()
   })
 
@@ -2459,7 +2459,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Sources' }))
     expect(await screen.findByText('notes.md')).toBeTruthy()
 
     await user.click(
@@ -2472,7 +2472,7 @@ describe('App chat workspace', () => {
     )
     expect((await screen.findAllByText('Queued')).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Jobs' }))
 
     expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
       job_type: 'ingest_source',
@@ -2480,7 +2480,7 @@ describe('App chat workspace', () => {
     expect((await screen.findAllByText('Blocked')).length).toBeGreaterThan(0)
     expect(screen.getByText('missing content')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+    await user.click(screen.getByRole('button', { name: 'Run Next Job' }))
 
     expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
     expect((await screen.findAllByText('Processed')).length).toBeGreaterThan(0)
@@ -2525,7 +2525,7 @@ describe('App chat workspace', () => {
 
     expect(screen.queryByLabelText('Retrieval limit')).toBeNull()
     expect(
-      screen.queryByRole('region', { name: 'Chat retrieval mode' }),
+      screen.queryByRole('region', { name: 'Chat Retrieval mode' }),
     ).toBeNull()
     expect(
       screen.queryByRole('combobox', { name: /retrieval strategy/i }),
@@ -2557,11 +2557,11 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
-    await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Sources' }))
 
     expect(await screen.findByText('Markdown · docs, local')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Jobs' }))
 
     expect(await screen.findByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('Unlocked')).toBeTruthy()
@@ -2569,7 +2569,7 @@ describe('App chat workspace', () => {
       screen.getByText(`source ${sourceSummary.id}`, { exact: false }),
     ).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Run next job' }))
+    await user.click(screen.getByRole('button', { name: 'Run Next Job' }))
 
     const lastRun = await screen.findByText('Last run')
     expect(lastRun).toBeTruthy()
@@ -2613,10 +2613,10 @@ describe('App chat workspace', () => {
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
-    expect(screen.getByText('score 0.88')).toBeTruthy()
-    expect(screen.getByText('URL source')).toBeTruthy()
-    expect(screen.getByText('version 2')).toBeTruthy()
-    expect(screen.getByText('chars 12-98')).toBeTruthy()
+    expect(screen.getByText('Score 0.88')).toBeTruthy()
+    expect(screen.getByText('URL Source')).toBeTruthy()
+    expect(screen.getByText('Version 2')).toBeTruthy()
+    expect(screen.getByText('Chars 12-98')).toBeTruthy()
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(
       screen.getByRole('heading', { name: 'Deployment question' }),
@@ -2789,12 +2789,12 @@ describe('App chat workspace', () => {
     const detailsToggle = within(stepper).getByRole('button', {
       name: /Expand chat steps/,
     })
-    expect(detailsToggle.textContent).toContain('1 source')
+    expect(detailsToggle.textContent).toContain('1 Source')
 
     await user.click(detailsToggle)
 
     expect(within(transcript).getAllByText('qwen-plus').length).toBeGreaterThan(0)
-    expect(within(transcript).getAllByText('168 tokens').length).toBeGreaterThan(0)
+    expect(within(transcript).getAllByText('168 Tokens').length).toBeGreaterThan(0)
     expect(within(transcript).getAllByText('$0.0042').length).toBeGreaterThan(0)
     expect(within(transcript).getByText('rag_search')).toBeTruthy()
     expect(within(transcript).getByText('deployment retry runbook')).toBeTruthy()
@@ -3440,15 +3440,15 @@ describe('App chat workspace', () => {
     })
     expect(within(sessionDetail).getByText('rag_search')).toBeTruthy()
     expect(within(sessionDetail).getByText('deployment import failure')).toBeTruthy()
-    expect(within(sessionDetail).getByText('default dense retrieval')).toBeTruthy()
-    expect(within(sessionDetail).getByText('latency 41 ms')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Default Dense Retrieval')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Latency 41 ms')).toBeTruthy()
     expect(
       within(sessionDetail).getByText(
         'Confirm the worker is running before retrying the import.',
       ),
     ).toBeTruthy()
-    expect(within(sessionDetail).getByText('rank 1')).toBeTruthy()
-    expect(within(sessionDetail).getByText('dense score 0.84')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Rank 1')).toBeTruthy()
+    expect(within(sessionDetail).getByText('Dense Score 0.84')).toBeTruthy()
     expect(within(sessionDetail).getByText('qwen / qwen-plus')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
@@ -3511,10 +3511,10 @@ describe('App chat workspace', () => {
     const context = await screen.findByRole('region', {
       name: 'Session context',
     })
-    expect(within(context).getByText('prompt default')).toBeTruthy()
+    expect(within(context).getByText('Prompt default')).toBeTruthy()
     expect(within(context).getByText('qwen-plus')).toBeTruthy()
     expect(within(context).getByText('$0.0042')).toBeTruthy()
-    expect(within(context).getByText('168 tokens')).toBeTruthy()
+    expect(within(context).getByText('168 Tokens')).toBeTruthy()
     expect(within(context).getByText('230 ms')).toBeTruthy()
   })
 
@@ -3539,14 +3539,14 @@ describe('App chat workspace', () => {
     const detailsToggle = within(transcript).getByRole('button', {
       name: 'Expand response details',
     })
-    expect(detailsToggle.textContent).toContain('1 source')
-    expect(detailsToggle.textContent).toContain('1 tool call')
-    expect(detailsToggle.textContent).toContain('usage')
+    expect(detailsToggle.textContent).toContain('1 Source')
+    expect(detailsToggle.textContent).toContain('1 Tool Call')
+    expect(detailsToggle.textContent).toContain('Usage')
 
     await user.click(detailsToggle)
 
     expect(within(transcript).getByText('qwen-plus')).toBeTruthy()
-    expect(within(transcript).getByText('168 tokens')).toBeTruthy()
+    expect(within(transcript).getByText('168 Tokens')).toBeTruthy()
     expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
@@ -3569,9 +3569,9 @@ describe('App chat workspace', () => {
     const context = await screen.findByRole('region', {
       name: 'Session context',
     })
-    expect(within(context).getByText('unknown cost')).toBeTruthy()
-    expect(within(context).getByText('unknown tokens')).toBeTruthy()
-    expect(within(context).getByText('unknown latency')).toBeTruthy()
+    expect(within(context).getByText('Unknown Cost')).toBeTruthy()
+    expect(within(context).getByText('Unknown Tokens')).toBeTruthy()
+    expect(within(context).getByText('Unknown Latency')).toBeTruthy()
   })
 
   test('renders conversation minimap from persisted messages and focuses messages', async () => {
@@ -3634,14 +3634,14 @@ describe('App chat workspace', () => {
     const stepper = await screen.findByRole('region', {
       name: 'Internal action stepper',
     })
-    expect(within(stepper).getByText('tool call succeeded')).toBeTruthy()
-    expect(within(stepper).getByText('retrieval dense')).toBeTruthy()
-    expect(within(stepper).getByText('provider usage succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
+    expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
+    expect(within(stepper).getByText('Provider Usage Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('rag_search')).toBeTruthy()
     expect(within(stepper).getByText('deployment import failure')).toBeTruthy()
     expect(within(stepper).getByText('qwen-plus')).toBeTruthy()
     expect(within(stepper).getByText('39 ms')).toBeTruthy()
-    expect(within(stepper).getByText('rank 1')).toBeTruthy()
+    expect(within(stepper).getByText('Rank 1')).toBeTruthy()
     expect(within(stepper).getByText(/0\.0042/)).toBeTruthy()
     expect(within(stepper).queryByRole('button', { name: /replay/i })).toBeNull()
   })
@@ -3693,7 +3693,7 @@ describe('App chat workspace', () => {
       '2026-06-22T00:00:00Z',
     )
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
       created_at_from: '2026-06-21T00:00:00Z',
@@ -3717,7 +3717,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     expect(client.getChatObservabilitySummary).toHaveBeenCalledWith(projectId, {
       created_at_from: null,
@@ -3736,19 +3736,19 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const statusSection = await screen.findByRole('region', {
       name: 'Status breakdown',
     })
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
-    expect(within(statusSection).getByText('10 sessions')).toBeTruthy()
+    expect(within(statusSection).getByText('10 Sessions')).toBeTruthy()
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
-    expect(within(statusSection).getByText('2 sessions')).toBeTruthy()
+    expect(within(statusSection).getByText('2 Sessions')).toBeTruthy()
 
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
-    expect(within(errorsSection).getByText('2 occurrences')).toBeTruthy()
+    expect(within(errorsSection).getByText('2 Occurrences')).toBeTruthy()
 
     const providerSection = screen.getByRole('region', { name: 'Provider usage' })
     expect(within(providerSection).getByText('chat')).toBeTruthy()
@@ -3770,7 +3770,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Costs')
     expect(screen.getByLabelText('Project ID')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const metrics = await screen.findByLabelText('Cost observability metrics')
     expect(within(metrics).getByText('Estimated cost')).toBeTruthy()
@@ -3790,7 +3790,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Errors')
     expect(screen.getByLabelText('Status')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const metrics = await screen.findByLabelText('Error observability metrics')
     expect(within(metrics).getByText('Errors')).toBeTruthy()
@@ -3811,7 +3811,7 @@ describe('App chat workspace', () => {
 
     await openSettingsSubmodule(user, 'Observability', 'Latency')
     expect(screen.getByLabelText('Created from')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const metrics = await screen.findByLabelText('Latency observability metrics')
     expect(within(metrics).getByText('Latency')).toBeTruthy()
@@ -3849,11 +3849,11 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await openSettingsSubmodule(user, 'Observability', 'Summary')
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
-    expect(await screen.findByText('No status data yet.')).toBeTruthy()
-    expect(screen.getByText('No provider usage groups yet.')).toBeTruthy()
-    expect(screen.getByText('No error messages yet.')).toBeTruthy()
+    expect(await screen.findByText('No Status Data Yet.')).toBeTruthy()
+    expect(screen.getByText('No Provider Usage Groups Yet.')).toBeTruthy()
+    expect(screen.getByText('No Error Messages Yet.')).toBeTruthy()
     expect(screen.getByText('No sessions in this filter window.')).toBeTruthy()
   })
 
@@ -3876,7 +3876,7 @@ describe('App chat workspace', () => {
       '2026-06-21T00:00:00Z',
     )
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'Failed')
-    await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh Summary' }))
 
     const alerts = await screen.findAllByRole('alert')
     expect(
@@ -3922,7 +3922,7 @@ describe('App chat workspace', () => {
     expect(client.listProviderConnections).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
-    expect(screen.getByText('api_key Configured / last four cret')).toBeTruthy()
+    expect(screen.getByText('API Key Configured / Last Four cret')).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
@@ -3930,7 +3930,7 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(user, screen.getByLabelText('Provider'), 'Qwen')
     await chooseRadixSelectOption(
       user,
-      screen.getByLabelText('Connection type'),
+      screen.getByLabelText('Connection Type'),
       'Hosted',
     )
     fireEvent.change(screen.getByLabelText('Base URL'), {
@@ -3943,7 +3943,7 @@ describe('App chat workspace', () => {
       screen.getByRole('button', { name: 'Remove Chat capability' }),
     ).toBeTruthy()
     const saveConnectionButton = screen.getByRole('button', {
-      name: 'Save connection',
+      name: 'Save Connection',
     }) as HTMLButtonElement
     await user.click(
       screen.getByRole('button', {
@@ -3984,8 +3984,8 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('API key') as HTMLInputElement).value).toBe('')
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
 
     expect(client.listProviderModels).toHaveBeenCalled()
     await chooseRadixSelectOption(
@@ -3993,15 +3993,15 @@ describe('App chat workspace', () => {
       screen.getByLabelText('Model sync connection'),
       /Hosted Qwen/,
     )
-    await user.click(screen.getByRole('button', { name: 'Sync models' }))
+    await user.click(screen.getByRole('button', { name: 'Sync Models' }))
 
     expect(client.syncProviderModels).toHaveBeenCalledWith('qwen-hosted')
 
     await openSettingsSubmodule(user, 'Runtime', 'Connections')
     expect(screen.queryByRole('button', { name: 'Save secret' })).toBeNull()
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
-    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
+    await user.click(screen.getByRole('button', { name: 'Reload Global Defaults' }))
 
     await chooseRadixSelectOption(
       user,
@@ -4074,7 +4074,7 @@ describe('App chat workspace', () => {
       'Confirm connection ID',
     ) as HTMLInputElement
     const deleteButton = screen.getByRole('button', {
-      name: 'Delete connection',
+      name: 'Delete Connection',
     }) as HTMLButtonElement
 
     expect(deleteButton.disabled).toBe(true)
@@ -4211,8 +4211,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Model sync connection'),
@@ -4252,7 +4252,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
 
     await waitFor(() =>
       expect(listProviderModels).toHaveBeenCalledWith({
@@ -4291,8 +4291,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Model catalog')
-    await user.click(screen.getByRole('button', { name: 'Refresh catalog' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Model Catalog')
+    await user.click(screen.getByRole('button', { name: 'Refresh Catalog' }))
     await chooseRadixSelectOption(
       user,
       screen.getByLabelText('Model sync connection'),
@@ -4314,7 +4314,7 @@ describe('App chat workspace', () => {
       'https://dashscope.aliyuncs.com/compatible-mode/v1',
     )
     await user.type(screen.getByLabelText('API key'), 'sk-new-secret')
-    await user.click(screen.getByRole('button', { name: 'Update connection' }))
+    await user.click(screen.getByRole('button', { name: 'Update Connection' }))
 
     expect(upsertProviderConnection).toHaveBeenCalledWith('qwen-hosted', {
       api_key: 'sk-new-secret',
@@ -4356,7 +4356,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
     await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
 
     const projectSettings = await screen.findByRole('region', {
@@ -4452,7 +4452,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
     await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
     const projectSettings = await screen.findByRole('region', {
       name: 'Project runtime settings',
@@ -4481,10 +4481,10 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(screen.getByLabelText('Project slot connection').textContent).toContain(
-      'Select connection',
+      'Select Connection',
     )
     expect(screen.getByLabelText('Project slot model').textContent).toContain(
       'No models yet',
@@ -4513,7 +4513,7 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Project overrides')
+    await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
     await user.click(screen.getByRole('button', { name: 'Reload project settings' }))
 
     await waitFor(() =>
@@ -4535,7 +4535,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No project runtime settings yet.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No Project runtime settings yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()
@@ -4571,8 +4571,8 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialProjectId={projectId} />)
 
-    await openSettingsSubmodule(user, 'Runtime', 'Global defaults')
-    await user.click(screen.getByRole('button', { name: 'Reload global defaults' }))
+    await openSettingsSubmodule(user, 'Runtime', 'Global Defaults')
+    await user.click(screen.getByRole('button', { name: 'Reload Global Defaults' }))
 
     await chooseRadixSelectOption(
       user,

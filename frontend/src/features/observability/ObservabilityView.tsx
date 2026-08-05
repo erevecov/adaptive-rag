@@ -49,13 +49,13 @@ const OBSERVABILITY_TABS: { label: string; value: ObservabilitySubmodule }[] = [
 
 const EMPTY_OBSERVABILITY_MESSAGES: Record<ObservabilitySubmodule, string> = {
   costs:
-    'No cost rollup available yet. Enter filters and refresh to inspect provider spend.',
+    'No Cost Rollup Available Yet. Enter filters and refresh to inspect provider spend.',
   errors:
-    'No error clusters available yet. Enter filters and refresh to inspect failures.',
+    'No Error Clusters Available Yet. Enter filters and refresh to inspect failures.',
   latency:
-    'No latency groups available yet. Enter filters and refresh to inspect response timing.',
+    'No Latency Groups Available Yet. Enter filters and refresh to inspect response timing.',
   summary:
-    'No observability summary yet. Enter filters and refresh to inspect chat health.',
+    'No Observability Summary Yet. Enter filters and refresh to inspect chat health.',
 }
 
 export type ObservabilityPanelProps = {
@@ -199,7 +199,7 @@ export function ObservabilityPanel({
             )}
           </ObservabilityField>
           <Button className="whitespace-nowrap" disabled={isRefreshing} type="submit">
-            {isRefreshing ? 'Refreshing…' : 'Refresh summary'}
+            {isRefreshing ? 'Refreshing…' : 'Refresh Summary'}
           </Button>
         </form>
 
@@ -268,6 +268,20 @@ function ObservabilityContent({
           <p className="font-semibold text-destructive">Summary unavailable.</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             The last refresh failed. Adjust filters and try again.
+          </p>
+        </EmptyState>
+      )
+    }
+    if (state === 'canceled') {
+      return (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="canceled"
+          role="status"
+        >
+          <p className="font-medium text-foreground/90">Refresh canceled.</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            No summary loaded. Run refresh again when ready.
           </p>
         </EmptyState>
       )
@@ -355,9 +369,9 @@ function ObservabilityMetricSkeleton({
           className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
           key={index}
         >
-          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted" />
-          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
-          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/40" />
+          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
+          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
         </article>
       ))}
     </div>
@@ -636,7 +650,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
     <BreakdownCard label={`${summary.sessions.total} total`} title="Status breakdown">
       {rows.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-          No status data yet.
+          No Status Data Yet.
         </EmptyState>
       ) : (
         <DataList>
@@ -653,7 +667,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
-              <Badge>{formatCount(row.count, 'session')}</Badge>
+              <Badge>{formatCount(row.count, 'Session')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -670,7 +684,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
     >
       {summary.errors.top_messages.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-          No error messages yet.
+          No Error Messages Yet.
         </EmptyState>
       ) : (
         <DataList>
@@ -680,9 +694,9 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               key={error.message}
             >
               <strong className="break-words text-sm font-semibold">
-                {error.message}
+                {operatorSafeMessage(error.message, error.message)}
               </strong>
-              <Badge>{formatCount(error.count, 'occurrence')}</Badge>
+              <Badge>{formatCount(error.count, 'Occurrence')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -704,7 +718,7 @@ function ProviderUsageTable({
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-            No provider usage groups yet.
+            No Provider Usage Groups Yet.
           </EmptyState>
         ) : (
           <TableScroll>
@@ -762,7 +776,7 @@ function ProviderLatencyTable({
       >
         {summary.provider_usage.groups.length === 0 ? (
           <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
-            No provider latency groups yet.
+            No Provider Latency Groups Yet.
           </EmptyState>
         ) : (
           <TableScroll>
@@ -825,14 +839,14 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
         </EmptyState>
       ) : (
         <div className="grid gap-2">
-          <strong className="text-2xl font-semibold leading-none">
+          <strong className="text-2xl font-semibold leading-none tabular-nums">
             {formatPercent(succeeded, total)} success
           </strong>
           <span className="text-sm text-muted-foreground">
-            {formatCount(failed, 'failed session')}
+            {formatCount(failed, 'Failed session')}
           </span>
           <span className="text-sm text-muted-foreground">
-            {formatCount(running, 'running session')}
+            {formatCount(running, 'Running session')}
           </span>
         </div>
       )}
@@ -894,7 +908,7 @@ function formatUsd(value: number): string {
 }
 
 function formatNullableUsd(value: number | null): string {
-  return value === null ? 'n/a' : formatUsd(value)
+  return value === null ? 'N/A' : formatUsd(value)
 }
 
 function formatNumber(value: number): string {
@@ -902,11 +916,11 @@ function formatNumber(value: number): string {
 }
 
 function formatNullableNumber(value: number | null): string {
-  return value === null ? 'n/a' : formatNumber(value)
+  return value === null ? 'N/A' : formatNumber(value)
 }
 
 function formatNullableMs(value: number | null): string {
-  return value === null ? 'n/a' : `${value} ms`
+  return value === null ? 'N/A' : `${value} ms`
 }
 
 function formatPercent(value: number, total: number): string {

@@ -58,7 +58,7 @@ const SETTINGS_NAVIGATION = [
       { id: 'users', label: 'Users' },
       { id: 'knowledge', label: 'Knowledge' },
       { id: 'sources', label: 'Sources' },
-      { id: 'retrieval', label: 'Retrieval playground' },
+      { id: 'retrieval', label: 'Retrieval Playground' },
     ],
   },
   {
@@ -76,9 +76,9 @@ const SETTINGS_NAVIGATION = [
     label: 'Runtime',
     submodules: [
       { id: 'connections', label: 'Connections' },
-      { id: 'model_catalog', label: 'Model catalog' },
-      { id: 'global_defaults', label: 'Global defaults' },
-      { id: 'project_overrides', label: 'Project overrides' },
+      { id: 'model_catalog', label: 'Model Catalog' },
+      { id: 'global_defaults', label: 'Global Defaults' },
+      { id: 'project_overrides', label: 'Project Overrides' },
     ],
   },
 ] as const
@@ -278,7 +278,7 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground"
         data-slot="workspace-project-chip"
         title={projectName}
       >
@@ -750,7 +750,7 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
@@ -873,7 +873,7 @@ function SidebarProjectSelector({
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                {state === 'loading' ? 'Loading projects…' : 'All projects'}
+                {state === 'loading' ? 'Loading Projects…' : 'All Projects'}
               </span>
             </div>
 
@@ -940,7 +940,7 @@ function SidebarProjectSelector({
                   className="m-0 text-xs font-bold text-muted-foreground"
                   data-slot="project-selector-empty"
                 >
-                  No projects match.
+                  No Projects match.
                 </p>
               )}
             </div>

@@ -442,7 +442,7 @@ describe('ChatWorkspacePanel', () => {
 
     const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
-    const approve = within(draft).getByRole('button', { name: 'Approve knowledge' })
+    const approve = within(draft).getByRole('button', { name: 'Approve Knowledge' })
     expect(approve).toBeTruthy()
     expect((approve as HTMLButtonElement).disabled).toBe(false)
     expect(within(draft).getByText('Draft').getAttribute('data-tone')).toBe('primary')
@@ -471,7 +471,7 @@ describe('ChatWorkspacePanel', () => {
       expect(
         (
           within(card).getByRole('button', {
-            name: 'Approve knowledge',
+            name: 'Approve Knowledge',
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(true)

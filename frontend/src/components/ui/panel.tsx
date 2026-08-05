@@ -25,7 +25,7 @@ export type PanelHeaderProps = HTMLAttributes<HTMLDivElement>
 export const PanelHeader = forwardRef<HTMLDivElement, PanelHeaderProps>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn('flex flex-col gap-1.5 p-4', className)}
+      className={cn('flex flex-col gap-1.5 p-4 max-[680px]:p-3', className)}
       ref={ref}
       {...props}
       data-slot="panel-header"
@@ -71,7 +71,12 @@ export type PanelBodyProps = HTMLAttributes<HTMLDivElement>
 
 export const PanelBody = forwardRef<HTMLDivElement, PanelBodyProps>(
   ({ className, ...props }, ref) => (
-    <div className={cn('p-4 pt-0', className)} ref={ref} {...props} data-slot="panel-body" />
+    <div
+      className={cn('p-4 pt-0 max-[680px]:p-3 max-[680px]:pt-0', className)}
+      ref={ref}
+      {...props}
+      data-slot="panel-body"
+    />
   ),
 )
 PanelBody.displayName = 'PanelBody'

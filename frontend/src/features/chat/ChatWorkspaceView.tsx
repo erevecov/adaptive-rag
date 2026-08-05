@@ -217,7 +217,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted px-4 py-2.5 text-sm leading-relaxed',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -468,7 +468,7 @@ function ResponsePanel({
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/30 p-4 text-center"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center"
           data-slot-state="loading"
           role="status"
         >
@@ -480,17 +480,17 @@ function ResponsePanel({
             aria-hidden="true"
             className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left"
           >
-            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted" />
+            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
             <div className="space-y-2">
-              <div className="h-3 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
-              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
+              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
             </div>
             <div className="flex gap-1.5 pt-1">
-              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted/40" />
+              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted/40" />
+              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted/40" />
             </div>
           </div>
         </EmptyState>
@@ -520,7 +520,7 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/30 p-4 text-left"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left"
             data-slot-state="canceled"
             role="status"
           >
@@ -535,7 +535,7 @@ function ResponsePanel({
     return (
       <div className="grid min-h-[8rem] place-items-center px-3 py-4">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/30 p-4"
+          className="max-w-md border-border/60 bg-muted/15 p-4"
           data-slot-state="empty"
           role="status"
         >
@@ -922,7 +922,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground">
           {displayQuestion}
         </p>
       )}
@@ -950,17 +950,17 @@ function ResponseDetailsPanel({
   }
 
   const summaryParts = [
-    formatCount(sourceCount, 'source'),
-    formatCount(toolCallCount, 'tool call'),
+    formatCount(sourceCount, 'Source'),
+    formatCount(toolCallCount, 'Tool Call'),
   ]
   if (usage !== null) {
-    summaryParts.push('usage')
+    summaryParts.push('Usage')
   }
 
   return (
     <section
       aria-label="Response details"
-      className="rounded-md border border-border bg-muted/40 p-3"
+      className="rounded-md border border-border bg-muted/15 p-3"
     >
       <Button
         aria-expanded={expanded}
@@ -1030,8 +1030,8 @@ function ResponseDetailsContent({
                   {call.query ?? 'No query stored.'}
                 </span>
                 <small className="text-xs text-muted-foreground">
-                  limit {call.limit ?? 'unknown'} /{' '}
-                  {call.result_count ?? 'unknown'} results
+                  Limit {call.limit ?? 'Unknown'} /{' '}
+                  {call.result_count ?? 'Unknown'} Results
                 </small>
               </DataListItem>
             ))}
@@ -1057,17 +1057,19 @@ function ResponseDetailsContent({
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>{sourceTypeLabel(result.citation.source_type)} source</Badge>
                     <Badge>
-                      version {result.citation.document_version_number}
+                      {sourceTypeLabel(result.citation.source_type)} Source
                     </Badge>
                     <Badge>
-                      chars {result.citation.char_start}-{result.citation.char_end}
+                      Version {result.citation.document_version_number}
+                    </Badge>
+                    <Badge>
+                      Chars {result.citation.char_start}-{result.citation.char_end}
                     </Badge>
                   </div>
                 </div>
                 <DataListItemActions className="justify-start md:justify-end">
-                  <StatusBadge>score {formatScore(result.score)}</StatusBadge>
+                  <StatusBadge>Score {formatScore(result.score)}</StatusBadge>
                   <Button
                     aria-label={`View source ${result.citation.source_external_id}`}
                     onClick={() =>
@@ -1079,7 +1081,7 @@ function ResponseDetailsContent({
                     type="button"
                     variant="secondary"
                   >
-                    View source
+                    View Source
                   </Button>
                 </DataListItemActions>
               </DataListItem>
@@ -1095,15 +1097,15 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
   return (
     <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
       {usage.model !== null ? (
-        <UsageItem label="model" value={usage.model} />
+        <UsageItem label="Model" value={usage.model} />
       ) : null}
       {usage.provider !== null ? (
-        <UsageItem label="provider" value={usage.provider} />
+        <UsageItem label="Provider" value={usage.provider} />
       ) : null}
-      <UsageItem label="tokens" value={formatNullableTokens(usage.totalTokens)} />
-      <UsageItem label="input" value={formatNullableTokenCount(usage.inputTokens)} />
-      <UsageItem label="output" value={formatNullableTokenCount(usage.outputTokens)} />
-      <UsageItem label="cost" value={formatNullableUsageCost(usage.costUsd)} />
+      <UsageItem label="Tokens" value={formatNullableTokens(usage.totalTokens)} />
+      <UsageItem label="Input" value={formatNullableTokenCount(usage.inputTokens)} />
+      <UsageItem label="Output" value={formatNullableTokenCount(usage.outputTokens)} />
+      <UsageItem label="Cost" value={formatNullableUsageCost(usage.costUsd)} />
     </dl>
   )
 }
@@ -1139,7 +1141,7 @@ function KnowledgeDraftCard({
   // Primary commit only while still a draft with non-empty text.
   const canSubmitPrimary = canEdit && draft.text.trim().length > 0
   const primaryAction =
-    draft.reviewAction === 'approve' ? 'Approve knowledge' : 'Request approval'
+    draft.reviewAction === 'approve' ? 'Approve Knowledge' : 'Request Approval'
 
   return (
     <article
@@ -1443,15 +1445,15 @@ function formatScore(score: number): string {
 }
 
 function formatNullableUsageCost(value: number | null): string {
-  return value === null ? 'unknown cost' : formatUsd(value)
+  return value === null ? 'Unknown Cost' : formatUsd(value)
 }
 
 function formatNullableTokens(value: number | null): string {
-  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+  return value === null ? 'Unknown Tokens' : `${formatNumber(value)} Tokens`
 }
 
 function formatNullableTokenCount(value: number | null): string {
-  return value === null ? 'unknown' : formatNumber(value)
+  return value === null ? 'Unknown' : formatNumber(value)
 }
 
 function formatUsd(value: number): string {

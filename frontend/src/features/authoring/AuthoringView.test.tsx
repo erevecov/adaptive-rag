@@ -216,9 +216,9 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 describe('AuthoringPanel', () => {
   test('primary Create buttons keep min-h and stable Creating labels', () => {
     const idle = renderAuthoringPanel({ activeSubmodule: 'projects' })
-    const create = screen.getByRole('button', { name: 'Create project' })
+    const create = screen.getByRole('button', { name: 'Create Project' })
     expect(create.className).toMatch(/min-h-9/)
-    expect(create.textContent).toContain('Create project')
+    expect(create.textContent).toContain('Create Project')
     idle.view.unmount()
 
     renderAuthoringPanel({
@@ -234,7 +234,7 @@ describe('AuthoringPanel', () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel()
 
-    expect(screen.getByLabelText('Project name').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Project Name').getAttribute('data-slot')).toBe(
       'input',
     )
     expect(screen.getByRole('region', { name: 'Authoring projects' })).toBeTruthy()
@@ -260,13 +260,13 @@ describe('AuthoringPanel', () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel({ activeSubmodule: 'users' })
 
-    expect(screen.getByLabelText('User login').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('User Login').getAttribute('data-slot')).toBe(
       'input',
     )
-    expect(screen.getByLabelText('Display name').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Display Name').getAttribute('data-slot')).toBe(
       'input',
     )
-    const accessToken = screen.getByLabelText('Access token')
+    const accessToken = screen.getByLabelText('Access Token')
     expect(accessToken.getAttribute('data-slot')).toBe('input')
     expect(accessToken.getAttribute('type')).toBe('password')
     expect(accessToken.getAttribute('aria-describedby')).toBe(
@@ -277,20 +277,20 @@ describe('AuthoringPanel', () => {
     expect(tokenHelp.id).toBe('authoring-user-access-token-help')
     expect(tokenHelp.closest('[data-slot="field-control"]')).toBeNull()
     expect(tokenHelp.closest('[data-slot="field"]')).toBeTruthy()
-    expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('System Role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
-    expect(screen.getByLabelText('Project role').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Project Role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
     await chooseRadixSelectOption(
       userDriver,
-      screen.getByLabelText('System role'),
+      screen.getByLabelText('System Role'),
       'Superadmin',
     )
     await chooseRadixSelectOption(
       userDriver,
-      screen.getByLabelText('Project role'),
+      screen.getByLabelText('Project Role'),
       'Admin',
     )
     expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
@@ -311,14 +311,14 @@ describe('AuthoringPanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loadingState).toBeTruthy()
-    expect(loadingState?.textContent).toContain('Loading projects')
+    expect(loadingState?.textContent).toContain('Loading Projects')
     view.unmount()
   })
 
   test('knowledge submodule renders proposal actions through tokenized controls', () => {
     const { view } = renderAuthoringPanel({ activeSubmodule: 'knowledge' })
 
-    expect(screen.getByLabelText('Refined text').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Refined Text').getAttribute('data-slot')).toBe(
       'textarea',
     )
     expect(screen.getByDisplayValue('Existing refined text.')).toBeTruthy()
@@ -335,7 +335,7 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('Project ID').getAttribute('data-slot')).toBe(
       'input',
     )
-    expect(screen.getByLabelText('Source type').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Source Type').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
     expect(screen.getByLabelText('Content').getAttribute('data-slot')).toBe(
@@ -363,7 +363,7 @@ describe('AuthoringPanel', () => {
     ).toBeTruthy()
     await chooseRadixSelectOption(
       userDriver,
-      screen.getByLabelText('Source type'),
+      screen.getByLabelText('Source Type'),
       'URL',
     )
     expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
@@ -376,7 +376,7 @@ describe('AuthoringPanel', () => {
       projectState: 'loading',
       projects: [],
     })
-    expect(screen.getByText('Loading projects…')).toBeTruthy()
+    expect(screen.getByText('Loading Projects…')).toBeTruthy()
     const loadingState = loading.view.container.querySelector(
       '[data-slot-state="loading"]',
     )
@@ -464,7 +464,7 @@ describe('AuthoringPanel', () => {
       activeSubmodule: 'knowledge',
       knowledgeProposals: [],
     })
-    expect(screen.getByText('No pending proposals.')).toBeTruthy()
+    expect(screen.getByText('No Pending Proposals.')).toBeTruthy()
     expect(
       screen.getByText(/Refresh after chat surfaces a knowledge draft/),
     ).toBeTruthy()
@@ -537,7 +537,7 @@ describe('AuthoringPanel', () => {
       screen.getByText(/Selected: handbook\.pdf/).getAttribute('data-slot'),
     ).toBe('source-file-status')
     await userDriver.click(
-      screen.getByRole('button', { name: 'Clear selected file' }),
+      screen.getByRole('button', { name: 'Clear Selected File' }),
     )
     expect(onSourceFileChange).toHaveBeenCalledWith(null)
   })

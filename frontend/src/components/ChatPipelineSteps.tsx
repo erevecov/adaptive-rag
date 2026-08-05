@@ -40,13 +40,13 @@ export function ChatPipelineSteps({
   if (isStreaming) {
     const current = summarizeCurrentStep(steps)
     const sources = formatSources(sourceCount)
-    const summary = `steps · ${current.elapsed} · ${sources}`
+    const summary = `Steps · ${current.elapsed} · ${sources}`
     const statusLabel = statusAccessibleName(current.status)
     if (!expanded) {
       return (
         <section
           aria-label="Chat pipeline steps"
-          className="rounded-md border border-border bg-muted/40 p-3"
+          className="rounded-md border border-border bg-muted/15 p-3"
           data-slot="chat-pipeline-steps"
         >
           <Button
@@ -74,7 +74,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat pipeline steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -101,13 +101,13 @@ export function ChatPipelineSteps({
   const elapsed = formatStepDuration(totalStepElapsedMs(steps))
   const sources = formatSources(sourceCount)
   const label = `${elapsed}, ${sources}`
-  const summary = `details · ${elapsed} · ${sources}`
+  const summary = `Details · ${elapsed} · ${sources}`
 
   if (!expanded) {
     return (
       <section
         aria-label="Chat pipeline steps"
-        className="rounded-md border border-border bg-muted/40 p-3"
+        className="rounded-md border border-border bg-muted/15 p-3"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -128,7 +128,7 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat pipeline steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/40 p-3"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
       data-slot="chat-pipeline-steps"
     >
       <Button
@@ -215,7 +215,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11">
         {content}
       </summary>
       <StepDetail step={step} />
@@ -246,7 +246,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     <span className="flex flex-wrap gap-1.5">
       {chips.slice(0, 3).map((chip) => (
         <span
-          className="inline-flex w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground"
           data-slot="chat-pipeline-detail-chip"
           key={chip}
         >
@@ -276,7 +276,7 @@ function StepDetail({ step }: { step: ChatStep }) {
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
-        <div className="grid gap-1 rounded-md bg-muted/50 p-2" key={key}>
+        <div className="grid gap-1 rounded-md bg-muted/15 p-2" key={key}>
           <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
             {formatDetailKey(key)}
           </dt>
@@ -287,29 +287,29 @@ function StepDetail({ step }: { step: ChatStep }) {
       ))}
       {usage !== undefined ? (
         <>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              model
+              Model
             </dt>
             <dd className="break-words text-sm text-foreground">{usage.model}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              provider
+              Provider
             </dt>
             <dd className="break-words text-sm text-foreground">{usage.provider}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              tokens
+              Tokens
             </dt>
             <dd className="break-words text-sm text-foreground">
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              cost
+              Cost
             </dt>
             <dd className="break-words text-sm text-foreground">
               {formatCost(usage.estimated_cost_usd)}
@@ -364,16 +364,16 @@ function totalStepElapsedMs(steps: ChatStep[]): number | null {
 }
 
 function formatSources(value: number): string {
-  return value === 1 ? '1 source' : `${value} sources`
+  return value === 1 ? '1 Source' : `${value} Sources`
 }
 
 function formatDetailKey(value: string): string {
-  return value.replace(/_/g, ' ')
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return 'unknown'
+    return 'Unknown'
   }
   if (typeof value === 'string') {
     return value
@@ -385,9 +385,9 @@ function formatDetailValue(value: unknown): string {
 }
 
 function formatTokens(value: number | undefined): string {
-  return value === undefined ? 'unknown tokens' : `${value.toLocaleString()} tokens`
+  return value === undefined ? 'Unknown Tokens' : `${value.toLocaleString()} Tokens`
 }
 
 function formatCost(value: number | undefined): string {
-  return value === undefined ? 'unknown cost' : `$${value.toFixed(4)}`
+  return value === undefined ? 'Unknown Cost' : `$${value.toFixed(4)}`
 }

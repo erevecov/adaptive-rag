@@ -35,6 +35,7 @@ describe('Popover', () => {
 
     expect(trigger.getAttribute('data-state')).toBe('closed')
     expect(trigger.className).toContain('focus-visible:ring-ring')
+    expect(trigger.className).toContain('max-[680px]:min-h-11')
     await user.click(trigger)
 
     const listbox = await screen.findByRole('listbox', { name: 'Projects' })
@@ -42,6 +43,8 @@ describe('Popover', () => {
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(listbox.getAttribute('data-slot')).toBe('popover-content')
     expect(listbox.className).toContain('focus-visible:ring-ring')
+    expect(listbox.className).toContain('p-1')
+    expect(listbox.className).toContain('max-[680px]:p-1.5')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 

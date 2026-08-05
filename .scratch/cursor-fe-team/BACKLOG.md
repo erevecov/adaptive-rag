@@ -1,17 +1,17 @@
 # FE UI/UX Backlog (Cursor team)
 
 Status: open | claimed:<role> | done | deferred  
-Branch: `feat/ui-obsessional-polish`
+Branch: `feat/ui-obsessional-polish` (post #213)
 
 ## Seed / fleet
-- [x] done — Purple chrome / Title Case / citations / focus-within / speech / sticky
-- [x] done — operatorSafeMessage shell-wide; runtime loading empties; Deleted metadata
-- [x] done:operator — Runtime slot/capability/connection option Title Case + ≤680 capability
+- [x] done — #213 bulk FE polish merged
+- [x] done:lead — soft washes, primary/15, ≤680 density, Title Case chrome
+- [x] done:lead — history detail sections + authoring/runtime/obs empties
 - [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
+- [ ] open:implement — Hostile live purple residual (shell rail / inspector)
 
 ## Lead queue (next)
-1. Hostile live purple/dark ≤680 residual (shell rail / inspector)
+1. Invent next taste-bar P0 from live UI (purple/dark ≤680)
 2. Tab-cycle focus trap residual
-3. Invent next taste-bar P0 from live UI
 
 Reports: `reports/lead-latest.md`

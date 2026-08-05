@@ -442,7 +442,7 @@ function ProjectsPanel({
       title="Projects"
     >
       <form className="grid gap-4" onSubmit={onCreateProject}>
-        <AuthoringField id="authoring-project-name" label="Project name">
+        <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
               autoComplete="off"
@@ -459,7 +459,7 @@ function ProjectsPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create project"
+              idleLabel="Create Project"
             />
           </Button>
         </div>
@@ -492,7 +492,7 @@ function ProjectList({
   projects: Project[]
 }) {
   if (isBusy && projects.length === 0) {
-    return <LoadingListState label="Loading projects…" />
+    return <LoadingListState label="Loading Projects…" />
   }
 
   if (projects.length === 0) {
@@ -518,8 +518,8 @@ function ProjectList({
         const roleLabel = isDeleted
           ? 'Deleted'
           : canAccess
-            ? (project.access_role ?? project.embedding_mode)
-            : 'No access'
+            ? titleCaseStatus(project.access_role ?? project.embedding_mode)
+            : 'No Access'
         return (
           <DataListItem
             className="p-0"
@@ -633,7 +633,7 @@ function ProjectAccessPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring users"
-      description="Create users and assign project membership."
+      description="Create Users and assign project membership."
       eyebrow="Users"
       id="project-access-title"
       status={<RequestStatus state={state} />}
@@ -641,7 +641,7 @@ function ProjectAccessPanel({
     >
       <form className="grid gap-4" onSubmit={onCreateUser}>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-user-login" label="User login">
+          <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
                 autoComplete="off"
@@ -653,7 +653,7 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-user-display-name" label="Display name">
+          <AuthoringField id="authoring-user-display-name" label="Display Name">
             {(fieldId) => (
               <Input
                 autoComplete="off"
@@ -669,7 +669,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-user-system-role" label="System role">
+          <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -686,7 +686,7 @@ function ProjectAccessPanel({
           <AuthoringField
             help="Paste once; never shown after save."
             id="authoring-user-access-token"
-            label="Access token"
+            label="Access Token"
           >
             {(fieldId) => (
               <Input
@@ -708,7 +708,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create user"
+              idleLabel="Create User"
             />
           </Button>
           <Button
@@ -720,7 +720,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Refreshing…"
-              idleLabel="Refresh access"
+              idleLabel="Refresh Access"
             />
           </Button>
           <Button
@@ -750,7 +750,7 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-member-role" label="Project role">
+          <AuthoringField id="authoring-member-role" label="Project Role">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -771,7 +771,7 @@ function ProjectAccessPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Saving…"
-              idleLabel="Save membership"
+              idleLabel="Save Membership"
             />
           </Button>
         </div>
@@ -804,7 +804,7 @@ function UserAccessLists({
   users: User[]
 }) {
   if (isBusy && users.length === 0 && memberships.length === 0) {
-    return <LoadingListState label="Loading users…" />
+    return <LoadingListState label="Loading Users…" />
   }
 
   if (users.length === 0 && memberships.length === 0) {
@@ -979,7 +979,7 @@ function SourceFileField({
               : null}
           </span>
           <Button
-            aria-label="Clear selected file"
+            aria-label="Clear Selected File"
             disabled={isBusy}
             onClick={() => {
               setSizeBytes(null)
@@ -1067,7 +1067,7 @@ function SourcesPanel({
       eyebrow="Sources"
       id="sources-title"
       status={<RequestStatus state={sourceState} />}
-      title="Content registry"
+      title="Content Registry"
     >
       <form className="grid gap-4" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
@@ -1083,7 +1083,7 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="grid gap-4 md:grid-cols-2">
-          <AuthoringField id="authoring-source-type" label="Source type">
+          <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
                 id={fieldId}
@@ -1163,7 +1163,7 @@ function SourcesPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create source"
+              idleLabel="Create Source"
             />
           </Button>
           <Button
@@ -1175,7 +1175,7 @@ function SourcesPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Refreshing…"
-              idleLabel="Refresh sources"
+              idleLabel="Refresh Sources"
             />
           </Button>
         </div>
@@ -1205,7 +1205,7 @@ function SourceList({
   sources: Source[]
 }) {
   if (isBusy && sources.length === 0) {
-    return <LoadingListState label="Loading sources…" />
+    return <LoadingListState label="Loading Sources…" />
   }
 
   if (sources.length === 0) {
@@ -1230,7 +1230,7 @@ function SourceList({
         const tags =
           Array.isArray(source.tags) && source.tags.length > 0
             ? source.tags.join(', ')
-            : 'No tags'
+            : 'No Tags'
         return (
           <DataListItem
             className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -1328,7 +1328,7 @@ function KnowledgeReviewPanel({
       eyebrow="Knowledge"
       id="knowledge-review-title"
       status={<KnowledgeStatus state={state} />}
-      title="Pending proposals"
+      title="Pending Proposals"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -1340,7 +1340,7 @@ function KnowledgeReviewPanel({
           <ButtonLabel
             busy={isBusy}
             busyLabel="Refreshing…"
-            idleLabel="Refresh proposals"
+            idleLabel="Refresh Proposals"
           />
         </Button>
       </div>
@@ -1348,15 +1348,15 @@ function KnowledgeReviewPanel({
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
-        <LoadingListState label="Loading proposals…" />
+        <LoadingListState label="Loading Proposals…" />
       ) : proposals.length === 0 ? (
         <EmptyState
-          aria-label="No pending proposals"
+          aria-label="No Pending Proposals"
           className="border-border/60 bg-muted/20 p-4 text-left"
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90">No pending proposals.</p>
+          <p className="font-medium text-foreground/90">No Pending Proposals.</p>
           <p className="text-xs text-muted-foreground">
             Refresh after chat surfaces a knowledge draft for this project.
           </p>
@@ -1383,10 +1383,10 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-4">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
-                    label="Refined text"
+                    label="Refined Text"
                   >
                     {(fieldId) => (
                       <Textarea
@@ -1402,7 +1402,7 @@ function KnowledgeReviewPanel({
                   </AuthoringField>
                   <AuthoringField
                     id={`proposal-reject-${proposal.id}`}
-                    label="Reject reason"
+                    label="Reject Reason"
                   >
                     {(fieldId) => (
                       <Input
@@ -1501,14 +1501,14 @@ function IngestionJobsPanel({
           <ButtonLabel
             busy={isBusy}
             busyLabel="Refreshing…"
-            idleLabel="Refresh jobs"
+            idleLabel="Refresh Jobs"
           />
         </Button>
         <Button disabled={isBusy} onClick={onRunNext} type="button">
           <ButtonLabel
             busy={isBusy}
             busyLabel="Running…"
-            idleLabel="Run next job"
+            idleLabel="Run Next Job"
           />
         </Button>
       </div>
@@ -1796,7 +1796,7 @@ function groupJobsByStatus(
 
 function formatOperatorTimestamp(value: string | null): string {
   if (value === null || value.length === 0) {
-    return 'unknown'
+    return 'Unknown'
   }
   const parsed = Date.parse(value)
   if (Number.isNaN(parsed)) {
@@ -1827,7 +1827,7 @@ function formatRelativeOperatorTimestamp(value: string | null): {
   const day = 24 * hour
   let relative: string
   if (absMs < minute) {
-    relative = deltaMs >= 0 ? 'now' : 'just now'
+    relative = deltaMs >= 0 ? 'Now' : 'Just Now'
   } else if (absMs < hour) {
     const n = Math.round(absMs / minute)
     relative = deltaMs >= 0 ? `in ${n}m` : `${n}m ago`
@@ -1852,7 +1852,7 @@ function jobStatusLabel(status: string): string {
     case 'blocked':
       return 'Blocked'
     case 'dead_letter':
-      return 'Dead letter'
+      return 'Dead Letter'
     case 'failed':
       return 'Failed'
     case 'idle':

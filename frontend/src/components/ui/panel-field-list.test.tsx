@@ -22,7 +22,9 @@ describe('Panel density', () => {
     )
 
     expect(screen.getByText('Header').className).toMatch(/\bp-4\b/)
+    expect(screen.getByText('Header').className).toContain('max-[680px]:p-3')
     expect(screen.getByText('Body').className).toMatch(/\bp-4\b/)
+    expect(screen.getByText('Body').className).toContain('max-[680px]:p-3')
     expect(screen.getByText('Body').className).toMatch(/pt-0/)
   })
 
@@ -56,6 +58,7 @@ describe('Field disabled styling', () => {
 
     const field = screen.getByText('Name').closest('[data-slot="field"]')
     expect(field?.className).toContain('group/field')
+    expect(field?.className).toContain('max-[680px]:gap-1.5')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )
@@ -101,6 +104,7 @@ describe('DataListItem', () => {
     const row = screen.getByText('row')
     expect(row.className).toContain('min-w-0')
     expect(row.className).toContain('motion-safe:transition-colors')
-    expect(row.className).toContain('hover:bg-muted/30')
+    expect(row.className).toContain('hover:bg-primary/15')
+    expect(row.className).toContain('max-[680px]:p-2.5')
   })
 })

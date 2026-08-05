@@ -176,7 +176,7 @@ export function SessionNavigationPanel({
 
       <SegmentedControl
         aria-label="Session filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/70 p-0.5"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
@@ -221,9 +221,9 @@ export function SessionNavigationPanel({
               role="status"
             >
               <span className="sr-only">Cargando...</span>
-              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/80" />
-              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/70" />
-              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/60" />
+              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/25" />
+              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/35" />
+              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/30" />
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
@@ -259,7 +259,7 @@ export function SessionNavigationPanel({
                   'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
                     ? 'bg-primary/15 text-foreground'
-                    : 'hover:bg-primary/10 hover:text-foreground',
+                    : 'hover:bg-primary/15 hover:text-foreground',
                 )}
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
@@ -553,7 +553,7 @@ export function WorkspaceInspectorPanel({
           </SegmentedControlItem>
         </SegmentedControl>
         <IconButton
-          label="Close right sidebar"
+          label="Close Right Sidebar"
           onClick={onClose}
           ref={closeButtonRef}
           variant="ghost"
@@ -623,19 +623,19 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </span>
             <div
               aria-hidden="true"
-              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/80"
+              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70"
+              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60"
+              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50"
+              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25"
             />
           </div>
         ) : null}
@@ -685,7 +685,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             <section className="grid gap-2">
               <h4 className="text-sm font-semibold text-foreground">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
-                <EmptyState>No tags stored.</EmptyState>
+                <EmptyState>No Tags Stored.</EmptyState>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {viewer.source.tags.map((tag) => (
@@ -792,19 +792,19 @@ function SessionContextPanel({
             <MetricCard
               detail={detail.session.session_id}
               label="Prompt"
-              value={`prompt ${detail.session.prompt_version ?? 'unknown'}`}
+              value={`Prompt ${detail.session.prompt_version ?? 'Unknown'}`}
             />
             <MetricCard
               detail={
                 firstUsage === null
-                  ? 'unknown provider'
-                  : `${firstUsage.provider} ${firstUsage.operation} ${firstUsage.status}`
+                  ? 'Unknown Provider'
+                  : `${firstUsage.provider} ${firstUsage.operation} ${titleCaseToken(firstUsage.status)}`
               }
               label="Model"
-              value={firstUsage?.model ?? 'unknown model'}
+              value={firstUsage?.model ?? 'Unknown Model'}
             />
             <MetricCard
-              detail={`${detail.provider_usage.length} provider records`}
+              detail={`${detail.provider_usage.length} Provider Records`}
               label="Cost"
               value={formatSessionCost(detail.provider_usage)}
             />
@@ -858,7 +858,9 @@ function InternalActionStepper({
     <Panel aria-label="Internal action stepper" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Action stepper</PanelTitle>
-        <StatusBadge>{countInternalSteps(detail)} steps</StatusBadge>
+        <StatusBadge>
+          {countInternalSteps(detail)} Steps
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null || countInternalSteps(detail) === 0 ? (
@@ -867,7 +869,9 @@ function InternalActionStepper({
           <DataList>
             {detail.tool_calls.map((call) => (
               <DataListItem className="grid gap-1" key={`tool-${call.tool_call_id}`}>
-                <Badge>tool call {call.status}</Badge>
+                <Badge>
+                  Tool Call {titleCaseToken(call.status)}
+                </Badge>
                 <strong className="text-sm text-foreground">{call.tool_name}</strong>
                 <p className="text-sm text-muted-foreground">
                   {formatJsonValue(call.arguments)}
@@ -882,16 +886,18 @@ function InternalActionStepper({
                 className="grid gap-2"
                 key={`retrieval-${run.retrieval_run_id}`}
               >
-                <Badge>retrieval {run.strategy}</Badge>
+                <Badge>
+                  Retrieval {titleCaseToken(run.strategy)}
+                </Badge>
                 <strong className="text-sm text-foreground">{run.query}</strong>
                 <p className="text-sm text-muted-foreground">
-                  top {run.top_k} / {formatUnknownMs(run.latency_ms)}
+                  Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
                 </p>
                 <DataList>
                   {run.retrieved_chunks.map((chunk) => (
                     <DataListItem key={chunk.retrieved_chunk_id}>
                       <strong className="text-sm text-foreground">
-                        rank {chunk.rank}
+                        Rank {chunk.rank}
                       </strong>
                       <small className="block text-xs text-muted-foreground">
                         {formatStepperScores(chunk)}
@@ -906,7 +912,9 @@ function InternalActionStepper({
                 className="grid gap-1"
                 key={`provider-${usage.provider_usage_id}`}
               >
-                <Badge>provider usage {usage.status}</Badge>
+                <Badge>
+                  Provider Usage {titleCaseToken(usage.status)}
+                </Badge>
                 <strong className="text-sm text-foreground">{usage.model}</strong>
                 <p className="text-sm text-muted-foreground">
                   {usage.provider} {usage.operation} /{' '}
@@ -952,15 +960,15 @@ function SessionDetailPanel({
           >
             <span className="sr-only">Loading session detail...</span>
             <div aria-hidden="true" className="grid gap-2">
-              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/80" />
-              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60" />
-              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50" />
+              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/25" />
+              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
             </div>
             <div aria-hidden="true" className="grid gap-2 pt-1">
-              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/80" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/50" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/40" />
+              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/25" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
             </div>
           </div>
         </PanelBody>
@@ -1039,9 +1047,9 @@ function SessionDetailPanel({
           </DataList>
         </section>
 
-        <DetailSection id="history-tools-title" title="Tool calls">
+        <DetailSection id="history-tools-title" title="Tool Calls">
           <CompactStateList
-            emptyLabel="No stored tool calls."
+            emptyLabel="No Stored Tool Calls."
             items={detail.tool_calls}
             renderItem={(call) => (
               <ToolCallDetail call={call} key={call.tool_call_id} />
@@ -1049,9 +1057,9 @@ function SessionDetailPanel({
           />
         </DetailSection>
 
-        <DetailSection id="retrieval-runs-title" title="Retrieval runs">
+        <DetailSection id="retrieval-runs-title" title="Retrieval Runs">
           <CompactStateList
-            emptyLabel="No stored retrieval runs."
+            emptyLabel="No Stored Retrieval Runs."
             items={detail.retrieval_runs}
             renderItem={(run) => (
               <RetrievalRunDetail
@@ -1063,9 +1071,9 @@ function SessionDetailPanel({
           />
         </DetailSection>
 
-        <DetailSection id="provider-usage-title" title="Provider usage">
+        <DetailSection id="provider-usage-title" title="Provider Usage">
           <CompactStateList
-            emptyLabel="No provider usage stored."
+            emptyLabel="No Provider Usage Stored."
             items={detail.provider_usage}
             renderItem={(usage) => (
               <ProviderUsageDetail key={usage.provider_usage_id} usage={usage} />
@@ -1136,8 +1144,10 @@ function RetrievalRunDetail({
       <strong className="text-sm text-foreground">{run.query}</strong>
       <div className="flex flex-wrap gap-2">
         <Badge>{retrievalStrategyLabel(run)}</Badge>
-        <Badge>top {run.top_k}</Badge>
-        {run.latency_ms === null ? null : <Badge>latency {run.latency_ms} ms</Badge>}
+        <Badge>Top {run.top_k}</Badge>
+        {run.latency_ms === null ? null : (
+          <Badge>Latency {run.latency_ms} ms</Badge>
+        )}
       </div>
       <DataList>
         {run.retrieved_chunks.map((chunk) => (
@@ -1160,10 +1170,10 @@ function RetrievedChunkDetail({
   onOpenSource(sourceId: string, citationSnippet: string | null): void
 }) {
   const scores = [
-    formatOptionalScore('dense score', chunk.dense_score),
-    formatOptionalScore('lexical score', chunk.lexical_score),
-    formatOptionalScore('rrf score', chunk.rrf_score),
-    formatOptionalScore('rerank score', chunk.rerank_score),
+    formatOptionalScore('Dense Score', chunk.dense_score),
+    formatOptionalScore('Lexical Score', chunk.lexical_score),
+    formatOptionalScore('RRF Score', chunk.rrf_score),
+    formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
   const sourceId = getJsonString(chunk.citation, 'source_id')
   const citationSnippet = getJsonString(chunk.citation, 'snippet')
@@ -1174,10 +1184,10 @@ function RetrievedChunkDetail({
   return (
     <DataListItem className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>rank {chunk.rank}</Badge>
+        <Badge>Rank {chunk.rank}</Badge>
         {isCascadeDeleted ? (
           <StatusBadge className="w-fit" tone="warning">
-            source removed
+            Source Removed
           </StatusBadge>
         ) : null}
       </div>
@@ -1203,7 +1213,7 @@ function RetrievedChunkDetail({
             type="button"
             variant="secondary"
           >
-            View source
+            View Source
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground" role="status">
@@ -1222,19 +1232,21 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
         {usage.provider} / {usage.model}
       </strong>
       <p className="text-sm text-muted-foreground">
-        {usage.total_tokens ?? 'unknown'} tokens
+        {usage.total_tokens ?? 'Unknown'} Tokens
         {usage.estimated_cost_usd === null
           ? ''
           : ` / $${usage.estimated_cost_usd.toFixed(4)}`}
       </p>
-      <small className="text-xs text-muted-foreground">{usage.status}</small>
+      <small className="text-xs text-muted-foreground">
+        {titleCaseToken(usage.status)}
+      </small>
     </DataListItem>
   )
 }
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/40 p-3">
+    <div className="rounded-md border border-border bg-muted/15 p-3">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </dt>
@@ -1378,6 +1390,13 @@ function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
 }
 
+function titleCaseToken(value: string | null | undefined): string {
+  if (value == null || value.trim().length === 0) {
+    return '—'
+  }
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 function sessionStatusLabel(status: string | null | undefined): string {
   if (status === null || status === undefined || status === '') {
     return 'Empty'
@@ -1417,12 +1436,12 @@ function sessionStatusTone(
 
 function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {
   const scores = [
-    formatOptionalScore('dense score', chunk.dense_score),
-    formatOptionalScore('lexical score', chunk.lexical_score),
-    formatOptionalScore('rrf score', chunk.rrf_score),
-    formatOptionalScore('rerank score', chunk.rerank_score),
+    formatOptionalScore('Dense Score', chunk.dense_score),
+    formatOptionalScore('Lexical Score', chunk.lexical_score),
+    formatOptionalScore('RRF Score', chunk.rrf_score),
+    formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
-  return scores.length > 0 ? scores.join(' / ') : 'unknown score'
+  return scores.length > 0 ? scores.join(' / ') : 'Unknown Score'
 }
 
 function formatSessionCost(usages: ChatHistoryProviderUsage[]): string {
@@ -1430,7 +1449,7 @@ function formatSessionCost(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.estimated_cost_usd)
     .filter((value): value is number => value !== null)
   if (knownCosts.length === 0) {
-    return 'unknown cost'
+    return 'Unknown Cost'
   }
   return formatUsd(knownCosts.reduce((total, value) => total + value, 0))
 }
@@ -1440,9 +1459,9 @@ function formatSessionTokens(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.total_tokens)
     .filter((value): value is number => value !== null)
   if (knownTokens.length === 0) {
-    return 'unknown tokens'
+    return 'Unknown Tokens'
   }
-  return `${formatNumber(knownTokens.reduce((total, value) => total + value, 0))} tokens`
+  return `${formatNumber(knownTokens.reduce((total, value) => total + value, 0))} Tokens`
 }
 
 function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
@@ -1450,7 +1469,7 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.latency_ms)
     .filter((value): value is number => value !== null)
   if (knownLatencies.length === 0) {
-    return 'unknown latency'
+    return 'Unknown Latency'
   }
   const average =
     knownLatencies.reduce((total, value) => total + value, 0) /
@@ -1460,9 +1479,11 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
 
 function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
   if (run.strategy === 'dense' && !run.used_rerank) {
-    return 'default dense retrieval'
+    return 'Default Dense Retrieval'
   }
-  return run.used_rerank ? `${run.strategy} with rerank` : `${run.strategy} retrieval`
+  return run.used_rerank
+    ? `${titleCaseToken(run.strategy)} With Rerank`
+    : `${titleCaseToken(run.strategy)} Retrieval`
 }
 
 function sourceViewerStatusLabel(state: RequestState): string {
@@ -1491,7 +1512,10 @@ function sourceViewerTone(state: RequestState): 'danger' | 'neutral' | 'success'
   return 'neutral'
 }
 
-function formatOptionalScore(label: string, score: number | null): string | null {
+function formatOptionalScore(
+  label: string,
+  score: number | null,
+): string | null {
   return score === null ? null : `${label} ${formatScore(score)}`
 }
 
@@ -1511,13 +1535,13 @@ function formatJsonValue(value: unknown): string {
 
 function getCitationText(value: unknown, key: string): string {
   if (value === null || typeof value !== 'object' || !(key in value)) {
-    return 'No citation text stored.'
+    return 'No Citation Text Stored.'
   }
 
   const nextValue = (value as Record<string, unknown>)[key]
   return typeof nextValue === 'string' && nextValue.length > 0
     ? nextValue
-    : 'No citation text stored.'
+    : 'No Citation Text Stored.'
 }
 
 function getJsonString(value: unknown, key: string): string | null {
@@ -1532,15 +1556,15 @@ function getJsonString(value: unknown, key: string): string | null {
 }
 
 function formatUnknownCost(value: number | null): string {
-  return value === null ? 'unknown cost' : formatUsd(value)
+  return value === null ? 'Unknown Cost' : formatUsd(value)
 }
 
 function formatUnknownTokens(value: number | null): string {
-  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+  return value === null ? 'Unknown Tokens' : `${formatNumber(value)} Tokens`
 }
 
 function formatUnknownMs(value: number | null): string {
-  return value === null ? 'unknown latency' : `${value} ms`
+  return value === null ? 'Unknown Latency' : `${value} ms`
 }
 
 function formatUsd(value: number): string {

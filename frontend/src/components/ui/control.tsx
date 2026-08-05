@@ -35,7 +35,11 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, ...props }, ref) => (
     <textarea
-      className={cn('min-h-24 resize-y', controlClasses, className)}
+      className={cn(
+        'min-h-24 resize-y max-[680px]:min-h-28 max-[680px]:px-2.5 max-[680px]:py-2.5 max-[680px]:text-base',
+        controlClasses,
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="textarea"
