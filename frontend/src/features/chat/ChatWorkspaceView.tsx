@@ -474,7 +474,7 @@ function ResponsePanel({
         >
           <p className="font-medium text-foreground/80">Waiting For Response…</p>
           <p className="text-xs text-muted-foreground">
-            Retrieving sources and drafting an answer
+            Retrieving Sources and Drafting an Answer
           </p>
           <div
             aria-hidden="true"
