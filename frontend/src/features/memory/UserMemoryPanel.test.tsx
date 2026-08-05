@@ -484,10 +484,36 @@ describe('UserMemoryPanel', () => {
     ).toBeTruthy()
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('button', { name: 'Confirm remove' })).toBeNull()
-    expect(
-      screen.getByRole('button', { name: 'Remove from injection' }),
-    ).toBeTruthy()
+    const removeButton = screen.getByRole('button', {
+      name: 'Remove from injection',
+    })
+    expect(removeButton).toBeTruthy()
+    await waitFor(() => expect(document.activeElement).toBe(removeButton))
     expect(reject).not.toHaveBeenCalled()
+  })
+
+  test('focuses the edit textarea when Edit is clicked', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Draft text', id: 'mem-1', status: 'proposed' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Draft text')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Edit memory content'),
+      ),
+    )
   })
 
 })

@@ -71,6 +71,17 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
 
   useEffect(() => {
+    if (editingId === null) {
+      return
+    }
+    const editor = document.querySelector<HTMLTextAreaElement>(
+      `textarea[aria-label="Edit memory content"]`,
+    )
+    editor?.focus()
+    editor?.setSelectionRange(editor.value.length, editor.value.length)
+  }, [editingId])
+
+  useEffect(() => {
     if (confirmRemoveId === null) {
       return
     }
@@ -268,6 +279,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     if (event.key === 'Escape' && confirmRemoveId === memory.id) {
       event.preventDefault()
       setConfirmRemoveId(null)
+      requestAnimationFrame(() => {
+        document.getElementById(`remove-injection-${memory.id}`)?.focus()
+      })
       return
     }
     const target = event.target as HTMLElement
@@ -688,7 +702,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           </Button>
                           <Button
                             disabled={busy}
-                            onClick={() => setConfirmRemoveId(null)}
+                            onClick={() => {
+                              const memoryId = memory.id
+                              setConfirmRemoveId(null)
+                              requestAnimationFrame(() => {
+                                document
+                                  .getElementById(`remove-injection-${memoryId}`)
+                                  ?.focus()
+                              })
+                            }}
                             size="sm"
                             type="button"
                             variant="secondary"
@@ -699,6 +721,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       ) : (
                         <Button
                           disabled={busy}
+                          id={`remove-injection-${memory.id}`}
                           onClick={() => setConfirmRemoveId(memory.id)}
                           size="sm"
                           type="button"
