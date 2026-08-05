@@ -382,7 +382,7 @@ export function SessionNavigationPanel({
                               setRenameDraft(title)
                             }}
                           >
-                            renombrar
+                            Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
                             className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"

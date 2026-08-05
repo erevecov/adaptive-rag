@@ -261,7 +261,7 @@ describe('SessionNavigationPanel', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }),
     ).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: 'renombrar' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Renombrar' })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
 
     await user.click(screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }))
@@ -293,7 +293,7 @@ describe('SessionNavigationPanel', () => {
     await user.click(
       screen.getByRole('button', { name: /Opciones de Architecture review/ }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
 
     const input = (await screen.findByLabelText(
       'Nuevo nombre de sesión',

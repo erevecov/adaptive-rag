@@ -217,8 +217,12 @@ export function RetrievalPlaygroundPanel({
         ) : null}
 
         {state === 'succeeded' && results.length === 0 ? (
-          <EmptyState className="p-4 text-left">
-            No hits. Retrieval returned zero chunks for this query and strategy.
+          <EmptyState className="border-border/60 bg-muted/20 p-4 text-left">
+            <p className="font-medium text-foreground/90">No hits.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Retrieval returned zero chunks. Try another query, switch strategy,
+              or index sources for this project first.
+            </p>
           </EmptyState>
         ) : null}
 

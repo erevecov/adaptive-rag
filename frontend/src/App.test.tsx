@@ -3016,7 +3016,7 @@ describe('App chat workspace', () => {
     await user.click(
       screen.getByRole('button', { name: 'Opciones de Deployment question' }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
     const input = await screen.findByLabelText('Nuevo nombre de sesión')
     await user.clear(input)
     await user.type(input, 'Renamed session{Enter}')

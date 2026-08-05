@@ -745,9 +745,12 @@ function UserAccessLists({
               </small>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">
-                {user.is_active ? user.system_role : `${user.system_role} (inactive)`}
-              </Badge>
+              <Badge className="w-fit">{user.system_role}</Badge>
+              {!user.is_active ? (
+                <StatusBadge className="w-fit" tone="warning">
+                  inactive
+                </StatusBadge>
+              ) : null}
               <Button
                 aria-label={`Deactivate user ${user.login}`}
                 disabled={isBusy || !user.is_active}
