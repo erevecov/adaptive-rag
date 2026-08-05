@@ -58,6 +58,7 @@ export function Select({
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
             'data-[placeholder]:text-muted-foreground',
+            'aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive',
           ],
           className,
         )}

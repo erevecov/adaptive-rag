@@ -39,6 +39,7 @@ describe('Select', () => {
     expect(trigger.getAttribute('data-slot')).toBe('select-trigger')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
+    expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.getAttribute('data-state')).toBe('closed')
     await user.click(trigger)
 
