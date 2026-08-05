@@ -151,6 +151,7 @@ describe('UserMemoryPanel', () => {
     await user.click(
       screen.getByRole('button', { name: 'Remove from injection' }),
     )
+    await user.click(screen.getByRole('button', { name: 'Confirm remove' }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
