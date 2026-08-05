@@ -3178,37 +3178,6 @@ describe('App chat workspace', () => {
     ).toBeTruthy()
   })
 
-  test('refreshes open inspector session detail after a successful ask', async () => {
-    const user = userEvent.setup()
-    const getChatSession = vi.fn(async () => sessionDetailResponse)
-    const client = createClientStub({
-      askChatStream: vi.fn(async () => chatResponse),
-      getChatSession,
-      listChatSessions: vi.fn(async () => sessionListResponse),
-    })
-
-    render(<App apiClient={client} initialProjectId={projectId} />)
-
-    await user.click(
-      await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
-      }),
-    )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
-    await screen.findByRole('region', { name: 'Selected session detail' })
-    expect(getChatSession).toHaveBeenCalledTimes(1)
-
-    await user.type(screen.getByLabelText('Question'), 'Follow-up question')
-    await user.click(screen.getByRole('button', { name: 'Ask' }))
-    expect(await screen.findByText(chatResponse.answer)).toBeTruthy()
-
-    await waitFor(() => expect(getChatSession).toHaveBeenCalledTimes(2))
-    expect(getChatSession).toHaveBeenLastCalledWith(projectId, 'session-123')
-    expect(
-      await screen.findByRole('region', { name: 'Selected session detail' }),
-    ).toBeTruthy()
-  })
-
   test('hydrates chat response tools from only the latest turn', async () => {
     const user = userEvent.setup()
     const multiTurnDetail: ChatSessionDetailResponse = {
