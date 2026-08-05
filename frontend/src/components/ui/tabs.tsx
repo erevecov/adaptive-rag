@@ -21,7 +21,7 @@ export const SegmentedControl = forwardRef<
   SegmentedControlProps
 >(({ children, className, role = 'group', ...props }, ref) => {
   const controlClassName = cn(
-    'inline-flex items-center gap-1 rounded-md border border-border bg-muted p-1',
+    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted p-1',
     className,
   )
 
