@@ -899,8 +899,8 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground motion-safe:transition-colors',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-1.5',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1.5 max-[680px]:text-[0.8125rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',
@@ -918,8 +918,8 @@ function SidebarProjectSelector({
                       type="button"
                       variant="ghost"
                     >
-                      <span className="grid min-w-0 gap-0.5">
-                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold text-foreground">
+                      <span className="grid min-w-0 gap-0.5 max-[680px]:gap-0">
+                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold tracking-tight text-foreground max-[680px]:text-[0.6875rem]">
                           {project.name}
                         </strong>
                       </span>
