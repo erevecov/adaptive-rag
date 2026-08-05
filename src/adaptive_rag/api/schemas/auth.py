@@ -21,6 +21,12 @@ class UserCreateRequestBody(BaseModel):
     is_active: bool = True
 
 
+class AccessTokenRevokeRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    access_token: str
+
+
 class UserResponse(BaseModel):
     id: UUID
     login: str

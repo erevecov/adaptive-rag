@@ -62,6 +62,7 @@ def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
         "can_access",
         "created_at",
         "updated_at",
+        "deleted_at",
     }
 
     list_response = client.get("/projects")
@@ -134,6 +135,7 @@ def test_create_text_source_requires_content_and_lists_sources() -> None:
         "extra_metadata",
         "created_at",
         "updated_at",
+        "deleted_at",
     }
 
     list_response = client.get(f"/projects/{project.id}/sources")

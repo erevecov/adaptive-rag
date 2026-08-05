@@ -45,8 +45,8 @@
 - M40 Indexing job publico: completo.
 - M41 Job queue hardening: completo.
 - M42 Chat multi-turn + query condenser: completo.
-- **M43 Authoring lifecycle + RBAC closeout: planificado (activo, pre-v1.0).**
-- M44 CI + compose all-in-one + gate reconcile: planificado (pre-v1.0 demo).
+- M43 Authoring lifecycle + RBAC closeout: completo.
+- **M44 CI + compose all-in-one + gate reconcile: planificado (activo, pre-v1.0 demo).**
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
 - M45 PDF + DOCX ingestion: planificado (post-v1.0).
 - M46 Security pack: planificado (post-v1.0).
@@ -1852,16 +1852,13 @@ Entregado:
 
 #### M43 Authoring lifecycle + RBAC closeout
 
-Estado: planificado.
+Estado: completo (2026-08-05).
 
-Objetivo:
+Entregado:
 
-- PATCH/DELETE (soft) de projects y sources con cascada de indices.
-- DELETE membership, desactivar usuario, revocar access token + UI minima.
-
-Criterio de exito:
-
-- Tests de rol por operacion; UI renombra/borra con confirmacion.
+- Soft delete `deleted_at` + cascade index en sources.
+- Membership delete, user deactivate, token revoke.
+- Role matrix tests. OpenSpec `2026-08-05-m43-authoring-lifecycle-rbac`.
 
 #### M44 CI + compose all-in-one + gate reconcile
 

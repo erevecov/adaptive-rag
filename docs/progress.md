@@ -2,12 +2,17 @@
 
 ## Milestone activo
 
-**M43 Authoring lifecycle + RBAC closeout** (planificado, pre-v1.0).
-
-Plan unificado post-M39: bloque pre-v1 restante M43 → M44, luego tag v1.0
-humano. Post-v1: M45–M50.
+**M44 CI + compose all-in-one + gate reconcile** (planificado, pre-v1.0).
 
 ## Ultimo milestone completado
+
+M43 Authoring lifecycle + RBAC closeout cerrado el 2026-08-05.
+
+PATCH/DELETE soft projects/sources (cascade index), DELETE membership,
+deactivate user, revoke token, role matrix tests. OpenSpec
+`2026-08-05-m43-authoring-lifecycle-rbac`.
+
+## Milestone anterior completado
 
 M42 Chat multi-turn + query condenser cerrado el 2026-08-05.
 
