@@ -151,6 +151,7 @@ describe('UserMemoryPanel', () => {
     await user.click(
       screen.getByRole('button', { name: 'Remove from injection' }),
     )
+    await user.click(screen.getByRole('button', { name: 'Confirm remove' }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
@@ -386,6 +387,107 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByRole('button', { name: 'Show more' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Show more' }))
     expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy()
+  })
+
+  test('retries a failed list load', async () => {
+    const user = userEvent.setup()
+    let shouldFail = true
+    const list = vi.fn(async () => {
+      if (shouldFail) {
+        shouldFail = false
+        throw new Error('temporary outage')
+      }
+      return {
+        items: [
+          memory({ content: 'Recovered note', id: 'mem-1', status: 'proposed' }),
+        ],
+      }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('temporary outage')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('Recovered note')).toBeTruthy()
+  })
+
+  test('saves an edit with Ctrl+Enter and shows a char counter', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Draft text', id: 'mem-1', status: 'proposed' }),
+    ]
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const update = vi.fn(async (id: string, body: { content: string }) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.content = body.content
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, update })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Draft text')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const editor = screen.getByLabelText('Edit Memory Content')
+    expect(screen.getByText(/⌘\/Ctrl\+Enter save/)).toBeTruthy()
+    await user.clear(editor)
+    await user.type(editor, 'Edited via shortcut')
+    editor.focus()
+    await user.keyboard('{Control>}{Enter}{/Control}')
+    await waitFor(() => expect(update).toHaveBeenCalled())
+    expect(await screen.findByText('Edited via shortcut')).toBeTruthy()
+  })
+
+  test('Escape cancels confirm-remove and relative time exposes absolute title', async () => {
+    const user = userEvent.setup()
+    const recent = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const store: UserMemory[] = [
+      memory({
+        content: 'Live preference',
+        created_at: recent,
+        id: 'mem-2',
+        status: 'approved',
+      }),
+    ]
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const reject = vi.fn()
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    const stamped = screen.getByText('5m ago')
+    expect(stamped.getAttribute('datetime')).toBe(recent)
+    expect(stamped.getAttribute('title')).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Confirm remove' }),
+    ).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('button', { name: 'Confirm remove' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    ).toBeTruthy()
+    expect(reject).not.toHaveBeenCalled()
   })
 
 })
