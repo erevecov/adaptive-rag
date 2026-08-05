@@ -6,18 +6,18 @@
 **STATUS:** polishing — local commits, **no push**
 
 ## Sync
-`git pull origin main` — up to date post-#213 (`e2aea33`). Local feature branch ahead (unpushed).
+`git pull origin main` — up to date post-#213. Feature branch ahead locally (~20 commits).
 
-## This loop
+## This loop (continue)
 | Slice | Change |
 |-------|--------|
-| DS | Textarea ≤680; Segmented/table/list `primary` hovers; Callout soft wash + ≤680; Badge denser ≤680 |
-| Chat / shell | Soft `bg-muted/15` washes; Title Case source chips; View Source; Unknown Cost/Tokens |
-| History | Title Case stepper/ranks/scores/RRF; Unknown Cost/Tokens/Latency |
-| Obs (prior) | Safe error copy; canceled empty; Title Case counts |
+| DS | primary hovers; Textarea/Callout/Badge ≤680; Segmented track `muted/40` |
+| Chat/History | soft washes; Title Case stepper/scores/Unknown* |
+| Authoring/Obs | Dead Letter; Just Now; soft metric skeletons |
+| Shell/Runtime | Title Case Retrieval Playground / Model Catalog / Global Defaults |
 
 ## Verify
-badge/feedback/chat/history/pipeline + App session/obs filters → green
+focused vitest green on touched suites
 
 ## Next
 Hostile purple ≤680 residual; Tab-cycle deferred. Grok merges green CI only.

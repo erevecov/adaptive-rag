@@ -10,6 +10,7 @@ Branch: `feat/ui-obsessional-polish` (post #213)
 - [x] done:implement — TableScroll overscroll + NavSection padding
 - [x] done:lead — Title Case history/chat badges + soft muted washes + primary hovers
 - [x] done:lead — Callout/Badge ≤680 + Unknown Cost/Tokens/Latency
+- [x] done:lead — Soft skeletons + Dead Letter/Just Now + settings Title Case
 - [ ] deferred:chat — Full Tab-cycle focus trap residual (Radix portals)
 - [ ] open:implement — Hostile live purple residual (shell rail / inspector)
 
