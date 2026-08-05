@@ -263,15 +263,15 @@ export function WorkspaceTopline({
       aria-label={`Current session ${sessionName}, project ${projectName}`}
       className={cn(
         [
-          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground',
+          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-1',
         ],
-        isChatWorkspace ? 'mb-0' : 'mb-[22px]',
-        !isLeftSidebarOpen && 'pl-12',
+        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-3',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
     >
       <h1
-        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] text-foreground"
+        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] tracking-tight text-foreground max-[680px]:text-xs"
         id="workspace-title"
         title={sessionName}
       >
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-2 max-[680px]:px-2 max-[680px]:pb-2.5 max-[680px]:pt-2',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-2"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
