@@ -753,7 +753,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-1.5.5" role="region">
+    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-1.5" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
