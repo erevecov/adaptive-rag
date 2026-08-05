@@ -80,7 +80,7 @@ describe('UserMemoryPanel', () => {
     )
 
     expect(await screen.findByText('Existing proposed note')).toBeTruthy()
-    expect(screen.getByText(/Only approved memories inject/i)).toBeTruthy()
+    expect(screen.getByText(/Only approved items inject/i)).toBeTruthy()
 
     await user.type(
       screen.getByLabelText('Propose memory'),
@@ -226,6 +226,70 @@ describe('UserMemoryPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
     ).toBe('true')
+  })
+
+
+  test('shows rejected empty state with a path back to Proposed', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'approved') {
+        return { items: [] }
+      }
+      if (params?.status === 'rejected') {
+        return { items: [] }
+      }
+      return { items: [] }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Rejected' }))
+    expect(await screen.findByText('No rejected memories')).toBeTruthy()
+    expect(screen.getByText(/never inject into chat/i)).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    expect(
+      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  test('approves a focused proposed row with Enter', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Keyboard preference', id: 'mem-1', status: 'proposed' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const approve = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'approved'
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ approve, list })}
+        projectId="project-1"
+      />,
+    )
+
+    const row = await screen.findByLabelText(/proposed memory/i)
+    row.focus()
+    await user.keyboard('{Enter}')
+    await waitFor(() => expect(approve).toHaveBeenCalledWith('mem-1'))
   })
 
 })
