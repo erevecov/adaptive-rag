@@ -31,6 +31,7 @@ import type {
   ChatSessionSummary,
   Source,
 } from '@/lib/apiClient'
+import { cn } from '@/lib/utils'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type InspectorTab = 'context' | 'minimap'
@@ -43,12 +44,36 @@ export type SourceViewerState = {
   state: RequestState
 }
 
-const SESSION_FILTERS: { label: string; value: SessionNavigationFilter }[] = [
-  { label: 'ACTIVOS', value: 'active' },
-  { label: 'TRAIN', value: 'training' },
-  { label: 'ARCHIVADOS', value: 'archived' },
+const SESSION_FILTERS: {
+  label: string
+  name: string
+  title: string
+  value: SessionNavigationFilter
+}[] = [
+  {
+    label: 'Activos',
+    name: 'ACTIVOS',
+    title: 'Sesiones activas',
+    value: 'active',
+  },
+  {
+    label: 'Train',
+    name: 'TRAIN',
+    title: 'Sesiones con entrenamiento',
+    value: 'training',
+  },
+  {
+    label: 'Archivados',
+    name: 'ARCHIVADOS',
+    title: 'Sesiones archivadas',
+    value: 'archived',
+  },
 ]
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
+
+/** Fades the title into the age/⋮ column on row hover (beflow session-row mask). */
+const SESSION_TITLE_GROUP_HOVER_MASK =
+  'group-hover:[mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)] group-hover:[-webkit-mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)]'
 
 export function SessionNavigationPanel({
   canLoadMore,
@@ -81,57 +106,122 @@ export function SessionNavigationPanel({
 }) {
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement | null>(null)
   const isLoading = state === 'loading'
 
   useEffect(() => {
-    if (renamingSessionId !== null) {
-      renameInputRef.current?.focus()
-      renameInputRef.current?.select()
+    if (renamingSessionId === null) {
+      return
     }
+    // After Radix menu closes it restores focus; delay so we win the caret.
+    const timeoutId = window.setTimeout(() => {
+      const input = renameInputRef.current
+      if (input === null) {
+        return
+      }
+      input.focus()
+      const end = input.value.length
+      // Caret at end (not select-all) so the user can keep typing.
+      input.setSelectionRange(end, end)
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
   }, [renamingSessionId])
+
+  function cancelRename() {
+    setRenamingSessionId(null)
+    setRenameDraft('')
+  }
+
+  useEffect(() => {
+    if (copyFeedback === null) {
+      return
+    }
+    const timeoutId = window.setTimeout(() => setCopyFeedback(null), 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [copyFeedback])
+
+  async function handleCopySessionId(sessionId: string) {
+    const ok = await copyTextToClipboard(sessionId)
+    setCopyFeedback(
+      ok ? 'ID de sesión copiado.' : 'No se pudo copiar el ID de sesión.',
+    )
+  }
 
   return (
     <Panel
       aria-labelledby="history-title"
-      className="grid gap-3 p-3"
+      className="grid min-h-0 min-w-0 content-start gap-2 border-0 bg-transparent p-0 shadow-none"
       role="complementary"
     >
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="history-title" className="text-sm font-semibold text-foreground">
-          Sesiones
-        </h2>
-        <Button onClick={onStartNewSession} size="sm" type="button">
-          <Plus aria-hidden="true" className="size-4" />
-          nuevo chat
-        </Button>
-      </div>
+      <h2 className="sr-only" id="history-title">
+        Sesiones
+      </h2>
+
+      <Button
+        className={cn(
+          'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none',
+          'hover:border-border hover:bg-muted/50 hover:text-foreground',
+        )}
+        onClick={onStartNewSession}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <Plus aria-hidden="true" className="size-3.5 shrink-0" />
+        nuevo chat
+      </Button>
 
       <SegmentedControl
         aria-label="Session filters"
-        className="max-w-full flex-wrap justify-start"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/70 p-0.5"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
             active={statusFilter === filter.value}
+            aria-label={filter.name}
+            className={cn(
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight',
+              statusFilter === filter.value
+                ? 'font-semibold shadow-sm'
+                : 'font-medium',
+            )}
             key={filter.value}
             onClick={() => onStatusFilterChange(filter.value)}
+            title={filter.title}
           >
-            {filter.label}
+            <span className="block truncate">{filter.label}</span>
           </SegmentedControlItem>
         ))}
       </SegmentedControl>
 
       {error ? <InlineFeedback role="status" tone="danger">{error}</InlineFeedback> : null}
+      {copyFeedback ? (
+        <InlineFeedback
+          data-slot="session-copy-feedback"
+          role="status"
+          tone="neutral"
+        >
+          {copyFeedback}
+        </InlineFeedback>
+      ) : null}
 
-      <DataList aria-label="Project sessions">
+      <DataList aria-label="Project sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
-          <DataListItem>
-            <span className="text-sm text-muted-foreground">Cargando...</span>
+          <DataListItem className="border-0 bg-transparent p-2 shadow-none">
+            <span
+              className="text-xs text-muted-foreground"
+              data-slot="session-list-loading"
+            >
+              Cargando...
+            </span>
           </DataListItem>
         ) : sessions.length === 0 ? (
-          <DataListItem>
-            <span className="text-sm text-muted-foreground">
+          <DataListItem className="border-0 bg-transparent p-2 shadow-none">
+            <span
+              className="text-xs text-muted-foreground"
+              data-slot="session-list-empty"
+            >
               {sessionEmptyCopy(statusFilter)}
             </span>
           </DataListItem>
@@ -144,52 +234,62 @@ export function SessionNavigationPanel({
             const isRenaming = renamingSessionId === session.session_id
             return (
               <DataListItem
-                className={
+                className={cn(
+                  'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-colors',
                   isSelected
-                    ? 'border-primary bg-primary/5'
-                    : 'hover:border-border/80'
-                }
+                    ? 'bg-muted text-foreground'
+                    : 'hover:bg-muted/50 hover:text-foreground',
+                )}
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
               >
-                <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2">
+                {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
+                    beflow-style mask fade on hover / open menu. */}
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5">
                   <span
                     aria-hidden={!hasTraining}
-                    className="text-primary"
+                    className="flex w-4 items-center justify-start text-muted-foreground"
                     title={hasTraining ? 'Training' : undefined}
                   >
                     {hasTraining ? (
                       <Brain
                         aria-hidden="true"
-                        className={
+                        className={cn(
+                          'size-3.5 shrink-0',
                           session.has_approved_training
-                            ? 'size-[15px] fill-primary/20'
-                            : 'size-[15px]'
-                        }
+                            ? 'fill-primary/20 text-muted-foreground/70'
+                            : 'text-muted-foreground/50',
+                        )}
                       />
                     ) : null}
                   </span>
                   {isRenaming ? (
                     <form
+                      className="min-w-0 py-0.5"
                       onSubmit={(event) => {
                         event.preventDefault()
                         const trimmedTitle = renameDraft.trim()
                         if (trimmedTitle.length === 0) {
+                          cancelRename()
                           return
                         }
                         onRenameSession(session.session_id, trimmedTitle)
-                        setRenamingSessionId(null)
-                        setRenameDraft('')
+                        cancelRename()
                       }}
                     >
                       <Input
                         aria-label="Nuevo nombre de sesiÃ³n"
+                        className="h-7 text-xs"
                         maxLength={60}
+                        onBlur={() => {
+                          // Click outside / tab away ends rename without saving.
+                          cancelRename()
+                        }}
                         onChange={(event) => setRenameDraft(event.target.value)}
                         onKeyDown={(event) => {
                           if (event.key === 'Escape') {
-                            setRenamingSessionId(null)
-                            setRenameDraft('')
+                            event.preventDefault()
+                            cancelRename()
                           }
                         }}
                         ref={renameInputRef}
@@ -199,56 +299,101 @@ export function SessionNavigationPanel({
                   ) : (
                     <Button
                       aria-label={`Abrir sesiÃ³n ${title}`}
-                      className="min-w-0 justify-start px-2"
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
                       variant="ghost"
                     >
-                      <span className="truncate">{title}</span>
+                      <span
+                        className={cn(
+                          'block w-full min-w-0 truncate text-xs transition-[mask-image,-webkit-mask-image] duration-150',
+                          // Soft trailing fade so glyphs don't collide with age/⋮.
+                          'group-hover:text-clip group-focus-within:text-clip',
+                          SESSION_TITLE_GROUP_HOVER_MASK,
+                          'group-focus-within:[mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)]',
+                          'group-focus-within:[-webkit-mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)]',
+                          'group-has-[[data-state=open]]:text-clip',
+                          'group-has-[[data-state=open]]:[mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)]',
+                          'group-has-[[data-state=open]]:[-webkit-mask-image:linear-gradient(to_right,black_0%,black_62%,transparent_91%)]',
+                        )}
+                        data-slot="session-row-title"
+                      >
+                        {title}
+                      </span>
                     </Button>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelativeSessionAge(session.created_at)}
+                  <span
+                    className={cn(
+                      'justify-self-end text-[10px] tabular-nums text-muted-foreground transition-opacity duration-150',
+                      // beflow: age yields to the ⋮ on row hover / open menu
+                      'group-hover:opacity-0 group-focus-within:opacity-0',
+                      'group-has-[[data-state=open]]:opacity-0',
+                    )}
+                    data-slot="session-row-age"
+                    title={sessionAgeTooltip(session)}
+                  >
+                    {formatRelativeSessionAge(sessionLastActivityAt(session))}
                   </span>
-                  <DropdownMenu.Root>
-                    <DropdownMenu.Trigger asChild>
-                      <IconButton label={`Opciones de ${title}`} variant="ghost">
-                        <MoreVertical aria-hidden="true" className="size-4" />
-                      </IconButton>
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Content
-                        align="end"
-                        className="z-20 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
-                        data-slot="session-actions-menu"
-                        onCloseAutoFocus={(event) => event.preventDefault()}
-                        sideOffset={4}
-                      >
-                        <DropdownMenu.Item
-                          className="flex min-h-8 cursor-pointer items-center rounded-sm px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          onClick={() => {
-                            setRenamingSessionId(session.session_id)
-                            setRenameDraft(title)
-                          }}
+                  <div
+                    className="flex items-center justify-end"
+                    data-slot="session-row-actions"
+                  >
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <Button
+                          aria-label={`Opciones de ${title}`}
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          type="button"
+                          variant="ghost"
                         >
-                          renombrar
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          className="flex min-h-8 cursor-pointer items-center rounded-sm px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          onClick={() => {
-                            if (isArchived) {
-                              onUnarchiveSession(session.session_id)
-                            } else {
-                              onArchiveSession(session.session_id)
-                            }
-                          }}
+                          <MoreVertical aria-hidden="true" className="size-4" />
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          align="end"
+                          className="z-50 grid min-w-[140px] gap-0 rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-md"
+                          data-slot="session-actions-menu"
+                          onCloseAutoFocus={(event) => event.preventDefault()}
+                          sideOffset={4}
                         >
-                          {isArchived ? 'Desarchivar' : 'Archivar'}
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu.Root>
+                          <DropdownMenu.Item
+                            className="flex min-h-8 cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            data-testid={`copy-id-${session.session_id}`}
+                            onClick={() => {
+                              void handleCopySessionId(session.session_id)
+                            }}
+                          >
+                            <span>Copiar ID de sesión</span>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            data-testid={`rename-${session.session_id}`}
+                            onClick={() => {
+                              setRenamingSessionId(session.session_id)
+                              setRenameDraft(title)
+                            }}
+                          >
+                            renombrar
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
+                            onClick={() => {
+                              if (isArchived) {
+                                onUnarchiveSession(session.session_id)
+                              } else {
+                                onArchiveSession(session.session_id)
+                              }
+                            }}
+                          >
+                            {isArchived ? 'Desarchivar' : 'Archivar'}
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
+                  </div>
                 </div>
               </DataListItem>
             )
@@ -257,10 +402,11 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
-          variant="secondary"
+          variant="ghost"
         >
           {isLoading ? 'cargando...' : 'ver mÃ¡s'}
         </Button>
@@ -939,28 +1085,83 @@ function sessionDisplayTitle(session: ChatSessionSummary): string {
 
 function sessionEmptyCopy(filter: SessionNavigationFilter): string {
   if (filter === 'training') {
-    return 'Sin sesiones con entrenamiento.'
+    return 'Aún no hay entrenamiento.'
   }
   if (filter === 'archived') {
-    return 'Sin sesiones archivadas.'
+    return 'Aún no hay conversaciones archivadas.'
   }
-  return 'Sin sesiones activas.'
+  return 'Aún no hay conversaciones.'
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (
+    typeof navigator !== 'undefined' &&
+    navigator.clipboard !== undefined &&
+    typeof navigator.clipboard.writeText === 'function'
+  ) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // Fall through to execCommand path.
+    }
+  }
+
+  if (typeof document === 'undefined') {
+    return false
+  }
+
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+/** Prefer last update (activity) over created_at — matches beflow "hace X". */
+function sessionLastActivityAt(session: ChatSessionSummary): string {
+  const updated = session.updated_at?.trim()
+  if (updated !== undefined && updated.length > 0) {
+    return updated
+  }
+  return session.created_at
+}
+
+function sessionAgeTooltip(session: ChatSessionSummary): string {
+  const iso = sessionLastActivityAt(session)
+  const parsed = new Date(iso)
+  if (!Number.isFinite(parsed.getTime())) {
+    return 'Última actividad desconocida'
+  }
+  return `Última actividad: ${parsed.toLocaleString()}`
 }
 
 function formatRelativeSessionAge(iso: string): string {
-  const createdAt = new Date(iso).getTime()
-  if (!Number.isFinite(createdAt)) {
+  const at = new Date(iso).getTime()
+  if (!Number.isFinite(at)) {
     return ''
   }
-  const diffMs = Math.max(0, Date.now() - createdAt)
+  const diffMs = Math.max(0, Date.now() - at)
   const minute = 60 * 1000
   const hour = 60 * minute
   const day = 24 * hour
+  if (diffMs < minute) {
+    return 'ahora'
+  }
   if (diffMs < hour) {
     return `${Math.max(1, Math.floor(diffMs / minute))}m`
   }
   if (diffMs < day) {
-    return `${Math.floor(diffMs / hour)}hr`
+    return `${Math.floor(diffMs / hour)}h`
   }
   return `${Math.floor(diffMs / day)}d`
 }

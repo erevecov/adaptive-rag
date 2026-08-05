@@ -186,7 +186,29 @@ describe('SessionNavigationPanel', () => {
     expect(screen.getByRole('button', { name: 'ACTIVOS' }).getAttribute('aria-pressed')).toBe(
       'true',
     )
+    expect(screen.getByRole('button', { name: 'TRAIN' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'ARCHIVADOS' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'ACTIVOS' }).textContent).toMatch(/Activos/i)
+    expect(screen.getByRole('button', { name: 'nuevo chat' }).className).toMatch(
+      /border-dashed/,
+    )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
+    const actions = container.querySelector(
+      '[data-slot="session-row-actions"]',
+    )
+    expect(actions).toBeTruthy()
+    // ⋮ must stay visible/clickable without hover (no opacity-0 / pointer-events-none).
+    expect(actions?.className).not.toMatch(/opacity-0|pointer-events-none/)
+    expect(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+    ).toBeTruthy()
+    const age = container.querySelector('[data-slot="session-row-age"]')
+    expect(age).toBeTruthy()
+    expect((age?.textContent ?? '').length).toBeGreaterThan(0)
+    // beflow title fade: mask activates on group-hover
+    const titleEl = container.querySelector('[data-slot="session-row-title"]')
+    expect(titleEl?.className).toMatch(/mask-image:linear-gradient/)
+    expect(titleEl?.className).toMatch(/group-hover/)
 
     await user.click(screen.getByRole('button', { name: 'TRAIN' }))
     expect(onStatusFilterChange).toHaveBeenCalledWith('training')
@@ -197,6 +219,12 @@ describe('SessionNavigationPanel', () => {
 
   test('renders session action menus through Radix dropdown primitives', async () => {
     const user = userEvent.setup()
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
     render(
       <SessionNavigationPanel
         canLoadMore
@@ -227,8 +255,58 @@ describe('SessionNavigationPanel', () => {
     expect(screen.getByRole('menu').getAttribute('data-slot')).toBe(
       'session-actions-menu',
     )
+    // beflow-parity session menu: copy id, rename, archive
+    expect(
+      screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }),
+    ).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'renombrar' })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
+
+    await user.click(screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }))
+    expect(writeText).toHaveBeenCalledWith('session-1')
+    expect(await screen.findByText('ID de sesión copiado.')).toBeTruthy()
+  })
+
+  test('rename focuses the input at the end and cancels on blur', async () => {
+    const user = userEvent.setup()
+    const onRenameSession = vi.fn()
+    render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={onRenameSession}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId="session-1"
+        sessions={sessions}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+    )
+    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
+
+    const input = (await screen.findByLabelText(
+      'Nuevo nombre de sesiÃ³n',
+    )) as HTMLInputElement
+
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(input)
+    })
+    expect(input.selectionStart).toBe(input.value.length)
+    expect(input.selectionEnd).toBe(input.value.length)
+    expect(input.value).toBe('Architecture review')
+
+    await user.click(document.body)
+    expect(screen.queryByLabelText('Nuevo nombre de sesiÃ³n')).toBeNull()
+    expect(onRenameSession).not.toHaveBeenCalled()
   })
 
   test('uses the shared DropdownMenu wrapper for session actions', () => {

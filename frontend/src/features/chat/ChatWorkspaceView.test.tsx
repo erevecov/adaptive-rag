@@ -213,8 +213,41 @@ describe('ChatWorkspacePanel', () => {
     expect(screen.getByText('Waiting for response...').getAttribute('data-slot')).toBe(
       'empty-state',
     )
+    expect(
+      screen.getByText('Waiting for response...').getAttribute('data-slot-state'),
+    ).toBe('loading')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
+    expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
+    expect(
+      view.container.querySelector('[data-slot="chat-composer-actions"]'),
+    ).toBeTruthy()
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('renders empty transcript and beflow-like composer layout', () => {
+    const empty = renderChatWorkspace({
+      requestState: 'idle',
+      response: null,
+    })
+    expect(screen.getByText('No response yet.').getAttribute('data-slot-state')).toBe(
+      'empty',
+    )
+    expect(screen.queryByText('Speech input ready.')).toBeNull()
+    const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
+    expect(composer?.className).toMatch(/max-w-3xl/)
+    expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
+    expect(screen.getByRole('button', { name: 'Ask' }).textContent).toMatch(/Ask/)
+    empty.view.unmount()
+
+    const { view } = renderChatWorkspace()
+    const workspace = screen.getByRole('region', { name: 'Chat workspace' })
+    expect(
+      view.container.querySelector('[data-slot="chat-transcript"]')?.parentElement,
+    ).toBe(workspace)
+    expect(
+      view.container.querySelector('[data-slot="chat-composer-shell"]')?.parentElement,
+    ).toBe(workspace)
+    expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 
   test('renders knowledge draft actions with editable text', () => {
