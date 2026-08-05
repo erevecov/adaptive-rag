@@ -461,7 +461,7 @@ function ResponsePanel({
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/30 p-4 text-center"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center"
           data-slot-state="loading"
           role="status"
         >
@@ -513,7 +513,7 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/30 p-4 text-left"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left"
             data-slot-state="canceled"
             role="status"
           >
@@ -528,7 +528,7 @@ function ResponsePanel({
     return (
       <div className="grid min-h-[8rem] place-items-center px-3 py-4">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/30 p-4"
+          className="max-w-md border-border/60 bg-muted/15 p-4"
           data-slot-state="empty"
           role="status"
         >
@@ -921,7 +921,7 @@ function ResponseDetailsPanel({
   return (
     <section
       aria-label="Response details"
-      className="rounded-md border border-border bg-muted/40 p-3"
+      className="rounded-md border border-border bg-muted/15 p-3"
     >
       <Button
         aria-expanded={expanded}
@@ -1042,7 +1042,7 @@ function ResponseDetailsContent({
                     type="button"
                     variant="secondary"
                   >
-                    View source
+                    View Source
                   </Button>
                 </DataListItemActions>
               </DataListItem>
@@ -1406,15 +1406,15 @@ function formatScore(score: number): string {
 }
 
 function formatNullableUsageCost(value: number | null): string {
-  return value === null ? 'unknown cost' : formatUsd(value)
+  return value === null ? 'Unknown Cost' : formatUsd(value)
 }
 
 function formatNullableTokens(value: number | null): string {
-  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+  return value === null ? 'Unknown Tokens' : `${formatNumber(value)} Tokens`
 }
 
 function formatNullableTokenCount(value: number | null): string {
-  return value === null ? 'unknown' : formatNumber(value)
+  return value === null ? 'Unknown' : formatNumber(value)
 }
 
 function formatUsd(value: number): string {

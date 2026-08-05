@@ -176,7 +176,7 @@ export function SessionNavigationPanel({
 
       <SegmentedControl
         aria-label="Session filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/70 p-0.5"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
@@ -1172,7 +1172,7 @@ function RetrievedChunkDetail({
   const scores = [
     formatOptionalScore('Dense Score', chunk.dense_score),
     formatOptionalScore('Lexical Score', chunk.lexical_score),
-    formatOptionalScore('Rrf Score', chunk.rrf_score),
+    formatOptionalScore('RRF Score', chunk.rrf_score),
     formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
   const sourceId = getJsonString(chunk.citation, 'source_id')
@@ -1213,7 +1213,7 @@ function RetrievedChunkDetail({
             type="button"
             variant="secondary"
           >
-            View source
+            View Source
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground" role="status">
@@ -1436,10 +1436,10 @@ function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {
   const scores = [
     formatOptionalScore('Dense Score', chunk.dense_score),
     formatOptionalScore('Lexical Score', chunk.lexical_score),
-    formatOptionalScore('Rrf Score', chunk.rrf_score),
+    formatOptionalScore('RRF Score', chunk.rrf_score),
     formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
-  return scores.length > 0 ? scores.join(' / ') : 'unknown score'
+  return scores.length > 0 ? scores.join(' / ') : 'Unknown Score'
 }
 
 function formatSessionCost(usages: ChatHistoryProviderUsage[]): string {
@@ -1447,7 +1447,7 @@ function formatSessionCost(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.estimated_cost_usd)
     .filter((value): value is number => value !== null)
   if (knownCosts.length === 0) {
-    return 'unknown cost'
+    return 'Unknown Cost'
   }
   return formatUsd(knownCosts.reduce((total, value) => total + value, 0))
 }
@@ -1457,9 +1457,9 @@ function formatSessionTokens(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.total_tokens)
     .filter((value): value is number => value !== null)
   if (knownTokens.length === 0) {
-    return 'unknown tokens'
+    return 'Unknown Tokens'
   }
-  return `${formatNumber(knownTokens.reduce((total, value) => total + value, 0))} tokens`
+  return `${formatNumber(knownTokens.reduce((total, value) => total + value, 0))} Tokens`
 }
 
 function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
@@ -1467,7 +1467,7 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
     .map((usage) => usage.latency_ms)
     .filter((value): value is number => value !== null)
   if (knownLatencies.length === 0) {
-    return 'unknown latency'
+    return 'Unknown Latency'
   }
   const average =
     knownLatencies.reduce((total, value) => total + value, 0) /
@@ -1554,15 +1554,15 @@ function getJsonString(value: unknown, key: string): string | null {
 }
 
 function formatUnknownCost(value: number | null): string {
-  return value === null ? 'unknown cost' : formatUsd(value)
+  return value === null ? 'Unknown Cost' : formatUsd(value)
 }
 
 function formatUnknownTokens(value: number | null): string {
-  return value === null ? 'unknown tokens' : `${formatNumber(value)} tokens`
+  return value === null ? 'Unknown Tokens' : `${formatNumber(value)} Tokens`
 }
 
 function formatUnknownMs(value: number | null): string {
-  return value === null ? 'unknown latency' : `${value} ms`
+  return value === null ? 'Unknown Latency' : `${value} ms`
 }
 
 function formatUsd(value: number): string {

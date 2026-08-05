@@ -2731,7 +2731,7 @@ describe('App chat workspace', () => {
     await user.click(detailsToggle)
 
     expect(within(transcript).getAllByText('qwen-plus').length).toBeGreaterThan(0)
-    expect(within(transcript).getAllByText('168 tokens').length).toBeGreaterThan(0)
+    expect(within(transcript).getAllByText('168 Tokens').length).toBeGreaterThan(0)
     expect(within(transcript).getAllByText('$0.0042').length).toBeGreaterThan(0)
     expect(within(transcript).getByText('rag_search')).toBeTruthy()
     expect(within(transcript).getByText('deployment retry runbook')).toBeTruthy()
@@ -3451,7 +3451,7 @@ describe('App chat workspace', () => {
     expect(within(context).getByText('prompt default')).toBeTruthy()
     expect(within(context).getByText('qwen-plus')).toBeTruthy()
     expect(within(context).getByText('$0.0042')).toBeTruthy()
-    expect(within(context).getByText('168 tokens')).toBeTruthy()
+    expect(within(context).getByText('168 Tokens')).toBeTruthy()
     expect(within(context).getByText('230 ms')).toBeTruthy()
   })
 
@@ -3483,7 +3483,7 @@ describe('App chat workspace', () => {
     await user.click(detailsToggle)
 
     expect(within(transcript).getByText('qwen-plus')).toBeTruthy()
-    expect(within(transcript).getByText('168 tokens')).toBeTruthy()
+    expect(within(transcript).getByText('168 Tokens')).toBeTruthy()
     expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
@@ -3506,9 +3506,9 @@ describe('App chat workspace', () => {
     const context = await screen.findByRole('region', {
       name: 'Session context',
     })
-    expect(within(context).getByText('unknown cost')).toBeTruthy()
-    expect(within(context).getByText('unknown tokens')).toBeTruthy()
-    expect(within(context).getByText('unknown latency')).toBeTruthy()
+    expect(within(context).getByText('Unknown Cost')).toBeTruthy()
+    expect(within(context).getByText('Unknown Tokens')).toBeTruthy()
+    expect(within(context).getByText('Unknown Latency')).toBeTruthy()
   })
 
   test('renders conversation minimap from persisted messages and focuses messages', async () => {
