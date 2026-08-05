@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from time import monotonic
 from typing import Any, Protocol
 from uuid import UUID
@@ -172,7 +172,14 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_sanitize_chat_answer(output.answer, max_doc=len(citations)),
+                answer=_sanitize_chat_answer(
+                    output.answer,
+                    max_doc=len(citations),
+                    source_texts=_source_texts_for_filter(
+                        citations,
+                        retrieval_tool.retrieved_results,
+                    ),
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -288,7 +295,14 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_sanitize_chat_answer(output.answer, max_doc=len(citations)),
+                answer=_sanitize_chat_answer(
+                    output.answer,
+                    max_doc=len(citations),
+                    source_texts=_source_texts_for_filter(
+                        citations,
+                        retrieval_tool.retrieved_results,
+                    ),
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -561,12 +575,36 @@ def _redact_chat_answer(answer: str) -> str:
     return redacted
 
 
-def _sanitize_chat_answer(answer: str, *, max_doc: int) -> str:
-    """Secret redaction + beflow-parity fabricated citation marker scrub."""
+def _source_texts_for_filter(
+    citations: tuple[RetrievalResultPayload, ...],
+    retrieved_results: dict[UUID, RetrievalResultPayload],
+) -> list[str]:
+    """Collect unique retrieved/cited snippets for regurgitation filtering."""
+
+    texts: list[str] = []
+    seen: set[str] = set()
+    for payload in (*citations, *retrieved_results.values()):
+        snippet = payload["citation"]["snippet"]
+        if not snippet or snippet in seen:
+            continue
+        seen.add(snippet)
+        texts.append(snippet)
+    return texts
+
+
+def _sanitize_chat_answer(
+    answer: str,
+    *,
+    max_doc: int,
+    source_texts: Sequence[str] = (),
+) -> str:
+    """Secret redaction + citation markers + source regurgitation scrub."""
 
     from adaptive_rag.security.citation_markers import filter_citation_markers
     from adaptive_rag.security.secrets import redact_secrets
+    from adaptive_rag.security.source_regurgitation import filter_source_regurgitation
 
     redacted, _count = redact_secrets(answer)
     filtered, _fabricated = filter_citation_markers(redacted, max_doc=max_doc)
-    return filtered
+    cleaned, _regurg = filter_source_regurgitation(filtered, source_texts)
+    return cleaned
