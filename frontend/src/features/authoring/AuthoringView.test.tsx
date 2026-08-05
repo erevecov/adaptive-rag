@@ -393,7 +393,7 @@ describe('AuthoringPanel', () => {
       name: 'Gone',
     }
     renderAuthoringPanel({ projects: [deleted] })
-    expect(screen.getByText('deleted').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
 

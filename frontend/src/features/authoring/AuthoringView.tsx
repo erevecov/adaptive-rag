@@ -512,10 +512,10 @@ function ProjectList({
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
         const roleLabel = isDeleted
-          ? 'deleted'
+          ? 'Deleted'
           : canAccess
             ? (project.access_role ?? project.embedding_mode)
-            : 'no access'
+            : 'No access'
         return (
           <DataListItem
             className="p-0"
