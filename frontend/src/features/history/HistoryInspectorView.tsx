@@ -604,7 +604,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
   return (
     <Panel aria-label="Source Viewer" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-2.5">
         <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
@@ -731,7 +731,7 @@ function ConversationMinimap({
 }) {
   return (
     <Panel aria-label="Conversation Minimap" role="navigation">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-2.5">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
@@ -786,7 +786,7 @@ function SessionContextPanel({
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-2.5">
         <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
@@ -873,7 +873,7 @@ function InternalActionStepper({
 }) {
   return (
     <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-2.5">
         <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
@@ -1028,7 +1028,7 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1.5 max-[680px]:p-2.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-2.5">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground">
@@ -1040,7 +1040,7 @@ function SessionDetailPanel({
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2.5 max-[680px]:p-2.5 max-[680px]:pt-0">
-        <section className="grid gap-2 max-[680px]:gap-1.5" aria-labelledby="messages-title">
+        <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground">
             Messages
           </h4>
@@ -1117,7 +1117,7 @@ function DetailSection({
   title: string
 }) {
   return (
-    <section className="grid gap-2 max-[680px]:gap-1.5" aria-labelledby={id}>
+    <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby={id}>
       <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug">
         {title}
       </h4>
