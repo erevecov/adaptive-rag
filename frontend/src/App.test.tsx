@@ -3051,7 +3051,7 @@ describe('App chat workspace', () => {
 
     await user.type(screen.getByLabelText('Question'), 'Cancel this request')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
-    await user.click(await screen.findByRole('button', { name: 'Cancel Request' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
 
     expect(capturedSignal?.aborted).toBe(true)
     expect(await screen.findByRole('button', { name: 'Ask' })).toBeTruthy()
