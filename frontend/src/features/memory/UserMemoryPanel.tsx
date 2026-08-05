@@ -64,6 +64,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     proposed: 0,
     rejected: 0,
   })
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -215,6 +216,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditingId(null)
         setEditDraft('')
       }
+      setConfirmRemoveId(null)
       await refreshList()
       requestAnimationFrame(() => {
         focusAfterReview(memory.id, rowIndex)
@@ -400,6 +402,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           const active = statusFilter === filter.id
           return (
             <Button
+              aria-label={`${filter.label}, ${statusCounts[filter.id]} items`}
               aria-pressed={active}
               key={filter.id}
               onClick={() => setStatusFilter(filter.id)}
@@ -408,7 +411,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
-              <span className="tabular-nums text-[10px] opacity-80">
+              <span aria-hidden className="tabular-nums text-[10px] opacity-80">
                 {statusCounts[filter.id]}
               </span>
             </Button>
@@ -446,7 +449,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       ) : null}
 
       {items.length > 0 ? (
-        <DataList aria-label="User memories" className="gap-1.5">
+        <DataList
+          aria-busy={listState === 'loading' || undefined}
+          aria-label="User memories"
+          className="gap-1.5"
+        >
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
@@ -599,15 +606,38 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     ) : null}
 
                     {memory.status === 'approved' ? (
-                      <Button
-                        disabled={busy}
-                        onClick={() => void handleReject(memory)}
-                        size="sm"
-                        type="button"
-                        variant="secondary"
-                      >
-                        Remove from injection
-                      </Button>
+                      confirmRemoveId === memory.id ? (
+                        <DataListItemActions className="gap-1.5">
+                          <Button
+                            disabled={busy}
+                            onClick={() => void handleReject(memory)}
+                            size="sm"
+                            type="button"
+                            variant="danger"
+                          >
+                            Confirm remove
+                          </Button>
+                          <Button
+                            disabled={busy}
+                            onClick={() => setConfirmRemoveId(null)}
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                          >
+                            Cancel
+                          </Button>
+                        </DataListItemActions>
+                      ) : (
+                        <Button
+                          disabled={busy}
+                          onClick={() => setConfirmRemoveId(memory.id)}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Remove from injection
+                        </Button>
+                      )
                     ) : null}
 
                     {memory.status === 'rejected' ? (
