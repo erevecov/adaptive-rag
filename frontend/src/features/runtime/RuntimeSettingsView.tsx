@@ -943,7 +943,11 @@ export function CapabilitySelector({
             sideOffset={4}
           >
             {filteredOptions.length === 0 ? (
-              <p className="p-3 text-left text-sm text-muted-foreground" role="status">
+              <p
+                className="p-3 text-left text-sm text-muted-foreground"
+                data-slot-state="empty"
+                role="status"
+              >
                 No capabilities found
               </p>
             ) : (
@@ -1019,6 +1023,7 @@ export function RuntimeModelCatalogPanel({
             <ConnectionSelect
               connections={connections}
               id={fieldId}
+              isLoading={state === 'loading'}
               onChange={onModelSyncConnectionIdChange}
               testId="model-sync-connection-select"
               value={modelSyncConnectionId}
@@ -1183,6 +1188,7 @@ export function RuntimeGlobalDefaultsPanel({
               <ConnectionSelect
                 connections={globalSlotConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onGlobalSlotConnectionIdChange}
                 testId="global-slot-connection-select"
                 value={globalSlotConnectionId}
@@ -1196,6 +1202,7 @@ export function RuntimeGlobalDefaultsPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={globalSlotModelOptions}
                 onChange={onGlobalSlotModelIdChange}
                 testId="global-slot-model-select"
@@ -1245,7 +1252,7 @@ export function RuntimeGlobalDefaultsPanel({
                   </small>
                 </div>
                 <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                  {model.is_default ? 'default' : 'enabled'}
+                  {model.is_default ? 'Default' : 'Enabled'}
                 </Badge>
               </DataListItem>
             ))}
@@ -1263,6 +1270,7 @@ export function RuntimeGlobalDefaultsPanel({
               <ConnectionSelect
                 connections={chatConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onChatConnectionIdChange}
                 testId="chat-connection-select"
                 value={chatConnectionId}
@@ -1273,6 +1281,7 @@ export function RuntimeGlobalDefaultsPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={chatModelOptions}
                 onChange={onChatModelIdChange}
                 testId="chat-model-select"
@@ -1560,6 +1569,7 @@ export function RuntimeProjectOverridesPanel({
               <ConnectionSelect
                 connections={projectSlotConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onProjectSlotConnectionIdChange}
                 testId="project-slot-connection-select"
                 value={projectSlotConnectionId}
@@ -1573,6 +1583,7 @@ export function RuntimeProjectOverridesPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={projectSlotModelOptions}
                 onChange={onProjectSlotModelIdChange}
                 testId="project-slot-model-select"
@@ -1670,27 +1681,29 @@ export function ConnectionCheckSummary({
 export function ConnectionSelect({
   connections,
   id,
+  isLoading = false,
   onChange,
   testId,
   value,
 }: {
   connections: ProviderConnection[]
   id?: string
+  isLoading?: boolean
   onChange(value: string): void
   testId?: string
   value: string
 }) {
+  const emptyLabel = isLoading ? 'Loading connections…' : 'No connections yet'
   return (
     <Select
       data-testid={testId}
+      disabled={isLoading && connections.length === 0}
       id={id}
       onValueChange={onChange}
       options={[
         {
           label:
-            connections.length === 0
-              ? 'No connections yet'
-              : 'Select connection',
+            connections.length === 0 ? emptyLabel : 'Select connection',
           value: '',
         },
         ...connections.map((connection) => ({
@@ -1705,17 +1718,20 @@ export function ConnectionSelect({
 
 export function ProviderModelSelect({
   id,
+  isLoading = false,
   models,
   onChange,
   testId,
   value,
 }: {
   id?: string
+  isLoading?: boolean
   models: ProviderModelOption[]
   onChange(value: string): void
   testId?: string
   value: string
 }) {
+  const emptyLabel = isLoading ? 'Loading models…' : 'No models yet'
   return (
     <Select
       data-testid={testId}
@@ -1724,7 +1740,7 @@ export function ProviderModelSelect({
       onValueChange={onChange}
       options={[
         {
-          label: models.length === 0 ? 'No models yet' : 'Select model',
+          label: models.length === 0 ? emptyLabel : 'Select model',
           value: '',
         },
         ...models.map((model) => ({
@@ -1873,31 +1889,41 @@ export function ProjectRuntimeSettingsView({
     <div className="grid gap-4 xl:grid-cols-3">
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Effective slots</h3>
-        <DataList>
-          {settings.slots.map((slot) => (
-            <DataListItem className="grid gap-3" key={slot.slot}>
-              <div className="grid gap-1">
-                <strong className="text-sm font-semibold">{slot.slot}</strong>
-                <small className="text-xs text-muted-foreground">
-                  {slot.connection_id} / {slot.model_id}
-                </small>
-              </div>
-              <DataListItemActions>
-                <Badge tone="neutral">{sourceLabel(slot.source)}</Badge>
-                {slot.source === 'overridden' ? (
-                  <Button
-                    onClick={() => onResetProjectSlot(slot.slot)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Reset {slot.slot} to global
-                  </Button>
-                ) : null}
-              </DataListItemActions>
-            </DataListItem>
-          ))}
-        </DataList>
+        {settings.slots.length === 0 ? (
+          <EmptyState
+            className="p-4 text-left"
+            data-slot-state="empty"
+            role="status"
+          >
+            No effective slots yet.
+          </EmptyState>
+        ) : (
+          <DataList>
+            {settings.slots.map((slot) => (
+              <DataListItem className="grid gap-3" key={slot.slot}>
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">{slot.slot}</strong>
+                  <small className="text-xs text-muted-foreground">
+                    {slot.connection_id} / {slot.model_id}
+                  </small>
+                </div>
+                <DataListItemActions>
+                  <Badge tone="neutral">{sourceLabel(slot.source)}</Badge>
+                  {slot.source === 'overridden' ? (
+                    <Button
+                      onClick={() => onResetProjectSlot(slot.slot)}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      Reset {slot.slot} to global
+                    </Button>
+                  ) : null}
+                </DataListItemActions>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat pool</h3>

@@ -20,6 +20,7 @@ import {
   type RetrievalResult,
   type RetrievalStrategy,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
 
@@ -375,12 +376,12 @@ function requestStateLabel(state: RequestState): string {
 function formatError(error: unknown): string {
   if (error instanceof ApiClientError) {
     if (typeof error.detail === 'string') {
-      return error.detail
+      return operatorSafeMessage(error.detail, error.message)
     }
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   if (error instanceof Error) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   return 'Retrieval search failed.'
 }

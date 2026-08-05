@@ -658,4 +658,37 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByText('Loading chat models…')).toBeTruthy()
     expect(screen.queryByText('No chat models yet.')).toBeNull()
   })
+
+  test('select placeholders say loading instead of empty while busy', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      chatConnectionId: '',
+      chatModelId: '',
+      connections: [],
+      globalSlotConnectionId: '',
+      globalSlotModelId: '',
+      providerModels: [],
+      state: 'loading',
+    })
+
+    expect(screen.getAllByText('Loading connections…').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Loading models…').length).toBeGreaterThan(0)
+    expect(screen.queryByText('No connections yet')).toBeNull()
+    expect(screen.queryByText('No models yet')).toBeNull()
+  })
+
+  test('shows EmptyState when project effective slots are empty', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'project_overrides',
+      projectRuntimeSettings: {
+        ...projectRuntimeSettings,
+        slots: [],
+      },
+    })
+
+    expect(screen.getByText('No effective slots yet.')).toBeTruthy()
+    expect(
+      screen.getByText('No effective slots yet.').closest('[data-slot-state="empty"]'),
+    ).toBeTruthy()
+  })
 })
