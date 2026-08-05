@@ -375,7 +375,7 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+      className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
       data-slot-state="loading"
       role="status"
     >
@@ -498,7 +498,7 @@ function ProjectList({
   if (projects.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="empty"
         role="status"
       >
@@ -810,7 +810,7 @@ function UserAccessLists({
   if (users.length === 0 && memberships.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="empty"
         role="status"
       >
@@ -823,7 +823,7 @@ function UserAccessLists({
     <div className="grid gap-3 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
           data-slot-state="empty"
           role="status"
         >
@@ -877,7 +877,7 @@ function UserAccessLists({
       )}
       {memberships.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
           data-slot-state="empty"
           role="status"
         >
@@ -1211,7 +1211,7 @@ function SourceList({
   if (sources.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="empty"
         role="status"
       >
@@ -1352,7 +1352,7 @@ function KnowledgeReviewPanel({
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="border-border/60 bg-muted/20 p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
           data-slot-state="canceled"
           role="status"
         >
@@ -1364,7 +1364,7 @@ function KnowledgeReviewPanel({
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="border-border/60 bg-muted/20 p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
           data-slot-state="empty"
           role="status"
         >
@@ -1573,7 +1573,7 @@ function IngestionJobList({
   if (jobs.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
         data-slot-state="empty"
         role="status"
       >
