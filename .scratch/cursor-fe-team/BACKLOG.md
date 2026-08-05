@@ -13,14 +13,15 @@ Branch: `feat/ui-obsessional-polish`
 - [x] done — Global focus-visible diluted rings (no remaining `ring-ring/` in features)
 - [x] done — reduced-motion: pulses use `motion-safe:` across surfaces
 - [x] done:operator — Form gap-4 parity + runtime loading pulse chrome (post-#212)
-- [x] claimed:fe-chat — Popover Trigger focus when not asChild
-- [x] claimed:fe-chat — Speech status mobile width
+- [x] done:fe-chat — Popover Trigger focus + speech mobile (#212)
+- [x] done:implement — Purple primary hostile: skip-link + danger + dropdown trigger rings
+- [x] done:implement — Theme option active ring + StatusBadge success/warning contrast
+- [ ] claimed:operator — FieldHelp density (AuthoringField help prop) — in flight locally?
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
-- [ ] open:operator — FieldHelp density audit (authoring password help vs runtime)
-- [ ] open:operator — Hostile purple-theme contrast on StatusBadge tones
 
 ## Lead queue (next)
-1. Hostile re-audit of purple theme primary buttons live
-2. Tab-cycle focus trap residual (Radix portal menus)
+1. Finish FieldHelp AuthoringField wiring + tests (operator)
+2. Tabs / nav active-state ring audit on purple
+3. Tab-cycle focus trap residual (Radix portal menus)
 
-Reports: `reports/operator-latest.md` · `reports/chat-latest.md`
+Reports: `reports/implement-latest.md` · `reports/operator-latest.md`

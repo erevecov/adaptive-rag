@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
 import { DataList, DataListItem } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
-import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
+import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
   PanelBody,
@@ -195,12 +195,9 @@ export function RetrievalPlaygroundPanel({
                 />
               </FieldControl>
               {!rerankEnabled ? (
-                <p
-                  className="text-xs text-muted-foreground"
-                  id="rerank-limit-help"
-                >
+                <FieldHelp id="rerank-limit-help">
                   Enable rerank to edit candidate limit.
-                </p>
+                </FieldHelp>
               ) : null}
             </Field>
           </div>

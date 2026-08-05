@@ -1,23 +1,31 @@
-# FE OPERATOR report — 20260805 pass-3 (post-#212)
+# FE OPERATOR report — 20260805 pass-4 (post-#212)
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (= origin/main tip post PR #212)
+Branch: `feat/ui-obsessional-polish` (local tip ahead of origin; no push)
 
-## This pass
-Operator density / state polish after #212 green merge.
+## Commits this loop
+- `6fb3997` fix(ui): align operator form gaps and loading pulse chrome
+- `4c09482` fix(ui): place FieldHelp outside FieldControl with describedby
 
-### P1 fixed
+## Pass-3
 | Finding | Fix |
 |---------|-----|
-| Source create + observability filter forms `gap-3` vs runtime `gap-4` | Forms aligned to `grid gap-4` |
-| Runtime loading EmptyStates (connections / catalog / project settings) missing pulse chrome | Shared `border-border/60 bg-muted/20 … motion-safe:animate-pulse` |
-| Soft-delete / inactive Title Case coverage thin | Tests for source `Deleted`, user `Inactive`, loading pulse class |
+| Source/obs forms `gap-3` | `gap-4` parity with runtime |
+| Runtime loading empties without pulse chrome | Shared muted + `motion-safe:animate-pulse` |
+| Thin Title Case coverage | Tests for `Deleted` / `Inactive` / loading pulse |
 
-(Already on tip from prior WIP: authoring list loading pulse, Inactive/Deleted badges, most authoring forms gap-4, MetricCard labelledby-only.)
+## Pass-4
+| Finding | Fix |
+|---------|-----|
+| Authoring access-token FieldHelp inside FieldControl | `AuthoringField.help` sibling slot + `aria-describedby` |
+| Runtime edit API key help undiagnosed | FieldHelp `id` + input `aria-describedby` when editing |
 
 ### Tests
-Focused vitest authoring/runtime/observability — **43 passed**.
+authoring + runtime focused vitest — **32 passed** (last batch).
 
-## Coordination
-No push. Grok opens/merges PR when CI green.
+## Next open
+- Hostile purple StatusBadge contrast (shared badge DS — coordinate with fe-implement)
+- Retrieval FieldHelp / describedby residual audit
+
+No push. Grok opens/merges when CI green.
