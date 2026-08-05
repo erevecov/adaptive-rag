@@ -195,6 +195,22 @@ describe('SessionNavigationPanel', () => {
       /border-dashed/,
     )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
+    const selectedRow = container.querySelector(
+      '[data-slot="data-list-item"][data-selected]',
+    )
+    expect(selectedRow?.className).toMatch(/bg-primary\/15/)
+    expect(selectedRow?.className).not.toMatch(/bg-muted text-foreground/)
+    expect(
+      screen.getByRole('button', { name: 'Sesiones activas' }).className,
+    ).toMatch(/max-\[680px\]:min-h-11/)
+    expect(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+        .className,
+    ).toMatch(/max-\[680px\]:size-11/)
+    expect(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+        .className,
+    ).toMatch(/hover:bg-primary\/15/)
     const actions = container.querySelector(
       '[data-slot="session-row-actions"]',
     )

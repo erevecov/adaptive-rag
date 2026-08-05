@@ -563,9 +563,9 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight',
-        'hover:bg-muted/50 hover:text-foreground',
-        active && 'bg-muted font-semibold text-foreground',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight max-[680px]:min-h-11',
+        'hover:bg-primary/15 hover:text-foreground',
+        active && 'bg-primary/15 font-semibold text-foreground',
         className,
       )}
       onClick={onClick}
@@ -873,7 +873,7 @@ function SidebarProjectSelector({
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                {state === 'loading' ? 'Loading projects...' : 'All projects'}
+                {state === 'loading' ? 'Loading projects…' : 'All projects'}
               </span>
             </div>
 
@@ -898,7 +898,7 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11',
                           'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground motion-safe:transition-colors',
                           'hover:border-border',
                         ],

@@ -264,7 +264,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loading).toBeTruthy()
-    expect(loading?.textContent).toContain('Waiting for response...')
+    expect(loading?.textContent).toContain('Waiting for response…')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
@@ -386,6 +386,12 @@ describe('ChatWorkspacePanel', () => {
     expect(
       screen.getByRole('button', { name: 'Open context sidebar' }).className,
     ).toMatch(/max-\[680px\]:min-h-11/)
+    expect(
+      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+    ).toMatch(/hover:bg-primary\/15/)
+    expect(
+      screen.getByRole('button', { name: 'Open context sidebar' }).className,
+    ).not.toMatch(/hover:bg-muted/)
     empty.view.unmount()
 
     const { view } = renderChatWorkspace()

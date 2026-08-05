@@ -163,7 +163,7 @@ export function SessionNavigationPanel({
       <Button
         className={cn(
           'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none',
-          'hover:border-border hover:bg-muted/50 hover:text-foreground',
+          'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
         )}
         onClick={onStartNewSession}
         size="sm"
@@ -183,7 +183,7 @@ export function SessionNavigationPanel({
             active={statusFilter === filter.value}
             aria-label={filter.title}
             className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight',
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11',
               statusFilter === filter.value
                 ? 'font-semibold shadow-sm'
                 : 'font-medium',
@@ -258,15 +258,15 @@ export function SessionNavigationPanel({
                 className={cn(
                   'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
-                    ? 'bg-muted text-foreground'
-                    : 'hover:bg-muted/50 hover:text-foreground',
+                    ? 'bg-primary/15 text-foreground'
+                    : 'hover:bg-primary/10 hover:text-foreground',
                 )}
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
               >
                 {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
                     beflow-style mask fade on hover / open menu. */}
-                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5">
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_2.75rem]">
                   <span
                     aria-hidden={!hasTraining}
                     className="flex w-4 items-center justify-start text-muted-foreground"
@@ -335,7 +335,7 @@ export function SessionNavigationPanel({
                     <Button
                       aria-current={isSelected ? 'true' : undefined}
                       aria-label={openSessionLabel}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -379,7 +379,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Trigger asChild>
                         <Button
                           aria-label={`Opciones de ${title}`}
-                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-primary/15 hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:size-11"
                           type="button"
                           variant="ghost"
                         >
@@ -438,7 +438,7 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
-          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -519,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:pt-[max(0.75rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}

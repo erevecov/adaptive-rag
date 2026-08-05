@@ -1,22 +1,26 @@
 # Chat+Shell FE report — continuous polish
 
 **Role:** FE CHAT+SHELL  
-**Branch:** `feat/ui-obsessional-polish` (post #206–#209)  
+**Branch:** `feat/ui-obsessional-polish` · bulk PR **#213**  
 **STATUS:** ready-for-lead-review
 
-## This loop
+## This pass
 
-| Commit theme | What |
-|--------------|------|
-| Runtime empty≠loading | Select Loading… placeholders; empty effective slots |
-| Retrieval + shell-wide | `operatorSafeMessage` on App errors + chat/history/authoring/obs displays |
+| Change | Surface |
+|--------|---------|
+| Session selected/hover `primary/15` (not muted) | history rail |
+| Filters / rows / ⋮ / load-more ≤680 44px | history rail |
+| Composer tools `hover:bg-primary/15` | chat |
+| Primary nav + project options ≤680 / primary wash | shell |
+| Inspector overlay `inset-0` + safe-area ≤680 | history inspector |
 
 ## Verify
 
-Runtime+retrieval **29** · App redaction **2** · history/authoring/obs/chat **56**
+`HistoryInspectorView` → **15 passed**  
+Focused chat/App overlay/composer → run before commit
 
 ## Next
 
-Hostile live purple/dark ≤680 · Tab-cycle trap deferred
+Tab-cycle trap deferred; table ≤680 = implement
 
-Grok merges; agent does not push.
+Grok pushes/merges #213; agent does not push.
