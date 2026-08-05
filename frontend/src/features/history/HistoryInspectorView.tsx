@@ -32,6 +32,7 @@ import type {
   ChatSessionSummary,
   Source,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
@@ -162,7 +163,7 @@ export function SessionNavigationPanel({
       <Button
         className={cn(
           'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none',
-          'hover:border-border hover:bg-muted/50 hover:text-foreground',
+          'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
         )}
         onClick={onStartNewSession}
         size="sm"
@@ -182,7 +183,7 @@ export function SessionNavigationPanel({
             active={statusFilter === filter.value}
             aria-label={filter.title}
             className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight',
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11',
               statusFilter === filter.value
                 ? 'font-semibold shadow-sm'
                 : 'font-medium',
@@ -196,7 +197,9 @@ export function SessionNavigationPanel({
         ))}
       </SegmentedControl>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? (
+        <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
+      ) : null}
       {copyFeedback ? (
         <InlineFeedback
           data-slot="session-copy-feedback"
@@ -255,15 +258,15 @@ export function SessionNavigationPanel({
                 className={cn(
                   'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
-                    ? 'bg-muted text-foreground'
-                    : 'hover:bg-muted/50 hover:text-foreground',
+                    ? 'bg-primary/15 text-foreground'
+                    : 'hover:bg-primary/10 hover:text-foreground',
                 )}
                 data-selected={isSelected ? '' : undefined}
                 key={session.session_id}
               >
                 {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
                     beflow-style mask fade on hover / open menu. */}
-                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5">
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_2.75rem]">
                   <span
                     aria-hidden={!hasTraining}
                     className="flex w-4 items-center justify-start text-muted-foreground"
@@ -332,7 +335,7 @@ export function SessionNavigationPanel({
                     <Button
                       aria-current={isSelected ? 'true' : undefined}
                       aria-label={openSessionLabel}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -376,7 +379,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Trigger asChild>
                         <Button
                           aria-label={`Opciones de ${title}`}
-                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-primary/15 hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:size-11"
                           type="button"
                           variant="ghost"
                         >
@@ -392,7 +395,7 @@ export function SessionNavigationPanel({
                           sideOffset={4}
                         >
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="justify-between gap-3 px-3 py-1.5 text-left"
                             data-testid={`copy-id-${session.session_id}`}
                             onClick={() => {
                               void handleCopySessionId(session.session_id)
@@ -401,7 +404,7 @@ export function SessionNavigationPanel({
                             <span>Copiar ID de sesión</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="px-3 py-1.5 text-left"
                             data-testid={`rename-${session.session_id}`}
                             onClick={() => {
                               setRenamingSessionId(session.session_id)
@@ -411,7 +414,7 @@ export function SessionNavigationPanel({
                             Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="px-3 py-1.5 text-left"
                             data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
                             onClick={() => {
                               if (isArchived) {
@@ -435,7 +438,7 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
-          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -516,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:pt-[max(0.75rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
@@ -639,7 +642,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.error ? (
           <InlineFeedback role="alert" tone="danger">
-            {viewer.error}
+            {operatorSafeMessage(viewer.error)}
           </InlineFeedback>
         ) : null}
 
@@ -662,7 +665,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               </p>
               {viewer.source.deleted_at ? (
                 <StatusBadge className="w-fit shrink-0" tone="danger">
-                  Soft-deleted
+                  Deleted
                 </StatusBadge>
               ) : null}
             </div>
@@ -673,7 +676,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               <MetadataItem label="Updated" value={viewer.source.updated_at} />
               {viewer.source.deleted_at ? (
                 <MetadataItem
-                  label="Soft-deleted"
+                  label="Deleted"
                   value={formatSourceTimestamp(viewer.source.deleted_at)}
                 />
               ) : null}
@@ -727,7 +730,10 @@ function ConversationMinimap({
     <Panel aria-label="Conversation minimap" role="navigation">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Minimap</PanelTitle>
-        <StatusBadge>{detail?.messages.length ?? 0} turns</StatusBadge>
+        <StatusBadge>
+          {detail?.messages.length ?? 0}{' '}
+          {(detail?.messages.length ?? 0) === 1 ? 'message' : 'messages'}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null || detail.messages.length === 0 ? (
@@ -773,7 +779,7 @@ function SessionContextPanel({
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Session context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
-          {detail?.session.status ?? 'empty'}
+          {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
@@ -970,7 +976,7 @@ function SessionDetailPanel({
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
           <InlineFeedback role="alert" tone="danger">
-            {error}
+            {operatorSafeMessage(error)}
           </InlineFeedback>
         </PanelBody>
       </Panel>
@@ -1000,7 +1006,7 @@ function SessionDetailPanel({
           </p>
         </div>
         <StatusBadge tone={sessionStatusTone(detail.session.status)}>
-          {detail.session.status}
+          {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0">
@@ -1009,21 +1015,27 @@ function SessionDetailPanel({
             Messages
           </h4>
           <DataList aria-label="Session messages">
-            {detail.messages.map((message) => (
-              <DataListItem key={message.message_id}>
-                <article
-                  aria-label={`${message.role} message`}
-                  className="grid gap-1"
-                  id={messageElementId(message.message_id)}
-                  tabIndex={-1}
-                >
-                  <strong className="text-sm text-foreground">{message.role}</strong>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {message.content}
-                  </p>
-                </article>
-              </DataListItem>
-            ))}
+            {detail.messages.length === 0 ? (
+              <EmptyState>No messages in this session.</EmptyState>
+            ) : (
+              detail.messages.map((message) => (
+                <DataListItem key={message.message_id}>
+                  <article
+                    aria-label={`${message.role} message`}
+                    className="grid gap-1"
+                    id={messageElementId(message.message_id)}
+                    tabIndex={-1}
+                  >
+                    <strong className="text-sm capitalize text-foreground">
+                      {message.role}
+                    </strong>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {message.content}
+                    </p>
+                  </article>
+                </DataListItem>
+              ))
+            )}
           </DataList>
         </section>
 
@@ -1364,6 +1376,28 @@ function countInternalSteps(detail: ChatSessionDetailResponse | null): number {
 
 function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
+}
+
+function sessionStatusLabel(status: string | null | undefined): string {
+  if (status === null || status === undefined || status === '') {
+    return 'Empty'
+  }
+  if (status === 'failed') {
+    return 'Failed'
+  }
+  if (status === 'succeeded') {
+    return 'Succeeded'
+  }
+  if (status === 'running') {
+    return 'Running'
+  }
+  if (status === 'loading') {
+    return 'Loading'
+  }
+  if (status === 'canceled' || status === 'cancelled') {
+    return 'Canceled'
+  }
+  return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 function sessionStatusTone(

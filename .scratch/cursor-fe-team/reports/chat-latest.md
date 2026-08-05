@@ -1,32 +1,26 @@
 # Chat+Shell FE report — continuous polish
 
 **Role:** FE CHAT+SHELL  
-**Branch:** `feat/ui-obsessional-polish` (post #208 merge)  
+**Branch:** `feat/ui-obsessional-polish` · bulk PR **#213**  
 **STATUS:** ready-for-lead-review
 
-## Commits this loop (local, no push)
+## This pass
 
-| Commit | What |
-|--------|------|
-| `71b1b97` | Solid primary focus ring; knowledge draft DS rings; rename blur-save |
-| `45ac5f5` | Streaming pipeline toggle → secondary (Escape gate already on tip) |
+| Change | Surface |
+|--------|---------|
+| Session selected/hover `primary/15` (not muted) | history rail |
+| Filters / rows / ⋮ / load-more ≤680 44px | history rail |
+| Composer tools `hover:bg-primary/15` | chat |
+| Primary nav + project options ≤680 / primary wash | shell |
+| Inspector overlay `inset-0` + safe-area ≤680 | history inspector |
 
 ## Verify
 
-`HistoryInspectorView` + `ChatPipelineSteps` → **18 passed**  
-`button` + `chat` + `history` (prior) → **34 passed**
-
-## Tip state (chat/shell)
-
-- Overlay inert: chat host + sidebar + topline  
-- Soft-delete: `Deleted` / `source removed`  
-- Minimap aria truncate; speech mobile full-width status  
-- Escape closes overlay only (not inline dock)  
-- Purple primary ring solid; draft textarea full ring tokens  
+`HistoryInspectorView` → **15 passed**  
+Focused chat/App overlay/composer → run before commit
 
 ## Next
 
-- Locale consistency (rail ES vs inspector EN leftovers)  
-- Live purple/dark ≤680 composer pass  
+Tab-cycle trap deferred; table ≤680 = implement
 
-Grok merges; agent does not push.
+Grok pushes/merges #213; agent does not push.

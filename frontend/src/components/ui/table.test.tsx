@@ -4,7 +4,15 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { Table, TableBody, TableCell, TableRow, tableNumericClass } from './table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  tableNumericClass,
+} from './table'
 
 afterEach(() => {
   cleanup()
@@ -14,6 +22,7 @@ describe('tableNumericClass', () => {
   test('exports right-aligned tabular digits for metric columns', () => {
     expect(tableNumericClass).toContain('tabular-nums')
     expect(tableNumericClass).toContain('text-right')
+    expect(tableNumericClass).toContain('font-medium')
   })
 
   test('merges onto TableCell for numeric values', () => {
@@ -30,5 +39,33 @@ describe('tableNumericClass', () => {
     const cell = screen.getByText('1,024')
     expect(cell.className).toContain('tabular-nums')
     expect(cell.className).toContain('text-right')
+    expect(cell.className).toContain('font-medium')
+  })
+})
+
+describe('Table density', () => {
+  test('sticky header uses card tint; rows hover for scan', () => {
+    render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Latency</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>12ms</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    )
+
+    const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
+    expect(header?.className).toContain('bg-card/95')
+    expect(screen.getByText('Latency').className).toContain('tracking-wide')
+    expect(screen.getByText('Latency').className).toContain('h-9')
+    expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
+      'hover:bg-muted/40',
+    )
   })
 })

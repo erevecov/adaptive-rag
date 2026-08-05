@@ -225,9 +225,9 @@ describe('AuthoringPanel', () => {
       activeSubmodule: 'projects',
       projectState: 'loading',
     })
-    const busy = screen.getByRole('button', { name: 'Creating...' })
+    const busy = screen.getByRole('button', { name: 'Creating…' })
     expect(busy.className).toMatch(/min-h-9/)
-    expect(busy.textContent).toContain('Creating...')
+    expect(busy.textContent).toContain('Creating…')
   })
 
   test('projects submodule uses tokenized panels, controls, and data rows', async () => {
@@ -269,7 +269,14 @@ describe('AuthoringPanel', () => {
     const accessToken = screen.getByLabelText('Access token')
     expect(accessToken.getAttribute('data-slot')).toBe('input')
     expect(accessToken.getAttribute('type')).toBe('password')
-    expect(screen.getByText('Paste once; never shown after save.')).toBeTruthy()
+    expect(accessToken.getAttribute('aria-describedby')).toBe(
+      'authoring-user-access-token-help',
+    )
+    const tokenHelp = screen.getByText('Paste once; never shown after save.')
+    expect(tokenHelp.getAttribute('data-slot')).toBe('field-help')
+    expect(tokenHelp.id).toBe('authoring-user-access-token-help')
+    expect(tokenHelp.closest('[data-slot="field-control"]')).toBeNull()
+    expect(tokenHelp.closest('[data-slot="field"]')).toBeTruthy()
     expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
@@ -279,12 +286,12 @@ describe('AuthoringPanel', () => {
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('System role'),
-      'superadmin',
+      'Superadmin',
     )
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('Project role'),
-      'admin',
+      'Admin',
     )
     expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
     expect(props.onMemberRoleChange).toHaveBeenCalledWith('admin')
@@ -337,14 +344,14 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
-    expect(screen.getByText('attempt 1/3')).toBeTruthy()
+    expect(screen.getByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
     const lastRun = view.container.querySelector(
       '[data-slot="ingestion-last-run"]',
     )
     expect(lastRun).toBeTruthy()
     expect(lastRun?.textContent).toMatch(/Last run/)
-    expect(lastRun?.textContent).toMatch(/idle/)
+    expect(lastRun?.textContent).toMatch(/Idle/)
     expect(
       lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),
     ).toBe('neutral')
@@ -357,7 +364,7 @@ describe('AuthoringPanel', () => {
     await chooseRadixSelectOption(
       userDriver,
       screen.getByLabelText('Source type'),
-      'url',
+      'URL',
     )
     expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
     expectNoLegacyAuthoringClasses(view.container)
@@ -370,9 +377,11 @@ describe('AuthoringPanel', () => {
       projects: [],
     })
     expect(screen.getByText('Loading projects…')).toBeTruthy()
-    expect(
-      loading.view.container.querySelector('[data-slot-state="loading"]'),
-    ).toBeTruthy()
+    const loadingState = loading.view.container.querySelector(
+      '[data-slot-state="loading"]',
+    )
+    expect(loadingState).toBeTruthy()
+    expect(loadingState?.className).toMatch(/motion-safe:animate-pulse/)
     loading.view.unmount()
 
     renderAuthoringPanel({
@@ -394,7 +403,78 @@ describe('AuthoringPanel', () => {
     }
     renderAuthoringPanel({ projects: [deleted] })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
-    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
+    expect(screen.getByText(/Deleted /)).toBeTruthy()
+  })
+
+  test('shows per-column empties when users or memberships are missing', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'users',
+      memberships: [],
+      users: [user],
+    })
+    expect(screen.getByText('No project memberships yet.')).toBeTruthy()
+    expect(screen.getByText(user.login)).toBeTruthy()
+    cleanup()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'users',
+      memberships: [membership],
+      users: [],
+    })
+    expect(screen.getByText('No users yet.')).toBeTruthy()
+    expect(screen.getByText(membership.user_id)).toBeTruthy()
+  })
+
+  test('Title Case soft-delete and inactive badges keep full contrast', () => {
+    const deletedSource: Source = {
+      ...source,
+      deleted_at: '2026-06-22T12:00:00Z',
+      external_id: 'gone-source',
+      id: 'source-deleted',
+    }
+    const inactiveUser: User = {
+      ...user,
+      id: 'user-inactive',
+      is_active: false,
+      login: 'inactive@example.com',
+    }
+    renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sources: [deletedSource],
+    })
+    expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText(/Deleted /)).toBeTruthy()
+    cleanup()
+
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'users',
+      users: [inactiveUser],
+    })
+    expect(screen.getByText('Inactive').getAttribute('data-tone')).toBe(
+      'warning',
+    )
+    expect(
+      view.container.querySelector('[data-inactive]')?.querySelector('strong')
+        ?.className,
+    ).toMatch(/text-muted-foreground/)
+  })
+
+  test('knowledge empty is structured and proposal status is Title Case', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeProposals: [],
+    })
+    expect(screen.getByText('No pending proposals.')).toBeTruthy()
+    expect(
+      screen.getByText(/Refresh after chat surfaces a knowledge draft/),
+    ).toBeTruthy()
+    cleanup()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeProposals: [proposal],
+    })
+    expect(screen.getByText('Pending')).toBeTruthy()
   })
 
   test('knowledge status says Working while busy and gates Reject without reason', () => {
@@ -424,7 +504,9 @@ describe('AuthoringPanel', () => {
     expect(
       view.container.querySelector('[data-slot="ingestion-job-groups"]'),
     ).toBeTruthy()
-    expect(screen.getAllByText(/run after/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Running').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Blocked').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/Run after/).length).toBeGreaterThan(0)
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()

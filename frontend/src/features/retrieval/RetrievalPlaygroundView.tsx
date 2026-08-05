@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
 import { DataList, DataListItem } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
-import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
+import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
   PanelBody,
@@ -20,14 +20,15 @@ import {
   type RetrievalResult,
   type RetrievalStrategy,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
 
 const STRATEGY_OPTIONS = [
-  { label: 'dense + sparse (default)', value: 'dense_sparse' },
-  { label: 'dense only', value: 'dense' },
-  { label: 'sparse only', value: 'sparse' },
-  { label: 'graph', value: 'graph' },
+  { label: 'Dense + sparse (default)', value: 'dense_sparse' },
+  { label: 'Dense only', value: 'dense' },
+  { label: 'Sparse only', value: 'sparse' },
+  { label: 'Graph', value: 'graph' },
 ] as const
 
 const RERANK_OPTIONS = [
@@ -195,12 +196,9 @@ export function RetrievalPlaygroundPanel({
                 />
               </FieldControl>
               {!rerankEnabled ? (
-                <p
-                  className="text-xs text-muted-foreground"
-                  id="rerank-limit-help"
-                >
+                <FieldHelp id="rerank-limit-help">
                   Enable rerank to edit candidate limit.
-                </p>
+                </FieldHelp>
               ) : null}
             </Field>
           </div>
@@ -378,12 +376,12 @@ function requestStateLabel(state: RequestState): string {
 function formatError(error: unknown): string {
   if (error instanceof ApiClientError) {
     if (typeof error.detail === 'string') {
-      return error.detail
+      return operatorSafeMessage(error.detail, error.message)
     }
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   if (error instanceof Error) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   return 'Retrieval search failed.'
 }

@@ -77,6 +77,8 @@ import {
   parseChatStepsFromMetadata,
   type ChatStepEvent,
 } from './lib/chatSteps'
+import { cn } from '@/lib/utils'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -667,6 +669,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ),
           ),
         )
+        await refreshOpenSessionDetail(trimmedProjectId, nextSessionId)
       }
     } catch (error) {
       if (isAbortError(error)) {
@@ -696,6 +699,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 ),
               ),
             )
+            await refreshOpenSessionDetail(trimmedProjectId, nextSessionId)
           }
           return
         } catch (fallbackError) {
@@ -710,6 +714,25 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setActiveRequestController((current) =>
         current === controller ? null : current,
       )
+    }
+  }
+
+  async function refreshOpenSessionDetail(
+    trimmedProjectId: string,
+    sessionId: string,
+  ): Promise<void> {
+    if (!isRightDockOpen) {
+      return
+    }
+    setDetailState('loading')
+    setDetailError(null)
+    try {
+      const detail = await client.getChatSession(trimmedProjectId, sessionId)
+      setSessionDetail(detail)
+      setDetailState('succeeded')
+    } catch (error) {
+      setDetailState('failed')
+      setDetailError(getErrorMessage(error))
     }
   }
 
@@ -2712,13 +2735,12 @@ function AppearanceSettingsPanel({
           return (
             <Button
               aria-pressed={active}
-              className={[
+              className={cn(
                 'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground',
                 'hover:bg-muted',
-                active ? 'border-primary bg-primary/10' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+                active &&
+                  'border-primary bg-primary/25 focus-visible:ring-primary',
+              )}
               data-state={active ? 'active' : 'inactive'}
               key={option.id}
               onClick={() => onThemeChange(option.id)}
@@ -2963,10 +2985,10 @@ function persistProjectId(projectId: string): void {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   if (error instanceof Error) {
-    return error.message
+    return operatorSafeMessage(error.message)
   }
   return 'Request failed.'
 }
@@ -3029,19 +3051,63 @@ function emptyChatResponse(): ChatResponseBody {
 function chatResponseFromSessionDetail(
   detail: ChatSessionDetailResponse,
 ): ChatResponseBody {
+  const messages = detail.messages
+  let assistantIndex = -1
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === 'assistant') {
+      assistantIndex = index
+      break
+    }
+  }
   const assistantMessage =
-    [...detail.messages].reverse().find((message) => message.role === 'assistant') ??
-    detail.messages[detail.messages.length - 1]
+    assistantIndex >= 0
+      ? messages[assistantIndex]
+      : messages[messages.length - 1]
+
+  let turnStartMs = Number.NEGATIVE_INFINITY
+  if (assistantIndex >= 0) {
+    for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+      if (messages[index]?.role === 'user') {
+        turnStartMs = Date.parse(messages[index].created_at)
+        break
+      }
+    }
+  }
+
+  let turnEndMs = Number.POSITIVE_INFINITY
+  if (assistantIndex >= 0) {
+    for (let index = assistantIndex + 1; index < messages.length; index += 1) {
+      if (messages[index]?.role === 'user') {
+        turnEndMs = Date.parse(messages[index].created_at)
+        break
+      }
+    }
+  }
+
+  const turnToolCalls = detail.tool_calls.filter((call) => {
+    const createdAtMs = Date.parse(call.created_at)
+    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+  })
+  const turnToolCallIds = new Set(
+    turnToolCalls.map((call) => call.tool_call_id),
+  )
+  const turnRetrievalRuns = detail.retrieval_runs.filter((run) => {
+    if (run.tool_call_id !== null) {
+      return turnToolCallIds.has(run.tool_call_id)
+    }
+    const createdAtMs = Date.parse(run.created_at)
+    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+  })
 
   return {
     answer: assistantMessage?.content ?? '',
-    citations: detail.retrieval_runs.flatMap((run) =>
+    citations: turnRetrievalRuns.flatMap((run) =>
       run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
     ),
     session_id: detail.session.session_id,
     steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
-    tool_calls: detail.tool_calls.map((call) =>
-      chatToolCallFromHistory(call, detail.retrieval_runs),
+    tool_calls: turnToolCalls.map((call) =>
+      chatToolCallFromHistory(call, turnRetrievalRuns),
     ),
   }
 }

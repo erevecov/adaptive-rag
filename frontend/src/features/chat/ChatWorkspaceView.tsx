@@ -34,14 +34,15 @@ import type {
   KnowledgeProposal,
 } from '@/lib/apiClient'
 import type { ChatStep } from '@/lib/chatSteps'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-2.5'
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-2.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:px-4'
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -142,6 +143,18 @@ export function ChatWorkspacePanel({
   speechState,
   transcriptRef,
 }: ChatWorkspacePanelProps) {
+  const questionInputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (question.length > 0) {
+      return
+    }
+    const el = questionInputRef.current
+    if (el !== null) {
+      el.style.height = ''
+    }
+  }, [question])
+
   return (
     <Panel
       aria-label="Chat workspace"
@@ -200,9 +213,9 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted px-4 py-2.5 text-sm leading-relaxed',
                   'placeholder:text-muted-foreground',
-                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
                 id="chat-question"
                 name="question"
@@ -236,6 +249,7 @@ export function ChatWorkspacePanel({
                   }
                 }}
                 placeholder="Ask a question about indexed sources"
+                ref={questionInputRef}
                 rows={2}
                 title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
@@ -247,14 +261,14 @@ export function ChatWorkspacePanel({
             className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end">
               <Button
                 aria-label="Open context sidebar"
                 aria-pressed={isContextInspectorActive}
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
                   isContextInspectorActive &&
-                    'border-primary/40 bg-primary/10 text-foreground',
+                    'border-primary bg-primary/25 text-foreground',
                 )}
                 onClick={onOpenContextInspector}
                 type="button"
@@ -268,7 +282,7 @@ export function ChatWorkspacePanel({
                 className={cn(
                   COMPOSER_TOOL_BUTTON_CLASS,
                   isMinimapInspectorActive &&
-                    'border-primary/40 bg-primary/10 text-foreground',
+                    'border-primary bg-primary/25 text-foreground',
                 )}
                 onClick={onOpenMinimapInspector}
                 type="button"
@@ -314,7 +328,7 @@ export function ChatWorkspacePanel({
 
           {requestError ? (
             <InlineFeedback className="mt-2" tone="danger">
-              {requestError}
+              {operatorSafeMessage(requestError)}
             </InlineFeedback>
           ) : null}
         </form>
@@ -366,7 +380,7 @@ function SpeechInputControl({
         aria-label={buttonLabel}
         className={cn(
           COMPOSER_TOOL_BUTTON_CLASS,
-          isListening && 'border-primary/40 bg-primary/10 text-foreground',
+          isListening && 'border-primary bg-primary/25 text-foreground',
         )}
         disabled={!isSupported}
         onClick={isListening ? onStop : onStart}
@@ -451,7 +465,7 @@ function ResponsePanel({
           data-slot-state="loading"
           role="status"
         >
-          <p className="font-medium text-foreground/80">Waiting for response...</p>
+          <p className="font-medium text-foreground/80">Waiting for response…</p>
           <p className="text-xs text-muted-foreground">
             Retrieving sources and drafting an answer
           </p>
@@ -732,7 +746,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border/70 bg-card p-3.5 text-card-foreground transition-colors hover:border-border focus-within:border-primary/40"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground focus-within:border-primary"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -751,7 +765,7 @@ function ResponseContent({
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border/50 pt-2.5"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5"
               data-slot="chat-answer-citations"
               role="group"
             >
@@ -768,7 +782,11 @@ function ResponseContent({
                 return (
                   <Button
                     aria-label={`Open source ${label}`}
-                    className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    className={cn(
+                      'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
+                      'hover:border-primary/50 hover:bg-primary/15',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-3 max-[680px]:py-2 max-[680px]:text-xs',
+                    )}
                     key={chipKey}
                     onClick={() =>
                       onOpenSource(
@@ -1000,7 +1018,7 @@ function ResponseDetailsContent({
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>{result.citation.source_type} source</Badge>
+                    <Badge>{sourceTypeLabel(result.citation.source_type)} source</Badge>
                     <Badge>
                       version {result.citation.document_version_number}
                     </Badge>
@@ -1099,7 +1117,9 @@ function KnowledgeDraftCard({
             {draft.scope}
           </strong>
         </div>
-        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>{draft.status}</StatusBadge>
+        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>
+          {knowledgeDraftStatusLabel(draft.status)}
+        </StatusBadge>
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
@@ -1108,7 +1128,7 @@ function KnowledgeDraftCard({
         <FieldControl>
           <Textarea
             aria-label="Knowledge draft text"
-            className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             disabled={!canEdit}
             id={`knowledge-draft-${draft.draftId}`}
             onChange={(event) => onTextChange(event.currentTarget.value)}
@@ -1121,7 +1141,7 @@ function KnowledgeDraftCard({
         <p className="text-sm text-muted-foreground">Proposal {draft.proposalId}</p>
       )}
       {draft.error === null ? null : (
-        <InlineFeedback tone="danger">{draft.error}</InlineFeedback>
+        <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
       <div className="flex flex-wrap gap-2">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
@@ -1146,6 +1166,41 @@ function KnowledgeDraftCard({
       </div>
     </article>
   )
+}
+
+function sourceTypeLabel(sourceType: string | null | undefined): string {
+  if (sourceType === null || sourceType === undefined || sourceType === '') {
+    return 'Unknown'
+  }
+  if (sourceType === 'url') {
+    return 'URL'
+  }
+  if (sourceType === 'pdf') {
+    return 'PDF'
+  }
+  if (sourceType === 'docx') {
+    return 'DOCX'
+  }
+  if (sourceType === 'txt') {
+    return 'TXT'
+  }
+  return sourceType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function knowledgeDraftStatusLabel(status: ChatKnowledgeDraftStatus): string {
+  if (status === 'approved') {
+    return 'Approved'
+  }
+  if (status === 'pending') {
+    return 'Pending'
+  }
+  if (status === 'cancelled') {
+    return 'Canceled'
+  }
+  if (status === 'draft') {
+    return 'Draft'
+  }
+  return status
 }
 
 function knowledgeDraftStatusTone(
@@ -1339,7 +1394,9 @@ function getJsonObject(
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Request failed.'
+  return error instanceof Error
+    ? operatorSafeMessage(error.message)
+    : 'Request failed.'
 }
 
 function formatScore(score: number): string {

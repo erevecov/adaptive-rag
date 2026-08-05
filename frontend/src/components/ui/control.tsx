@@ -11,6 +11,8 @@ const controlClasses = [
   'motion-safe:transition-colors placeholder:text-muted-foreground',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
   'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+  // Invalid fields: destructive ring against fill (parity with danger Button).
+  'aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive',
 ]
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>
@@ -18,7 +20,7 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement>
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = 'text', ...props }, ref) => (
     <input
-      className={cn('h-9', controlClasses, className)}
+      className={cn('h-9 max-[680px]:min-h-11', controlClasses, className)}
       ref={ref}
       type={type}
       {...props}

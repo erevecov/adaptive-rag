@@ -56,7 +56,45 @@ describe('Button', () => {
     render(<Button variant="danger">Delete</Button>)
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Delete' }))
-    expect(tokens).toContain('focus-visible:ring-destructive-foreground/55')
+    expect(tokens).toContain('focus-visible:ring-destructive-foreground')
+    expect(tokens).not.toContain('focus-visible:ring-destructive-foreground/55')
+  })
+
+  test('secondary variant uses primary-tint hover for purple chrome', () => {
+    render(<Button variant="secondary">Cancel</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'Cancel' }))
+    expect(tokens).toContain('hover:bg-primary/15')
+    expect(tokens).toContain('hover:border-primary/40')
+  })
+
+  test('ghost variant uses primary-tint hover for purple chrome', () => {
+    render(<Button variant="ghost">More</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
+    expect(tokens).toContain('hover:bg-primary/15')
+  })
+
+  test('sizes grow to 44px touch targets at ≤680px', () => {
+    render(
+      <>
+        <Button>Save</Button>
+        <Button size="sm">Edit</Button>
+        <IconButton label="More actions">
+          <span aria-hidden="true">⋯</span>
+        </IconButton>
+      </>,
+    )
+
+    expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
+      'max-[680px]:min-h-11',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
+      'max-[680px]:min-h-11',
+    )
+    expect(classTokens(screen.getByRole('button', { name: 'More actions' }))).toContain(
+      'max-[680px]:size-11',
+    )
   })
 })
 

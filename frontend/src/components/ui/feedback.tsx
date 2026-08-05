@@ -9,7 +9,8 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, role = 'status', ...props }, ref) => (
     <div
       className={cn(
-        'flex flex-col gap-1.5 rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground',
+        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 bg-muted/40 p-4 text-center text-sm text-muted-foreground',
+        'motion-safe:transition-colors',
         className,
       )}
       ref={ref}
@@ -29,8 +30,8 @@ const inlineFeedbackVariants = cva('text-sm font-medium', {
     tone: {
       danger: 'text-destructive',
       neutral: 'text-muted-foreground',
-      success: 'text-emerald-700 dark:text-emerald-300',
-      warning: 'text-amber-800 dark:text-amber-200',
+      success: 'text-emerald-800 dark:text-emerald-200',
+      warning: 'text-amber-900 dark:text-amber-100',
     },
   },
 })
@@ -71,19 +72,24 @@ export const InlineFeedback = forwardRef<
 })
 InlineFeedback.displayName = 'InlineFeedback'
 
-const calloutVariants = cva('rounded-md border p-4 text-sm', {
-  defaultVariants: {
-    tone: 'neutral',
-  },
-  variants: {
-    tone: {
-      danger: 'border-destructive/30 bg-destructive/10 text-destructive',
-      neutral: 'border-border bg-muted text-foreground',
-      success: 'border-emerald-500/35 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-      warning: 'border-amber-500/35 bg-amber-500/15 text-amber-800 dark:text-amber-200',
+const calloutVariants = cva(
+  'rounded-md border p-4 text-sm leading-relaxed motion-safe:transition-colors',
+  {
+    defaultVariants: {
+      tone: 'neutral',
+    },
+    variants: {
+      tone: {
+        danger: 'border-destructive/30 bg-destructive/10 text-destructive',
+        neutral: 'border-border bg-muted text-foreground',
+        success:
+          'border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
+        warning:
+          'border-amber-500/35 bg-amber-500/15 text-amber-900 dark:text-amber-100',
+      },
     },
   },
-})
+)
 
 type CalloutTone = NonNullable<VariantProps<typeof calloutVariants>['tone']>
 

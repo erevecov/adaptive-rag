@@ -78,7 +78,7 @@ export function missingSyncedModelMessage({
   if (trimmedConnectionId.length === 0 || modelOptions.length > 0) {
     return null
   }
-  return `Sync models for ${trimmedConnectionId} before saving ${target}.`
+  return `Sync models for ${trimmedConnectionId} before saving ${slotLabel(target)}.`
 }
 
 export function providerModelOptions({
@@ -138,11 +138,61 @@ function uniqueProviderModelOptions(
 }
 
 export function connectionOptionLabel(connection: ProviderConnection): string {
+  const detail = `${providerLabel(connection.provider)}/${connectionTypeLabel(connection.connection_type)}`
   const label = metadataLabel(connection.metadata)
   if (label === null) {
-    return `${connection.connection_id} (${connection.provider}/${connection.connection_type})`
+    return `${connection.connection_id} (${detail})`
   }
-  return `${label} (${connection.provider}/${connection.connection_type})`
+  return `${label} (${detail})`
+}
+
+export function providerLabel(provider: string): string {
+  if (provider === 'local_openai_compatible') {
+    return 'Local OpenAI-compatible'
+  }
+  if (provider === 'qwen') {
+    return 'Qwen'
+  }
+  if (provider === 'fake') {
+    return 'Fake'
+  }
+  return titleCaseToken(provider)
+}
+
+export function connectionTypeLabel(connectionType: string): string {
+  if (connectionType === 'hosted') {
+    return 'Hosted'
+  }
+  if (connectionType === 'local') {
+    return 'Local'
+  }
+  if (connectionType === 'fake') {
+    return 'Fake'
+  }
+  return titleCaseToken(connectionType)
+}
+
+export function slotLabel(slot: string): string {
+  if (slot === 'chat') {
+    return 'Chat'
+  }
+  if (slot === 'dense_embedding') {
+    return 'Dense Embedding'
+  }
+  if (slot === 'sparse_embedding') {
+    return 'Sparse Embedding'
+  }
+  if (slot === 'rerank') {
+    return 'Rerank'
+  }
+  if (slot === 'contextualization') {
+    return 'Contextualization'
+  }
+  return titleCaseToken(slot)
+}
+
+export function titleCaseToken(value: string): string {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 export function metadataLabel(

@@ -31,11 +31,14 @@ import {
   PROVIDER_CONNECTION_CAPABILITIES,
   RUNTIME_SLOTS,
   connectionOptionLabel,
+  connectionTypeLabel,
   connectionsForCapability,
   missingSyncedModelMessage,
   normalizeChatRetrievalLimit,
+  providerLabel,
   providerModelOptions,
   runtimeStatusLabel,
+  slotLabel,
   type ProviderModelOption,
   type RequestState,
   type RuntimeSubmodule,
@@ -414,6 +417,25 @@ function runtimeStatusTone(
   return 'neutral'
 }
 
+function sourceLabel(source: string): string {
+  if (source === 'overridden') {
+    return 'Overridden'
+  }
+  if (source === 'inherited') {
+    return 'Inherited'
+  }
+  if (source === 'global') {
+    return 'Global'
+  }
+  if (source === 'project') {
+    return 'Project'
+  }
+  if (source === 'default') {
+    return 'Default'
+  }
+  return source.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 function RuntimeField({
   children,
   className,
@@ -433,7 +455,7 @@ function RuntimeField({
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
-      {help ? <FieldHelp>{help}</FieldHelp> : null}
+      {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </Field>
   )
@@ -505,7 +527,7 @@ export function RuntimeConnectionsPanel({
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
             data-slot-state="loading"
             role="status"
           >
@@ -535,7 +557,8 @@ export function RuntimeConnectionsPanel({
                       </strong>
                       <div className="flex flex-wrap gap-2">
                         <Badge className="max-w-full truncate">
-                          {connection.provider} / {connection.connection_type}
+                          {providerLabel(connection.provider)} /{' '}
+                          {connectionTypeLabel(connection.connection_type)}
                         </Badge>
                         <Badge className="max-w-full truncate" tone="neutral">
                           {connection.capabilities.join(', ')}
@@ -566,7 +589,7 @@ export function RuntimeConnectionsPanel({
                       size="sm"
                       variant="secondary"
                     >
-                      {isChecking ? 'Checking...' : 'Check'}
+                      {isChecking ? 'Checking…' : 'Check'}
                     </Button>
                     <Button
                       aria-label={`Edit ${connection.connection_id} connection`}
@@ -674,12 +697,12 @@ export function RuntimeConnectionsPanel({
                 id={fieldId}
                 onValueChange={onConnectionProviderChange}
                 options={[
-                  { label: 'qwen', value: 'qwen' },
+                  { label: 'Qwen', value: 'qwen' },
                   {
-                    label: 'local_openai_compatible',
+                    label: 'Local OpenAI-compatible',
                     value: 'local_openai_compatible',
                   },
-                  { label: 'fake', value: 'fake' },
+                  { label: 'Fake', value: 'fake' },
                 ]}
                 value={connectionProvider}
               />
@@ -694,9 +717,9 @@ export function RuntimeConnectionsPanel({
                 id={fieldId}
                 onValueChange={onConnectionTypeChange}
                 options={[
-                  { label: 'hosted', value: 'hosted' },
-                  { label: 'local', value: 'local' },
-                  { label: 'fake', value: 'fake' },
+                  { label: 'Hosted', value: 'hosted' },
+                  { label: 'Local', value: 'local' },
+                  { label: 'Fake', value: 'fake' },
                 ]}
                 value={connectionType}
               />
@@ -741,6 +764,9 @@ export function RuntimeConnectionsPanel({
           >
             {(fieldId) => (
               <Input
+                aria-describedby={
+                  isEditingConnection ? `${fieldId}-help` : undefined
+                }
                 autoComplete="new-password"
                 id={fieldId}
                 onChange={(event) =>
@@ -820,7 +846,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
+            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
@@ -829,9 +855,9 @@ export function CapabilitySelector({
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
               {value.map((capability) => (
                 <Badge className="gap-1 pr-1" key={capability} tone="primary">
-                  <span>{capability}</span>
+                  <span>{slotLabel(capability)}</span>
                   <Button
-                    aria-label={`Remove ${capability} capability`}
+                    aria-label={`Remove ${slotLabel(capability)} capability`}
                     className="h-5 px-1 text-xs"
                     onClick={(event) => {
                       event.stopPropagation()
@@ -843,7 +869,7 @@ export function CapabilitySelector({
                     type="button"
                     variant="ghost"
                   >
-                    x
+                    ×
                   </Button>
                 </Badge>
               ))}
@@ -883,7 +909,7 @@ export function CapabilitySelector({
           <Popover.Content
             align="start"
             aria-label="Capability options"
-            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)]"
             id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
@@ -894,13 +920,17 @@ export function CapabilitySelector({
             sideOffset={4}
           >
             {filteredOptions.length === 0 ? (
-              <p className="p-3 text-left text-sm text-muted-foreground" role="status">
+              <p
+                className="p-3 text-left text-sm text-muted-foreground"
+                data-slot-state="empty"
+                role="status"
+              >
                 No capabilities found
               </p>
             ) : (
               filteredOptions.map((capability) => (
                 <Button
-                  aria-label={`Add ${capability} capability`}
+                  aria-label={`Add ${slotLabel(capability)} capability`}
                   aria-selected={false}
                   className="justify-start"
                   key={capability}
@@ -912,7 +942,7 @@ export function CapabilitySelector({
                   type="button"
                   variant="ghost"
                 >
-                  <span>{capability}</span>
+                  <span>{slotLabel(capability)}</span>
                 </Button>
               ))
             )}
@@ -958,7 +988,7 @@ export function RuntimeModelCatalogPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Refresh catalog'}
+        {state === 'loading' ? 'Refreshing…' : 'Refresh catalog'}
       </Button>
 
       <form className="grid gap-4" onSubmit={onSyncProviderModels}>
@@ -970,6 +1000,7 @@ export function RuntimeModelCatalogPanel({
             <ConnectionSelect
               connections={connections}
               id={fieldId}
+              isLoading={state === 'loading'}
               onChange={onModelSyncConnectionIdChange}
               testId="model-sync-connection-select"
               value={modelSyncConnectionId}
@@ -1105,7 +1136,7 @@ export function RuntimeGlobalDefaultsPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload global defaults'}
       </Button>
 
       <RuntimeSlotList isLoading={state === 'loading'} slots={slots} />
@@ -1119,7 +1150,7 @@ export function RuntimeGlobalDefaultsPanel({
                 id={fieldId}
                 onValueChange={onGlobalSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
-                  label: slot,
+                  label: slotLabel(slot),
                   value: slot,
                 }))}
                 value={globalSlot}
@@ -1134,6 +1165,7 @@ export function RuntimeGlobalDefaultsPanel({
               <ConnectionSelect
                 connections={globalSlotConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onGlobalSlotConnectionIdChange}
                 testId="global-slot-connection-select"
                 value={globalSlotConnectionId}
@@ -1147,6 +1179,7 @@ export function RuntimeGlobalDefaultsPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={globalSlotModelOptions}
                 onChange={onGlobalSlotModelIdChange}
                 testId="global-slot-model-select"
@@ -1196,7 +1229,7 @@ export function RuntimeGlobalDefaultsPanel({
                   </small>
                 </div>
                 <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                  {model.is_default ? 'default' : 'enabled'}
+                  {model.is_default ? 'Default' : 'Enabled'}
                 </Badge>
               </DataListItem>
             ))}
@@ -1214,6 +1247,7 @@ export function RuntimeGlobalDefaultsPanel({
               <ConnectionSelect
                 connections={chatConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onChatConnectionIdChange}
                 testId="chat-connection-select"
                 value={chatConnectionId}
@@ -1224,6 +1258,7 @@ export function RuntimeGlobalDefaultsPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={chatModelOptions}
                 onChange={onChatModelIdChange}
                 testId="chat-model-select"
@@ -1258,17 +1293,17 @@ export function RuntimeGlobalDefaultsPanel({
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
                 <strong className="text-sm font-semibold">
-                  global defaults
+                  Global defaults
                 </strong>
                 <small className="text-xs text-muted-foreground">
-                  limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
+                  Limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
               </div>
               <Badge tone="neutral">
                 {chatRetrievalSettings.rerank_enabled
-                  ? 'rerank on'
-                  : 'rerank off'}
+                  ? 'Rerank on'
+                  : 'Rerank off'}
               </Badge>
             </DataListItem>
           </DataList>
@@ -1306,8 +1341,8 @@ export function RuntimeGlobalDefaultsPanel({
                     onGlobalChatRerankEnabledChange(nextValue === 'true')
                   }
                   options={[
-                    { label: 'on', value: 'true' },
-                    { label: 'off', value: 'false' },
+                    { label: 'On', value: 'true' },
+                    { label: 'Off', value: 'false' },
                   ]}
                   value={String(globalChatRerankEnabled)}
                 />
@@ -1409,7 +1444,7 @@ export function RuntimeProjectOverridesPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing...' : 'Reload project settings'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload project settings'}
       </Button>
 
       <ProjectRuntimeSettingsView
@@ -1447,8 +1482,8 @@ export function RuntimeProjectOverridesPanel({
                   onProjectChatRerankEnabledChange(nextValue === 'true')
                 }
                 options={[
-                  { label: 'on', value: 'true' },
-                  { label: 'off', value: 'false' },
+                  { label: 'On', value: 'true' },
+                  { label: 'Off', value: 'false' },
                 ]}
                 value={String(projectChatRerankEnabled)}
               />
@@ -1496,7 +1531,7 @@ export function RuntimeProjectOverridesPanel({
                 id={fieldId}
                 onValueChange={onProjectSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
-                  label: slot,
+                  label: slotLabel(slot),
                   value: slot,
                 }))}
                 value={projectSlot}
@@ -1511,6 +1546,7 @@ export function RuntimeProjectOverridesPanel({
               <ConnectionSelect
                 connections={projectSlotConnections}
                 id={fieldId}
+                isLoading={state === 'loading'}
                 onChange={onProjectSlotConnectionIdChange}
                 testId="project-slot-connection-select"
                 value={projectSlotConnectionId}
@@ -1524,6 +1560,7 @@ export function RuntimeProjectOverridesPanel({
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
+                isLoading={state === 'loading'}
                 models={projectSlotModelOptions}
                 onChange={onProjectSlotModelIdChange}
                 testId="project-slot-model-select"
@@ -1564,7 +1601,7 @@ export function ConnectionSecretSummary({
       {connection.secrets.map((secret) => (
         <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secret.secret_name}{' '}
-          {secret.configured ? 'configured' : 'not configured'}
+          {secret.configured ? 'Configured' : 'Not configured'}
           {secret.last_four ? ` / last four ${secret.last_four}` : ''}
         </Badge>
       ))}
@@ -1621,27 +1658,29 @@ export function ConnectionCheckSummary({
 export function ConnectionSelect({
   connections,
   id,
+  isLoading = false,
   onChange,
   testId,
   value,
 }: {
   connections: ProviderConnection[]
   id?: string
+  isLoading?: boolean
   onChange(value: string): void
   testId?: string
   value: string
 }) {
+  const emptyLabel = isLoading ? 'Loading connections…' : 'No connections yet'
   return (
     <Select
       data-testid={testId}
+      disabled={isLoading && connections.length === 0}
       id={id}
       onValueChange={onChange}
       options={[
         {
           label:
-            connections.length === 0
-              ? 'No connections yet'
-              : 'Select connection',
+            connections.length === 0 ? emptyLabel : 'Select connection',
           value: '',
         },
         ...connections.map((connection) => ({
@@ -1656,17 +1695,20 @@ export function ConnectionSelect({
 
 export function ProviderModelSelect({
   id,
+  isLoading = false,
   models,
   onChange,
   testId,
   value,
 }: {
   id?: string
+  isLoading?: boolean
   models: ProviderModelOption[]
   onChange(value: string): void
   testId?: string
   value: string
 }) {
+  const emptyLabel = isLoading ? 'Loading models…' : 'No models yet'
   return (
     <Select
       data-testid={testId}
@@ -1675,7 +1717,7 @@ export function ProviderModelSelect({
       onValueChange={onChange}
       options={[
         {
-          label: models.length === 0 ? 'No models yet' : 'Select model',
+          label: models.length === 0 ? emptyLabel : 'Select model',
           value: '',
         },
         ...models.map((model) => ({
@@ -1701,7 +1743,7 @@ export function ProviderModelCatalogView({
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
-          className="p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
           data-slot-state="loading"
           role="status"
         >
@@ -1780,12 +1822,12 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="grid gap-1">
-            <strong className="text-sm font-semibold">{slot.slot}</strong>
+            <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
             <small className="text-xs text-muted-foreground">
               {slot.connection_id} / {slot.model_id}
             </small>
           </div>
-          <Badge tone="neutral">global</Badge>
+          <Badge tone="neutral">{sourceLabel('global')}</Badge>
         </DataListItem>
       ))}
     </DataList>
@@ -1805,7 +1847,7 @@ export function ProjectRuntimeSettingsView({
     return (
       <EmptyState
         aria-busy="true"
-        className="p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
         data-slot-state="loading"
         role="status"
       >
@@ -1824,31 +1866,41 @@ export function ProjectRuntimeSettingsView({
     <div className="grid gap-4 xl:grid-cols-3">
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Effective slots</h3>
-        <DataList>
-          {settings.slots.map((slot) => (
-            <DataListItem className="grid gap-3" key={slot.slot}>
-              <div className="grid gap-1">
-                <strong className="text-sm font-semibold">{slot.slot}</strong>
-                <small className="text-xs text-muted-foreground">
-                  {slot.connection_id} / {slot.model_id}
-                </small>
-              </div>
-              <DataListItemActions>
-                <Badge tone="neutral">{slot.source}</Badge>
-                {slot.source === 'overridden' ? (
-                  <Button
-                    onClick={() => onResetProjectSlot(slot.slot)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Reset {slot.slot} to global
-                  </Button>
-                ) : null}
-              </DataListItemActions>
-            </DataListItem>
-          ))}
-        </DataList>
+        {settings.slots.length === 0 ? (
+          <EmptyState
+            className="p-4 text-left"
+            data-slot-state="empty"
+            role="status"
+          >
+            No effective slots yet.
+          </EmptyState>
+        ) : (
+          <DataList>
+            {settings.slots.map((slot) => (
+              <DataListItem className="grid gap-3" key={slot.slot}>
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
+                  <small className="text-xs text-muted-foreground">
+                    {slot.connection_id} / {slot.model_id}
+                  </small>
+                </div>
+                <DataListItemActions>
+                  <Badge tone="neutral">{sourceLabel(slot.source)}</Badge>
+                  {slot.source === 'overridden' ? (
+                    <Button
+                      onClick={() => onResetProjectSlot(slot.slot)}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      Reset {slotLabel(slot.slot)} to global
+                    </Button>
+                  ) : null}
+                </DataListItemActions>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat pool</h3>
@@ -1877,9 +1929,9 @@ export function ProjectRuntimeSettingsView({
                   </small>
                 </div>
                 <DataListItemActions>
-                  <Badge tone="neutral">{model.source}</Badge>
+                  <Badge tone="neutral">{sourceLabel(model.source)}</Badge>
                   <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                    {model.is_default ? 'default' : 'enabled'}
+                    {model.is_default ? 'Default' : 'Enabled'}
                   </Badge>
                 </DataListItemActions>
               </DataListItem>
@@ -1893,14 +1945,16 @@ export function ProjectRuntimeSettingsView({
           <DataListItem className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
               <strong className="text-sm font-semibold">
-                limit {settings.chat_retrieval.retrieval_limit}
+                Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
               <small className="text-xs text-muted-foreground">
-                candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
-                {settings.chat_retrieval.rerank_enabled ? 'rerank on' : 'rerank off'}
+                Candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
+                {settings.chat_retrieval.rerank_enabled ? 'Rerank on' : 'Rerank off'}
               </small>
             </div>
-            <Badge tone="neutral">{settings.chat_retrieval.source}</Badge>
+            <Badge tone="neutral">
+              {sourceLabel(settings.chat_retrieval.source)}
+            </Badge>
           </DataListItem>
         </DataList>
       </section>

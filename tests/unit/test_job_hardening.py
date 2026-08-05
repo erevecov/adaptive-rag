@@ -71,6 +71,8 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
         project_id=project.id,
         source_id=source.id,
     )
+    # Align clocks: enqueue uses wall-clock run_after; lease uses fixed _now().
+    job.run_after = _now()
     # Simulate a worker that leased then died mid-job.
     job.status = "running"
     job.locked_by = "dead-worker"
@@ -128,6 +130,7 @@ def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
         source_id=source.id,
         max_attempts=2,
     )
+    job.run_after = _now()
     session.commit()
 
     with patch(
@@ -194,6 +197,7 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
         project_id=project.id,
         source_id=source.id,
     )
+    job.run_after = _now()
     session.commit()
 
     def poison_session(self, *, project_id, job):  # type: ignore[no-untyped-def]

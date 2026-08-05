@@ -14,6 +14,7 @@ import {
   PanelTitle,
 } from '@/components/ui/panel'
 import { Select } from '@/components/ui/select'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import {
   Table,
   TableBody,
@@ -144,7 +145,7 @@ export function ObservabilityPanel({
           ))}
         </SegmentedControl>
 
-        <form className="grid gap-3 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
+        <form className="grid gap-4 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
           <ObservabilityField id="observability-project-id" label="Project ID">
             {(fieldId) => (
               <Input
@@ -189,22 +190,22 @@ export function ObservabilityPanel({
                 onValueChange={onStatusChange}
                 options={[
                   { label: 'Any', value: '' },
-                  { label: 'running', value: 'running' },
-                  { label: 'succeeded', value: 'succeeded' },
-                  { label: 'failed', value: 'failed' },
+                  { label: 'Running', value: 'running' },
+                  { label: 'Succeeded', value: 'succeeded' },
+                  { label: 'Failed', value: 'failed' },
                 ]}
                 value={status}
               />
             )}
           </ObservabilityField>
           <Button className="whitespace-nowrap" disabled={isRefreshing} type="submit">
-            {isRefreshing ? 'Refreshing...' : 'Refresh summary'}
+            {isRefreshing ? 'Refreshing…' : 'Refresh summary'}
           </Button>
         </form>
 
         {error ? (
           <Callout className="p-3" role="alert" tone="danger">
-            {error}
+            {operatorSafeMessage(error)}
           </Callout>
         ) : null}
 
@@ -646,7 +647,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
             >
               <div className="grid min-w-0 gap-1">
                 <strong className="break-words text-sm font-semibold">
-                  {row.status}
+                  {sessionStatusDisplayLabel(row.status)}
                 </strong>
                 <small className="text-xs text-muted-foreground">
                   {formatPercent(row.count, summary.sessions.total)}
@@ -863,6 +864,22 @@ function observabilityStatusLabel(state: RequestState): string {
     return 'Canceled'
   }
   return 'Ready'
+}
+
+function sessionStatusDisplayLabel(status: string): string {
+  if (status === 'failed') {
+    return 'Failed'
+  }
+  if (status === 'succeeded') {
+    return 'Succeeded'
+  }
+  if (status === 'running') {
+    return 'Running'
+  }
+  if (status === 'canceled' || status === 'cancelled') {
+    return 'Canceled'
+  }
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function observabilitySubmoduleLabel(submodule: ObservabilitySubmodule): string {

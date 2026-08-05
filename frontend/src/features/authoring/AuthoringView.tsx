@@ -23,6 +23,7 @@ import type {
   Source,
   User,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type AuthoringSubmodule = 'projects' | 'users' | 'knowledge' | 'sources'
@@ -388,11 +389,13 @@ function LoadingListState({ label }: { label: string }) {
 function AuthoringField({
   children,
   className,
+  help,
   id,
   label,
 }: {
   children(id: string): ReactNode
   className?: string
+  help?: ReactNode
   id: string
   label: string
 }) {
@@ -400,6 +403,7 @@ function AuthoringField({
     <Field className={className}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
+      {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
     </Field>
   )
 }
@@ -454,7 +458,7 @@ function ProjectsPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create project"
             />
           </Button>
@@ -546,7 +550,7 @@ function ProjectList({
                 </small>
                 {isDeleted ? (
                   <small className="text-xs text-muted-foreground">
-                    Soft-deleted{' '}
+                    Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
                 ) : null}
@@ -672,30 +676,30 @@ function ProjectAccessPanel({
                 name="user-system-role"
                 onValueChange={onUserSystemRoleChange}
                 options={[
-                  { label: 'user', value: 'user' },
-                  { label: 'superadmin', value: 'superadmin' },
+                  { label: 'User', value: 'user' },
+                  { label: 'Superadmin', value: 'superadmin' },
                 ]}
                 value={userSystemRole}
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-user-access-token" label="Access token">
+          <AuthoringField
+            help="Paste once; never shown after save."
+            id="authoring-user-access-token"
+            label="Access token"
+          >
             {(fieldId) => (
-              <>
-                <Input
-                  autoComplete="off"
-                  id={fieldId}
-                  name="user-access-token"
-                  onChange={(event) =>
-                    onUserAccessTokenChange(event.currentTarget.value)
-                  }
-                  type="password"
-                  value={userAccessToken}
-                />
-                <FieldHelp>
-                  Paste once; never shown after save.
-                </FieldHelp>
-              </>
+              <Input
+                aria-describedby={`${fieldId}-help`}
+                autoComplete="off"
+                id={fieldId}
+                name="user-access-token"
+                onChange={(event) =>
+                  onUserAccessTokenChange(event.currentTarget.value)
+                }
+                type="password"
+                value={userAccessToken}
+              />
             )}
           </AuthoringField>
         </div>
@@ -703,7 +707,7 @@ function ProjectAccessPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create user"
             />
           </Button>
@@ -753,9 +757,9 @@ function ProjectAccessPanel({
                 name="member-role"
                 onValueChange={onMemberRoleChange}
                 options={[
-                  { label: 'viewer', value: 'viewer' },
-                  { label: 'contributor', value: 'contributor' },
-                  { label: 'admin', value: 'admin' },
+                  { label: 'Viewer', value: 'viewer' },
+                  { label: 'Contributor', value: 'contributor' },
+                  { label: 'Admin', value: 'admin' },
                 ]}
                 value={memberRole}
               />
@@ -810,83 +814,103 @@ function UserAccessLists({
         data-slot-state="empty"
         role="status"
       >
-        No users or memberships loaded.
+        No users or memberships yet.
       </EmptyState>
     )
   }
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      <DataList aria-label="Users">
-        {users.map((user) => (
-          <DataListItem
-            className="grid gap-2"
-            data-inactive={!user.is_active ? '' : undefined}
-            key={user.id}
-          >
-            <div className="grid min-w-0 gap-1">
-              <strong
-                className={
-                  user.is_active
-                    ? 'break-words text-sm font-semibold'
-                    : 'break-words text-sm font-semibold text-muted-foreground'
-                }
-              >
-                {user.login}
-              </strong>
-              <small className="break-words text-xs text-muted-foreground">
-                {user.display_name}
-              </small>
-              <small className="break-all text-xs text-muted-foreground">
-                {user.id}
-              </small>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">{user.system_role}</Badge>
-              {!user.is_active ? (
-                <StatusBadge className="w-fit" tone="warning">
-                  Inactive
-                </StatusBadge>
-              ) : null}
-              <Button
-                aria-label={`Deactivate user ${user.login}`}
-                disabled={isBusy || !user.is_active}
-                onClick={() => onDeactivateUser(user)}
-                type="button"
-                variant="danger"
-              >
-                Deactivate
-              </Button>
-            </div>
-          </DataListItem>
-        ))}
-      </DataList>
-      <DataList aria-label="Project memberships">
-        {memberships.map((membership) => (
-          <DataListItem className="grid gap-2" key={membership.id}>
-            <div className="grid min-w-0 gap-1">
-              <strong className="break-all text-sm font-semibold">
-                {membership.user_id}
-              </strong>
-              <small className="break-all text-xs text-muted-foreground">
-                {membership.project_id}
-              </small>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">{membership.role}</Badge>
-              <Button
-                aria-label={`Remove membership ${membership.user_id}`}
-                disabled={isBusy}
-                onClick={() => onDeleteMembership(membership)}
-                type="button"
-                variant="danger"
-              >
-                Remove
-              </Button>
-            </div>
-          </DataListItem>
-        ))}
-      </DataList>
+      {users.length === 0 ? (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No users yet.
+        </EmptyState>
+      ) : (
+        <DataList aria-label="Users">
+          {users.map((user) => (
+            <DataListItem
+              className="grid gap-2"
+              data-inactive={!user.is_active ? '' : undefined}
+              key={user.id}
+            >
+              <div className="grid min-w-0 gap-1">
+                <strong
+                  className={
+                    user.is_active
+                      ? 'break-words text-sm font-semibold'
+                      : 'break-words text-sm font-semibold text-muted-foreground'
+                  }
+                >
+                  {user.login}
+                </strong>
+                <small className="break-words text-xs text-muted-foreground">
+                  {user.display_name}
+                </small>
+                <small className="break-all text-xs text-muted-foreground">
+                  {user.id}
+                </small>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="w-fit">{titleCaseStatus(user.system_role)}</Badge>
+                {!user.is_active ? (
+                  <StatusBadge className="w-fit" tone="warning">
+                    Inactive
+                  </StatusBadge>
+                ) : null}
+                <Button
+                  aria-label={`Deactivate user ${user.login}`}
+                  disabled={isBusy || !user.is_active}
+                  onClick={() => onDeactivateUser(user)}
+                  type="button"
+                  variant="danger"
+                >
+                  Deactivate
+                </Button>
+              </div>
+            </DataListItem>
+          ))}
+        </DataList>
+      )}
+      {memberships.length === 0 ? (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No project memberships yet.
+        </EmptyState>
+      ) : (
+        <DataList aria-label="Project memberships">
+          {memberships.map((membership) => (
+            <DataListItem className="grid gap-2" key={membership.id}>
+              <div className="grid min-w-0 gap-1">
+                <strong className="break-all text-sm font-semibold">
+                  {membership.user_id}
+                </strong>
+                <small className="break-all text-xs text-muted-foreground">
+                  {membership.project_id}
+                </small>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="w-fit">{titleCaseStatus(membership.role)}</Badge>
+                <Button
+                  aria-label={`Remove membership ${membership.user_id}`}
+                  disabled={isBusy}
+                  onClick={() => onDeleteMembership(membership)}
+                  type="button"
+                  variant="danger"
+                >
+                  Remove
+                </Button>
+              </div>
+            </DataListItem>
+          ))}
+        </DataList>
+      )}
     </div>
   )
 }
@@ -1045,7 +1069,7 @@ function SourcesPanel({
       status={<RequestStatus state={sourceState} />}
       title="Content registry"
     >
-      <form className="grid gap-3" onSubmit={onCreateSource}>
+      <form className="grid gap-4" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
@@ -1058,7 +1082,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source type">
             {(fieldId) => (
               <Select
@@ -1066,12 +1090,12 @@ function SourcesPanel({
                 name="source-type"
                 onValueChange={onSourceTypeChange}
                 options={[
-                  { label: 'markdown', value: 'markdown' },
-                  { label: 'text', value: 'text' },
-                  { label: 'txt', value: 'txt' },
-                  { label: 'url', value: 'url' },
-                  { label: 'pdf', value: 'pdf' },
-                  { label: 'docx', value: 'docx' },
+                  { label: 'Markdown', value: 'markdown' },
+                  { label: 'Text', value: 'text' },
+                  { label: 'Txt', value: 'txt' },
+                  { label: 'URL', value: 'url' },
+                  { label: 'PDF', value: 'pdf' },
+                  { label: 'DOCX', value: 'docx' },
                 ]}
                 value={sourceType}
               />
@@ -1138,7 +1162,7 @@ function SourcesPanel({
           <Button className="min-h-9" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
-              busyLabel="Creating..."
+              busyLabel="Creating…"
               idleLabel="Create source"
             />
           </Button>
@@ -1206,7 +1230,7 @@ function SourceList({
         const tags =
           Array.isArray(source.tags) && source.tags.length > 0
             ? source.tags.join(', ')
-            : 'no tags'
+            : 'No tags'
         return (
           <DataListItem
             className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -1235,12 +1259,12 @@ function SourceList({
               </small>
               <small className="text-xs text-muted-foreground">
                 {isDeleted
-                  ? `Soft-deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
-                  : `${source.source_type} · ${tags}`}
+                  ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
+                  : `${sourceTypeLabel(source.source_type)} · ${tags}`}
               </small>
             </div>
             <DataListItemActions className="justify-start md:justify-end">
-              <Badge>{source.source_type}</Badge>
+              <Badge>{sourceTypeLabel(source.source_type)}</Badge>
               <Button
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
@@ -1332,7 +1356,10 @@ function KnowledgeReviewPanel({
           data-slot-state="empty"
           role="status"
         >
-          No pending proposals.
+          <p className="font-medium text-foreground/90">No pending proposals.</p>
+          <p className="text-xs text-muted-foreground">
+            Refresh after chat surfaces a knowledge draft for this project.
+          </p>
         </EmptyState>
       ) : (
         <DataList aria-label="Knowledge proposals">
@@ -1352,7 +1379,9 @@ function KnowledgeReviewPanel({
                   >
                     {proposal.id}
                   </small>
-                  <Badge className="w-fit">{proposal.status}</Badge>
+                  <Badge className="w-fit">
+                    {titleCaseStatus(proposal.status)}
+                  </Badge>
                 </div>
                 <div className="grid gap-3">
                   <AuthoringField
@@ -1497,7 +1526,7 @@ function IngestionJobsPanel({
               className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide"
               tone={jobTone(run.status)}
             >
-              {run.status}
+              {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
           <p className="text-sm leading-snug text-foreground/90">
@@ -1505,7 +1534,7 @@ function IngestionJobsPanel({
           </p>
           {run.error_message ? (
             <InlineFeedback className="text-xs" tone="danger">
-              {run.error_message}
+              {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
         </div>
@@ -1583,14 +1612,16 @@ function IngestionJobList({
                       <StatusBadge className="w-fit" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
-                      <Badge className="w-fit">{job.job_type}</Badge>
+                      <Badge className="w-fit">
+                        {titleCaseStatus(job.job_type)}
+                      </Badge>
                     </div>
                     {sourceId ? (
                       <small
                         className="break-all text-xs text-muted-foreground"
                         title="source_id from job payload"
                       >
-                        source {sourceId}
+                        Source {sourceId}
                       </small>
                     ) : null}
                     <small
@@ -1602,13 +1633,13 @@ function IngestionJobList({
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
                       <span>{formatAttempts(job)}</span>
                       <span title={runAfter.absolute}>
-                        run after {runAfter.relative}
+                        Run after {runAfter.relative}
                       </span>
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
                       <InlineFeedback className="text-xs" tone="danger">
-                        {job.last_error}
+                        {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
                   </div>
@@ -1706,21 +1737,21 @@ function isRetryableIngestionJob(job: IngestionJob): boolean {
 }
 
 function formatAttempts(job: IngestionJob): string {
-  return `attempt ${job.attempts}/${job.max_attempts}`
+  return `Attempt ${job.attempts}/${job.max_attempts}`
 }
 
 function formatLockState(job: IngestionJob): string {
   if (job.locked_by === null && job.locked_until === null) {
-    return 'unlocked'
+    return 'Unlocked'
   }
   const until = formatRelativeOperatorTimestamp(job.locked_until)
   if (job.locked_by !== null && job.locked_until !== null) {
-    return `locked by ${job.locked_by} until ${until.relative}`
+    return `Locked by ${job.locked_by} until ${until.relative}`
   }
   if (job.locked_by !== null) {
-    return `locked by ${job.locked_by}`
+    return `Locked by ${job.locked_by}`
   }
-  return `locked until ${until.relative}`
+  return `Locked until ${until.relative}`
 }
 
 function truncateId(value: string): string {
@@ -1813,21 +1844,46 @@ function formatRelativeOperatorTimestamp(value: string | null): {
 function jobStatusLabel(status: string): string {
   switch (status) {
     case 'queued':
-      return 'queued'
+      return 'Queued'
     case 'running':
-      return 'running'
+      return 'Running'
     case 'processed':
-      return 'processed'
+      return 'Processed'
     case 'blocked':
-      return 'blocked'
+      return 'Blocked'
     case 'dead_letter':
-      return 'dead letter'
+      return 'Dead letter'
     case 'failed':
-      return 'failed'
+      return 'Failed'
     case 'idle':
-      return 'idle'
+      return 'Idle'
     default:
-      return status.replace(/_/g, ' ')
+      return titleCaseStatus(status)
+  }
+}
+
+function titleCaseStatus(status: string): string {
+  return status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function sourceTypeLabel(sourceType: string): string {
+  switch (sourceType) {
+    case 'markdown':
+      return 'Markdown'
+    case 'text':
+      return 'Text'
+    case 'txt':
+      return 'Txt'
+    case 'url':
+      return 'URL'
+    case 'pdf':
+      return 'PDF'
+    case 'docx':
+      return 'DOCX'
+    default:
+      return titleCaseStatus(sourceType)
   }
 }
 

@@ -162,7 +162,8 @@ export function AppShell({
           'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100]',
           'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2',
           'focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          // Match primary Button: ring against primary fill (critical on purple).
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )}
         data-slot="skip-link"
         href={skipHref}
@@ -266,7 +267,6 @@ export function WorkspaceTopline({
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px]',
         !isLeftSidebarOpen && 'pl-12',
-        'max-[680px]:pl-12',
       )}
       data-slot="workspace-topline"
     >
@@ -446,7 +446,7 @@ export function AppSidebar({
         <IconButton
           aria-expanded={isOpen}
           className={cn(
-            'border-border bg-card text-foreground hover:border-primary hover:bg-accent hover:text-accent-foreground',
+            'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
               'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card/90 shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-3 max-[680px]:top-3',
@@ -563,9 +563,9 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight',
-        'hover:bg-muted/50 hover:text-foreground',
-        active && 'bg-muted font-semibold text-foreground',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight max-[680px]:min-h-11',
+        'hover:bg-primary/15 hover:text-foreground',
+        active && 'bg-primary/15 font-semibold text-foreground',
         className,
       )}
       onClick={onClick}
@@ -755,7 +755,7 @@ function SidebarContextualButton({
               active && 'before:hidden',
             ]
           : 'min-h-9 rounded-md px-2.5 text-sm',
-        active && 'border-border bg-accent text-accent-foreground',
+        active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
       onClick={onClick}
@@ -824,7 +824,7 @@ function SidebarProjectSelector({
                 'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors',
                 'hover:border-primary',
               ],
-              isOpen && 'border-primary bg-accent',
+              isOpen && 'border-primary bg-primary/15',
             )}
             slotName="project-selector-trigger"
             type="button"
@@ -873,7 +873,7 @@ function SidebarProjectSelector({
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                {state === 'loading' ? 'Loading projects...' : 'All projects'}
+                {state === 'loading' ? 'Loading projects…' : 'All projects'}
               </span>
             </div>
 
@@ -898,11 +898,11 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11',
                           'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground motion-safe:transition-colors',
                           'hover:border-border',
                         ],
-                        isSelected && 'border-border bg-accent text-accent-foreground',
+                        isSelected && 'border-primary/40 bg-primary/15 text-foreground',
                         !canAccess && 'cursor-not-allowed opacity-55',
                       )}
                       data-selected={isSelected ? '' : undefined}

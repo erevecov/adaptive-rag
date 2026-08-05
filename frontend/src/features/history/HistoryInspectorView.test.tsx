@@ -195,6 +195,22 @@ describe('SessionNavigationPanel', () => {
       /border-dashed/,
     )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
+    const selectedRow = container.querySelector(
+      '[data-slot="data-list-item"][data-selected]',
+    )
+    expect(selectedRow?.className).toMatch(/bg-primary\/15/)
+    expect(selectedRow?.className).not.toMatch(/bg-muted text-foreground/)
+    expect(
+      screen.getByRole('button', { name: 'Sesiones activas' }).className,
+    ).toMatch(/max-\[680px\]:min-h-11/)
+    expect(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+        .className,
+    ).toMatch(/max-\[680px\]:size-11/)
+    expect(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+        .className,
+    ).toMatch(/hover:bg-primary\/15/)
     const actions = container.querySelector(
       '[data-slot="session-row-actions"]',
     )
@@ -272,6 +288,34 @@ describe('SessionNavigationPanel', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }))
     expect(writeText).toHaveBeenCalledWith('session-1')
     expect(await screen.findByText('ID de sesión copiado.')).toBeTruthy()
+  })
+
+  test('session action menu items keep DS primary highlight classes', async () => {
+    const user = userEvent.setup()
+    render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId="session-1"
+        sessions={sessions}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+    )
+    const copyItem = screen.getByRole('menuitem', { name: 'Copiar ID de sesión' })
+    expect(copyItem.className).toMatch(/hover:bg-primary\/15/)
+    expect(copyItem.className).not.toMatch(/hover:bg-accent/)
   })
 
   test('rename focuses the input at the end; blur saves when dirty', async () => {
@@ -424,6 +468,35 @@ describe('SessionNavigationPanel', () => {
 })
 
 describe('WorkspaceInspectorPanel', () => {
+  test('shows EmptyState when selected session has no messages', () => {
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={{ ...detail, messages: [] }}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(
+      within(screen.getByRole('region', { name: 'Selected session detail' })).getByText(
+        'No messages in this session.',
+      ),
+    ).toBeTruthy()
+  })
+
   test('renders context details and source viewer with tokenized sections', async () => {
     const user = userEvent.setup()
     const onOpenSource = vi.fn()
@@ -456,6 +529,9 @@ describe('WorkspaceInspectorPanel', () => {
     expect(screen.getByRole('region', { name: 'Selected session detail' })).toBeTruthy()
     expect(screen.getByLabelText('assistant message').getAttribute('tabindex')).toBe('-1')
     expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
+    expect(
+      screen.getByLabelText('assistant message').querySelector('strong')?.className,
+    ).toMatch(/capitalize/)
 
     await user.click(screen.getByRole('button', { name: 'View source architecture.md' }))
     expect(onOpenSource).toHaveBeenCalledWith(
@@ -493,12 +569,12 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const viewer = screen.getByRole('region', { name: 'Source viewer' })
-    const badge = within(viewer).getByText('Soft-deleted', {
+    const badge = within(viewer).getByText('Deleted', {
       selector: '[data-slot="badge"]',
     })
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.getAttribute('data-tone')).toBe('danger')
-    expect(within(viewer).getByText('Soft-deleted', { selector: 'dt' })).toBeTruthy()
+    expect(within(viewer).getByText('Deleted', { selector: 'dt' })).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 
@@ -528,7 +604,7 @@ describe('WorkspaceInspectorPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'assistant: The retrieval flow changed.' }))
     expect(onNavigateMessage).toHaveBeenCalledWith('message-assistant')
-    expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 turns')).toBeTruthy()
+    expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 messages')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 

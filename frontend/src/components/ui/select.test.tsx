@@ -39,6 +39,8 @@ describe('Select', () => {
     expect(trigger.getAttribute('data-slot')).toBe('select-trigger')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
+    expect(trigger.className).toContain('aria-invalid:border-destructive')
+    expect(trigger.className).toContain('max-[680px]:min-h-11')
     expect(trigger.getAttribute('data-state')).toBe('closed')
     await user.click(trigger)
 
@@ -46,6 +48,11 @@ describe('Select', () => {
 
     expect(option.className).toContain('focus-visible:ring-inset')
     expect(option.className).toContain('focus-visible:ring-ring')
+    expect(option.className).toContain('data-[highlighted]:bg-primary/15')
+    expect(option.className).toContain('max-[680px]:min-h-11')
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'focus-visible:ring-ring',
+    )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()
     expect(trigger.parentElement?.contains(option)).toBe(false)

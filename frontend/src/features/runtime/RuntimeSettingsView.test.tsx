@@ -420,6 +420,21 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
     expect(screen.getByLabelText('API key')).toBeTruthy()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()
+    expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
+  })
+
+  test('wires API key FieldHelp outside control when editing a connection', () => {
+    renderRuntimeSettingsPanel({
+      editingConnectionId: 'qwen-hosted',
+    })
+
+    const apiKey = screen.getByLabelText('API key')
+    expect(apiKey.getAttribute('aria-describedby')).toBe(
+      'runtime-connection-api-key-help',
+    )
+    const help = screen.getByText(/Leave blank to keep the existing key/)
+    expect(help.getAttribute('data-slot')).toBe('field-help')
+    expect(help.closest('[data-slot="field-control"]')).toBeNull()
   })
 
   test('renders runtime form selects with the Radix Select primitive', async () => {
@@ -434,7 +449,7 @@ describe('RuntimeSettingsPanel', () => {
 
     await user.click(providerSelect)
 
-    const fakeOption = await screen.findByRole('option', { name: 'fake' })
+    const fakeOption = await screen.findByRole('option', { name: 'Fake' })
     const field = providerSelect.closest('[data-slot="field"]')
 
     expect(providerSelect.getAttribute('data-state')).toBe('open')
@@ -457,6 +472,13 @@ describe('RuntimeSettingsPanel', () => {
     renderRuntimeSettingsPanel()
 
     const trigger = screen.getByRole('combobox', { name: 'Capabilities' })
+    const selector = trigger.closest('[data-slot="capability-selector"]')
+    expect(selector?.querySelector('.max-\\[680px\\]\\:min-h-11, [class*="min-h-11"]')).toBeTruthy()
+    expect(
+      Array.from(selector?.querySelectorAll('div') ?? []).some((el) =>
+        el.className.includes('max-[680px]:min-h-11'),
+      ),
+    ).toBe(true)
 
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     await user.click(trigger)
@@ -464,10 +486,11 @@ describe('RuntimeSettingsPanel', () => {
     const listbox = await screen.findByRole('listbox', {
       name: 'Capability options',
     })
-    const selector = trigger.closest('[data-slot="capability-selector"]')
 
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(listbox.getAttribute('data-state')).toBe('open')
+    expect(listbox.className).toContain('shadow-[var(--shadow-popover)]')
+    expect(screen.getByRole('option', { name: 'Add Dense Embedding capability' })).toBeTruthy()
     expect(selector).toBeTruthy()
     expect(selector?.contains(listbox)).toBe(false)
   })
@@ -559,13 +582,16 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('shows loading connections instead of empty while busy', () => {
-    renderRuntimeSettingsPanel({
+    const { container } = renderRuntimeSettingsPanel({
       connections: [],
       state: 'loading',
     })
 
     expect(screen.getByText('Loading connections…')).toBeTruthy()
     expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
+    expect(
+      container.querySelector('[data-slot-state="loading"]')?.className,
+    ).toMatch(/motion-safe:animate-pulse/)
   })
 
   test('puts combobox ARIA on the capabilities filter input', async () => {
@@ -639,5 +665,38 @@ describe('RuntimeSettingsPanel', () => {
     })
     expect(screen.getByText('Loading chat models…')).toBeTruthy()
     expect(screen.queryByText('No chat models yet.')).toBeNull()
+  })
+
+  test('select placeholders say loading instead of empty while busy', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      chatConnectionId: '',
+      chatModelId: '',
+      connections: [],
+      globalSlotConnectionId: '',
+      globalSlotModelId: '',
+      providerModels: [],
+      state: 'loading',
+    })
+
+    expect(screen.getAllByText('Loading connections…').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Loading models…').length).toBeGreaterThan(0)
+    expect(screen.queryByText('No connections yet')).toBeNull()
+    expect(screen.queryByText('No models yet')).toBeNull()
+  })
+
+  test('shows EmptyState when project effective slots are empty', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'project_overrides',
+      projectRuntimeSettings: {
+        ...projectRuntimeSettings,
+        slots: [],
+      },
+    })
+
+    expect(screen.getByText('No effective slots yet.')).toBeTruthy()
+    expect(
+      screen.getByText('No effective slots yet.').closest('[data-slot-state="empty"]'),
+    ).toBeTruthy()
   })
 })

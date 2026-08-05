@@ -13,20 +13,23 @@ export const buttonVariants = cva(
     },
     variants: {
       size: {
-        icon: 'size-9 p-0',
-        md: 'h-9 px-4 py-2',
-        sm: 'h-8 px-3 text-xs',
+        // ≤680: 44px min touch targets (composer/operator chrome parity).
+        icon: 'size-9 p-0 max-[680px]:size-11',
+        md: 'h-9 px-4 py-2 max-[680px]:min-h-11',
+        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11',
       },
       variant: {
         danger:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground/55',
+          // Solid ring against destructive fill (parity with primary; purple/dark).
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground',
         ghost:
-          'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
+          'bg-transparent text-foreground hover:bg-primary/15 hover:text-foreground',
         // Contrast ring against primary fill (dark near-white / purple violet)
         primary:
           'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',
         secondary:
-          'border border-border bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground',
+          // Primary-tint hover reads clearer than accent wash on purple chrome.
+          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
       },
     },
   },

@@ -51,7 +51,11 @@ export type FieldHelpProps = HTMLAttributes<HTMLParagraphElement>
 export const FieldHelp = forwardRef<HTMLParagraphElement, FieldHelpProps>(
   ({ className, ...props }, ref) => (
     <p
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn(
+        // Dense operator help: xs + relaxed leading; muted stays readable on purple.
+        'text-xs leading-relaxed text-muted-foreground',
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="field-help"
@@ -65,7 +69,11 @@ export type FieldErrorProps = HTMLAttributes<HTMLParagraphElement>
 export const FieldError = forwardRef<HTMLParagraphElement, FieldErrorProps>(
   ({ className, role = 'alert', ...props }, ref) => (
     <p
-      className={cn('text-sm font-medium text-destructive', className)}
+      className={cn(
+        // Match FieldHelp density; keep medium weight for scan priority.
+        'text-xs font-medium leading-relaxed text-destructive',
+        className,
+      )}
       ref={ref}
       role={role}
       {...props}

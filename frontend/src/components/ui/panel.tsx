@@ -9,6 +9,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
     <div
       className={cn(
         'rounded-lg border border-border bg-card text-card-foreground shadow-sm',
+        'motion-safe:transition-colors',
         className,
       )}
       ref={ref}
@@ -54,7 +55,11 @@ export const PanelDescription = forwardRef<
   PanelDescriptionProps
 >(({ className, ...props }, ref) => (
   <p
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn(
+      // Match FieldHelp density: compact supporting copy under titles.
+      'text-xs leading-relaxed text-muted-foreground',
+      className,
+    )}
     ref={ref}
     {...props}
     data-slot="panel-description"

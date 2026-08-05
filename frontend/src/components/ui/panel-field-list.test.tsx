@@ -5,8 +5,8 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 
 import { DataList, DataListItem } from './data-list'
-import { Field, FieldLabel } from './field'
-import { Panel, PanelBody, PanelHeader } from './panel'
+import { Field, FieldError, FieldHelp, FieldLabel } from './field'
+import { Panel, PanelBody, PanelDescription, PanelHeader } from './panel'
 
 afterEach(() => {
   cleanup()
@@ -24,6 +24,24 @@ describe('Panel density', () => {
     expect(screen.getByText('Header').className).toMatch(/\bp-4\b/)
     expect(screen.getByText('Body').className).toMatch(/\bp-4\b/)
     expect(screen.getByText('Body').className).toMatch(/pt-0/)
+  })
+
+  test('panel shell transitions colors; description stays compact', () => {
+    render(
+      <Panel>
+        <PanelHeader>
+          Title
+          <PanelDescription>Choose the interface palette.</PanelDescription>
+        </PanelHeader>
+      </Panel>,
+    )
+
+    const panel = screen.getByText('Title').closest('[data-slot="panel"]')
+    expect(panel?.className).toContain('motion-safe:transition-colors')
+    const description = screen.getByText('Choose the interface palette.')
+    expect(description.getAttribute('data-slot')).toBe('panel-description')
+    expect(description.className).toContain('text-xs')
+    expect(description.className).toContain('leading-relaxed')
   })
 })
 
@@ -44,6 +62,34 @@ describe('Field disabled styling', () => {
   })
 })
 
+describe('FieldHelp density', () => {
+  test('uses compact xs help copy for operator forms', () => {
+    render(
+      <Field>
+        <FieldLabel htmlFor="token">Token</FieldLabel>
+        <FieldHelp id="token-help">Paste once; never shown after save.</FieldHelp>
+      </Field>,
+    )
+
+    const help = screen.getByText('Paste once; never shown after save.')
+    expect(help.getAttribute('data-slot')).toBe('field-help')
+    expect(help.className).toContain('text-xs')
+    expect(help.className).toContain('leading-relaxed')
+  })
+})
+
+describe('FieldError density', () => {
+  test('keeps compact destructive alert copy', () => {
+    render(<FieldError>Required.</FieldError>)
+
+    const error = screen.getByRole('alert')
+    expect(error.getAttribute('data-slot')).toBe('field-error')
+    expect(error.className).toContain('text-xs')
+    expect(error.className).toContain('text-destructive')
+    expect(error.className).toContain('leading-relaxed')
+  })
+})
+
 describe('DataListItem', () => {
   test('allows truncation inside flex rows via min-w-0', () => {
     render(
@@ -52,6 +98,9 @@ describe('DataListItem', () => {
       </DataList>,
     )
 
-    expect(screen.getByText('row').className).toContain('min-w-0')
+    const row = screen.getByText('row')
+    expect(row.className).toContain('min-w-0')
+    expect(row.className).toContain('motion-safe:transition-colors')
+    expect(row.className).toContain('hover:bg-muted/30')
   })
 })

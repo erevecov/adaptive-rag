@@ -69,6 +69,11 @@ describe('RetrievalPlaygroundPanel', () => {
 
     expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
     expect(screen.getByText('Ready').getAttribute('data-tone')).toBe('neutral')
+    const rerankHelp = screen.getByText(/Enable rerank to edit candidate limit/)
+    expect(rerankHelp.getAttribute('data-slot')).toBe('field-help')
+    expect(
+      screen.getByLabelText('Rerank candidates').getAttribute('aria-describedby'),
+    ).toBe('rerank-limit-help')
 
     await user.type(
       screen.getByLabelText('Query'),
@@ -230,5 +235,27 @@ describe('RetrievalPlaygroundPanel', () => {
       ).toBeTruthy()
     })
     expect(screen.getByText('graph not ready')).toBeTruthy()
+  })
+
+  test('redacts secrets from retrieval API failure copy', async () => {
+    const user = userEvent.setup()
+    const search = vi.fn().mockRejectedValue(
+      new ApiClientError('unauthorized', {
+        detail: 'failed with sk-abcdefghijklmnop',
+        status: 401,
+      }),
+    )
+    render(
+      <RetrievalPlaygroundPanel
+        client={createClient(search)}
+        projectId="project-1"
+      />,
+    )
+    await user.type(screen.getByLabelText('Query'), 'secret leak')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => {
+      expect(screen.getByText(/\[redacted\]/)).toBeTruthy()
+    })
+    expect(screen.queryByText(/sk-abcdefghijklmnop/)).toBeNull()
   })
 })
