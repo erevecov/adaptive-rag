@@ -9,14 +9,16 @@ Branch: `feat/ui-obsessional-polish`
 - [x] done:implement — Panel / table / FieldHelp / Select / nav / invalid controls
 - [x] done:operator — Form gaps / memberships empty / Title Case selects & badges
 - [x] done:fe-chat — Popover/speech; Title Case; pipeline emerald; inspector refresh
-- [x] done:fe-chat — Purple pressed chrome primary/25; Ask full-width ≤680
-- [x] done:fe-chat — Session empty messages + dropdown Item DS defaults
+- [x] done:fe-chat — Purple pressed chrome; Ask full-width ≤680
+- [x] done:fe-chat — Solid answer card + citation chips + source type labels
 - [x] done:operator — Inherited/Overridden/Qwen Hosted Title Case labels
+- [x] done:operator — Observability status breakdown Title Case
+- [x] done:implement — Ghost/secondary hover primary/15
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
 
 ## Lead queue (next)
-1. Live hostile purple pass on remaining primary/10 washes (citation cards, focus-within)
-2. Tab-cycle focus trap residual (Radix portal menus)
-3. Observability status Title Case residual if any
+1. Tab-cycle focus trap residual (Radix portal menus)
+2. Live ≤680 purple residual (shell rail / inspector overlay)
+3. History soft-delete metadata label Soft-deleted → Deleted? (parity)
 
 Reports: `reports/lead-latest.md`
