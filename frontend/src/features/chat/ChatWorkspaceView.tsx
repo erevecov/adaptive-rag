@@ -761,7 +761,7 @@ function ResponseContent({
           className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-3"
           data-slot="chat-message"
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.8125rem] max-[680px]:leading-snug">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.75rem] max-[680px]:leading-snug">
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (
@@ -863,7 +863,7 @@ function ResponseContent({
           <ul className="grid gap-1.5">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.8125rem] max-[680px]:leading-snug"
+                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug"
                 key={memory.id}
               >
                 {memory.content}
