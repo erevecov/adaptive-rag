@@ -85,6 +85,7 @@ describe('control primitives', () => {
     expect(tokens).toContain('max-[680px]:px-2.5')
     expect(tokens).toContain('max-[680px]:py-2.5')
     expect(tokens).toContain('max-[680px]:text-base')
+    expect(tokens).toContain('max-[680px]:leading-snug')
   })
 
   test.each([
