@@ -176,11 +176,11 @@ describe('UserMemoryPanel', () => {
       />,
     )
 
-    expect(await screen.findByText('1 injectable')).toBeTruthy()
+    expect(await screen.findByText('1 Injectable')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Proposed' }))
     expect(await screen.findByText('Draft')).toBeTruthy()
-    expect(screen.getByText('1 injectable')).toBeTruthy()
-    expect(screen.queryByText('0 injectable')).toBeNull()
+    expect(screen.getByText('1 Injectable')).toBeTruthy()
+    expect(screen.queryByText('0 Injectable')).toBeNull()
   })
 
   test('switches to Proposed filter after a successful propose', async () => {
@@ -290,6 +290,41 @@ describe('UserMemoryPanel', () => {
     row.focus()
     await user.keyboard('{Enter}')
     await waitFor(() => expect(approve).toHaveBeenCalledWith('mem-1'))
+  })
+
+
+  test('shows Title Case status badges and approved empty CTA', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Draft note', id: 'mem-1', status: 'proposed' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      if (status === 'approved') {
+        return { items: [] }
+      }
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Proposed')).toBeTruthy()
+    expect(screen.getByText(/Focus a proposed row/i)).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Approved' }))
+    expect(await screen.findByText('No approved memories')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    expect(
+      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+    ).toBe('true')
   })
 
 })

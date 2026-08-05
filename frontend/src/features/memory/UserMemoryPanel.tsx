@@ -273,7 +273,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         <StatusBadge className="w-fit" tone="primary">
           {listState === 'loading'
             ? 'Loading'
-            : `${injectableCount} injectable`}
+            : `${injectableCount} Injectable`}
         </StatusBadge>
       </header>
 
@@ -380,6 +380,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           )
         })}
       </div>
+      {items.some((item) => item.status === 'proposed') ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Focus a proposed row: Enter/A approve · R reject · E edit.
+        </p>
+      ) : null}
 
       <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
@@ -419,10 +424,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 }
                 aria-label={
                   keyboardReviewable
-                    ? `${memory.status} memory. Press Enter or A to approve, R to reject, E to edit.`
+                    ? `${statusLabel(memory.status)} memory. Press Enter or A to approve, R to reject, E to edit.`
                     : undefined
                 }
-                className="p-2.5"
+                className={cn(
+                  'p-2.5 outline-none',
+                  keyboardReviewable &&
+                    'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                )}
                 id={`user-memory-${memory.id}`}
                 key={memory.id}
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
@@ -434,7 +443,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       className="w-fit"
                       tone={statusTone(memory.status)}
                     >
-                      {memory.status}
+                      {statusLabel(memory.status)}
                     </StatusBadge>
                     <span className="text-xs text-muted-foreground">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
@@ -554,17 +563,15 @@ function FilterEmptyState({
   filter: MemoryStatusFilter
   onViewProposed(): void
 }) {
-  if (filter === 'rejected') {
-    return (
-      <EmptyState
-        className="gap-2 p-3 text-left"
-        data-slot-state="empty-rejected"
-      >
-        <p className="font-medium text-foreground/80">No rejected memories</p>
-        <p className="text-xs leading-relaxed">
-          Rejected proposals and items removed from injection appear here. They
-          never inject into chat.
-        </p>
+  const copy = emptyCopyForFilter(filter)
+  return (
+    <EmptyState
+      className="gap-2 p-3 text-left"
+      data-slot-state={`empty-${filter}`}
+    >
+      <p className="font-medium text-foreground/80">{copy.title}</p>
+      <p className="text-xs leading-relaxed">{copy.body}</p>
+      {filter === 'rejected' || filter === 'approved' ? (
         <Button
           className="w-fit"
           onClick={onViewProposed}
@@ -574,28 +581,47 @@ function FilterEmptyState({
         >
           View proposed
         </Button>
-      </EmptyState>
-    )
-  }
-
-  return (
-    <EmptyState className="p-3 text-left" data-slot-state="empty">
-      {emptyCopyForFilter(filter)}
+      ) : null}
     </EmptyState>
   )
 }
 
-function emptyCopyForFilter(filter: MemoryStatusFilter): string {
+function emptyCopyForFilter(filter: MemoryStatusFilter): {
+  body: string
+  title: string
+} {
   if (filter === 'proposed') {
-    return 'No proposed memories. Propose one above to start review.'
+    return {
+      body: 'Propose one above to start review. Only approved items inject.',
+      title: 'No proposed memories',
+    }
   }
   if (filter === 'approved') {
-    return 'No approved memories yet. Approve a proposal to enable chat injection.'
+    return {
+      body: 'Approve a proposal to enable chat injection as system context.',
+      title: 'No approved memories',
+    }
   }
   if (filter === 'rejected') {
-    return 'No rejected memories. Rejected proposals and items removed from injection appear here.'
+    return {
+      body: 'Rejected proposals and items removed from injection appear here. They never inject into chat.',
+      title: 'No rejected memories',
+    }
   }
-  return 'No memories yet. Propose one above, then approve it to enable chat injection.'
+  return {
+    body: 'Propose one above, then approve it to enable chat injection.',
+    title: 'No memories yet',
+  }
+}
+
+function statusLabel(status: UserMemoryStatus): string {
+  if (status === 'proposed') {
+    return 'Proposed'
+  }
+  if (status === 'approved') {
+    return 'Approved'
+  }
+  return 'Rejected'
 }
 
 function statusTone(
