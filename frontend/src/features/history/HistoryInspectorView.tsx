@@ -850,14 +850,14 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
-      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-1 max-[680px]:p-3">
+      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:tracking-wider">
         {label}
       </span>
-      <strong className="break-words text-xl font-semibold leading-none">
+      <strong className="break-words text-xl font-semibold leading-none max-[680px]:text-lg max-[680px]:leading-tight">
         {value}
       </strong>
-      <small className="text-sm leading-relaxed text-muted-foreground">
+      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
