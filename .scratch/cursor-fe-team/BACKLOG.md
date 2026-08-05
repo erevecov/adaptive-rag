@@ -1,7 +1,7 @@
 # FE UI/UX Backlog (Cursor team)
 
 Status: open | claimed:<role> | done | deferred  
-Branch: `feat/ui-obsessional-polish` (= tip of #218 / post-#215)
+Branch: `feat/ui-polish-post-218` (= tip of #218 / post-#215)
 
 ## Seed / fleet
 - [x] done — #213 / #215 FE polish merged

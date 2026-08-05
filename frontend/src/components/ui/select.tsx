@@ -111,7 +111,7 @@ export function Select({
                   aria-hidden="true"
                   className="ml-auto pl-2 text-muted-foreground"
                 >
-                  <Check className="size-4" />
+                  <Check className="size-4 max-[680px]:size-5" />
                 </SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>
             ))}

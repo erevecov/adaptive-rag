@@ -67,6 +67,7 @@ describe('Field disabled styling', () => {
         '[data-slot="field-control"]',
       )?.className,
     ).toContain('max-[680px]:gap-1.5')
+    expect(screen.getByText('Name').className).toContain('tracking-tight')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )

@@ -1,10 +1,17 @@
-# FE Implement — implement-latest
+# Implement latest — feat/ui-polish-post-218
 
-**Date:** 2026-08-05  
-**STATUS:** re-tasked after #218 DS batch
+**Branch:** `feat/ui-polish-post-218` (post-#218 / origin/main) — do NOT use `feat/ui-obsessional-polish` or stale `feat/ui-polish-post-215`.
 
-## Shipped in #218
-Overlay triggers, DataList/Nav gaps, TableHead/InlineFeedback motion-safe, Select chevron ≤680.
+## Context
+PR #218 MERGED. Continuing polish from `origin/main`.
 
-## Next
-Invent next DS ≤680 / purple residual once #218 merges. Stay on `feat/ui-obsessional-polish`.
+## Shipped this pass
+- `Badge`: `shrink-0`
+- `FieldLabel`: `tracking-tight`
+- `NavSection` content: `max-[680px]:gap-0.5`
+- `SegmentedControl` track: `max-[680px]:gap-0.5 max-[680px]:p-0.5`
+- `Select` check indicator: `max-[680px]:size-5`
+- Tests updated
+
+## Worktree
+`.worktrees/ui-polish-218`
