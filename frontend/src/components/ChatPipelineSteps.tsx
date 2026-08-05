@@ -385,9 +385,9 @@ function formatDetailValue(value: unknown): string {
 }
 
 function formatTokens(value: number | undefined): string {
-  return value === undefined ? 'unknown tokens' : `${value.toLocaleString()} tokens`
+  return value === undefined ? 'Unknown Tokens' : `${value.toLocaleString()} Tokens`
 }
 
 function formatCost(value: number | undefined): string {
-  return value === undefined ? 'unknown cost' : `$${value.toFixed(4)}`
+  return value === undefined ? 'Unknown Cost' : `$${value.toFixed(4)}`
 }

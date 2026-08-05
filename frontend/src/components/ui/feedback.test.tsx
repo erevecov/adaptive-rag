@@ -56,5 +56,14 @@ describe('Callout', () => {
     expect(callout.className).toContain('bg-emerald-500/15')
     expect(callout.className).toContain('leading-relaxed')
     expect(callout.className).toContain('motion-safe:transition-colors')
+    expect(callout.className).toContain('max-[680px]:p-3')
+  })
+
+  test('neutral callout uses a soft muted wash', () => {
+    render(<Callout tone="neutral">Idle</Callout>)
+
+    const callout = screen.getByText('Idle')
+    expect(callout.className).toContain('bg-muted/15')
+    expect(callout.className).not.toContain('bg-muted ')
   })
 })

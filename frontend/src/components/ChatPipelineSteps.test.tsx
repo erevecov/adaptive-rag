@@ -153,7 +153,7 @@ describe('ChatPipelineSteps', () => {
     expect(answerRow?.hasAttribute('open')).toBe(false)
     expect(within(stepper).getAllByText('qwen-plus').length).toBeGreaterThan(0)
     expect(within(stepper).getByText('$0.0012')).toBeTruthy()
-    expect(within(stepper).getByText('144 tokens')).toBeTruthy()
+    expect(within(stepper).getByText('144 Tokens')).toBeTruthy()
   })
 
   test('uses tokenized slots instead of legacy pipeline classes', async () => {
