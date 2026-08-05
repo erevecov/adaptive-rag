@@ -191,6 +191,7 @@ describe('ObservabilityPanel', () => {
   test('metric cards expose labelledby for label and value', () => {
     renderObservabilityPanel()
     const sessions = screen.getByRole('article', { name: /Sessions 12/i })
+    expect(sessions.getAttribute('aria-label')).toBe('Sessions 12')
     expect(sessions.getAttribute('aria-labelledby')).toContain(
       'metric-label-sessions',
     )

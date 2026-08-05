@@ -274,7 +274,7 @@ describe('SessionNavigationPanel', () => {
     expect(await screen.findByText('ID de sesión copiado.')).toBeTruthy()
   })
 
-  test('rename focuses the input at the end and cancels on blur', async () => {
+  test('rename focuses the input at the end; blur saves when dirty', async () => {
     const user = userEvent.setup()
     const onRenameSession = vi.fn()
     render(
@@ -311,9 +311,23 @@ describe('SessionNavigationPanel', () => {
     expect(input.selectionEnd).toBe(input.value.length)
     expect(input.value).toBe('Architecture review')
 
+    // Unchanged blur cancels without save.
     await user.click(document.body)
     expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
     expect(onRenameSession).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+    )
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
+    const dirty = (await screen.findByLabelText(
+      'Nuevo nombre de sesión',
+    )) as HTMLInputElement
+    await user.clear(dirty)
+    await user.type(dirty, 'Renamed session')
+    await user.click(document.body)
+    expect(onRenameSession).toHaveBeenCalledWith('session-1', 'Renamed session')
+    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
   })
 
   test('uses the shared DropdownMenu wrapper for session actions', () => {
@@ -479,10 +493,12 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const viewer = screen.getByRole('region', { name: 'Source viewer' })
-    const badge = within(viewer).getByText('Deleted', { selector: '[data-slot="badge"]' })
+    const badge = within(viewer).getByText('Soft-deleted', {
+      selector: '[data-slot="badge"]',
+    })
     expect(badge.getAttribute('data-slot')).toBe('badge')
-    expect(badge.getAttribute('data-tone')).toBe('warning')
-    expect(within(viewer).getByText('2026-06-22T12:00:00Z')).toBeTruthy()
+    expect(badge.getAttribute('data-tone')).toBe('danger')
+    expect(within(viewer).getByText('Soft-deleted', { selector: 'dt' })).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 
@@ -589,6 +605,37 @@ describe('WorkspaceInspectorPanel', () => {
 
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  test('inline Escape does not close the inspector', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={onClose}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   test('overlay Tab cycles within the inspector dialog', async () => {

@@ -129,6 +129,9 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
 
     dense = FakeDenseEmbeddingProvider()
     sparse = FakeSparseEmbeddingProvider()
+    # Index job is enqueued with wall-clock run_after; lease clock must not
+    # be earlier than that value (fixed _run_time() can lag wall clock).
+    index_now = datetime.now(UTC)
     result = IndexingPipeline(
         session,
         dense_embedding_provider=dense,
@@ -136,8 +139,8 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
     ).run_next(
         project_id=project.id,
         worker_id="worker-1",
-        now=_run_time(),
-        lease_until=_run_time() + timedelta(minutes=5),
+        now=index_now,
+        lease_until=index_now + timedelta(minutes=5),
     )
 
     assert result is not None

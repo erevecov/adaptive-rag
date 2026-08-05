@@ -2,42 +2,30 @@
 
 Status: open | claimed:<role> | done | deferred
 
-Branch: `feat/ui-obsessional-polish` (from main post-#206)
+Branch: `feat/ui-obsessional-polish` (post-#206/#207/#208)
 
 ## Seed themes
-- [x] done:chat — Chat: multi-turn transcript density vs single-response layout
-- [x] done:chat — Composer: mobile touch targets, sticky behavior
-- [x] done:chat — Session rail: long titles, training icon affordance, empty per filter
-- [x] done:chat — Inspector: focus trap completeness, source viewer density
-- [ ] claimed:fe-operator — Authoring forms: field density, binary upload feedback
-- [ ] claimed:fe-operator — Ingestion jobs: relative times, grouping by status
-- [ ] claimed:fe-operator — Observability: chart/metric empty vs failed
-- [ ] claimed:fe-operator — Retrieval playground: result rank cards polish
-- [ ] claimed:fe-operator — Runtime settings: secret-safe copy, connection status clarity
-- [ ] claimed:fe-operator — Knowledge status truth + draft card affordances
-- [ ] claimed:fe-operator — CapabilitySelector ARIA + observability tablist
-- [ ] open — Global: focus-visible consistency, reduced-motion micro-animations
-- [ ] open — Global: purple/dark contrast pass
+- [x] done:chat — Chat / composer / session rail / inspector (pass 1)
+- [ ] claimed:fe-operator — Authoring / ingestion / observability / retrieval / runtime
+- [x] done:chat — Global: purple primary focus ring solid (pass 2)
+- [x] done:chat — Global: knowledge draft ring aligns to DS (pass 2)
+- [ ] open — Global: remaining focus-visible / motion sweep outside chat
 
-## Chat+Shell pass 1 findings
+## Chat+Shell pass 2
 
 ### P0 — done
-- [x] done:chat — Cancel/fail mid-stream looks like success
-- [x] done:chat — Enter while asking starts parallel request
-- [x] done:chat — Hamburger z pierces inspector scrim
-- [x] done:chat — Closed sidebar still in tab order
-- [x] done:chat — Inspector overlay without inert on chat host / focusable backdrop
+- [x] done:chat — Primary button `ring-primary-foreground` (no /55) for purple AA
+- [x] done:chat — Knowledge draft textarea full `ring-ring` + offset-2
 
 ### P1 — done
-- [x] done:chat — Pipeline streaming aria-expanded + composed label + tabular-nums
-- [x] done:chat — Pipeline StatusDot SR + summary focus ring + chip wrap
-- [x] done:chat — Composer rings / Escape-cancel / citation Open source / response region
-- [x] done:chat — Session EmptyState; training aria-label; detail error alert
-- [x] done:chat — Escape coordination; backdrop tabIndex=-1; overlay focus close
+- [x] done:chat — Overlay inert hosts (sidebar/topline) — already on tip
+- [x] done:chat — Soft-delete badge `Deleted`; cascade `source removed`
+- [x] done:chat — Minimap aria truncation; speech mobile full-width status
+- [x] done:chat — History skeletons `motion-safe`; AppShell width transition
+- [x] done:chat — Rename blur saves when dirty (unchanged blur cancels)
 
-### Deferred P2
-- [ ] deferred — Full Tab-cycle focus trap beyond inert
-- [ ] deferred — Speech status mobile width
-- [ ] deferred — Soft-delete casing; rename blur-save; minimap label truncate
+### Deferred
+- [ ] deferred — Locale mix EN chrome vs ES rail (copy pass)
+- [ ] deferred — Inspector Escape gated to overlay only (if undesired on inline)
 
-Report: `.scratch/cursor-fe-team/reports/chat-latest.md` · STATUS ready-for-lead-review
+Report: `.scratch/cursor-fe-team/reports/chat-latest.md`

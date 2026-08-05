@@ -74,7 +74,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-[var(--shadow-popover)]',
             ],
             contentClassName,
           )}

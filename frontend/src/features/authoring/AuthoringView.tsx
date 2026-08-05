@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, ButtonLabel } from '@/components/ui/button'
@@ -512,13 +512,13 @@ function ProjectList({
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
         const roleLabel = isDeleted
-          ? 'deleted'
+          ? 'Deleted'
           : canAccess
             ? (project.access_role ?? project.embedding_mode)
-            : 'no access'
+            : 'No access'
         return (
           <DataListItem
-            className={isDeleted ? 'p-0 opacity-70' : 'p-0'}
+            className="p-0"
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
@@ -535,7 +535,7 @@ function ProjectList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground'
                       : 'break-words text-sm font-semibold'
                   }
                 >
@@ -819,9 +819,19 @@ function UserAccessLists({
     <div className="grid gap-3 lg:grid-cols-2">
       <DataList aria-label="Users">
         {users.map((user) => (
-          <DataListItem className="grid gap-2" key={user.id}>
+          <DataListItem
+            className="grid gap-2"
+            data-inactive={!user.is_active ? '' : undefined}
+            key={user.id}
+          >
             <div className="grid min-w-0 gap-1">
-              <strong className="break-words text-sm font-semibold">
+              <strong
+                className={
+                  user.is_active
+                    ? 'break-words text-sm font-semibold'
+                    : 'break-words text-sm font-semibold text-muted-foreground'
+                }
+              >
                 {user.login}
               </strong>
               <small className="break-words text-xs text-muted-foreground">
@@ -904,21 +914,16 @@ function SourceFileField({
   sourceFileName: string
   sourceType: string
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
   const [sizeBytes, setSizeBytes] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (sourceFileName.length === 0) {
-      setSizeBytes(null)
-      if (inputRef.current !== null) {
-        inputRef.current.value = ''
-      }
-    }
-  }, [sourceFileName])
+  // Remount the file input when the parent clears the selection so we do not
+  // need a setState-in-effect to reset the native value.
+  const inputKey = sourceFileName.length === 0 ? 'empty' : sourceFileName
+  const displaySizeBytes = sourceFileName.length === 0 ? null : sizeBytes
 
   return (
     <div className="grid gap-2">
       <Input
+        key={inputKey}
         accept={
           sourceType === 'pdf'
             ? 'application/pdf,.pdf'
@@ -934,7 +939,6 @@ function SourceFileField({
           setSizeBytes(file?.size ?? null)
           onSourceFileChange(file)
         }}
-        ref={inputRef}
         type="file"
       />
       {sourceFileName.length > 0 ? (
@@ -946,16 +950,15 @@ function SourceFileField({
             role="status"
           >
             Selected: {sourceFileName}
-            {sizeBytes !== null ? ` · ${formatFileSize(sizeBytes)}` : null}
+            {displaySizeBytes !== null
+              ? ` · ${formatFileSize(displaySizeBytes)}`
+              : null}
           </span>
           <Button
             aria-label="Clear selected file"
             disabled={isBusy}
             onClick={() => {
               setSizeBytes(null)
-              if (inputRef.current !== null) {
-                inputRef.current.value = ''
-              }
               onSourceFileChange(null)
             }}
             size="sm"
@@ -1206,11 +1209,7 @@ function SourceList({
             : 'no tags'
         return (
           <DataListItem
-            className={
-              isDeleted
-                ? 'grid gap-3 opacity-70 md:grid-cols-[minmax(0,1fr)_auto]'
-                : 'grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]'
-            }
+            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
@@ -1219,7 +1218,7 @@ function SourceList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground'
                       : 'break-words text-sm font-semibold'
                   }
                 >

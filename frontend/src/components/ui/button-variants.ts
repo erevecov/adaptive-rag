@@ -24,7 +24,7 @@ export const buttonVariants = cva(
           'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
         // Contrast ring against primary fill (dark near-white / purple violet)
         primary:
-          'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground/55',
+          'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',
         secondary:
           'border border-border bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground',
       },

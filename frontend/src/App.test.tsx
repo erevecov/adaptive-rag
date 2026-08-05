@@ -4218,7 +4218,7 @@ describe('App chat workspace', () => {
       'Select connection',
     )
     expect(screen.getByLabelText('Project slot model').textContent).toContain(
-      'No models loaded',
+      'No models yet',
     )
   })
 

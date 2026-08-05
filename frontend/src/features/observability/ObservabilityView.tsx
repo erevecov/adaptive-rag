@@ -578,6 +578,7 @@ function MetricCard({
   const valueId = `metric-value-${slug}`
   return (
     <article
+      aria-label={`${label} ${value}`}
       aria-labelledby={`${labelId} ${valueId}`}
       className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground"
     >
