@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
@@ -188,10 +189,8 @@ class IngestionPipeline:
                 if getattr(exc, "orig", None) is not None
                 else f"integrity_error: {exc}"
             )
-            try:
+            with suppress(Exception):  # best-effort clear after IntegrityError
                 self._session.rollback()
-            except Exception:  # noqa: BLE001 — best-effort clear  # nosec B110
-                pass
             try:
                 blocked_job = self._job_repo.block(
                     project_id=project_id,
