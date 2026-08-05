@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from 'vitest'
 
 import { DataList, DataListItem } from './data-list'
 import { Field, FieldHelp, FieldLabel } from './field'
-import { Panel, PanelBody, PanelHeader } from './panel'
+import { Panel, PanelBody, PanelDescription, PanelHeader } from './panel'
 
 afterEach(() => {
   cleanup()
@@ -24,6 +24,24 @@ describe('Panel density', () => {
     expect(screen.getByText('Header').className).toMatch(/\bp-4\b/)
     expect(screen.getByText('Body').className).toMatch(/\bp-4\b/)
     expect(screen.getByText('Body').className).toMatch(/pt-0/)
+  })
+
+  test('panel shell transitions colors; description stays compact', () => {
+    render(
+      <Panel>
+        <PanelHeader>
+          Title
+          <PanelDescription>Choose the interface palette.</PanelDescription>
+        </PanelHeader>
+      </Panel>,
+    )
+
+    const panel = screen.getByText('Title').closest('[data-slot="panel"]')
+    expect(panel?.className).toContain('motion-safe:transition-colors')
+    const description = screen.getByText('Choose the interface palette.')
+    expect(description.getAttribute('data-slot')).toBe('panel-description')
+    expect(description.className).toContain('text-xs')
+    expect(description.className).toContain('leading-relaxed')
   })
 })
 
