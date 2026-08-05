@@ -141,7 +141,7 @@ export function RetrievalPlaygroundPanel({
               />
             </FieldControl>
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-2.5">
             <Field>
               <FieldLabel htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
