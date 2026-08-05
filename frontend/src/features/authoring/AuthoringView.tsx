@@ -492,7 +492,7 @@ function ProjectList({
   projects: Project[]
 }) {
   if (isBusy && projects.length === 0) {
-    return <LoadingListState label="Loading projects…" />
+    return <LoadingListState label="Loading Projects…" />
   }
 
   if (projects.length === 0) {
@@ -804,7 +804,7 @@ function UserAccessLists({
   users: User[]
 }) {
   if (isBusy && users.length === 0 && memberships.length === 0) {
-    return <LoadingListState label="Loading users…" />
+    return <LoadingListState label="Loading Users…" />
   }
 
   if (users.length === 0 && memberships.length === 0) {
@@ -1205,7 +1205,7 @@ function SourceList({
   sources: Source[]
 }) {
   if (isBusy && sources.length === 0) {
-    return <LoadingListState label="Loading sources…" />
+    return <LoadingListState label="Loading Sources…" />
   }
 
   if (sources.length === 0) {
@@ -1348,7 +1348,7 @@ function KnowledgeReviewPanel({
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
-        <LoadingListState label="Loading proposals…" />
+        <LoadingListState label="Loading Proposals…" />
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"

@@ -376,7 +376,7 @@ describe('AuthoringPanel', () => {
       projectState: 'loading',
       projects: [],
     })
-    expect(screen.getByText('Loading projects…')).toBeTruthy()
+    expect(screen.getByText('Loading Projects…')).toBeTruthy()
     const loadingState = loading.view.container.querySelector(
       '[data-slot-state="loading"]',
     )

@@ -26,8 +26,8 @@ export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed'
 
 const STRATEGY_OPTIONS = [
   { label: 'Dense + sparse (default)', value: 'dense_sparse' },
-  { label: 'Dense only', value: 'dense' },
-  { label: 'Sparse only', value: 'sparse' },
+  { label: 'Dense Only', value: 'dense' },
+  { label: 'Sparse Only', value: 'sparse' },
   { label: 'Graph', value: 'graph' },
 ] as const
 
@@ -251,7 +251,7 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="failed"
               role="alert"
             >
-              <p className="font-semibold text-destructive">Search failed</p>
+              <p className="font-semibold text-destructive">Search Failed</p>
               <p className="text-xs text-muted-foreground">
                 {error ?? 'Adjust query or strategy and retry.'}
               </p>
