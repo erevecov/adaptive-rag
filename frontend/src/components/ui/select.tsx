@@ -67,8 +67,11 @@ export function Select({
         id={id}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
-        <SelectPrimitive.Icon aria-hidden="true" className="text-muted-foreground">
-          <ChevronDown className="size-4 max-[680px]:size-5" />
+        <SelectPrimitive.Icon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground max-[680px]:size-5"
+        >
+          <ChevronDown className="size-full" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
