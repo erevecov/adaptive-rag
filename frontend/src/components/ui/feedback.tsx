@@ -9,7 +9,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, role = 'status', ...props }, ref) => (
     <div
       className={cn(
-        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 max-[680px]:border-border/70 bg-muted/20 p-4 text-center text-sm tracking-tight text-muted-foreground max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-snug',
+        'flex flex-col gap-1.5 rounded-md border border-dashed border-border/80 max-[680px]:border-border/70 bg-muted/20 p-4 text-center text-sm tracking-tight text-muted-foreground max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:p-2.5 max-[680px]:text-xs max-[680px]:leading-snug',
         'motion-safe:transition-colors',
         className,
       )}
@@ -76,7 +76,7 @@ export const InlineFeedback = forwardRef<
 InlineFeedback.displayName = 'InlineFeedback'
 
 const calloutVariants = cva(
-  'rounded-md border p-4 text-sm leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-snug',
+  'rounded-md border p-4 text-sm leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:p-2.5 max-[680px]:text-xs max-[680px]:leading-snug',
   {
     defaultVariants: {
       tone: 'neutral',
