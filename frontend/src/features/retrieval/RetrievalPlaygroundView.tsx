@@ -236,7 +236,7 @@ export function RetrievalPlaygroundPanel({
           {state === 'loading' ? (
             <EmptyState
               aria-busy="true"
-              className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-3"
               data-slot-state="loading"
               role="status"
             >
@@ -247,7 +247,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'failed' ? (
             <EmptyState
-              className="border-destructive/40 bg-destructive/5 p-4 text-left"
+              className="border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-3"
               data-slot-state="failed"
               role="alert"
             >
@@ -260,7 +260,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'idle' && results.length === 0 && !error ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
               data-slot-state="empty"
               role="status"
             >
@@ -275,7 +275,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'succeeded' && results.length === 0 ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-3"
               data-slot-state="empty"
               role="status"
             >
