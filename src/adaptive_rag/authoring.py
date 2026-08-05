@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
@@ -16,9 +18,12 @@ from adaptive_rag.db.repositories import (
     SourceFilters,
     SourceRepository,
 )
+from adaptive_rag.ingestion.parsers import BINARY_SOURCE_TYPES
+from adaptive_rag.ingestion.url_fetch_policy import URLFetchPolicy
 
-SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url")
+SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url", "pdf", "docx")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
+MAX_BINARY_SOURCE_BYTES = URLFetchPolicy().max_response_bytes
 
 
 class AuthoringError(Exception):
@@ -266,16 +271,21 @@ def validate_source_create(
 ) -> None:
     if source_type not in SUPPORTED_SOURCE_TYPES:
         raise AuthoringError(
-            "source_type must be one of markdown, text, txt, url",
+            "source_type must be one of markdown, text, txt, url, pdf, docx",
             status_code=422,
         )
-    if source_type not in TEXT_SOURCE_TYPES:
+    if source_type in TEXT_SOURCE_TYPES:
+        if extra_metadata is None:
+            _raise_missing_text_content(source_type)
+        content = extra_metadata.get("content")
+        if not isinstance(content, str) or content.strip() == "":
+            _raise_missing_text_content(source_type)
         return
-    if extra_metadata is None:
-        _raise_missing_text_content(source_type)
-    content = extra_metadata.get("content")
-    if not isinstance(content, str) or content.strip() == "":
-        _raise_missing_text_content(source_type)
+    if source_type in BINARY_SOURCE_TYPES:
+        _validate_binary_source_metadata(
+            source_type=source_type,
+            extra_metadata=extra_metadata,
+        )
 
 
 def project_payload(project: Project) -> dict[str, Any]:
@@ -310,6 +320,42 @@ def _raise_missing_text_content(source_type: str) -> NoReturn:
         f"{source_type} source requires extra_metadata.content",
         status_code=422,
     )
+
+
+def _validate_binary_source_metadata(
+    *,
+    source_type: str,
+    extra_metadata: Mapping[str, Any] | None,
+) -> None:
+    if extra_metadata is None:
+        raise AuthoringError(
+            f"{source_type} source requires extra_metadata.content_base64",
+            status_code=422,
+        )
+    raw = extra_metadata.get("content_base64")
+    if not isinstance(raw, str) or raw.strip() == "":
+        raise AuthoringError(
+            f"{source_type} source requires extra_metadata.content_base64",
+            status_code=422,
+        )
+    try:
+        decoded = base64.b64decode(raw, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise AuthoringError(
+            f"{source_type} source content_base64 is invalid",
+            status_code=422,
+        ) from exc
+    if not decoded:
+        raise AuthoringError(
+            f"{source_type} source content_base64 is empty",
+            status_code=422,
+        )
+    if len(decoded) > MAX_BINARY_SOURCE_BYTES:
+        raise AuthoringError(
+            f"{source_type} source exceeds max binary size of "
+            f"{MAX_BINARY_SOURCE_BYTES} bytes",
+            status_code=422,
+        )
 
 
 def _datetime_payload(value: datetime) -> str:

@@ -48,7 +48,7 @@
 - M43 Authoring lifecycle + RBAC closeout: completo.
 - M44 CI + compose all-in-one + gate reconcile: completo.
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
-- M45 PDF + DOCX ingestion: planificado (post-v1.0).
+- M45 PDF + DOCX ingestion: completo.
 - M46 Security pack: planificado (post-v1.0).
 - M47 Query routing medible: planificado (post-v1.0).
 - M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
@@ -1878,10 +1878,11 @@ el gate desde `main` con M40–M44 cerrados.
 
 #### M45 PDF + DOCX ingestion
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
 - Parser PDF (texto embebido primero) + DOCX; registry por content-type.
-- Vision/OCR opt-in despues; no antes de M40.
+- Authoring `pdf`/`docx` con `content_base64`, CLI `--file`, URL post-fetch.
+- Vision/OCR opt-in despues; PDFs sin texto embebido bloquean el job.
 
 #### M46 Security pack
 

@@ -69,6 +69,7 @@ export type AuthoringPanelProps = {
   onSelectProject(project: Project): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
+  onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
   onUserAccessTokenChange(value: string): void
@@ -85,6 +86,7 @@ export type AuthoringPanelProps = {
   sourceContent: string
   sourceError: string | null
   sourceExternalId: string
+  sourceFileName: string
   sourceState: RequestState
   sourceTags: string
   sourceType: string
@@ -138,6 +140,7 @@ export function AuthoringPanel({
   onSelectProject,
   onSourceContentChange,
   onSourceExternalIdChange,
+  onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
   onUserAccessTokenChange,
@@ -154,6 +157,7 @@ export function AuthoringPanel({
   sourceContent,
   sourceError,
   sourceExternalId,
+  sourceFileName,
   sourceState,
   sourceTags,
   sourceType,
@@ -227,11 +231,13 @@ export function AuthoringPanel({
             onRefreshSources={onRefreshSources}
             onSourceContentChange={onSourceContentChange}
             onSourceExternalIdChange={onSourceExternalIdChange}
+            onSourceFileChange={onSourceFileChange}
             onSourceTagsChange={onSourceTagsChange}
             onSourceTypeChange={onSourceTypeChange}
             projectId={projectId}
             sourceContent={sourceContent}
             sourceExternalId={sourceExternalId}
+            sourceFileName={sourceFileName}
             sourceState={sourceState}
             sourceTags={sourceTags}
             sourceType={sourceType}
@@ -758,6 +764,14 @@ function UserAccessLists({
   )
 }
 
+function isBinarySourceType(sourceType: string): boolean {
+  return sourceType === 'pdf' || sourceType === 'docx'
+}
+
+function isTextSourceType(sourceType: string): boolean {
+  return sourceType === 'markdown' || sourceType === 'text' || sourceType === 'txt'
+}
+
 function SourcesPanel({
   error,
   isBusy,
@@ -768,11 +782,13 @@ function SourcesPanel({
   onRefreshSources,
   onSourceContentChange,
   onSourceExternalIdChange,
+  onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
   projectId,
   sourceContent,
   sourceExternalId,
+  sourceFileName,
   sourceState,
   sourceTags,
   sourceType,
@@ -787,16 +803,20 @@ function SourcesPanel({
   onRefreshSources(): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
+  onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
   projectId: string
   sourceContent: string
   sourceExternalId: string
+  sourceFileName: string
   sourceState: RequestState
   sourceTags: string
   sourceType: string
   sources: Source[]
 }) {
+  const binaryType = isBinarySourceType(sourceType)
+  const textType = isTextSourceType(sourceType)
   return (
     <AuthoringSectionPanel
       ariaLabel="Authoring sources"
@@ -831,6 +851,8 @@ function SourcesPanel({
                   { label: 'text', value: 'text' },
                   { label: 'txt', value: 'txt' },
                   { label: 'url', value: 'url' },
+                  { label: 'pdf', value: 'pdf' },
+                  { label: 'docx', value: 'docx' },
                 ]}
                 value={sourceType}
               />
@@ -851,18 +873,50 @@ function SourcesPanel({
             )}
           </AuthoringField>
         </div>
-        <AuthoringField id="authoring-source-content" label="Content">
-          {(fieldId) => (
-            <Textarea
-              id={fieldId}
-              name="source-content"
-              onChange={(event) => onSourceContentChange(event.currentTarget.value)}
-              placeholder="# Notes"
-              rows={5}
-              value={sourceContent}
-            />
-          )}
-        </AuthoringField>
+        {binaryType ? (
+          <AuthoringField id="authoring-source-file" label="File">
+            {(fieldId) => (
+              <div className="grid gap-1">
+                <Input
+                  accept={
+                    sourceType === 'pdf'
+                      ? 'application/pdf,.pdf'
+                      : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                  }
+                  id={fieldId}
+                  name="source-file"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0] ?? null
+                    onSourceFileChange(file)
+                  }}
+                  type="file"
+                />
+                {sourceFileName.length > 0 ? (
+                  <span className="text-xs text-muted-foreground">
+                    Selected: {sourceFileName}
+                  </span>
+                ) : null}
+              </div>
+            )}
+          </AuthoringField>
+        ) : textType ? (
+          <AuthoringField id="authoring-source-content" label="Content">
+            {(fieldId) => (
+              <Textarea
+                id={fieldId}
+                name="source-content"
+                onChange={(event) => onSourceContentChange(event.currentTarget.value)}
+                placeholder="# Notes"
+                rows={5}
+                value={sourceContent}
+              />
+            )}
+          </AuthoringField>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            URL sources are fetched during ingestion; no content is required here.
+          </p>
+        )}
         <AuthoringField id="authoring-source-tags" label="Tags">
           {(fieldId) => (
             <Input

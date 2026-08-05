@@ -2,10 +2,20 @@
 
 ## Milestone activo
 
-Bloque pre-v1 A cerrado (M40–M44). Proximo: re-gate humano y tag v1.0
-(humano). Post-v1: M45–M50.
+Bloque B post-v1 en curso. M45 cerrado. Proximo: M46 Security pack.
+Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
 
 ## Ultimo milestone completado
+
+M45 PDF + DOCX ingestion (texto embebido) cerrado el 2026-08-05.
+
+Parsers `pdf_embedded` / `docx_text` con registry por content-type y
+`source_type`, authoring `pdf`/`docx` via `content_base64`, CLI `--file`,
+URL PDF/DOCX post-fetch, frontend file picker, path publico ingest+index+chat.
+`pdf_office_ingestion` permanece en quality-gate deferred (sin smoke gate
+dedicado). OpenSpec `m45-pdf-docx-ingestion`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
 
 M44 CI + compose all-in-one + gate reconcile cerrado el 2026-08-05.
 
@@ -140,8 +150,9 @@ camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found. Proximo: change OpenSpec `m40-indexing-job-publico`
-(o nombre equivalente) al iniciar implementacion.
+No active changes found. M45 archivado en
+`openspec/changes/archive/2026-08-05-m45-pdf-docx-ingestion/`.
+Proximo: OpenSpec `m46-security-pack` (o nombre equivalente).
 
 ## Planificacion reciente
 

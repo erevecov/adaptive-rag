@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 from collections.abc import Mapping
@@ -24,9 +26,20 @@ from adaptive_rag.ingestion.indexing import (
     INDEX_DOCUMENT_VERSION_JOB_TYPE,
     enqueue_index_document_version_job,
 )
+from adaptive_rag.ingestion.parsers import (
+    BINARY_SOURCE_TYPES,
+    parser_for_content_type,
+    parser_for_source_type,
+)
+from adaptive_rag.ingestion.types import (
+    IngestionPipelineError,
+    ParsedDocument,
+    normalize_text,
+)
 from adaptive_rag.ingestion.url_fetch_policy import (
     FetchResult,
     URLFetcher,
+    URLFetchPolicy,
     URLFetchPolicyError,
 )
 
@@ -39,10 +52,7 @@ INGESTION_FAMILY_JOB_TYPES = frozenset(
 )
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 HTML_SOURCE_CONTENT_TYPES = frozenset({"application/xhtml+xml", "text/html"})
-
-
-class IngestionPipelineError(ValueError):
-    """Error no retryable de ingestion."""
+DEFAULT_MAX_BINARY_BYTES = URLFetchPolicy().max_response_bytes
 
 
 class URLContentFetcher(Protocol):
@@ -53,13 +63,6 @@ class URLContentFetcher(Protocol):
 class HTMLExtractor(Protocol):
     def extract(self, *, html: str, url: str) -> ParsedDocument:
         """Extrae texto principal y metadata desde HTML descargado."""
-
-
-@dataclass(frozen=True, slots=True)
-class ParsedDocument:
-    normalized_text: str
-    parser_metadata: Mapping[str, Any]
-    extraction_metadata: Mapping[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +128,7 @@ class IngestionPipeline:
         url_fetcher: URLContentFetcher | None = None,
         html_extractor: HTMLExtractor | None = None,
         text_parser: BasicTextParser | None = None,
+        max_binary_bytes: int = DEFAULT_MAX_BINARY_BYTES,
     ) -> None:
         self._session = session
         self._source_repo = SourceRepository(session)
@@ -133,6 +137,7 @@ class IngestionPipeline:
         self._url_fetcher = url_fetcher or URLFetcher()
         self._html_extractor = html_extractor or TrafilaturaHTMLExtractor()
         self._text_parser = text_parser or BasicTextParser()
+        self._max_binary_bytes = max_binary_bytes
 
     def run_next(
         self,
@@ -240,14 +245,7 @@ class IngestionPipeline:
 
     def _parse_source(self, source: Source) -> ParsedDocument:
         if source.source_type == "url":
-            fetched = self._url_fetcher.fetch(source.external_id)
-            content_type = _base_content_type(fetched.content_type)
-            if content_type not in HTML_SOURCE_CONTENT_TYPES:
-                raise IngestionPipelineError(
-                    f"URL source content type is not HTML: {content_type}"
-                )
-            html = fetched.content.decode("utf-8", errors="replace")
-            return self._html_extractor.extract(html=html, url=fetched.final_url)
+            return self._parse_url_source(source)
 
         if source.source_type in TEXT_SOURCE_TYPES:
             return self._text_parser.parse(
@@ -255,7 +253,36 @@ class IngestionPipeline:
                 source_type=source.source_type,
             )
 
+        if source.source_type in BINARY_SOURCE_TYPES:
+            parser = parser_for_source_type(source.source_type)
+            if parser is None:
+                raise IngestionPipelineError(
+                    f"Unsupported source_type: {source.source_type}"
+                )
+            return parser.parse(
+                _binary_content_from_metadata(
+                    source,
+                    max_bytes=self._max_binary_bytes,
+                )
+            )
+
         raise IngestionPipelineError(f"Unsupported source_type: {source.source_type}")
+
+    def _parse_url_source(self, source: Source) -> ParsedDocument:
+        fetched = self._url_fetcher.fetch(source.external_id)
+        content_type = _base_content_type(fetched.content_type)
+
+        if content_type in HTML_SOURCE_CONTENT_TYPES:
+            html = fetched.content.decode("utf-8", errors="replace")
+            return self._html_extractor.extract(html=html, url=fetched.final_url)
+
+        binary_parser = parser_for_content_type(content_type)
+        if binary_parser is not None:
+            return binary_parser.parse(fetched.content)
+
+        raise IngestionPipelineError(
+            f"URL source content type has no registered parser: {content_type}"
+        )
 
     def _get_or_create_document(self, *, project_id: UUID, source: Source) -> Document:
         documents = self._document_repo.list(
@@ -269,12 +296,6 @@ class IngestionPipeline:
             source_id=source.id,
             stable_id=source.external_id,
         )
-
-
-def normalize_text(content: str) -> str:
-    """Normaliza line endings y whitespace exterior sin cambiar el cuerpo."""
-
-    return content.replace("\r\n", "\n").replace("\r", "\n").strip()
 
 
 def _source_id_from_payload(payload: Mapping[str, Any] | None) -> UUID:
@@ -299,6 +320,34 @@ def _inline_text_content(source: Source) -> str:
             f"{source.source_type} source requires extra_metadata.content"
         )
     return content
+
+
+def _binary_content_from_metadata(
+    source: Source,
+    *,
+    max_bytes: int,
+) -> bytes:
+    metadata = source.extra_metadata or {}
+    raw = metadata.get("content_base64")
+    if not isinstance(raw, str) or raw.strip() == "":
+        raise IngestionPipelineError(
+            f"{source.source_type} source requires extra_metadata.content_base64"
+        )
+    try:
+        decoded = base64.b64decode(raw, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise IngestionPipelineError(
+            f"{source.source_type} source content_base64 is invalid"
+        ) from exc
+    if not decoded:
+        raise IngestionPipelineError(
+            f"{source.source_type} source content_base64 is empty"
+        )
+    if len(decoded) > max_bytes:
+        raise IngestionPipelineError(
+            f"{source.source_type} source exceeds max binary size of {max_bytes} bytes"
+        )
+    return decoded
 
 
 def _base_content_type(content_type: str) -> str:

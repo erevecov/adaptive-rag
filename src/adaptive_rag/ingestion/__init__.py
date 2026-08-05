@@ -14,11 +14,13 @@ from adaptive_rag.ingestion.pipeline import (
     BasicTextParser,
     HTMLExtractor,
     IngestionPipeline,
-    IngestionPipelineError,
     IngestionRunResult,
-    ParsedDocument,
     TrafilaturaHTMLExtractor,
     URLContentFetcher,
+)
+from adaptive_rag.ingestion.types import (
+    IngestionPipelineError,
+    ParsedDocument,
     normalize_text,
 )
 from adaptive_rag.ingestion.url_fetch_policy import (

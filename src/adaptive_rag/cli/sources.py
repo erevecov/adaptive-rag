@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import json
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 from uuid import UUID
 
@@ -23,6 +25,7 @@ from adaptive_rag.authoring import (
 )
 from adaptive_rag.db.repositories import SourceFilters
 from adaptive_rag.db.session import session_scope
+from adaptive_rag.ingestion.parsers import BINARY_SOURCE_TYPES
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -33,9 +36,27 @@ def create(
     source_type: Annotated[str, typer.Option("--source-type")],
     external_id: Annotated[str, typer.Option("--external-id")],
     content: Annotated[str | None, typer.Option("--content")] = None,
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file",
+            help="Binary file for pdf/docx (base64-encoded into content_base64).",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+        ),
+    ] = None,
     tag: Annotated[list[str] | None, typer.Option("--tag")] = None,
 ) -> None:
-    extra_metadata = _extra_metadata_from_content(content)
+    try:
+        extra_metadata = _extra_metadata_from_inputs(
+            source_type=source_type,
+            content=content,
+            file_path=file,
+        )
+    except AuthoringError as exc:
+        _exit_authoring_error(exc)
 
     with session_scope() as session:
         try:
@@ -99,9 +120,36 @@ def show(
     typer.echo(json.dumps(payload))
 
 
-def _extra_metadata_from_content(content: str | None) -> dict[str, Any] | None:
+def _extra_metadata_from_inputs(
+    *,
+    source_type: str,
+    content: str | None,
+    file_path: Path | None,
+) -> dict[str, Any] | None:
+    if file_path is not None and content is not None:
+        raise AuthoringError(
+            "use either --content or --file, not both",
+            status_code=422,
+        )
+    if file_path is not None:
+        if source_type not in BINARY_SOURCE_TYPES:
+            raise AuthoringError(
+                "--file is only valid for pdf or docx source types",
+                status_code=422,
+            )
+        raw = file_path.read_bytes()
+        metadata: dict[str, Any] = {
+            "content_base64": base64.b64encode(raw).decode("ascii"),
+            "filename": file_path.name,
+        }
+        return metadata
     if content is None:
         return None
+    if source_type in BINARY_SOURCE_TYPES:
+        raise AuthoringError(
+            f"{source_type} source requires --file (or content_base64 via API)",
+            status_code=422,
+        )
     return {"content": content}
 
 

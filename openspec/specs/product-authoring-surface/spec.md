@@ -91,10 +91,26 @@ state.
 
 #### Scenario: Unsupported source type is rejected early
 
-- **WHEN** a user submits a source type outside `markdown`, `text`, `txt` or
-  `url`
+- **WHEN** a user submits a source type outside `markdown`, `text`, `txt`,
+  `url`, `pdf` or `docx`
 - **THEN** the authoring surface rejects it before persistence
 - **AND** the error names the supported source types
+
+#### Scenario: PDF and DOCX sources require base64 payload
+
+- **WHEN** a user creates a source with type `pdf` or `docx`
+- **AND** `extra_metadata.content_base64` is missing, empty, not valid base64,
+  or decodes to more than the configured max bytes
+- **THEN** the authoring surface rejects it before persistence with a stable
+  validation error
+
+#### Scenario: PDF and DOCX sources accept valid base64 payload
+
+- **WHEN** a user creates a source with type `pdf` or `docx`
+- **AND** `extra_metadata.content_base64` decodes to non-empty bytes within the
+  size limit
+- **THEN** the source is persisted
+- **AND** no ingestion job is created by authoring alone
 
 ### Requirement: Authoring polish keeps project and source work compact
 

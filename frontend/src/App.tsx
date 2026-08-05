@@ -232,6 +232,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [sourceType, setSourceType] = useState('markdown')
   const [sourceExternalId, setSourceExternalId] = useState('')
   const [sourceContent, setSourceContent] = useState('')
+  const [sourceContentBase64, setSourceContentBase64] = useState('')
+  const [sourceFileName, setSourceFileName] = useState('')
   const [sourceTags, setSourceTags] = useState('')
   const [userLogin, setUserLogin] = useState('')
   const [userDisplayName, setUserDisplayName] = useState('')
@@ -1175,9 +1177,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setSourceAuthoringError(`${sourceType} source requires content.`)
       return
     }
+    if (isBinarySourceType(sourceType) && sourceContentBase64.trim().length === 0) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(`${sourceType} source requires a file.`)
+      return
+    }
 
     const body = buildSourceCreateBody({
       content,
+      contentBase64: sourceContentBase64,
       externalId: trimmedExternalId,
       sourceType,
       tags: sourceTags,
@@ -1191,11 +1199,32 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setSources((current) => upsertSource(current, source))
       setSourceExternalId('')
       setSourceContent('')
+      setSourceContentBase64('')
+      setSourceFileName('')
       setSourceTags('')
       setSourceAuthoringState('succeeded')
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleSourceFileChange(file: File | null) {
+    if (file === null) {
+      setSourceContentBase64('')
+      setSourceFileName('')
+      return
+    }
+    const buffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let index = 0; index < bytes.length; index += 1) {
+      binary += String.fromCharCode(bytes[index]!)
+    }
+    setSourceContentBase64(btoa(binary))
+    setSourceFileName(file.name)
+    if (sourceExternalId.trim().length === 0) {
+      setSourceExternalId(file.name)
     }
   }
 
@@ -2551,8 +2580,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSelectProject={handleSelectProject}
                 onSourceContentChange={setSourceContent}
                 onSourceExternalIdChange={setSourceExternalId}
+                onSourceFileChange={(file) => void handleSourceFileChange(file)}
                 onSourceTagsChange={setSourceTags}
-                onSourceTypeChange={setSourceType}
+                onSourceTypeChange={(value) => {
+                  setSourceType(value)
+                  if (!isBinarySourceType(value)) {
+                    setSourceContentBase64('')
+                    setSourceFileName('')
+                  }
+                  if (!isTextSourceType(value)) {
+                    setSourceContent('')
+                  }
+                }}
                 onUserAccessTokenChange={setUserAccessToken}
                 onUserDisplayNameChange={setUserDisplayName}
                 onUserLoginChange={setUserLogin}
@@ -2567,6 +2606,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 sourceContent={sourceContent}
                 sourceError={sourceAuthoringError}
                 sourceExternalId={sourceExternalId}
+                sourceFileName={sourceFileName}
                 sourceState={sourceAuthoringState}
                 sourceTags={sourceTags}
                 sourceType={sourceType}
@@ -3149,11 +3189,13 @@ function getJsonNumber(value: unknown, key: string): number | null {
 
 function buildSourceCreateBody({
   content,
+  contentBase64,
   externalId,
   sourceType,
   tags,
 }: {
   content: string
+  contentBase64: string
   externalId: string
   sourceType: string
   tags: string
@@ -3167,6 +3209,10 @@ function buildSourceCreateBody({
   if (parsedTags.length > 0) {
     body.tags = parsedTags
   }
+  if (isBinarySourceType(sourceType)) {
+    body.extra_metadata = { content_base64: contentBase64 }
+    return body
+  }
   if (trimmedContent.length > 0 || isTextSourceType(sourceType)) {
     body.extra_metadata = { content }
   }
@@ -3175,6 +3221,10 @@ function buildSourceCreateBody({
 
 function isTextSourceType(sourceType: string): boolean {
   return sourceType === 'markdown' || sourceType === 'text' || sourceType === 'txt'
+}
+
+function isBinarySourceType(sourceType: string): boolean {
+  return sourceType === 'pdf' || sourceType === 'docx'
 }
 
 function parseTags(value: string): string[] {

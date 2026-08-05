@@ -241,11 +241,21 @@ def test_create_source_rejects_unknown_project_and_source_type() -> None:
 
     unsupported = client.post(
         f"/projects/{project.id}/sources",
-        json={"source_type": "pdf", "external_id": "file.pdf"},
+        json={"source_type": "pptx", "external_id": "deck.pptx"},
     )
 
     assert unsupported.status_code == 422
     assert (
         unsupported.json()["detail"]
-        == "source_type must be one of markdown, text, txt, url"
+        == "source_type must be one of markdown, text, txt, url, pdf, docx"
+    )
+
+    missing_payload = client.post(
+        f"/projects/{project.id}/sources",
+        json={"source_type": "pdf", "external_id": "file.pdf"},
+    )
+    assert missing_payload.status_code == 422
+    assert (
+        missing_payload.json()["detail"]
+        == "pdf source requires extra_metadata.content_base64"
     )
