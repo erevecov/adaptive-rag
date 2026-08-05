@@ -263,15 +263,15 @@ export function WorkspaceTopline({
       aria-label={`Current session ${sessionName}, project ${projectName}`}
       className={cn(
         [
-          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground',
+          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-1',
         ],
-        isChatWorkspace ? 'mb-0' : 'mb-[22px]',
-        !isLeftSidebarOpen && 'pl-12',
+        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-3',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
     >
       <h1
-        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] text-foreground"
+        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] tracking-tight text-foreground max-[680px]:text-xs"
         id="workspace-title"
         title={sessionName}
       >
@@ -439,8 +439,8 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5',
-          !isOpen && 'min-h-0 border-b-transparent p-0',
+          'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-12 max-[680px]:gap-2 max-[680px]:px-2.5 max-[680px]:py-2',
+          !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
       >
@@ -465,10 +465,10 @@ export function AppSidebar({
           aria-hidden={!isOpen}
           data-slot="sidebar-brand"
         >
-          <strong className="truncate text-sm font-extrabold leading-tight text-foreground">
+          <strong className="truncate text-sm font-extrabold leading-tight tracking-tight text-foreground max-[680px]:text-[0.8125rem]">
             Adaptive RAG
           </strong>
-          <span className="truncate text-[11px] font-medium leading-tight text-muted-foreground">
+          <span className="truncate text-[11px] font-medium leading-tight tracking-tight text-muted-foreground max-[680px]:text-[0.625rem]">
             Workspace
           </span>
         </div>
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-2 max-[680px]:px-2 max-[680px]:pb-2.5 max-[680px]:pt-2',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-2"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
@@ -564,7 +564,7 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight max-[680px]:min-h-11',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:text-[0.6875rem]',
         'hover:bg-primary/15 hover:text-foreground',
         active && 'bg-primary/15 font-semibold text-foreground',
         className,
@@ -751,11 +751,11 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-3 max-[680px]:text-[0.6875rem]',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-2 max-[680px]:text-[0.8125rem]',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
@@ -899,8 +899,8 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-muted-foreground motion-safe:transition-colors',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-1.5',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1.5 max-[680px]:text-[0.8125rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',
@@ -918,8 +918,8 @@ function SidebarProjectSelector({
                       type="button"
                       variant="ghost"
                     >
-                      <span className="grid min-w-0 gap-0.5">
-                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold text-foreground">
+                      <span className="grid min-w-0 gap-0.5 max-[680px]:gap-0">
+                        <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold tracking-tight text-foreground max-[680px]:text-[0.6875rem]">
                           {project.name}
                         </strong>
                       </span>

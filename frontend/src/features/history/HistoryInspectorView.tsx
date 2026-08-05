@@ -610,7 +610,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
           {sourceViewerStatusLabel(viewer.state)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-3 p-4 pt-0">
+      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-3 max-[680px]:pt-0">
         {viewer.state === 'loading' ? (
           <div
             aria-busy="true"
@@ -1039,7 +1039,7 @@ function SessionDetailPanel({
           {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-3 max-[680px]:p-3 max-[680px]:pt-0">
         <section className="grid gap-2" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground">
             Messages
@@ -1117,8 +1117,8 @@ function DetailSection({
   title: string
 }) {
   return (
-    <section className="grid gap-2" aria-labelledby={id}>
-      <h4 id={id} className="text-sm font-semibold text-foreground">
+    <section className="grid gap-2 max-[680px]:gap-1.5" aria-labelledby={id}>
+      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.8125rem]">
         {title}
       </h4>
       {children}

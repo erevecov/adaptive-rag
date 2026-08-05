@@ -302,9 +302,9 @@ function AuthoringSectionPanel({
       aria-label={ariaLabel}
       role="region"
     >
-      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row">
-        <div className="grid min-w-0 gap-1">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-2 max-[680px]:p-3">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:tracking-wider">
             {eyebrow}
           </p>
           <PanelTitle id={id}>{title}</PanelTitle>
@@ -312,11 +312,11 @@ function AuthoringSectionPanel({
             <PanelDescription>{description}</PanelDescription>
           ) : null}
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-1">
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0">{children}</PanelBody>
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-3 max-[680px]:p-3 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
