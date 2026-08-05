@@ -153,4 +153,79 @@ describe('UserMemoryPanel', () => {
     )
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
+
+  test('badge reports approved injectable count even on Proposed filter', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Draft', id: 'mem-1', status: 'proposed' }),
+      memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('1 injectable')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Proposed' }))
+    expect(await screen.findByText('Draft')).toBeTruthy()
+    expect(screen.getByText('1 injectable')).toBeTruthy()
+    expect(screen.queryByText('0 injectable')).toBeNull()
+  })
+
+  test('switches to Proposed filter after a successful propose', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const propose = vi.fn(async (body: { content: string }) => {
+      const item = memory({
+        content: body.content,
+        id: 'mem-2',
+        status: 'proposed',
+      })
+      store.push(item)
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, propose })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Approved' }))
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+
+    await user.type(
+      screen.getByLabelText('Propose memory'),
+      'New preference',
+    )
+    await user.click(screen.getByRole('button', { name: 'Propose' }))
+    expect(await screen.findByText('New preference')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Proposed' }).getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
 })

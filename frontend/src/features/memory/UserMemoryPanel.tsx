@@ -50,6 +50,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [busyMemoryId, setBusyMemoryId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
+  const [injectableCount, setInjectableCount] = useState(0)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -62,14 +63,21 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setListState('loading')
       setListError(null)
       try {
-        const response = await apiClient.listUserMemories({
-          project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-          status: statusFilter === 'all' ? null : statusFilter,
-        })
+        const [listResponse, approvedResponse] = await Promise.all([
+          apiClient.listUserMemories({
+            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
+            status: statusFilter === 'all' ? null : statusFilter,
+          }),
+          apiClient.listUserMemories({
+            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
+            status: 'approved',
+          }),
+        ])
         if (cancelled) {
           return
         }
-        setItems(response.items)
+        setItems(listResponse.items)
+        setInjectableCount(approvedResponse.items.length)
         setListState('succeeded')
       } catch (error) {
         if (cancelled) {
@@ -86,6 +94,18 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       cancelled = true
     }
   }, [apiClient, statusFilter, trimmedProjectId])
+
+  async function refreshInjectableCount() {
+    try {
+      const response = await apiClient.listUserMemories({
+        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
+        status: 'approved',
+      })
+      setInjectableCount(response.items.length)
+    } catch {
+      /* keep last known injectable count */
+    }
+  }
 
   async function refreshList() {
     setListState('loading')
@@ -124,7 +144,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setDraft('')
       setProposeState('succeeded')
       setProposeSuccess('Proposed. Approve it below before chat can use it.')
-      await refreshList()
+      // Ensure the new item is visible even if the user was on Approved/Rejected.
+      if (statusFilter !== 'proposed') {
+        setStatusFilter('proposed')
+      } else {
+        await refreshList()
+      }
     } catch (error) {
       setProposeState('failed')
       setProposeError(getErrorMessage(error, 'Could not propose memory.'))
@@ -136,7 +161,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     setActionError(null)
     try {
       await apiClient.approveUserMemory(memory.id)
-      await refreshList()
+      await Promise.all([refreshList(), refreshInjectableCount()])
+      requestAnimationFrame(() => {
+        document.getElementById(`user-memory-${memory.id}`)?.focus()
+      })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not approve memory.'))
     } finally {
@@ -153,7 +181,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditingId(null)
         setEditDraft('')
       }
-      await refreshList()
+      await Promise.all([refreshList(), refreshInjectableCount()])
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not reject memory.'))
     } finally {
@@ -180,8 +208,6 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     }
   }
 
-  const approvedCount = items.filter((item) => item.status === 'approved').length
-
   return (
     <Panel aria-labelledby={titleId} className="grid gap-6 p-6" role="region">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -197,7 +223,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </h2>
         </div>
         <StatusBadge className="w-fit" tone="primary">
-          {listState === 'loading' ? 'Loading' : `${approvedCount} injectable`}
+          {listState === 'loading'
+            ? 'Loading'
+            : `${injectableCount} injectable`}
         </StatusBadge>
       </header>
 
@@ -304,26 +332,25 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         })}
       </div>
 
-      {listError ? (
-        <InlineFeedback role="alert" tone="danger">
-          {listError}
-        </InlineFeedback>
-      ) : null}
-      {actionError ? (
-        <InlineFeedback role="alert" tone="danger">
-          {actionError}
-        </InlineFeedback>
-      ) : null}
+      <div aria-live="polite" className="grid gap-2">
+        {listError ? (
+          <InlineFeedback role="alert" tone="danger">
+            {listError}
+          </InlineFeedback>
+        ) : null}
+        {actionError ? (
+          <InlineFeedback role="alert" tone="danger">
+            {actionError}
+          </InlineFeedback>
+        ) : null}
+      </div>
 
       {listState === 'loading' && items.length === 0 ? (
         <EmptyState>Loading memories…</EmptyState>
       ) : null}
 
       {listState !== 'loading' && items.length === 0 ? (
-        <EmptyState>
-          No memories yet. Propose one above, then approve it to enable chat
-          injection.
-        </EmptyState>
+        <EmptyState>{emptyCopyForFilter(statusFilter)}</EmptyState>
       ) : null}
 
       {items.length > 0 ? (
@@ -332,7 +359,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
             return (
-              <DataListItem key={memory.id}>
+              <DataListItem
+                id={`user-memory-${memory.id}`}
+                key={memory.id}
+                tabIndex={-1}
+              >
                 <div className="grid gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge
@@ -443,6 +474,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       ) : null}
     </Panel>
   )
+}
+
+function emptyCopyForFilter(filter: MemoryStatusFilter): string {
+  if (filter === 'proposed') {
+    return 'No proposed memories. Propose one above to start review.'
+  }
+  if (filter === 'approved') {
+    return 'No approved memories yet. Approve a proposal to enable chat injection.'
+  }
+  if (filter === 'rejected') {
+    return 'No rejected memories. Rejected proposals and items removed from injection appear here.'
+  }
+  return 'No memories yet. Propose one above, then approve it to enable chat injection.'
 }
 
 function statusTone(
