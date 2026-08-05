@@ -130,8 +130,9 @@ export const SegmentedControlItem = forwardRef<
       [
         'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium',
         'text-muted-foreground motion-safe:transition-colors hover:bg-background hover:text-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
+        // Inset ring stays inside the muted track (offset rings clip / wash on purple).
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        'disabled:pointer-events-none disabled:opacity-50',
         'data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm',
         'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
       ],

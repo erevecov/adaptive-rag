@@ -31,6 +31,9 @@ describe('SegmentedControl', () => {
       screen.getByRole('button', { name: 'Connections' }).getAttribute('aria-pressed'),
     ).toBe('true')
     expect(
+      screen.getByRole('button', { name: 'Connections' }).className,
+    ).toContain('focus-visible:ring-inset')
+    expect(
       screen.getByRole('button', { name: 'Model catalog' }).getAttribute('aria-pressed'),
     ).toBe('false')
   })
