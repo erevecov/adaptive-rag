@@ -177,7 +177,9 @@ export function ChatWorkspacePanel({
         <form
           className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4"
           data-slot="chat-composer"
+          id="chat-composer"
           onSubmit={onSubmit}
+          tabIndex={-1}
         >
           <Field className="gap-0">
             <FieldLabel className="sr-only" htmlFor="chat-question">
@@ -1017,6 +1019,8 @@ function KnowledgeDraftCard({
 }) {
   const canEdit = draft.status === 'draft'
   const canCancel = draft.status !== 'approved' && draft.status !== 'cancelled'
+  // Primary commit only while still a draft with non-empty text.
+  const canSubmitPrimary = canEdit && draft.text.trim().length > 0
   const primaryAction =
     draft.reviewAction === 'approve' ? 'Approve knowledge' : 'Request approval'
 
@@ -1060,7 +1064,7 @@ function KnowledgeDraftCard({
         <InlineFeedback tone="danger">{draft.error}</InlineFeedback>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!canEdit} onClick={onSubmit} type="button">
+        <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>
         <Button

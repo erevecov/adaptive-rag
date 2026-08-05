@@ -344,9 +344,66 @@ describe('ChatWorkspacePanel', () => {
 
     const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
-    expect(within(draft).getByRole('button', { name: 'Approve knowledge' })).toBeTruthy()
+    const approve = within(draft).getByRole('button', { name: 'Approve knowledge' })
+    expect(approve).toBeTruthy()
+    expect((approve as HTMLButtonElement).disabled).toBe(false)
     expect(within(draft).getByText('draft').getAttribute('data-tone')).toBe('primary')
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('disables knowledge draft primary action when status is not draft', () => {
+    for (const status of ['pending', 'approved', 'cancelled'] as const) {
+      cleanup()
+      renderChatWorkspace({
+        drafts: {
+          [status]: {
+            draftId: status,
+            error: null,
+            proposalId: status === 'pending' ? 'proposal-1' : null,
+            reviewAction: 'approve',
+            scope: 'project',
+            status,
+            text: `Text for ${status}`,
+          },
+        },
+        response,
+      })
+
+      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      expect(
+        (
+          within(card).getByRole('button', {
+            name: 'Approve knowledge',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+      expect(
+        (
+          within(card).getByRole('button', {
+            name: 'Refine in chat',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+    }
+  })
+
+  test('exposes aria-pressed on composer context and minimap tools', () => {
+    const { view } = renderChatWorkspace({
+      isContextInspectorActive: true,
+      isMinimapInspectorActive: false,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Open context sidebar' }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('true')
+    expect(
+      screen.getByRole('button', { name: 'Open minimap sidebar' }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('false')
+    expect(view.container.querySelector('#chat-composer')).toBeTruthy()
   })
 
   test('maps knowledge draft status badges to lifecycle tones', () => {

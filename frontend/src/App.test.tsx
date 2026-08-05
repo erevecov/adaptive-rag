@@ -2201,6 +2201,16 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('data-slot="workspace-project-chip"')
   })
 
+  test('renders a keyboard skip link targeting the chat composer', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
+    expect(skip.getAttribute('href')).toBe('#chat-composer')
+    expect(skip.getAttribute('data-slot')).toBe('skip-link')
+    expect(document.getElementById('chat-composer')).toBeTruthy()
+    expect(document.getElementById('main-content')).toBeTruthy()
+  })
+
   test('does not keep legacy inspector backdrop class markers in App.tsx', () => {
     expect(appSource).not.toContain('workspace-inspector-backdrop')
   })

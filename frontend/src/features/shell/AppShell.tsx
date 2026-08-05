@@ -123,6 +123,10 @@ export function AppShell({
   sidebar: ReactNode
   topline: ReactNode
 }) {
+  const skipHref = primaryView === 'chat' ? '#chat-composer' : '#main-content'
+  const skipLabel =
+    primaryView === 'chat' ? 'Skip to chat composer' : 'Skip to main content'
+
   return (
     <main
       className={cn(
@@ -146,6 +150,21 @@ export function AppShell({
         } as CSSProperties
       }
     >
+      {/* First focusable control for keyboard users (Tab from document start). */}
+      <a
+        className={cn(
+          'sr-only focus:not-sr-only',
+          'focus:absolute focus:left-4 focus:top-4 focus:z-[100]',
+          'focus:rounded-md focus:bg-primary focus:px-3 focus:py-2',
+          'focus:text-sm focus:font-semibold focus:text-primary-foreground',
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+        )}
+        data-slot="skip-link"
+        href={skipHref}
+      >
+        {skipLabel}
+      </a>
+
       {sidebar}
 
       <section
@@ -163,6 +182,8 @@ export function AppShell({
             : 'mx-auto max-w-[1240px]',
         )}
         data-slot="workspace"
+        id="main-content"
+        tabIndex={-1}
       >
         {topline}
         {children}

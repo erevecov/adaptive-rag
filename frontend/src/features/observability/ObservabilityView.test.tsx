@@ -223,6 +223,11 @@ describe('ObservabilityPanel', () => {
     expect(screen.getByRole('columnheader', { name: 'Operation' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Tokens' })).toBeTruthy()
     expect(screen.getByText('1,840')).toBeTruthy()
+    const tableHeader = view.container.querySelector('[data-slot="table-header"]')
+    expect(tableHeader?.className).toMatch(/sticky/)
+    expect(
+      view.container.querySelector('[data-slot="table-scroll"]')?.className,
+    ).toMatch(/max-h-/)
 
     rerender(
       <ObservabilityPanel
