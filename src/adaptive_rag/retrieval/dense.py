@@ -21,6 +21,7 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Source,
 )
+from adaptive_rag.retrieval.version_filter import latest_document_version_clause
 
 
 class DenseRetrievalError(ValueError):
@@ -255,6 +256,7 @@ class DenseRetriever:
         statement = statement.where(
             Document.project_id == project_id,
             Source.project_id == project_id,
+            latest_document_version_clause(),
         )
         if require_embedding:
             statement = statement.where(Chunk.embedding.is_not(None))

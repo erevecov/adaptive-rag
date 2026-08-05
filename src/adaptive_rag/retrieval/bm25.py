@@ -18,6 +18,7 @@ from adaptive_rag.retrieval.dense import (
     DenseRetrievalCitation,
     DenseRetrievalFilters,
 )
+from adaptive_rag.retrieval.version_filter import latest_document_version_clause
 
 BM25_K1 = 1.2
 BM25_B = 0.75
@@ -139,6 +140,7 @@ class Bm25Retriever:
         statement = statement.where(
             Document.project_id == project_id,
             Source.project_id == project_id,
+            latest_document_version_clause(),
         )
         if filters.source_id is not None:
             statement = statement.where(Source.id == filters.source_id)
@@ -281,9 +283,7 @@ def _validate_query(query: str) -> str:
 
 
 def _tokens(value: str) -> tuple[str, ...]:
-    return tuple(
-        match.group(0).casefold() for match in re.finditer(r"\w+", value)
-    )
+    return tuple(match.group(0).casefold() for match in re.finditer(r"\w+", value))
 
 
 def _unique_terms(tokens: tuple[str, ...]) -> tuple[str, ...]:
