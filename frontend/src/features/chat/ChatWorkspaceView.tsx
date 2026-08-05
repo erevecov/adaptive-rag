@@ -906,13 +906,13 @@ function QuestionPrompt({ question }: { question: string | null }) {
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border/50 bg-background pb-2"
+      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15"
       data-slot="chat-question-sticky"
     >
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
+          aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
           className="max-w-full justify-start whitespace-normal text-left"
           onClick={() => setExpanded((current) => !current)}
           title={trimmedQuestion}
@@ -964,7 +964,7 @@ function ResponseDetailsPanel({
     >
       <Button
         aria-expanded={expanded}
-        aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
+        aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
         className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"

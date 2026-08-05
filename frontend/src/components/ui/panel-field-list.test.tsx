@@ -120,5 +120,6 @@ describe('DataListItem', () => {
     expect(row.className).toContain('motion-safe:transition-colors')
     expect(row.className).toContain('hover:bg-primary/15')
     expect(row.className).toContain('max-[680px]:p-2')
+    expect(row.className).toContain('tracking-tight')
   })
 })

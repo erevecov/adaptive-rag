@@ -2613,7 +2613,7 @@ describe('App chat workspace', () => {
       limit: 15,
     })
     await user.click(
-      screen.getByRole('button', { name: 'Expand response details' }),
+      screen.getByRole('button', { name: 'Expand Response Details' }),
     )
     expect(
       screen.getByText('Restart the worker before retrying the import.'),
@@ -2711,7 +2711,7 @@ describe('App chat workspace', () => {
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
     await user.click(
-      screen.getByRole('button', { name: 'Expand response details' }),
+      screen.getByRole('button', { name: 'Expand Response Details' }),
     )
 
     // Citation chips + details panel share the same accessible name.
@@ -2754,7 +2754,7 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
-      name: 'Expand full question',
+      name: 'Expand Full Question',
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
@@ -2763,7 +2763,7 @@ describe('App chat workspace', () => {
     await user.click(prompt)
 
     expect(prompt.textContent).toBe(longQuestion)
-    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse Full Question')
   })
 
   test('consolidates response sources and tool calls under a compact details panel', async () => {
@@ -2784,7 +2784,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Tool calls' })).toBeNull()
     expect(
-      screen.queryByRole('button', { name: 'Expand response details' }),
+      screen.queryByRole('button', { name: 'Expand Response Details' }),
     ).toBeNull()
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
@@ -2840,7 +2840,7 @@ describe('App chat workspace', () => {
     await screen.findByText(chatResponse.answer)
 
     await user.click(
-      screen.getByRole('button', { name: 'Expand response details' }),
+      screen.getByRole('button', { name: 'Expand Response Details' }),
     )
     await user.click(
       screen.getAllByRole('button', {
@@ -3290,7 +3290,7 @@ describe('App chat workspace', () => {
     expect(within(transcript).getByText('What failed during deployment?')).toBeTruthy()
     expect(
       within(transcript).getByRole('button', {
-        name: 'Expand response details',
+        name: 'Expand Response Details',
       }),
     ).toBeTruthy()
   })
@@ -3451,7 +3451,7 @@ describe('App chat workspace', () => {
 
     expect(await screen.findByText('Second answer only')).toBeTruthy()
     await user.click(
-      screen.getByRole('button', { name: 'Expand response details' }),
+      screen.getByRole('button', { name: 'Expand Response Details' }),
     )
     expect(screen.getByText('web_lookup')).toBeTruthy()
     expect(screen.getByText('second turn query')).toBeTruthy()
@@ -3586,7 +3586,7 @@ describe('App chat workspace', () => {
     expect(within(transcript).getByText('What failed during deployment?')).toBeTruthy()
 
     const detailsToggle = within(transcript).getByRole('button', {
-      name: 'Expand response details',
+      name: 'Expand Response Details',
     })
     expect(detailsToggle.textContent).toContain('1 Source')
     expect(detailsToggle.textContent).toContain('1 Tool Call')
