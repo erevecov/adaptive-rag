@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-2"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-1.5"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
