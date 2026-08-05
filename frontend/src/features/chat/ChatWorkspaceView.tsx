@@ -213,7 +213,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted px-4 py-2.5 text-sm leading-relaxed',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -883,7 +883,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground">
           {displayQuestion}
         </p>
       )}
@@ -1018,17 +1018,19 @@ function ResponseDetailsContent({
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>{sourceTypeLabel(result.citation.source_type)} source</Badge>
                     <Badge>
-                      version {result.citation.document_version_number}
+                      {sourceTypeLabel(result.citation.source_type)} Source
                     </Badge>
                     <Badge>
-                      chars {result.citation.char_start}-{result.citation.char_end}
+                      Version {result.citation.document_version_number}
+                    </Badge>
+                    <Badge>
+                      Chars {result.citation.char_start}-{result.citation.char_end}
                     </Badge>
                   </div>
                 </div>
                 <DataListItemActions className="justify-start md:justify-end">
-                  <StatusBadge>score {formatScore(result.score)}</StatusBadge>
+                  <StatusBadge>Score {formatScore(result.score)}</StatusBadge>
                   <Button
                     aria-label={`View source ${result.citation.source_external_id}`}
                     onClick={() =>

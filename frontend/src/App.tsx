@@ -2724,7 +2724,9 @@ function AppearanceSettingsPanel({
             Appearance
           </h2>
         </div>
-        <StatusBadge className="w-fit uppercase">{theme}</StatusBadge>
+        <StatusBadge className="w-fit">
+          {THEMES.find((option) => option.id === theme)?.label ?? theme}
+        </StatusBadge>
       </header>
 
       <PanelDescription>Choose the interface palette.</PanelDescription>
@@ -2737,7 +2739,7 @@ function AppearanceSettingsPanel({
               aria-pressed={active}
               className={cn(
                 'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground',
-                'hover:bg-muted',
+                'hover:bg-primary/15',
                 active &&
                   'border-primary bg-primary/25 focus-visible:ring-primary',
               )}

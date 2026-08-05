@@ -278,7 +278,7 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground"
         data-slot="workspace-project-chip"
         title={projectName}
       >
