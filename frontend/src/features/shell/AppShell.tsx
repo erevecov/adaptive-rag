@@ -404,7 +404,7 @@ export function AppSidebar({
 
   return (
     <aside
-      aria-label="Primary sidebar"
+      aria-label="Primary Sidebar"
       className={cn(
         [
           'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
@@ -423,7 +423,7 @@ export function AppSidebar({
       {isOpen && isMobileShell && typeof document !== 'undefined'
         ? createPortal(
             <Button
-              aria-label="Close left sidebar"
+              aria-label="Close Left Sidebar"
               // z-30 sits below fixed mobile sidebar (z-40); matches inspector overlay-backdrop language.
               // tabIndex=-1: clickable scrim stays out of sequential keyboard focus.
               className="fixed inset-0 z-30 h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
@@ -452,7 +452,7 @@ export function AppSidebar({
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
               'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-3 max-[680px]:top-3',
           )}
-          label={isOpen ? 'Collapse left sidebar' : 'Open left sidebar'}
+          label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
         >
           <Menu aria-hidden="true" className="size-5" />
@@ -490,7 +490,7 @@ export function AppSidebar({
         />
 
         <nav
-          aria-label="Primary navigation"
+          aria-label="Primary Navigation"
           className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5"
           data-slot="sidebar-primary-navigation"
         >
@@ -586,7 +586,7 @@ function AccountNavigationPanel({
 }) {
   return (
     <nav
-      aria-label="My account navigation"
+      aria-label="My Account Navigation"
       className="grid content-start items-stretch self-start border-t border-border pt-[18px]"
       data-slot="sidebar-contextual-navigation"
     >
@@ -656,7 +656,7 @@ function SettingsNavigationPanel({
 
   return (
     <nav
-      aria-label="Settings navigation"
+      aria-label="Settings Navigation"
       className="grid content-start items-stretch self-start border-t border-border pt-[18px]"
       data-slot="sidebar-contextual-navigation"
     >
@@ -857,7 +857,7 @@ function SidebarProjectSelector({
                 Search projects
               </span>
               <Input
-                aria-label="Search projects"
+                aria-label="Search Projects"
                 autoComplete="off"
                 autoFocus
                 className="h-[34px] text-xs"

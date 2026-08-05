@@ -519,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:pt-[max(0.75rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.75rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
@@ -741,11 +741,11 @@ function ConversationMinimap({
       <PanelBody className="p-4 pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
-            ariaLabel="Loading conversation minimap"
+            ariaLabel="Loading Conversation Minimap"
             slot="conversation-minimap-loading"
           />
         ) : detail === null || detail.messages.length === 0 ? (
-          <EmptyState>Select a session to navigate messages.</EmptyState>
+          <EmptyState>Select a Session to Navigate Messages.</EmptyState>
         ) : (
           <DataList aria-label="Conversation Messages">
             {detail.messages.map((message) => (
@@ -795,12 +795,12 @@ function SessionContextPanel({
       <PanelBody className="p-4 pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
-            ariaLabel="Loading session context"
+            ariaLabel="Loading Session Context"
             slot="session-context-loading"
           />
         ) : detail === null ? (
           <EmptyState>
-            Select a session to inspect model, prompt and usage context.
+            Select a Session to Inspect Model, Prompt and Usage Context.
           </EmptyState>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -882,11 +882,11 @@ function InternalActionStepper({
       <PanelBody className="p-4 pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
-            ariaLabel="Loading action stepper"
+            ariaLabel="Loading Action Stepper"
             slot="action-stepper-loading"
           />
         ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState>No stored internal actions for this session.</EmptyState>
+          <EmptyState>No Stored Internal Actions for This Session.</EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -1020,7 +1020,7 @@ function SessionDetailPanel({
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <EmptyState>Select a session to inspect stored history.</EmptyState>
+          <EmptyState>Select a Session to Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
     )
@@ -1046,7 +1046,7 @@ function SessionDetailPanel({
           </h4>
           <DataList aria-label="Session Messages">
             {detail.messages.length === 0 ? (
-              <EmptyState>No messages in this session.</EmptyState>
+              <EmptyState>No Messages in This Session.</EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>
@@ -1239,7 +1239,7 @@ function RetrievedChunkDetail({
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground" role="status">
-            No openable source (deleted or uncited)
+            No Openable Source (Deleted or Uncited)
           </span>
         )}
       </div>

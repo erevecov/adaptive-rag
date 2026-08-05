@@ -888,7 +888,7 @@ async function openSettingsSubmodule(
 ) {
   await user.click(screen.getByRole('button', { name: 'Settings' }))
   const settingsNavigation = screen.getByRole('navigation', {
-    name: 'Settings navigation',
+    name: 'Settings Navigation',
   })
   await user.click(within(settingsNavigation).getByRole('button', { name: moduleName }))
   await user.click(
@@ -910,10 +910,10 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
     const navigation = within(sidebar).getByRole('navigation', {
-      name: 'Primary navigation',
+      name: 'Primary Navigation',
     })
 
     expect(
@@ -926,14 +926,14 @@ describe('App chat workspace', () => {
     await user.click(within(navigation).getByRole('button', { name: 'My account' }))
 
     expect(
-      within(sidebar).getByRole('navigation', { name: 'My account navigation' }),
+      within(sidebar).getByRole('navigation', { name: 'My Account Navigation' }),
     ).toBeTruthy()
     expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
 
     await user.click(within(navigation).getByRole('button', { name: 'Settings' }))
 
     expect(
-      within(sidebar).getByRole('navigation', { name: 'Settings navigation' }),
+      within(sidebar).getByRole('navigation', { name: 'Settings Navigation' }),
     ).toBeTruthy()
     expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
   })
@@ -1006,7 +1006,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'My account' }))
 
     const accountNavigation = screen.getByRole('navigation', {
-      name: 'My account navigation',
+      name: 'My Account Navigation',
     })
 
     expect(
@@ -1051,7 +1051,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
     const settingsNavigation = screen.getByRole('navigation', {
-      name: 'Settings navigation',
+      name: 'Settings Navigation',
     })
 
     expect(within(settingsNavigation).getByRole('button', { name: 'Authoring' })).toBeTruthy()
@@ -1134,7 +1134,7 @@ describe('App chat workspace', () => {
     ).toBeNull()
 
     const settingsNavigation = screen.getByRole('navigation', {
-      name: 'Settings navigation',
+      name: 'Settings Navigation',
     })
     expect(
       within(settingsNavigation)
@@ -1170,7 +1170,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
 
     const settingsNavigation = screen.getByRole('navigation', {
-      name: 'Settings navigation',
+      name: 'Settings Navigation',
     })
     expect(
       within(settingsNavigation)
@@ -1258,9 +1258,9 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    const toggle = screen.getByRole('button', { name: 'Collapse left sidebar' })
+    const toggle = screen.getByRole('button', { name: 'Collapse Left Sidebar' })
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
 
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
@@ -1274,7 +1274,7 @@ describe('App chat workspace', () => {
     await user.click(toggle)
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.getAttribute('aria-label')).toBe('Open left sidebar')
+    expect(toggle.getAttribute('aria-label')).toBe('Open Left Sidebar')
     expect(sidebar.getAttribute('data-state')).toBe('closed')
     expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
     const closedContent = sidebar.querySelector(
@@ -1290,11 +1290,11 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
 
     if (sidebar.getAttribute('data-state') !== 'open') {
-      await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+      await user.click(screen.getByRole('button', { name: 'Open Left Sidebar' }))
     }
 
     expect(sidebar.getAttribute('data-state')).toBe('open')
@@ -1311,7 +1311,7 @@ describe('App chat workspace', () => {
     expect(sidebar.getAttribute('data-state')).toBe('closed')
     expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
 
-    await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Left Sidebar' }))
     expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(screen.getByTestId('sidebar-backdrop')).toBeTruthy()
     expect(
@@ -1333,7 +1333,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
     expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
@@ -1361,13 +1361,13 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
     const selector = await within(sidebar).findByRole('button', {
       name: /Project selector/i,
     })
     const navigation = within(sidebar).getByRole('navigation', {
-      name: 'Primary navigation',
+      name: 'Primary Navigation',
     })
 
     expect(
@@ -1392,10 +1392,10 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
     const primaryNavigation = within(sidebar).getByRole('navigation', {
-      name: 'Primary navigation',
+      name: 'Primary Navigation',
     })
     const selector = await within(sidebar).findByRole('button', {
       name: /Project selector/i,
@@ -1416,7 +1416,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
     const settingsNavigation = screen.getByRole('navigation', {
-      name: 'Settings navigation',
+      name: 'Settings Navigation',
     })
     expect(settingsNavigation.getAttribute('data-slot')).toBe(
       'sidebar-contextual-navigation',
@@ -1441,7 +1441,7 @@ describe('App chat workspace', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
     const sidebar = screen.getByRole('complementary', {
-      name: 'Primary sidebar',
+      name: 'Primary Sidebar',
     })
     const selector = await within(sidebar).findByRole('button', {
       name: /Project selector/i,
@@ -1533,7 +1533,7 @@ describe('App chat workspace', () => {
       ),
     ).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Search projects'), 'omega')
+    await user.type(screen.getByLabelText('Search Projects'), 'omega')
     expect(screen.queryByRole('option', { name: /Beta Enabled/ })).toBeNull()
     expect(screen.getByRole('option', { name: /Omega Restricted/ })).toBeTruthy()
   })
@@ -1670,7 +1670,7 @@ describe('App chat workspace', () => {
         name: 'Knowledge draft draft-33333333',
       }),
     ).toBeTruthy()
-    const draftText = screen.getByLabelText('Knowledge draft text')
+    const draftText = screen.getByLabelText('Knowledge Draft Text')
     await user.clear(draftText)
     await user.type(
       draftText,
@@ -2041,21 +2041,21 @@ describe('App chat workspace', () => {
 
     expect(screen.queryByLabelText('Workspace Inspector')).toBeNull()
 
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     expect(screen.getByLabelText('Workspace Inspector')).toBeTruthy()
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
 
-    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Minimap Sidebar' }))
 
     expect(
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
     expect(
       screen
-        .getByRole('button', { name: 'Open minimap sidebar' })
+        .getByRole('button', { name: 'Open Minimap Sidebar' })
         .getAttribute('aria-pressed'),
     ).toBe('true')
 
@@ -2072,7 +2072,7 @@ describe('App chat workspace', () => {
       <App apiClient={createClientStub({})} initialProjectId={projectId} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const inlineInspector = screen.getByRole('complementary', {
       name: 'Workspace Inspector',
@@ -2087,7 +2087,7 @@ describe('App chat workspace', () => {
     setViewportWidth(900)
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     // Overlay uses dialog role for modal keyboard semantics.
     const overlayInspector = screen.getByRole('dialog', {
@@ -2136,7 +2136,7 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Question'), 'How do I retry?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
-    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     Object.defineProperty(transcript, 'clientHeight', {
       configurable: true,
       value: 240,
@@ -2326,7 +2326,7 @@ describe('App chat workspace', () => {
     const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
     expect(skip.hasAttribute('inert')).toBe(false)
 
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
     await screen.findByRole('dialog', { name: 'Workspace Inspector' })
 
     expect(skip.hasAttribute('inert')).toBe(true)
@@ -2706,7 +2706,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
     await screen.findByText(chatResponse.answer)
 
-    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Minimap Sidebar' }))
     expect(
       screen.getByRole('tab', { name: 'Minimap' }).getAttribute('aria-selected'),
     ).toBe('true')
@@ -2752,7 +2752,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
     await screen.findByText(chatResponse.answer)
 
-    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
       name: 'Expand full question',
     })
@@ -2787,7 +2787,7 @@ describe('App chat workspace', () => {
       screen.queryByRole('button', { name: 'Expand response details' }),
     ).toBeNull()
 
-    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const stepper = within(transcript).getByRole('region', {
       name: 'Chat Pipeline Steps',
     })
@@ -3281,7 +3281,7 @@ describe('App chat workspace', () => {
       screen.queryByRole('complementary', { name: 'Workspace Inspector' }),
     ).toBeNull()
     expect(screen.getByLabelText('Question')).toBeTruthy()
-    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     expect(
       await within(transcript).findByText(
         'The import failed because the worker was not running.',
@@ -3319,7 +3319,7 @@ describe('App chat workspace', () => {
         .closest('[data-slot="data-list-item"]')
         ?.hasAttribute('data-selected'),
     ).toBe(false)
-    expect(screen.getByText('No response yet.')).toBeTruthy()
+    expect(screen.getByText('No Response Yet.')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       '',
     )
@@ -3341,7 +3341,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
     await screen.findByRole('region', { name: 'Selected Session Detail' })
     expect(getChatSession).toHaveBeenCalledTimes(1)
 
@@ -3474,7 +3474,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const sessionMessages = await screen.findByRole('list', {
       name: 'Session Messages',
@@ -3518,7 +3518,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const sessionDetail = await screen.findByRole('region', {
       name: 'Selected Session Detail',
@@ -3555,7 +3555,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const context = await screen.findByRole('region', {
       name: 'Session Context',
@@ -3582,7 +3582,7 @@ describe('App chat workspace', () => {
       }),
     )
 
-    const transcript = screen.getByRole('region', { name: 'Chat transcript' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     expect(within(transcript).getByText('What failed during deployment?')).toBeTruthy()
 
     const detailsToggle = within(transcript).getByRole('button', {
@@ -3613,7 +3613,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const context = await screen.findByRole('region', {
       name: 'Session Context',
@@ -3637,7 +3637,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Minimap Sidebar' }))
 
     const minimap = await screen.findByRole('navigation', {
       name: 'Conversation Minimap',
@@ -3678,7 +3678,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     const stepper = await screen.findByRole('region', {
       name: 'Internal Action Stepper',
@@ -3714,7 +3714,7 @@ describe('App chat workspace', () => {
         name: /Abrir sesión Deployment question/,
       }),
     )
-    await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
 
     expect(await screen.findByText('chat session not found')).toBeTruthy()
     expect(
