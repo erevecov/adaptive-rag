@@ -1045,7 +1045,7 @@ function SourcesPanel({
       status={<RequestStatus state={sourceState} />}
       title="Content registry"
     >
-      <form className="grid gap-3" onSubmit={onCreateSource}>
+      <form className="grid gap-4" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
@@ -1058,7 +1058,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source type">
             {(fieldId) => (
               <Select

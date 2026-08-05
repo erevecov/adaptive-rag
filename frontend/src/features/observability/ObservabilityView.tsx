@@ -144,7 +144,7 @@ export function ObservabilityPanel({
           ))}
         </SegmentedControl>
 
-        <form className="grid gap-3 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
+        <form className="grid gap-4 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
           <ObservabilityField id="observability-project-id" label="Project ID">
             {(fieldId) => (
               <Input

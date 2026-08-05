@@ -370,9 +370,11 @@ describe('AuthoringPanel', () => {
       projects: [],
     })
     expect(screen.getByText('Loading projects…')).toBeTruthy()
-    expect(
-      loading.view.container.querySelector('[data-slot-state="loading"]'),
-    ).toBeTruthy()
+    const loadingState = loading.view.container.querySelector(
+      '[data-slot-state="loading"]',
+    )
+    expect(loadingState).toBeTruthy()
+    expect(loadingState?.className).toMatch(/motion-safe:animate-pulse/)
     loading.view.unmount()
 
     renderAuthoringPanel({
@@ -395,6 +397,40 @@ describe('AuthoringPanel', () => {
     renderAuthoringPanel({ projects: [deleted] })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
+  })
+
+  test('Title Case soft-delete and inactive badges keep full contrast', () => {
+    const deletedSource: Source = {
+      ...source,
+      deleted_at: '2026-06-22T12:00:00Z',
+      external_id: 'gone-source',
+      id: 'source-deleted',
+    }
+    const inactiveUser: User = {
+      ...user,
+      id: 'user-inactive',
+      is_active: false,
+      login: 'inactive@example.com',
+    }
+    renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sources: [deletedSource],
+    })
+    expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
+    cleanup()
+
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'users',
+      users: [inactiveUser],
+    })
+    expect(screen.getByText('Inactive').getAttribute('data-tone')).toBe(
+      'warning',
+    )
+    expect(
+      view.container.querySelector('[data-inactive]')?.querySelector('strong')
+        ?.className,
+    ).toMatch(/text-muted-foreground/)
   })
 
   test('knowledge status says Working while busy and gates Reject without reason', () => {

@@ -1,30 +1,23 @@
-# FE OPERATOR report — 20260805 pass-2 (post-#206)
+# FE OPERATOR report — 20260805 pass-3 (post-#212)
 
 STATUS: ready-for-lead-review
 
-Branch: `feat/ui-obsessional-polish` (= origin/main tip post PR #206 merge)
+Branch: `feat/ui-obsessional-polish` (= origin/main tip post PR #212)
 
 ## This pass
-Closed remaining P0/P1 after merge tip already contained knowledge Working status, job grouping, observability tablist/stale banner.
-
-### P0 fixed
-| Finding | Fix |
-|---------|-----|
-| CapabilitySelector combobox ARIA on non-focusable shell | Moved `role=combobox` / `aria-expanded` / `aria-controls` to filter `Input`; stopPropagation so Trigger does not toggle-close |
-| Catalog empty ≡ loading | `ProviderModelCatalogView` loading slot when `isLoading && length===0` |
+Operator density / state polish after #212 green merge.
 
 ### P1 fixed
 | Finding | Fix |
 |---------|-----|
-| Capabilities label without htmlFor | `htmlFor="runtime-capability-filter"` |
-| Listbox empty as EmptyState inside listbox | `role="status"` text instead |
-| Option `aria-selected` missing | `aria-selected={false}` on options |
-| Chip remove steals tab stops | `tabIndex={-1}` on remove chips |
-| Retrieval orphan `aria-describedby` | Only when rerank off |
-| Error breakdown nested cards | Flat `DataListItem` (`border-0 bg-transparent`) |
+| Source create + observability filter forms `gap-3` vs runtime `gap-4` | Forms aligned to `grid gap-4` |
+| Runtime loading EmptyStates (connections / catalog / project settings) missing pulse chrome | Shared `border-border/60 bg-muted/20 … motion-safe:animate-pulse` |
+| Soft-delete / inactive Title Case coverage thin | Tests for source `Deleted`, user `Inactive`, loading pulse class |
+
+(Already on tip from prior WIP: authoring list loading pulse, Inactive/Deleted badges, most authoring forms gap-4, MetricCard labelledby-only.)
 
 ### Tests
-Focused vitest authoring/runtime/retrieval/observability — **41 passed**.
+Focused vitest authoring/runtime/observability — **43 passed**.
 
 ## Coordination
-BACKLOG operator claims → done for this pass.
+No push. Grok opens/merges PR when CI green.

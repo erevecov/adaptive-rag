@@ -559,13 +559,16 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('shows loading connections instead of empty while busy', () => {
-    renderRuntimeSettingsPanel({
+    const { container } = renderRuntimeSettingsPanel({
       connections: [],
       state: 'loading',
     })
 
     expect(screen.getByText('Loading connections…')).toBeTruthy()
     expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
+    expect(
+      container.querySelector('[data-slot-state="loading"]')?.className,
+    ).toMatch(/motion-safe:animate-pulse/)
   })
 
   test('puts combobox ARIA on the capabilities filter input', async () => {

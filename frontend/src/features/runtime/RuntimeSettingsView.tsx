@@ -505,7 +505,7 @@ export function RuntimeConnectionsPanel({
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
             data-slot-state="loading"
             role="status"
           >
@@ -1701,7 +1701,7 @@ export function ProviderModelCatalogView({
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
-          className="p-4 text-left"
+          className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
           data-slot-state="loading"
           role="status"
         >
@@ -1805,7 +1805,7 @@ export function ProjectRuntimeSettingsView({
     return (
       <EmptyState
         aria-busy="true"
-        className="p-4 text-left"
+        className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
         data-slot-state="loading"
         role="status"
       >
