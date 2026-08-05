@@ -1553,7 +1553,7 @@ export function RuntimeProjectOverridesPanel({
               type="button"
               variant="secondary"
             >
-              Reset chat retrieval to global
+              Reset Chat Retrieval to Global
             </Button>
           ) : null}
         </DataListItemActions>
