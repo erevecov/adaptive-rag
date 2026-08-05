@@ -90,10 +90,10 @@ describe('Button', () => {
       'max-[680px]:min-h-11',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
-      'max-[680px]:px-3',
+      'max-[680px]:px-2.5',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
-      'max-[680px]:gap-1.5',
+      'max-[680px]:gap-1',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
       'max-[680px]:text-[0.75rem]',
@@ -105,7 +105,7 @@ describe('Button', () => {
       'max-[680px]:min-h-11',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
-      'max-[680px]:px-2.5',
+      'max-[680px]:px-2',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
       'max-[680px]:text-[0.625rem]',
