@@ -113,22 +113,11 @@ def test_pdf_source_public_path_to_cited_chat() -> None:
     assert chat.answer
     assert len(chat.citations) >= 1
     citation_blob = " ".join(str(item) for item in chat.citations)
-    assert (
-        "ALPHA-PDF-442" in citation_blob
-        or "ALPHA-PDF-442" in chat.answer
-        or "sample.pdf" in citation_blob
-        or any(
-            getattr(item, "source_external_id", None) == "sample.pdf"
-            or (
-                isinstance(item, dict)
-                and item.get("source_external_id") == "sample.pdf"
-            )
-            for item in chat.citations
-        )
-    )
+    # Distinctive embedded phrase must ground the answer or citations (E2E lock).
+    assert "ALPHA-PDF-442" in chat.answer or "ALPHA-PDF-442" in citation_blob
 
 
-def test_docx_source_public_path_creates_chunks() -> None:
+def test_docx_source_public_path_to_cited_chat() -> None:
     session = _make_session()
     dense = FakeDenseEmbeddingProvider()
     sparse = FakeSparseEmbeddingProvider()
@@ -155,6 +144,24 @@ def test_docx_source_public_path_creates_chunks() -> None:
     assert any("ALPHA-DOCX-991" in version.normalized_text for version in versions)
     chunks = session.scalars(select(Chunk)).all()
     assert len(chunks) >= 1
+
+    chat = ChatService(
+        runner=RetrievalGroundedChatRunner(),
+        retrieval_service=RetrievalService(
+            session,
+            provider=FakeDenseEmbeddingProvider(),
+            sparse_provider=FakeSparseEmbeddingProvider(),
+        ),
+    ).respond(
+        ChatRequest(
+            project_id=project.id,
+            message="What is the distinctive DOCX phrase ALPHA-DOCX-991 about?",
+            retrieval_limit=5,
+        )
+    )
+    assert len(chat.citations) >= 1
+    citation_blob = " ".join(str(item) for item in chat.citations)
+    assert "ALPHA-DOCX-991" in chat.answer or "ALPHA-DOCX-991" in citation_blob
 
 
 def test_url_docx_content_type_constant_matches_fetch_allowlist() -> None:

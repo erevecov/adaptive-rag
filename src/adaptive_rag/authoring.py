@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
@@ -18,12 +16,14 @@ from adaptive_rag.db.repositories import (
     SourceFilters,
     SourceRepository,
 )
-from adaptive_rag.ingestion.parsers import BINARY_SOURCE_TYPES
-from adaptive_rag.ingestion.url_fetch_policy import URLFetchPolicy
+from adaptive_rag.ingestion.parsers import (
+    BINARY_SOURCE_TYPES,
+    MAX_BINARY_SOURCE_BYTES,
+    decode_content_base64,
+)
 
 SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url", "pdf", "docx")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
-MAX_BINARY_SOURCE_BYTES = URLFetchPolicy().max_response_bytes
 
 
 class AuthoringError(Exception):
@@ -332,30 +332,14 @@ def _validate_binary_source_metadata(
             f"{source_type} source requires extra_metadata.content_base64",
             status_code=422,
         )
-    raw = extra_metadata.get("content_base64")
-    if not isinstance(raw, str) or raw.strip() == "":
-        raise AuthoringError(
-            f"{source_type} source requires extra_metadata.content_base64",
-            status_code=422,
-        )
     try:
-        decoded = base64.b64decode(raw, validate=True)
-    except (binascii.Error, ValueError) as exc:
-        raise AuthoringError(
-            f"{source_type} source content_base64 is invalid",
-            status_code=422,
-        ) from exc
-    if not decoded:
-        raise AuthoringError(
-            f"{source_type} source content_base64 is empty",
-            status_code=422,
+        decode_content_base64(
+            extra_metadata.get("content_base64"),
+            max_bytes=MAX_BINARY_SOURCE_BYTES,
+            source_type=source_type,
         )
-    if len(decoded) > MAX_BINARY_SOURCE_BYTES:
-        raise AuthoringError(
-            f"{source_type} source exceeds max binary size of "
-            f"{MAX_BINARY_SOURCE_BYTES} bytes",
-            status_code=422,
-        )
+    except ValueError as exc:
+        raise AuthoringError(str(exc), status_code=422) from exc
 
 
 def _datetime_payload(value: datetime) -> str:

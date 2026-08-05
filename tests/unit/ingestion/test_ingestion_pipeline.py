@@ -395,6 +395,58 @@ def test_run_next_ingests_url_pdf_with_embedded_text() -> None:
     )
 
 
+def test_run_next_ingests_url_docx_with_body_text() -> None:
+    from adaptive_rag.ingestion.parsers.registry import DOCX_CONTENT_TYPE
+
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="url",
+        external_id="https://example.com/file.docx",
+    )
+    job = _enqueue_ingest_job(session, project=project, source=source)
+    docx_bytes = (
+        Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "sample.docx"
+    ).read_bytes()
+    fetcher = FakeURLFetcher(
+        FetchResult(
+            final_url="https://example.com/file.docx",
+            status_code=200,
+            content_type=DOCX_CONTENT_TYPE,
+            content=docx_bytes,
+        )
+    )
+    extractor = FakeHTMLExtractor(
+        ParsedDocument(
+            normalized_text="should not be used",
+            parser_metadata={"parser": "fake_html"},
+            extraction_metadata={},
+        )
+    )
+    session.commit()
+
+    result = IngestionPipeline(
+        session,
+        url_fetcher=fetcher,
+        html_extractor=extractor,
+    ).run_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        now=_run_time(),
+        lease_until=_run_time() + timedelta(minutes=10),
+    )
+
+    assert not isinstance(result, IngestionBlockedResult)
+    assert result is not None
+    assert "ALPHA-DOCX-991" in result.document_version.normalized_text
+    assert result.document_version.parser_metadata["parser"] == "docx_text"
+    assert extractor.calls == []
+    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
+        "succeeded"
+    )
+
+
 def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
     import base64
 
@@ -485,3 +537,9 @@ def test_run_next_blocks_empty_pdf_without_ocr() -> None:
     assert result.job.id == job.id
     assert result.error_message == "PDF extraction produced no text"
     assert DocumentRepository(session).list(project_id=project.id) == []
+    index_jobs = [
+        item
+        for item in JobRepository(session).list(project_id=project.id)
+        if item.job_type == "index_document_version"
+    ]
+    assert index_jobs == []

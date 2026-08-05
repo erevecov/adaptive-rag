@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
 import hashlib
 import json
 from collections.abc import Mapping
@@ -28,6 +26,8 @@ from adaptive_rag.ingestion.indexing import (
 )
 from adaptive_rag.ingestion.parsers import (
     BINARY_SOURCE_TYPES,
+    MAX_BINARY_SOURCE_BYTES,
+    decode_content_base64,
     parser_for_content_type,
     parser_for_source_type,
 )
@@ -39,7 +39,6 @@ from adaptive_rag.ingestion.types import (
 from adaptive_rag.ingestion.url_fetch_policy import (
     FetchResult,
     URLFetcher,
-    URLFetchPolicy,
     URLFetchPolicyError,
 )
 
@@ -52,7 +51,7 @@ INGESTION_FAMILY_JOB_TYPES = frozenset(
 )
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
 HTML_SOURCE_CONTENT_TYPES = frozenset({"application/xhtml+xml", "text/html"})
-DEFAULT_MAX_BINARY_BYTES = URLFetchPolicy().max_response_bytes
+DEFAULT_MAX_BINARY_BYTES = MAX_BINARY_SOURCE_BYTES
 
 
 class URLContentFetcher(Protocol):
@@ -328,26 +327,14 @@ def _binary_content_from_metadata(
     max_bytes: int,
 ) -> bytes:
     metadata = source.extra_metadata or {}
-    raw = metadata.get("content_base64")
-    if not isinstance(raw, str) or raw.strip() == "":
-        raise IngestionPipelineError(
-            f"{source.source_type} source requires extra_metadata.content_base64"
-        )
     try:
-        decoded = base64.b64decode(raw, validate=True)
-    except (binascii.Error, ValueError) as exc:
-        raise IngestionPipelineError(
-            f"{source.source_type} source content_base64 is invalid"
-        ) from exc
-    if not decoded:
-        raise IngestionPipelineError(
-            f"{source.source_type} source content_base64 is empty"
+        return decode_content_base64(
+            metadata.get("content_base64"),
+            max_bytes=max_bytes,
+            source_type=source.source_type,
         )
-    if len(decoded) > max_bytes:
-        raise IngestionPipelineError(
-            f"{source.source_type} source exceeds max binary size of {max_bytes} bytes"
-        )
-    return decoded
+    except ValueError as exc:
+        raise IngestionPipelineError(str(exc)) from exc
 
 
 def _base_content_type(content_type: str) -> str:
