@@ -57,6 +57,13 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [injectableCount, setInjectableCount] = useState(0)
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    approved: 0,
+    proposed: 0,
+    rejected: 0,
+  })
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -69,21 +76,33 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setListState('loading')
       setListError(null)
       try {
-        const [listResponse, approvedResponse] = await Promise.all([
-          apiClient.listUserMemories({
-            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-            status: statusFilter === 'all' ? null : statusFilter,
-          }),
-          apiClient.listUserMemories({
-            project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-            status: 'approved',
-          }),
-        ])
+        const projectScope =
+          trimmedProjectId.length > 0 ? trimmedProjectId : null
+        const tallyResponse = await apiClient.listUserMemories({
+          project_id: projectScope,
+          status: null,
+        })
+        const listResponse =
+          statusFilter === 'all'
+            ? tallyResponse
+            : await apiClient.listUserMemories({
+                project_id: projectScope,
+                status: statusFilter,
+              })
         if (cancelled) {
           return
         }
+        const tally = tallyResponse.items
         setItems(listResponse.items)
-        setInjectableCount(approvedResponse.items.length)
+        setInjectableCount(
+          tally.filter((item) => item.status === 'approved').length,
+        )
+        setStatusCounts({
+          all: tally.length,
+          approved: tally.filter((item) => item.status === 'approved').length,
+          proposed: tally.filter((item) => item.status === 'proposed').length,
+          rejected: tally.filter((item) => item.status === 'rejected').length,
+        })
         setListState('succeeded')
       } catch (error) {
         if (cancelled) {
@@ -101,27 +120,35 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     }
   }, [apiClient, statusFilter, trimmedProjectId])
 
-  async function refreshInjectableCount() {
-    try {
-      const response = await apiClient.listUserMemories({
-        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-        status: 'approved',
-      })
-      setInjectableCount(response.items.length)
-    } catch {
-      /* keep last known injectable count */
-    }
-  }
 
   async function refreshList() {
     setListState('loading')
     setListError(null)
     try {
-      const response = await apiClient.listUserMemories({
-        project_id: trimmedProjectId.length > 0 ? trimmedProjectId : null,
-        status: statusFilter === 'all' ? null : statusFilter,
+      const projectScope =
+        trimmedProjectId.length > 0 ? trimmedProjectId : null
+      const tallyResponse = await apiClient.listUserMemories({
+        project_id: projectScope,
+        status: null,
       })
+      const response =
+        statusFilter === 'all'
+          ? tallyResponse
+          : await apiClient.listUserMemories({
+              project_id: projectScope,
+              status: statusFilter,
+            })
+      const tally = tallyResponse.items
       setItems(response.items)
+      setInjectableCount(
+        tally.filter((item) => item.status === 'approved').length,
+      )
+      setStatusCounts({
+        all: tally.length,
+        approved: tally.filter((item) => item.status === 'approved').length,
+        proposed: tally.filter((item) => item.status === 'proposed').length,
+        rejected: tally.filter((item) => item.status === 'rejected').length,
+      })
       setListState('succeeded')
     } catch (error) {
       setItems([])
@@ -164,11 +191,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   async function handleApprove(memory: UserMemory) {
     setBusyMemoryId(memory.id)
     setActionError(null)
+    const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.approveUserMemory(memory.id)
-      await Promise.all([refreshList(), refreshInjectableCount()])
+      await refreshList()
       requestAnimationFrame(() => {
-        document.getElementById(`user-memory-${memory.id}`)?.focus()
+        focusAfterReview(memory.id, rowIndex)
       })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not approve memory.'))
@@ -180,13 +208,17 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   async function handleReject(memory: UserMemory) {
     setBusyMemoryId(memory.id)
     setActionError(null)
+    const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.rejectUserMemory(memory.id)
       if (editingId === memory.id) {
         setEditingId(null)
         setEditDraft('')
       }
-      await Promise.all([refreshList(), refreshInjectableCount()])
+      await refreshList()
+      requestAnimationFrame(() => {
+        focusAfterReview(memory.id, rowIndex)
+      })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not reject memory.'))
     } finally {
@@ -376,6 +408,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
+              <span className="tabular-nums text-[10px] opacity-80">
+                {statusCounts[filter.id]}
+              </span>
             </Button>
           )
         })}
@@ -448,6 +483,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <span className="text-xs text-muted-foreground">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
                     </span>
+                    {formatRelativeTime(memory.created_at) ? (
+                      <>
+                        <span aria-hidden className="text-xs text-muted-foreground">
+                          ·
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatRelativeTime(memory.created_at)}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
 
                   {isEditing ? (
@@ -459,9 +504,34 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       value={editDraft}
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-snug text-foreground">
-                      {memory.content}
-                    </p>
+                    <div className="grid gap-1">
+                      <p
+                        className={cn(
+                          'whitespace-pre-wrap text-sm leading-snug text-foreground',
+                          !expandedIds[memory.id] &&
+                            memory.content.length > 220 &&
+                            'line-clamp-3',
+                        )}
+                      >
+                        {memory.content}
+                      </p>
+                      {memory.content.length > 220 ? (
+                        <Button
+                          className="h-auto w-fit px-0 py-0 text-xs"
+                          onClick={() =>
+                            setExpandedIds((current) => ({
+                              ...current,
+                              [memory.id]: !current[memory.id],
+                            }))
+                          }
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          {expandedIds[memory.id] ? 'Show less' : 'Show more'}
+                        </Button>
+                      ) : null}
+                    </div>
                   )}
 
                   <DataListItemActions className="gap-1.5">
@@ -637,6 +707,53 @@ function statusTone(
     return 'danger'
   }
   return 'neutral'
+}
+
+function focusAfterReview(memoryId: string, rowIndex: number): void {
+  const current = document.getElementById(`user-memory-${memoryId}`)
+  if (current instanceof HTMLElement) {
+    current.focus()
+    return
+  }
+  const reviewable = Array.from(
+    document.querySelectorAll<HTMLElement>('[id^="user-memory-"][tabindex="0"]'),
+  )
+  if (reviewable.length > 0) {
+    const index = Math.min(Math.max(rowIndex, 0), reviewable.length - 1)
+    reviewable[index]?.focus()
+    return
+  }
+  const empty = document.querySelector<HTMLElement>('[data-slot="empty-state"]')
+  if (empty) {
+    empty.setAttribute('tabindex', '-1')
+    empty.focus()
+    return
+  }
+  document.querySelector<HTMLElement>('[aria-label="Propose memory"]')?.focus()
+}
+
+function formatRelativeTime(iso: string | null): string | null {
+  if (iso === null || iso.trim().length === 0) {
+    return null
+  }
+  const then = Date.parse(iso)
+  if (Number.isNaN(then)) {
+    return null
+  }
+  const seconds = Math.max(0, Math.round((Date.now() - then) / 1000))
+  if (seconds < 60) {
+    return 'Just now'
+  }
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes}m ago`
+  }
+  const hours = Math.round(minutes / 60)
+  if (hours < 48) {
+    return `${hours}h ago`
+  }
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
