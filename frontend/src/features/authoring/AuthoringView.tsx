@@ -443,43 +443,70 @@ function ProjectList({
   projects: Project[]
 }) {
   if (projects.length === 0) {
-    return <EmptyState>No projects loaded.</EmptyState>
+    return (
+      <EmptyState className="border-border/60 bg-muted/20 p-4 text-left">
+        <p className="font-medium text-foreground/90">No projects yet.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Create a project above to start indexing sources.
+        </p>
+      </EmptyState>
+    )
   }
 
   return (
     <DataList aria-label="Projects">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
-        const roleLabel = canAccess
-          ? (project.access_role ?? project.embedding_mode)
-          : 'no access'
+        const isDeleted = Boolean(project.deleted_at)
+        const roleLabel = isDeleted
+          ? 'deleted'
+          : canAccess
+            ? (project.access_role ?? project.embedding_mode)
+            : 'no access'
         return (
-          <DataListItem className="p-0" key={project.id}>
+          <DataListItem
+            className={isDeleted ? 'p-0 opacity-70' : 'p-0'}
+            data-deleted={isDeleted ? '' : undefined}
+            key={project.id}
+          >
             <div className="flex items-stretch gap-1 p-1">
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
               className="h-auto min-w-0 flex-1 justify-between gap-3 whitespace-normal p-3 text-left"
-              disabled={!canAccess}
+              disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
             >
               <span className="grid min-w-0 gap-1">
-                <strong className="break-words text-sm font-semibold">
+                <strong
+                  className={
+                    isDeleted
+                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      : 'break-words text-sm font-semibold'
+                  }
+                >
                   {project.name}
                 </strong>
-                <small className="break-all text-xs text-muted-foreground">
+                <small className="break-all font-mono text-[11px] text-muted-foreground">
                   {project.id}
                 </small>
               </span>
-              <Badge className="shrink-0" tone={canAccess ? 'neutral' : 'warning'}>
+              <StatusBadge
+                className="shrink-0"
+                tone={
+                  isDeleted || !canAccess
+                    ? 'warning'
+                    : 'neutral'
+                }
+              >
                 {roleLabel}
-              </Badge>
+              </StatusBadge>
             </Button>
             <Button
               aria-label={`Delete project ${project.name}`}
               className="shrink-0 self-center"
-              disabled={isBusy || !canAccess}
+              disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
               variant="secondary"
