@@ -209,6 +209,48 @@ def test_soft_deleted_project_is_not_gettable_or_listed() -> None:
     )
     assert sources.status_code == 404
 
+    # Runtime-settings project surface must not serve soft-deleted projects.
+    runtime = client.get(
+        f"/projects/{project.id}/runtime-settings",
+        headers=_auth("admin-token"),
+    )
+    assert runtime.status_code == 404
+
+
+def test_soft_deleted_source_is_not_gettable_or_listed() -> None:
+    session = _make_session()
+    seeded = _seed(session)
+    project = seeded["project"]
+    source = seeded["source"]
+    client = _client(session)
+
+    deleted = client.delete(
+        f"/projects/{project.id}/sources/{source.id}",
+        headers=_auth("admin-token"),
+    )
+    assert deleted.status_code == 200
+    assert deleted.json()["deleted_at"] is not None
+
+    get_response = client.get(
+        f"/projects/{project.id}/sources/{source.id}",
+        headers=_auth("contrib-token"),
+    )
+    assert get_response.status_code == 404
+    assert get_response.json()["detail"] == "source not found"
+
+    listed = client.get(
+        f"/projects/{project.id}/sources",
+        headers=_auth("contrib-token"),
+    )
+    assert listed.status_code == 200
+    assert all(item["id"] != str(source.id) for item in listed.json()["items"])
+
+    enqueue = client.post(
+        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        headers=_auth("contrib-token"),
+    )
+    assert enqueue.status_code == 404
+
 
 def test_deactivate_user_and_revoke_token() -> None:
     session = _make_session()

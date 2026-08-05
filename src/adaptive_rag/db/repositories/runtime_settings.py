@@ -179,7 +179,7 @@ class ChatRetrievalSettingsRepository:
 
     def _require_project(self, project_id: UUID) -> Project:
         project = self._session.get(Project, project_id)
-        if project is None:
+        if project is None or project.deleted_at is not None:
             raise ValueError("project_not_found")
         return project
 
@@ -634,7 +634,7 @@ class ProjectRuntimeSettingsRepository:
 
     def _require_project(self, project_id: UUID) -> Project:
         project = self._session.get(Project, project_id)
-        if project is None:
+        if project is None or project.deleted_at is not None:
             raise ValueError("project_not_found")
         return project
 
