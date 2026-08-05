@@ -1039,7 +1039,7 @@ function SessionDetailPanel({
           {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2.5 max-[680px]:p-2.5 max-[680px]:pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-2 max-[680px]:p-2.5 max-[680px]:pt-0">
         <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground">
             Messages
