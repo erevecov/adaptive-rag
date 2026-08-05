@@ -46,6 +46,10 @@ describe('Select', () => {
 
     expect(option.className).toContain('focus-visible:ring-inset')
     expect(option.className).toContain('focus-visible:ring-ring')
+    expect(option.className).toContain('data-[highlighted]:bg-primary/15')
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'focus-visible:ring-ring',
+    )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()
     expect(trigger.parentElement?.contains(option)).toBe(false)

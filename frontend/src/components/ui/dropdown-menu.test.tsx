@@ -45,6 +45,7 @@ describe('DropdownMenu', () => {
     expect(archiveItem.getAttribute('data-slot')).toBe('dropdown-menu-item')
     expect(archiveItem.className).toContain('focus-visible:ring-2')
     expect(archiveItem.className).toContain('focus-visible:ring-inset')
+    expect(archiveItem.className).toContain('data-[highlighted]:bg-primary/15')
     expect(trigger.parentElement?.contains(menu)).toBe(false)
 
     await user.click(archiveItem)

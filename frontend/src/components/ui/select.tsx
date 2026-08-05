@@ -75,6 +75,7 @@ export function Select({
           className={cn(
             [
               'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-[var(--shadow-popover)]',
+              'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
           )}
@@ -88,9 +89,10 @@ export function Select({
                 className={cn(
                   [
                     'relative flex min-h-8 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm outline-none',
-                    'text-popover-foreground',
+                    'text-popover-foreground motion-safe:transition-colors',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-                    'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+                    // Primary tint reads clearer than accent wash on purple menus.
+                    'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground',
                     'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                   ],
                 )}
