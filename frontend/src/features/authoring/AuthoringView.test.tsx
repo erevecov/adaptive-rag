@@ -396,4 +396,67 @@ describe('AuthoringPanel', () => {
     expect(screen.getByText('deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
+
+  test('knowledge status says Working while busy and gates Reject without reason', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeReviewState: 'loading',
+      knowledgeProposals: [proposal],
+    })
+    expect(screen.getByText('Working').getAttribute('data-slot')).toBe('badge')
+    expect(
+      (screen.getByRole('button', { name: /^Reject / }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  test('groups ingestion jobs by status with relative run-after', () => {
+    const running: IngestionJob = {
+      ...ingestionJob,
+      id: 'job-running',
+      status: 'running',
+      last_error: null,
+    }
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      ingestionJobs: [ingestionJob, running],
+    })
+    expect(
+      view.container.querySelector('[data-slot="ingestion-job-groups"]'),
+    ).toBeTruthy()
+    expect(screen.getAllByText(/run after/).length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
+    ).toBeTruthy()
+  })
+
+  test('binary source upload shows idle and selected file status', async () => {
+    const userDriver = userEvent.setup()
+    const idle = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sourceType: 'pdf',
+    })
+    const status = idle.view.container.querySelector(
+      '[data-slot="source-file-status"]',
+    )
+    expect(status?.textContent).toBe('No file selected.')
+    expect(screen.getByLabelText('File').getAttribute('type')).toBe('file')
+    expect(screen.getByLabelText('File').className).toMatch(/min-h-9/)
+    idle.view.unmount()
+
+    const onSourceFileChange = vi.fn()
+    renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      onSourceFileChange,
+      sourceFileName: 'handbook.pdf',
+      sourceType: 'pdf',
+    })
+    expect(
+      screen.getByText(/Selected: handbook\.pdf/).getAttribute('data-slot'),
+    ).toBe('source-file-status')
+    await userDriver.click(
+      screen.getByRole('button', { name: 'Clear selected file' }),
+    )
+    expect(onSourceFileChange).toHaveBeenCalledWith(null)
+  })
 })

@@ -458,7 +458,7 @@ describe('RuntimeSettingsPanel', () => {
 
     const trigger = screen.getByRole('combobox', { name: 'Capabilities' })
 
-    expect(trigger.getAttribute('data-state')).toBe('closed')
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
     await user.click(trigger)
 
     const listbox = await screen.findByRole('listbox', {
@@ -466,7 +466,7 @@ describe('RuntimeSettingsPanel', () => {
     })
     const selector = trigger.closest('[data-slot="capability-selector"]')
 
-    expect(trigger.getAttribute('data-state')).toBe('open')
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(listbox.getAttribute('data-state')).toBe('open')
     expect(selector).toBeTruthy()
     expect(selector?.contains(listbox)).toBe(false)
@@ -566,5 +566,57 @@ describe('RuntimeSettingsPanel', () => {
 
     expect(screen.getByText('Loading connections…')).toBeTruthy()
     expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
+  })
+
+  test('puts combobox ARIA on the capabilities filter input', async () => {
+    const user = userEvent.setup()
+    renderRuntimeSettingsPanel()
+
+    const filter = screen.getByRole('combobox', { name: 'Capabilities' })
+    expect(filter.getAttribute('aria-expanded')).toBe('false')
+    expect(filter.getAttribute('aria-controls')).toBe(
+      'runtime-capability-options',
+    )
+    await user.click(filter)
+    expect(filter.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      await screen.findByRole('listbox', { name: 'Capability options' }),
+    ).toBeTruthy()
+  })
+
+  test('shows loading catalog instead of empty while busy', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'model_catalog',
+      providerModels: [],
+      state: 'loading',
+    })
+
+    expect(screen.getByText('Loading provider models…')).toBeTruthy()
+    expect(screen.queryByText('No provider models loaded.')).toBeNull()
+  })
+
+  test('uses EmptyState for empty global slots', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      slots: [],
+    })
+
+    expect(
+      screen.getByText(/No global slot defaults loaded\. Save a global slot/),
+    ).toBeTruthy()
+  })
+
+  test('shows EmptyState when project chat pool is empty', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'project_overrides',
+      projectRuntimeSettings: {
+        ...projectRuntimeSettings,
+        chat_models: [],
+      },
+    })
+
+    expect(
+      screen.getByText(/No chat models in the project pool/),
+    ).toBeTruthy()
   })
 })

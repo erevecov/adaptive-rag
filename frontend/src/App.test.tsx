@@ -2026,6 +2026,16 @@ describe('App chat workspace', () => {
         .querySelector('[data-slot="chat-workspace-inert-host"]')
         ?.hasAttribute('inert'),
     ).toBe(true)
+    expect(
+      document
+        .querySelector('[data-slot="app-shell-sidebar-host"]')
+        ?.hasAttribute('inert'),
+    ).toBe(true)
+    expect(
+      document
+        .querySelector('[data-slot="workspace-topline-host"]')
+        ?.hasAttribute('inert'),
+    ).toBe(true)
     expect(document.querySelector('.chat-workspace-grid')?.className).not.toContain(
       'chat-workspace-grid-docked',
     )
@@ -3662,10 +3672,9 @@ describe('App chat workspace', () => {
     const capabilitiesCombobox = screen.getByRole('combobox', {
       name: 'Capabilities',
     })
-    const capabilityFilter = screen.getByRole('textbox', {
-      name: 'Filter capabilities',
-    })
-    expect(within(capabilitiesCombobox).getByText('chat')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Remove chat capability' }),
+    ).toBeTruthy()
     const saveConnectionButton = screen.getByRole('button', {
       name: 'Save connection',
     }) as HTMLButtonElement
@@ -3675,20 +3684,23 @@ describe('App chat workspace', () => {
       }),
     )
     expect(saveConnectionButton.disabled).toBe(true)
-    await user.type(capabilityFilter, 'chat')
+    // Combobox input is the capability filter (no separate textbox).
+    await user.type(capabilitiesCombobox, 'chat')
     await user.click(
       await screen.findByRole('option', {
         name: 'Add chat capability',
       }),
     )
-    await user.type(capabilityFilter, 'dense')
+    await user.type(capabilitiesCombobox, 'dense')
     await user.click(
       await screen.findByRole('option', {
         name: 'Add dense_embedding capability',
       }),
     )
     expect(saveConnectionButton.disabled).toBe(false)
-    expect(within(capabilitiesCombobox).getByText('dense_embedding')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Remove dense_embedding capability' }),
+    ).toBeTruthy()
     fireEvent.change(screen.getByLabelText('API key'), {
       target: { value: 'sk-hosted-secret' },
     })
@@ -4200,7 +4212,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No project runtime settings yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(screen.getByLabelText('Project slot connection').textContent).toContain(
       'Select connection',
@@ -4254,7 +4266,7 @@ describe('App chat workspace', () => {
     const updatedProjectSettings = screen.getByRole('region', {
       name: 'Project runtime settings',
     })
-    expect(within(updatedProjectSettings).getByText('No project runtime settings loaded.')).toBeTruthy()
+    expect(within(updatedProjectSettings).getByText('No project runtime settings yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('local-chat')).toBeNull()
     expect(within(updatedProjectSettings).queryByText('llama3.1:8b')).toBeNull()

@@ -318,7 +318,7 @@ export function SessionNavigationPanel({
                     <Button
                       aria-current={isSelected ? 'true' : undefined}
                       aria-label={openSessionLabel}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -602,19 +602,19 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </span>
             <div
               aria-hidden="true"
-              className="h-3 w-1/3 animate-pulse rounded bg-muted/80"
+              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/80"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-full animate-pulse rounded bg-muted/70"
+              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-11/12 animate-pulse rounded bg-muted/60"
+              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60"
             />
             <div
               aria-hidden="true"
-              className="h-3 w-4/5 animate-pulse rounded bg-muted/50"
+              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50"
             />
           </div>
         ) : null}
@@ -644,7 +644,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               </p>
               {viewer.source.deleted_at ? (
                 <StatusBadge className="w-fit shrink-0" tone="warning">
-                  eliminada
+                  Deleted
                 </StatusBadge>
               ) : null}
             </div>
@@ -719,7 +719,7 @@ function ConversationMinimap({
             {detail.messages.map((message) => (
               <DataListItem key={message.message_id}>
                 <Button
-                  aria-label={`${message.role}: ${message.content}`}
+                  aria-label={minimapMessageLabel(message.role, message.content)}
                   className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left"
                   onClick={() => onNavigateMessage(message.message_id)}
                   type="button"
@@ -926,15 +926,15 @@ function SessionDetailPanel({
           >
             <span className="sr-only">Loading session detail...</span>
             <div aria-hidden="true" className="grid gap-2">
-              <div className="h-3 w-1/4 animate-pulse rounded bg-muted/80" />
-              <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-11/12 animate-pulse rounded bg-muted/60" />
-              <div className="h-3 w-4/5 animate-pulse rounded bg-muted/50" />
+              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/80" />
+              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/70" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/60" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/50" />
             </div>
             <div aria-hidden="true" className="grid gap-2 pt-1">
-              <div className="h-3 w-1/5 animate-pulse rounded bg-muted/80" />
-              <div className="h-16 w-full animate-pulse rounded-md bg-muted/50" />
-              <div className="h-16 w-full animate-pulse rounded-md bg-muted/40" />
+              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/80" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/50" />
+              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/40" />
             </div>
           </div>
         </PanelBody>
@@ -1145,7 +1145,7 @@ function RetrievedChunkDetail({
         <Badge>rank {chunk.rank}</Badge>
         {isCascadeDeleted ? (
           <StatusBadge className="w-fit" tone="warning">
-            fuente eliminada
+            source removed
           </StatusBadge>
         ) : null}
       </div>
@@ -1213,6 +1213,16 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
 
 function sessionHasTraining(session: ChatSessionSummary): boolean {
   return session.has_pending_training || session.has_approved_training
+}
+
+const MINIMAP_ARIA_MAX_CHARS = 96
+
+function minimapMessageLabel(role: string, content: string): string {
+  const trimmed = content.trim()
+  if (trimmed.length <= MINIMAP_ARIA_MAX_CHARS) {
+    return `${role}: ${trimmed}`
+  }
+  return `${role}: ${trimmed.slice(0, MINIMAP_ARIA_MAX_CHARS - 1)}…`
 }
 
 function sessionDisplayTitle(session: ChatSessionSummary): string {

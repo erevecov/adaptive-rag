@@ -344,7 +344,7 @@ function SpeechInputControl({
   return (
     <section
       aria-label="Transcript input"
-      className="flex min-w-0 items-center gap-1.5"
+      className="flex min-w-0 max-[680px]:w-full max-[680px]:flex-wrap items-center gap-1.5"
       data-slot="speech-input"
     >
       <Button
@@ -367,8 +367,9 @@ function SpeechInputControl({
       </Button>
       {showStatus && message !== null ? (
         <InlineFeedback
-          className="min-w-0 max-w-48 truncate text-xs"
+          className="min-w-0 max-w-48 truncate text-xs max-[680px]:basis-full max-[680px]:max-w-none"
           role={state === 'failed' ? 'alert' : 'status'}
+          title={message}
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
           {message}

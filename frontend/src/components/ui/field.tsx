@@ -10,7 +10,12 @@ export type FieldProps = HTMLAttributes<HTMLDivElement>
 
 export const Field = forwardRef<HTMLDivElement, FieldProps>(
   ({ className, ...props }, ref) => (
-    <div className={cn('flex flex-col gap-2', className)} ref={ref} {...props} data-slot="field" />
+    <div
+      className={cn('group/field flex flex-col gap-2', className)}
+      ref={ref}
+      {...props}
+      data-slot="field"
+    />
   ),
 )
 Field.displayName = 'Field'
@@ -21,7 +26,7 @@ export const FieldLabel = forwardRef<HTMLLabelElement, FieldLabelProps>(
   ({ className, ...props }, ref) => (
     <label
       className={cn(
-        'text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        'text-sm font-medium leading-none text-foreground group-has-[:disabled]/field:cursor-not-allowed group-has-[:disabled]/field:opacity-70',
         className,
       )}
       ref={ref}

@@ -50,6 +50,13 @@ describe('Button', () => {
     expect(tokens).toContain('focus-visible:ring-primary-foreground/55')
     expect(tokens).toContain('motion-safe:transition-colors')
   })
+
+  test('danger variant uses a contrast focus ring against the fill', () => {
+    render(<Button variant="danger">Delete</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'Delete' }))
+    expect(tokens).toContain('focus-visible:ring-destructive-foreground/55')
+  })
 })
 
 describe('ButtonLabel', () => {

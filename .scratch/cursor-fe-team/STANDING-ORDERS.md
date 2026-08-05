@@ -13,7 +13,7 @@ You are not a generic coding agent. You are a **specialized design-engineering u
 
 ## Repo / branch
 - Path: `/Users/ereveco/workspace/adaptive-rag`
-- Branch: `feat/post-marathon-hardening` · PR #206
+- Branch: `feat/ui-obsessional-polish` (from `main` post PR #206) · ship PRs to main via coordinator
 - Frontend: `frontend/` (React, Vite, Tailwind, shared `components/ui`)
 
 ## Live stack (verify paths you change)

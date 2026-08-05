@@ -512,8 +512,8 @@ export function RuntimeConnectionsPanel({
             Loading connections…
           </EmptyState>
         ) : connections.length === 0 ? (
-          <EmptyState className="p-4 text-left" data-slot-state="empty">
-            No runtime connections loaded.
+          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+            No connections yet.
           </EmptyState>
         ) : (
           <DataList>
@@ -714,7 +714,10 @@ export function RuntimeConnectionsPanel({
             )}
           </RuntimeField>
           <Field className="md:col-span-2">
-            <FieldLabel id="runtime-connection-capabilities-label">
+            <FieldLabel
+              htmlFor="runtime-capability-filter"
+              id="runtime-connection-capabilities-label"
+            >
               Capabilities
             </FieldLabel>
             <FieldControl>
@@ -772,6 +775,8 @@ export function CapabilitySelector({
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const listboxId = 'runtime-capability-options'
+  const inputId = 'runtime-capability-filter'
   const selected = new Set(value)
   const normalizedQuery = query.trim().toLowerCase()
   const filteredOptions = options.filter((capability) => {
@@ -815,16 +820,11 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            aria-expanded={isOpen}
-            aria-haspopup="listbox"
-            aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
-            aria-labelledby={labelledBy}
             className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
             }}
-            role="combobox"
           >
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
               {value.map((capability) => (
@@ -839,6 +839,8 @@ export function CapabilitySelector({
                       inputRef.current?.focus()
                     }}
                     size="sm"
+                    tabIndex={-1}
+                    type="button"
                     variant="ghost"
                   >
                     x
@@ -846,17 +848,28 @@ export function CapabilitySelector({
                 </Badge>
               ))}
               <Input
-                aria-label="Filter capabilities"
+                aria-autocomplete="list"
+                aria-controls={listboxId}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
+                aria-labelledby={labelledBy}
                 autoComplete="off"
                 className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                id={inputId}
                 onChange={(event) => {
                   setQuery(event.currentTarget.value)
+                  setIsOpen(true)
+                }}
+                onClick={(event) => {
+                  event.stopPropagation()
                   setIsOpen(true)
                 }}
                 onFocus={() => setIsOpen(true)}
                 onKeyDown={handleFilterKeyDown}
                 placeholder={value.length === 0 ? 'Select capabilities' : ''}
                 ref={inputRef}
+                role="combobox"
                 value={query}
               />
             </div>
@@ -871,6 +884,7 @@ export function CapabilitySelector({
             align="start"
             aria-label="Capability options"
             className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
               inputRef.current?.focus()
@@ -880,13 +894,14 @@ export function CapabilitySelector({
             sideOffset={4}
           >
             {filteredOptions.length === 0 ? (
-              <EmptyState className="p-3 text-left">
+              <p className="p-3 text-left text-sm text-muted-foreground" role="status">
                 No capabilities found
-              </EmptyState>
+              </p>
             ) : (
               filteredOptions.map((capability) => (
                 <Button
                   aria-label={`Add ${capability} capability`}
+                  aria-selected={false}
                   className="justify-start"
                   key={capability}
                   onClick={() => {
@@ -1007,7 +1022,10 @@ export function RuntimeModelCatalogPanel({
         </section>
       ) : null}
 
-      <ProviderModelCatalogView providerModels={providerModels} />
+      <ProviderModelCatalogView
+        isLoading={state === 'loading'}
+        providerModels={providerModels}
+      />
     </RuntimePanel>
   )
 }
@@ -1149,9 +1167,18 @@ export function RuntimeGlobalDefaultsPanel({
 
       <section aria-label="Global chat models" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat models</h3>
-        {chatModels.length === 0 ? (
-          <EmptyState className="p-4 text-left" data-slot-state="empty">
-            No chat models loaded.
+        {state === 'loading' && chatModels.length === 0 ? (
+          <EmptyState
+            aria-busy="true"
+            className="p-4 text-left"
+            data-slot-state="loading"
+            role="status"
+          >
+            Loading chat models…
+          </EmptyState>
+        ) : chatModels.length === 0 ? (
+          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
+            No chat models yet.
           </EmptyState>
         ) : (
           <DataList>
@@ -1237,7 +1264,9 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState className="p-4 text-left">No chat retrieval defaults loaded.</EmptyState>
+          <EmptyState className="p-4 text-left" data-slot-state="empty">
+            No chat retrieval defaults yet.
+          </EmptyState>
         )}
         <form className="grid gap-4" onSubmit={onSaveGlobalChatRetrieval}>
           <div className="grid gap-4 md:grid-cols-3">
@@ -1377,6 +1406,7 @@ export function RuntimeProjectOverridesPanel({
       <ProjectRuntimeSettingsView
         onResetProjectSlot={onResetProjectSlot}
         settings={projectRuntimeSettings}
+        state={state}
       />
 
       <form className="grid gap-4" onSubmit={onSaveProjectChatRetrieval}>
@@ -1650,16 +1680,27 @@ export function ProviderModelSelect({
 }
 
 export function ProviderModelCatalogView({
+  isLoading = false,
   providerModels,
 }: {
+  isLoading?: boolean
   providerModels: ProviderModel[]
 }) {
   return (
     <section aria-label="Provider model catalog" className="grid gap-3">
       <h3 className="text-base font-semibold leading-none">Model catalog</h3>
-      {providerModels.length === 0 ? (
+      {isLoading && providerModels.length === 0 ? (
+        <EmptyState
+          aria-busy="true"
+          className="p-4 text-left"
+          data-slot-state="loading"
+          role="status"
+        >
+          Loading provider models…
+        </EmptyState>
+      ) : providerModels.length === 0 ? (
         <EmptyState className="p-4 text-left" data-slot-state="empty">
-          No provider models loaded.
+          No provider models yet.
         </EmptyState>
       ) : (
         <DataList>
@@ -1693,26 +1734,33 @@ export function ProviderModelCatalogView({
 }
 
 export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
+  if (slots.length === 0) {
+    return (
+      <EmptyState
+        className="p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        No global slot defaults loaded. Save a global slot below.
+      </EmptyState>
+    )
+  }
   return (
     <DataList aria-label="Global runtime slots">
-      {slots.length === 0 ? (
-        <DataListItem>No global slot defaults loaded.</DataListItem>
-      ) : (
-        slots.map((slot) => (
-          <DataListItem
-            className="flex flex-wrap items-center justify-between gap-3"
-            key={slot.slot}
-          >
-            <div className="grid gap-1">
-              <strong className="text-sm font-semibold">{slot.slot}</strong>
-              <small className="text-xs text-muted-foreground">
-                {slot.connection_id} / {slot.model_id}
-              </small>
-            </div>
-            <Badge tone="neutral">global</Badge>
-          </DataListItem>
-        ))
-      )}
+      {slots.map((slot) => (
+        <DataListItem
+          className="flex flex-wrap items-center justify-between gap-3"
+          key={slot.slot}
+        >
+          <div className="grid gap-1">
+            <strong className="text-sm font-semibold">{slot.slot}</strong>
+            <small className="text-xs text-muted-foreground">
+              {slot.connection_id} / {slot.model_id}
+            </small>
+          </div>
+          <Badge tone="neutral">global</Badge>
+        </DataListItem>
+      ))}
     </DataList>
   )
 }
@@ -1720,12 +1768,30 @@ export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
 export function ProjectRuntimeSettingsView({
   onResetProjectSlot,
   settings,
+  state = 'idle',
 }: {
   onResetProjectSlot(slot: string): void
   settings: ProjectRuntimeSettings | null
+  state?: RequestState
 }) {
+  if (state === 'loading' && settings === null) {
+    return (
+      <EmptyState
+        aria-busy="true"
+        className="p-4 text-left"
+        data-slot-state="loading"
+        role="status"
+      >
+        Loading project runtime settings…
+      </EmptyState>
+    )
+  }
   if (settings === null) {
-    return <EmptyState className="p-4 text-left">No project runtime settings loaded.</EmptyState>
+    return (
+      <EmptyState className="p-4 text-left" data-slot-state="empty">
+        No project runtime settings yet.
+      </EmptyState>
+    )
   }
   return (
     <div className="grid gap-4 xl:grid-cols-3">
@@ -1759,29 +1825,40 @@ export function ProjectRuntimeSettingsView({
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat pool</h3>
-        <DataList>
-          {settings.chat_models.map((model) => (
-            <DataListItem
-              className="grid gap-3"
-              key={`${model.connection_id}-${model.model_id}`}
-            >
-              <div className="grid gap-1">
-                <strong className="text-sm font-semibold">
-                  {model.model_id}
-                </strong>
-                <small className="text-xs text-muted-foreground">
-                  {model.connection_id}
-                </small>
-              </div>
-              <DataListItemActions>
-                <Badge tone="neutral">{model.source}</Badge>
-                <Badge tone={model.is_default ? 'primary' : 'neutral'}>
-                  {model.is_default ? 'default' : 'enabled'}
-                </Badge>
-              </DataListItemActions>
-            </DataListItem>
-          ))}
-        </DataList>
+        {settings.chat_models.length === 0 ? (
+          <EmptyState
+            className="p-4 text-left"
+            data-slot-state="empty"
+            role="status"
+          >
+            No chat models in the project pool. Save a global chat default or
+            sync models.
+          </EmptyState>
+        ) : (
+          <DataList>
+            {settings.chat_models.map((model) => (
+              <DataListItem
+                className="grid gap-3"
+                key={`${model.connection_id}-${model.model_id}`}
+              >
+                <div className="grid gap-1">
+                  <strong className="text-sm font-semibold">
+                    {model.model_id}
+                  </strong>
+                  <small className="text-xs text-muted-foreground">
+                    {model.connection_id}
+                  </small>
+                </div>
+                <DataListItemActions>
+                  <Badge tone="neutral">{model.source}</Badge>
+                  <Badge tone={model.is_default ? 'primary' : 'neutral'}>
+                    {model.is_default ? 'default' : 'enabled'}
+                  </Badge>
+                </DataListItemActions>
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
       </section>
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>

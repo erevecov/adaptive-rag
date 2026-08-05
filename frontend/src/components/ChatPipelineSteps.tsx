@@ -182,7 +182,7 @@ function StepRow({ step }: { step: ChatStep }) {
       {hasDetail ? (
         <ChevronRight
           aria-hidden="true"
-          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+          className="size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform group-open:rotate-90"
         />
       ) : (
         <span aria-hidden="true" className="size-3.5 shrink-0" />

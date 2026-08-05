@@ -19,7 +19,7 @@ export const buttonVariants = cva(
       },
       variant: {
         danger:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground/55',
         ghost:
           'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
         // Contrast ring against primary fill (dark near-white / purple violet)

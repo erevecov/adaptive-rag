@@ -2267,6 +2267,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   return (
     <AppShell
+      isBackgroundInert={isRightDockOverlay}
       isLeftSidebarOpen={isLeftSidebarOpen}
       isRightDockOpen={isRightDockOpen}
       primaryView={primaryView}

@@ -182,7 +182,9 @@ export function RetrievalPlaygroundPanel({
               </FieldLabel>
               <FieldControl>
                 <Input
-                  aria-describedby="rerank-limit-help"
+                  aria-describedby={
+                    rerankEnabled ? undefined : 'rerank-limit-help'
+                  }
                   id="retrieval-rerank-limit"
                   inputMode="numeric"
                   disabled={!rerankEnabled}
