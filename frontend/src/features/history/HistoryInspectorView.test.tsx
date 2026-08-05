@@ -493,10 +493,12 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     const viewer = screen.getByRole('region', { name: 'Source viewer' })
-    const badge = within(viewer).getByText('Deleted', { selector: '[data-slot="badge"]' })
+    const badge = within(viewer).getByText('Soft-deleted', {
+      selector: '[data-slot="badge"]',
+    })
     expect(badge.getAttribute('data-slot')).toBe('badge')
-    expect(badge.getAttribute('data-tone')).toBe('warning')
-    expect(within(viewer).getByText('2026-06-22T12:00:00Z')).toBeTruthy()
+    expect(badge.getAttribute('data-tone')).toBe('danger')
+    expect(within(viewer).getByText('Soft-deleted', { selector: 'dt' })).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
   })
 
@@ -603,6 +605,37 @@ describe('WorkspaceInspectorPanel', () => {
 
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  test('inline Escape does not close the inspector', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={onClose}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   test('overlay Tab cycles within the inspector dialog', async () => {

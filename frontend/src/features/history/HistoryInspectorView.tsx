@@ -477,6 +477,10 @@ export function WorkspaceInspectorPanel({
   useFocusTrap(panelRef, isOverlay)
 
   useEffect(() => {
+    // Inline dock stays open on Escape; only the modal overlay closes.
+    if (!isOverlay) {
+      return
+    }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape' || event.defaultPrevented) {
         return
@@ -496,7 +500,7 @@ export function WorkspaceInspectorPanel({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [isOverlay, onClose])
 
   useEffect(() => {
     if (!isOverlay) {
@@ -657,8 +661,8 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
                 {viewer.source.external_id}
               </p>
               {viewer.source.deleted_at ? (
-                <StatusBadge className="w-fit shrink-0" tone="warning">
-                  Deleted
+                <StatusBadge className="w-fit shrink-0" tone="danger">
+                  Soft-deleted
                 </StatusBadge>
               ) : null}
             </div>
@@ -669,8 +673,8 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               <MetadataItem label="Updated" value={viewer.source.updated_at} />
               {viewer.source.deleted_at ? (
                 <MetadataItem
-                  label="Deleted"
-                  value={viewer.source.deleted_at}
+                  label="Soft-deleted"
+                  value={formatSourceTimestamp(viewer.source.deleted_at)}
                 />
               ) : null}
             </dl>
@@ -731,7 +735,7 @@ function ConversationMinimap({
         ) : (
           <DataList aria-label="Conversation messages">
             {detail.messages.map((message) => (
-              <DataListItem key={message.message_id}>
+              <DataListItem className="p-0 shadow-none" key={message.message_id}>
                 <Button
                   aria-label={minimapMessageLabel(message.role, message.content)}
                   className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left"
@@ -740,8 +744,10 @@ function ConversationMinimap({
                   variant="ghost"
                 >
                   <span className="grid min-w-0 gap-1">
-                    <strong className="text-sm text-foreground">{message.role}</strong>
-                    <span className="line-clamp-2 text-sm text-muted-foreground">
+                    <strong className="text-sm capitalize text-foreground">
+                      {message.role}
+                    </strong>
+                    <span className="line-clamp-2 break-all text-sm text-muted-foreground">
                       {message.content}
                     </span>
                   </span>
@@ -1307,6 +1313,14 @@ function sessionAgeTooltip(session: ChatSessionSummary): string {
     return 'Última actividad desconocida'
   }
   return `Última actividad: ${parsed.toLocaleString()}`
+}
+
+function formatSourceTimestamp(iso: string): string {
+  const parsed = new Date(iso)
+  if (!Number.isFinite(parsed.getTime())) {
+    return iso
+  }
+  return parsed.toLocaleString()
 }
 
 function formatRelativeSessionAge(iso: string): string {

@@ -530,14 +530,14 @@ export function RuntimeConnectionsPanel({
                 >
                   <div className="grid min-w-0 gap-2">
                     <div className="grid gap-1">
-                      <strong className="text-sm font-semibold">
+                      <strong className="truncate font-mono text-xs font-semibold">
                         {connection.connection_id}
                       </strong>
                       <div className="flex flex-wrap gap-2">
-                        <Badge>
+                        <Badge className="max-w-full truncate">
                           {connection.provider} / {connection.connection_type}
                         </Badge>
-                        <Badge tone="neutral">
+                        <Badge className="max-w-full truncate" tone="neutral">
                           {connection.capabilities.join(', ')}
                         </Badge>
                         {isChecking ? (
@@ -820,7 +820,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
+            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
@@ -1108,7 +1108,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' ? 'Refreshing...' : 'Reload global defaults'}
       </Button>
 
-      <RuntimeSlotList slots={slots} />
+      <RuntimeSlotList isLoading={state === 'loading'} slots={slots} />
 
       <form className="grid gap-4" onSubmit={onSaveGlobalSlot}>
         <div className="grid gap-4 md:grid-cols-3">
@@ -1170,7 +1170,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="p-4 text-left"
+            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
             data-slot-state="loading"
             role="status"
           >
@@ -1244,7 +1244,16 @@ export function RuntimeGlobalDefaultsPanel({
 
       <section aria-label="Global chat retrieval" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat retrieval</h3>
-        {chatRetrievalSettings ? (
+        {state === 'loading' && chatRetrievalSettings === null ? (
+          <EmptyState
+            aria-busy="true"
+            className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+            data-slot-state="loading"
+            role="status"
+          >
+            Loading chat retrieval defaults…
+          </EmptyState>
+        ) : chatRetrievalSettings ? (
           <DataList>
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
@@ -1264,7 +1273,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState className="p-4 text-left" data-slot-state="empty">
+          <EmptyState className="p-4 text-left" data-slot-state="empty" role="status">
             No chat retrieval defaults yet.
           </EmptyState>
         )}
@@ -1733,7 +1742,25 @@ export function ProviderModelCatalogView({
   )
 }
 
-export function RuntimeSlotList({ slots }: { slots: RuntimeSlotDefault[] }) {
+export function RuntimeSlotList({
+  isLoading = false,
+  slots,
+}: {
+  isLoading?: boolean
+  slots: RuntimeSlotDefault[]
+}) {
+  if (isLoading && slots.length === 0) {
+    return (
+      <EmptyState
+        aria-busy="true"
+        className="border-border/60 bg-muted/20 p-4 text-left motion-safe:animate-pulse"
+        data-slot-state="loading"
+        role="status"
+      >
+        Loading global slots…
+      </EmptyState>
+    )
+  }
   if (slots.length === 0) {
     return (
       <EmptyState

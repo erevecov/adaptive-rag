@@ -52,7 +52,7 @@ export const Content = forwardRef<
     <DropdownMenuPrimitive.Content
       className={cn(
         [
-          'z-50 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md',
+          'z-50 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)]',
         ],
         className,
       )}
