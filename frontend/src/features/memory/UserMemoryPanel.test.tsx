@@ -151,7 +151,7 @@ describe('UserMemoryPanel', () => {
     await user.click(
       screen.getByRole('button', { name: 'Remove from injection' }),
     )
-    await user.click(screen.getByRole('button', { name: 'Confirm remove' }))
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
@@ -250,9 +250,9 @@ describe('UserMemoryPanel', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: /^Rejected/ }))
-    expect(await screen.findByText('No rejected memories')).toBeTruthy()
+    expect(await screen.findByText('No Rejected Memories')).toBeTruthy()
     expect(screen.getByText(/never inject into chat/i)).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
@@ -321,8 +321,8 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByLabelText(/Proposed memory/i)).toBeTruthy()
     expect(screen.getByText(/Focus a proposed row/i)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: /^Approved/ }))
-    expect(await screen.findByText('No approved memories')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'View proposed' }))
+    expect(await screen.findByText('No Approved Memories')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
@@ -480,10 +480,10 @@ describe('UserMemoryPanel', () => {
       screen.getByRole('button', { name: 'Remove from injection' }),
     )
     expect(
-      await screen.findByRole('button', { name: 'Confirm remove' }),
+      await screen.findByRole('button', { name: /Confirm remove/ }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('button', { name: 'Confirm remove' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Confirm remove/ })).toBeNull()
     const removeButton = screen.getByRole('button', {
       name: 'Remove from injection',
     })

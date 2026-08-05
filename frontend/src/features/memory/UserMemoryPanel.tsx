@@ -691,6 +691,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions className="gap-1.5">
                           <Button
+                            aria-label="Confirm remove from injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
                             onClick={() => void handleReject(memory)}
@@ -771,7 +772,7 @@ function FilterEmptyState({
           type="button"
           variant="secondary"
         >
-          View proposed
+          View Proposed
         </Button>
       ) : null}
     </EmptyState>
@@ -785,24 +786,24 @@ function emptyCopyForFilter(filter: MemoryStatusFilter): {
   if (filter === 'proposed') {
     return {
       body: 'Propose one above to start review. Only approved items inject.',
-      title: 'No proposed memories',
+      title: 'No Proposed Memories',
     }
   }
   if (filter === 'approved') {
     return {
       body: 'Approve a proposal to enable chat injection as system context.',
-      title: 'No approved memories',
+      title: 'No Approved Memories',
     }
   }
   if (filter === 'rejected') {
     return {
       body: 'Rejected proposals and items removed from injection appear here. They never inject into chat.',
-      title: 'No rejected memories',
+      title: 'No Rejected Memories',
     }
   }
   return {
     body: 'Propose one above, then approve it to enable chat injection.',
-    title: 'No memories yet',
+    title: 'No Memories Yet',
   }
 }
 
