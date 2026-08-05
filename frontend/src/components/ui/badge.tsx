@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
   [
-    'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium',
-    'transition-colors',
+    'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium tabular-nums',
+    'motion-safe:transition-colors',
   ],
   {
     defaultVariants: {
@@ -16,9 +16,9 @@ const badgeVariants = cva(
       tone: {
         danger: 'border-destructive/30 bg-destructive/10 text-destructive',
         neutral: 'border-border bg-secondary text-secondary-foreground',
-        primary: 'border-primary/25 bg-primary/10 text-primary',
-        success: 'border-primary/25 bg-primary/10 text-primary',
-        warning: 'border-ring/30 bg-muted text-foreground',
+        primary: 'border-primary/30 bg-primary/15 text-foreground',
+        success: 'border-emerald-500/35 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+        warning: 'border-amber-500/35 bg-amber-500/15 text-amber-800 dark:text-amber-200',
       },
     },
   },

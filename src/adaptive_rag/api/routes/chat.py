@@ -292,7 +292,7 @@ def _with_approved_user_memory(
     user_id: UUID | None,
     project_id: UUID,
 ) -> ChatRequest:
-    """Prefix approved durable memories into the chat message (Bloque C minima)."""
+    """Attach approved durable memories as runner system context (not audit text)."""
 
     if user_id is None:
         return request
@@ -305,4 +305,5 @@ def _with_approved_user_memory(
     )
     if not injection:
         return request
-    return replace(request, message=f"{injection}\n\n{request.message}")
+    # Keep request.message as the raw user turn for audit/history/condenser.
+    return replace(request, user_memory=injection)

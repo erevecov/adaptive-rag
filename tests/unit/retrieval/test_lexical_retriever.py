@@ -208,3 +208,73 @@ def test_lexical_retriever_rejects_invalid_request() -> None:
             query="invoice",
             limit=0,
         )
+
+
+def test_lexical_retriever_only_returns_latest_document_version() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="policy.md",
+        tags=("docs",),
+        extra_metadata={"title": "policy"},
+    )
+    document = DocumentRepository(session).create_document(
+        project_id=project.id,
+        source_id=source.id,
+        stable_id="policy",
+    )
+    old_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text="Legacy refund token SUPERSEDEDOLDTOKEN refund policy",
+        content_hash="sha256:policy-v1",
+        index_fingerprint="fp:policy-v1",
+    )
+    new_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=2,
+        normalized_text="Current refund token CURRENTNEWTOKEN refund policy",
+        content_hash="sha256:policy-v2",
+        index_fingerprint="fp:policy-v2",
+    )
+    old_text = old_version.normalized_text
+    new_text = new_version.normalized_text
+    old_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=old_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len(old_text),
+        token_count=6,
+    )
+    new_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=new_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len(new_text),
+        token_count=6,
+    )
+    session.commit()
+
+    results = LexicalRetriever(session).search(
+        project_id=project.id,
+        query="refund policy",
+        limit=5,
+    )
+
+    assert [result.chunk_id for result in results] == [new_chunk.id]
+    assert results[0].citation.document_version_number == 2
+    assert old_chunk.id not in {result.chunk_id for result in results}
+
+    # Distinctive superseded term must not surface either.
+    old_only = LexicalRetriever(session).search(
+        project_id=project.id,
+        query="SUPERSEDEDOLDTOKEN",
+        limit=5,
+    )
+    assert old_only == []

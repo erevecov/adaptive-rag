@@ -104,3 +104,120 @@ def test_soft_delete_source_cascades_index_rows() -> None:
     assert session.scalar(select(func.count()).select_from(Chunk)) == 0
     assert session.scalar(select(func.count()).select_from(Document)) == 0
     assert session.scalar(select(func.count()).select_from(DocumentVersion)) == 0
+
+
+def test_create_source_revives_soft_deleted_identity() -> None:
+    session = _make_session()
+    project = authoring.create_project(session, name="Revive")
+    first = authoring.create_source(
+        session,
+        project_id=project.id,
+        source_type="markdown",
+        external_id="notes.md",
+        tags=["v1"],
+        extra_metadata={"content": "# v1"},
+    )
+    authoring.soft_delete_source(
+        session, project_id=project.id, source_id=first.id
+    )
+    revived = authoring.create_source(
+        session,
+        project_id=project.id,
+        source_type="markdown",
+        external_id="notes.md",
+        tags=["v2"],
+        extra_metadata={"content": "# v2 revived"},
+    )
+    assert revived.id == first.id
+    assert revived.deleted_at is None
+    assert revived.tags == ["v2"]
+    assert revived.extra_metadata == {"content": "# v2 revived"}
+
+
+def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
+    """Deleting index chunks must not fail when past retrieval cited them."""
+
+    # Import models package so all FK-related tables register on Base.metadata.
+    import adaptive_rag.db.models  # noqa: F401
+    from adaptive_rag.db.models import (
+        ChatSession,
+        RetrievalRun,
+        RetrievedChunk,
+    )
+
+    engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def _fk(dbapi_conn, _connection_record):  # type: ignore[no-untyped-def]
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    project = authoring.create_project(session, name="Cite")
+    source = authoring.create_source(
+        session,
+        project_id=project.id,
+        source_type="markdown",
+        external_id="cited.md",
+        extra_metadata={"content": "# Cited\n\nBody."},
+    )
+    document = DocumentRepository(session).create_document(
+        project_id=project.id,
+        source_id=source.id,
+        stable_id=source.external_id,
+    )
+    version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text="# Cited\n\nBody.",
+        content_hash="sha256:c",
+        index_fingerprint="sha256:d",
+        parser_metadata={},
+        extraction_metadata={},
+    )
+    ChunkingPipeline(session).chunk_document_version(
+        project_id=project.id,
+        document_version_id=version.id,
+    )
+    chunk = session.scalars(select(Chunk)).first()
+    assert chunk is not None
+    chat = ChatSession(
+        project_id=project.id,
+        status="succeeded",
+        model_config_json={},
+        prompt_version="t",
+    )
+    session.add(chat)
+    session.flush()
+    run = RetrievalRun(
+        project_id=project.id,
+        session_id=chat.id,
+        query="q",
+        strategy="dense",
+        top_k=5,
+    )
+    session.add(run)
+    session.flush()
+    session.add(
+        RetrievedChunk(
+            project_id=project.id,
+            retrieval_run_id=run.id,
+            chunk_id=chunk.id,
+            rank=1,
+            citation_json={"snippet": "Body."},
+        )
+    )
+    session.flush()
+
+    authoring.soft_delete_source(
+        session, project_id=project.id, source_id=source.id
+    )
+    session.expire_all()
+    remaining = session.scalars(select(RetrievedChunk)).all()
+    assert len(remaining) == 1
+    assert remaining[0].chunk_id is None
+    assert remaining[0].citation_json["snippet"] == "Body."

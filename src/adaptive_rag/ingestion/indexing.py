@@ -109,6 +109,8 @@ class IndexingPipeline:
         project_id: UUID,
         job: Job,
     ) -> IndexingRunResult | IndexingBlockedResult:
+        job_id = job.id
+        lease_owner = job.locked_by
         try:
             result = self._process_job(project_id=project_id, job=job)
         except (
@@ -120,12 +122,15 @@ class IndexingPipeline:
         ) as exc:
             blocked_job = self._job_repo.block(
                 project_id=project_id,
-                job_id=job.id,
+                job_id=job_id,
                 reason=str(exc),
+                worker_id=lease_owner,
             )
             return IndexingBlockedResult(job=blocked_job, error_message=str(exc))
 
-        self._job_repo.complete(project_id=project_id, job_id=job.id)
+        self._job_repo.complete(
+            project_id=project_id, job_id=job_id, worker_id=lease_owner
+        )
         return result
 
     def _process_job(self, *, project_id: UUID, job: Job) -> IndexingRunResult:
@@ -179,9 +184,7 @@ class IndexingPipeline:
             sparse_reused_chunk_count=sparse_result.reused_chunk_count,
         )
 
-    def _resolve_dense_provider(
-        self, *, project_id: UUID
-    ) -> DenseEmbeddingProvider:
+    def _resolve_dense_provider(self, *, project_id: UUID) -> DenseEmbeddingProvider:
         if self._dense_embedding_provider is not None:
             return self._dense_embedding_provider
         from adaptive_rag.runtime.factories import get_dense_embedding_provider
@@ -191,9 +194,7 @@ class IndexingPipeline:
             session=self._session,
         )
 
-    def _resolve_sparse_provider(
-        self, *, project_id: UUID
-    ) -> SparseEmbeddingProvider:
+    def _resolve_sparse_provider(self, *, project_id: UUID) -> SparseEmbeddingProvider:
         if self._sparse_embedding_provider is not None:
             return self._sparse_embedding_provider
         from adaptive_rag.runtime.factories import get_sparse_embedding_provider

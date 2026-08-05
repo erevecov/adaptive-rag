@@ -1,4 +1,4 @@
-﻿import {
+import {
   type FormEvent,
   type ReactNode,
   useEffect,
@@ -467,7 +467,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
-    transcript.scrollTop = transcript.scrollHeight
+    scrollChatTranscriptToBottom(transcript)
   }, [primaryView, requestState, response])
 
   useEffect(() => {
@@ -575,6 +575,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (requestState === 'loading') {
+      return
+    }
 
     const trimmedProjectId = projectId.trim()
     const trimmedQuestion = question.trim()
@@ -1214,6 +1218,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     if (file === null) {
       setSourceContentBase64('')
       setSourceFileName('')
+      return
+    }
+    if (file.size > MAX_SOURCE_FILE_BYTES) {
+      setSourceContentBase64('')
+      setSourceFileName('')
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(
+        `${sourceType} source file exceeds the 5 MiB limit.`,
+      )
       return
     }
     const buffer = await file.arrayBuffer()
@@ -2308,57 +2321,65 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     >
       {primaryView === 'chat' ? (
           <ChatWorkspaceGrid isRightDockInline={isRightDockInline}>
-            <ChatWorkspacePanel
-              activeResponseQuestion={activeResponseQuestion}
-              drafts={knowledgeDrafts}
-              isAsking={isAsking}
-              isContextInspectorActive={
-                isRightDockOpen && inspectorTab === 'context'
-              }
-              isMinimapInspectorActive={
-                isRightDockOpen && inspectorTab === 'minimap'
-              }
-              isSpeechSupported={isSpeechSupported}
-              onCancelRequest={handleCancelRequest}
-              onOpenContextInspector={() => handleOpenInspectorTab('context')}
-              onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
-              onOpenSource={(sourceId, citationSnippet) =>
-                void handleOpenSource(sourceId, citationSnippet)
-              }
-              onQuestionChange={setQuestion}
-              onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
-              onStartSpeechRecognition={handleStartSpeechRecognition}
-              onStopSpeechRecognition={handleStopSpeechRecognition}
-              onSubmit={handleSubmit}
-              onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
-              onTranscriptScroll={handleChatTranscriptScroll}
-              providerUsage={
-                response !== null &&
-                sessionDetail?.session.session_id === response.session_id
-                  ? sessionDetail.provider_usage
-                  : []
-              }
-              question={question}
-              requestError={requestError}
-              requestState={requestState}
-              response={response}
-              setDrafts={setKnowledgeDrafts}
-              speechFeedback={speechFeedback}
-              speechState={speechState}
-              transcriptRef={chatTranscriptRef}
-            />
-
             {isRightDockOverlay ? (
               <Button
                 aria-label="Close workspace inspector"
+                // tabIndex=-1 keeps the full-screen scrim out of Tab order; Escape / X still close.
                 className="fixed inset-0 z-[60] h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
                 data-testid="inspector-backdrop"
                 onClick={() => setIsRightDockOpen(false)}
                 slotName="inspector-backdrop"
+                tabIndex={-1}
                 type="button"
                 variant="ghost"
               />
             ) : null}
+
+            <div
+              className="min-h-0 min-w-0"
+              data-slot="chat-workspace-inert-host"
+              {...(isRightDockOverlay ? { inert: true } : {})}
+            >
+              <ChatWorkspacePanel
+                activeResponseQuestion={activeResponseQuestion}
+                drafts={knowledgeDrafts}
+                isAsking={isAsking}
+                isContextInspectorActive={
+                  isRightDockOpen && inspectorTab === 'context'
+                }
+                isMinimapInspectorActive={
+                  isRightDockOpen && inspectorTab === 'minimap'
+                }
+                isSpeechSupported={isSpeechSupported}
+                onCancelRequest={handleCancelRequest}
+                onOpenContextInspector={() => handleOpenInspectorTab('context')}
+                onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
+                onOpenSource={(sourceId, citationSnippet) =>
+                  void handleOpenSource(sourceId, citationSnippet)
+                }
+                onQuestionChange={setQuestion}
+                onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                onStartSpeechRecognition={handleStartSpeechRecognition}
+                onStopSpeechRecognition={handleStopSpeechRecognition}
+                onSubmit={handleSubmit}
+                onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
+                onTranscriptScroll={handleChatTranscriptScroll}
+                providerUsage={
+                  response !== null &&
+                  sessionDetail?.session.session_id === response.session_id
+                    ? sessionDetail.provider_usage
+                    : []
+                }
+                question={question}
+                requestError={requestError}
+                requestState={requestState}
+                response={response}
+                setDrafts={setKnowledgeDrafts}
+                speechFeedback={speechFeedback}
+                speechState={speechState}
+                transcriptRef={chatTranscriptRef}
+              />
+            </div>
 
             {isRightDockOpen ? (
               <WorkspaceInspectorPanel
@@ -3035,19 +3056,24 @@ function retrievalResultFromHistory(
   chunk: ChatHistoryRetrievedChunk,
 ): RetrievalResult {
   const citation = chunk.citation
+  // chunk_id may be null after source soft-delete cascade (ON DELETE SET NULL).
+  const resolvedChunkId =
+    chunk.chunk_id ??
+    getCitationString(citation, 'chunk_id') ??
+    chunk.retrieved_chunk_id
   const sourceId =
     getCitationString(citation, 'source_id') ??
     getCitationString(citation, 'source_external_id') ??
-    chunk.chunk_id
+    resolvedChunkId
   const sourceExternalId =
     getCitationString(citation, 'source_external_id') ?? sourceId
 
   return {
-    chunk_id: chunk.chunk_id,
+    chunk_id: resolvedChunkId,
     citation: {
       char_end: getJsonNumber(citation, 'char_end') ?? 0,
       char_start: getJsonNumber(citation, 'char_start') ?? 0,
-      chunk_id: getCitationString(citation, 'chunk_id') ?? chunk.chunk_id,
+      chunk_id: getCitationString(citation, 'chunk_id') ?? resolvedChunkId,
       document_id: getCitationString(citation, 'document_id') ?? '',
       document_stable_id:
         getCitationString(citation, 'document_stable_id') ?? sourceExternalId,
@@ -3230,6 +3256,10 @@ function isBinarySourceType(sourceType: string): boolean {
   return sourceType === 'pdf' || sourceType === 'docx'
 }
 
+// Matches the backend MAX_BINARY_SOURCE_BYTES (5 MiB decoded) so oversize
+// files are rejected before base64-encoding them in the browser.
+const MAX_SOURCE_FILE_BYTES = 5 * 1024 * 1024
+
 function parseTags(value: string): string[] {
   return value
     .split(',')
@@ -3380,6 +3410,25 @@ function upsertIngestionJob(
 ): IngestionJob[] {
   const nextJobs = jobs.filter((item) => item.id !== job.id)
   return [job, ...nextJobs]
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function scrollChatTranscriptToBottom(transcript: HTMLElement): void {
+  const top = transcript.scrollHeight
+  // Auto-follow: smooth when motion is OK; instant when user prefers reduced motion.
+  // Prefer scrollTo when available; fall back to scrollTop (jsdom / older engines).
+  if (typeof transcript.scrollTo === 'function') {
+    const behavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth'
+    transcript.scrollTo({ behavior, top })
+    return
+  }
+  transcript.scrollTop = top
 }
 
 function focusMessage(messageId: string): void {

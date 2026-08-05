@@ -214,6 +214,22 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 }
 
 describe('AuthoringPanel', () => {
+  test('primary Create buttons keep min-h and stable Creating labels', () => {
+    const idle = renderAuthoringPanel({ activeSubmodule: 'projects' })
+    const create = screen.getByRole('button', { name: 'Create project' })
+    expect(create.className).toMatch(/min-h-9/)
+    expect(create.textContent).toContain('Create project')
+    idle.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+    })
+    const busy = screen.getByRole('button', { name: 'Creating...' })
+    expect(busy.className).toMatch(/min-h-9/)
+    expect(busy.textContent).toContain('Creating...')
+  })
+
   test('projects submodule uses tokenized panels, controls, and data rows', async () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel()
@@ -250,6 +266,10 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('Display name').getAttribute('data-slot')).toBe(
       'input',
     )
+    const accessToken = screen.getByLabelText('Access token')
+    expect(accessToken.getAttribute('data-slot')).toBe('input')
+    expect(accessToken.getAttribute('type')).toBe('password')
+    expect(screen.getByText('Paste once; never shown after save.')).toBeTruthy()
     expect(screen.getByLabelText('System role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
@@ -272,6 +292,22 @@ describe('AuthoringPanel', () => {
     expectNoLegacyAuthoringClasses(view.container)
   })
 
+  test('project list shows loading instead of empty while busy', () => {
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+      projects: [],
+    })
+
+    expect(screen.queryByText('No projects yet.')).toBeNull()
+    const loadingState = view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="loading"]',
+    )
+    expect(loadingState).toBeTruthy()
+    expect(loadingState?.textContent).toContain('Loading projects')
+    view.unmount()
+  })
+
   test('knowledge submodule renders proposal actions through tokenized controls', () => {
     const { view } = renderAuthoringPanel({ activeSubmodule: 'knowledge' })
 
@@ -279,9 +315,9 @@ describe('AuthoringPanel', () => {
       'textarea',
     )
     expect(screen.getByDisplayValue('Existing refined text.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Refine proposal' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Approve proposal' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reject proposal' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Refine / })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Approve / })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Reject / })).toBeTruthy()
     expectNoLegacyAuthoringClasses(view.container)
   })
 
@@ -301,8 +337,20 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
-    expect(screen.getByText('attempt 1 of 3')).toBeTruthy()
+    expect(screen.getByText('attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
+    const lastRun = view.container.querySelector(
+      '[data-slot="ingestion-last-run"]',
+    )
+    expect(lastRun).toBeTruthy()
+    expect(lastRun?.textContent).toMatch(/Last run/)
+    expect(lastRun?.textContent).toMatch(/idle/)
+    expect(
+      lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),
+    ).toBe('neutral')
+    expect(lastRun?.querySelector('[data-slot="badge"]')?.className).toMatch(
+      /tabular-nums/,
+    )
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()
@@ -313,5 +361,39 @@ describe('AuthoringPanel', () => {
     )
     expect(props.onSourceTypeChange).toHaveBeenCalledWith('url')
     expectNoLegacyAuthoringClasses(view.container)
+  })
+
+  test('distinguishes loading lists from empty and canceled status', () => {
+    const loading = renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'loading',
+      projects: [],
+    })
+    expect(screen.getByText('Loading projects…')).toBeTruthy()
+    expect(
+      loading.view.container.querySelector('[data-slot-state="loading"]'),
+    ).toBeTruthy()
+    loading.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'projects',
+      projectState: 'canceled',
+      projects: [project],
+    })
+    expect(screen.getByText('Canceled').getAttribute('data-tone')).toBe(
+      'neutral',
+    )
+  })
+
+  test('shows soft-deleted project timestamp and danger tone', () => {
+    const deleted: Project = {
+      ...project,
+      deleted_at: '2026-06-22T12:00:00Z',
+      id: 'project-deleted',
+      name: 'Gone',
+    }
+    renderAuthoringPanel({ projects: [deleted] })
+    expect(screen.getByText('deleted').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
 })

@@ -121,7 +121,7 @@ describe('ObservabilityPanel', () => {
     ).toBeTruthy()
     expectNoLegacyObservabilityClasses(view.container)
 
-    await user.click(screen.getByRole('button', { name: 'Latency' }))
+    await user.click(screen.getByRole('tab', { name: 'Latency' }))
     expect(props.onSubmoduleChange).toHaveBeenCalledWith('latency')
 
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
@@ -137,6 +137,55 @@ describe('ObservabilityPanel', () => {
     expect(screen.getByRole('region', { name: 'Observability latency' })).toBeTruthy()
     expect(screen.getByText(/No latency groups available yet/)).toBeTruthy()
     expectNoLegacyObservabilityClasses(view.container)
+  })
+
+  test('shows metric skeleton while loading without a prior summary', () => {
+    const { view } = renderObservabilityPanel({
+      state: 'loading',
+      summary: null,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-metric-skeleton"]'),
+    ).toBeTruthy()
+    expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
+    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.getByText('Refreshing').getAttribute('data-slot')).toBe('badge')
+    expect(screen.getByLabelText(/metrics loading/i).getAttribute('aria-busy')).toBe(
+      'true',
+    )
+  })
+
+  test('keeps prior summary visible with aria-busy while refreshing', () => {
+    const { view } = renderObservabilityPanel({
+      state: 'loading',
+      summary,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-refreshing"]'),
+    ).toBeTruthy()
+    expect(
+      view.container
+        .querySelector('[data-slot="observability-refreshing"]')
+        ?.getAttribute('aria-busy'),
+    ).toBe('true')
+    expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
+    expect(view.container.querySelector('[data-slot="observability-metric-skeleton"]')).toBeNull()
+
+    const metrics = screen.getByLabelText('Chat observability metrics')
+    expect(within(metrics).getByText('12')).toBeTruthy()
+    expect(within(metrics).getByText('$0.1234')).toBeTruthy()
+  })
+
+  test('metric card values use tabular-nums for raw counts', () => {
+    renderObservabilityPanel()
+
+    const metrics = screen.getByLabelText('Chat observability metrics')
+    const sessionsValue = within(metrics).getByText('12')
+    expect(sessionsValue.className).toMatch(/tabular-nums/)
+    const callsValue = within(metrics).getByText('18')
+    expect(callsValue.className).toMatch(/tabular-nums/)
   })
 
   test('summary view renders metric cards and data-list breakdowns', () => {
@@ -174,6 +223,11 @@ describe('ObservabilityPanel', () => {
     expect(screen.getByRole('columnheader', { name: 'Operation' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Tokens' })).toBeTruthy()
     expect(screen.getByText('1,840')).toBeTruthy()
+    const tableHeader = view.container.querySelector('[data-slot="table-header"]')
+    expect(tableHeader?.className).toMatch(/sticky/)
+    expect(
+      view.container.querySelector('[data-slot="table-scroll"]')?.className,
+    ).toMatch(/max-h-/)
 
     rerender(
       <ObservabilityPanel
@@ -202,7 +256,7 @@ describe('ObservabilityPanel', () => {
   })
 
   test('error state keeps filter values and exposes alert semantics', () => {
-    renderObservabilityPanel({
+    const { view } = renderObservabilityPanel({
       createdAtFrom: '2026-06-21T00:00:00Z',
       error: 'observability unavailable',
       state: 'failed',
@@ -214,8 +268,53 @@ describe('ObservabilityPanel', () => {
       '2026-06-21T00:00:00Z',
     )
     expect(screen.getByLabelText('Status').textContent).toContain('failed')
-    expect(screen.getByRole('alert').textContent).toContain(
-      'observability unavailable',
-    )
+    expect(
+      screen
+        .getAllByRole('alert')
+        .some((node) => node.textContent?.includes('observability unavailable')),
+    ).toBe(true)
+    // Failed load must not reuse the idle empty copy.
+    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('Summary unavailable.')).toBeTruthy()
+  })
+
+  test('idle empty state stays distinct from failed empty', () => {
+    const { view } = renderObservabilityPanel({
+      summary: null,
+      state: 'idle',
+    })
+
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="empty"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText(/No observability summary yet/)).toBeTruthy()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeNull()
+  })
+
+  test('failed refresh with prior summary shows stale banner', () => {
+    const { view } = renderObservabilityPanel({
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-stale-failed"]'),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(/Showing last successful summary — refresh failed/),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Chat observability metrics')).toBeTruthy()
   })
 })

@@ -500,12 +500,12 @@ describe('RuntimeSettingsPanel', () => {
     expect(feedback.getAttribute('aria-live')).toBe('polite')
   })
 
-  test('keeps failed connection checks as alerts', () => {
+  test('keeps failed connection checks as alerts without echoing secrets', () => {
     const connectionCheckResults: Record<string, ProviderConnectionCheckResponse> =
       {
         'qwen-hosted': {
           connection_id: 'qwen-hosted',
-          message: 'provider credentials rejected',
+          message: 'provider credentials rejected sk-leakedsecret123456',
           model_count: 0,
           ok: false,
         },
@@ -513,11 +513,10 @@ describe('RuntimeSettingsPanel', () => {
 
     renderRuntimeSettingsPanel({ connectionCheckResults })
 
-    expect(
-      screen
-        .getByText('Connection check failed: provider credentials rejected')
-        .getAttribute('role'),
-    ).toBe('alert')
+    const alert = screen.getByRole('alert')
+    expect(alert.textContent).toMatch(/Connection check failed/i)
+    expect(alert.textContent).not.toContain('sk-leakedsecret123456')
+    expect(alert.textContent).toContain('[redacted]')
   })
 
   test('enables delete confirmation only for the exact connection id', async () => {
@@ -557,5 +556,15 @@ describe('RuntimeSettingsPanel', () => {
     await user.clear(confirmation)
     await user.type(confirmation, 'qwen-hosted')
     expect(deleteButton.disabled).toBe(false)
+  })
+
+  test('shows loading connections instead of empty while busy', () => {
+    renderRuntimeSettingsPanel({
+      connections: [],
+      state: 'loading',
+    })
+
+    expect(screen.getByText('Loading connections…')).toBeTruthy()
+    expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
   })
 })

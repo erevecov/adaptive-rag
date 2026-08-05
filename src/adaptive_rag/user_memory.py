@@ -13,7 +13,9 @@ from adaptive_rag.db.models.user_memory import (
     USER_MEMORY_STATUS_VALUES,
     UserMemory,
 )
+from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
+from adaptive_rag.db.repositories.users import ProjectMembershipRepository
 
 
 class UserMemoryError(Exception):
@@ -38,12 +40,19 @@ def propose_memory(
     user_id: UUID,
     content: str,
     project_id: UUID | None = None,
+    is_superadmin: bool = False,
 ) -> UserMemory:
     text = content.strip()
     if not text:
         raise UserMemoryError("content must not be empty", status_code=422)
     if len(text) > 4000:
         raise UserMemoryError("content exceeds 4000 characters", status_code=422)
+    _require_project_scope_access(
+        session,
+        project_id=project_id,
+        user_id=user_id,
+        is_superadmin=is_superadmin,
+    )
     return UserMemoryRepository(session).create(
         user_id=user_id,
         project_id=project_id,
@@ -58,6 +67,7 @@ def approve_memory(
     memory_id: UUID,
     reviewer_user_id: UUID,
     owner_user_id: UUID | None = None,
+    is_superadmin: bool = False,
 ) -> UserMemory:
     return _review(
         session,
@@ -65,6 +75,8 @@ def approve_memory(
         reviewer_user_id=reviewer_user_id,
         owner_user_id=owner_user_id,
         status="approved",
+        require_project_access=True,
+        is_superadmin=is_superadmin,
     )
 
 
@@ -81,6 +93,8 @@ def reject_memory(
         reviewer_user_id=reviewer_user_id,
         owner_user_id=owner_user_id,
         status="rejected",
+        require_project_access=False,
+        is_superadmin=False,
     )
 
 
@@ -144,6 +158,30 @@ def memories_payload(items: Sequence[UserMemory]) -> dict[str, Any]:
     return {"items": [memory_payload(item) for item in items]}
 
 
+def _require_project_scope_access(
+    session: Session,
+    *,
+    project_id: UUID | None,
+    user_id: UUID,
+    is_superadmin: bool,
+) -> None:
+    """Require membership (or superadmin) for project-scoped memory."""
+
+    if project_id is None:
+        return
+    project = ProjectRepository(session).get(project_id)
+    if project is None:
+        raise UserMemoryError("project not found", status_code=404)
+    if is_superadmin:
+        return
+    membership = ProjectMembershipRepository(session).get_membership(
+        project_id=project_id,
+        user_id=user_id,
+    )
+    if membership is None:
+        raise UserMemoryError("project access required", status_code=403)
+
+
 def _review(
     session: Session,
     *,
@@ -151,6 +189,8 @@ def _review(
     reviewer_user_id: UUID,
     owner_user_id: UUID | None,
     status: str,
+    require_project_access: bool,
+    is_superadmin: bool,
 ) -> UserMemory:
     repo = UserMemoryRepository(session)
     memory = repo.get(memory_id=memory_id, user_id=owner_user_id)
@@ -160,6 +200,13 @@ def _review(
         raise UserMemoryError(
             f"memory is already {memory.status}",
             status_code=409,
+        )
+    if require_project_access:
+        _require_project_scope_access(
+            session,
+            project_id=memory.project_id,
+            user_id=reviewer_user_id,
+            is_superadmin=is_superadmin,
         )
     updated = repo.set_status(
         memory_id=memory_id,

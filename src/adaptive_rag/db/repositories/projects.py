@@ -10,7 +10,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Project, ProjectMembership
 
 
 class ProjectRepository:
@@ -45,10 +45,20 @@ class ProjectRepository:
             return None
         return project
 
-    def list(self, *, include_deleted: bool = False) -> list[Project]:
+    def list(
+        self,
+        *,
+        include_deleted: bool = False,
+        member_user_id: UUID | None = None,
+    ) -> list[Project]:
         statement = select(Project)
         if not include_deleted:
             statement = statement.where(Project.deleted_at.is_(None))
+        if member_user_id is not None:
+            statement = statement.join(
+                ProjectMembership,
+                ProjectMembership.project_id == Project.id,
+            ).where(ProjectMembership.user_id == member_user_id)
         statement = statement.order_by(
             Project.created_at,
             Project.name,
@@ -88,4 +98,3 @@ class ProjectRepository:
         project.deleted_at = datetime.now(UTC)
         self._session.flush()
         return project
-

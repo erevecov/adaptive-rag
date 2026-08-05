@@ -41,6 +41,7 @@ export function ChatPipelineSteps({
     const current = summarizeCurrentStep(steps)
     const sources = formatSources(sourceCount)
     const summary = `steps · ${current.elapsed} · ${sources}`
+    const statusLabel = statusAccessibleName(current.status)
     if (!expanded) {
       return (
         <section
@@ -49,7 +50,8 @@ export function ChatPipelineSteps({
           data-slot="chat-pipeline-steps"
         >
           <Button
-            aria-label="Expand chat steps"
+            aria-expanded={false}
+            aria-label={`Expand chat steps, ${current.label}, ${statusLabel}, ${current.elapsed}`}
             className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
             onClick={() => handleToggle(true)}
             type="button"
@@ -57,7 +59,9 @@ export function ChatPipelineSteps({
           >
             <StatusDot status={current.status} />
             <strong className="min-w-0 truncate">{current.label}</strong>
-            <small className="text-muted-foreground">{current.elapsed}</small>
+            <small className="min-w-[4.5ch] text-right text-muted-foreground tabular-nums">
+              {current.elapsed}
+            </small>
             <ChevronRight
               aria-hidden="true"
               className="ml-auto size-4 text-muted-foreground"
@@ -74,7 +78,8 @@ export function ChatPipelineSteps({
         data-slot="chat-pipeline-steps"
       >
         <Button
-          aria-label="Collapse chat steps"
+          aria-expanded={true}
+          aria-label={`Collapse chat steps, ${summary}`}
           className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(false)}
           type="button"
@@ -106,6 +111,7 @@ export function ChatPipelineSteps({
         data-slot="chat-pipeline-steps"
       >
         <Button
+          aria-expanded={false}
           aria-label={`Expand chat steps, ${label}`}
           className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(true)}
@@ -126,6 +132,7 @@ export function ChatPipelineSteps({
       data-slot="chat-pipeline-steps"
     >
       <Button
+        aria-expanded={true}
         aria-label={`Collapse chat steps, ${label}`}
         className="h-auto min-w-0 justify-start text-left"
         onClick={() => handleToggle(false)}
@@ -172,18 +179,20 @@ function StepRow({ step }: { step: ChatStep }) {
     Object.keys(step.detail ?? {}).length > 0 || step.usage !== undefined
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className="w-3 shrink-0 text-muted-foreground group-open:rotate-90"
-      >
-        {hasDetail ? '>' : ''}
-      </span>
+      {hasDetail ? (
+        <ChevronRight
+          aria-hidden="true"
+          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+        />
+      ) : (
+        <span aria-hidden="true" className="size-3.5 shrink-0" />
+      )}
       <StatusDot status={step.status} />
       <span className="grid min-w-0 flex-1 gap-1">
         <strong className="text-sm text-foreground">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
-      <small className="text-xs text-muted-foreground">
+      <small className="text-xs text-muted-foreground tabular-nums">
         {formatStepDuration(step.elapsed_ms)}
       </small>
     </>
@@ -205,7 +214,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 p-3 marker:content-none">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
         {content}
       </summary>
       <StepDetail step={step} />
@@ -229,8 +238,11 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
   if (step.usage !== undefined) {
     chips.push(step.usage.model)
   }
+  if (chips.length === 0) {
+    return null
+  }
   return (
-    <>
+    <span className="flex flex-wrap gap-1.5">
       {chips.slice(0, 3).map((chip) => (
         <span
           className="inline-flex w-fit rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
@@ -240,7 +252,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
           {chip}
         </span>
       ))}
-    </>
+    </span>
   )
 }
 
@@ -314,15 +326,27 @@ function StatusDot({ status }: { status: ChatStep['status'] }) {
       ? 'bg-destructive'
       : status === 'done'
         ? 'bg-primary'
-        : 'bg-muted-foreground'
+        : 'bg-muted-foreground motion-safe:animate-pulse'
   return (
-    <span
-      aria-hidden="true"
-      className={`size-2 shrink-0 rounded-full ${toneClassName}`}
-      data-status={status}
-      data-slot="chat-pipeline-status"
-    />
+    <span className="inline-flex shrink-0 items-center" data-slot="chat-pipeline-status">
+      <span
+        aria-hidden="true"
+        className={`size-2 rounded-full ${toneClassName}`}
+        data-status={status}
+      />
+      <span className="sr-only">{statusAccessibleName(status)}</span>
+    </span>
   )
+}
+
+function statusAccessibleName(status: ChatStep['status']): string {
+  if (status === 'error') {
+    return 'error'
+  }
+  if (status === 'done') {
+    return 'done'
+  }
+  return 'running'
 }
 
 function totalStepElapsedMs(steps: ChatStep[]): number | null {

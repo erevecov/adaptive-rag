@@ -54,15 +54,42 @@ class JobRepository:
         *,
         project_id: UUID,
         status: str | None = None,
+        statuses: Sequence[str] | None = None,
         job_type: str | None = None,
     ) -> builtins.list[Job]:
+        if status is not None and statuses is not None:
+            raise ValueError("pass status or statuses, not both")
         statement = select(Job).where(Job.project_id == project_id)
-        if status is not None:
+        if statuses is not None:
+            statement = statement.where(Job.status.in_(tuple(statuses)))
+        elif status is not None:
             statement = statement.where(Job.status == status)
         if job_type is not None:
             statement = statement.where(Job.job_type == job_type)
         statement = statement.order_by(Job.created_at, Job.id)
         return builtins.list(self._session.scalars(statement))
+
+    def find_open_ingest_source(
+        self,
+        *,
+        project_id: UUID,
+        source_id: UUID,
+    ) -> Job | None:
+        """Return the oldest open ingest_source job for source_id, if any.
+
+        Open means status in (queued, running). Payload match is application-level
+        so SQLite and Postgres stay portable without JSON operator dialects.
+        """
+        source_key = str(source_id)
+        for job in self.list(
+            project_id=project_id,
+            job_type="ingest_source",
+            statuses=("queued", "running"),
+        ):
+            payload = job.payload_json or {}
+            if payload.get("source_id") == source_key:
+                return job
+        return None
 
     def lease_next(
         self,
@@ -106,8 +133,15 @@ class JobRepository:
         self._session.flush()
         return job
 
-    def complete(self, *, project_id: UUID, job_id: UUID) -> Job:
+    def complete(
+        self,
+        *,
+        project_id: UUID,
+        job_id: UUID,
+        worker_id: str | None = None,
+    ) -> Job:
         job = self._require_job(project_id=project_id, job_id=job_id)
+        self._assert_lease_owner(job, worker_id=worker_id)
         job.status = "succeeded"
         job.locked_by = None
         job.locked_until = None
@@ -123,8 +157,10 @@ class JobRepository:
         job_id: UUID,
         error_message: str,
         retry_after: datetime | None = None,
+        worker_id: str | None = None,
     ) -> Job:
         job = self._require_job(project_id=project_id, job_id=job_id)
+        self._assert_lease_owner(job, worker_id=worker_id)
         job.locked_by = None
         job.locked_until = None
         job.last_error = error_message
@@ -146,8 +182,16 @@ class JobRepository:
         self._session.flush()
         return job
 
-    def block(self, *, project_id: UUID, job_id: UUID, reason: str) -> Job:
+    def block(
+        self,
+        *,
+        project_id: UUID,
+        job_id: UUID,
+        reason: str,
+        worker_id: str | None = None,
+    ) -> Job:
         job = self._require_job(project_id=project_id, job_id=job_id)
+        self._assert_lease_owner(job, worker_id=worker_id)
         job.status = "blocked"
         job.locked_by = None
         job.locked_until = None
@@ -192,10 +236,32 @@ class JobRepository:
         )
         jobs = builtins.list(self._session.scalars(statement))
         for job in jobs:
-            job.status = "queued"
+            # Lease already counted the attempt in lease_next; consult it so
+            # crashed workers cannot requeue forever past max_attempts.
             job.locked_by = None
             job.locked_until = None
-            self._add_event(project_id=project_id, job_id=job.id, event_type="released")
+            if job.attempts >= job.max_attempts:
+                job.status = "dead_letter"
+                if job.last_error is None:
+                    job.last_error = "lease expired"
+                self._add_event(
+                    project_id=project_id,
+                    job_id=job.id,
+                    event_type="released",
+                )
+                self._add_event(
+                    project_id=project_id,
+                    job_id=job.id,
+                    event_type="dead_lettered",
+                    message=job.last_error,
+                )
+            else:
+                job.status = "queued"
+                self._add_event(
+                    project_id=project_id,
+                    job_id=job.id,
+                    event_type="released",
+                )
         self._session.flush()
         return len(jobs)
 
@@ -212,6 +278,18 @@ class JobRepository:
         if job is None:
             raise ValueError("job does not belong to project")
         return job
+
+    def _assert_lease_owner(self, job: Job, *, worker_id: str | None) -> None:
+        """Reject transitions from a non-owner when a lease is active.
+
+        Unlocked jobs (locked_by is None) stay writable so admin paths and
+        tests can complete/fail/block without a lease.
+        """
+
+        if job.locked_by is None:
+            return
+        if worker_id is None or worker_id != job.locked_by:
+            raise ValueError("job is locked by another worker")
 
     def _add_event(
         self,
@@ -231,4 +309,3 @@ class JobRepository:
         )
         self._session.add(event)
         return event
-

@@ -10,14 +10,21 @@ import {
   useRef,
   useState,
 } from 'react'
-import { CircleDot, Map as MapIcon, Mic, Square } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleDot,
+  Map as MapIcon,
+  Mic,
+  Square,
+} from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
-import { InlineFeedback } from '@/components/ui/feedback'
+import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import { Panel } from '@/components/ui/panel'
 import type {
@@ -31,7 +38,7 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground'
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -140,6 +147,7 @@ export function ChatWorkspacePanel({
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
+        aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat transcript"
         className="min-h-0 overflow-y-auto px-0.5 pr-1"
         data-slot="chat-transcript"
@@ -169,7 +177,9 @@ export function ChatWorkspacePanel({
         <form
           className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4"
           data-slot="chat-composer"
+          id="chat-composer"
           onSubmit={onSubmit}
+          tabIndex={-1}
         >
           <Field className="gap-0">
             <FieldLabel className="sr-only" htmlFor="chat-question">
@@ -179,19 +189,43 @@ export function ChatWorkspacePanel({
               <Textarea
                 className={cn(
                   'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
-                  'placeholder:text-muted-foreground focus-visible:border-border focus-visible:ring-0 focus-visible:ring-offset-0',
+                  'placeholder:text-muted-foreground',
+                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
                 id="chat-question"
                 name="question"
-                onChange={(event) => onQuestionChange(event.currentTarget.value)}
+                onChange={(event) => {
+                  const el = event.currentTarget
+                  onQuestionChange(el.value)
+                  el.style.height = 'auto'
+                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                }}
+                onInput={(event) => {
+                  const el = event.currentTarget
+                  el.style.height = 'auto'
+                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                }}
                 onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  if (event.key === 'Escape' && isAsking) {
                     event.preventDefault()
+                    onCancelRequest()
+                    return
+                  }
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    if (isAsking || question.trim().length === 0) {
+                      return
+                    }
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
                 placeholder="Ask a question about indexed sources"
                 rows={2}
+                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
               />
             </FieldControl>
@@ -241,7 +275,7 @@ export function ChatWorkspacePanel({
 
             {isAsking ? (
               <Button
-                className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
+                className="shrink-0 rounded-md border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive sm:px-4"
                 onClick={onCancelRequest}
                 size="sm"
                 type="button"
@@ -255,9 +289,10 @@ export function ChatWorkspacePanel({
                 className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4"
                 disabled={question.trim().length === 0}
                 size="sm"
+                title="Enter to send"
                 type="submit"
               >
-                Ask ↵
+                Ask
               </Button>
             )}
           </div>
@@ -384,44 +419,122 @@ function ResponsePanel({
       )
     }
     return (
-      <div aria-live="polite" className="grid min-h-[8rem] place-items-center px-3 py-6">
-        <p
-          className="text-sm text-muted-foreground"
+      <div
+        aria-live="polite"
+        className="grid min-h-[12rem] place-items-center px-3 py-8"
+      >
+        <div
+          className="w-full max-w-lg space-y-4"
           data-slot="empty-state"
           data-slot-state="loading"
         >
-          Waiting for response...
-        </p>
+          <p className="text-center text-sm font-medium text-foreground/80">
+            Waiting for response...
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Retrieving sources and drafting an answer
+          </p>
+          <div aria-hidden="true" className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4">
+            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted" />
+            <div className="space-y-2">
+              <div className="h-3 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
+            </div>
+            <div className="flex gap-1.5 pt-1">
+              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (response === null) {
+    if (state === 'failed') {
+      return (
+        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+          <EmptyState
+            className="max-w-md border-destructive/30 bg-destructive/5 p-5 text-left"
+            data-slot-state="failed"
+            role="alert"
+          >
+            <p className="font-medium text-destructive">Request failed.</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Edit the question and resend, or open another session. Details are
+              under the composer when available.
+            </p>
+          </EmptyState>
+        </div>
+      )
+    }
+    if (state === 'canceled') {
+      return (
+        <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+          <EmptyState
+            className="max-w-md border-border/60 bg-muted/30 p-5 text-left"
+            data-slot-state="canceled"
+            role="status"
+          >
+            <p className="font-medium text-foreground/90">Request canceled.</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Nothing was stored for this turn. Ask again when ready.
+            </p>
+          </EmptyState>
+        </div>
+      )
+    }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-6">
-        <p
-          className="text-sm text-muted-foreground"
-          data-slot="empty-state"
+      <div className="grid min-h-[10rem] place-items-center px-3 py-6">
+        <EmptyState
+          className="max-w-md border-border/60 bg-muted/30 p-5"
           data-slot-state="empty"
         >
-          No response yet.
-        </p>
+          <p className="font-medium text-foreground/90">No response yet.</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            Ask about indexed sources. Enter to send · Shift+Enter for a new line.
+          </p>
+        </EmptyState>
       </div>
     )
   }
 
+  const terminalBanner =
+    state === 'failed' || state === 'canceled' ? (
+      <div
+        data-slot="chat-terminal-banner"
+        data-slot-state={state}
+      >
+        <InlineFeedback
+          className="mx-0.5"
+          role={state === 'failed' ? 'alert' : 'status'}
+          tone={state === 'failed' ? 'danger' : 'neutral'}
+        >
+          {state === 'failed'
+            ? 'Request failed. Partial answer below may be incomplete.'
+            : 'Request canceled. Partial answer below was not stored as a finished turn.'}
+        </InlineFeedback>
+      </div>
+    ) : null
+
   return (
-    <ResponseContent
-      drafts={drafts}
-      onOpenSource={onOpenSource}
-      onRefineKnowledgeDraft={onRefineKnowledgeDraft}
-      onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
-      providerUsage={providerUsage}
-      question={question}
-      response={response}
-      setDrafts={setDrafts}
-      state={state}
-    />
+    <div className="grid gap-3">
+      {terminalBanner}
+      <ResponseContent
+        drafts={drafts}
+        onOpenSource={onOpenSource}
+        onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+        onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+        providerUsage={providerUsage}
+        question={question}
+        response={response}
+        setDrafts={setDrafts}
+        state={state}
+      />
+    </div>
   )
 }
 
@@ -589,7 +702,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat response" className="grid gap-4">
+    <div aria-label="Chat response" className="grid gap-4" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -598,8 +711,57 @@ function ResponseContent({
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {response.answer}
+            {response.answer.trim().length > 0 ? (
+              response.answer
+            ) : (
+              <span className="inline-flex items-center gap-2 text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
+                />
+                Drafting answer…
+              </span>
+            )}
           </p>
+          {response.citations.length > 0 ? (
+            <div
+              aria-label="Answer citations"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border/50 pt-2.5"
+              data-slot="chat-answer-citations"
+              role="group"
+            >
+              {response.citations.map((citation, index) => {
+                const label =
+                  citation.citation.source_external_id ||
+                  citation.citation.source_id ||
+                  `Source ${index + 1}`
+                const chipKey = [
+                  citation.chunk_id ?? 'no-chunk',
+                  citation.citation.source_id ?? 'no-source',
+                  index,
+                ].join('-')
+                return (
+                  <Button
+                    aria-label={`Open source ${label}`}
+                    className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    key={chipKey}
+                    onClick={() =>
+                      onOpenSource(
+                        citation.citation.source_id,
+                        citation.citation.snippet,
+                      )
+                    }
+                    size="sm"
+                    title={label}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {label}
+                  </Button>
+                )
+              })}
+            </div>
+          ) : null}
         </article>
       ) : null}
 
@@ -661,7 +823,10 @@ function QuestionPrompt({ question }: { question: string | null }) {
       : trimmedQuestion
 
   return (
-    <div className="sticky top-0 z-10" data-slot="chat-question-sticky">
+    <div
+      className="sticky top-0 z-10 border-b border-border/50 bg-background/95 pb-2 backdrop-blur-sm"
+      data-slot="chat-question-sticky"
+    >
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
@@ -718,13 +883,19 @@ function ResponseDetailsPanel({
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse response details' : 'Expand response details'}
-        className="w-full justify-start"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
       >
-        <span aria-hidden="true">{expanded ? 'v' : '>'}</span>
-        details - {summaryParts.join(' - ')}
+        {expanded ? (
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 truncate">
+          Details · {summaryParts.join(' · ')}
+        </span>
       </Button>
 
       {expanded ? (
@@ -764,13 +935,13 @@ function ResponseDetailsContent({
       {toolCallCount > 0 ? (
         <section aria-label="Tool calls detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            tool calls - {toolCallCount}
+            Tool calls · {toolCallCount}
           </h3>
           <DataList>
-            {response.tool_calls.map((call) => (
+            {response.tool_calls.map((call, index) => (
               <DataListItem
                 className="grid gap-1"
-                key={`${call.name}-${call.query}`}
+                key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
               >
                 <strong className="text-sm text-foreground">{call.name}</strong>
                 <span className="text-sm text-muted-foreground">
@@ -788,13 +959,13 @@ function ResponseDetailsContent({
       {sourceCount > 0 ? (
         <section aria-label="Sources detail" className="grid gap-2">
           <h3 className="text-sm font-semibold text-foreground">
-            sources - {sourceCount}
+            Sources · {sourceCount}
           </h3>
           <DataList>
-            {response.citations.map((result) => (
+            {response.citations.map((result, index) => (
               <DataListItem
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-                key={result.chunk_id}
+                key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
                   <strong className="break-words text-sm text-foreground">
@@ -883,6 +1054,8 @@ function KnowledgeDraftCard({
 }) {
   const canEdit = draft.status === 'draft'
   const canCancel = draft.status !== 'approved' && draft.status !== 'cancelled'
+  // Primary commit only while still a draft with non-empty text.
+  const canSubmitPrimary = canEdit && draft.text.trim().length > 0
   const primaryAction =
     draft.reviewAction === 'approve' ? 'Approve knowledge' : 'Request approval'
 
@@ -901,7 +1074,7 @@ function KnowledgeDraftCard({
             {draft.scope}
           </strong>
         </div>
-        <StatusBadge>{draft.status}</StatusBadge>
+        <StatusBadge tone={knowledgeDraftStatusTone(draft.status)}>{draft.status}</StatusBadge>
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
@@ -910,6 +1083,7 @@ function KnowledgeDraftCard({
         <FieldControl>
           <Textarea
             aria-label="Knowledge draft text"
+            className="focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
             disabled={!canEdit}
             id={`knowledge-draft-${draft.draftId}`}
             onChange={(event) => onTextChange(event.currentTarget.value)}
@@ -925,7 +1099,7 @@ function KnowledgeDraftCard({
         <InlineFeedback tone="danger">{draft.error}</InlineFeedback>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!canEdit} onClick={onSubmit} type="button">
+        <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>
         <Button
@@ -947,6 +1121,24 @@ function KnowledgeDraftCard({
       </div>
     </article>
   )
+}
+
+function knowledgeDraftStatusTone(
+  status: ChatKnowledgeDraftStatus,
+): 'danger' | 'neutral' | 'primary' | 'success' | 'warning' {
+  if (status === 'approved') {
+    return 'success'
+  }
+  if (status === 'pending') {
+    return 'warning'
+  }
+  if (status === 'cancelled') {
+    return 'neutral'
+  }
+  if (status === 'draft') {
+    return 'primary'
+  }
+  return 'neutral'
 }
 
 function extractKnowledgeDrafts(toolCalls: ChatToolCall[]): ChatKnowledgeDraft[] {

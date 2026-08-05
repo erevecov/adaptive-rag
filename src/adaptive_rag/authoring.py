@@ -24,6 +24,9 @@ from adaptive_rag.ingestion.parsers import (
 
 SUPPORTED_SOURCE_TYPES = ("markdown", "text", "txt", "url", "pdf", "docx")
 TEXT_SOURCE_TYPES = frozenset({"markdown", "text", "txt"})
+# Align text body cap with binary payload limit (5 MiB) so JSON content stays
+# in the same order of magnitude as content_base64 uploads.
+MAX_TEXT_SOURCE_CONTENT_CHARS = MAX_BINARY_SOURCE_BYTES
 
 
 class AuthoringError(Exception):
@@ -56,8 +59,12 @@ def create_project(
     )
 
 
-def list_projects(session: Session) -> list[Project]:
-    return ProjectRepository(session).list()
+def list_projects(
+    session: Session,
+    *,
+    member_user_id: UUID | None = None,
+) -> list[Project]:
+    return ProjectRepository(session).list(member_user_id=member_user_id)
 
 
 def get_project(session: Session, project_id: UUID) -> Project:
@@ -89,6 +96,23 @@ def create_source(
     )
     if existing is not None:
         raise AuthoringError("source already exists", status_code=409)
+    deleted = source_repository.get_by_identity(
+        project_id=project_id,
+        source_type=source_type,
+        external_id=external_id,
+        include_deleted=True,
+    )
+    if deleted is not None:
+        # Unique identity still counts soft-deleted rows; revive instead of 409 forever.
+        restored = source_repository.restore(
+            project_id=project_id,
+            source_id=deleted.id,
+            tags=tags,
+            extra_metadata=extra_metadata,
+        )
+        if restored is None:
+            raise AuthoringError("source not found", status_code=404)
+        return restored
     try:
         return source_repository.create(
             project_id=project_id,
@@ -178,13 +202,17 @@ def update_source(
             source_type=source.source_type,
             extra_metadata=extra_metadata,
         )
-    updated = SourceRepository(session).update(
-        project_id=project_id,
-        source_id=source_id,
-        tags=tags,
-        extra_metadata=extra_metadata,
-        external_id=external_id.strip() if external_id is not None else None,
-    )
+    try:
+        updated = SourceRepository(session).update(
+            project_id=project_id,
+            source_id=source_id,
+            tags=tags,
+            extra_metadata=extra_metadata,
+            external_id=external_id.strip() if external_id is not None else None,
+        )
+    except IntegrityError as exc:
+        session.rollback()
+        raise AuthoringError("source already exists", status_code=409) from exc
     if updated is None:
         raise AuthoringError("source not found", status_code=404)
     return updated
@@ -281,6 +309,12 @@ def validate_source_create(
         content = extra_metadata.get("content")
         if not isinstance(content, str) or content.strip() == "":
             _raise_missing_text_content(source_type)
+        if len(content) > MAX_TEXT_SOURCE_CONTENT_CHARS:
+            raise AuthoringError(
+                f"{source_type} source content exceeds max size of "
+                f"{MAX_TEXT_SOURCE_CONTENT_CHARS} characters",
+                status_code=422,
+            )
         return
     if source_type in BINARY_SOURCE_TYPES:
         _validate_binary_source_metadata(

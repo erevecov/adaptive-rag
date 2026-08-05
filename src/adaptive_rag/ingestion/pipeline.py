@@ -5,12 +5,14 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID
 
 import trafilatura
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Document, DocumentVersion, Job, Source
@@ -109,9 +111,7 @@ class TrafilaturaHTMLExtractor:
             normalized_text=normalize_text(extracted),
             parser_metadata={
                 "parser": "trafilatura",
-                "parser_version": str(
-                    getattr(trafilatura, "__version__", "unknown")
-                ),
+                "parser_version": str(getattr(trafilatura, "__version__", "unknown")),
             },
             extraction_metadata=_metadata_to_dict(metadata_obj),
         )
@@ -168,17 +168,47 @@ class IngestionPipeline:
             raise IngestionPipelineError(
                 f"unsupported job_type for ingestion pipeline: {job.job_type}"
             )
+        # Snapshot lease owner before processing; mid-pipeline rollback can
+        # expire ORM attrs and concurrent recovery must not use a stale id.
+        job_id = job.id
+        lease_owner = job.locked_by
         try:
             result = self._process_job(project_id=project_id, job=job)
         except (IngestionPipelineError, URLFetchPolicyError) as exc:
             blocked_job = self._job_repo.block(
                 project_id=project_id,
-                job_id=job.id,
+                job_id=job_id,
                 reason=str(exc),
+                worker_id=lease_owner,
             )
             return IngestionBlockedResult(job=blocked_job, error_message=str(exc))
+        except IntegrityError as exc:
+            # Concurrent ingest on the same document version number (or other
+            # unique constraints) must not escape as an unexpected 500.
+            # Roll back any poisoned flush, then mark the job blocked.
+            reason = (
+                f"integrity_error: {exc.orig}"
+                if getattr(exc, "orig", None) is not None
+                else f"integrity_error: {exc}"
+            )
+            with suppress(Exception):  # best-effort clear after IntegrityError
+                self._session.rollback()
+            try:
+                blocked_job = self._job_repo.block(
+                    project_id=project_id,
+                    job_id=job_id,
+                    reason=reason,
+                    worker_id=lease_owner,
+                )
+            except Exception:  # noqa: BLE001 — session may still be unusable
+                # Surface as pipeline error so the outer worker fail() path can
+                # recover after its own rollback (ingestion_ops).
+                raise IngestionPipelineError(reason) from exc
+            return IngestionBlockedResult(job=blocked_job, error_message=reason)
 
-        self._job_repo.complete(project_id=project_id, job_id=job.id)
+        self._job_repo.complete(
+            project_id=project_id, job_id=job_id, worker_id=lease_owner
+        )
         enqueue_index_document_version_job(
             self._session,
             project_id=project_id,

@@ -34,6 +34,8 @@ class ChatRequest:
     rerank_enabled: bool = False
     rerank_candidate_limit: int = DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT
     metadata_filter: RetrievalMetadataFilter | None = None
+    # Approved durable memory for runner system context only — never audit/history text.
+    user_memory: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +49,7 @@ class ChatRunnerRequest:
     user_id: UUID | None = None
     history: tuple[ChatHistoryTurn, ...] = ()
     retrieval_query: str | None = None
+    user_memory: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

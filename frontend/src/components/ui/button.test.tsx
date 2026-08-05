@@ -5,7 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { type ComponentProps } from 'react'
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { Button, IconButton } from './button'
+import { Button, ButtonLabel, IconButton } from './button'
 
 function classTokens(element: Element): string[] {
   return element.className.split(/\s+/).filter(Boolean)
@@ -40,6 +40,39 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Save' }).getAttribute('data-slot')).toBe(
       'button',
     )
+  })
+
+  test('primary variant uses a contrast focus ring against the fill', () => {
+    render(<Button>Save</Button>)
+
+    const tokens = classTokens(screen.getByRole('button', { name: 'Save' }))
+    expect(tokens).toContain('focus-visible:ring-2')
+    expect(tokens).toContain('focus-visible:ring-primary-foreground/55')
+    expect(tokens).toContain('motion-safe:transition-colors')
+  })
+})
+
+describe('ButtonLabel', () => {
+  test('reserves width with the longer label so busy text does not shift layout', () => {
+    const { rerender } = render(
+      <Button>
+        <ButtonLabel busy={false} busyLabel="Creating..." idleLabel="Create" />
+      </Button>,
+    )
+
+    const idle = screen.getByRole('button', { name: 'Create' })
+    const reserve = idle.querySelector('[aria-hidden="true"]')
+    expect(reserve?.textContent).toBe('Creating...')
+    expect(reserve?.className).toMatch(/invisible/)
+
+    rerender(
+      <Button>
+        <ButtonLabel busy busyLabel="Creating..." idleLabel="Create" />
+      </Button>,
+    )
+
+    const busy = screen.getByRole('button', { name: 'Creating...' })
+    expect(busy.querySelector('[aria-hidden="true"]')?.textContent).toBe('Creating...')
   })
 })
 

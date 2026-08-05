@@ -13,7 +13,7 @@ from sqlalchemy.pool import StaticPool
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, Source
+from adaptive_rag.db.models import Project, Source, User
 from adaptive_rag.db.repositories import ProjectRepository, SourceRepository
 from adaptive_rag.db.session import create_session_factory
 
@@ -24,7 +24,11 @@ def _make_session() -> Session:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Project.__table__, Source.__table__])
+    Base.metadata.create_all(
+        engine,
+        # User must exist: bootstrap auth fails closed when the table is missing.
+        tables=[Project.__table__, Source.__table__, User.__table__],
+    )
     return create_session_factory(engine)()
 
 

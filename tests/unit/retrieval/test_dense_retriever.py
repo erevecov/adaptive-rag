@@ -311,3 +311,67 @@ def test_dense_retriever_rejects_invalid_inputs() -> None:
             query_embedding=_vector(0.0),
             limit=0,
         )
+
+
+def test_dense_retriever_only_returns_latest_document_version() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="policy.md",
+        tags=("docs",),
+        extra_metadata={"title": "policy"},
+    )
+    document = DocumentRepository(session).create_document(
+        project_id=project.id,
+        source_id=source.id,
+        stable_id="policy",
+    )
+    old_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text="Old policy alpha evidence",
+        content_hash="sha256:policy-v1",
+        index_fingerprint="fp:policy-v1",
+    )
+    new_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=2,
+        normalized_text="New policy beta evidence",
+        content_hash="sha256:policy-v2",
+        index_fingerprint="fp:policy-v2",
+    )
+    # Old version chunk is a perfect vector match; latest is farther.
+    old_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=old_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len("Old policy alpha evidence"),
+        token_count=4,
+        embedding=_vector(0.0),
+    )
+    new_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=new_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len("New policy beta evidence"),
+        token_count=4,
+        embedding=_vector(0.5),
+    )
+    session.commit()
+
+    results = DenseRetriever(session).search(
+        project_id=project.id,
+        query_embedding=_vector(0.0),
+        limit=5,
+    )
+
+    assert [result.chunk_id for result in results] == [new_chunk.id]
+    assert results[0].citation.document_version_id == new_version.id
+    assert results[0].citation.document_version_number == 2
+    assert old_chunk.id not in {result.chunk_id for result in results}

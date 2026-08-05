@@ -29,7 +29,7 @@ class RunNextIngestionJobRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     worker_id: str | None = None
-    lease_seconds: int = Field(default=300, ge=1)
+    lease_seconds: int = Field(default=300, ge=1, le=3600)
 
 
 class JobResponse(BaseModel):

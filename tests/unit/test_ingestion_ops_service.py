@@ -47,10 +47,123 @@ def test_enqueue_source_ingestion_creates_project_scoped_job() -> None:
     assert job.priority == 5
     assert job.max_attempts == 2
     assert job.payload_json == {"source_id": str(source.id)}
-    assert JobRepository(session).list_events(
+    assert (
+        JobRepository(session)
+        .list_events(
+            project_id=project.id,
+            job_id=job.id,
+        )[0]
+        .event_type
+        == "created"
+    )
+
+
+def test_enqueue_source_ingestion_dedupes_open_job_for_same_source() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
         project_id=project.id,
-        job_id=job.id,
-    )[0].event_type == "created"
+        source_type="markdown",
+        external_id="notes.md",
+        extra_metadata={"content": "# Notes"},
+    )
+
+    first = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+        priority=1,
+    )
+    second = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+        priority=9,
+    )
+
+    assert second.id == first.id
+    assert second.priority == 1
+    open_jobs = JobRepository(session).list(
+        project_id=project.id,
+        job_type=INGEST_SOURCE_JOB_TYPE,
+        statuses=("queued", "running"),
+    )
+    assert [job.id for job in open_jobs] == [first.id]
+
+
+def test_enqueue_source_ingestion_allows_new_job_after_terminal_status() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="txt",
+        external_id="notes.txt",
+        extra_metadata={"content": "notes"},
+    )
+    first = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+    )
+    JobRepository(session).block(
+        project_id=project.id,
+        job_id=first.id,
+        reason="blocked for test",
+    )
+
+    second = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+    )
+
+    assert second.id != first.id
+    assert second.status == "queued"
+    assert (
+        JobRepository(session)
+        .get(
+            project_id=project.id,
+            job_id=first.id,
+        )
+        .status
+        == "blocked"
+    )
+
+
+def test_enqueue_source_ingestion_dedupes_running_job() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="txt",
+        external_id="notes.txt",
+        extra_metadata={"content": "notes"},
+    )
+    first = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+    )
+    now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    leased = JobRepository(session).lease_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        lease_until=now,
+        now=now,
+        job_type=INGEST_SOURCE_JOB_TYPE,
+    )
+    assert leased is not None
+    assert leased.id == first.id
+    assert leased.status == "running"
+
+    second = enqueue_source_ingestion(
+        session,
+        project_id=project.id,
+        source_id=source.id,
+    )
+
+    assert second.id == first.id
+    assert second.status == "running"
 
 
 def test_enqueue_source_ingestion_rejects_cross_project_source() -> None:

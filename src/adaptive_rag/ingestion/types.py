@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
+
+# Cap on text extracted from binary documents (PDF/DOCX). A 5 MiB payload of
+# highly compressible content can decompress into gigabytes of text; without
+# a cap that turns into worker memory pressure and oversized document rows.
+MAX_EXTRACTED_TEXT_CHARS: Final[int] = 8 * 1024 * 1024
 
 
 class IngestionPipelineError(ValueError):

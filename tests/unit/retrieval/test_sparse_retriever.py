@@ -239,3 +239,80 @@ def test_sparse_retriever_rejects_invalid_request() -> None:
             query_vector=SparseEmbeddingVector(indices=(1,), values=(1.0,)),
             limit=0,
         )
+
+
+def test_sparse_retriever_only_returns_latest_document_version() -> None:
+    session = _make_session()
+    project = _create_project(session, "demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="policy.md",
+        tags=("docs",),
+        extra_metadata={"title": "policy"},
+    )
+    document = DocumentRepository(session).create_document(
+        project_id=project.id,
+        source_id=source.id,
+        stable_id="policy",
+    )
+    old_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text="Old sparse policy evidence",
+        content_hash="sha256:policy-v1",
+        index_fingerprint="fp:policy-v1",
+    )
+    new_version = DocumentRepository(session).create_version(
+        project_id=project.id,
+        document_id=document.id,
+        version_number=2,
+        normalized_text="New sparse policy evidence",
+        content_hash="sha256:policy-v2",
+        index_fingerprint="fp:policy-v2",
+    )
+    old_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=old_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len(old_version.normalized_text),
+        token_count=4,
+    )
+    new_chunk = ChunkRepository(session).create(
+        project_id=project.id,
+        document_version_id=new_version.id,
+        ordinal=0,
+        char_start=0,
+        char_end=len(new_version.normalized_text),
+        token_count=4,
+    )
+    # Old version has a much stronger sparse match; still must not surface.
+    SparseEmbeddingRepository(session).upsert_current(
+        project_id=project.id,
+        chunk_id=old_chunk.id,
+        vector=SparseEmbeddingVector(indices=(1, 9), values=(10.0, 10.0)),
+        input_hash="sha256:policy-v1",
+        index_fingerprint="sparse-fp:policy-v1",
+        extra_metadata={"provider": "fake", "model": "fake-sparse-embedding-v1"},
+    )
+    SparseEmbeddingRepository(session).upsert_current(
+        project_id=project.id,
+        chunk_id=new_chunk.id,
+        vector=SparseEmbeddingVector(indices=(1,), values=(1.0,)),
+        input_hash="sha256:policy-v2",
+        index_fingerprint="sparse-fp:policy-v2",
+        extra_metadata={"provider": "fake", "model": "fake-sparse-embedding-v1"},
+    )
+    session.commit()
+
+    results = SparseRetriever(session).search(
+        project_id=project.id,
+        query_vector=SparseEmbeddingVector(indices=(1, 9), values=(1.0, 1.0)),
+        limit=5,
+    )
+
+    assert [result.chunk_id for result in results] == [new_chunk.id]
+    assert results[0].citation.document_version_number == 2
+    assert old_chunk.id not in {result.chunk_id for result in results}

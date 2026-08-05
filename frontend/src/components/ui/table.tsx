@@ -8,12 +8,19 @@ import {
 
 import { cn } from '@/lib/utils'
 
+/** Numeric columns: right-align + stable digit width while values refresh. */
+export const tableNumericClass = 'text-right tabular-nums'
+
 export type TableScrollProps = HTMLAttributes<HTMLDivElement>
 
 export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn('w-full overflow-x-auto', className)}
+      className={cn(
+        // Vertical max-height so sticky TableHeader can pin while scrolling long tables.
+        'w-full max-h-[min(70vh,36rem)] overflow-auto',
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="table-scroll"
@@ -42,7 +49,15 @@ export const TableHeader = forwardRef<
   HTMLTableSectionElement,
   TableHeaderProps
 >(({ className, ...props }, ref) => (
-  <thead className={cn('border-b border-border', className)} ref={ref} {...props} data-slot="table-header" />
+  <thead
+    className={cn(
+      'sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm',
+      className,
+    )}
+    ref={ref}
+    {...props}
+    data-slot="table-header"
+  />
 ))
 TableHeader.displayName = 'TableHeader'
 
@@ -65,7 +80,10 @@ export type TableRowProps = HTMLAttributes<HTMLTableRowElement>
 export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
-      className={cn('border-b border-border transition-colors', className)}
+      className={cn(
+        'border-b border-border motion-safe:transition-colors',
+        className,
+      )}
       ref={ref}
       {...props}
       data-slot="table-row"
@@ -80,7 +98,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, scope = 'col', ...props }, ref) => (
     <th
       className={cn(
-        'h-10 whitespace-nowrap px-3 text-left align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground',
+        'h-10 whitespace-nowrap bg-background/95 px-3 text-left align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground',
         className,
       )}
       ref={ref}

@@ -140,6 +140,15 @@ function expectNoLegacyChatClasses(container: HTMLElement) {
 }
 
 describe('ChatWorkspacePanel', () => {
+  test('cancel request button uses a destructive secondary tone while asking', () => {
+    renderChatWorkspace({ isAsking: true, question: 'Stop me' })
+
+    const cancel = screen.getByRole('button', { name: 'Cancel' })
+    expect(cancel.className).toMatch(/border-destructive\/30/)
+    expect(cancel.className).toMatch(/text-destructive/)
+    expect(cancel.getAttribute('data-slot')).toBe('button')
+  })
+
   test('renders the composer with tokenized controls and actions', async () => {
     const user = userEvent.setup()
     const onQuestionChange = vi.fn()
@@ -195,12 +204,36 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(screen.getByText('$0.0123')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'View source architecture.md' }))
+    await user.click(
+      within(screen.getByRole('region', { name: 'Sources detail' })).getByRole(
+        'button',
+        { name: 'View source architecture.md' },
+      ),
+    )
     expect(props.onOpenSource).toHaveBeenCalledWith(
       'source-1',
       'Architecture notes mention adaptive retrieval.',
     )
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('renders citation chips under the answer card', async () => {
+    const user = userEvent.setup()
+    const onOpenSource = vi.fn()
+    const { view } = renderChatWorkspace({
+      onOpenSource,
+      requestState: 'succeeded',
+      response,
+    })
+    const chip = screen.getByRole('button', { name: 'Open source architecture.md' })
+    expect(
+      view.container.querySelector('[data-slot="chat-answer-citations"]'),
+    ).toBeTruthy()
+    await user.click(chip)
+    expect(onOpenSource).toHaveBeenCalledWith(
+      'source-1',
+      'Architecture notes mention adaptive retrieval.',
+    )
   })
 
   test('renders waiting and error states with feedback primitives', () => {
@@ -210,18 +243,101 @@ describe('ChatWorkspacePanel', () => {
       response: null,
     })
 
-    expect(screen.getByText('Waiting for response...').getAttribute('data-slot')).toBe(
-      'empty-state',
+    const loading = view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="loading"]',
     )
-    expect(
-      screen.getByText('Waiting for response...').getAttribute('data-slot-state'),
-    ).toBe('loading')
+    expect(loading).toBeTruthy()
+    expect(loading?.textContent).toContain('Waiting for response...')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-composer-actions"]'),
     ).toBeTruthy()
+    expect(
+      view.container
+        .querySelector('[data-slot="chat-transcript"]')
+        ?.getAttribute('aria-busy'),
+    ).toBe('true')
     expectNoLegacyChatClasses(view.container)
+    view.unmount()
+
+    const failed = renderChatWorkspace({
+      requestError: 'Upstream timeout',
+      requestState: 'failed',
+      response: null,
+    })
+    const failedState = failed.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="failed"]',
+    )
+    expect(failedState).toBeTruthy()
+    expect(failedState?.textContent).toContain('Request failed.')
+    expect(failedState?.getAttribute('role')).toBe('alert')
+    failed.view.unmount()
+
+    const canceled = renderChatWorkspace({
+      requestState: 'canceled',
+      response: null,
+    })
+    const canceledState = canceled.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="canceled"]',
+    )
+    expect(canceledState).toBeTruthy()
+    expect(canceledState?.textContent).toContain('Request canceled.')
+    canceled.view.unmount()
+
+    const canceledPartial = renderChatWorkspace({
+      requestState: 'canceled',
+      response,
+    })
+    const canceledBanner = canceledPartial.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
+    )
+    expect(canceledBanner).toBeTruthy()
+    expect(canceledBanner?.textContent).toMatch(/Request canceled/)
+    expect(canceledBanner?.querySelector('[role="status"]')).toBeTruthy()
+    expect(
+      canceledPartial.view.container.querySelector('[data-slot="chat-message"]'),
+    ).toBeTruthy()
+    canceledPartial.view.unmount()
+
+    const failedPartial = renderChatWorkspace({
+      requestError: 'Upstream timeout',
+      requestState: 'failed',
+      response,
+    })
+    const failedBanner = failedPartial.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
+    )
+    expect(failedBanner).toBeTruthy()
+    expect(failedBanner?.textContent).toMatch(/Request failed/)
+    expect(failedBanner?.querySelector('[role="alert"]')).toBeTruthy()
+    failedPartial.view.unmount()
+  })
+
+  test('Enter on empty question does not submit', async () => {
+    const userDriver = userEvent.setup()
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+    })
+    const { view } = renderChatWorkspace({
+      onSubmit,
+      question: '   ',
+      requestState: 'idle',
+      response: null,
+    })
+
+    await userDriver.type(screen.getByLabelText('Question'), '{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeNull()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="empty"]',
+      ),
+    ).toBeTruthy()
   })
 
   test('renders empty transcript and beflow-like composer layout', () => {
@@ -229,9 +345,12 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'idle',
       response: null,
     })
-    expect(screen.getByText('No response yet.').getAttribute('data-slot-state')).toBe(
-      'empty',
+    const emptyState = empty.view.container.querySelector(
+      '[data-slot="empty-state"][data-slot-state="empty"]',
     )
+    expect(emptyState).toBeTruthy()
+    expect(emptyState?.textContent).toContain('No response yet.')
+    expect(emptyState?.textContent).toMatch(/Enter to send/)
     expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
@@ -284,8 +403,146 @@ describe('ChatWorkspacePanel', () => {
 
     const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge draft text')).toBeTruthy()
-    expect(within(draft).getByRole('button', { name: 'Approve knowledge' })).toBeTruthy()
+    const approve = within(draft).getByRole('button', { name: 'Approve knowledge' })
+    expect(approve).toBeTruthy()
+    expect((approve as HTMLButtonElement).disabled).toBe(false)
+    expect(within(draft).getByText('draft').getAttribute('data-tone')).toBe('primary')
     expectNoLegacyChatClasses(view.container)
+  })
+
+  test('disables knowledge draft primary action when status is not draft', () => {
+    for (const status of ['pending', 'approved', 'cancelled'] as const) {
+      cleanup()
+      renderChatWorkspace({
+        drafts: {
+          [status]: {
+            draftId: status,
+            error: null,
+            proposalId: status === 'pending' ? 'proposal-1' : null,
+            reviewAction: 'approve',
+            scope: 'project',
+            status,
+            text: `Text for ${status}`,
+          },
+        },
+        response,
+      })
+
+      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      expect(
+        (
+          within(card).getByRole('button', {
+            name: 'Approve knowledge',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+      expect(
+        (
+          within(card).getByRole('button', {
+            name: 'Refine in chat',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+    }
+  })
+
+  test('exposes aria-pressed on composer context and minimap tools', () => {
+    const { view } = renderChatWorkspace({
+      isContextInspectorActive: true,
+      isMinimapInspectorActive: false,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Open context sidebar' }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('true')
+    expect(
+      screen.getByRole('button', { name: 'Open minimap sidebar' }).getAttribute(
+        'aria-pressed',
+      ),
+    ).toBe('false')
+    expect(view.container.querySelector('#chat-composer')).toBeTruthy()
+  })
+
+  test('shows terminal banner when cancel/fail keeps a partial response', () => {
+    const canceled = renderChatWorkspace({
+      requestState: 'canceled',
+      response: { ...response, answer: 'Partial before cancel' },
+    })
+    const banner = canceled.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
+    )
+    expect(banner).toBeTruthy()
+    expect(banner?.textContent).toMatch(/Request canceled/)
+    expect(screen.getByText('Partial before cancel')).toBeTruthy()
+    canceled.view.unmount()
+
+    const failed = renderChatWorkspace({
+      requestState: 'failed',
+      response: { ...response, answer: 'Partial before fail' },
+    })
+    expect(
+      failed.view.container.querySelector(
+        '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
+      )?.textContent,
+    ).toMatch(/Request failed/)
+    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/)
+    failed.view.unmount()
+  })
+
+  test('blocks Enter submit while asking and cancels on Escape', async () => {
+    const user = userEvent.setup()
+    const onCancelRequest = vi.fn()
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+    })
+    renderChatWorkspace({
+      isAsking: true,
+      onCancelRequest,
+      onSubmit,
+      question: 'still typing',
+      requestState: 'loading',
+      response: null,
+    })
+
+    const textarea = screen.getByLabelText('Question')
+    await user.click(textarea)
+    await user.keyboard('{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+
+    await user.keyboard('{Escape}')
+    expect(onCancelRequest).toHaveBeenCalledTimes(1)
+  })
+
+  test('maps knowledge draft status badges to lifecycle tones', () => {
+    const statuses = [
+      { status: 'draft', tone: 'primary' },
+      { status: 'pending', tone: 'warning' },
+      { status: 'approved', tone: 'success' },
+      { status: 'cancelled', tone: 'neutral' },
+    ] as const
+
+    for (const { status, tone } of statuses) {
+      cleanup()
+      renderChatWorkspace({
+        drafts: {
+          [status]: {
+            draftId: status,
+            error: null,
+            proposalId: status === 'pending' ? 'proposal-1' : null,
+            reviewAction: 'approve',
+            scope: 'project',
+            status,
+            text: `Text for ${status}`,
+          },
+        },
+        response,
+      })
+
+      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      expect(within(card).getByText(status).getAttribute('data-tone')).toBe(tone)
+    }
   })
 
   test('uses lucide icons instead of inline SVG icon functions', () => {

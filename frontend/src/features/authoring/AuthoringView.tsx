@@ -1,11 +1,11 @@
 import { type FormEvent, type ReactNode } from 'react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLabel } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
-import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
+import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
   PanelBody,
@@ -277,6 +277,7 @@ export function AuthoringPanel({
 }
 
 function AuthoringSectionPanel({
+  ariaBusy,
   ariaLabel,
   children,
   description,
@@ -285,6 +286,7 @@ function AuthoringSectionPanel({
   status,
   title,
 }: {
+  ariaBusy?: boolean
   ariaLabel: string
   children: ReactNode
   description?: ReactNode
@@ -294,7 +296,11 @@ function AuthoringSectionPanel({
   title: string
 }) {
   return (
-    <Panel aria-label={ariaLabel} role="region">
+    <Panel
+      aria-busy={ariaBusy || undefined}
+      aria-label={ariaLabel}
+      role="region"
+    >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row">
         <div className="grid min-w-0 gap-1">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -317,7 +323,9 @@ function AuthoringSectionPanel({
 function RequestStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
+      aria-live="polite"
       className="max-w-full break-all text-left"
+      role="status"
       tone={requestStateTone(state)}
     >
       {authoringStatusLabel(state)}
@@ -328,10 +336,25 @@ function RequestStatus({ state }: { state: RequestState }) {
 function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
-      className="max-w-full break-all text-left"
+      aria-live="polite"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
+      role="status"
       tone={requestStateTone(state)}
     >
       {ingestionStatusLabel(state)}
+    </StatusBadge>
+  )
+}
+
+function KnowledgeStatus({ state }: { state: RequestState }) {
+  return (
+    <StatusBadge
+      aria-live="polite"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
+      role="status"
+      tone={requestStateTone(state)}
+    >
+      {knowledgeStatusLabel(state)}
     </StatusBadge>
   )
 }
@@ -341,8 +364,25 @@ function requestStateTone(
 ): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'failed') return 'danger'
   if (state === 'succeeded') return 'success'
-  if (state === 'loading' || state === 'canceled') return 'warning'
+  if (state === 'loading') return 'warning'
+  if (state === 'canceled') return 'neutral'
   return 'neutral'
+}
+
+function LoadingListState({ label }: { label: string }) {
+  return (
+    <EmptyState
+      aria-busy="true"
+      aria-label={label}
+      className="border-border/60 bg-muted/20 p-4 text-left"
+      data-slot-state="loading"
+      role="status"
+    >
+      <p aria-hidden="true" className="font-medium text-foreground/90">
+        {label}
+      </p>
+    </EmptyState>
+  )
 }
 
 function AuthoringField({
@@ -389,12 +429,13 @@ function ProjectsPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring projects"
-      description="Create projects and choose the active workspace."
+      description="Create and select the project used by sources and ingestion."
       eyebrow="Projects"
       id="projects-title"
       status={<RequestStatus state={state} />}
-      title="Authoring"
+      title="Projects"
     >
       <form className="grid gap-3" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project name">
@@ -410,8 +451,12 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create project'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create project"
+            />
           </Button>
         </div>
       </form>
@@ -442,47 +487,84 @@ function ProjectList({
   onSelectProject(project: Project): void
   projects: Project[]
 }) {
+  if (isBusy && projects.length === 0) {
+    return <LoadingListState label="Loading projects…" />
+  }
+
   if (projects.length === 0) {
-    return <EmptyState>No projects loaded.</EmptyState>
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        <p className="font-medium text-foreground/90">No projects yet.</p>
+        <p className="text-xs text-muted-foreground">
+          Create a project above to start indexing sources.
+        </p>
+      </EmptyState>
+    )
   }
 
   return (
     <DataList aria-label="Projects">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
-        const roleLabel = canAccess
-          ? (project.access_role ?? project.embedding_mode)
-          : 'no access'
+        const isDeleted = Boolean(project.deleted_at)
+        const roleLabel = isDeleted
+          ? 'deleted'
+          : canAccess
+            ? (project.access_role ?? project.embedding_mode)
+            : 'no access'
         return (
-          <DataListItem className="p-0" key={project.id}>
+          <DataListItem
+            className={isDeleted ? 'p-0 opacity-70' : 'p-0'}
+            data-deleted={isDeleted ? '' : undefined}
+            key={project.id}
+          >
             <div className="flex items-stretch gap-1 p-1">
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
               className="h-auto min-w-0 flex-1 justify-between gap-3 whitespace-normal p-3 text-left"
-              disabled={!canAccess}
+              disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
             >
               <span className="grid min-w-0 gap-1">
-                <strong className="break-words text-sm font-semibold">
+                <strong
+                  className={
+                    isDeleted
+                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      : 'break-words text-sm font-semibold'
+                  }
+                >
                   {project.name}
                 </strong>
-                <small className="break-all text-xs text-muted-foreground">
+                <small className="break-all font-mono text-[11px] text-muted-foreground">
                   {project.id}
                 </small>
+                {isDeleted ? (
+                  <small className="text-xs text-muted-foreground">
+                    Soft-deleted{' '}
+                    {formatOperatorTimestamp(project.deleted_at ?? null)}
+                  </small>
+                ) : null}
               </span>
-              <Badge className="shrink-0" tone={canAccess ? 'neutral' : 'warning'}>
+              <StatusBadge
+                className="shrink-0"
+                tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}
+              >
                 {roleLabel}
-              </Badge>
+              </StatusBadge>
             </Button>
             <Button
               aria-label={`Delete project ${project.name}`}
               className="shrink-0 self-center"
-              disabled={isBusy || !canAccess}
+              disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
-              variant="secondary"
+              variant="danger"
             >
               Delete
             </Button>
@@ -545,6 +627,7 @@ function ProjectAccessPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring users"
       description="Create users and assign project membership."
       eyebrow="Users"
@@ -598,22 +681,31 @@ function ProjectAccessPanel({
           </AuthoringField>
           <AuthoringField id="authoring-user-access-token" label="Access token">
             {(fieldId) => (
-              <Input
-                autoComplete="off"
-                id={fieldId}
-                name="user-access-token"
-                onChange={(event) =>
-                  onUserAccessTokenChange(event.currentTarget.value)
-                }
-                placeholder="token"
-                value={userAccessToken}
-              />
+              <>
+                <Input
+                  autoComplete="off"
+                  id={fieldId}
+                  name="user-access-token"
+                  onChange={(event) =>
+                    onUserAccessTokenChange(event.currentTarget.value)
+                  }
+                  type="password"
+                  value={userAccessToken}
+                />
+                <FieldHelp>
+                  Paste once; never shown after save.
+                </FieldHelp>
+              </>
             )}
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create user'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create user"
+            />
           </Button>
           <Button
             disabled={isBusy}
@@ -621,7 +713,11 @@ function ProjectAccessPanel({
             type="button"
             variant="secondary"
           >
-            {isBusy ? 'Refreshing...' : 'Refresh access'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Refreshing…"
+              idleLabel="Refresh access"
+            />
           </Button>
           <Button
             disabled={isBusy || userAccessToken.trim() === ''}
@@ -633,6 +729,8 @@ function ProjectAccessPanel({
           </Button>
         </div>
       </form>
+
+      <div className="h-px bg-border" role="separator" />
 
       <form className="grid gap-3" onSubmit={onSaveMembership}>
         <div className="grid gap-3 md:grid-cols-2">
@@ -666,7 +764,11 @@ function ProjectAccessPanel({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Saving...' : 'Save membership'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Saving…"
+              idleLabel="Save membership"
+            />
           </Button>
         </div>
       </form>
@@ -697,8 +799,20 @@ function UserAccessLists({
   onDeleteMembership(membership: ProjectMembership): void
   users: User[]
 }) {
+  if (isBusy && users.length === 0 && memberships.length === 0) {
+    return <LoadingListState label="Loading users…" />
+  }
+
   if (users.length === 0 && memberships.length === 0) {
-    return <EmptyState>No users or memberships loaded.</EmptyState>
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        No users or memberships loaded.
+      </EmptyState>
+    )
   }
 
   return (
@@ -718,15 +832,18 @@ function UserAccessLists({
               </small>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="w-fit">
-                {user.is_active ? user.system_role : `${user.system_role} (inactive)`}
-              </Badge>
+              <Badge className="w-fit">{user.system_role}</Badge>
+              {!user.is_active ? (
+                <StatusBadge className="w-fit" tone="warning">
+                  inactive
+                </StatusBadge>
+              ) : null}
               <Button
                 aria-label={`Deactivate user ${user.login}`}
                 disabled={isBusy || !user.is_active}
                 onClick={() => onDeactivateUser(user)}
                 type="button"
-                variant="secondary"
+                variant="danger"
               >
                 Deactivate
               </Button>
@@ -752,7 +869,7 @@ function UserAccessLists({
                 disabled={isBusy}
                 onClick={() => onDeleteMembership(membership)}
                 type="button"
-                variant="secondary"
+                variant="danger"
               >
                 Remove
               </Button>
@@ -819,6 +936,7 @@ function SourcesPanel({
   const textType = isTextSourceType(sourceType)
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring sources"
       description="Register source content before queueing ingestion."
       eyebrow="Sources"
@@ -930,8 +1048,12 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={isBusy} type="submit">
-            {isBusy ? 'Creating...' : 'Create source'}
+          <Button className="min-h-9" disabled={isBusy} type="submit">
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Creating..."
+              idleLabel="Create source"
+            />
           </Button>
           <Button
             disabled={isBusy}
@@ -939,7 +1061,11 @@ function SourcesPanel({
             type="button"
             variant="secondary"
           >
-            {isBusy ? 'Refreshing...' : 'Refresh sources'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Refreshing…"
+              idleLabel="Refresh sources"
+            />
           </Button>
         </div>
       </form>
@@ -967,56 +1093,95 @@ function SourceList({
   onEnqueueIngestion(source: Source): void
   sources: Source[]
 }) {
+  if (isBusy && sources.length === 0) {
+    return <LoadingListState label="Loading sources…" />
+  }
+
   if (sources.length === 0) {
-    return <EmptyState>No sources loaded.</EmptyState>
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        <p className="font-medium text-foreground/90">No sources yet.</p>
+        <p className="text-xs text-muted-foreground">
+          Create a source above, then queue ingestion.
+        </p>
+      </EmptyState>
+    )
   }
 
   return (
     <DataList aria-label="Sources">
-      {sources.map((source) => (
-        <DataListItem
-          className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-          key={source.id}
-        >
-          <div className="grid min-w-0 gap-1">
-            <strong className="break-words text-sm font-semibold">
-              {source.external_id}
-            </strong>
-            <small className="break-all text-xs text-muted-foreground">
-              {source.id}
-            </small>
-            <small className="text-xs text-muted-foreground">
-              Ready to queue ingestion
-            </small>
-            <small className="text-xs text-muted-foreground">
-              Queue ingestion when this source should be indexed.
-            </small>
-          </div>
-          <DataListItemActions className="justify-start md:justify-end">
-            <Badge>{source.source_type}</Badge>
-            <Button
-              aria-label={`Enqueue ingestion for ${source.external_id}`}
-              disabled={isBusy}
-              onClick={() => onEnqueueIngestion(source)}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              Queue
-            </Button>
-            <Button
-              aria-label={`Delete source ${source.external_id}`}
-              disabled={isBusy}
-              onClick={() => onDeleteSource(source)}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              Delete
-            </Button>
-          </DataListItemActions>
-        </DataListItem>
-      ))}
+      {sources.map((source) => {
+        const isDeleted = Boolean(source.deleted_at)
+        const tags =
+          Array.isArray(source.tags) && source.tags.length > 0
+            ? source.tags.join(', ')
+            : 'no tags'
+        return (
+          <DataListItem
+            className={
+              isDeleted
+                ? 'grid gap-3 opacity-70 md:grid-cols-[minmax(0,1fr)_auto]'
+                : 'grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]'
+            }
+            data-deleted={isDeleted ? '' : undefined}
+            key={source.id}
+          >
+            <div className="grid min-w-0 gap-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <strong
+                  className={
+                    isDeleted
+                      ? 'break-words text-sm font-semibold line-through decoration-muted-foreground'
+                      : 'break-words text-sm font-semibold'
+                  }
+                >
+                  {source.external_id}
+                </strong>
+                {isDeleted ? (
+                  <StatusBadge className="w-fit" tone="danger">
+                    deleted
+                  </StatusBadge>
+                ) : null}
+              </div>
+              <small className="break-all font-mono text-[11px] text-muted-foreground">
+                {source.id}
+              </small>
+              <small className="text-xs text-muted-foreground">
+                {isDeleted
+                  ? `Soft-deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
+                  : `${source.source_type} · ${tags}`}
+              </small>
+            </div>
+            <DataListItemActions className="justify-start md:justify-end">
+              <Badge>{source.source_type}</Badge>
+              <Button
+                aria-label={`Enqueue ingestion for ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onEnqueueIngestion(source)}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Queue
+              </Button>
+              <Button
+                aria-label={`Delete source ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onDeleteSource(source)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            </DataListItemActions>
+          </DataListItem>
+        )
+      })}
     </DataList>
   )
 }
@@ -1050,11 +1215,12 @@ function KnowledgeReviewPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring knowledge"
       description="Review and refine pending knowledge proposals."
       eyebrow="Knowledge"
       id="knowledge-review-title"
-      status={<RequestStatus state={state} />}
+      status={<KnowledgeStatus state={state} />}
       title="Pending proposals"
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -1064,25 +1230,43 @@ function KnowledgeReviewPanel({
           type="button"
           variant="secondary"
         >
-          {isBusy ? 'Refreshing...' : 'Refresh proposals'}
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Refreshing…"
+            idleLabel="Refresh proposals"
+          />
         </Button>
       </div>
 
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
-      {proposals.length === 0 ? (
-        <EmptyState>No pending knowledge proposals loaded.</EmptyState>
+      {isBusy && proposals.length === 0 ? (
+        <LoadingListState label="Loading proposals…" />
+      ) : proposals.length === 0 ? (
+        <EmptyState
+          aria-label="No pending proposals"
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No pending proposals.
+        </EmptyState>
       ) : (
         <DataList aria-label="Knowledge proposals">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
+            const rejectReason = rejectReasons[proposal.id] ?? ''
+            const canReject = rejectReason.trim().length > 0
             return (
               <DataListItem className="grid gap-3" key={proposal.id}>
                 <div className="grid min-w-0 gap-1">
                   <strong className="break-words text-sm font-semibold">
                     {proposal.proposed_text}
                   </strong>
-                  <small className="break-all text-xs text-muted-foreground">
+                  <small
+                    className="break-all text-xs text-muted-foreground"
+                    title={proposal.id}
+                  >
                     {proposal.id}
                   </small>
                   <Badge className="w-fit">{proposal.status}</Badge>
@@ -1120,33 +1304,40 @@ function KnowledgeReviewPanel({
                           )
                         }
                         placeholder="Reason"
-                        value={rejectReasons[proposal.id] ?? ''}
+                        value={rejectReason}
                       />
                     )}
                   </AuthoringField>
                   <DataListItemActions>
                     <Button
+                      aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
+                      size="sm"
                       type="button"
                       variant="secondary"
                     >
-                      Refine proposal
+                      Refine
                     </Button>
                     <Button
+                      aria-label={proposalActionLabel('Approve', proposal)}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
+                      size="sm"
                       type="button"
                     >
-                      Approve proposal
+                      Approve
                     </Button>
                     <Button
-                      disabled={isBusy}
+                      aria-describedby={`proposal-reject-${proposal.id}`}
+                      aria-label={proposalActionLabel('Reject', proposal)}
+                      disabled={isBusy || !canReject}
                       onClick={() => onReject(proposal)}
+                      size="sm"
                       type="button"
-                      variant="secondary"
+                      variant="danger"
                     >
-                      Reject proposal
+                      Reject
                     </Button>
                   </DataListItemActions>
                 </div>
@@ -1180,6 +1371,7 @@ function IngestionJobsPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring ingestion jobs"
       description="Run queued ingestion work and retry blocked jobs."
       eyebrow="Ingestion"
@@ -1194,90 +1386,173 @@ function IngestionJobsPanel({
           type="button"
           variant="secondary"
         >
-          Refresh jobs
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Refreshing…"
+            idleLabel="Refresh jobs"
+          />
         </Button>
         <Button disabled={isBusy} onClick={onRunNext} type="button">
-          Run next job
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Running…"
+            idleLabel="Run next job"
+          />
         </Button>
       </div>
 
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
       {run ? (
-        <div className="grid gap-1 rounded-md border border-border bg-muted/40 p-3 text-sm">
-          <span className="text-muted-foreground">{`Last run ${run.status}`}</span>
-          <StatusBadge className="w-fit" tone={jobTone(run.status)}>
-            {run.status}
-          </StatusBadge>
-          <span>{ingestionRunMessage(run)}</span>
+        <div
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug"
+          data-slot="ingestion-last-run"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <span className="font-medium text-muted-foreground">Last run</span>
+            <StatusBadge
+              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide"
+              tone={jobTone(run.status)}
+            >
+              {run.status}
+            </StatusBadge>
+          </div>
+          <p className="text-sm leading-snug text-foreground/90">
+            {ingestionRunMessage(run)}
+          </p>
           {run.error_message ? (
-            <InlineFeedback tone="danger">{run.error_message}</InlineFeedback>
+            <InlineFeedback className="text-xs" tone="danger">
+              {run.error_message}
+            </InlineFeedback>
           ) : null}
         </div>
       ) : null}
 
-      <IngestionJobList jobs={jobs} onRetry={onRetry} />
+      <IngestionJobList isBusy={isBusy} jobs={jobs} onRetry={onRetry} />
     </AuthoringSectionPanel>
   )
 }
 
 function IngestionJobList({
+  isBusy,
   jobs,
   onRetry,
 }: {
+  isBusy: boolean
   jobs: IngestionJob[]
   onRetry(job: IngestionJob): void
 }) {
-  if (jobs.length === 0) {
-    return <EmptyState>No ingestion jobs loaded.</EmptyState>
+  if (isBusy && jobs.length === 0) {
+    return <LoadingListState label="Loading ingestion jobs…" />
   }
 
+  if (jobs.length === 0) {
+    return (
+      <EmptyState
+        className="border-border/60 bg-muted/20 p-4 text-left"
+        data-slot-state="empty"
+        role="status"
+      >
+        <p className="font-medium text-foreground/90">No ingestion jobs yet.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Enqueue a source from the content registry, then run the next job.
+        </p>
+      </EmptyState>
+    )
+  }
+
+  const groups = groupJobsByStatus(jobs)
+
   return (
-    <DataList aria-label="Ingestion jobs">
-      {jobs.map((job) => (
-        <DataListItem
-          className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-          key={job.id}
-        >
-          <div className="grid min-w-0 gap-1">
-            <StatusBadge className="w-fit" tone={jobTone(job.status)}>
-              {job.status}
-            </StatusBadge>
-            <small className="break-all text-xs text-muted-foreground">
-              {job.id}
-            </small>
-            <small className="text-xs text-muted-foreground">
-              {formatAttempts(job)}
-            </small>
-            <small className="break-words text-xs text-muted-foreground">
-              {formatRunAfter(job)}
-            </small>
-            <small className="break-words text-xs text-muted-foreground">
-              {formatLockState(job)}
-            </small>
-            {job.last_error ? (
-              <InlineFeedback tone="danger">{job.last_error}</InlineFeedback>
-            ) : null}
-          </div>
-          <DataListItemActions className="justify-start md:justify-end">
-            <Badge>{job.job_type}</Badge>
-            {isRetryableIngestionJob(job) ? (
-              <Button
-                aria-label={`Retry ingestion job ${job.id}`}
-                onClick={() => onRetry(job)}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                Retry
-              </Button>
-            ) : null}
-          </DataListItemActions>
-        </DataListItem>
+    <div className="grid gap-3" data-slot="ingestion-job-groups">
+      {groups.map((group) => (
+        <div className="grid gap-2" key={group.status}>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            {jobStatusLabel(group.status)}
+            <span className="ml-1 tabular-nums">({group.jobs.length})</span>
+          </p>
+          <DataList aria-label={`Ingestion jobs ${jobStatusLabel(group.status)}`}>
+            {group.jobs.map((job) => {
+              const isRunning = job.status === 'running'
+              const sourceId = ingestionJobSourceId(job)
+              const statusLabel = jobStatusLabel(job.status)
+              const runAfter = formatRelativeOperatorTimestamp(job.run_after)
+              return (
+                <DataListItem
+                  aria-label={
+                    sourceId
+                      ? `Ingestion job ${statusLabel} for source ${sourceId}`
+                      : `Ingestion job ${statusLabel}`
+                  }
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                  data-job-status={job.status}
+                  key={job.id}
+                >
+                  <div className="grid min-w-0 gap-1.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      {isRunning ? (
+                        <span
+                          aria-hidden="true"
+                          className="size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
+                          data-slot="ingestion-job-pulse"
+                        />
+                      ) : null}
+                      <StatusBadge className="w-fit" tone={jobTone(job.status)}>
+                        {statusLabel}
+                      </StatusBadge>
+                      <Badge className="w-fit">{job.job_type}</Badge>
+                    </div>
+                    {sourceId ? (
+                      <small
+                        className="break-all text-xs text-muted-foreground"
+                        title="source_id from job payload"
+                      >
+                        source {sourceId}
+                      </small>
+                    ) : null}
+                    <small
+                      className="truncate font-mono text-[11px] text-muted-foreground"
+                      title={job.id}
+                    >
+                      {truncateId(job.id)}
+                    </small>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
+                      <span>{formatAttempts(job)}</span>
+                      <span title={runAfter.absolute}>
+                        run after {runAfter.relative}
+                      </span>
+                      <span>{formatLockState(job)}</span>
+                    </div>
+                    {job.last_error ? (
+                      <InlineFeedback className="text-xs" tone="danger">
+                        {job.last_error}
+                      </InlineFeedback>
+                    ) : null}
+                  </div>
+                  <DataListItemActions className="justify-start md:justify-end">
+                    {isRetryableIngestionJob(job) ? (
+                      <Button
+                        aria-label={`Retry ingestion job ${job.id}`}
+                        disabled={isBusy}
+                        onClick={() => onRetry(job)}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        Retry
+                      </Button>
+                    ) : null}
+                  </DataListItemActions>
+                </DataListItem>
+              )
+            })}
+          </DataList>
+        </div>
       ))}
-    </DataList>
+    </div>
   )
 }
+
 
 function authoringStatusLabel(state: RequestState): string {
   if (state === 'loading') {
@@ -1288,6 +1563,9 @@ function authoringStatusLabel(state: RequestState): string {
   }
   if (state === 'succeeded') {
     return 'Saved'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }
@@ -1302,7 +1580,35 @@ function ingestionStatusLabel(state: RequestState): string {
   if (state === 'succeeded') {
     return 'Updated'
   }
+  if (state === 'canceled') {
+    return 'Canceled'
+  }
   return 'Ready'
+}
+
+function knowledgeStatusLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Working'
+  }
+  if (state === 'failed') {
+    return 'Error'
+  }
+  if (state === 'succeeded') {
+    return 'Updated'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
+  }
+  return 'Ready'
+}
+
+function proposalActionLabel(
+  action: string,
+  proposal: KnowledgeProposal,
+): string {
+  const snippet = proposal.proposed_text.trim().slice(0, 40)
+  const ellipsis = proposal.proposed_text.trim().length > 40 ? '…' : ''
+  return `${action} ${snippet}${ellipsis}`
 }
 
 function proposalDraftText(
@@ -1317,24 +1623,138 @@ function isRetryableIngestionJob(job: IngestionJob): boolean {
 }
 
 function formatAttempts(job: IngestionJob): string {
-  return `attempt ${job.attempts} of ${job.max_attempts}`
-}
-
-function formatRunAfter(job: IngestionJob): string {
-  return `run after ${job.run_after}`
+  return `attempt ${job.attempts}/${job.max_attempts}`
 }
 
 function formatLockState(job: IngestionJob): string {
   if (job.locked_by === null && job.locked_until === null) {
     return 'unlocked'
   }
+  const until = formatRelativeOperatorTimestamp(job.locked_until)
   if (job.locked_by !== null && job.locked_until !== null) {
-    return `locked by ${job.locked_by} until ${job.locked_until}`
+    return `locked by ${job.locked_by} until ${until.relative}`
   }
   if (job.locked_by !== null) {
     return `locked by ${job.locked_by}`
   }
-  return `locked until ${job.locked_until}`
+  return `locked until ${until.relative}`
+}
+
+function truncateId(value: string): string {
+  if (value.length <= 12) {
+    return value
+  }
+  return `…${value.slice(-8)}`
+}
+
+const JOB_STATUS_ORDER = [
+  'running',
+  'queued',
+  'blocked',
+  'dead_letter',
+  'failed',
+  'processed',
+  'idle',
+] as const
+
+function groupJobsByStatus(
+  jobs: IngestionJob[],
+): { jobs: IngestionJob[]; status: string }[] {
+  const buckets = new Map<string, IngestionJob[]>()
+  for (const job of jobs) {
+    const list = buckets.get(job.status) ?? []
+    list.push(job)
+    buckets.set(job.status, list)
+  }
+  const ordered: { jobs: IngestionJob[]; status: string }[] = []
+  for (const status of JOB_STATUS_ORDER) {
+    const group = buckets.get(status)
+    if (group !== undefined && group.length > 0) {
+      ordered.push({ jobs: group, status })
+      buckets.delete(status)
+    }
+  }
+  for (const [status, group] of buckets) {
+    ordered.push({ jobs: group, status })
+  }
+  return ordered
+}
+
+function formatOperatorTimestamp(value: string | null): string {
+  if (value === null || value.length === 0) {
+    return 'unknown'
+  }
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) {
+    return value
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(parsed))
+}
+
+function formatRelativeOperatorTimestamp(value: string | null): {
+  absolute: string
+  relative: string
+} {
+  const absolute = formatOperatorTimestamp(value)
+  if (value === null || value.length === 0) {
+    return { absolute, relative: absolute }
+  }
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) {
+    return { absolute, relative: absolute }
+  }
+  const deltaMs = parsed - Date.now()
+  const absMs = Math.abs(deltaMs)
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  let relative: string
+  if (absMs < minute) {
+    relative = deltaMs >= 0 ? 'now' : 'just now'
+  } else if (absMs < hour) {
+    const n = Math.round(absMs / minute)
+    relative = deltaMs >= 0 ? `in ${n}m` : `${n}m ago`
+  } else if (absMs < day) {
+    const n = Math.round(absMs / hour)
+    relative = deltaMs >= 0 ? `in ${n}h` : `${n}h ago`
+  } else {
+    const n = Math.round(absMs / day)
+    relative = deltaMs >= 0 ? `in ${n}d` : `${n}d ago`
+  }
+  return { absolute, relative }
+}
+
+function jobStatusLabel(status: string): string {
+  switch (status) {
+    case 'queued':
+      return 'queued'
+    case 'running':
+      return 'running'
+    case 'processed':
+      return 'processed'
+    case 'blocked':
+      return 'blocked'
+    case 'dead_letter':
+      return 'dead letter'
+    case 'failed':
+      return 'failed'
+    case 'idle':
+      return 'idle'
+    default:
+      return status.replace(/_/g, ' ')
+  }
+}
+
+function ingestionJobSourceId(job: IngestionJob): string | null {
+  const payload = job.payload_json
+  if (payload === null || typeof payload !== 'object') {
+    return null
+  }
+  const sourceId = payload.source_id
+  return typeof sourceId === 'string' && sourceId.length > 0 ? sourceId : null
 }
 
 function ingestionRunMessage(run: IngestionRunResponse): string {
@@ -1356,11 +1776,14 @@ function jobTone(status: string): 'danger' | 'neutral' | 'success' | 'warning' {
   if (status === 'blocked' || status === 'dead_letter' || status === 'failed') {
     return 'danger'
   }
-  if (status === 'processed' || status === 'succeeded' || status === 'queued') {
+  if (status === 'processed' || status === 'succeeded') {
     return 'success'
   }
-  if (status === 'running' || status === 'idle') {
+  if (status === 'queued' || status === 'running') {
     return 'warning'
+  }
+  if (status === 'idle') {
+    return 'neutral'
   }
   return 'neutral'
 }

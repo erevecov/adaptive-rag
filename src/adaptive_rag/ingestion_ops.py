@@ -80,7 +80,16 @@ def enqueue_source_ingestion(
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
 
-    return JobRepository(session).create(
+    job_repo = JobRepository(session)
+    existing = job_repo.find_open_ingest_source(
+        project_id=project_id,
+        source_id=source_id,
+    )
+    if existing is not None:
+        # Idempotent free enqueue: reuse open (queued/running) job for same source.
+        return existing
+
+    return job_repo.create(
         project_id=project_id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         payload_json={"source_id": str(source_id)},
@@ -182,6 +191,11 @@ def run_next_ingestion_job(
             worker_id=worker_id,
         )
 
+    # Snapshot lease-time values: after a mid-pipeline flush failure the
+    # session is poisoned and ORM attribute access can itself raise.
+    job_id = job.id
+    attempts_at_lease = job.attempts
+
     try:
         if job.job_type == INGEST_SOURCE_JOB_TYPE:
             ingest_result = IngestionPipeline(session).process_leased_job(
@@ -210,13 +224,28 @@ def run_next_ingestion_job(
                 result=index_result,
             )
     except Exception as exc:  # noqa: BLE001 — unexpected worker failures
-        backoff = _retry_backoff_seconds(job.attempts)
-        failed = job_repo.fail(
-            project_id=project_id,
-            job_id=job.id,
-            error_message=str(exc) or exc.__class__.__name__,
-            retry_after=active_now + timedelta(seconds=backoff),
-        )
+        backoff = _retry_backoff_seconds(attempts_at_lease)
+        error_message = str(exc) or exc.__class__.__name__
+        try:
+            failed = job_repo.fail(
+                project_id=project_id,
+                job_id=job_id,
+                error_message=error_message,
+                retry_after=active_now + timedelta(seconds=backoff),
+                worker_id=worker_id,
+            )
+        except Exception:  # noqa: BLE001 — session poisoned by a failed flush
+            # A mid-pipeline flush failure leaves the session unable to run
+            # more statements; roll back and record the failure so the job is
+            # requeued/dead-lettered instead of leaking past the handler.
+            session.rollback()
+            failed = job_repo.fail(
+                project_id=project_id,
+                job_id=job_id,
+                error_message=error_message,
+                retry_after=active_now + timedelta(seconds=backoff),
+                worker_id=worker_id,
+            )
         return IngestionRunReport(
             status="failed" if failed.status == "queued" else "dead_letter",
             project_id=project_id,
@@ -232,6 +261,7 @@ def run_next_ingestion_job(
         project_id=project_id,
         job_id=job.id,
         reason=f"unsupported ingestion-family job_type: {job.job_type}",
+        worker_id=worker_id,
     )
     return IngestionRunReport(
         status="blocked",

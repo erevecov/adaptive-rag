@@ -11,7 +11,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
-import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Callout, EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldError, FieldHelp, FieldLabel } from '@/components/ui/field'
 import { Panel, PanelBody, PanelDescription, PanelHeader } from '@/components/ui/panel'
 import * as Popover from '@/components/ui/popover'
@@ -25,6 +25,7 @@ import type {
   ProviderModel,
   RuntimeSlotDefault,
 } from '@/lib/apiClient'
+import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import {
   CHAT_RETRIEVAL_MAX_LIMIT,
   PROVIDER_CONNECTION_CAPABILITIES,
@@ -340,7 +341,11 @@ export function RuntimeSettingsPanel({
 
   return (
     <div className="grid gap-4">
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? (
+        <Callout className="p-3" role="alert" tone="danger">
+          {operatorSafeMessage(error)}
+        </Callout>
+      ) : null}
       {activePanel}
     </div>
   )
@@ -404,7 +409,8 @@ function runtimeStatusTone(
 ): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'failed') return 'danger'
   if (state === 'succeeded') return 'success'
-  if (state === 'loading' || state === 'canceled') return 'warning'
+  if (state === 'loading') return 'warning'
+  if (state === 'canceled') return 'neutral'
   return 'neutral'
 }
 
@@ -496,9 +502,19 @@ export function RuntimeConnectionsPanel({
       title="Connections"
     >
       <section aria-label="Provider connections" className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Connections</h3>
-        {connections.length === 0 ? (
-          <EmptyState>No runtime connections loaded.</EmptyState>
+        {state === 'loading' && connections.length === 0 ? (
+          <EmptyState
+            aria-busy="true"
+            className="p-4 text-left"
+            data-slot-state="loading"
+            role="status"
+          >
+            Loading connections…
+          </EmptyState>
+        ) : connections.length === 0 ? (
+          <EmptyState className="p-4 text-left" data-slot-state="empty">
+            No runtime connections loaded.
+          </EmptyState>
         ) : (
           <DataList>
             {connections.map((connection) => {
@@ -508,6 +524,7 @@ export function RuntimeConnectionsPanel({
                 connectionCheckResults[connection.connection_id]
               return (
                 <DataListItem
+                  aria-busy={isChecking || undefined}
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
@@ -523,6 +540,11 @@ export function RuntimeConnectionsPanel({
                         <Badge tone="neutral">
                           {connection.capabilities.join(', ')}
                         </Badge>
+                        {isChecking ? (
+                          <StatusBadge role="status" tone="warning">
+                            Checking…
+                          </StatusBadge>
+                        ) : null}
                       </div>
                       {connection.base_url ? (
                         <small className="break-all text-xs text-muted-foreground">
@@ -531,10 +553,12 @@ export function RuntimeConnectionsPanel({
                       ) : null}
                     </div>
                     <ConnectionSecretSummary connection={connection} />
-                    <ConnectionCheckSummary result={checkResult} />
+                    <ConnectionCheckSummary
+                      isChecking={isChecking}
+                      result={checkResult}
+                    />
                   </div>
                   <DataListItemActions className="justify-start md:justify-end">
-                    <Badge tone="neutral">{connection.connection_type}</Badge>
                     <Button
                       aria-label={`Check ${connection.connection_id} connection`}
                       disabled={state === 'loading' || isChecking}
@@ -704,16 +728,22 @@ export function RuntimeConnectionsPanel({
           </Field>
           <RuntimeField
             className="md:col-span-2"
+            help={
+              isEditingConnection
+                ? 'Leave blank to keep the existing key. A new value replaces it.'
+                : undefined
+            }
             id="runtime-connection-api-key"
             label="API key"
           >
             {(fieldId) => (
               <Input
-                autoComplete="off"
+                autoComplete="new-password"
                 id={fieldId}
                 onChange={(event) =>
                   onConnectionApiKeyChange(event.currentTarget.value)
                 }
+                spellCheck={false}
                 type="password"
                 value={connectionApiKey}
               />
@@ -1108,7 +1138,9 @@ export function RuntimeGlobalDefaultsPanel({
           </RuntimeField>
         </div>
         {globalSlotSyncMessage ? (
-          <InlineFeedback>{globalSlotSyncMessage}</InlineFeedback>
+          <InlineFeedback role="status" tone="warning">
+            {globalSlotSyncMessage}
+          </InlineFeedback>
         ) : null}
         <Button disabled={globalSlotSyncMessage !== null} type="submit">
           Save global slot
@@ -1118,7 +1150,9 @@ export function RuntimeGlobalDefaultsPanel({
       <section aria-label="Global chat models" className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Chat models</h3>
         {chatModels.length === 0 ? (
-          <EmptyState>No chat models loaded.</EmptyState>
+          <EmptyState className="p-4 text-left" data-slot-state="empty">
+            No chat models loaded.
+          </EmptyState>
         ) : (
           <DataList>
             {chatModels.map((model) => (
@@ -1171,7 +1205,11 @@ export function RuntimeGlobalDefaultsPanel({
             )}
           </RuntimeField>
         </div>
-        {chatSyncMessage ? <InlineFeedback>{chatSyncMessage}</InlineFeedback> : null}
+        {chatSyncMessage ? (
+          <InlineFeedback role="status" tone="warning">
+            {chatSyncMessage}
+          </InlineFeedback>
+        ) : null}
         <Button disabled={chatSyncMessage !== null} type="submit">
           Save chat default
         </Button>
@@ -1199,7 +1237,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState>No chat retrieval defaults loaded.</EmptyState>
+          <EmptyState className="p-4 text-left">No chat retrieval defaults loaded.</EmptyState>
         )}
         <form className="grid gap-4" onSubmit={onSaveGlobalChatRetrieval}>
           <div className="grid gap-4 md:grid-cols-3">
@@ -1318,9 +1356,12 @@ export function RuntimeProjectOverridesPanel({
       ariaLabel="Project runtime settings"
       id="runtime-project-overrides-title"
       status={
-        <StatusBadge className="max-w-full break-all text-left" tone="neutral">
-          {projectId.trim() || 'No project'}
-        </StatusBadge>
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2">
+          <RuntimeStatus state={state} />
+          <StatusBadge className="max-w-full break-all text-left" tone="neutral">
+            {projectId.trim() || 'No project'}
+          </StatusBadge>
+        </div>
       }
       title="Project overrides"
     >
@@ -1453,7 +1494,9 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
         </div>
         {projectSlotSyncMessage ? (
-          <InlineFeedback>{projectSlotSyncMessage}</InlineFeedback>
+          <InlineFeedback role="status" tone="warning">
+            {projectSlotSyncMessage}
+          </InlineFeedback>
         ) : null}
         <Button disabled={projectSlotSyncMessage !== null} type="submit">
           Save project override
@@ -1470,7 +1513,11 @@ export function ConnectionSecretSummary({
 }) {
   if (connection.secrets.length === 0) {
     return (
-      <small className="text-xs text-muted-foreground">No secret status</small>
+      <small className="text-xs text-muted-foreground">
+        {connection.connection_type === 'fake'
+          ? 'Secrets not required for this connection'
+          : 'No API key on file'}
+      </small>
     )
   }
   return (
@@ -1487,24 +1534,48 @@ export function ConnectionSecretSummary({
 }
 
 export function ConnectionCheckSummary({
+  isChecking = false,
   result,
 }: {
+  isChecking?: boolean
   result: ProviderConnectionCheckResponse | undefined
 }) {
+  if (isChecking) {
+    return (
+      <InlineFeedback aria-live="polite" role="status" tone="warning">
+        Checking connection…
+      </InlineFeedback>
+    )
+  }
+
   if (result === undefined) {
-    return null
+    return (
+      <small className="text-xs text-muted-foreground">Not checked</small>
+    )
+  }
+
+  if (result.ok) {
+    return (
+      <Callout
+        aria-live="polite"
+        className="p-2"
+        role="status"
+        tone="success"
+      >
+        Connection check passed: {result.model_count} provider models reachable.
+      </Callout>
+    )
   }
 
   return (
-    <InlineFeedback
-      aria-live={result.ok ? 'polite' : undefined}
-      role={result.ok ? 'status' : undefined}
-      tone={result.ok ? 'success' : 'danger'}
-    >
-      {result.ok
-        ? `Connection check passed: ${result.model_count} provider models reachable.`
-        : `Connection check failed: ${result.message}`}
-    </InlineFeedback>
+    <Callout className="p-2" role="alert" tone="danger">
+      Connection check failed. Verify base URL, capabilities, and API key.
+      {result.message.trim().length > 0 ? (
+        <span className="mt-1 block text-xs opacity-90">
+          {operatorSafeMessage(result.message, 'Provider rejected the check.')}
+        </span>
+      ) : null}
+    </Callout>
   )
 }
 
@@ -1587,7 +1658,9 @@ export function ProviderModelCatalogView({
     <section aria-label="Provider model catalog" className="grid gap-3">
       <h3 className="text-base font-semibold leading-none">Model catalog</h3>
       {providerModels.length === 0 ? (
-        <EmptyState>No provider models loaded.</EmptyState>
+        <EmptyState className="p-4 text-left" data-slot-state="empty">
+          No provider models loaded.
+        </EmptyState>
       ) : (
         <DataList>
           {providerModels.map((model) => (
@@ -1652,7 +1725,7 @@ export function ProjectRuntimeSettingsView({
   settings: ProjectRuntimeSettings | null
 }) {
   if (settings === null) {
-    return <EmptyState>No project runtime settings loaded.</EmptyState>
+    return <EmptyState className="p-4 text-left">No project runtime settings loaded.</EmptyState>
   }
   return (
     <div className="grid gap-4 xl:grid-cols-3">

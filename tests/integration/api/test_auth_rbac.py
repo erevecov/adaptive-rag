@@ -127,9 +127,7 @@ def test_bootstrap_can_create_first_superadmin() -> None:
     root = UserRepository(session).get_by_login("root@example.com")
     assert root is not None
     assert (
-        UserRepository(session).get_user_by_token_hash(
-            hash_access_token("root-token")
-        )
+        UserRepository(session).get_user_by_token_hash(hash_access_token("root-token"))
         == root
     )
 
@@ -167,10 +165,13 @@ def test_superadmin_creates_users_and_project_memberships() -> None:
     assert user_response.status_code == 200
     assert membership_response.status_code == 200
     assert membership_response.json()["role"] == "admin"
-    assert ProjectMembershipRepository(session).get_membership(
-        project_id=project.id,
-        user_id=admin_id,
-    ) is not None
+    assert (
+        ProjectMembershipRepository(session).get_membership(
+            project_id=project.id,
+            user_id=admin_id,
+        )
+        is not None
+    )
 
 
 def test_project_admin_can_manage_project_users_but_viewer_cannot() -> None:
@@ -208,7 +209,7 @@ def test_project_admin_can_manage_project_users_but_viewer_cannot() -> None:
     assert denied.json()["detail"] == "project admin role required"
 
 
-def test_project_list_shows_all_names_but_detail_requires_access() -> None:
+def test_project_list_returns_only_membership_projects_for_non_superadmin() -> None:
     session = _make_session()
     allowed_project = ProjectRepository(session).create(name="Allowed")
     denied_project = ProjectRepository(session).create(name="Denied")
@@ -229,13 +230,34 @@ def test_project_list_shows_all_names_but_detail_requires_access() -> None:
 
     assert list_response.status_code == 200
     projects = {item["name"]: item for item in list_response.json()["items"]}
-    assert set(projects) == {"Allowed", "Denied"}
+    # Membership-only listing: no existence disclosure of foreign projects.
+    assert set(projects) == {"Allowed"}
     assert projects["Allowed"]["can_access"] is True
     assert projects["Allowed"]["access_role"] == "viewer"
-    assert projects["Denied"]["can_access"] is False
-    assert projects["Denied"]["access_role"] is None
     assert denied_detail.status_code == 403
     assert denied_detail.json()["detail"] == "project access required"
+
+
+def test_superadmin_project_list_includes_all_projects() -> None:
+    session = _make_session()
+    ProjectRepository(session).create(name="Alpha")
+    ProjectRepository(session).create(name="Beta")
+    _create_user(
+        session,
+        login="root@example.com",
+        token="root-token",
+        system_role="superadmin",
+    )
+    session.commit()
+    client = _client(session=session)
+
+    list_response = client.get("/projects", headers=_bearer("root-token"))
+
+    assert list_response.status_code == 200
+    projects = {item["name"]: item for item in list_response.json()["items"]}
+    assert set(projects) == {"Alpha", "Beta"}
+    assert all(item["can_access"] is True for item in projects.values())
+    assert all(item["access_role"] == "superadmin" for item in projects.values())
 
 
 def test_user_can_store_accessible_last_project_preference() -> None:

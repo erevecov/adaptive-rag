@@ -183,13 +183,15 @@ describe('SessionNavigationPanel', () => {
 
     expect(screen.getByRole('complementary', { name: 'Sesiones' })).toBeTruthy()
     expect(container.querySelector('[data-slot="segmented-control"]')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ACTIVOS' }).getAttribute('aria-pressed')).toBe(
-      'true',
+    expect(
+      screen.getByRole('button', { name: 'Sesiones activas' }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(screen.getByRole('button', { name: 'Sesiones con entrenamiento' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sesiones archivadas' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sesiones activas' }).textContent).toMatch(
+      /Activos/i,
     )
-    expect(screen.getByRole('button', { name: 'TRAIN' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ARCHIVADOS' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'ACTIVOS' }).textContent).toMatch(/Activos/i)
-    expect(screen.getByRole('button', { name: 'nuevo chat' }).className).toMatch(
+    expect(screen.getByRole('button', { name: 'Nuevo chat' }).className).toMatch(
       /border-dashed/,
     )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
@@ -204,15 +206,20 @@ describe('SessionNavigationPanel', () => {
     ).toBeTruthy()
     const age = container.querySelector('[data-slot="session-row-age"]')
     expect(age).toBeTruthy()
+    expect(age?.className).toMatch(/tabular-nums/)
     expect((age?.textContent ?? '').length).toBeGreaterThan(0)
     // beflow title fade: mask activates on group-hover
     const titleEl = container.querySelector('[data-slot="session-row-title"]')
     expect(titleEl?.className).toMatch(/mask-image:linear-gradient/)
     expect(titleEl?.className).toMatch(/group-hover/)
 
-    await user.click(screen.getByRole('button', { name: 'TRAIN' }))
+    await user.click(screen.getByRole('button', { name: 'Sesiones con entrenamiento' }))
     expect(onStatusFilterChange).toHaveBeenCalledWith('training')
-    await user.click(screen.getByRole('button', { name: 'Abrir sesiÃ³n Architecture review' }))
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Abrir sesión Architecture review (entrenamiento aprobado)',
+      }),
+    )
     expect(onSelectSession).toHaveBeenCalledWith('session-1')
     expectNoLegacyHistoryClasses(container)
   })
@@ -259,7 +266,7 @@ describe('SessionNavigationPanel', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }),
     ).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: 'renombrar' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Renombrar' })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
 
     await user.click(screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }))
@@ -291,10 +298,10 @@ describe('SessionNavigationPanel', () => {
     await user.click(
       screen.getByRole('button', { name: /Opciones de Architecture review/ }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
 
     const input = (await screen.findByLabelText(
-      'Nuevo nombre de sesiÃ³n',
+      'Nuevo nombre de sesión',
     )) as HTMLInputElement
 
     await vi.waitFor(() => {
@@ -305,7 +312,7 @@ describe('SessionNavigationPanel', () => {
     expect(input.value).toBe('Architecture review')
 
     await user.click(document.body)
-    expect(screen.queryByLabelText('Nuevo nombre de sesiÃ³n')).toBeNull()
+    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
     expect(onRenameSession).not.toHaveBeenCalled()
   })
 
@@ -322,6 +329,83 @@ describe('SessionNavigationPanel', () => {
     expect(historySource).not.toContain('function MoreVerticalIcon')
     expect(historySource).not.toContain('function BrainIcon')
     expect(historySource).not.toContain('ui-icon')
+  })
+
+  test('renders EmptyState copy per session filter', () => {
+    const { container, unmount } = render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId={null}
+        sessions={[]}
+        state="succeeded"
+        statusFilter="training"
+      />,
+    )
+
+    const empty = container.querySelector('[data-slot="session-list-empty"]')
+    expect(empty).toBeTruthy()
+    expect(empty?.getAttribute('data-status-filter')).toBe('training')
+    expect(empty?.textContent).toContain('Aún no hay entrenamiento.')
+    expect(empty?.querySelector('[data-slot="empty-state"]')).toBeTruthy()
+    unmount()
+
+    const archived = render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId={null}
+        sessions={[]}
+        state="succeeded"
+        statusFilter="archived"
+      />,
+    )
+    const archivedEmpty = archived.container.querySelector(
+      '[data-slot="session-list-empty"]',
+    )
+    expect(archivedEmpty?.getAttribute('data-status-filter')).toBe('archived')
+    expect(archivedEmpty?.textContent).toContain(
+      'Aún no hay conversaciones archivadas.',
+    )
+    archived.unmount()
+
+    const active = render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId={null}
+        sessions={[]}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+    const activeEmpty = active.container.querySelector(
+      '[data-slot="session-list-empty"]',
+    )
+    expect(activeEmpty?.getAttribute('data-status-filter')).toBe('active')
+    expect(activeEmpty?.textContent).toContain('Aún no hay conversaciones.')
+    active.unmount()
   })
 })
 
@@ -367,6 +451,42 @@ describe('WorkspaceInspectorPanel', () => {
     expectNoLegacyHistoryClasses(container)
   })
 
+
+  test('shows a warning badge when the source is soft-deleted', () => {
+    const deletedSource: Source = {
+      ...source,
+      deleted_at: '2026-06-22T12:00:00Z',
+    }
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: deletedSource,
+          sourceId: deletedSource.id,
+          state: 'succeeded',
+        }}
+      />,
+    )
+
+    const viewer = screen.getByRole('region', { name: 'Source viewer' })
+    const badge = within(viewer).getByText('eliminada')
+    expect(badge.getAttribute('data-slot')).toBe('badge')
+    expect(badge.getAttribute('data-tone')).toBe('warning')
+    expect(within(viewer).getByText('Deleted')).toBeTruthy()
+    expect(within(viewer).getByText('2026-06-22T12:00:00Z')).toBeTruthy()
+    expectNoLegacyHistoryClasses(container)
+  })
+
   test('renders minimap tab navigation without legacy lists', async () => {
     const user = userEvent.setup()
     const onNavigateMessage = vi.fn()
@@ -395,5 +515,75 @@ describe('WorkspaceInspectorPanel', () => {
     expect(onNavigateMessage).toHaveBeenCalledWith('message-assistant')
     expect(within(screen.getByRole('navigation', { name: 'Conversation minimap' })).getByText('2 turns')).toBeTruthy()
     expectNoLegacyHistoryClasses(container)
+  })
+
+  test('overlay Escape closes inspector and focuses close control on open', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="overlay"
+        onActiveTabChange={vi.fn()}
+        onClose={onClose}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Workspace inspector' })).toBeTruthy()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Close right sidebar' }),
+    )
+
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  test('overlay Tab cycles within the inspector dialog', async () => {
+    const user = userEvent.setup()
+    render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="overlay"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const dialog = screen.getByRole('dialog', { name: 'Workspace inspector' })
+    const close = screen.getByRole('button', { name: 'Close right sidebar' })
+    expect(document.activeElement).toBe(close)
+
+    await user.tab()
+    expect(dialog.contains(document.activeElement)).toBe(true)
+
+    // Tabbing repeatedly must keep focus inside the dialog (trap / wrap).
+    for (let i = 0; i < 20; i += 1) {
+      await user.tab()
+      expect(dialog.contains(document.activeElement)).toBe(true)
+    }
   })
 })

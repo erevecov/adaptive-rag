@@ -20,6 +20,7 @@ from adaptive_rag.db.models import (
     ProviderModelCatalog,
     ProviderSecret,
     RuntimeSlotDefault,
+    User,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.provider_models import ProviderModelInfo
@@ -87,6 +88,8 @@ def _make_session() -> Session:
             ProviderModelCatalog.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
+            # User must exist: bootstrap auth fails closed when the table is missing.
+            User.__table__,
         ],
     )
     return create_session_factory(engine)()

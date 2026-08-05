@@ -17,6 +17,7 @@ describe('Badge', () => {
     const badge = screen.getByText('chat')
     expect(badge.getAttribute('data-slot')).toBe('badge')
     expect(badge.className).toContain('border-border')
+    expect(badge.className).toContain('tabular-nums')
   })
 
   test('renders destructive status badge through tokens', () => {
@@ -25,5 +26,15 @@ describe('Badge', () => {
     const badge = screen.getByText('failed')
     expect(badge.getAttribute('data-tone')).toBe('danger')
     expect(badge.className).toContain('text-destructive')
+  })
+
+  test('primary tone uses foreground on tinted fill; success uses emerald contrast', () => {
+    const { rerender } = render(<Badge tone="primary">12</Badge>)
+    expect(screen.getByText('12').className).toContain('text-foreground')
+    expect(screen.getByText('12').className).toContain('bg-primary/15')
+
+    rerender(<Badge tone="success">ok</Badge>)
+    expect(screen.getByText('ok').className).toContain('text-emerald-700')
+    expect(screen.getByText('ok').className).toContain('bg-emerald-500/15')
   })
 })

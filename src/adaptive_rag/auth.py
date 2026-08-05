@@ -61,15 +61,21 @@ def hash_access_token(raw_token: str) -> str:
 
 
 def users_exist(session: Session) -> bool:
+    """Return whether any user row exists.
+
+    Transient DB failures must not look like an empty user table: callers that
+    treat ``False`` as bootstrap superadmin would fail open. Re-raise after
+    best-effort rollback so the API layer can return 503.
+    """
     try:
         count = session.scalar(select(func.count(User.id)))
     except OperationalError:
         session.rollback()
         logger.warning(
-            "users_exist_check_failed; treating request as bootstrap",
+            "users_exist_check_failed; refusing bootstrap fail-open",
             exc_info=True,
         )
-        return False
+        raise
     return bool(count)
 
 

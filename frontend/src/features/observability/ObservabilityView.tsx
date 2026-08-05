@@ -4,7 +4,7 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
 import { DataList, DataListItem } from '@/components/ui/data-list'
-import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Callout, EmptyState } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import {
   Panel,
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
   TableScroll,
+  tableNumericClass,
 } from '@/components/ui/table'
 import {
   SegmentedControl,
@@ -98,7 +99,10 @@ export function ObservabilityPanel({
   }
 
   return (
-    <Panel aria-label={`Observability ${activeSubmodule}`} role="region">
+    <Panel
+      aria-label={`Observability ${activeSubmodule}`}
+      role="region"
+    >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row">
         <div className="grid min-w-0 gap-1">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -111,7 +115,9 @@ export function ObservabilityPanel({
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end">
           <StatusBadge
+            aria-live="polite"
             className="max-w-full break-all text-left"
+            role="status"
             tone={requestStateTone(state)}
           >
             {observabilityStatusLabel(state)}
@@ -122,12 +128,16 @@ export function ObservabilityPanel({
         <SegmentedControl
           aria-label="Observability views"
           className="max-w-full flex-wrap justify-start"
+          role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
             <SegmentedControlItem
               active={activeSubmodule === tab.value}
+              aria-controls={`observability-panel-${tab.value}`}
+              id={`observability-tab-${tab.value}`}
               key={tab.value}
               onClick={() => onSubmoduleChange(tab.value)}
+              value={tab.value}
             >
               {tab.label}
             </SegmentedControlItem>
@@ -192,9 +202,23 @@ export function ObservabilityPanel({
           </Button>
         </form>
 
-        {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+        {error ? (
+          <Callout className="p-3" role="alert" tone="danger">
+            {error}
+          </Callout>
+        ) : null}
 
-        <ObservabilityContent activeSubmodule={activeSubmodule} summary={summary} />
+        <div
+          aria-labelledby={`observability-tab-${activeSubmodule}`}
+          id={`observability-panel-${activeSubmodule}`}
+          role="tabpanel"
+        >
+          <ObservabilityContent
+            activeSubmodule={activeSubmodule}
+            state={state}
+            summary={summary}
+          />
+        </div>
       </PanelBody>
     </Panel>
   )
@@ -219,28 +243,124 @@ function ObservabilityField({
 
 function ObservabilityContent({
   activeSubmodule,
+  state,
   summary,
 }: {
   activeSubmodule: ObservabilitySubmodule
+  state: RequestState
   summary: ChatObservabilitySummary | null
 }) {
+  const isLoading = state === 'loading'
+
   if (summary === null) {
+    if (isLoading) {
+      return <ObservabilityMetricSkeleton activeSubmodule={activeSubmodule} />
+    }
+    // Keep failed load distinct from the never-loaded empty prompt.
+    if (state === 'failed') {
+      return (
+        <EmptyState
+          className="border-destructive/40 bg-destructive/5 p-4 text-left"
+          data-slot-state="failed"
+          role="alert"
+        >
+          <p className="font-semibold text-destructive">Summary unavailable.</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            The last refresh failed. Adjust filters and try again.
+          </p>
+        </EmptyState>
+      )
+    }
     return (
-      <EmptyState>{EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}</EmptyState>
+      <EmptyState data-slot-state="empty" role="status">
+        {EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}
+      </EmptyState>
     )
   }
 
-  if (activeSubmodule === 'costs') {
-    return <ObservabilityCostsContent summary={summary} />
-  }
-  if (activeSubmodule === 'errors') {
-    return <ObservabilityErrorsContent summary={summary} />
-  }
-  if (activeSubmodule === 'latency') {
-    return <ObservabilityLatencyContent summary={summary} />
+  const content =
+    activeSubmodule === 'costs' ? (
+      <ObservabilityCostsContent summary={summary} />
+    ) : activeSubmodule === 'errors' ? (
+      <ObservabilityErrorsContent summary={summary} />
+    ) : activeSubmodule === 'latency' ? (
+      <ObservabilityLatencyContent summary={summary} />
+    ) : (
+      <ObservabilitySummaryContent summary={summary} />
+    )
+
+  if (!isLoading && state !== 'failed') {
+    return content
   }
 
-  return <ObservabilitySummaryContent summary={summary} />
+  if (state === 'failed') {
+    return (
+      <div className="grid gap-3" data-slot="observability-stale-failed">
+        <Callout className="p-3" role="alert" tone="danger">
+          Showing last successful summary — refresh failed.
+        </Callout>
+        <div className="pointer-events-none" data-stale="">
+          {content}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      aria-busy="true"
+      className="relative"
+      data-slot="observability-refreshing"
+    >
+      <p className="mb-2 text-xs font-medium text-muted-foreground" role="status">
+        Refreshing…
+      </p>
+      {content}
+    </div>
+  )
+}
+
+function ObservabilityMetricSkeleton({
+  activeSubmodule,
+}: {
+  activeSubmodule: ObservabilitySubmodule
+}) {
+  const cardCount = activeSubmodule === 'summary' ? 5 : 3
+  const label =
+    activeSubmodule === 'costs'
+      ? 'Cost observability metrics loading'
+      : activeSubmodule === 'errors'
+        ? 'Error observability metrics loading'
+        : activeSubmodule === 'latency'
+          ? 'Latency observability metrics loading'
+          : 'Chat observability metrics loading'
+
+  return (
+    <div
+      aria-busy="true"
+      aria-label={label}
+      className={
+        cardCount === 5
+          ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+      }
+      data-slot="observability-metric-skeleton"
+      role="status"
+    >
+      <span className="sr-only">Loading observability metrics…</span>
+      {Array.from({ length: cardCount }, (_, index) => (
+        <article
+          aria-hidden="true"
+          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
+          key={index}
+        >
+          <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-7 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
+          <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
+        </article>
+      ))}
+    </div>
+  )
 }
 
 function ObservabilitySummaryContent({
@@ -307,7 +427,7 @@ function ObservabilityCostsContent({
 }) {
   return (
     <>
-      <MetricGrid label="Cost observability metrics">
+      <MetricGrid columns={3} label="Cost observability metrics">
         <MetricCard
           detail={`${summary.provider_usage.groups.length} provider groups`}
           label="Provider calls"
@@ -341,7 +461,7 @@ function ObservabilityErrorsContent({
 
   return (
     <>
-      <MetricGrid label="Error observability metrics">
+      <MetricGrid columns={3} label="Error observability metrics">
         <MetricCard
           detail={`${summary.errors.session_error_count} sessions / ${summary.errors.provider_error_count} providers`}
           label="Errors"
@@ -376,7 +496,7 @@ function ObservabilityLatencyContent({
 
   return (
     <>
-      <MetricGrid label="Latency observability metrics">
+      <MetricGrid columns={3} label="Latency observability metrics">
         <MetricCard
           detail={
             slowestP95 === null
@@ -423,15 +543,21 @@ function ObservabilityBreakdowns({
 
 function MetricGrid({
   children,
+  columns = 5,
   label,
 }: {
   children: ReactNode
+  columns?: 3 | 5
   label: string
 }) {
   return (
     <div
       aria-label={label}
-      className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+      className={
+        columns === 5
+          ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+      }
     >
       {children}
     </div>
@@ -448,11 +574,11 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-32 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </span>
-      <strong className="break-words text-2xl font-semibold leading-none">
+      <strong className="break-words text-2xl font-semibold leading-none tabular-nums">
         {value}
       </strong>
       <small className="text-sm leading-relaxed text-muted-foreground">
@@ -501,7 +627,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList>
           {rows.map((row) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-0 bg-transparent p-2 shadow-none"
               key={row.status}
             >
               <div className="grid min-w-0 gap-1">
@@ -569,10 +695,10 @@ function ProviderUsageTable({
                   <TableHead>Operation</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead>Calls</TableHead>
-                  <TableHead>Tokens</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>P95</TableHead>
+                  <TableHead className={tableNumericClass}>Calls</TableHead>
+                  <TableHead className={tableNumericClass}>Tokens</TableHead>
+                  <TableHead className={tableNumericClass}>Cost</TableHead>
+                  <TableHead className={tableNumericClass}>P95</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -581,10 +707,18 @@ function ProviderUsageTable({
                     <TableCell>{group.operation}</TableCell>
                     <TableCell>{group.provider}</TableCell>
                     <TableCell>{group.model}</TableCell>
-                    <TableCell>{formatNumber(group.record_count)}</TableCell>
-                    <TableCell>{formatNullableNumber(group.total_tokens)}</TableCell>
-                    <TableCell>{formatNullableUsd(group.estimated_cost_usd)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p95)}</TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNumber(group.record_count)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableNumber(group.total_tokens)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableUsd(group.estimated_cost_usd)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p95)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -617,11 +751,11 @@ function ProviderLatencyTable({
                   <TableHead>Operation</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead>Calls</TableHead>
-                  <TableHead>Avg</TableHead>
-                  <TableHead>P50</TableHead>
-                  <TableHead>P95</TableHead>
-                  <TableHead>Max</TableHead>
+                  <TableHead className={tableNumericClass}>Calls</TableHead>
+                  <TableHead className={tableNumericClass}>Avg</TableHead>
+                  <TableHead className={tableNumericClass}>P50</TableHead>
+                  <TableHead className={tableNumericClass}>P95</TableHead>
+                  <TableHead className={tableNumericClass}>Max</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -630,11 +764,21 @@ function ProviderLatencyTable({
                     <TableCell>{group.operation}</TableCell>
                     <TableCell>{group.provider}</TableCell>
                     <TableCell>{group.model}</TableCell>
-                    <TableCell>{formatNumber(group.record_count)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.avg)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p50)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.p95)}</TableCell>
-                    <TableCell>{formatNullableMs(group.latency_ms.max)}</TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNumber(group.record_count)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.avg)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p50)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.p95)}
+                    </TableCell>
+                    <TableCell className={tableNumericClass}>
+                      {formatNullableMs(group.latency_ms.max)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -678,7 +822,8 @@ function requestStateTone(
 ): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'failed') return 'danger'
   if (state === 'succeeded') return 'success'
-  if (state === 'loading' || state === 'canceled') return 'warning'
+  if (state === 'loading') return 'warning'
+  if (state === 'canceled') return 'neutral'
   return 'neutral'
 }
 
@@ -691,6 +836,9 @@ function observabilityStatusLabel(state: RequestState): string {
   }
   if (state === 'succeeded') {
     return 'Loaded'
+  }
+  if (state === 'canceled') {
+    return 'Canceled'
   }
   return 'Ready'
 }

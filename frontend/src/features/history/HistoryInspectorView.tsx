@@ -22,6 +22,7 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from '@/components/ui/tabs'
+import { useFocusTrap } from '@/lib/focusTrap'
 import type {
   ChatHistoryProviderUsage,
   ChatHistoryRetrievedChunk,
@@ -169,7 +170,7 @@ export function SessionNavigationPanel({
         variant="ghost"
       >
         <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-        nuevo chat
+        Nuevo chat
       </Button>
 
       <SegmentedControl
@@ -179,7 +180,7 @@ export function SessionNavigationPanel({
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
             active={statusFilter === filter.value}
-            aria-label={filter.name}
+            aria-label={filter.title}
             className={cn(
               'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight',
               statusFilter === filter.value
@@ -195,7 +196,7 @@ export function SessionNavigationPanel({
         ))}
       </SegmentedControl>
 
-      {error ? <InlineFeedback role="status" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
       {copyFeedback ? (
         <InlineFeedback
           data-slot="session-copy-feedback"
@@ -209,21 +210,29 @@ export function SessionNavigationPanel({
       <DataList aria-label="Project sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
-            <span
-              className="text-xs text-muted-foreground"
+            <div
+              aria-busy="true"
+              aria-label="Cargando sesiones"
+              className="grid w-full gap-2"
               data-slot="session-list-loading"
+              role="status"
             >
-              Cargando...
-            </span>
+              <span className="sr-only">Cargando...</span>
+              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/80" />
+              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/70" />
+              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/60" />
+            </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
-            <span
-              className="text-xs text-muted-foreground"
+            <div
               data-slot="session-list-empty"
+              data-status-filter={statusFilter}
             >
-              {sessionEmptyCopy(statusFilter)}
-            </span>
+              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs">
+                {sessionEmptyCopy(statusFilter)}
+              </EmptyState>
+            </div>
           </DataListItem>
         ) : (
           sessions.map((session) => {
@@ -232,10 +241,19 @@ export function SessionNavigationPanel({
             const isArchived = session.archived_at !== null
             const hasTraining = sessionHasTraining(session)
             const isRenaming = renamingSessionId === session.session_id
+            const trainingStatusLabel = hasTraining
+              ? session.has_approved_training
+                ? 'entrenamiento aprobado'
+                : 'entrenamiento pendiente'
+              : null
+            const openSessionLabel =
+              trainingStatusLabel === null
+                ? `Abrir sesión ${title}`
+                : `Abrir sesión ${title} (${trainingStatusLabel})`
             return (
               <DataListItem
                 className={cn(
-                  'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-colors',
+                  'group rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none motion-safe:transition-colors',
                   isSelected
                     ? 'bg-muted text-foreground'
                     : 'hover:bg-muted/50 hover:text-foreground',
@@ -257,8 +275,8 @@ export function SessionNavigationPanel({
                         className={cn(
                           'size-3.5 shrink-0',
                           session.has_approved_training
-                            ? 'fill-primary/20 text-muted-foreground/70'
-                            : 'text-muted-foreground/50',
+                            ? 'fill-primary/40 text-primary'
+                            : 'text-primary/80',
                         )}
                       />
                     ) : null}
@@ -278,7 +296,7 @@ export function SessionNavigationPanel({
                       }}
                     >
                       <Input
-                        aria-label="Nuevo nombre de sesiÃ³n"
+                        aria-label="Nuevo nombre de sesión"
                         className="h-7 text-xs"
                         maxLength={60}
                         onBlur={() => {
@@ -298,8 +316,9 @@ export function SessionNavigationPanel({
                     </form>
                   ) : (
                     <Button
-                      aria-label={`Abrir sesiÃ³n ${title}`}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent"
+                      aria-current={isSelected ? 'true' : undefined}
+                      aria-label={openSessionLabel}
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -307,7 +326,7 @@ export function SessionNavigationPanel({
                     >
                       <span
                         className={cn(
-                          'block w-full min-w-0 truncate text-xs transition-[mask-image,-webkit-mask-image] duration-150',
+                          'block w-full min-w-0 truncate text-xs motion-safe:transition-[mask-image,-webkit-mask-image] motion-safe:duration-150',
                           // Soft trailing fade so glyphs don't collide with age/⋮.
                           'group-hover:text-clip group-focus-within:text-clip',
                           SESSION_TITLE_GROUP_HOVER_MASK,
@@ -325,7 +344,7 @@ export function SessionNavigationPanel({
                   )}
                   <span
                     className={cn(
-                      'justify-self-end text-[10px] tabular-nums text-muted-foreground transition-opacity duration-150',
+                      'justify-self-end min-w-[3ch] text-[10px] tabular-nums text-muted-foreground motion-safe:transition-opacity motion-safe:duration-150',
                       // beflow: age yields to the ⋮ on row hover / open menu
                       'group-hover:opacity-0 group-focus-within:opacity-0',
                       'group-has-[[data-state=open]]:opacity-0',
@@ -343,7 +362,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Trigger asChild>
                         <Button
                           aria-label={`Opciones de ${title}`}
-                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-muted hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           type="button"
                           variant="ghost"
                         >
@@ -375,7 +394,7 @@ export function SessionNavigationPanel({
                               setRenameDraft(title)
                             }}
                           >
-                            renombrar
+                            Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
                             className="flex min-h-8 cursor-pointer items-center px-3 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
@@ -408,7 +427,7 @@ export function SessionNavigationPanel({
           type="button"
           variant="ghost"
         >
-          {isLoading ? 'cargando...' : 'ver mÃ¡s'}
+          {isLoading ? 'Cargando…' : 'Ver más'}
         </Button>
       ) : null}
     </Panel>
@@ -438,15 +457,52 @@ export function WorkspaceInspectorPanel({
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   sourceViewer: SourceViewerState
 }) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const isOverlay = layout === 'overlay'
+  useFocusTrap(panelRef, isOverlay)
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented) {
+        return
+      }
+      // Don't steal Escape from open menus/dialogs inside the panel.
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        target.closest(
+          '[data-state="open"][role="menu"], [data-state="open"][role="listbox"], [role="dialog"][data-state="open"]',
+        )
+      ) {
+        return
+      }
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  useEffect(() => {
+    if (!isOverlay) {
+      return
+    }
+    closeButtonRef.current?.focus()
+  }, [isOverlay])
+
   return (
     <Panel
       aria-label="Workspace inspector"
+      aria-modal={isOverlay ? true : undefined}
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
           : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:inset-3 max-[680px]:w-auto'
       }
-      role="complementary"
+      ref={panelRef}
+      role={isOverlay ? 'dialog' : 'complementary'}
+      tabIndex={isOverlay ? -1 : undefined}
     >
       <div className="flex items-center justify-between gap-2">
         <SegmentedControl
@@ -475,7 +531,12 @@ export function WorkspaceInspectorPanel({
             Minimap
           </SegmentedControlItem>
         </SegmentedControl>
-        <IconButton label="Close right sidebar" onClick={onClose} variant="ghost">
+        <IconButton
+          label="Close right sidebar"
+          onClick={onClose}
+          ref={closeButtonRef}
+          variant="ghost"
+        >
           <X aria-hidden="true" className="size-4" />
         </IconButton>
       </div>
@@ -529,7 +590,33 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
       </PanelHeader>
       <PanelBody className="grid gap-3 p-4 pt-0">
         {viewer.state === 'loading' ? (
-          <EmptyState>Loading source {viewer.sourceId}...</EmptyState>
+          <div
+            aria-busy="true"
+            aria-label={`Loading source ${viewer.sourceId ?? ''}`}
+            className="grid w-full gap-2"
+            data-slot="source-viewer-loading"
+            role="status"
+          >
+            <span className="sr-only">
+              Loading source {viewer.sourceId}...
+            </span>
+            <div
+              aria-hidden="true"
+              className="h-3 w-1/3 animate-pulse rounded bg-muted/80"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-full animate-pulse rounded bg-muted/70"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-11/12 animate-pulse rounded bg-muted/60"
+            />
+            <div
+              aria-hidden="true"
+              className="h-3 w-4/5 animate-pulse rounded bg-muted/50"
+            />
+          </div>
         ) : null}
 
         {viewer.error ? (
@@ -551,14 +638,27 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.source ? (
           <div className="grid gap-3">
-            <p className="break-all text-xs text-muted-foreground">
-              {viewer.source.external_id}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <p className="min-w-0 break-all text-xs text-muted-foreground">
+                {viewer.source.external_id}
+              </p>
+              {viewer.source.deleted_at ? (
+                <StatusBadge className="w-fit shrink-0" tone="warning">
+                  eliminada
+                </StatusBadge>
+              ) : null}
+            </div>
             <dl className="grid gap-2">
               <MetadataItem label="ID" value={viewer.source.id} />
               <MetadataItem label="Type" value={viewer.source.source_type} />
               <MetadataItem label="Created" value={viewer.source.created_at} />
               <MetadataItem label="Updated" value={viewer.source.updated_at} />
+              {viewer.source.deleted_at ? (
+                <MetadataItem
+                  label="Deleted"
+                  value={viewer.source.deleted_at}
+                />
+              ) : null}
             </dl>
 
             <section className="grid gap-2">
@@ -652,7 +752,9 @@ function SessionContextPanel({
     <Panel aria-label="Session context" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Session context</PanelTitle>
-        <StatusBadge>{detail?.session.status ?? 'empty'}</StatusBadge>
+        <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
+          {detail?.session.status ?? 'empty'}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null ? (
@@ -815,7 +917,26 @@ function SessionDetailPanel({
           <PanelTitle>Session detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <EmptyState>Loading session detail...</EmptyState>
+          <div
+            aria-busy="true"
+            aria-label="Loading session detail"
+            className="grid w-full gap-3"
+            data-slot="session-detail-loading"
+            role="status"
+          >
+            <span className="sr-only">Loading session detail...</span>
+            <div aria-hidden="true" className="grid gap-2">
+              <div className="h-3 w-1/4 animate-pulse rounded bg-muted/80" />
+              <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
+              <div className="h-3 w-11/12 animate-pulse rounded bg-muted/60" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-muted/50" />
+            </div>
+            <div aria-hidden="true" className="grid gap-2 pt-1">
+              <div className="h-3 w-1/5 animate-pulse rounded bg-muted/80" />
+              <div className="h-16 w-full animate-pulse rounded-md bg-muted/50" />
+              <div className="h-16 w-full animate-pulse rounded-md bg-muted/40" />
+            </div>
+          </div>
         </PanelBody>
       </Panel>
     )
@@ -828,7 +949,7 @@ function SessionDetailPanel({
           <PanelTitle>Session detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0">
-          <InlineFeedback role="status" tone="danger">
+          <InlineFeedback role="alert" tone="danger">
             {error}
           </InlineFeedback>
         </PanelBody>
@@ -858,7 +979,9 @@ function SessionDetailPanel({
             {detail.session.session_id}
           </p>
         </div>
-        <StatusBadge>{detail.session.status}</StatusBadge>
+        <StatusBadge tone={sessionStatusTone(detail.session.status)}>
+          {detail.session.status}
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0">
         <section className="grid gap-2" aria-labelledby="messages-title">
@@ -1014,12 +1137,25 @@ function RetrievedChunkDetail({
   const citationSnippet = getJsonString(chunk.citation, 'snippet')
   const sourceLabel =
     getJsonString(chunk.citation, 'source_external_id') ?? sourceId
+  const isCascadeDeleted = chunk.chunk_id === null
 
   return (
     <DataListItem className="grid gap-2">
-      <Badge>rank {chunk.rank}</Badge>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge>rank {chunk.rank}</Badge>
+        {isCascadeDeleted ? (
+          <StatusBadge className="w-fit" tone="warning">
+            fuente eliminada
+          </StatusBadge>
+        ) : null}
+      </div>
       <div className="grid gap-2">
-        <p className="text-sm text-muted-foreground">
+        <p
+          className={cn(
+            'text-sm text-muted-foreground',
+            isCascadeDeleted && 'italic',
+          )}
+        >
           {getCitationText(chunk.citation, 'snippet')}
         </p>
         {scores.length > 0 ? (
@@ -1037,7 +1173,11 @@ function RetrievedChunkDetail({
           >
             View source
           </Button>
-        ) : null}
+        ) : (
+          <span className="text-xs text-muted-foreground" role="status">
+            No openable source (deleted or uncited)
+          </span>
+        )}
       </div>
     </DataListItem>
   )
@@ -1186,6 +1326,21 @@ function countInternalSteps(detail: ChatSessionDetailResponse | null): number {
 
 function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
+}
+
+function sessionStatusTone(
+  status: string | null | undefined,
+): 'danger' | 'neutral' | 'success' | 'warning' {
+  if (status === 'failed') {
+    return 'danger'
+  }
+  if (status === 'succeeded') {
+    return 'success'
+  }
+  if (status === 'running' || status === 'loading') {
+    return 'warning'
+  }
+  return 'neutral'
 }
 
 function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {

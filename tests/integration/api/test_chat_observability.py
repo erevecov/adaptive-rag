@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ChatSession, Job, Project, ProviderUsage
+from adaptive_rag.db.models import ChatSession, Job, Project, ProviderUsage, User
 from adaptive_rag.db.repositories import ProjectRepository
 from adaptive_rag.db.session import create_session_factory
 
@@ -33,6 +33,8 @@ def _make_session() -> Session:
             Job.__table__,
             ChatSession.__table__,
             ProviderUsage.__table__,
+            # User must exist: bootstrap auth fails closed when the table is missing.
+            User.__table__,
         ],
     )
     return create_session_factory(engine)()

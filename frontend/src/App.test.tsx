@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @vitest-environment jsdom
  */
 import {
@@ -1137,7 +1137,8 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(window.location.pathname).toBe('/settings/authoring')
-    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+    // Default authoring submodule is Projects (panel title), not a bare "Authoring" h2.
+    expect(screen.getByRole('heading', { name: 'Projects' })).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Observability' }))
     expect(window.location.pathname).toBe('/settings/observability')
@@ -1172,7 +1173,7 @@ describe('App chat workspace', () => {
     await waitFor(() =>
       expect(window.location.pathname).toBe('/settings/authoring'),
     )
-    expect(screen.getByRole('heading', { name: 'Authoring' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Projects' })).toBeTruthy()
 
     window.history.forward()
 
@@ -1197,11 +1198,78 @@ describe('App chat workspace', () => {
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    // Desktop viewport: no mobile scrim.
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
 
     await user.click(toggle)
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.getAttribute('aria-label')).toBe('Open left sidebar')
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+    const closedContent = sidebar.querySelector(
+      '[data-slot="app-sidebar-content"]',
+    )
+    expect(closedContent?.hasAttribute('inert')).toBe(true)
+  })
+
+  test('closes the left sidebar with the mobile scrim and Escape', async () => {
+    const user = userEvent.setup()
+
+    setViewportWidth(500)
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+
+    if (sidebar.getAttribute('data-state') !== 'open') {
+      await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+    }
+
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+
+    const backdrop = screen.getByTestId('sidebar-backdrop')
+    expect(backdrop.getAttribute('data-slot')).toBe('sidebar-backdrop')
+    expect(backdrop.className).toContain('bg-[var(--overlay-backdrop)]')
+    expect(backdrop.className).toContain('z-30')
+    expect(backdrop.className).toContain('fixed')
+    expect(backdrop.className).toContain('inset-0')
+
+    await user.click(backdrop)
+
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+    expect(screen.getByTestId('sidebar-backdrop')).toBeTruthy()
+    expect(
+      document.getElementById('main-content')?.hasAttribute('inert'),
+    ).toBe(true)
+
+    await user.keyboard('{Escape}')
+
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+    expect(
+      document.getElementById('main-content')?.hasAttribute('inert'),
+    ).toBe(false)
+  })
+
+  test('closes the left sidebar with Escape on desktop without a scrim', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+
+    await user.keyboard('{Escape}')
+
     expect(sidebar.getAttribute('data-state')).toBe('closed')
   })
 
@@ -1856,7 +1924,7 @@ describe('App chat workspace', () => {
     ).toBeTruthy()
 
     await user.type(screen.getByLabelText('Refined text'), 'Refined escalation runbook.')
-    await user.click(screen.getByRole('button', { name: 'Refine proposal' }))
+    await user.click(screen.getByRole('button', { name: /^Refine / }))
 
     await waitFor(() =>
       expect(refineKnowledgeProposal).toHaveBeenCalledWith(
@@ -1866,7 +1934,7 @@ describe('App chat workspace', () => {
       ),
     )
 
-    await user.click(screen.getByRole('button', { name: 'Approve proposal' }))
+    await user.click(screen.getByRole('button', { name: /^Approve / }))
 
     await waitFor(() =>
       expect(approveKnowledgeProposal).toHaveBeenCalledWith(
@@ -1880,7 +1948,7 @@ describe('App chat workspace', () => {
     )
 
     await user.type(screen.getByLabelText('Reject reason'), 'Needs source owner.')
-    await user.click(screen.getByRole('button', { name: 'Reject proposal' }))
+    await user.click(screen.getByRole('button', { name: /^Reject / }))
 
     await waitFor(() =>
       expect(rejectKnowledgeProposal).toHaveBeenCalledWith(
@@ -1896,15 +1964,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(
-      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen.getByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeTruthy()
+    expect(screen.getByLabelText('Workspace inspector')).toBeTruthy()
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
@@ -1922,9 +1986,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
 
-    expect(
-      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
   })
 
   test('renders the right dock inline on xl viewports and as an overlay below xl', async () => {
@@ -1937,11 +1999,10 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen
-        .getByRole('complementary', { name: 'Workspace inspector' })
-        .className,
-    ).toContain('workspace-inspector-inline')
+    const inlineInspector = screen.getByRole('complementary', {
+      name: 'Workspace inspector',
+    })
+    expect(inlineInspector.className).toContain('workspace-inspector-inline')
     expect(screen.queryByTestId('inspector-backdrop')).toBeNull()
     expect(document.querySelector('.chat-workspace-grid')?.className).toContain(
       'chat-workspace-grid-docked',
@@ -1953,12 +2014,18 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen
-        .getByRole('complementary', { name: 'Workspace inspector' })
-        .className,
-    ).toContain('workspace-inspector-overlay')
+    // Overlay uses dialog role for modal keyboard semantics.
+    const overlayInspector = screen.getByRole('dialog', {
+      name: 'Workspace inspector',
+    })
+    expect(overlayInspector.className).toContain('workspace-inspector-overlay')
+    expect(overlayInspector.getAttribute('aria-modal')).toBe('true')
     expect(screen.getByTestId('inspector-backdrop')).toBeTruthy()
+    expect(
+      document
+        .querySelector('[data-slot="chat-workspace-inert-host"]')
+        ?.hasAttribute('inert'),
+    ).toBe(true)
     expect(document.querySelector('.chat-workspace-grid')?.className).not.toContain(
       'chat-workspace-grid-docked',
     )
@@ -2151,6 +2218,16 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('data-slot="workspace-project-chip"')
   })
 
+  test('renders a keyboard skip link targeting the chat composer', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
+    expect(skip.getAttribute('href')).toBe('#chat-composer')
+    expect(skip.getAttribute('data-slot')).toBe('skip-link')
+    expect(document.getElementById('chat-composer')).toBeTruthy()
+    expect(document.getElementById('main-content')).toBeTruthy()
+  })
+
   test('does not keep legacy inspector backdrop class markers in App.tsx', () => {
     expect(appSource).not.toContain('workspace-inspector-backdrop')
   })
@@ -2220,6 +2297,35 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('button', { name: /Project selector: Demo/ })).toBeTruthy()
   })
 
+  test('rejects binary source files over the 5 MiB limit before upload', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      createSource: vi.fn(async () => sourceSummary),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await openSettingsSubmodule(user, 'Authoring', 'Sources')
+    await chooseRadixSelectOption(
+      user,
+      screen.getByLabelText('Source type'),
+      'pdf',
+    )
+
+    const oversize = new File([new Uint8Array(1)], 'huge.pdf', {
+      type: 'application/pdf',
+    })
+    Object.defineProperty(oversize, 'size', { value: 6 * 1024 * 1024 })
+    await user.upload(screen.getByLabelText('File'), oversize)
+
+    expect(
+      await screen.findByText('pdf source file exceeds the 5 MiB limit.'),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Create source' }))
+    expect(client.createSource).not.toHaveBeenCalled()
+  })
+
   test('runs ingestion operations from the authoring workspace', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -2252,20 +2358,20 @@ describe('App chat workspace', () => {
       projectId,
       sourceSummary.id,
     )
-    expect(await screen.findByText('queued')).toBeTruthy()
+    expect((await screen.findAllByText('queued')).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
     expect(client.listIngestionJobs).toHaveBeenCalledWith(projectId, {
       job_type: 'ingest_source',
     })
-    expect(await screen.findByText('blocked')).toBeTruthy()
+    expect((await screen.findAllByText('blocked')).length).toBeGreaterThan(0)
     expect(screen.getByText('missing content')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
     expect(client.runNextIngestionJob).toHaveBeenCalledWith(projectId)
-    expect(await screen.findByText('processed')).toBeTruthy()
+    expect((await screen.findAllByText('processed')).length).toBeGreaterThan(0)
 
     await user.click(
       screen.getByRole('button', {
@@ -2341,18 +2447,22 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
 
-    expect(await screen.findByText('Ready to queue ingestion')).toBeTruthy()
-    expect(screen.getByText('Queue ingestion when this source should be indexed.')).toBeTruthy()
+    expect(await screen.findByText('markdown · docs, local')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
-    expect(await screen.findByText('attempt 1 of 3')).toBeTruthy()
-    expect(screen.getByText('run after 2026-06-22T00:00:02Z')).toBeTruthy()
+    expect(await screen.findByText('attempt 1/3')).toBeTruthy()
     expect(screen.getByText('unlocked')).toBeTruthy()
+    expect(
+      screen.getByText(`source ${sourceSummary.id}`, { exact: false }),
+    ).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
-    expect(await screen.findByText('Last run idle')).toBeTruthy()
+    const lastRun = await screen.findByText('Last run')
+    expect(lastRun).toBeTruthy()
+    const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
+    expect(lastRunCard?.textContent).toMatch(/idle/)
     expect(screen.getByText('No ingestion job was processed.')).toBeTruthy()
   })
 
@@ -2401,7 +2511,7 @@ describe('App chat workspace', () => {
     ).toBeTruthy()
     expect(
       screen
-        .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
+        .getByRole('button', { name: /Abrir sesión Deployment question/ })
         .closest('[data-slot="data-list-item"]')
         ?.getAttribute('data-selected'),
     ).toBe('')
@@ -2451,7 +2561,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     const sessionButton = await screen.findByRole('button', {
-      name: 'Abrir sesiÃ³n Start a fresh session',
+      name: 'Abrir sesión Start a fresh session',
     })
     expect(
       sessionButton
@@ -2487,10 +2597,11 @@ describe('App chat workspace', () => {
       screen.getByRole('button', { name: 'Expand response details' }),
     )
 
+    // Citation chips + details panel share the same accessible name.
     await user.click(
-      screen.getByRole('button', {
+      screen.getAllByRole('button', {
         name: 'View source https://docs.local/runbook',
-      }),
+      })[0],
     )
 
     expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
@@ -2575,15 +2686,18 @@ describe('App chat workspace', () => {
     expect(within(transcript).getAllByText('$0.0042').length).toBeGreaterThan(0)
     expect(within(transcript).getByText('rag_search')).toBeTruthy()
     expect(within(transcript).getByText('deployment retry runbook')).toBeTruthy()
-    expect(within(transcript).getByText('https://docs.local/runbook')).toBeTruthy()
+    // Source id may appear on answer citation chips and in expanded details.
+    expect(
+      within(transcript).getAllByText('https://docs.local/runbook').length,
+    ).toBeGreaterThan(0)
     expect(
       within(transcript).getByText('Restart the worker before retrying the import.'),
     ).toBeTruthy()
 
     await user.click(
-      within(transcript).getByRole('button', {
+      within(transcript).getAllByRole('button', {
         name: 'View source https://docs.local/runbook',
-      }),
+      })[0],
     )
     expect(client.getSource).toHaveBeenCalledWith(projectId, 'source-1')
   })
@@ -2612,9 +2726,9 @@ describe('App chat workspace', () => {
       screen.getByRole('button', { name: 'Expand response details' }),
     )
     await user.click(
-      screen.getByRole('button', {
+      screen.getAllByRole('button', {
         name: 'View source https://docs.local/runbook',
-      }),
+      })[0],
     )
 
     const viewer = await screen.findByRole('region', { name: 'Source viewer' })
@@ -2716,7 +2830,7 @@ describe('App chat workspace', () => {
     })
     expect(within(stepper).getAllByText('retrieval').length).toBeGreaterThan(0)
     expect(
-      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
     ).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Citations' })).toBeNull()
     expect(screen.queryByText('No citations returned.')).toBeNull()
@@ -2724,7 +2838,7 @@ describe('App chat workspace', () => {
       screen.queryByText('Citations appear after the final response.'),
     ).toBeNull()
     await user.click(
-      within(stepper).getByRole('button', { name: 'Expand chat steps' }),
+      within(stepper).getByRole('button', { name: /Expand chat steps/ }),
     )
     expect(screen.getAllByText('streaming evidence').length).toBeGreaterThan(0)
 
@@ -2804,8 +2918,14 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Question'), 'Why did it fail?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
-    const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('backend unavailable')
+    // Failed transcript surface + composer InlineFeedback both expose role=alert.
+    const alerts = await screen.findAllByRole('alert')
+    expect(
+      alerts.some((node) => node.textContent?.includes('backend unavailable')),
+    ).toBe(true)
+    expect(
+      alerts.some((node) => node.textContent?.includes('Request failed.')),
+    ).toBe(true)
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
     )
@@ -2842,7 +2962,7 @@ describe('App chat workspace', () => {
     })
     expect(
       await within(navigation).findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     ).toBeTruthy()
     expect(within(navigation).getByTitle('Training')).toBeTruthy()
@@ -2851,14 +2971,18 @@ describe('App chat workspace', () => {
       limit: 15,
     })
 
-    await user.click(within(navigation).getByRole('button', { name: 'TRAIN' }))
+    await user.click(
+      within(navigation).getByRole('button', { name: 'Sesiones con entrenamiento' }),
+    )
     expect(
       await within(navigation).findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     ).toBeTruthy()
 
-    await user.click(within(navigation).getByRole('button', { name: 'ARCHIVADOS' }))
+    await user.click(
+      within(navigation).getByRole('button', { name: 'Sesiones archivadas' }),
+    )
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
         archived: true,
@@ -2867,12 +2991,12 @@ describe('App chat workspace', () => {
     )
     expect(
       await within(navigation).findByRole('button', {
-        name: 'Abrir sesiÃ³n Archived question',
+        name: 'Abrir sesión Archived question',
       }),
     ).toBeTruthy()
     expect(
       within(navigation).queryByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     ).toBeNull()
   })
@@ -2889,9 +3013,9 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await screen.findByRole('button', {
-      name: 'Abrir sesiÃ³n Deployment question',
+      name: /Abrir sesión Deployment question/,
     })
-    await user.click(screen.getByRole('button', { name: 'ver mÃ¡s' }))
+    await user.click(screen.getByRole('button', { name: 'Ver más' }))
 
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(projectId, {
@@ -2918,13 +3042,13 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialProjectId={projectId} />)
 
     await screen.findByRole('button', {
-      name: 'Abrir sesiÃ³n Deployment question',
+      name: /Abrir sesión Deployment question/,
     })
     await user.click(
       screen.getByRole('button', { name: 'Opciones de Deployment question' }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'renombrar' }))
-    const input = await screen.findByLabelText('Nuevo nombre de sesiÃ³n')
+    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
+    const input = await screen.findByLabelText('Nuevo nombre de sesión')
     await user.clear(input)
     await user.type(input, 'Renamed session{Enter}')
 
@@ -2953,7 +3077,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
 
@@ -2991,16 +3115,16 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await screen.findByText('The import failed because the worker was not running.')
 
-    await user.click(screen.getByRole('button', { name: 'nuevo chat' }))
+    await user.click(screen.getByRole('button', { name: 'Nuevo chat' }))
 
     expect(
       screen
-        .getByRole('button', { name: 'Abrir sesiÃ³n Deployment question' })
+        .getByRole('button', { name: /Abrir sesión Deployment question/ })
         .closest('[data-slot="data-list-item"]')
         ?.hasAttribute('data-selected'),
     ).toBe(false)
@@ -3021,7 +3145,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3065,7 +3189,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3102,7 +3226,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3128,7 +3252,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
 
@@ -3160,7 +3284,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3184,7 +3308,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open minimap sidebar' }))
@@ -3225,7 +3349,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3261,7 +3385,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
@@ -3269,7 +3393,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('chat session not found')).toBeTruthy()
     expect(
       screen.getByRole('button', {
-        name: 'Abrir sesiÃ³n Deployment question',
+        name: /Abrir sesión Deployment question/,
       }),
     ).toBeTruthy()
   })
@@ -3477,9 +3601,12 @@ describe('App chat workspace', () => {
     await chooseRadixSelectOption(user, screen.getByLabelText('Status'), 'failed')
     await user.click(screen.getByRole('button', { name: 'Refresh summary' }))
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'observability unavailable',
-    )
+    const alerts = await screen.findAllByRole('alert')
+    expect(
+      alerts.some((node) =>
+        node.textContent?.includes('observability unavailable'),
+      ),
+    ).toBe(true)
     expect(
       (screen.getByLabelText('Created from') as HTMLInputElement).value,
     ).toBe('2026-06-21T00:00:00Z')

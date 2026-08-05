@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from time import monotonic
 from typing import Any, Protocol
 from uuid import UUID
@@ -44,6 +44,10 @@ from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 logger = logging.getLogger(__name__)
+
+# Bound single-turn user messages to limit request size and prompt cost.
+# 32k chars is well below typical context windows yet blocks accidental/abusive dumps.
+MAX_CHAT_MESSAGE_CHARS = 32_000
 
 
 class ChatRunner(Protocol):
@@ -132,6 +136,7 @@ class ChatService:
             metadata_filter=request.metadata_filter,
             history=history,
             retrieval_query=retrieval_query,
+            user_memory=request.user_memory,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
@@ -167,7 +172,14 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_redact_chat_answer(output.answer),
+                answer=_sanitize_chat_answer(
+                    output.answer,
+                    max_doc=len(citations),
+                    source_texts=_source_texts_for_filter(
+                        citations,
+                        retrieval_tool.retrieved_results,
+                    ),
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -224,6 +236,7 @@ class ChatService:
             metadata_filter=request.metadata_filter,
             history=history,
             retrieval_query=retrieval_query,
+            user_memory=request.user_memory,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
@@ -282,7 +295,14 @@ class ChatService:
                 retrieved_results=retrieval_tool.retrieved_results,
             )
             response = ChatResponse(
-                answer=_redact_chat_answer(output.answer),
+                answer=_sanitize_chat_answer(
+                    output.answer,
+                    max_doc=len(citations),
+                    source_texts=_source_texts_for_filter(
+                        citations,
+                        retrieval_tool.retrieved_results,
+                    ),
+                ),
                 citations=citations,
                 tool_calls=_collect_tool_calls(retrieval_tool, knowledge_tool),
                 session_id=session_id,
@@ -337,9 +357,7 @@ class ChatService:
                     id="answer",
                     status="error",
                     elapsed_ms=(
-                        elapsed_ms(answer_start)
-                        if answer_start is not None
-                        else None
+                        elapsed_ms(answer_start) if answer_start is not None else None
                     ),
                     detail={"error": str(exc)},
                 )
@@ -364,17 +382,13 @@ class ChatService:
     ) -> tuple[ChatHistoryTurn, ...]:
         if session_id is None:
             return ()
-        list_history = getattr(self._audit_writer, "list_history_turns", None)
-        if list_history is None:
-            return ()
-        raw_turns = list_history(
+        raw_turns = self._audit_writer.list_history_turns(
             project_id=project_id,
             session_id=session_id,
             limit=self._history_message_limit,
         )
         return tuple(
-            ChatHistoryTurn(role=role, content=content)
-            for role, content in raw_turns
+            ChatHistoryTurn(role=role, content=content) for role, content in raw_turns
         )
 
     def _build_knowledge_tool(
@@ -528,6 +542,10 @@ def _validate_request(request: ChatRequest) -> str:
 
 
 def _validate_message(message: str) -> str:
+    if len(message) > MAX_CHAT_MESSAGE_CHARS:
+        raise ChatServiceError(
+            f"message must be at most {MAX_CHAT_MESSAGE_CHARS} characters"
+        )
     value = message.strip()
     if not value:
         raise ChatServiceError("message must not be empty")
@@ -555,3 +573,38 @@ def _redact_chat_answer(answer: str) -> str:
 
     redacted, _count = redact_secrets(answer)
     return redacted
+
+
+def _source_texts_for_filter(
+    citations: tuple[RetrievalResultPayload, ...],
+    retrieved_results: dict[UUID, RetrievalResultPayload],
+) -> list[str]:
+    """Collect unique retrieved/cited snippets for regurgitation filtering."""
+
+    texts: list[str] = []
+    seen: set[str] = set()
+    for payload in (*citations, *retrieved_results.values()):
+        snippet = payload["citation"]["snippet"]
+        if not snippet or snippet in seen:
+            continue
+        seen.add(snippet)
+        texts.append(snippet)
+    return texts
+
+
+def _sanitize_chat_answer(
+    answer: str,
+    *,
+    max_doc: int,
+    source_texts: Sequence[str] = (),
+) -> str:
+    """Secret redaction + citation markers + source regurgitation scrub."""
+
+    from adaptive_rag.security.citation_markers import filter_citation_markers
+    from adaptive_rag.security.secrets import redact_secrets
+    from adaptive_rag.security.source_regurgitation import filter_source_regurgitation
+
+    redacted, _count = redact_secrets(answer)
+    filtered, _fabricated = filter_citation_markers(redacted, max_doc=max_doc)
+    cleaned, _regurg = filter_source_regurgitation(filtered, source_texts)
+    return cleaned

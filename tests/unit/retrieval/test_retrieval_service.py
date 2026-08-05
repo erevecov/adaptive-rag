@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
+    CHAT_RETRIEVAL_MAX_LIMIT,
     EMBEDDING_DIMENSIONS,
     Chunk,
     ChunkSparseEmbedding,
@@ -399,16 +400,14 @@ def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
 def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
     session = _make_session()
     project = _create_project(session, "demo")
-    _dense_source, _dense_document, _dense_version, dense_only = (
-        _create_embedded_chunk(
-            session,
-            project=project,
-            external_id="dense.md",
-            stable_id="dense",
-            text="Alpha semantic evidence",
-            snippet="Alpha semantic evidence",
-            embedding=_vector(0.1),
-        )
+    _dense_source, _dense_document, _dense_version, dense_only = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="dense.md",
+        stable_id="dense",
+        text="Alpha semantic evidence",
+        snippet="Alpha semantic evidence",
+        embedding=_vector(0.1),
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
@@ -458,16 +457,14 @@ def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
 def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
     session = _make_session()
     project = _create_project(session, "demo")
-    _dense_source, _dense_document, _dense_version, dense_only = (
-        _create_embedded_chunk(
-            session,
-            project=project,
-            external_id="dense.md",
-            stable_id="dense",
-            text="Alpha semantic evidence",
-            snippet="Alpha semantic evidence",
-            embedding=_vector(0.1),
-        )
+    _dense_source, _dense_document, _dense_version, dense_only = _create_embedded_chunk(
+        session,
+        project=project,
+        external_id="dense.md",
+        stable_id="dense",
+        text="Alpha semantic evidence",
+        snippet="Alpha semantic evidence",
+        embedding=_vector(0.1),
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
@@ -840,10 +837,32 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
             RetrievalSearchRequest(
                 project_id=PROJECT_ID,
                 query="x",
+                limit=CHAT_RETRIEVAL_MAX_LIMIT + 1,
+            ),
+            f"limit must be between 1 and {CHAT_RETRIEVAL_MAX_LIMIT}",
+        ),
+        (
+            RetrievalSearchRequest(
+                project_id=PROJECT_ID,
+                query="x",
                 limit=2,
                 rerank=RetrievalRerankOptions(candidate_limit=1),
             ),
             "rerank candidate_limit must be greater than or equal to limit",
+        ),
+        (
+            RetrievalSearchRequest(
+                project_id=PROJECT_ID,
+                query="x",
+                limit=1,
+                rerank=RetrievalRerankOptions(
+                    candidate_limit=CHAT_RETRIEVAL_MAX_LIMIT + 1
+                ),
+            ),
+            (
+                "rerank candidate_limit must be between 1 and "
+                f"{CHAT_RETRIEVAL_MAX_LIMIT}"
+            ),
         ),
         (
             RetrievalSearchRequest(
@@ -995,13 +1014,13 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
         provider=provider,
         reranker=reranker,
     ).search(
-            RetrievalSearchRequest(
-                project_id=project.id,
-                query="beta question",
-                limit=1,
-                strategy="dense",
-                rerank=RetrievalRerankOptions(candidate_limit=2),
-            )
+        RetrievalSearchRequest(
+            project_id=project.id,
+            query="beta question",
+            limit=1,
+            strategy="dense",
+            rerank=RetrievalRerankOptions(candidate_limit=2),
+        )
     )
 
     assert provider.inputs == ["beta question"]

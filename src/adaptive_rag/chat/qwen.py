@@ -214,27 +214,30 @@ class QwenHTTPChatClient:
 
 
 def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
+    system_content = (
+        "You are Adaptive RAG's retrieval-grounded chat runner. "
+        "Use the retrieval_search tool before answering when evidence "
+        "is needed. Prefer the retrieval query when provided in the "
+        "latest user turn metadata. When the user explicitly asks to "
+        "save, learn, remember, or capture project knowledge, call "
+        "commit_knowledge. "
+        "Choose scope=message when the knowledge is only in the latest "
+        "user message, or scope=session when it summarizes this chat "
+        "session. If the user asks to change an existing knowledge "
+        "draft card, call refine_knowledge with its draft_id and the "
+        "revised knowledge_text. If the user explicitly confirms saving "
+        "a draft card, call approve_knowledge with its draft_id. If the "
+        "user asks to discard a draft card, call cancel_knowledge. "
+        "Return only a JSON object with keys answer and cited_chunk_ids. "
+        "cited_chunk_ids must contain only chunk_id values returned by "
+        "retrieval_search."
+    )
+    if request.user_memory and request.user_memory.strip():
+        system_content = f"{system_content}\n\n{request.user_memory.strip()}"
     messages: list[ChatMessage] = [
         {
             "role": "system",
-            "content": (
-                "You are Adaptive RAG's retrieval-grounded chat runner. "
-                "Use the retrieval_search tool before answering when evidence "
-                "is needed. Prefer the retrieval query when provided in the "
-                "latest user turn metadata. When the user explicitly asks to "
-                "save, learn, remember, or capture project knowledge, call "
-                "commit_knowledge. "
-                "Choose scope=message when the knowledge is only in the latest "
-                "user message, or scope=session when it summarizes this chat "
-                "session. If the user asks to change an existing knowledge "
-                "draft card, call refine_knowledge with its draft_id and the "
-                "revised knowledge_text. If the user explicitly confirms saving "
-                "a draft card, call approve_knowledge with its draft_id. If the "
-                "user asks to discard a draft card, call cancel_knowledge. "
-                "Return only a JSON object with keys answer and cited_chunk_ids. "
-                "cited_chunk_ids must contain only chunk_id values returned by "
-                "retrieval_search."
-            ),
+            "content": system_content,
         },
     ]
     for turn in request.history:
@@ -243,8 +246,7 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
     user_content = request.message
     if request.retrieval_query and request.retrieval_query != request.message:
         user_content = (
-            f"{request.message}\n\n"
-            f"[retrieval_query] {request.retrieval_query}"
+            f"{request.message}\n\n[retrieval_query] {request.retrieval_query}"
         )
     messages.append({"role": "user", "content": user_content})
     return messages
@@ -601,9 +603,7 @@ def _tool_call_id(tool_call: dict[str, Any]) -> str:
 def _message_content(message: ChatMessage) -> str:
     content = message.get("content")
     if not isinstance(content, str) or not content.strip():
-        raise QwenChatRunnerError(
-            "qwen chat response content must be a JSON object"
-        )
+        raise QwenChatRunnerError("qwen chat response content must be a JSON object")
     return content
 
 
@@ -615,9 +615,7 @@ def _parse_runner_output(content: str) -> ChatRunnerOutput:
             "qwen chat response content must be a JSON object"
         ) from exc
     if not isinstance(parsed, dict):
-        raise QwenChatRunnerError(
-            "qwen chat response content must be a JSON object"
-        )
+        raise QwenChatRunnerError("qwen chat response content must be a JSON object")
 
     answer = parsed.get("answer")
     if not isinstance(answer, str) or not answer.strip():

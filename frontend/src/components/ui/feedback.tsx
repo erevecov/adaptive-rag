@@ -9,7 +9,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, ...props }, ref) => (
     <div
       className={cn(
-        'rounded-md border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground',
+        'flex flex-col gap-1.5 rounded-md border border-dashed border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground',
         className,
       )}
       ref={ref}
@@ -28,7 +28,8 @@ const inlineFeedbackVariants = cva('text-sm font-medium', {
     tone: {
       danger: 'text-destructive',
       neutral: 'text-muted-foreground',
-      success: 'text-primary',
+      success: 'text-emerald-700 dark:text-emerald-300',
+      warning: 'text-amber-800 dark:text-amber-200',
     },
   },
 })
@@ -67,7 +68,8 @@ const calloutVariants = cva('rounded-md border p-4 text-sm', {
     tone: {
       danger: 'border-destructive/30 bg-destructive/10 text-destructive',
       neutral: 'border-border bg-muted text-foreground',
-      success: 'border-primary/25 bg-primary/10 text-primary',
+      success: 'border-emerald-500/35 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+      warning: 'border-amber-500/35 bg-amber-500/15 text-amber-800 dark:text-amber-200',
     },
   },
 })

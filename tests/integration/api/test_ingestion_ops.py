@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -14,6 +14,7 @@ from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Job,
@@ -70,6 +71,36 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     assert shown.status_code == 200
     assert shown.json()["job"]["id"] == job["id"]
     assert [event["event_type"] for event in shown.json()["events"]] == ["created"]
+
+
+def test_double_enqueue_returns_existing_open_job() -> None:
+    session = _make_session()
+    project = ProjectRepository(session).create(name="Demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="notes.md",
+        extra_metadata={"content": "# Notes"},
+    )
+    session.commit()
+    client = _client(session=session)
+
+    first = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    second = client.post(
+        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        json={"priority": 99},
+    )
+    listed = client.get(
+        f"/projects/{project.id}/ingestion-jobs",
+        params={"source_id": str(source.id), "job_type": "ingest_source"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["id"] == first.json()["id"]
+    assert second.json()["status"] == "queued"
+    assert [item["id"] for item in listed.json()["items"]] == [first.json()["id"]]
+    assert session.scalar(select(func.count()).select_from(Job)) == 1
 
 
 def test_enqueue_ingestion_job_requires_contributor_role() -> None:
@@ -129,9 +160,7 @@ def test_run_next_processes_text_source_and_updates_job_state() -> None:
         f"/projects/{project.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test", "lease_seconds": 60},
     )
-    detail = client.get(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}"
-    )
+    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
     version = session.scalars(select(DocumentVersion)).one()
 
     assert run.status_code == 200
@@ -143,6 +172,67 @@ def test_run_next_processes_text_source_and_updates_job_state() -> None:
     assert payload["created_document_version"] is True
     assert detail.json()["job"]["status"] == "succeeded"
     assert version.normalized_text == "Evidence"
+
+
+def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
+    session = _make_full_session()
+    project = ProjectRepository(session).create(name="Demo")
+    source = SourceRepository(session).create(
+        project_id=project.id,
+        source_type="markdown",
+        external_id="indexing.md",
+        extra_metadata={
+            "content": ("# Indexing\n\nThe public run-next path indexes after ingest.")
+        },
+    )
+    session.commit()
+    client = _client(session=session)
+    client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+
+    ingest_run = client.post(
+        f"/projects/{project.id}/ingestion-jobs/run-next",
+        json={"worker_id": "api-test"},
+    )
+
+    assert ingest_run.status_code == 200
+    assert ingest_run.json()["status"] == "processed"
+    assert ingest_run.json()["job_type"] == "ingest_source"
+    assert session.scalar(select(func.count()).select_from(Chunk)) == 0
+
+    index_run = client.post(
+        f"/projects/{project.id}/ingestion-jobs/run-next",
+        json={"worker_id": "api-test"},
+    )
+
+    assert index_run.status_code == 200
+    index_payload = index_run.json()
+    assert index_payload["status"] == "processed"
+    assert index_payload["job_type"] == "index_document_version"
+    assert index_payload["chunk_count"] >= 1
+    assert index_payload["embedded_chunk_count"] == index_payload["chunk_count"]
+    assert index_payload["sparse_embedded_chunk_count"] == index_payload["chunk_count"]
+
+    idle_run = client.post(
+        f"/projects/{project.id}/ingestion-jobs/run-next",
+        json={"worker_id": "api-test"},
+    )
+    assert idle_run.status_code == 200
+    assert idle_run.json()["status"] == "idle"
+
+    chunks = session.scalars(select(Chunk)).all()
+    assert len(chunks) == index_payload["chunk_count"]
+    assert all(chunk.embedding is not None for chunk in chunks)
+    assert all(chunk.contextual_summary for chunk in chunks)
+    sparse_rows = session.scalars(select(ChunkSparseEmbedding)).all()
+    assert len(sparse_rows) == len(chunks)
+
+    listed = client.get(
+        f"/projects/{project.id}/ingestion-jobs",
+        params={"job_type": "index_document_version"},
+    )
+    assert listed.status_code == 200
+    items = listed.json()["items"]
+    assert [item["status"] for item in items] == ["succeeded"]
 
 
 def test_run_next_reports_blocked_job_and_retry_requeues_it() -> None:
@@ -164,9 +254,7 @@ def test_run_next_reports_blocked_job_and_retry_requeues_it() -> None:
     retried = client.post(
         f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}/retry"
     )
-    detail = client.get(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}"
-    )
+    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
 
     assert blocked.status_code == 200
     assert blocked.json()["status"] == "blocked"
@@ -236,6 +324,16 @@ def _make_session() -> Session:
             ProjectMembership.__table__,
         ],
     )
+    return create_session_factory(engine)()
+
+
+def _make_full_session() -> Session:
+    engine = create_engine(
+        "sqlite+pysqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
     return create_session_factory(engine)()
 
 

@@ -146,7 +146,9 @@ def test_complete_marks_running_job_succeeded_and_clears_lease():
         now=now,
     )
 
-    completed = repo.complete(project_id=project.id, job_id=job.id)
+    completed = repo.complete(
+        project_id=project.id, job_id=job.id, worker_id="worker-1"
+    )
 
     assert completed.status == "succeeded"
     assert completed.locked_by is None
@@ -181,6 +183,7 @@ def test_fail_retries_until_max_attempts_then_dead_letters():
         job_id=job.id,
         error_message="temporary",
         retry_after=now + timedelta(minutes=1),
+        worker_id="worker-1",
     )
     retry_status = retry.status
     retry_locked_by = retry.locked_by
@@ -195,6 +198,7 @@ def test_fail_retries_until_max_attempts_then_dead_letters():
         job_id=job.id,
         error_message="permanent",
         retry_after=now + timedelta(minutes=2),
+        worker_id="worker-1",
     )
 
     assert retry_status == "queued"
@@ -224,7 +228,12 @@ def test_block_marks_job_blocked_and_clears_lease():
         now=now,
     )
 
-    blocked = repo.block(project_id=project.id, job_id=job.id, reason="quota")
+    blocked = repo.block(
+        project_id=project.id,
+        job_id=job.id,
+        reason="quota",
+        worker_id="worker-1",
+    )
 
     assert blocked.status == "blocked"
     assert blocked.locked_by is None
@@ -347,3 +356,256 @@ def test_requeue_rejects_non_retryable_job_status():
         assert str(exc) == "job is not retryable"
     else:
         raise AssertionError("expected non-retryable job to fail")
+
+
+def test_release_expired_leases_dead_letters_when_attempts_exhausted():
+    """Crashed workers must not requeue forever past max_attempts."""
+
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    job = repo.create(
+        project_id=project.id,
+        job_type="ingest_url",
+        max_attempts=2,
+        run_after=now,
+    )
+    # First lease (attempts=1), expire, requeue.
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="worker-1",
+        lease_until=now + timedelta(minutes=5),
+        now=now,
+    )
+    released_first = repo.release_expired_leases(
+        project_id=project.id,
+        now=now + timedelta(minutes=6),
+    )
+    stored = repo.get(project_id=project.id, job_id=job.id)
+    assert released_first == 1
+    assert stored is not None
+    assert stored.status == "queued"
+    assert stored.attempts == 1
+
+    # Second lease (attempts=2 == max), expire → dead_letter.
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="worker-2",
+        lease_until=now + timedelta(minutes=15),
+        now=now + timedelta(minutes=6),
+    )
+    released_second = repo.release_expired_leases(
+        project_id=project.id,
+        now=now + timedelta(minutes=16),
+    )
+    dead = repo.get(project_id=project.id, job_id=job.id)
+    assert released_second == 1
+    assert dead is not None
+    assert dead.status == "dead_letter"
+    assert dead.locked_by is None
+    assert dead.locked_until is None
+    assert dead.attempts == 2
+    assert dead.last_error == "lease expired"
+    events = _event_types(repo, project, job)
+    assert events.count("released") == 2
+    assert "dead_lettered" in events
+    assert events[-1] == "dead_lettered"
+
+
+def test_complete_rejects_stale_worker_when_lease_held_by_other():
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    job = repo.create(project_id=project.id, job_type="ingest_url", run_after=now)
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="owner-worker",
+        lease_until=now + timedelta(minutes=10),
+        now=now,
+    )
+
+    try:
+        repo.complete(
+            project_id=project.id,
+            job_id=job.id,
+            worker_id="stale-worker",
+        )
+    except ValueError as exc:
+        assert str(exc) == "job is locked by another worker"
+    else:
+        raise AssertionError("expected stale complete to fail")
+
+    stored = repo.get(project_id=project.id, job_id=job.id)
+    assert stored is not None
+    assert stored.status == "running"
+    assert stored.locked_by == "owner-worker"
+
+
+def test_fail_rejects_stale_worker_when_lease_held_by_other():
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    job = repo.create(project_id=project.id, job_type="ingest_url", run_after=now)
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="owner-worker",
+        lease_until=now + timedelta(minutes=10),
+        now=now,
+    )
+
+    try:
+        repo.fail(
+            project_id=project.id,
+            job_id=job.id,
+            error_message="stale fail",
+            worker_id="stale-worker",
+        )
+    except ValueError as exc:
+        assert str(exc) == "job is locked by another worker"
+    else:
+        raise AssertionError("expected stale fail to fail")
+
+    stored = repo.get(project_id=project.id, job_id=job.id)
+    assert stored is not None
+    assert stored.status == "running"
+    assert stored.locked_by == "owner-worker"
+    assert stored.last_error is None
+
+
+def test_block_rejects_stale_worker_when_lease_held_by_other():
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    job = repo.create(project_id=project.id, job_type="ingest_url", run_after=now)
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="owner-worker",
+        lease_until=now + timedelta(minutes=10),
+        now=now,
+    )
+
+    try:
+        repo.block(
+            project_id=project.id,
+            job_id=job.id,
+            reason="stale block",
+            worker_id="stale-worker",
+        )
+    except ValueError as exc:
+        assert str(exc) == "job is locked by another worker"
+    else:
+        raise AssertionError("expected stale block to fail")
+
+    stored = repo.get(project_id=project.id, job_id=job.id)
+    assert stored is not None
+    assert stored.status == "running"
+    assert stored.locked_by == "owner-worker"
+
+
+def test_complete_without_worker_id_rejected_while_locked():
+    """Missing worker_id cannot flip a leased job (must pass owner)."""
+
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    job = repo.create(project_id=project.id, job_type="ingest_url", run_after=now)
+    repo.lease_next(
+        project_id=project.id,
+        worker_id="owner-worker",
+        lease_until=now + timedelta(minutes=10),
+        now=now,
+    )
+
+    try:
+        repo.complete(project_id=project.id, job_id=job.id)
+    except ValueError as exc:
+        assert str(exc) == "job is locked by another worker"
+    else:
+        raise AssertionError("expected complete without owner to fail")
+
+
+def test_complete_and_block_allowed_when_unlocked():
+    """Admin / unlocked paths keep working without worker_id."""
+
+    session = _make_session()
+    project = _make_project(session)
+    repo = JobRepository(session)
+    now = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
+    to_block = repo.create(project_id=project.id, job_type="ingest_url", run_after=now)
+    to_complete = repo.create(
+        project_id=project.id, job_type="ingest_url", run_after=now
+    )
+    session.commit()
+
+    blocked = repo.block(
+        project_id=project.id, job_id=to_block.id, reason="manual hold"
+    )
+    completed = repo.complete(project_id=project.id, job_id=to_complete.id)
+
+    assert blocked.status == "blocked"
+    assert blocked.locked_by is None
+    assert completed.status == "succeeded"
+    assert completed.locked_by is None
+
+
+def test_find_open_ingest_source_returns_oldest_queued_or_running():
+    session = _make_session()
+    project = _make_project(session)
+    other = _make_project(session, "other")
+    repo = JobRepository(session)
+    source_a = "11111111-1111-1111-1111-111111111111"
+    source_b = "22222222-2222-2222-2222-222222222222"
+    from uuid import UUID
+
+    older = repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_b},
+    )
+    repo.create(
+        project_id=other.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    session.commit()
+
+    found = repo.find_open_ingest_source(
+        project_id=project.id,
+        source_id=UUID(source_a),
+    )
+    assert found is not None
+    assert found.id == older.id
+
+    # Succeeded is not open
+    repo.complete(project_id=project.id, job_id=older.id)
+    assert (
+        repo.find_open_ingest_source(
+            project_id=project.id,
+            source_id=UUID(source_a),
+        )
+        is None
+    )
+
+    # New queued job is found again
+    newer = repo.create(
+        project_id=project.id,
+        job_type="ingest_source",
+        payload_json={"source_id": source_a},
+    )
+    assert (
+        repo.find_open_ingest_source(
+            project_id=project.id,
+            source_id=UUID(source_a),
+        ).id
+        == newer.id
+    )

@@ -102,14 +102,37 @@ class SourceRepository:
         project_id: UUID,
         source_type: str,
         external_id: str,
+        include_deleted: bool = False,
     ) -> Source | None:
         statement = select(Source).where(
             Source.project_id == project_id,
             Source.source_type == source_type,
             Source.external_id == external_id,
-            Source.deleted_at.is_(None),
         )
+        if not include_deleted:
+            statement = statement.where(Source.deleted_at.is_(None))
         return self._session.scalars(statement).one_or_none()
+
+    def restore(
+        self,
+        *,
+        project_id: UUID,
+        source_id: UUID,
+        tags: Sequence[str] | None = None,
+        extra_metadata: Mapping[str, Any] | None = None,
+    ) -> Source | None:
+        source = self.get(
+            project_id=project_id, source_id=source_id, include_deleted=True
+        )
+        if source is None or source.deleted_at is None:
+            return None
+        source.deleted_at = None
+        if tags is not None:
+            source.tags = list(tags)
+        if extra_metadata is not None:
+            source.extra_metadata = dict(extra_metadata)
+        self._session.flush()
+        return source
 
     def update(
         self,

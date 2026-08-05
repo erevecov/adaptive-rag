@@ -21,6 +21,10 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Source,
 )
+from adaptive_rag.retrieval.source_extra_metadata import (
+    sanitize_source_extra_metadata,
+)
+from adaptive_rag.retrieval.version_filter import latest_document_version_clause
 
 
 class DenseRetrievalError(ValueError):
@@ -255,6 +259,7 @@ class DenseRetriever:
         statement = statement.where(
             Document.project_id == project_id,
             Source.project_id == project_id,
+            latest_document_version_clause(),
         )
         if require_embedding:
             statement = statement.where(Chunk.embedding.is_not(None))
@@ -295,7 +300,9 @@ class DenseRetriever:
             source_type=candidate.source.source_type,
             source_external_id=candidate.source.external_id,
             source_tags=tuple(candidate.source.tags or ()),
-            source_extra_metadata=_copy_dict(candidate.source.extra_metadata),
+            source_extra_metadata=sanitize_source_extra_metadata(
+                candidate.source.extra_metadata
+            ),
             document_id=candidate.document.id,
             document_stable_id=candidate.document.stable_id,
             document_version_id=candidate.document_version.id,

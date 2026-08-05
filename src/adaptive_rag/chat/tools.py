@@ -16,6 +16,7 @@ from adaptive_rag.chat.audit import (
 from adaptive_rag.chat.errors import ChatServiceError
 from adaptive_rag.chat.models import ChatToolCall
 from adaptive_rag.chat.streaming import ChatStep
+from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
 from adaptive_rag.retrieval import (
     RetrievalMetadataFilter,
     RetrievalRerankOptions,
@@ -147,7 +148,8 @@ class ChatRetrievalTool:
         limit: int | None = None,
         metadata_filter: RetrievalMetadataFilter | None = None,
     ) -> ChatRetrievalToolResult:
-        active_limit = self._default_limit if limit is None else limit
+        raw_limit = self._default_limit if limit is None else limit
+        active_limit = max(1, min(raw_limit, CHAT_RETRIEVAL_MAX_LIMIT))
         active_filter = (
             self._default_metadata_filter
             if metadata_filter is None
