@@ -194,7 +194,11 @@ export function ObservabilityPanel({
 
         {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
-        <ObservabilityContent activeSubmodule={activeSubmodule} summary={summary} />
+        <ObservabilityContent
+          activeSubmodule={activeSubmodule}
+          state={state}
+          summary={summary}
+        />
       </PanelBody>
     </Panel>
   )
@@ -219,28 +223,83 @@ function ObservabilityField({
 
 function ObservabilityContent({
   activeSubmodule,
+  state,
   summary,
 }: {
   activeSubmodule: ObservabilitySubmodule
+  state: RequestState
   summary: ChatObservabilitySummary | null
 }) {
+  const isLoading = state === 'loading'
+
   if (summary === null) {
+    if (isLoading) {
+      return <ObservabilityMetricSkeleton activeSubmodule={activeSubmodule} />
+    }
     return (
       <EmptyState>{EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}</EmptyState>
     )
   }
 
-  if (activeSubmodule === 'costs') {
-    return <ObservabilityCostsContent summary={summary} />
-  }
-  if (activeSubmodule === 'errors') {
-    return <ObservabilityErrorsContent summary={summary} />
-  }
-  if (activeSubmodule === 'latency') {
-    return <ObservabilityLatencyContent summary={summary} />
+  const content =
+    activeSubmodule === 'costs' ? (
+      <ObservabilityCostsContent summary={summary} />
+    ) : activeSubmodule === 'errors' ? (
+      <ObservabilityErrorsContent summary={summary} />
+    ) : activeSubmodule === 'latency' ? (
+      <ObservabilityLatencyContent summary={summary} />
+    ) : (
+      <ObservabilitySummaryContent summary={summary} />
+    )
+
+  if (!isLoading) {
+    return content
   }
 
-  return <ObservabilitySummaryContent summary={summary} />
+  return (
+    <div aria-busy="true" data-slot="observability-refreshing">
+      {content}
+    </div>
+  )
+}
+
+function ObservabilityMetricSkeleton({
+  activeSubmodule,
+}: {
+  activeSubmodule: ObservabilitySubmodule
+}) {
+  const cardCount = activeSubmodule === 'summary' ? 5 : 3
+  const label =
+    activeSubmodule === 'costs'
+      ? 'Cost observability metrics loading'
+      : activeSubmodule === 'errors'
+        ? 'Error observability metrics loading'
+        : activeSubmodule === 'latency'
+          ? 'Latency observability metrics loading'
+          : 'Chat observability metrics loading'
+
+  return (
+    <div
+      aria-busy="true"
+      aria-label={label}
+      className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+      data-slot="observability-metric-skeleton"
+      role="status"
+    >
+      <span className="sr-only">Loading observability metrics…</span>
+      {Array.from({ length: cardCount }, (_, index) => (
+        <article
+          aria-hidden="true"
+          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
+          key={index}
+        >
+          <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+          <div className="h-7 w-2/3 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
+        </article>
+      ))}
+    </div>
+  )
 }
 
 function ObservabilitySummaryContent({
@@ -448,7 +507,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-32 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </span>

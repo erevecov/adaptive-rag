@@ -1197,11 +1197,68 @@ describe('App chat workspace', () => {
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(sidebar.getAttribute('data-state')).toBe('open')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    // Desktop viewport: no mobile scrim.
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
 
     await user.click(toggle)
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.getAttribute('aria-label')).toBe('Open left sidebar')
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+  })
+
+  test('closes the left sidebar with the mobile scrim and Escape', async () => {
+    const user = userEvent.setup()
+
+    setViewportWidth(500)
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+
+    if (sidebar.getAttribute('data-state') !== 'open') {
+      await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+    }
+
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+
+    const backdrop = screen.getByTestId('sidebar-backdrop')
+    expect(backdrop.getAttribute('data-slot')).toBe('sidebar-backdrop')
+    expect(backdrop.className).toContain('bg-[var(--overlay-backdrop)]')
+    expect(backdrop.className).toContain('z-30')
+    expect(backdrop.className).toContain('fixed')
+    expect(backdrop.className).toContain('inset-0')
+
+    await user.click(backdrop)
+
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open left sidebar' }))
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+    expect(screen.getByTestId('sidebar-backdrop')).toBeTruthy()
+
+    await user.keyboard('{Escape}')
+
+    expect(sidebar.getAttribute('data-state')).toBe('closed')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+  })
+
+  test('closes the left sidebar with Escape on desktop without a scrim', async () => {
+    const user = userEvent.setup()
+
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary sidebar',
+    })
+    expect(sidebar.getAttribute('data-state')).toBe('open')
+    expect(screen.queryByTestId('sidebar-backdrop')).toBeNull()
+
+    await user.keyboard('{Escape}')
+
     expect(sidebar.getAttribute('data-state')).toBe('closed')
   })
 
@@ -1896,15 +1953,11 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    expect(
-      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen.getByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeTruthy()
+    expect(screen.getByLabelText('Workspace inspector')).toBeTruthy()
     expect(
       screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected'),
     ).toBe('true')
@@ -1922,9 +1975,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close right sidebar' }))
 
-    expect(
-      screen.queryByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeNull()
+    expect(screen.queryByLabelText('Workspace inspector')).toBeNull()
   })
 
   test('renders the right dock inline on xl viewports and as an overlay below xl', async () => {
@@ -1937,11 +1988,10 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen
-        .getByRole('complementary', { name: 'Workspace inspector' })
-        .className,
-    ).toContain('workspace-inspector-inline')
+    const inlineInspector = screen.getByRole('complementary', {
+      name: 'Workspace inspector',
+    })
+    expect(inlineInspector.className).toContain('workspace-inspector-inline')
     expect(screen.queryByTestId('inspector-backdrop')).toBeNull()
     expect(document.querySelector('.chat-workspace-grid')?.className).toContain(
       'chat-workspace-grid-docked',
@@ -1953,11 +2003,11 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open context sidebar' }))
 
-    expect(
-      screen
-        .getByRole('complementary', { name: 'Workspace inspector' })
-        .className,
-    ).toContain('workspace-inspector-overlay')
+    // Overlay uses dialog role for modal keyboard semantics.
+    const overlayInspector = screen.getByRole('dialog', {
+      name: 'Workspace inspector',
+    })
+    expect(overlayInspector.className).toContain('workspace-inspector-overlay')
     expect(screen.getByTestId('inspector-backdrop')).toBeTruthy()
     expect(document.querySelector('.chat-workspace-grid')?.className).not.toContain(
       'chat-workspace-grid-docked',
@@ -2370,14 +2420,15 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
     await user.click(screen.getByRole('button', { name: 'Refresh sources' }))
 
-    expect(await screen.findByText('Ready to queue ingestion')).toBeTruthy()
-    expect(screen.getByText('Queue ingestion when this source should be indexed.')).toBeTruthy()
+    expect(await screen.findByText('markdown · docs, local')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Refresh jobs' }))
 
-    expect(await screen.findByText('attempt 1 of 3')).toBeTruthy()
-    expect(screen.getByText('run after 2026-06-22T00:00:02Z')).toBeTruthy()
+    expect(await screen.findByText('attempt 1/3')).toBeTruthy()
     expect(screen.getByText('unlocked')).toBeTruthy()
+    expect(
+      screen.getByText(`source ${sourceSummary.id}`, { exact: false }),
+    ).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Run next job' }))
 
@@ -2836,8 +2887,14 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Question'), 'Why did it fail?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
-    const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('backend unavailable')
+    // Failed transcript surface + composer InlineFeedback both expose role=alert.
+    const alerts = await screen.findAllByRole('alert')
+    expect(
+      alerts.some((node) => node.textContent?.includes('backend unavailable')),
+    ).toBe(true)
+    expect(
+      alerts.some((node) => node.textContent?.includes('Request failed.')),
+    ).toBe(true)
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
     )

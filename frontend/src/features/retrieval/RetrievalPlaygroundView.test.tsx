@@ -67,6 +67,9 @@ describe('RetrievalPlaygroundPanel', () => {
       />,
     )
 
+    expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
+    expect(screen.getByText('Ready').getAttribute('data-tone')).toBe('neutral')
+
     await user.type(
       screen.getByLabelText('Query'),
       'What is the refund policy?',
@@ -86,6 +89,9 @@ describe('RetrievalPlaygroundPanel', () => {
       screen.getByText('Refunds are available within 30 days.'),
     ).toBeTruthy()
     expect(screen.getByText('0.9200')).toBeTruthy()
+    const doneBadge = screen.getByText('Done')
+    expect(doneBadge.getAttribute('data-slot')).toBe('badge')
+    expect(doneBadge.getAttribute('data-tone')).toBe('success')
   })
 
   test('requires project and non-empty query', async () => {
@@ -98,6 +104,9 @@ describe('RetrievalPlaygroundPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Search' }))
     expect(screen.getByText(/Select a project before searching/i)).toBeTruthy()
     expect(search).not.toHaveBeenCalled()
+    const failedBadge = screen.getByText('Failed')
+    expect(failedBadge.getAttribute('data-slot')).toBe('badge')
+    expect(failedBadge.getAttribute('data-tone')).toBe('danger')
 
     rerender(
       <RetrievalPlaygroundPanel
@@ -125,6 +134,39 @@ describe('RetrievalPlaygroundPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() => {
       expect(screen.getByText('graph not ready')).toBeTruthy()
+    })
+    const failedBadge = screen.getByText('Failed')
+    expect(failedBadge.getAttribute('data-tone')).toBe('danger')
+  })
+
+  test('shows Searching badge while request is in flight', async () => {
+    const user = userEvent.setup()
+    let resolveSearch!: (value: RetrievalSearchResponse) => void
+    const search = vi.fn(
+      () =>
+        new Promise<RetrievalSearchResponse>((resolve) => {
+          resolveSearch = resolve
+        }),
+    )
+    render(
+      <RetrievalPlaygroundPanel
+        client={createClient(search)}
+        projectId="project-1"
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Query'), 'in flight')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      const badge = screen.getByText('Searching')
+      expect(badge.getAttribute('data-slot')).toBe('badge')
+      expect(badge.getAttribute('data-tone')).toBe('warning')
+    })
+
+    resolveSearch(sampleResponse)
+    await waitFor(() => {
+      expect(screen.getByText('Done')).toBeTruthy()
     })
   })
 })

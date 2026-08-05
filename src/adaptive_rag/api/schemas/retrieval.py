@@ -9,10 +9,12 @@ from uuid import UUID
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     SerializerFunctionWrapHandler,
     model_serializer,
 )
 
+from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT
 from adaptive_rag.retrieval import (
     RetrievalMetadataFilter,
     RetrievalRerankOptions,
@@ -51,7 +53,8 @@ class RetrievalMetadataFilterRequest(BaseModel):
 class RetrievalRerankRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    candidate_limit: int
+    # Same upper bound as chat retrieval to prevent cost/memory DoS.
+    candidate_limit: int = Field(ge=1, le=CHAT_RETRIEVAL_MAX_LIMIT)
 
     def to_service_options(self) -> RetrievalRerankOptions:
         return RetrievalRerankOptions(candidate_limit=self.candidate_limit)
@@ -61,7 +64,7 @@ class RetrievalSearchRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str
-    limit: int = 10
+    limit: int = Field(default=10, ge=1, le=CHAT_RETRIEVAL_MAX_LIMIT)
     metadata_filter: RetrievalMetadataFilterRequest | None = None
     rerank: RetrievalRerankRequest | None = None
     strategy: RetrievalStrategy = "dense_sparse"
@@ -71,6 +74,11 @@ class RetrievalSearchRequestBody(BaseModel):
             return
         if self.rerank.candidate_limit <= 0:
             raise ValueError("rerank candidate_limit must be positive")
+        if self.rerank.candidate_limit > CHAT_RETRIEVAL_MAX_LIMIT:
+            raise ValueError(
+                "rerank candidate_limit must be between 1 and "
+                f"{CHAT_RETRIEVAL_MAX_LIMIT}"
+            )
         if self.rerank.candidate_limit < self.limit:
             raise ValueError(
                 "rerank candidate_limit must be greater than or equal to limit"

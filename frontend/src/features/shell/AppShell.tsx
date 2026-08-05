@@ -1,4 +1,11 @@
-import { type CSSProperties, type ReactNode, useMemo, useState } from 'react'
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, LockKeyhole, Menu } from 'lucide-react'
 
 import { Button, IconButton } from '@/components/ui/button'
@@ -17,6 +24,28 @@ import { cn } from '@/lib/utils'
 const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
   sensitivity: 'base',
 })
+
+/** Matches shell CSS breakpoint `max-[680px]` (fixed mobile sidebar). */
+const SHELL_MOBILE_MAX_WIDTH_PX = 680
+
+function readIsShellMobileViewport(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return window.innerWidth <= SHELL_MOBILE_MAX_WIDTH_PX
+}
+
+function useIsShellMobileViewport(): boolean {
+  const [isMobile, setIsMobile] = useState(readIsShellMobileViewport)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(readIsShellMobileViewport())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  return isMobile
+}
 
 const SETTINGS_NAVIGATION = [
   {
@@ -282,6 +311,35 @@ export function AppSidebar({
   settingsModule: SettingsModule
   statusFilter: SessionNavigationFilter
 }) {
+  const isMobileShell = useIsShellMobileViewport()
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented) {
+        return
+      }
+      // Don't steal Escape from open menus/dialogs (e.g. project selector).
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        target.closest(
+          '[data-state="open"][role="menu"], [data-state="open"][role="listbox"], [role="dialog"][data-state="open"]',
+        )
+      ) {
+        return
+      }
+      event.preventDefault()
+      onToggle()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, onToggle])
+
   return (
     <aside
       aria-label="Primary sidebar"
@@ -298,6 +356,21 @@ export function AppSidebar({
       data-slot="app-sidebar"
       data-state={isOpen ? 'open' : 'closed'}
     >
+      {isOpen && isMobileShell && typeof document !== 'undefined'
+        ? createPortal(
+            <Button
+              aria-label="Close left sidebar"
+              // z-30 sits below fixed mobile sidebar (z-40); matches inspector overlay-backdrop language.
+              className="fixed inset-0 z-30 h-auto cursor-pointer rounded-none border-0 bg-[var(--overlay-backdrop)] p-0 text-transparent hover:bg-[var(--overlay-backdrop)]"
+              data-testid="sidebar-backdrop"
+              onClick={onToggle}
+              slotName="sidebar-backdrop"
+              type="button"
+              variant="ghost"
+            />,
+            document.body,
+          )
+        : null}
       <div
         className={cn(
           'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5',

@@ -178,11 +178,12 @@ def test_get_project_role_returns_none_without_membership() -> None:
     )
 
 
-def test_users_exist_logs_before_bootstrap_fallback(
+def test_users_exist_fails_closed_on_operational_error(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     import logging
 
+    import pytest
     from sqlalchemy.exc import OperationalError
 
     from adaptive_rag import auth as auth_module
@@ -199,10 +200,12 @@ def test_users_exist_logs_before_bootstrap_fallback(
 
     session = _RaisingScalarSession()
 
-    with caplog.at_level(logging.WARNING, logger=auth_module.__name__):
-        result = auth_module.users_exist(session)  # type: ignore[arg-type]
+    with (
+        caplog.at_level(logging.WARNING, logger=auth_module.__name__),
+        pytest.raises(OperationalError),
+    ):
+        auth_module.users_exist(session)  # type: ignore[arg-type]
 
-    assert result is False
     assert session.rolled_back is True
     records = [
         record
@@ -212,6 +215,7 @@ def test_users_exist_logs_before_bootstrap_fallback(
     ]
     assert len(records) == 1
     assert records[0].levelno == logging.WARNING
+    assert "refusing bootstrap fail-open" in records[0].getMessage()
     assert records[0].exc_info is not None
     assert records[0].exc_info[0] is OperationalError
 

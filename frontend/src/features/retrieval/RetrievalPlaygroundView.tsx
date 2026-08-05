@@ -196,7 +196,9 @@ export function RetrievalPlaygroundPanel({
             <Button type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
-            <StatusBadge tone={requestStateTone(state)}>{state}</StatusBadge>
+            <StatusBadge tone={requestStateTone(state)}>
+              {requestStateLabel(state)}
+            </StatusBadge>
             {!projectId.trim() ? (
               <span className="text-sm text-muted-foreground">
                 Select a project in the sidebar first.
@@ -263,9 +265,9 @@ export function RetrievalPlaygroundPanel({
 
 function requestStateTone(
   state: RequestState,
-): 'neutral' | 'primary' | 'success' | 'danger' {
+): 'danger' | 'neutral' | 'success' | 'warning' {
   if (state === 'loading') {
-    return 'primary'
+    return 'warning'
   }
   if (state === 'succeeded') {
     return 'success'
@@ -274,6 +276,19 @@ function requestStateTone(
     return 'danger'
   }
   return 'neutral'
+}
+
+function requestStateLabel(state: RequestState): string {
+  if (state === 'loading') {
+    return 'Searching'
+  }
+  if (state === 'succeeded') {
+    return 'Done'
+  }
+  if (state === 'failed') {
+    return 'Failed'
+  }
+  return 'Ready'
 }
 
 function formatError(error: unknown): string {

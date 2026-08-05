@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException
 from fastapi.params import Depends as DependsMarker
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from adaptive_rag.auth import (
@@ -63,7 +64,15 @@ def get_current_user(
     authorization: Annotated[str | None, Header()] = None,
 ) -> CurrentPrincipal:
     if authorization is None or authorization.strip() == "":
-        if not users_exist(session):
+        try:
+            empty_user_table = not users_exist(session)
+        except OperationalError:
+            # Fail closed: never grant bootstrap superadmin on DB blips.
+            raise HTTPException(
+                status_code=503,
+                detail="authentication unavailable",
+            ) from None
+        if empty_user_table:
             return CurrentPrincipal(user=None, is_bootstrap=True)
         raise HTTPException(status_code=401, detail="authentication required")
 

@@ -139,6 +139,45 @@ describe('ObservabilityPanel', () => {
     expectNoLegacyObservabilityClasses(view.container)
   })
 
+  test('shows metric skeleton while loading without a prior summary', () => {
+    const { view } = renderObservabilityPanel({
+      state: 'loading',
+      summary: null,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-metric-skeleton"]'),
+    ).toBeTruthy()
+    expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
+    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.getByText('Refreshing').getAttribute('data-slot')).toBe('badge')
+    expect(screen.getByLabelText(/metrics loading/i).getAttribute('aria-busy')).toBe(
+      'true',
+    )
+  })
+
+  test('keeps prior summary visible with aria-busy while refreshing', () => {
+    const { view } = renderObservabilityPanel({
+      state: 'loading',
+      summary,
+    })
+
+    expect(
+      view.container.querySelector('[data-slot="observability-refreshing"]'),
+    ).toBeTruthy()
+    expect(
+      view.container
+        .querySelector('[data-slot="observability-refreshing"]')
+        ?.getAttribute('aria-busy'),
+    ).toBe('true')
+    expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
+    expect(view.container.querySelector('[data-slot="observability-metric-skeleton"]')).toBeNull()
+
+    const metrics = screen.getByLabelText('Chat observability metrics')
+    expect(within(metrics).getByText('12')).toBeTruthy()
+    expect(within(metrics).getByText('$0.1234')).toBeTruthy()
+  })
+
   test('summary view renders metric cards and data-list breakdowns', () => {
     const { view } = renderObservabilityPanel()
 
