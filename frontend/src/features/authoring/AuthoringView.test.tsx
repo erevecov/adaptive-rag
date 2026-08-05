@@ -396,4 +396,37 @@ describe('AuthoringPanel', () => {
     expect(screen.getByText('deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
   })
+
+  test('knowledge status says Working while busy and gates Reject without reason', () => {
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeReviewState: 'loading',
+      knowledgeProposals: [proposal],
+    })
+    expect(screen.getByText('Working').getAttribute('data-slot')).toBe('badge')
+    expect(
+      (screen.getByRole('button', { name: /^Reject / }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  test('groups ingestion jobs by status with relative run-after', () => {
+    const running: IngestionJob = {
+      ...ingestionJob,
+      id: 'job-running',
+      status: 'running',
+      last_error: null,
+    }
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      ingestionJobs: [ingestionJob, running],
+    })
+    expect(
+      view.container.querySelector('[data-slot="ingestion-job-groups"]'),
+    ).toBeTruthy()
+    expect(screen.getAllByText(/run after/).length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
+    ).toBeTruthy()
+  })
 })

@@ -1,26 +1,43 @@
-# FE UI/UX Backlog — living (Cursor team)
+# FE UI/UX Backlog (Cursor team)
 
 Status: open | claimed:<role> | done | deferred
 
-## Always-on themes
-- [ ] open — Chat multi-turn density / single-response legacy layout
-- [ ] open — Composer touch targets + sticky + mobile
-- [ ] open — Session rail long titles, empty per filter, training icon
-- [ ] open — Inspector focus trap + source viewer density
-- [x] done — Authoring form density + binary upload feedback (operator 20260805)
-- [ ] deferred — Ingestion job grouping / relative times (P2)
-- [x] done — Observability empty vs failed vs loading (+ stale refresh banner)
-- [x] done — Retrieval rank cards + empty next-steps
-- [x] done — Runtime secret-safe copy + connection status clarity
-- [x] done — Global focus-visible consistency (retrieval overrides removed)
-- [x] done — Purple/dark contrast + ring visibility pass (success/warning tones)
-- [ ] open — Skip links / landmark completeness
-- [ ] open — Knowledge draft card affordances end-to-end
-- [ ] open — Any new FE surface on this branch (claim immediately)
-- [x] done — Operator empty≠loading / canceled labels / soft-delete tones
+Branch: `feat/ui-obsessional-polish` (from main post-#206)
 
-## Done (recent)
-- [x] done — denser empty states / inspector skeletons (prior commits)
-- [x] done — soft-delete visibility sources/projects
-- [x] done — ingestion job tones + source_id
-- [x] done — operator P0/P1 pass 20260805 (see reports/operator-latest.md)
+## Seed themes
+- [x] done:chat — Chat: multi-turn transcript density vs single-response layout
+- [x] done:chat — Composer: mobile touch targets, sticky behavior
+- [x] done:chat — Session rail: long titles, training icon affordance, empty per filter
+- [x] done:chat — Inspector: focus trap completeness, source viewer density
+- [ ] claimed:fe-operator — Authoring forms: field density, binary upload feedback
+- [ ] claimed:fe-operator — Ingestion jobs: relative times, grouping by status
+- [ ] claimed:fe-operator — Observability: chart/metric empty vs failed
+- [ ] claimed:fe-operator — Retrieval playground: result rank cards polish
+- [ ] claimed:fe-operator — Runtime settings: secret-safe copy, connection status clarity
+- [ ] claimed:fe-operator — Knowledge status truth + draft card affordances
+- [ ] claimed:fe-operator — CapabilitySelector ARIA + observability tablist
+- [ ] open — Global: focus-visible consistency, reduced-motion micro-animations
+- [ ] open — Global: purple/dark contrast pass
+
+## Chat+Shell pass 1 findings
+
+### P0 — done
+- [x] done:chat — Cancel/fail mid-stream looks like success
+- [x] done:chat — Enter while asking starts parallel request
+- [x] done:chat — Hamburger z pierces inspector scrim
+- [x] done:chat — Closed sidebar still in tab order
+- [x] done:chat — Inspector overlay without inert on chat host / focusable backdrop
+
+### P1 — done
+- [x] done:chat — Pipeline streaming aria-expanded + composed label + tabular-nums
+- [x] done:chat — Pipeline StatusDot SR + summary focus ring + chip wrap
+- [x] done:chat — Composer rings / Escape-cancel / citation Open source / response region
+- [x] done:chat — Session EmptyState; training aria-label; detail error alert
+- [x] done:chat — Escape coordination; backdrop tabIndex=-1; overlay focus close
+
+### Deferred P2
+- [ ] deferred — Full Tab-cycle focus trap beyond inert
+- [ ] deferred — Speech status mobile width
+- [ ] deferred — Soft-delete casing; rename blur-save; minimap label truncate
+
+Report: `.scratch/cursor-fe-team/reports/chat-latest.md` · STATUS ready-for-lead-review

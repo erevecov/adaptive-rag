@@ -622,7 +622,9 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
   return (
     <BreakdownCard label={`${summary.sessions.total} total`} title="Status breakdown">
       {rows.length === 0 ? (
-        <EmptyState>No status data yet.</EmptyState>
+        <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
+          No status data yet.
+        </EmptyState>
       ) : (
         <DataList>
           {rows.map((row) => (
@@ -654,12 +656,14 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
       title="Error messages"
     >
       {summary.errors.top_messages.length === 0 ? (
-        <EmptyState>No error messages yet.</EmptyState>
+        <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
+          No error messages yet.
+        </EmptyState>
       ) : (
         <DataList>
           {summary.errors.top_messages.map((error) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-0 bg-transparent p-2 shadow-none"
               key={error.message}
             >
               <strong className="break-words text-sm font-semibold">
@@ -686,7 +690,9 @@ function ProviderUsageTable({
         title="Provider usage"
       >
         {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState>No provider usage groups yet.</EmptyState>
+          <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
+            No provider usage groups yet.
+          </EmptyState>
         ) : (
           <TableScroll>
             <Table>
@@ -742,7 +748,9 @@ function ProviderLatencyTable({
         title="Provider latency"
       >
         {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState>No provider latency groups yet.</EmptyState>
+          <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
+            No provider latency groups yet.
+          </EmptyState>
         ) : (
           <TableScroll>
             <Table>
@@ -799,7 +807,9 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   return (
     <BreakdownCard label="Current filter" title="Session health">
       {total === 0 ? (
-        <EmptyState>No sessions in this filter window.</EmptyState>
+        <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
+          No sessions in this filter window.
+        </EmptyState>
       ) : (
         <div className="grid gap-2">
           <strong className="text-2xl font-semibold leading-none">
