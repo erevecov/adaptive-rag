@@ -1609,7 +1609,7 @@ describe('App chat workspace', () => {
         proposed_text: 'Document this deployment exception for import retries.',
       }),
     )
-    expect(await screen.findByText('approved')).toBeTruthy()
+    expect(await screen.findByText('Approved')).toBeTruthy()
     expect(
       screen.queryByText(/limit .* results/),
     ).toBeNull()
@@ -1837,7 +1837,7 @@ describe('App chat workspace', () => {
         proposed_text: 'Approval draft knowledge.',
       }),
     )
-    expect(await screen.findByText('approved')).toBeTruthy()
+    expect(await screen.findByText('Approved')).toBeTruthy()
   })
 
   test('creates users and assigns project membership from authoring', async () => {
