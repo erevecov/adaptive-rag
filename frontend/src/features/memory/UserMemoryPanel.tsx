@@ -691,7 +691,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions className="gap-1.5">
                           <Button
-                            aria-label="Confirm remove from injection"
+                            aria-label="Confirm Remove From Injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
                             onClick={() => void handleReject(memory)}
@@ -699,7 +699,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             type="button"
                             variant="danger"
                           >
-                            Confirm remove
+                            Confirm Remove
                           </Button>
                           <Button
                             disabled={busy}
@@ -728,7 +728,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           type="button"
                           variant="secondary"
                         >
-                          Remove from injection
+                          Remove From Injection
                         </Button>
                       )
                     ) : null}

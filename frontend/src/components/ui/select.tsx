@@ -53,7 +53,7 @@ export function Select({
         aria-labelledby={ariaLabelledBy}
         className={cn(
           [
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground max-[680px]:min-h-11',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:px-2.5 max-[680px]:text-base',
             'motion-safe:transition-colors placeholder:text-muted-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
@@ -78,7 +78,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:p-1.5',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:p-1.5',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
@@ -92,7 +92,7 @@ export function Select({
               <SelectPrimitive.Item
                 className={cn(
                   [
-                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm outline-none',
+                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-2.5',
                     'text-popover-foreground motion-safe:transition-colors',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
