@@ -116,7 +116,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           return
         }
         const tally = tallyResponse.items
-        setItems(listResponse.items)
+        setItems(sortMemoriesForFilter(listResponse.items, statusFilter))
         setInjectableCount(
           tally.filter((item) => item.status === 'approved').length,
         )
@@ -162,7 +162,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               status: statusFilter,
             })
       const tally = tallyResponse.items
-      setItems(response.items)
+      setItems(sortMemoriesForFilter(response.items, statusFilter))
       setInjectableCount(
         tally.filter((item) => item.status === 'approved').length,
       )
@@ -829,6 +829,22 @@ function statusTone(
     return 'danger'
   }
   return 'neutral'
+}
+
+
+function sortMemoriesForFilter(
+  items: UserMemory[],
+  filter: MemoryStatusFilter,
+): UserMemory[] {
+  if (filter !== 'all') {
+    return items
+  }
+  const rank: Record<UserMemoryStatus, number> = {
+    proposed: 0,
+    approved: 1,
+    rejected: 2,
+  }
+  return [...items].sort((left, right) => rank[left.status] - rank[right.status])
 }
 
 function focusAfterReview(memoryId: string, rowIndex: number): void {

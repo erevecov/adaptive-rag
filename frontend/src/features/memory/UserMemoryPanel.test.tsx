@@ -516,4 +516,29 @@ describe('UserMemoryPanel', () => {
     )
   })
 
+  test('lists Proposed before Approved on the All filter', async () => {
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-approved', status: 'approved' }),
+        memory({ content: 'Needs review', id: 'mem-proposed', status: 'proposed' }),
+        memory({ content: 'Dropped', id: 'mem-rejected', status: 'rejected' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Needs review')).toBeTruthy()
+    const texts = screen.getAllByText(/Needs review|Live preference|Dropped/)
+    expect(texts.map((node) => node.textContent)).toEqual([
+      'Needs review',
+      'Live preference',
+      'Dropped',
+    ])
+  })
+
 })
