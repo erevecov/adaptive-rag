@@ -69,7 +69,7 @@ describe('RetrievalPlaygroundPanel', () => {
 
     expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
     expect(screen.getByText('Ready').getAttribute('data-tone')).toBe('neutral')
-    const rerankHelp = screen.getByText(/Enable Rerank to edit candidate limit/)
+    const rerankHelp = screen.getByText(/Enable Rerank to Edit Candidate Limit/)
     expect(rerankHelp.getAttribute('data-slot')).toBe('field-help')
     expect(
       screen.getByLabelText('Rerank candidates').getAttribute('aria-describedby'),

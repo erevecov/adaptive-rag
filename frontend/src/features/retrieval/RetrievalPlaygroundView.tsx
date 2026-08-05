@@ -197,7 +197,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
               {!rerankEnabled ? (
                 <FieldHelp id="rerank-limit-help">
-                  Enable Rerank to edit candidate limit.
+                  Enable Rerank to Edit Candidate Limit.
                 </FieldHelp>
               ) : null}
             </Field>

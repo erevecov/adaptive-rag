@@ -647,7 +647,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
   const rows = getStatusBreakdown(summary.sessions.by_status)
 
   return (
-    <BreakdownCard label={`${summary.sessions.total} total`} title="Status Breakdown">
+    <BreakdownCard label={`${summary.sessions.total} Total`} title="Status Breakdown">
       {rows.length === 0 ? (
         <EmptyState className="p-3 text-left" data-slot-state="empty" role="status">
           No Status Data Yet.
