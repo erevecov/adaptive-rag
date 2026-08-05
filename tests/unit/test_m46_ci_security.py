@@ -22,6 +22,7 @@ def test_bandit_scan_of_src_exits_zero() -> None:
 
     bandit = shutil.which("bandit")
     if bandit is None:
+        # Match CI: `uv tool run bandit`
         cmd = ["uv", "tool", "run", "bandit", "-r", "src", "-q"]
     else:
         cmd = [bandit, "-r", "src", "-q"]
