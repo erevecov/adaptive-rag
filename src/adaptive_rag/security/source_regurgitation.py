@@ -12,6 +12,8 @@ Design choices (deterministic, no LLM):
 - Default threshold is conservative (200 characters) so short quotes and
   normal grounded answers are left alone.
 - Empty source list or short chunks are a no-op passthrough.
+- Answer/source lengths and source count are capped so the O(n*m) LCS DP
+  cannot CPU-spike on oversized model outputs or retrieval payloads.
 """
 
 from __future__ import annotations
@@ -22,6 +24,11 @@ REGURGITATION_MARKER = "[source excerpt redacted]"
 
 # Spans shorter than this never count as regurgitation.
 DEFAULT_MIN_SPAN_CHARS = 200
+
+# Bounds for the classic LCS-substring DP (O(n*m) per source).
+MAX_ANSWER_CHARS = 16_000
+MAX_SOURCE_CHARS = 8_000
+MAX_SOURCE_TEXTS = 20
 
 
 def find_regurgitation_spans(
@@ -35,21 +42,33 @@ def find_regurgitation_spans(
     A span is reported only when a contiguous substring of length
     ``min_span_chars`` or more appears in both the answer and at least one
     source text.
+
+    Matching considers at most the first ``MAX_ANSWER_CHARS`` of ``answer``,
+    the first ``MAX_SOURCE_TEXTS`` sources, and the first ``MAX_SOURCE_CHARS``
+    of each source, so DP cost stays bounded.
     """
 
     if not answer or not source_texts or min_span_chars <= 0:
         return []
+    # Early exit: nothing as long as the threshold can exist in the answer.
     if len(answer) < min_span_chars:
         return []
 
+    answer_window = answer[:MAX_ANSWER_CHARS]
+    if len(answer_window) < min_span_chars:
+        return []
+
     raw: list[tuple[int, int]] = []
-    for source in source_texts:
-        if not source or len(source) < min_span_chars:
+    for source in source_texts[:MAX_SOURCE_TEXTS]:
+        if not source:
+            continue
+        source_window = source[:MAX_SOURCE_CHARS]
+        if len(source_window) < min_span_chars:
             continue
         raw.extend(
             _longest_common_substring_spans(
-                answer,
-                source,
+                answer_window,
+                source_window,
                 min_span_chars=min_span_chars,
             )
         )
@@ -136,6 +155,9 @@ def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
 
 __all__ = [
     "DEFAULT_MIN_SPAN_CHARS",
+    "MAX_ANSWER_CHARS",
+    "MAX_SOURCE_CHARS",
+    "MAX_SOURCE_TEXTS",
     "REGURGITATION_MARKER",
     "filter_source_regurgitation",
     "find_regurgitation_spans",

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import time
 from uuid import uuid4
+
+import pytest
 
 from adaptive_rag.chat import ChatRequest, ChatService
 from adaptive_rag.chat.models import ChatRunnerOutput, ChatRunnerRequest
 from adaptive_rag.chat.tools import ChatTools
+from adaptive_rag.security import source_regurgitation as regurg_mod
 from adaptive_rag.security.source_regurgitation import (
     DEFAULT_MIN_SPAN_CHARS,
     REGURGITATION_MARKER,
@@ -63,6 +67,13 @@ def test_empty_sources_are_passthrough() -> None:
     assert cleaned is answer or cleaned == answer
 
 
+def test_answer_shorter_than_min_span_early_exits() -> None:
+    answer = "too short to regurgitate"
+    cleaned, count = filter_source_regurgitation(answer, [_CHUNK])
+    assert count == 0
+    assert cleaned == answer
+
+
 def test_find_spans_merges_overlapping_matches() -> None:
     # Two overlapping windows of the same long dump should merge to one span.
     answer = f"PREFIX {_CHUNK} SUFFIX"
@@ -83,6 +94,46 @@ def test_min_span_override_catches_shorter_dump() -> None:
     assert count == 1
     assert snippet not in cleaned
     assert REGURGITATION_MARKER in cleaned
+
+
+def test_oversized_inputs_return_without_hanging_and_redact_in_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Caps bound LCS DP; matches inside the truncated window still redact.
+
+    Monkeypatch uses smaller caps so the assertion is fast in CI while still
+    exercising payloads that would be O(huge²) without truncation/count limits.
+    """
+
+    monkeypatch.setattr(regurg_mod, "MAX_ANSWER_CHARS", 800)
+    monkeypatch.setattr(regurg_mod, "MAX_SOURCE_CHARS", 600)
+    monkeypatch.setattr(regurg_mod, "MAX_SOURCE_TEXTS", 3)
+
+    dump = ("VERBATIM-SOURCE-COPY-" * 15)[:220]
+    assert len(dump) >= DEFAULT_MIN_SPAN_CHARS
+
+    # Far beyond the patched caps — without bounds this is multi-minute work.
+    huge = 80_000
+    answer = f"Intro {dump} " + ("A" * huge)
+    sources = [
+        dump + ("B" * huge),
+        "C" * huge,
+        "D" * huge,
+        # Past MAX_SOURCE_TEXTS: must be ignored even if present.
+        ("IGNORED-BECAUSE-SOURCE-CAP-" * 12)[:220] + ("E" * huge),
+    ]
+
+    started = time.perf_counter()
+    cleaned, count = filter_source_regurgitation(answer, sources)
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < 2.0, f"regurgitation filter too slow: {elapsed:.2f}s"
+    assert count == 1
+    assert dump not in cleaned
+    assert REGURGITATION_MARKER in cleaned
+    assert "Intro" in cleaned
+    # Tail beyond the match stays (redaction only rewrites the dump span).
+    assert "A" * 1000 in cleaned
 
 
 class _RegurgRunner:
