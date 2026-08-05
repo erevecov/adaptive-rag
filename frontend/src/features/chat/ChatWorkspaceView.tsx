@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1'
+  'size-auto shrink-0 rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -190,7 +190,7 @@ export function ChatWorkspacePanel({
                 className={cn(
                   'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border/50 bg-muted px-4 py-2.5 text-sm leading-relaxed',
                   'placeholder:text-muted-foreground',
-                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1',
+                  'focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
                 id="chat-question"
                 name="question"
@@ -206,14 +206,26 @@ export function ChatWorkspacePanel({
                   el.style.height = `${Math.min(el.scrollHeight, 192)}px`
                 }}
                 onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  if (event.key === 'Escape' && isAsking) {
                     event.preventDefault()
+                    onCancelRequest()
+                    return
+                  }
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    if (isAsking || question.trim().length === 0) {
+                      return
+                    }
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
                 placeholder="Ask a question about indexed sources"
                 rows={2}
-                title="Enter to send · Shift+Enter for a new line"
+                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
               />
             </FieldControl>
@@ -423,17 +435,17 @@ function ResponsePanel({
             Retrieving sources and drafting an answer
           </p>
           <div aria-hidden="true" className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4">
-            <div className="h-2.5 w-1/3 animate-pulse rounded-full bg-muted" />
+            <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted" />
             <div className="space-y-2">
-              <div className="h-3 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-11/12 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="h-3 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted" />
+              <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted" />
             </div>
             <div className="flex gap-1.5 pt-1">
-              <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
-              <div className="h-5 w-14 animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted" />
+              <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted" />
             </div>
           </div>
         </div>
@@ -490,18 +502,39 @@ function ResponsePanel({
     )
   }
 
+  const terminalBanner =
+    state === 'failed' || state === 'canceled' ? (
+      <div
+        data-slot="chat-terminal-banner"
+        data-slot-state={state}
+      >
+        <InlineFeedback
+          className="mx-0.5"
+          role={state === 'failed' ? 'alert' : 'status'}
+          tone={state === 'failed' ? 'danger' : 'neutral'}
+        >
+          {state === 'failed'
+            ? 'Request failed. Partial answer below may be incomplete.'
+            : 'Request canceled. Partial answer below was not stored as a finished turn.'}
+        </InlineFeedback>
+      </div>
+    ) : null
+
   return (
-    <ResponseContent
-      drafts={drafts}
-      onOpenSource={onOpenSource}
-      onRefineKnowledgeDraft={onRefineKnowledgeDraft}
-      onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
-      providerUsage={providerUsage}
-      question={question}
-      response={response}
-      setDrafts={setDrafts}
-      state={state}
-    />
+    <div className="grid gap-3">
+      {terminalBanner}
+      <ResponseContent
+        drafts={drafts}
+        onOpenSource={onOpenSource}
+        onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+        onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+        providerUsage={providerUsage}
+        question={question}
+        response={response}
+        setDrafts={setDrafts}
+        state={state}
+      />
+    </div>
   )
 }
 
@@ -669,7 +702,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat response" className="grid gap-4">
+    <div aria-label="Chat response" className="grid gap-4" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -695,6 +728,7 @@ function ResponseContent({
               aria-label="Answer citations"
               className="mt-3 flex flex-wrap gap-1.5 border-t border-border/50 pt-2.5"
               data-slot="chat-answer-citations"
+              role="group"
             >
               {response.citations.map((citation, index) => {
                 const label =
@@ -708,6 +742,7 @@ function ResponseContent({
                 ].join('-')
                 return (
                   <Button
+                    aria-label={`View source ${label}`}
                     className="h-auto max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] font-medium"
                     key={chipKey}
                     onClick={() =>

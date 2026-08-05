@@ -486,7 +486,7 @@ function ProjectList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No projects yet.</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Create a project above to start indexing sources.
         </p>
       </EmptyState>
@@ -1048,7 +1048,11 @@ function SourcesPanel({
             type="button"
             variant="secondary"
           >
-            {isBusy ? 'Refreshing...' : 'Refresh sources'}
+            <ButtonLabel
+              busy={isBusy}
+              busyLabel="Refreshing…"
+              idleLabel="Refresh sources"
+            />
           </Button>
         </div>
       </form>
@@ -1088,7 +1092,7 @@ function SourceList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No sources yet.</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
@@ -1198,6 +1202,7 @@ function KnowledgeReviewPanel({
 }) {
   return (
     <AuthoringSectionPanel
+      ariaBusy={isBusy}
       ariaLabel="Authoring knowledge"
       description="Review and refine pending knowledge proposals."
       eyebrow="Knowledge"
@@ -1212,14 +1217,26 @@ function KnowledgeReviewPanel({
           type="button"
           variant="secondary"
         >
-          {isBusy ? 'Refreshing...' : 'Refresh proposals'}
+          <ButtonLabel
+            busy={isBusy}
+            busyLabel="Refreshing…"
+            idleLabel="Refresh proposals"
+          />
         </Button>
       </div>
 
       {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
-      {proposals.length === 0 ? (
-        <EmptyState>No pending knowledge proposals loaded.</EmptyState>
+      {isBusy && proposals.length === 0 ? (
+        <LoadingListState label="Loading proposals…" />
+      ) : proposals.length === 0 ? (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="empty"
+          role="status"
+        >
+          No pending knowledge proposals loaded.
+        </EmptyState>
       ) : (
         <DataList aria-label="Knowledge proposals">
           {proposals.map((proposal) => {
@@ -1416,7 +1433,7 @@ function IngestionJobList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No ingestion jobs yet.</p>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>

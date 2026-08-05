@@ -204,7 +204,12 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(screen.getByText('$0.0123')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'View source architecture.md' }))
+    await user.click(
+      within(screen.getByRole('region', { name: 'Sources detail' })).getByRole(
+        'button',
+        { name: 'View source architecture.md' },
+      ),
+    )
     expect(props.onOpenSource).toHaveBeenCalledWith(
       'source-1',
       'Architecture notes mention adaptive retrieval.',
@@ -220,7 +225,7 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'succeeded',
       response,
     })
-    const chip = screen.getByRole('button', { name: 'architecture.md' })
+    const chip = screen.getByRole('button', { name: 'Open source architecture.md' })
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
@@ -279,6 +284,60 @@ describe('ChatWorkspacePanel', () => {
     expect(canceledState).toBeTruthy()
     expect(canceledState?.textContent).toContain('Request canceled.')
     canceled.view.unmount()
+
+    const canceledPartial = renderChatWorkspace({
+      requestState: 'canceled',
+      response,
+    })
+    const canceledBanner = canceledPartial.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
+    )
+    expect(canceledBanner).toBeTruthy()
+    expect(canceledBanner?.textContent).toMatch(/Request canceled/)
+    expect(canceledBanner?.querySelector('[role="status"]')).toBeTruthy()
+    expect(
+      canceledPartial.view.container.querySelector('[data-slot="chat-message"]'),
+    ).toBeTruthy()
+    canceledPartial.view.unmount()
+
+    const failedPartial = renderChatWorkspace({
+      requestError: 'Upstream timeout',
+      requestState: 'failed',
+      response,
+    })
+    const failedBanner = failedPartial.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
+    )
+    expect(failedBanner).toBeTruthy()
+    expect(failedBanner?.textContent).toMatch(/Request failed/)
+    expect(failedBanner?.querySelector('[role="alert"]')).toBeTruthy()
+    failedPartial.view.unmount()
+  })
+
+  test('Enter on empty question does not submit', async () => {
+    const userDriver = userEvent.setup()
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+    })
+    const { view } = renderChatWorkspace({
+      onSubmit,
+      question: '   ',
+      requestState: 'idle',
+      response: null,
+    })
+
+    await userDriver.type(screen.getByLabelText('Question'), '{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="failed"]',
+      ),
+    ).toBeNull()
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="empty"]',
+      ),
+    ).toBeTruthy()
   })
 
   test('renders empty transcript and beflow-like composer layout', () => {
@@ -404,6 +463,56 @@ describe('ChatWorkspacePanel', () => {
       ),
     ).toBe('false')
     expect(view.container.querySelector('#chat-composer')).toBeTruthy()
+  })
+
+  test('shows terminal banner when cancel/fail keeps a partial response', () => {
+    const canceled = renderChatWorkspace({
+      requestState: 'canceled',
+      response: { ...response, answer: 'Partial before cancel' },
+    })
+    const banner = canceled.view.container.querySelector(
+      '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
+    )
+    expect(banner).toBeTruthy()
+    expect(banner?.textContent).toMatch(/Request canceled/)
+    expect(screen.getByText('Partial before cancel')).toBeTruthy()
+    canceled.view.unmount()
+
+    const failed = renderChatWorkspace({
+      requestState: 'failed',
+      response: { ...response, answer: 'Partial before fail' },
+    })
+    expect(
+      failed.view.container.querySelector(
+        '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
+      )?.textContent,
+    ).toMatch(/Request failed/)
+    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/)
+    failed.view.unmount()
+  })
+
+  test('blocks Enter submit while asking and cancels on Escape', async () => {
+    const user = userEvent.setup()
+    const onCancelRequest = vi.fn()
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+    })
+    renderChatWorkspace({
+      isAsking: true,
+      onCancelRequest,
+      onSubmit,
+      question: 'still typing',
+      requestState: 'loading',
+      response: null,
+    })
+
+    const textarea = screen.getByLabelText('Question')
+    await user.click(textarea)
+    await user.keyboard('{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+
+    await user.keyboard('{Escape}')
+    expect(onCancelRequest).toHaveBeenCalledTimes(1)
   })
 
   test('maps knowledge draft status badges to lifecycle tones', () => {
