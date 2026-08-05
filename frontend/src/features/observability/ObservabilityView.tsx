@@ -272,6 +272,20 @@ function ObservabilityContent({
         </EmptyState>
       )
     }
+    if (state === 'canceled') {
+      return (
+        <EmptyState
+          className="border-border/60 bg-muted/20 p-4 text-left"
+          data-slot-state="canceled"
+          role="status"
+        >
+          <p className="font-medium text-foreground/90">Refresh canceled.</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            No summary loaded. Run refresh again when ready.
+          </p>
+        </EmptyState>
+      )
+    }
     return (
       <EmptyState data-slot-state="empty" role="status">
         {EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}
@@ -680,7 +694,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               key={error.message}
             >
               <strong className="break-words text-sm font-semibold">
-                {error.message}
+                {operatorSafeMessage(error.message, error.message)}
               </strong>
               <Badge>{formatCount(error.count, 'occurrence')}</Badge>
             </DataListItem>
@@ -825,7 +839,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
         </EmptyState>
       ) : (
         <div className="grid gap-2">
-          <strong className="text-2xl font-semibold leading-none">
+          <strong className="text-2xl font-semibold leading-none tabular-nums">
             {formatPercent(succeeded, total)} success
           </strong>
           <span className="text-sm text-muted-foreground">

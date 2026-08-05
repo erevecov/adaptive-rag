@@ -518,7 +518,7 @@ function ProjectList({
         const roleLabel = isDeleted
           ? 'Deleted'
           : canAccess
-            ? (project.access_role ?? project.embedding_mode)
+            ? titleCaseStatus(project.access_role ?? project.embedding_mode)
             : 'No access'
         return (
           <DataListItem
@@ -1383,7 +1383,7 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-4">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined text"

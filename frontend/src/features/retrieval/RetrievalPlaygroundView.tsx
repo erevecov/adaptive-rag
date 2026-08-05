@@ -313,7 +313,7 @@ export function RetrievalPlaygroundPanel({
                       {result.score.toFixed(4)}
                     </Badge>
                     <StatusBadge tone="neutral">
-                      {result.strategy ?? '—'}
+                      {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
                       <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground">
@@ -326,9 +326,9 @@ export function RetrievalPlaygroundPanel({
                       {result.citation.source_external_id}
                     </strong>
                     <small className="text-xs text-muted-foreground">
-                      {result.citation.source_type}
+                      {retrievalSourceTypeDisplay(result.citation.source_type)}
                       {result.fallback_reason
-                        ? ` · fallback: ${result.fallback_reason}`
+                        ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
                     <p className="line-clamp-4 whitespace-pre-wrap text-sm text-muted-foreground">
@@ -384,4 +384,38 @@ function formatError(error: unknown): string {
     return operatorSafeMessage(error.message)
   }
   return 'Retrieval search failed.'
+}
+
+function retrievalStrategyDisplay(strategy: string | null | undefined): string {
+  if (strategy == null || strategy.trim().length === 0) {
+    return '—'
+  }
+  const match = STRATEGY_OPTIONS.find((option) => option.value === strategy)
+  if (match) {
+    return match.label.replace(/ \(default\)$/, '')
+  }
+  return strategy.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function retrievalSourceTypeDisplay(sourceType: string): string {
+  switch (sourceType) {
+    case 'markdown':
+      return 'Markdown'
+    case 'text':
+      return 'Text'
+    case 'txt':
+      return 'Txt'
+    case 'url':
+      return 'URL'
+    case 'pdf':
+      return 'PDF'
+    case 'docx':
+      return 'DOCX'
+    default:
+      return sourceType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+}
+
+function retrievalFallbackDisplay(reason: string): string {
+  return reason.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }

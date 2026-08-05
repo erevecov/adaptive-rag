@@ -316,6 +316,22 @@ describe('ObservabilityPanel', () => {
     ).toBeNull()
   })
 
+  test('canceled empty stays distinct from idle and failed empties', () => {
+    const { view } = renderObservabilityPanel({
+      summary: null,
+      state: 'canceled',
+    })
+
+    expect(
+      view.container.querySelector(
+        '[data-slot="empty-state"][data-slot-state="canceled"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText('Refresh canceled.')).toBeTruthy()
+    expect(screen.queryByText(/No observability summary yet/)).toBeNull()
+    expect(screen.queryByText('Summary unavailable.')).toBeNull()
+  })
+
   test('failed refresh with prior summary shows stale banner', () => {
     const { view } = renderObservabilityPanel({
       error: 'refresh failed',

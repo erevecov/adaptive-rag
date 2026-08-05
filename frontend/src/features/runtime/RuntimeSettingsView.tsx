@@ -561,7 +561,9 @@ export function RuntimeConnectionsPanel({
                           {connectionTypeLabel(connection.connection_type)}
                         </Badge>
                         <Badge className="max-w-full truncate" tone="neutral">
-                          {connection.capabilities.join(', ')}
+                          {connection.capabilities
+                            .map((capability) => slotLabel(capability))
+                            .join(', ')}
                         </Badge>
                         {isChecking ? (
                           <StatusBadge role="status" tone="warning">
@@ -1026,7 +1028,9 @@ export function RuntimeModelCatalogPanel({
                     {selectedConnection.connection_id}
                   </small>
                   <Badge tone="neutral">
-                    {selectedConnection.capabilities.join(', ')}
+                    {selectedConnection.capabilities
+                      .map((capability) => slotLabel(capability))
+                      .join(', ')}
                   </Badge>
                   {selectedConnection.base_url ? (
                     <small className="break-all text-xs text-muted-foreground">
@@ -1765,16 +1769,19 @@ export function ProviderModelCatalogView({
                   {model.model_id}
                 </strong>
                 <small className="text-xs text-muted-foreground">
-                  {model.connection_id} / {model.capabilities.join(', ')}
+                  {model.connection_id} /{' '}
+                  {model.capabilities
+                    .map((capability) => slotLabel(capability))
+                    .join(', ')}
                 </small>
                 {model.pricing ? (
                   <small className="text-xs text-muted-foreground">
-                    pricing metadata saved
+                    Pricing metadata saved
                   </small>
                 ) : null}
               </div>
               <Badge tone={model.pricing ? 'primary' : 'neutral'}>
-                {model.pricing ? 'pricing' : 'metadata'}
+                {model.pricing ? 'Pricing' : 'Metadata'}
               </Badge>
             </DataListItem>
           ))}

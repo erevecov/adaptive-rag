@@ -103,6 +103,8 @@ describe('RetrievalPlaygroundPanel', () => {
     const doneBadge = screen.getByText('Done')
     expect(doneBadge.getAttribute('data-slot')).toBe('badge')
     expect(doneBadge.getAttribute('data-tone')).toBe('success')
+    expect(screen.getByText('Dense + sparse')).toBeTruthy()
+    expect(screen.getByText('Text')).toBeTruthy()
   })
 
   test('requires project and non-empty query', async () => {
