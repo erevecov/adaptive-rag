@@ -53,7 +53,7 @@
 - M47 Query routing medible: completo.
 - M48 Knowledge lifecycle (dedup/resync): completo.
 - M49 MCP stdio minimo: completo.
-- M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
+- M50 Dense reindex + contextualizacion LLM opt-in: completo.
 - Bloque experimental (graph live o no_go, LLM-as-judge, memory minima, retrieval playground): diferido.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
@@ -1920,10 +1920,10 @@ Estado: completo (2026-08-05).
 
 #### M50 Dense reindex + contextualizacion LLM opt-in
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
-- `dense reindex` por proyecto con watermark y report JSON.
-- Slot contextualization con provider LLM opt-in + A/B vs deterministico.
+- CLI `dense reindex` por proyecto con force, watermark y report JSON.
+- CLI `contextualize reindex` / `ab-compare` con slot `llm_opt_in` vs deterministico.
 
 ### Bloque C — Experimental / por decision
 

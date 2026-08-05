@@ -123,6 +123,7 @@ class DenseEmbeddingPipeline:
         *,
         project_id: UUID,
         document_version_id: UUID,
+        force: bool = False,
     ) -> DenseEmbeddingRunResult:
         document_version = self._document_repo.get_version(
             project_id=project_id,
@@ -147,7 +148,7 @@ class DenseEmbeddingPipeline:
         pending_inputs = [
             embedding_input
             for embedding_input in inputs
-            if not self._has_current_embedding(embedding_input)
+            if force or not self._has_current_embedding(embedding_input)
         ]
         if not pending_inputs:
             return DenseEmbeddingRunResult(

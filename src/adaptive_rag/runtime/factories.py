@@ -9,7 +9,11 @@ from sqlalchemy.orm import Session
 from adaptive_rag.chat import ChatRunner, QwenChatRunner, RetrievalGroundedChatRunner
 from adaptive_rag.chat.qwen import QwenHTTPChatClient
 from adaptive_rag.config.settings import Settings, get_settings
-from adaptive_rag.contextualization import Contextualizer, DeterministicContextualizer
+from adaptive_rag.contextualization import (
+    Contextualizer,
+    DeterministicContextualizer,
+    OptInLlmContextualizer,
+)
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
@@ -159,7 +163,9 @@ def get_contextualizer(
     )
     if resolved is None:
         return DeterministicContextualizer()
-    if resolved.provider not in {"fake", "local_openai_compatible"}:
+    if resolved.provider in {"llm_opt_in", "llm"}:
+        return OptInLlmContextualizer(model_name=resolved.model_id)
+    if resolved.provider not in {"fake", "local_openai_compatible", "local"}:
         raise ProviderConfigurationError(
             f"unsupported contextualization provider: {resolved.provider}"
         )

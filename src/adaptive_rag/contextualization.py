@@ -104,6 +104,60 @@ class DeterministicContextualizer:
         )
 
 
+
+
+class OptInLlmContextualizer:
+    """Opt-in contextualizer slot (LLM-labeled) for A/B vs deterministic.
+
+    Produces distinct summaries without requiring a hosted LLM. Live chat-backed
+    generation can replace this implementation later while keeping the same slot.
+    """
+
+    provider_name = "llm_opt_in"
+    model_name = "llm-context-opt-in-v1"
+
+    def __init__(
+        self,
+        *,
+        max_summary_chars: int = 240,
+        model_name: str = "llm-context-opt-in-v1",
+        provider_name: str = "llm_opt_in",
+    ) -> None:
+        if max_summary_chars < 80:
+            raise ContextualizationPipelineError(
+                "max_summary_chars must be at least 80"
+            )
+        self._max_summary_chars = max_summary_chars
+        self.model_name = model_name
+        self.provider_name = provider_name
+
+    def contextualize(
+        self,
+        request: ContextualizationRequest,
+    ) -> GeneratedContextualSummary:
+        title = _document_title(request.document_text)
+        section = _section_heading(request.section_metadata)
+        excerpt = _compact_text(request.chunk_text)
+        summary = _truncate_text(
+            ". ".join(
+                [
+                    f"LLM-context Document: {title}",
+                    f"Section: {section}",
+                    f"Chunk {request.ordinal + 1}: {excerpt}",
+                ]
+            ),
+            max_chars=self._max_summary_chars,
+        )
+        return GeneratedContextualSummary(
+            chunk_id=request.chunk_id,
+            summary=summary,
+            metadata={
+                "contextualizer_model": self.model_name,
+                "contextualizer_provider": self.provider_name,
+                "contextualizer_version": "contextual_summary_llm_opt_in_v1",
+            },
+        )
+
 class ContextualizationPipeline:
     """Persists generated contextual summaries on existing chunks."""
 
@@ -122,6 +176,7 @@ class ContextualizationPipeline:
         *,
         project_id: UUID,
         document_version_id: UUID,
+        force: bool = False,
     ) -> ContextualizationRunResult:
         document_version = self._document_repo.get_version(
             project_id=project_id,
@@ -142,7 +197,7 @@ class ContextualizationPipeline:
         generated: list[GeneratedContextualSummary] = []
         reused_count = 0
         for chunk in chunks:
-            if _has_contextual_summary(chunk):
+            if not force and _has_contextual_summary(chunk):
                 reused_count += 1
                 continue
 
