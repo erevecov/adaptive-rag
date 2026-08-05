@@ -138,6 +138,70 @@ def test_multi_turn_same_session_and_history() -> None:
     assert roles == ["user", "assistant", "user", "assistant"]
 
 
+def test_multi_turn_stream_same_session_history_and_condense() -> None:
+    """Stream path must continue session_id with history + condensed retrieval."""
+
+    audit = InMemoryChatAuditWriter()
+    runner = RecordingRunner()
+    chunk_id = uuid4()
+    retrieval = StaticRetrieval([_result(chunk_id, "stream multi-turn evidence")])
+    service = ChatService(
+        runner=runner,
+        retrieval_service=retrieval,
+        audit_writer=audit,
+        query_condenser=DeterministicQueryCondenser(),
+    )
+    project_id = uuid4()
+
+    first_events = list(
+        service.stream(
+            ChatRequest(
+                project_id=project_id,
+                message="What is Adaptive RAG indexing?",
+            )
+        )
+    )
+    first_final = next(event for event in first_events if event.event == "final")
+    first_session_id = first_final.data["session_id"]
+    assert first_session_id is not None
+
+    second_events = list(
+        service.stream(
+            ChatRequest(
+                project_id=project_id,
+                session_id=UUID(first_session_id),
+                message="Why does it matter?",
+            )
+        )
+    )
+    session_started = next(
+        event for event in second_events if event.event == "session_started"
+    )
+    assert session_started.data["session_id"] == first_session_id
+    second_final = next(event for event in second_events if event.event == "final")
+    assert second_final.data["session_id"] == first_session_id
+
+    assert len(runner.requests) == 2
+    follow_up = runner.requests[1]
+    assert len(follow_up.history) == 2
+    assert follow_up.history[0].content == "What is Adaptive RAG indexing?"
+    assert follow_up.retrieval_query is not None
+    assert "Adaptive RAG indexing" in follow_up.retrieval_query
+    assert retrieval.requests[-1].query == follow_up.retrieval_query
+
+    history_turns = audit.list_history_turns(
+        project_id=project_id,
+        session_id=UUID(first_session_id),
+        limit=20,
+    )
+    assert [role for role, _ in history_turns] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+
+
 def test_grounded_runner_uses_retrieval_query() -> None:
     chunk_id = uuid4()
     retrieval = StaticRetrieval([_result(chunk_id, "condensed hit")])

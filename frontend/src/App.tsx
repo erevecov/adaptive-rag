@@ -1295,6 +1295,118 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleDeleteProject(project: Project) {
+    const confirmed = window.confirm(
+      `Soft-delete project "${project.name}"? This hides it from lists.`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setProjectAuthoringState('loading')
+    setProjectAuthoringError(null)
+    try {
+      await client.deleteProject(project.id)
+      setProjects((current) => current.filter((item) => item.id !== project.id))
+      if (projectId === project.id) {
+        setSelectedProjectId('')
+        setSources([])
+        setIngestionJobs([])
+        setIngestionRun(null)
+      }
+      setProjectAuthoringState('succeeded')
+    } catch (error) {
+      setProjectAuthoringState('failed')
+      setProjectAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeleteSource(source: Source) {
+    const confirmed = window.confirm(
+      `Soft-delete source "${source.external_id}" and cascade its index?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setSourceAuthoringState('loading')
+    setSourceAuthoringError(null)
+    try {
+      await client.deleteSource(source.project_id, source.id)
+      setSources((current) => current.filter((item) => item.id !== source.id))
+      setSourceAuthoringState('succeeded')
+    } catch (error) {
+      setSourceAuthoringState('failed')
+      setSourceAuthoringError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeleteMembership(membership: ProjectMembership) {
+    const confirmed = window.confirm(
+      `Remove membership for user ${membership.user_id}?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      await client.deleteProjectMembership(
+        membership.project_id,
+        membership.user_id,
+      )
+      setProjectMemberships((current) =>
+        current.filter((item) => item.id !== membership.id),
+      )
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleDeactivateUser(user: User) {
+    const confirmed = window.confirm(
+      `Deactivate user "${user.login}"? They will not authenticate while inactive.`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      const updated = await client.deactivateUser(user.id)
+      setUsers((current) => upsertUser(current, updated))
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
+  async function handleRevokeAccessToken() {
+    const trimmedToken = userAccessToken.trim()
+    if (trimmedToken.length === 0) {
+      setAccessManagementState('failed')
+      setAccessManagementError('Access token is required to revoke.')
+      return
+    }
+    const confirmed = window.confirm(
+      'Revoke this access token? It will stop authenticating immediately.',
+    )
+    if (!confirmed) {
+      return
+    }
+    setAccessManagementState('loading')
+    setAccessManagementError(null)
+    try {
+      await client.revokeAccessToken({ access_token: trimmedToken })
+      setUserAccessToken('')
+      setAccessManagementState('succeeded')
+    } catch (error) {
+      setAccessManagementState('failed')
+      setAccessManagementError(getErrorMessage(error))
+    }
+  }
+
   async function handleRefreshKnowledgeProposals() {
     const trimmedProjectId = projectId.trim()
 
@@ -2392,6 +2504,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onCreateProject={(event) => void handleCreateProject(event)}
                 onCreateSource={(event) => void handleCreateSource(event)}
                 onCreateUser={(event) => void handleCreateUser(event)}
+                onDeactivateUser={(user) => void handleDeactivateUser(user)}
+                onDeleteMembership={(membership) =>
+                  void handleDeleteMembership(membership)
+                }
+                onDeleteProject={(project) => void handleDeleteProject(project)}
+                onDeleteSource={(source) => void handleDeleteSource(source)}
                 onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
                 onApproveKnowledgeProposal={(proposal) =>
                   void handleApproveKnowledgeProposal(proposal)
@@ -2425,6 +2543,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   void handleRejectKnowledgeProposal(proposal)
                 }
                 onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
+                onRevokeAccessToken={() => void handleRevokeAccessToken()}
                 onRunNextIngestion={() => void handleRunNextIngestion()}
                 onSaveProjectMembership={(event) =>
                   void handleSaveProjectMembership(event)
