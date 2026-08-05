@@ -569,7 +569,7 @@ function ResponsePanel({
     ) : null
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 max-[680px]:gap-2">
       {terminalBanner}
       <ResponseContent
         appliedMemories={appliedMemories}
@@ -874,7 +874,7 @@ function ResponseContent({
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
-        <section aria-label="Knowledge Drafts" className="grid gap-3">
+        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-2">
           {knowledgeDrafts.map((draft) => (
             <KnowledgeDraftCard
               draft={draft}
