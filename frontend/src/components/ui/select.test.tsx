@@ -41,6 +41,7 @@ describe('Select', () => {
     expect(trigger.className).toContain('motion-safe:transition-colors')
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
+    expect(trigger.querySelector('svg')?.className).toContain('max-[680px]:size-5')
     expect(trigger.getAttribute('data-state')).toBe('closed')
     await user.click(trigger)
 
