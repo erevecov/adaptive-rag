@@ -2,10 +2,18 @@
 
 ## Milestone activo
 
-Bloque B post-v1 en curso. M45–M46 cerrados. Proximo: M47 Query routing.
+Bloque B post-v1 en curso. M45–M47 cerrados. Proximo: M48 Knowledge lifecycle.
 Tag v1.0 sigue siendo decision humana (no creado en este trabajo).
 
 ## Ultimo milestone completado
+
+M47 Query routing medible cerrado el 2026-08-05.
+
+Router por reglas (`skip_retrieval` / `dense_sparse` / `graph`), cableado en
+`ChatRetrievalTool`, suite `eval_routing` CI-safe y decision record. OpenSpec
+`m47-query-routing`. **No se creo tag v1.0.**
+
+## Milestone anterior completado
 
 M46 Security pack cerrado el 2026-08-05.
 
@@ -158,9 +166,9 @@ camino de producto UI/API; el tag espera ese cierre.
 
 ## Change OpenSpec activo
 
-No active changes found. M46 archivado en
-`openspec/changes/archive/2026-08-05-m46-security-pack/`.
-Proximo: OpenSpec `m47-query-routing` (o nombre equivalente).
+No active changes found. M47 archivado en
+`openspec/changes/archive/2026-08-05-m47-query-routing/`.
+Proximo: OpenSpec `m48-knowledge-lifecycle` (o nombre equivalente).
 
 ## Planificacion reciente
 

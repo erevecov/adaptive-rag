@@ -50,7 +50,7 @@
 - Tag v1.0 humano: solo despues de re-gate con M40–M44.
 - M45 PDF + DOCX ingestion: completo.
 - M46 Security pack: completo.
-- M47 Query routing medible: planificado (post-v1.0).
+- M47 Query routing medible: completo.
 - M48 Knowledge lifecycle (dedup/resync): planificado (post-v1.0).
 - M49 MCP stdio minimo: planificado (post-v1.0).
 - M50 Dense reindex + contextualizacion LLM opt-in: planificado (post-v1.0).
@@ -1895,7 +1895,7 @@ Estado: completo (2026-08-05).
 
 #### M47 Query routing medible
 
-Estado: planificado (post-v1.0).
+Estado: completo (2026-08-05).
 
 - Clasificador liviano (reglas + fallback `dense_sparse`) hacia
   skip-retrieval / dense_sparse / graph-si-ready.

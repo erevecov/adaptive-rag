@@ -306,15 +306,12 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
     assert events[0].data == {"session_id": str(session_id)}
     assert events[1].data["id"] == "answer"
     assert events[1].data["status"] == "start"
-    assert events[2].data == {
-        "detail": {
-            "limit": 2,
-            "query": "alpha evidence",
-            "strategy": "dense_sparse",
-        },
-        "id": "retrieval",
-        "status": "start",
-    }
+    assert events[2].data["id"] == "retrieval"
+    assert events[2].data["status"] == "start"
+    assert events[2].data["detail"]["limit"] == 2
+    assert events[2].data["detail"]["query"] == "alpha evidence"
+    assert events[2].data["detail"]["strategy"] == "dense_sparse"
+    assert events[2].data["detail"]["route"] == "dense_sparse"
     assert events[3].data["id"] == "retrieval"
     assert events[3].data["status"] == "done"
     assert isinstance(events[3].data["elapsed_ms"], int)
