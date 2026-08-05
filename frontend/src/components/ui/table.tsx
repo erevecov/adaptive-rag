@@ -18,7 +18,8 @@ export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
     <div
       className={cn(
         // Vertical max-height so sticky TableHeader can pin while scrolling long tables.
-        'w-full max-h-[min(70vh,36rem)] overflow-auto',
+        'w-full max-h-[min(70vh,36rem)] overflow-auto overscroll-contain',
+        'max-[680px]:max-h-[min(60vh,28rem)]',
         className,
       )}
       ref={ref}

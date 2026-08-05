@@ -11,6 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableScroll,
   tableNumericClass,
 } from './table'
 
