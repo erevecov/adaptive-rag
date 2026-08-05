@@ -1316,17 +1316,17 @@ export function RuntimeGlobalDefaultsPanel({
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
                 <strong className="text-sm font-semibold">
-                  global defaults
+                  Global defaults
                 </strong>
                 <small className="text-xs text-muted-foreground">
-                  limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
+                  Limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
               </div>
               <Badge tone="neutral">
                 {chatRetrievalSettings.rerank_enabled
-                  ? 'rerank on'
-                  : 'rerank off'}
+                  ? 'Rerank on'
+                  : 'Rerank off'}
               </Badge>
             </DataListItem>
           </DataList>
@@ -1624,7 +1624,7 @@ export function ConnectionSecretSummary({
       {connection.secrets.map((secret) => (
         <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secret.secret_name}{' '}
-          {secret.configured ? 'configured' : 'not configured'}
+          {secret.configured ? 'Configured' : 'Not configured'}
           {secret.last_four ? ` / last four ${secret.last_four}` : ''}
         </Badge>
       ))}
@@ -1968,10 +1968,10 @@ export function ProjectRuntimeSettingsView({
           <DataListItem className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
               <strong className="text-sm font-semibold">
-                limit {settings.chat_retrieval.retrieval_limit}
+                Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
               <small className="text-xs text-muted-foreground">
-                candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
+                Candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
                 {settings.chat_retrieval.rerank_enabled ? 'Rerank on' : 'Rerank off'}
               </small>
             </div>

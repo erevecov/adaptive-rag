@@ -3857,7 +3857,7 @@ describe('App chat workspace', () => {
     expect(client.listProviderConnections).toHaveBeenCalled()
     expect((await screen.findAllByText('qwen-hosted')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('local-chat').length).toBeGreaterThan(0)
-    expect(screen.getByText('api_key configured / last four cret')).toBeTruthy()
+    expect(screen.getByText('api_key Configured / last four cret')).toBeTruthy()
     expect(screen.queryByText('sk-hosted-secret')).toBeNull()
     expect(screen.queryByLabelText('Connection ID')).toBeNull()
     expect(screen.queryByLabelText('Secret connection')).toBeNull()

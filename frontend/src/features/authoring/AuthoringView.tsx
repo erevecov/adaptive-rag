@@ -550,7 +550,7 @@ function ProjectList({
                 </small>
                 {isDeleted ? (
                   <small className="text-xs text-muted-foreground">
-                    Soft-deleted{' '}
+                    Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
                 ) : null}
@@ -1230,7 +1230,7 @@ function SourceList({
         const tags =
           Array.isArray(source.tags) && source.tags.length > 0
             ? source.tags.join(', ')
-            : 'no tags'
+            : 'No tags'
         return (
           <DataListItem
             className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -1259,12 +1259,12 @@ function SourceList({
               </small>
               <small className="text-xs text-muted-foreground">
                 {isDeleted
-                  ? `Soft-deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
-                  : `${source.source_type} · ${tags}`}
+                  ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
+                  : `${sourceTypeLabel(source.source_type)} · ${tags}`}
               </small>
             </div>
             <DataListItemActions className="justify-start md:justify-end">
-              <Badge>{source.source_type}</Badge>
+              <Badge>{sourceTypeLabel(source.source_type)}</Badge>
               <Button
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
@@ -1864,6 +1864,25 @@ function titleCaseStatus(status: string): string {
   return status
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function sourceTypeLabel(sourceType: string): string {
+  switch (sourceType) {
+    case 'markdown':
+      return 'Markdown'
+    case 'text':
+      return 'Text'
+    case 'txt':
+      return 'Txt'
+    case 'url':
+      return 'URL'
+    case 'pdf':
+      return 'PDF'
+    case 'docx':
+      return 'DOCX'
+    default:
+      return titleCaseStatus(sourceType)
+  }
 }
 
 function ingestionJobSourceId(job: IngestionJob): string | null {

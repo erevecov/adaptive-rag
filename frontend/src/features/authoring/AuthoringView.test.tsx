@@ -403,7 +403,7 @@ describe('AuthoringPanel', () => {
     }
     renderAuthoringPanel({ projects: [deleted] })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
-    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
+    expect(screen.getByText(/Deleted /)).toBeTruthy()
   })
 
   test('shows per-column empties when users or memberships are missing', () => {
@@ -443,7 +443,7 @@ describe('AuthoringPanel', () => {
       sources: [deletedSource],
     })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
-    expect(screen.getByText(/Soft-deleted/)).toBeTruthy()
+    expect(screen.getByText(/Deleted /)).toBeTruthy()
     cleanup()
 
     const { view } = renderAuthoringPanel({
