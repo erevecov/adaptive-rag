@@ -311,7 +311,7 @@ describe('AuthoringPanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loadingState).toBeTruthy()
-    expect(loadingState?.textContent).toContain('Loading projects')
+    expect(loadingState?.textContent).toContain('Loading Projects')
     view.unmount()
   })
 

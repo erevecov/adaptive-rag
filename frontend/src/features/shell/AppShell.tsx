@@ -873,7 +873,7 @@ function SidebarProjectSelector({
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                {state === 'loading' ? 'Loading projects…' : 'All projects'}
+                {state === 'loading' ? 'Loading Projects…' : 'All Projects'}
               </span>
             </div>
 
