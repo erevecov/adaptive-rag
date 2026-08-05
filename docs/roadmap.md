@@ -57,7 +57,7 @@
 - Bloque C user memory minima: completo (tabla + API + inject; sin UI).
 - Bloque C LLM-as-judge opt-in: completo (`--llm-judge` + budget; fake offline).
 - Bloque C retrieval playground UI: completo.
-- Bloque experimental residual (UI polish sidebar/chat): diferido.
+- Bloque C UI polish sidebar/chat: completo en `main` (#186) e integrado en tip.
   Graph live: hold documentado.
 
 Fuentes del plan unificado (2026-08-05): research Qwen + Kimi en
@@ -1942,7 +1942,8 @@ Estado: completo (2026-08-05).
   live + evidence report).
 - **Retrieval playground** en UI: completo (2026-08-05). Authoring nav +
   `POST .../retrieval/search` client.
-- **UI polish sidebar/chat** (PR separado; no mezcla backend M40+): pendiente.
+- **UI polish sidebar/chat**: completo en `main` (#186 beflow density) y
+  merged into marathon tip (2026-08-05).
 
 ### Anti-roadmap (acuerdo adoptado)
 

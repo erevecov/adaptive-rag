@@ -1,20 +1,19 @@
 # Progreso de Adaptive RAG
 
-## Local re-gate evidence (2026-08-05 tip feat/m50-dense-reindex)
+## Local re-gate evidence (2026-08-05 tip feat/c-retrieval-playground-ui)
 
+- Merged `origin/main` (#186 UI polish sidebar/chat) into tip without force-push.
 - `uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json`
   - status=succeeded release_decision=ready_for_v1_0
 - `uv run adaptive-rag acceptance runtime-settings-smoke --output artifacts/acceptance-runtime-settings-smoke.json`
   - status=succeeded (6 criteria)
-- `uv tool run bandit -r src -q` exit 0 after B101 fix (a8a7fdb + stack backports)
+- Frontend polish + playground tests: 16 passed; tsc/eslint clean on touched UI
 - **No v1.0 tag created** (human only)
-
-
 
 ## Milestone activo
 
-Bloque C residual: UI polish sidebar/chat (PR separado si hay WIP). Stack tip:
-`feat/c-retrieval-playground-ui`. Graph live: hold. Tag v1.0 decision humana.
+Marathon tip ready for human merge to `main`: `feat/c-retrieval-playground-ui`
+(M40–M50 + Bloque C + main polish). Graph live: hold. Tag v1.0 decision humana.
 
 ## Ultimo milestone completado
 
@@ -290,8 +289,8 @@ Proximo opcional: retrieval playground UI o UI polish PR separado.
 
 ## Siguiente tarea recomendada
 
-- Merge stack M40–M50 + Bloque C PRs #197–#199 (human). Residual: UI polish
-  sidebar/chat PR separado si hay WIP local. Tag v1.0 decision humana.
+- Merge marathon tip to `main` (PR tip→main or bottom-up #181 then stack).
+  UI polish already on main (#186) and integrated into tip. Tag v1.0 human.
 
 ## Reglas de coordinacion
 
