@@ -858,7 +858,9 @@ function InternalActionStepper({
     <Panel aria-label="Internal action stepper" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4">
         <PanelTitle>Action stepper</PanelTitle>
-        <StatusBadge>{countInternalSteps(detail)} steps</StatusBadge>
+        <StatusBadge>
+          {countInternalSteps(detail)} Steps
+        </StatusBadge>
       </PanelHeader>
       <PanelBody className="p-4 pt-0">
         {detail === null || countInternalSteps(detail) === 0 ? (
@@ -867,7 +869,9 @@ function InternalActionStepper({
           <DataList>
             {detail.tool_calls.map((call) => (
               <DataListItem className="grid gap-1" key={`tool-${call.tool_call_id}`}>
-                <Badge>tool call {call.status}</Badge>
+                <Badge>
+                  Tool Call {titleCaseToken(call.status)}
+                </Badge>
                 <strong className="text-sm text-foreground">{call.tool_name}</strong>
                 <p className="text-sm text-muted-foreground">
                   {formatJsonValue(call.arguments)}
@@ -882,16 +886,18 @@ function InternalActionStepper({
                 className="grid gap-2"
                 key={`retrieval-${run.retrieval_run_id}`}
               >
-                <Badge>retrieval {run.strategy}</Badge>
+                <Badge>
+                  Retrieval {titleCaseToken(run.strategy)}
+                </Badge>
                 <strong className="text-sm text-foreground">{run.query}</strong>
                 <p className="text-sm text-muted-foreground">
-                  top {run.top_k} / {formatUnknownMs(run.latency_ms)}
+                  Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
                 </p>
                 <DataList>
                   {run.retrieved_chunks.map((chunk) => (
                     <DataListItem key={chunk.retrieved_chunk_id}>
                       <strong className="text-sm text-foreground">
-                        rank {chunk.rank}
+                        Rank {chunk.rank}
                       </strong>
                       <small className="block text-xs text-muted-foreground">
                         {formatStepperScores(chunk)}
@@ -906,7 +912,9 @@ function InternalActionStepper({
                 className="grid gap-1"
                 key={`provider-${usage.provider_usage_id}`}
               >
-                <Badge>provider usage {usage.status}</Badge>
+                <Badge>
+                  Provider Usage {titleCaseToken(usage.status)}
+                </Badge>
                 <strong className="text-sm text-foreground">{usage.model}</strong>
                 <p className="text-sm text-muted-foreground">
                   {usage.provider} {usage.operation} /{' '}
@@ -1136,8 +1144,10 @@ function RetrievalRunDetail({
       <strong className="text-sm text-foreground">{run.query}</strong>
       <div className="flex flex-wrap gap-2">
         <Badge>{retrievalStrategyLabel(run)}</Badge>
-        <Badge>top {run.top_k}</Badge>
-        {run.latency_ms === null ? null : <Badge>latency {run.latency_ms} ms</Badge>}
+        <Badge>Top {run.top_k}</Badge>
+        {run.latency_ms === null ? null : (
+          <Badge>Latency {run.latency_ms} ms</Badge>
+        )}
       </div>
       <DataList>
         {run.retrieved_chunks.map((chunk) => (
@@ -1160,10 +1170,10 @@ function RetrievedChunkDetail({
   onOpenSource(sourceId: string, citationSnippet: string | null): void
 }) {
   const scores = [
-    formatOptionalScore('dense score', chunk.dense_score),
-    formatOptionalScore('lexical score', chunk.lexical_score),
-    formatOptionalScore('rrf score', chunk.rrf_score),
-    formatOptionalScore('rerank score', chunk.rerank_score),
+    formatOptionalScore('Dense Score', chunk.dense_score),
+    formatOptionalScore('Lexical Score', chunk.lexical_score),
+    formatOptionalScore('Rrf Score', chunk.rrf_score),
+    formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
   const sourceId = getJsonString(chunk.citation, 'source_id')
   const citationSnippet = getJsonString(chunk.citation, 'snippet')
@@ -1174,10 +1184,10 @@ function RetrievedChunkDetail({
   return (
     <DataListItem className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>rank {chunk.rank}</Badge>
+        <Badge>Rank {chunk.rank}</Badge>
         {isCascadeDeleted ? (
           <StatusBadge className="w-fit" tone="warning">
-            source removed
+            Source Removed
           </StatusBadge>
         ) : null}
       </div>
@@ -1378,6 +1388,13 @@ function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
 }
 
+function titleCaseToken(value: string | null | undefined): string {
+  if (value == null || value.trim().length === 0) {
+    return '—'
+  }
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 function sessionStatusLabel(status: string | null | undefined): string {
   if (status === null || status === undefined || status === '') {
     return 'Empty'
@@ -1417,10 +1434,10 @@ function sessionStatusTone(
 
 function formatStepperScores(chunk: ChatHistoryRetrievedChunk): string {
   const scores = [
-    formatOptionalScore('dense score', chunk.dense_score),
-    formatOptionalScore('lexical score', chunk.lexical_score),
-    formatOptionalScore('rrf score', chunk.rrf_score),
-    formatOptionalScore('rerank score', chunk.rerank_score),
+    formatOptionalScore('Dense Score', chunk.dense_score),
+    formatOptionalScore('Lexical Score', chunk.lexical_score),
+    formatOptionalScore('Rrf Score', chunk.rrf_score),
+    formatOptionalScore('Rerank Score', chunk.rerank_score),
   ].filter((score): score is string => score !== null)
   return scores.length > 0 ? scores.join(' / ') : 'unknown score'
 }
@@ -1460,9 +1477,11 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
 
 function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
   if (run.strategy === 'dense' && !run.used_rerank) {
-    return 'default dense retrieval'
+    return 'Default Dense Retrieval'
   }
-  return run.used_rerank ? `${run.strategy} with rerank` : `${run.strategy} retrieval`
+  return run.used_rerank
+    ? `${titleCaseToken(run.strategy)} With Rerank`
+    : `${titleCaseToken(run.strategy)} Retrieval`
 }
 
 function sourceViewerStatusLabel(state: RequestState): string {
@@ -1491,7 +1510,10 @@ function sourceViewerTone(state: RequestState): 'danger' | 'neutral' | 'success'
   return 'neutral'
 }
 
-function formatOptionalScore(label: string, score: number | null): string | null {
+function formatOptionalScore(
+  label: string,
+  score: number | null,
+): string | null {
   return score === null ? null : `${label} ${formatScore(score)}`
 }
 

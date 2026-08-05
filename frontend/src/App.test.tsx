@@ -3681,7 +3681,7 @@ describe('App chat workspace', () => {
     expect(within(statusSection).getByText('Succeeded')).toBeTruthy()
     expect(within(statusSection).getByText('10 Sessions')).toBeTruthy()
     expect(within(statusSection).getByText('Failed')).toBeTruthy()
-    expect(within(statusSection).getByText('2 sessions')).toBeTruthy()
+    expect(within(statusSection).getByText('2 Sessions')).toBeTruthy()
 
     const errorsSection = screen.getByRole('region', { name: 'Error messages' })
     expect(within(errorsSection).getByText('runner failed')).toBeTruthy()
