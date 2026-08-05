@@ -4,17 +4,19 @@ Status: open | claimed:<role> | done | deferred
 Branch: `feat/ui-obsessional-polish`
 
 ## Seed / fleet
-- [x] done:implement — Panel/table; nav/EmptyState; aria-invalid; Select invalid
-- [x] done:implement — SegmentedControl active pill + primary ring
-- [x] done:implement — FieldError xs; secondary + ghost primary-tint hover
-- [x] done:fe-chat — Inspector refresh after ask + latest-turn hydrate
-- [x] done:fe-chat — ≤680 Ask full-width; composer border; menu primary/15; empty messages
+- [x] done:chat — Chat transcript / composer / session / inspector
+- [x] done:implement — DS density / soft-delete / EmptyState / focus rings / badges
+- [x] done:implement — Panel / table / FieldHelp / Select / nav / invalid controls
+- [x] done:operator — Form gaps / memberships empty / Title Case selects & badges
+- [x] done:fe-chat — Popover/speech; Title Case; pipeline emerald; inspector refresh
+- [x] done:fe-chat — Purple pressed chrome primary/25; Ask full-width ≤680
+- [x] done:fe-chat — Session empty messages + dropdown Item DS defaults
+- [x] done:operator — Inherited/Overridden/Qwen Hosted Title Case labels
 - [ ] deferred:chat — Full Tab-cycle focus trap beyond inert
-- [ ] open:implement — Callout motion-safe residual (optional)
 
 ## Lead queue (next)
-1. Callout residual or invent next DS hostile pass
-2. Citation chip touch targets ≤680 (chat P2)
-3. Tab-cycle focus trap residual (Radix portal menus)
+1. Live hostile purple pass on remaining primary/10 washes (citation cards, focus-within)
+2. Tab-cycle focus trap residual (Radix portal menus)
+3. Observability status Title Case residual if any
 
-Reports: `reports/implement-latest.md` · `reports/chat-latest.md`
+Reports: `reports/lead-latest.md`
