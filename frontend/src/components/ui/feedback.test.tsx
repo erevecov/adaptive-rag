@@ -43,6 +43,7 @@ describe('InlineFeedback', () => {
     const feedback = screen.getByText('Saved')
     expect(feedback.className).toContain('text-emerald-800')
     expect(feedback.className).toContain('dark:text-emerald-200')
+    expect(feedback.className).toContain('motion-safe:transition-colors')
     expect(feedback.getAttribute('data-tone')).toBe('success')
   })
 })

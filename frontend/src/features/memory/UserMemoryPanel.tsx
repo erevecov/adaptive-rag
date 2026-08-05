@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useId, useState } from 'react'
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useState,
+} from 'react'
 
 import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -144,7 +150,6 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setDraft('')
       setProposeState('succeeded')
       setProposeSuccess('Proposed. Approve it below before chat can use it.')
-      // Ensure the new item is visible even if the user was on Approved/Rejected.
       if (statusFilter !== 'proposed') {
         setStatusFilter('proposed')
       } else {
@@ -208,15 +213,58 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     }
   }
 
+  function handleRowKeyDown(
+    event: KeyboardEvent<HTMLLIElement>,
+    memory: UserMemory,
+  ) {
+    if (busyMemoryId === memory.id) {
+      return
+    }
+    const target = event.target as HTMLElement
+    if (target.closest('button, textarea, input, a')) {
+      return
+    }
+    if (editingId === memory.id) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setEditingId(null)
+        setEditDraft('')
+      }
+      return
+    }
+    if (memory.status !== 'proposed') {
+      return
+    }
+    if (event.key === 'Enter' || event.key === 'a' || event.key === 'A') {
+      event.preventDefault()
+      void handleApprove(memory)
+      return
+    }
+    if (event.key === 'r' || event.key === 'R') {
+      event.preventDefault()
+      void handleReject(memory)
+      return
+    }
+    if (event.key === 'e' || event.key === 'E') {
+      event.preventDefault()
+      setEditingId(memory.id)
+      setEditDraft(memory.content)
+    }
+  }
+
   return (
-    <Panel aria-labelledby={titleId} className="grid gap-6 p-6" role="region">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <Panel
+      aria-labelledby={titleId}
+      className="grid gap-4 p-4 max-[680px]:p-3"
+      role="region"
+    >
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
           <h2
-            className="text-xl font-semibold leading-tight text-foreground"
+            className="text-lg font-semibold leading-tight text-foreground"
             id={titleId}
           >
             Memory
@@ -225,23 +273,23 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         <StatusBadge className="w-fit" tone="primary">
           {listState === 'loading'
             ? 'Loading'
-            : `${injectableCount} injectable`}
+            : `${injectableCount} Injectable`}
         </StatusBadge>
       </header>
 
       <PanelDescription>
-        Only approved memories inject into chat as system context — never as a
-        user turn. Propose → approve is required. There is no automatic capture
-        or cron in this build.
+        Only approved items inject as system context (never as a user turn).
+        Propose → approve required. No automatic capture in this build.
       </PanelDescription>
 
-      <form className="grid gap-3" onSubmit={(event) => void handlePropose(event)}>
+      <form className="grid gap-2" onSubmit={(event) => void handlePropose(event)}>
         <Field>
           <FieldLabel htmlFor={draftFieldId}>Propose memory</FieldLabel>
           <FieldControl>
             <Textarea
               aria-describedby={`${draftFieldId}-help`}
               aria-invalid={draftOverLimit || undefined}
+              className="min-h-20"
               id={draftFieldId}
               maxLength={USER_MEMORY_MAX_CHARS}
               onChange={(event) => {
@@ -270,16 +318,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </Field>
 
         {trimmedProjectId.length > 0 ? (
-          <label className="flex items-start gap-2 text-sm text-foreground">
+          <label className="flex items-start gap-2 text-xs text-foreground">
             <input
               checked={scopeToProject}
-              className="mt-1"
+              className="mt-0.5"
               onChange={(event) => setScopeToProject(event.target.checked)}
               type="checkbox"
             />
             <span>
               Scope to current project
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-muted-foreground">
                 Unchecked = global (all projects for this user).
               </span>
             </span>
@@ -293,6 +341,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               draftOverLimit ||
               proposeState === 'loading'
             }
+            size="sm"
             type="submit"
           >
             {proposeState === 'loading' ? 'Proposing…' : 'Propose'}
@@ -312,7 +361,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory status filters"
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-1.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -331,8 +380,13 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           )
         })}
       </div>
+      {items.some((item) => item.status === 'proposed') ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Focus a proposed row: Enter/A approve · R reject · E edit.
+        </p>
+      ) : null}
 
-      <div aria-live="polite" className="grid gap-2">
+      <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
           <InlineFeedback role="alert" tone="danger">
             {listError}
@@ -346,31 +400,50 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </div>
 
       {listState === 'loading' && items.length === 0 ? (
-        <EmptyState>Loading memories…</EmptyState>
+        <EmptyState className="p-3 text-left">Loading memories…</EmptyState>
       ) : null}
 
       {listState !== 'loading' && items.length === 0 ? (
-        <EmptyState>{emptyCopyForFilter(statusFilter)}</EmptyState>
+        <FilterEmptyState
+          filter={statusFilter}
+          onViewProposed={() => setStatusFilter('proposed')}
+        />
       ) : null}
 
       {items.length > 0 ? (
-        <DataList aria-label="User memories">
+        <DataList aria-label="User memories" className="gap-1.5">
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
+            const keyboardReviewable =
+              memory.status === 'proposed' && !isEditing
             return (
               <DataListItem
+                aria-keyshortcuts={
+                  keyboardReviewable ? 'Enter a r e' : undefined
+                }
+                aria-label={
+                  keyboardReviewable
+                    ? `${statusLabel(memory.status)} memory. Press Enter or A to approve, R to reject, E to edit.`
+                    : undefined
+                }
+                className={cn(
+                  'p-2.5 outline-none',
+                  keyboardReviewable &&
+                    'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                )}
                 id={`user-memory-${memory.id}`}
                 key={memory.id}
-                tabIndex={-1}
+                onKeyDown={(event) => handleRowKeyDown(event, memory)}
+                tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="grid gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge
                       className="w-fit"
                       tone={statusTone(memory.status)}
                     >
-                      {memory.status}
+                      {statusLabel(memory.status)}
                     </StatusBadge>
                     <span className="text-xs text-muted-foreground">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
@@ -380,17 +453,18 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                   {isEditing ? (
                     <Textarea
                       aria-label="Edit memory content"
+                      className="min-h-16"
                       maxLength={USER_MEMORY_MAX_CHARS}
                       onChange={(event) => setEditDraft(event.target.value)}
                       value={editDraft}
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    <p className="whitespace-pre-wrap text-sm leading-snug text-foreground">
                       {memory.content}
                     </p>
                   )}
 
-                  <DataListItemActions>
+                  <DataListItemActions className="gap-1.5">
                     {memory.status === 'proposed' && !isEditing ? (
                       <>
                         <Button
@@ -465,6 +539,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                         Remove from injection
                       </Button>
                     ) : null}
+
+                    {memory.status === 'rejected' ? (
+                      <span className="text-xs text-muted-foreground">
+                        Not injectable. Propose again if still needed.
+                      </span>
+                    ) : null}
                   </DataListItemActions>
                 </div>
               </DataListItem>
@@ -476,17 +556,72 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   )
 }
 
-function emptyCopyForFilter(filter: MemoryStatusFilter): string {
+function FilterEmptyState({
+  filter,
+  onViewProposed,
+}: {
+  filter: MemoryStatusFilter
+  onViewProposed(): void
+}) {
+  const copy = emptyCopyForFilter(filter)
+  return (
+    <EmptyState
+      className="gap-2 p-3 text-left"
+      data-slot-state={`empty-${filter}`}
+    >
+      <p className="font-medium text-foreground/80">{copy.title}</p>
+      <p className="text-xs leading-relaxed">{copy.body}</p>
+      {filter === 'rejected' || filter === 'approved' ? (
+        <Button
+          className="w-fit"
+          onClick={onViewProposed}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          View proposed
+        </Button>
+      ) : null}
+    </EmptyState>
+  )
+}
+
+function emptyCopyForFilter(filter: MemoryStatusFilter): {
+  body: string
+  title: string
+} {
   if (filter === 'proposed') {
-    return 'No proposed memories. Propose one above to start review.'
+    return {
+      body: 'Propose one above to start review. Only approved items inject.',
+      title: 'No proposed memories',
+    }
   }
   if (filter === 'approved') {
-    return 'No approved memories yet. Approve a proposal to enable chat injection.'
+    return {
+      body: 'Approve a proposal to enable chat injection as system context.',
+      title: 'No approved memories',
+    }
   }
   if (filter === 'rejected') {
-    return 'No rejected memories. Rejected proposals and items removed from injection appear here.'
+    return {
+      body: 'Rejected proposals and items removed from injection appear here. They never inject into chat.',
+      title: 'No rejected memories',
+    }
   }
-  return 'No memories yet. Propose one above, then approve it to enable chat injection.'
+  return {
+    body: 'Propose one above, then approve it to enable chat injection.',
+    title: 'No memories yet',
+  }
+}
+
+function statusLabel(status: UserMemoryStatus): string {
+  if (status === 'proposed') {
+    return 'Proposed'
+  }
+  if (status === 'approved') {
+    return 'Approved'
+  }
+  return 'Rejected'
 }
 
 function statusTone(

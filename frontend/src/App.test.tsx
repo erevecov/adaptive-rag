@@ -1022,7 +1022,7 @@ describe('App chat workspace', () => {
     expect(screen.getByRole('heading', { name: 'Memory' })).toBeTruthy()
     expect(screen.queryByText('Deferred')).toBeNull()
     expect(
-      screen.getByText(/Only approved memories inject into chat/i),
+      screen.getByText(/Only approved items inject as system context/i),
     ).toBeTruthy()
 
     await user.type(
@@ -1035,7 +1035,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('Prefer concise answers')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Approve' }))
     expect(approveUserMemory).toHaveBeenCalled()
-    expect(await screen.findByText('approved')).toBeTruthy()
+    expect(await screen.findByText('Approved')).toBeTruthy()
   })
 
   test('shows settings modules and submodules in the sidebar', async () => {
@@ -3801,7 +3801,7 @@ describe('App chat workspace', () => {
     expect(within(providerSection).getByText('1,840')).toBeTruthy()
 
     const healthSection = screen.getByRole('region', { name: 'Session health' })
-    expect(within(healthSection).getByText('83.3% success')).toBeTruthy()
+    expect(within(healthSection).getByText(/83\.3%\s*Success/i)).toBeTruthy()
   })
 
   test('renders costs observability content without error or health sections', async () => {
@@ -3898,7 +3898,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('No Status Data Yet.')).toBeTruthy()
     expect(screen.getByText('No Provider Usage Groups Yet.')).toBeTruthy()
     expect(screen.getByText('No Error Messages Yet.')).toBeTruthy()
-    expect(screen.getByText('No sessions in this filter window.')).toBeTruthy()
+    expect(screen.getByText('No Sessions in This Filter Window.')).toBeTruthy()
   })
 
   test('shows observability errors without clearing filters', async () => {
@@ -4531,7 +4531,7 @@ describe('App chat workspace', () => {
       'Select Connection',
     )
     expect(screen.getByLabelText('Project slot model').textContent).toContain(
-      'No models yet',
+      'No Models Yet',
     )
   })
 

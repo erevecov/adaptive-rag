@@ -69,6 +69,7 @@ describe('Table density', () => {
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card/95')
     expect(screen.getByText('Latency').className).toContain('tracking-wide')
+    expect(screen.getByText('Latency').className).toContain('motion-safe:transition-colors')
     expect(screen.getByText('Latency').className).toContain('h-9')
     expect(screen.getByText('Latency').className).toContain('max-[680px]:h-11')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:min-h-11')

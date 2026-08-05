@@ -39,7 +39,7 @@ export type PanelTitleProps = HTMLAttributes<HTMLHeadingElement>
 export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   ({ className, ...props }, ref) => (
     <h3
-      className={cn('text-lg font-semibold leading-none tracking-normal', className)}
+      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
       ref={ref}
       {...props}
       data-slot="panel-title"

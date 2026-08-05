@@ -197,7 +197,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
               {!rerankEnabled ? (
                 <FieldHelp id="rerank-limit-help">
-                  Enable rerank to edit candidate limit.
+                  Enable Rerank to edit candidate limit.
                 </FieldHelp>
               ) : null}
             </Field>
@@ -283,7 +283,7 @@ export function RetrievalPlaygroundPanel({
                 No chunks returned
               </p>
               <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
-                <li>Try strategy dense or sparse</li>
+                <li>Try strategy Dense or Sparse</li>
                 <li>Confirm sources are ingested for this project</li>
                 <li>Raise limit or adjust the query</li>
               </ul>
@@ -317,7 +317,7 @@ export function RetrievalPlaygroundPanel({
                     </StatusBadge>
                     {result.distance != null ? (
                       <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground">
-                        d {result.distance.toFixed(4)}
+                        Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}
                   </div>

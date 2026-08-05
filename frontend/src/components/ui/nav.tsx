@@ -14,7 +14,7 @@ export type NavSectionProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
 export const NavSection = forwardRef<HTMLElement, NavSectionProps>(
   ({ children, className, title, ...props }, ref) => (
     <section
-      className={cn('flex flex-col gap-2', className)}
+      className={cn('flex flex-col gap-2 max-[680px]:gap-1.5', className)}
       ref={ref}
       {...props}
       data-slot="nav-section"

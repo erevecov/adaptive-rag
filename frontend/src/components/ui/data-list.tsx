@@ -7,7 +7,7 @@ export type DataListProps = HTMLAttributes<HTMLUListElement>
 export const DataList = forwardRef<HTMLUListElement, DataListProps>(
   ({ className, ...props }, ref) => (
     <ul
-      className={cn('grid gap-2', className)}
+      className={cn('grid gap-2 max-[680px]:gap-1.5', className)}
       ref={ref}
       {...props}
       data-slot="data-list"

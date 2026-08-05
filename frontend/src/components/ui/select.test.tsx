@@ -41,6 +41,9 @@ describe('Select', () => {
     expect(trigger.className).toContain('motion-safe:transition-colors')
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
+    expect(
+      trigger.querySelector('[aria-hidden="true"]')?.className,
+    ).toContain('max-[680px]:size-5')
     expect(trigger.getAttribute('data-state')).toBe('closed')
     await user.click(trigger)
 
@@ -52,6 +55,9 @@ describe('Select', () => {
     expect(option.className).toContain('max-[680px]:min-h-11')
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'focus-visible:ring-ring',
+    )
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'max-[680px]:p-1.5',
     )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()

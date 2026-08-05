@@ -1555,7 +1555,7 @@ function IngestionJobList({
   onRetry(job: IngestionJob): void
 }) {
   if (isBusy && jobs.length === 0) {
-    return <LoadingListState label="Loading ingestion jobs…" />
+    return <LoadingListState label="Loading Ingestion Jobs…" />
   }
 
   if (jobs.length === 0) {

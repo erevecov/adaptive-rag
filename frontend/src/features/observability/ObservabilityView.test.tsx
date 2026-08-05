@@ -343,7 +343,7 @@ describe('ObservabilityPanel', () => {
       view.container.querySelector('[data-slot="observability-stale-failed"]'),
     ).toBeTruthy()
     expect(
-      screen.getByText(/Showing last successful summary — refresh failed/),
+      screen.getByText(/Showing last successful summary — Refresh Failed/),
     ).toBeTruthy()
     expect(screen.getByLabelText('Chat observability metrics')).toBeTruthy()
   })

@@ -67,15 +67,18 @@ export function Select({
         id={id}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
-        <SelectPrimitive.Icon aria-hidden="true" className="text-muted-foreground">
-          <ChevronDown className="size-4" />
+        <SelectPrimitive.Icon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground max-[680px]:size-5"
+        >
+          <ChevronDown className="size-full" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-[var(--shadow-popover)]',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:p-1.5',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
@@ -84,7 +87,7 @@ export function Select({
           position="popper"
           sideOffset={4}
         >
-          <SelectPrimitive.Viewport className="grid gap-1 p-1">
+          <SelectPrimitive.Viewport className="grid gap-1 p-0 max-[680px]:gap-1.5">
             {options.map((option) => (
               <SelectPrimitive.Item
                 className={cn(

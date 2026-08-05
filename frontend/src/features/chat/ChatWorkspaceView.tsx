@@ -845,10 +845,10 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3"
+          className="grid gap-1.5 rounded-md border border-border/80 bg-muted/20 p-2.5"
           data-slot="chat-memory-applied"
         >
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge className="w-fit" tone="success">
               Memory applied
             </StatusBadge>
@@ -858,10 +858,10 @@ function ResponseContent({
               context (not a user turn).
             </span>
           </div>
-          <ul className="grid gap-1.5">
+          <ul className="grid gap-1">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-relaxed text-foreground"
+                className="text-sm leading-snug text-foreground"
                 key={memory.id}
               >
                 {memory.content}
