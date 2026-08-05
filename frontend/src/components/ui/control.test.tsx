@@ -54,6 +54,14 @@ describe('control primitives', () => {
     expect(tokens).not.toContain('h-9')
   })
 
+  test('Input grows to 44px touch height at ≤680px', () => {
+    render(<Input aria-label="Project id" />)
+
+    expect(
+      classTokens(screen.getByRole('textbox', { name: 'Project id' })),
+    ).toContain('max-[680px]:min-h-11')
+  })
+
   test('Input marks invalid fields with destructive border and focus ring', () => {
     render(<Input aria-invalid="true" aria-label="Broken field" />)
 
