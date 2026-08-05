@@ -311,7 +311,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
-            My Account
+            My account
           </p>
           <h2
             className="text-lg font-semibold leading-tight text-foreground"

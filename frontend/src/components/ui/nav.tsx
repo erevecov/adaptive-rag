@@ -14,14 +14,14 @@ export type NavSectionProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
 export const NavSection = forwardRef<HTMLElement, NavSectionProps>(
   ({ children, className, title, ...props }, ref) => (
     <section
-      className={cn('flex flex-col gap-2 max-[680px]:gap-1', className)}
+      className={cn('flex flex-col gap-2 max-[680px]:gap-1.5', className)}
       ref={ref}
       {...props}
       data-slot="nav-section"
     >
       {title ? (
         <h2
-          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:px-1 max-[680px]:tracking-wider"
+          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:px-1.5"
           data-slot="nav-section-title"
         >
           {title}
@@ -44,7 +44,7 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
     <button
       className={cn(
         [
-          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:px-2.5',
+          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium max-[680px]:min-h-11',
           'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',

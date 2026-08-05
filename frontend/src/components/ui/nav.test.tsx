@@ -19,11 +19,10 @@ describe('NavSection', () => {
     expect(title.className).toContain('uppercase')
     expect(title.className).toContain('tracking-wide')
     expect(title.className).toContain('font-semibold')
-    expect(title.className).toContain('max-[680px]:px-1')
-    expect(title.className).toContain('max-[680px]:tracking-wider')
+    expect(title.className).toContain('max-[680px]:px-1.5')
     expect(
       screen.getByText('Activos').closest('[data-slot="nav-section"]')?.className,
-    ).toContain('max-[680px]:gap-1')
+    ).toContain('max-[680px]:gap-1.5')
     expect(
       screen
         .getByText('Activos')

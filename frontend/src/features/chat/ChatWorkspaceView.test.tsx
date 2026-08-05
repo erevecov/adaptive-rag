@@ -196,7 +196,7 @@ describe('ChatWorkspacePanel', () => {
     const { props, view } = renderChatWorkspace()
 
     await user.click(
-      screen.getByRole('button', { name: 'Expand Response Details' }),
+      screen.getByRole('button', { name: 'Expand response details' }),
     )
 
     expect(screen.getByRole('region', { name: 'Tool Calls Detail' })).toBeTruthy()

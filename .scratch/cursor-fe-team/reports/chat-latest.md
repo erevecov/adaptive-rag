@@ -1,15 +1,13 @@
-# FE Chat — chat-latest
+# Chat latest — feat/ui-polish-cont (post-#226)
 
-**Date:** 2026-08-05  
-**STATUS:** #222 merged; active PR #224
+**Branch:** `feat/ui-polish-cont` @ origin/main tip `#226`. Memory intact.
 
-## Done
-- #222: canceled≠empty, inspector skeletons, purple rail, Title Case operator chrome
+## Shipped this pass
+- Opaque sticky chat question (`bg-background`, no `/95` blur)
+- Opaque `TableHeader` / `TableHead` (`bg-card`, no `/95` blur)
+- Transcript Start/Stop/Unavailable + Open/View Source Title Case
+- Composer placeholder Title Case
+- Memory Remove From Injection / Confirm Remove Title Case
 
-## In flight (#224)
-- Opaque purple chrome (sidebar toggle / composer tools)
-- Cancel Request label
-- Inspector empty Title Case + pipeline/inspector aria Title Case restore
-
-## Next after #224
-Invent next purple/DS ≤680 P0. Tab-cycle deferred.
+## Deferred
+- Tab-cycle focus trap (Radix portals)

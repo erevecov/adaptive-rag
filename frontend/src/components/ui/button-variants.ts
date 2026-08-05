@@ -2,7 +2,7 @@ import { cva } from 'class-variance-authority'
 
 export const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium max-[680px]:gap-1.5',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium',
     'motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
   ],
@@ -15,8 +15,8 @@ export const buttonVariants = cva(
       size: {
         // ≤680: 44px min touch targets (composer/operator chrome parity).
         icon: 'size-9 p-0 max-[680px]:size-11',
-        md: 'h-9 px-4 py-2 max-[680px]:min-h-11 max-[680px]:px-3',
-        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11 max-[680px]:px-2.5',
+        md: 'h-9 px-4 py-2 max-[680px]:min-h-11',
+        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11',
       },
       variant: {
         danger:

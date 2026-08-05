@@ -8,7 +8,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
   ({ className, ...props }, ref) => (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card text-card-foreground shadow-sm max-[680px]:rounded-md',
+        'rounded-lg border border-border bg-card text-card-foreground shadow-sm',
         'motion-safe:transition-colors',
         className,
       )}
@@ -25,7 +25,7 @@ export type PanelHeaderProps = HTMLAttributes<HTMLDivElement>
 export const PanelHeader = forwardRef<HTMLDivElement, PanelHeaderProps>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn('flex flex-col gap-1.5 p-4 max-[680px]:gap-1 max-[680px]:p-3', className)}
+      className={cn('flex flex-col gap-1.5 p-4 max-[680px]:p-3', className)}
       ref={ref}
       {...props}
       data-slot="panel-header"
@@ -39,7 +39,7 @@ export type PanelTitleProps = HTMLAttributes<HTMLHeadingElement>
 export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   ({ className, ...props }, ref) => (
     <h3
-      className={cn('text-lg font-semibold leading-none tracking-tight max-[680px]:text-base', className)}
+      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
       ref={ref}
       {...props}
       data-slot="panel-title"
@@ -57,7 +57,7 @@ export const PanelDescription = forwardRef<
   <p
     className={cn(
       // Match FieldHelp density: compact supporting copy under titles.
-      'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug',
+      'text-xs leading-relaxed text-muted-foreground',
       className,
     )}
     ref={ref}

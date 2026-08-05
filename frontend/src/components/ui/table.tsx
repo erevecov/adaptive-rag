@@ -56,8 +56,8 @@ export const TableHeader = forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     className={cn(
-      // Card-tinted sticky header stays legible on purple/dark nested panels.
-      'sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm',
+      // Opaque card sticky header stays legible on purple/dark nested panels.
+      'sticky top-0 z-10 border-b border-border bg-card',
       className,
     )}
     ref={ref}
@@ -104,7 +104,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, scope = 'col', ...props }, ref) => (
     <th
       className={cn(
-        'h-9 max-[680px]:h-11 whitespace-nowrap bg-card/95 px-3 max-[680px]:px-2 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground motion-safe:transition-colors',
+        'h-9 max-[680px]:h-11 whitespace-nowrap bg-card px-3 max-[680px]:px-2 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground motion-safe:transition-colors',
         className,
       )}
       ref={ref}
@@ -122,7 +122,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, ...props }, ref) => (
     <td
       className={cn(
-        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:py-2.5 align-middle text-foreground tracking-tight',
+        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-2.5 align-middle text-foreground',
         className,
       )}
       ref={ref}
