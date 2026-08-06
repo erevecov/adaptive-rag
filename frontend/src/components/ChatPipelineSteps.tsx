@@ -46,7 +46,7 @@ export function ChatPipelineSteps({
       return (
         <section
           aria-label="Chat Pipeline Steps"
-          className="rounded-md border border-border bg-muted/15 p-3"
+          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:p-1.5"
           data-slot="chat-pipeline-steps"
         >
           <Button
@@ -74,7 +74,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:p-1.5"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -107,7 +107,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="rounded-md border border-border bg-muted/15 p-3"
+        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:p-1.5"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -128,7 +128,7 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat Pipeline Steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:p-1.5"
       data-slot="chat-pipeline-steps"
     >
       <Button
@@ -165,7 +165,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
     )
   }
   return (
-    <ol className="grid gap-2" data-slot="chat-pipeline-step-list">
+    <ol className="grid gap-2 max-[680px]:gap-1" data-slot="chat-pipeline-step-list">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
           <StepRow step={step} />
@@ -202,7 +202,7 @@ function StepRow({ step }: { step: ChatStep }) {
   if (!hasDetail) {
     return (
       <div
-        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3"
+        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:p-1.5"
         data-slot="chat-pipeline-step-row"
       >
         {content}
@@ -215,7 +215,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11">
+      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:p-1.5">
         {content}
       </summary>
       <StepDetail step={step} />
