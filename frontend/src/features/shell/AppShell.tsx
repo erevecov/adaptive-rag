@@ -413,7 +413,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,112px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,104px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:pb-1 max-[680px]:pt-0.5',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:pb-0.5 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:gap-0.5 max-[680px]:pb-1"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:gap-0.5 max-[680px]:pb-0.5"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
@@ -587,7 +587,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-1"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-0.5"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -596,7 +596,7 @@ function AccountNavigationPanel({
       >
         My Account
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         {ACCOUNT_MODULES.map((module) => {
           const active = module.id === activeModule
           return (
@@ -657,7 +657,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-1"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-0.5"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -666,7 +666,7 @@ function SettingsNavigationPanel({
       >
         Settings
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === AUTHORING_NAVIGATION.id}
           onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
