@@ -45,7 +45,7 @@ describe('Popover', () => {
     expect(listbox.getAttribute('data-slot')).toBe('popover-content')
     expect(listbox.className).toContain('focus-visible:ring-ring')
     expect(listbox.className).toContain('p-1')
-    expect(listbox.className).toContain('max-[680px]:p-1')
+    expect(listbox.className).toContain('max-[680px]:p-0.5')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 
