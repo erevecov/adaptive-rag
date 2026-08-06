@@ -322,6 +322,13 @@ describe('UserMemoryPanel', () => {
         /Showing Rejected — soft-removed item is below with Propose Again/i,
       ),
     ).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    expect(
+      screen.queryByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeNull()
   })
 
   test('Undo from Rejected after empty-Approved switch returns to Approved', async () => {
