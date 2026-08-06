@@ -288,6 +288,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setProposeSuccess('Proposed. Approve it below before chat can use it.')
       if (statusFilter !== 'proposed') {
         setFilterSwitchNotice(null)
+        setUndoRemoveId(null)
         setStatusFilter('proposed')
       } else {
         await refreshList()
