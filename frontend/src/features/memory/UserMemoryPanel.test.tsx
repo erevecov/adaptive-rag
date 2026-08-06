@@ -283,6 +283,11 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByRole('button', { name: /Propose Again/i })).toBeTruthy()
     const rejectedFilter = screen.getByRole('button', { name: /^Rejected/ })
     expect(rejectedFilter.getAttribute('aria-pressed')).toBe('true')
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
   })
 
   test('badge reports approved injectable count even on Proposed filter', async () => {
