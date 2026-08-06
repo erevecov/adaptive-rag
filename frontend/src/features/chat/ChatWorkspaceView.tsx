@@ -571,7 +571,7 @@ function ResponsePanel({
     ) : null
 
   return (
-    <div className="grid gap-3 max-[680px]:gap-1">
+    <div className="grid gap-3 max-[680px]:gap-0.5">
       {terminalBanner}
       <ResponseContent
         appliedMemories={appliedMemories}
@@ -755,7 +755,7 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-1" role="region">
+    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-0.5" role="region">
       <QuestionPrompt key={question ?? 'empty-question'} question={question} />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -852,7 +852,7 @@ function ResponseContent({
           className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
           data-slot="chat-memory-applied"
         >
-          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
             <StatusBadge className="w-fit" tone="success">
               Memory Applied
             </StatusBadge>
@@ -862,7 +862,7 @@ function ResponseContent({
               context (not a user turn).
             </span>
           </div>
-          <ul className="grid gap-1.5 max-[680px]:gap-1">
+          <ul className="grid gap-1.5 max-[680px]:gap-0.5">
             {appliedMemories.map((memory) => (
               <li
                 className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
@@ -876,7 +876,7 @@ function ResponseContent({
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
-        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-1">
+        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-0.5">
           {knowledgeDrafts.map((draft) => (
             <KnowledgeDraftCard
               draft={draft}
@@ -1027,7 +1027,7 @@ function ResponseDetailsContent({
       {toolCallCount > 0 ? (
         <section
           aria-label="Tool Calls Detail"
-          className="grid gap-2 max-[680px]:gap-1"
+          className="grid gap-2 max-[680px]:gap-0.5"
         >
           <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Tool Calls · {toolCallCount}
@@ -1056,7 +1056,7 @@ function ResponseDetailsContent({
       {sourceCount > 0 ? (
         <section
           aria-label="Sources Detail"
-          className="grid gap-2 max-[680px]:gap-1"
+          className="grid gap-2 max-[680px]:gap-0.5"
         >
           <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Sources · {sourceCount}
@@ -1074,7 +1074,7 @@ function ResponseDetailsContent({
                   <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.snippet}
                   </p>
-                  <div className="flex flex-wrap gap-2 max-[680px]:gap-1">
+                  <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
                     <Badge>
                       {sourceTypeLabel(result.citation.source_type)} Source
                     </Badge>
@@ -1167,7 +1167,7 @@ function KnowledgeDraftCard({
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
       role="region"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1">
+      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             Knowledge draft
