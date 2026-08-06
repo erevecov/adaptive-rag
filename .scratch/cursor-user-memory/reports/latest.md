@@ -1,15 +1,14 @@
 # User memory parity report
 
 ## Merged to main
-- #214–#227 Memory UX · #229 loading skeleton / confirm guidance / edit autoFocus
+- #214–#227 Memory UX · #229 skeleton/guidance · **#416** Keep In Injection + Focus Propose (All/Proposed)
 
 ## Active
-- **#416** `feat/memory-ux-continuum-7` @ rebased on #229 — Keep In Injection (vs Cancel); Focus Propose on empty All/Proposed; denser ≤680 confirm hint
+- **#420** `feat/memory-ux-continuum-8` (rebased on main post-#416) — Rejected Focus Propose; row `aria-busy`; soft-refresh status
 
-## Next (continuum-8)
-- Rejected empty → Focus Propose
-- Row `aria-busy` while approve/reject/save in flight
-- Soft-refresh cue when list reloads with existing rows
+## Next
+- Announce injectable count changes via aria-live
+- Confirm-remove trap focus within confirm controls
 
 ## Deferred
 - injection/capture toggles · cron/embeddings/unread/MCP

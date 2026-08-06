@@ -626,4 +626,67 @@ describe('UserMemoryPanel', () => {
     )
   })
 
+  test('empty Rejected filter offers Focus Propose beside View Proposed', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'rejected') {
+        return { items: [] }
+      }
+      return { items: [] }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: /^Rejected/ }))
+    expect(await screen.findByText('No Rejected Memories')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View Proposed' })).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Focus Propose' }))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Propose Memory'),
+      ),
+    )
+  })
+
+  test('marks a busy row while approve is in flight and shows refresh status', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Keyboard preference', id: 'mem-1', status: 'proposed' }),
+    ]
+    let releaseApprove: (() => void) | undefined
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const approve = vi.fn(
+      () =>
+        new Promise<UserMemory>((resolve) => {
+          releaseApprove = () => {
+            store[0] = { ...store[0], status: 'approved' }
+            resolve(store[0])
+          }
+        }),
+    )
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ approve, list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Keyboard preference')).toBeTruthy()
+    const approveButton = screen.getByRole('button', { name: 'Approve' })
+    await user.click(approveButton)
+    const row = document.getElementById('user-memory-mem-1')
+    expect(row?.getAttribute('aria-busy')).toBe('true')
+
+    releaseApprove?.()
+    await waitFor(() =>
+      expect(document.getElementById('user-memory-mem-1')?.getAttribute('aria-busy')).toBeNull(),
+    )
+  })
+
 })

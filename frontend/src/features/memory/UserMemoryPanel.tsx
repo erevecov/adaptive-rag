@@ -503,6 +503,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           aria-label="User Memories"
           className="gap-1.5"
         >
+          {listState === 'loading' ? (
+            <li className="list-none">
+              <p
+                className="text-[11px] leading-snug text-muted-foreground"
+                role="status"
+              >
+                Refreshing memories…
+              </p>
+            </li>
+          ) : null}
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
             const isEditing = editingId === memory.id
@@ -510,6 +520,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               memory.status === 'proposed' && !isEditing
             return (
               <DataListItem
+                aria-busy={busy || undefined}
                 aria-keyshortcuts={
                   keyboardReviewable ? 'Enter a r e' : undefined
                 }
@@ -520,6 +531,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 }
                 className={cn(
                   'p-2.5 outline-none',
+                  busy && 'opacity-70',
                   keyboardReviewable &&
                     'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -776,15 +788,28 @@ function FilterEmptyState({
       <p className="font-medium text-foreground/80">{copy.title}</p>
       <p className="text-xs leading-relaxed">{copy.body}</p>
       {filter === 'rejected' || filter === 'approved' ? (
-        <Button
-          className="w-fit"
-          onClick={onViewProposed}
-          size="sm"
-          type="button"
-          variant="secondary"
-        >
-          View Proposed
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            className="w-fit"
+            onClick={onViewProposed}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            View Proposed
+          </Button>
+          {filter === 'rejected' ? (
+            <Button
+              className="w-fit"
+              onClick={onPropose}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Focus Propose
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {filter === 'all' || filter === 'proposed' ? (
         <Button
