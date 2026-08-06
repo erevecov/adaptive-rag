@@ -65,6 +65,7 @@ describe('Callout', () => {
     expect(callout.className).toContain('motion-safe:transition-colors')
     expect(callout.className).toContain('max-[680px]:p-0.5')
     expect(callout.className).toContain('max-[680px]:rounded-sm')
+    expect(callout.className).toContain('max-[680px]:tracking-tighter')
   })
 
   test('neutral callout uses a soft muted wash', () => {
