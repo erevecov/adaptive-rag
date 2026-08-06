@@ -40,7 +40,7 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-2'
+  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-1.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
   'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
@@ -758,7 +758,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-2"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-1.5"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.6875rem] max-[680px]:leading-snug">
