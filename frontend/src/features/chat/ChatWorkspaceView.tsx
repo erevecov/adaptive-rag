@@ -1163,7 +1163,7 @@ function KnowledgeDraftCard({
 
   return (
     <article
-      aria-label={`Knowledge draft ${draft.draftId}`}
+      aria-label={`Knowledge Draft ${draft.draftId}`}
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
       role="region"
     >
