@@ -79,7 +79,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:tracking-tighter max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:tracking-tighter max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
@@ -94,7 +94,7 @@ export function Select({
                 className={cn(
                   [
                     'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/30',
+                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/35',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
                     'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/20',
