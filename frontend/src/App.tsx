@@ -2737,11 +2737,11 @@ function AppearanceSettingsPanel({
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
         <div className="grid gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
             My Account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             id="appearance-settings-title"
           >
             Appearance

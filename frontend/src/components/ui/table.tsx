@@ -105,7 +105,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, scope = 'col', ...props }, ref) => (
     <th
       className={cn(
-        'h-9 max-[680px]:h-11 whitespace-nowrap bg-card px-3 max-[680px]:px-1 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground motion-safe:transition-colors max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider',
+        'h-9 max-[680px]:h-11 whitespace-nowrap bg-card px-3 max-[680px]:px-1 text-left align-middle text-xs font-semibold uppercase tracking-wide text-muted-foreground motion-safe:transition-colors max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
         className,
       )}
       ref={ref}

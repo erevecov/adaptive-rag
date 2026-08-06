@@ -395,7 +395,7 @@ export function SessionNavigationPanel({
                           sideOffset={4}
                         >
                           <DropdownMenu.Item
-                            className="justify-between gap-3 px-3 py-1.5 text-left max-[680px]:gap-0.5 max-[680px]:px-1.5 max-[680px]:py-0.5"
+                            className="justify-between gap-3 px-3 py-1.5 text-left max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5"
                             data-testid={`copy-id-${session.session_id}`}
                             onClick={() => {
                               void handleCopySessionId(session.session_id)
@@ -404,7 +404,7 @@ export function SessionNavigationPanel({
                             <span>Copiar ID de sesión</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left max-[680px]:px-1.5 max-[680px]:py-0.5"
+                            className="px-3 py-1.5 text-left max-[680px]:px-1 max-[680px]:py-0.5"
                             data-testid={`rename-${session.session_id}`}
                             onClick={() => {
                               setRenamingSessionId(session.session_id)
@@ -414,7 +414,7 @@ export function SessionNavigationPanel({
                             Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left max-[680px]:px-1.5 max-[680px]:py-0.5"
+                            className="px-3 py-1.5 text-left max-[680px]:px-1 max-[680px]:py-0.5"
                             data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
                             onClick={() => {
                               if (isArchived) {

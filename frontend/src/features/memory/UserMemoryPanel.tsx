@@ -1131,7 +1131,7 @@ function MemoryListLoadingSkeleton() {
     <div
       aria-busy="true"
       aria-label="Loading Memories"
-      className="grid w-full gap-2 p-1 max-[680px]:gap-1"
+      className="grid w-full gap-2 p-1 max-[680px]:gap-0.5"
       data-slot="memory-list-loading"
       role="status"
     >
