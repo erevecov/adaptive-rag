@@ -613,6 +613,7 @@ describe('ChatWorkspacePanel', () => {
   })
 
   test('uses lucide icons instead of inline SVG icon functions', () => {
+    expect(chatWorkspaceSource).toContain('max-[680px]:px-1')
     expect(chatWorkspaceSource).toContain('lucide-react')
     expect(chatWorkspaceSource).not.toContain('<svg')
     expect(chatWorkspaceSource).not.toContain('function ContextRingIcon')
@@ -621,4 +622,10 @@ describe('ChatWorkspacePanel', () => {
     expect(chatWorkspaceSource).not.toContain('function SendIcon')
     expect(chatWorkspaceSource).not.toContain('ui-icon')
   })
+  test('≤680 composer tool and citation chips use denser hover/active wash', () => {
+    expect(chatWorkspaceSource).toContain('max-[680px]:hover:bg-primary/65')
+    expect(chatWorkspaceSource).toContain('max-[680px]:active:bg-primary/95')
+  })
+
+
 })
