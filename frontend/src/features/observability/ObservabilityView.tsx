@@ -125,7 +125,7 @@ export function ObservabilityPanel({
           </StatusBadge>
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
           className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:border max-[680px]:border-primary max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
