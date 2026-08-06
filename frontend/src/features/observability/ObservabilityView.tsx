@@ -202,7 +202,7 @@ export function ObservabilityPanel({
               />
             )}
           </ObservabilityField>
-          <Button className="whitespace-nowrap max-[680px]:h-7 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isRefreshing} type="submit">
+          <Button className="whitespace-nowrap max-[680px]:h-6 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isRefreshing} type="submit">
             {isRefreshing ? 'Refreshing…' : 'Refresh Summary'}
           </Button>
         </form>
