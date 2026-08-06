@@ -425,7 +425,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5"
+        className="flex flex-wrap gap-1.5 max-[680px]:gap-1"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -457,7 +457,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5">
+      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-1">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
             <InlineFeedback role="alert" tone="danger">
@@ -495,7 +495,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         <DataList
           aria-busy={listState === 'loading' || undefined}
           aria-label="User Memories"
-          className="gap-1.5"
+          className="gap-1.5 max-[680px]:gap-1"
         >
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
@@ -522,8 +522,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
                 tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-1.5">
-                  <div className="flex flex-wrap items-center gap-1.5">
+                <div className="grid gap-1.5 max-[680px]:gap-1">
+                  <div className="flex flex-wrap items-center gap-1.5 max-[680px]:gap-1">
                     <StatusBadge
                       className="w-fit"
                       tone={statusTone(memory.status)}
@@ -623,7 +623,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     </div>
                   )}
 
-                  <DataListItemActions className="gap-1.5">
+                  <DataListItemActions className="gap-1.5 max-[680px]:gap-1">
                     {memory.status === 'proposed' && !isEditing ? (
                       <>
                         <Button
@@ -689,7 +689,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
                     {memory.status === 'approved' ? (
                       confirmRemoveId === memory.id ? (
-                        <DataListItemActions className="gap-1.5">
+                        <DataListItemActions className="gap-1.5 max-[680px]:gap-1">
                           <Button
                             aria-label="Confirm Remove From Injection"
                             disabled={busy}

@@ -243,7 +243,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     return null
   }
   return (
-    <span className="flex flex-wrap gap-1.5">
+    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-1">
       {chips.slice(0, 3).map((chip) => (
         <span
           className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-1 max-[680px]:text-[0.5625rem]"

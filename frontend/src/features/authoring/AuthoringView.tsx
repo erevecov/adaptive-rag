@@ -954,7 +954,7 @@ function SourceFileField({
             : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
         aria-describedby={`${fieldId}-file-help`}
-        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium"
+        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium max-[680px]:min-h-11 max-[680px]:file:text-[0.625rem]"
         disabled={isBusy}
         id={fieldId}
         name="source-file"
@@ -1612,7 +1612,7 @@ function IngestionJobList({
                   data-job-status={job.status}
                   key={job.id}
                 >
-                  <div className="grid min-w-0 gap-1.5">
+                  <div className="grid min-w-0 gap-1.5 max-[680px]:gap-1">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       {isRunning ? (
                         <span

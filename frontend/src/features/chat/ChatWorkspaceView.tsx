@@ -267,7 +267,7 @@ export function ChatWorkspacePanel({
             className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-1">
               <Button
                 aria-label="Open Context Sidebar"
                 aria-pressed={isContextInspectorActive}
@@ -379,7 +379,7 @@ function SpeechInputControl({
   return (
     <section
       aria-label="Transcript Input"
-      className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full"
+      className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:gap-1"
       data-slot="speech-input"
     >
       <Button
@@ -491,7 +491,7 @@ function ResponsePanel({
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
             </div>
-            <div className="flex gap-1.5 pt-1">
+            <div className="flex gap-1.5 pt-1 max-[680px]:gap-1 max-[680px]:pt-0.5">
               <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted/40" />
@@ -779,7 +779,7 @@ function ResponseContent({
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer Citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-1.5 max-[680px]:gap-1 max-[680px]:pt-1.5"
               data-slot="chat-answer-citations"
               role="group"
             >
