@@ -781,7 +781,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
                 tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-1.5">
+                <div className="grid gap-1.5 max-[680px]:gap-0.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge
                       className="w-fit"

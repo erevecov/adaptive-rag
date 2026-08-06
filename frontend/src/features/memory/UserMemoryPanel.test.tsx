@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -1502,6 +1502,12 @@ describe('UserMemoryPanel', () => {
     expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
     const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
     expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
+    const memoryRow = screen.getByText('Live preference').closest('li')
+    expect(memoryRow).toBeTruthy()
+    const statusBadge = within(memoryRow as HTMLElement).getByText('Approved')
+    const rowChrome = statusBadge.closest('div.grid')
+    expect(rowChrome?.className).toContain('gap-1.5')
+    expect(rowChrome?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
