@@ -278,7 +278,7 @@ describe('SessionNavigationPanel', () => {
     expect(screen.getByRole('menu').getAttribute('data-slot')).toBe(
       'session-actions-menu',
     )
-    expect(screen.getByRole('menu').className).toContain('max-[680px]:p-1')
+    expect(screen.getByRole('menu').className).toContain('max-[680px]:p-0.5')
     expect(screen.getByRole('menu').className).toContain('tracking-tight')
     // beflow-parity session menu: copy id, rename, archive
     expect(

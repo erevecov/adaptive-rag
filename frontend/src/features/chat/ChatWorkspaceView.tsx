@@ -40,7 +40,7 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-1'
+  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
   'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
@@ -264,7 +264,7 @@ export function ChatWorkspacePanel({
           </Field>
 
           <div
-            className="mt-2 flex flex-wrap items-center justify-end gap-2 max-[680px]:mt-1 max-[680px]:gap-0.5"
+            className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-0.5">
@@ -470,7 +470,7 @@ function ResponsePanel({
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:p-1"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:p-0.5"
           data-slot-state="loading"
           role="status"
         >
@@ -482,10 +482,10 @@ function ResponsePanel({
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:p-0.5"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
-            <div className="space-y-2 max-[680px]:space-y-1">
+            <div className="space-y-2">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
@@ -507,7 +507,7 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[4.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-1"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="failed"
             role="alert"
           >
@@ -524,7 +524,7 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[4.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-1"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="canceled"
             role="status"
           >
@@ -539,7 +539,7 @@ function ResponsePanel({
     return (
       <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[4.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-1"
+          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
           data-slot-state="empty"
           role="status"
         >
@@ -760,14 +760,14 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (
-              <span className="inline-flex items-center gap-2 text-muted-foreground max-[680px]:gap-0.5">
+              <span className="inline-flex items-center gap-2 text-muted-foreground">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
@@ -849,7 +849,7 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
           data-slot="chat-memory-applied"
         >
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
@@ -964,12 +964,12 @@ function ResponseDetailsPanel({
   return (
     <section
       aria-label="Response Details"
-      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+      className="rounded-md border border-border bg-muted/15 p-3"
     >
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
-        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-1"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
@@ -1067,7 +1067,7 @@ function ResponseDetailsContent({
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-0.5"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
-                <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
+                <div className="grid min-w-0 gap-2">
                   <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.source_external_id}
                   </strong>
@@ -1113,7 +1113,7 @@ function ResponseDetailsContent({
 
 function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
   return (
-    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6 max-[680px]:gap-0.5">
+    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
       {usage.model !== null ? (
         <UsageItem label="Model" value={usage.model} />
       ) : null}
@@ -1130,7 +1130,7 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
 
 function UsageItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25">
+    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
@@ -1164,7 +1164,7 @@ function KnowledgeDraftCard({
   return (
     <article
       aria-label={`Knowledge draft ${draft.draftId}`}
-      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
@@ -1204,7 +1204,7 @@ function KnowledgeDraftCard({
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
-      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap gap-2">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>

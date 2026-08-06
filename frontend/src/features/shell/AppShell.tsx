@@ -184,7 +184,7 @@ export function AppShell({
         className={cn(
           [
             'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
-            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-1',
+            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-0.5',
           ],
           primaryView === 'chat'
             ? [
@@ -413,7 +413,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,260px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,248px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -684,7 +684,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === OBSERVABILITY_NAVIGATION.id}
           onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
@@ -705,7 +705,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === RUNTIME_NAVIGATION.id}
           onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
@@ -821,7 +821,7 @@ function SidebarProjectSelector({
             aria-label={`Project selector: ${selectedLabel}`}
             className={cn(
               [
-                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
+                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
                 'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25',
                 'hover:border-primary',
               ],
@@ -870,7 +870,7 @@ function SidebarProjectSelector({
             </label>
 
             <div
-              className="flex items-center justify-between gap-2 max-[680px]:gap-0.5"
+              className="flex items-center justify-between gap-2"
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
