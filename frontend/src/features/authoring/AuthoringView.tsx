@@ -307,7 +307,7 @@ function AuthoringSectionPanel({
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             {eyebrow}
           </p>
-          <PanelTitle className="max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id={id}>{title}</PanelTitle>
+          <PanelTitle className="max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id={id}>{title}</PanelTitle>
           {description ? (
             <PanelDescription className="max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{description}</PanelDescription>
           ) : null}
@@ -375,7 +375,7 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+      className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
       data-slot-state="loading"
       role="status"
     >
@@ -401,7 +401,7 @@ function AuthoringField({
 }) {
   return (
     <Field className={className}>
-      <FieldLabel className="max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel className="max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
       {help ? <FieldHelp className="max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id={`${id}-help`}>{help}</FieldHelp> : null}
     </Field>
@@ -456,7 +456,7 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
@@ -499,7 +499,7 @@ function ProjectList({
   if (projects.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -531,7 +531,7 @@ function ProjectList({
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
-              className="max-[680px]:touch-manipulation max-[680px]:basis-full max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0 whitespace-normal p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:basis-full max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0 whitespace-normal p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
@@ -565,7 +565,7 @@ function ProjectList({
             </Button>
             <Button
               aria-label={`Delete project ${project.name}`}
-              className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate shrink-0 self-center max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+              className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate shrink-0 self-center max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
               disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
@@ -709,14 +709,14 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create User"
             />
           </Button>
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
             disabled={isBusy}
             onClick={onRefresh}
             type="button"
@@ -728,7 +728,7 @@ function ProjectAccessPanel({
               idleLabel="Refresh Access"
             />
           </Button>
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
             disabled={isBusy || userAccessToken.trim() === ''}
             onClick={onRevokeAccessToken}
             type="button"
@@ -774,7 +774,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Saving…"
@@ -817,7 +817,7 @@ function UserAccessLists({
   if (users.length === 0 && memberships.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -830,7 +830,7 @@ function UserAccessLists({
     <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
-          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -868,7 +868,7 @@ function UserAccessLists({
                     Inactive
                   </StatusBadge>
                 ) : null}
-                <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                   aria-label={`Deactivate user ${user.login}`}
                   disabled={isBusy || !user.is_active}
                   onClick={() => onDeactivateUser(user)}
@@ -884,7 +884,7 @@ function UserAccessLists({
       )}
       {memberships.length === 0 ? (
         <EmptyState
-          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -904,7 +904,7 @@ function UserAccessLists({
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <Badge className="max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
-                <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
                   onClick={() => onDeleteMembership(membership)}
@@ -985,7 +985,7 @@ function SourceFileField({
               ? ` · ${formatFileSize(displaySizeBytes)}`
               : null}
           </span>
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
             aria-label="Clear Selected File"
             disabled={isBusy}
             onClick={() => {
@@ -1171,14 +1171,14 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create Source"
             />
           </Button>
-          <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+          <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
             disabled={isBusy}
             onClick={onRefreshSources}
             type="button"
@@ -1223,7 +1223,7 @@ function SourceList({
   if (sources.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -1277,7 +1277,7 @@ function SourceList({
             </div>
             <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
               <Badge className="max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
-              <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+              <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onEnqueueIngestion(source)}
@@ -1287,7 +1287,7 @@ function SourceList({
               >
                 Queue
               </Button>
-              <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+              <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                 aria-label={`Delete source ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onDeleteSource(source)}
@@ -1343,7 +1343,7 @@ function KnowledgeReviewPanel({
       title="Pending Proposals"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-        <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+        <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1364,7 +1364,7 @@ function KnowledgeReviewPanel({
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="canceled"
           role="status"
         >
@@ -1376,7 +1376,7 @@ function KnowledgeReviewPanel({
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -1447,7 +1447,7 @@ function KnowledgeReviewPanel({
                     )}
                   </AuthoringField>
                   <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
-                    <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                    <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
@@ -1457,7 +1457,7 @@ function KnowledgeReviewPanel({
                     >
                       Refine
                     </Button>
-                    <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                    <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-label={proposalActionLabel('Approve', proposal)}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
@@ -1466,7 +1466,7 @@ function KnowledgeReviewPanel({
                     >
                       Approve
                     </Button>
-                    <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                    <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-describedby={`proposal-reject-${proposal.id}`}
                       aria-label={proposalActionLabel('Reject', proposal)}
                       disabled={isBusy || !canReject}
@@ -1518,7 +1518,7 @@ function IngestionJobsPanel({
       title="Jobs"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-        <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+        <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1530,7 +1530,7 @@ function IngestionJobsPanel({
             idleLabel="Refresh Jobs"
           />
         </Button>
-        <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} onClick={onRunNext} type="button">
+        <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} onClick={onRunNext} type="button">
           <ButtonLabel
             busy={isBusy}
             busyLabel="Running…"
@@ -1587,7 +1587,7 @@ function IngestionJobList({
   if (jobs.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -1671,7 +1671,7 @@ function IngestionJobList({
                   </div>
                   <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
                     {isRetryableIngestionJob(job) ? (
-                      <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                      <Button className="max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                         aria-label={`Retry ingestion job ${job.id}`}
                         disabled={isBusy}
                         onClick={() => onRetry(job)}
