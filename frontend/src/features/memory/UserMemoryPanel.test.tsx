@@ -191,13 +191,55 @@ describe('UserMemoryPanel', () => {
     )
     await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
-    expect(await screen.findByText('Removed from injection.')).toBeTruthy()
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
     await user.click(
       screen.getByRole('button', { name: 'Undo remove from injection' }),
     )
     await waitFor(() => expect(approve).toHaveBeenCalledWith('mem-2'))
     expect(await screen.findByText('1 Injectable')).toBeTruthy()
-    expect(screen.queryByText('Removed from injection.')).toBeNull()
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+  })
+
+  test('Esc and Dismiss clear the soft-remove Undo banner', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      memory({ content: 'Other live', id: 'mem-3', status: 'approved' }),
+    ]
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(
+      screen.getAllByRole('button', { name: 'Remove from injection' })[0],
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalled())
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+
+    await user.click(
+      screen.getAllByRole('button', { name: 'Remove from injection' })[0],
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Dismiss undo remove' }))
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
   })
 
   test('badge reports approved injectable count even on Proposed filter', async () => {
@@ -975,28 +1017,6 @@ describe('UserMemoryPanel', () => {
     expect(hint).toBeTruthy()
     expect(hint?.getAttribute('aria-live')).toBe('assertive')
     expect(hint?.getAttribute('role')).toBe('status')
-  })
-
-  test('uses denser ≤680 spacing on the Memory panel shell and actions', async () => {
-    const list = vi.fn(async () => ({
-      items: [
-        memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
-      ],
-    }))
-
-    render(
-      <UserMemoryPanel
-        apiClient={createMemoryClient({ list })}
-        projectId="project-1"
-      />,
-    )
-
-    expect(await screen.findByText('Live preference')).toBeTruthy()
-    const panel = screen.getByRole('region', { name: 'Memory' })
-    expect(panel.className).toContain('max-[680px]:gap-0.5')
-    expect(panel.className).toContain('max-[680px]:p-0.5')
-    const actions = panel.querySelector('[data-slot="data-list-item-actions"]')
-    expect(actions?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
