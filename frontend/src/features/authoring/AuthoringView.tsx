@@ -401,7 +401,7 @@ function AuthoringField({
 }) {
   return (
     <Field className={className}>
-      <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
       {help ? <FieldHelp className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={`${id}-help`}>{help}</FieldHelp> : null}
     </Field>
@@ -456,7 +456,7 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
@@ -512,7 +512,7 @@ function ProjectList({
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Projects" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
@@ -531,7 +531,7 @@ function ProjectList({
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
-              className="max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0.5 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0.5 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
@@ -565,7 +565,7 @@ function ProjectList({
             </Button>
             <Button
               aria-label={`Delete project ${project.name}`}
-              className="max-[680px]:truncate shrink-0 self-center max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+              className="max-[680px]:overflow-hidden max-[680px]:truncate shrink-0 self-center max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
               disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
@@ -709,14 +709,14 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create User"
             />
           </Button>
-          <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
             disabled={isBusy}
             onClick={onRefresh}
             type="button"
@@ -728,7 +728,7 @@ function ProjectAccessPanel({
               idleLabel="Refresh Access"
             />
           </Button>
-          <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
             disabled={isBusy || userAccessToken.trim() === ''}
             onClick={onRevokeAccessToken}
             type="button"
@@ -774,7 +774,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Saving…"
@@ -837,7 +837,7 @@ function UserAccessLists({
           No Users Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Users" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Users" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
               className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
@@ -868,7 +868,7 @@ function UserAccessLists({
                     Inactive
                   </StatusBadge>
                 ) : null}
-                <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                   aria-label={`Deactivate user ${user.login}`}
                   disabled={isBusy || !user.is_active}
                   onClick={() => onDeactivateUser(user)}
@@ -891,7 +891,7 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Project Memberships" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
             <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0.5">
@@ -904,7 +904,7 @@ function UserAccessLists({
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                 <Badge className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
-                <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
                   onClick={() => onDeleteMembership(membership)}
@@ -985,7 +985,7 @@ function SourceFileField({
               ? ` · ${formatFileSize(displaySizeBytes)}`
               : null}
           </span>
-          <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
             aria-label="Clear Selected File"
             disabled={isBusy}
             onClick={() => {
@@ -1171,14 +1171,14 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create Source"
             />
           </Button>
-          <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
             disabled={isBusy}
             onClick={onRefreshSources}
             type="button"
@@ -1236,7 +1236,7 @@ function SourceList({
   }
 
   return (
-    <DataList aria-label="Sources" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Sources" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {sources.map((source) => {
         const isDeleted = Boolean(source.deleted_at)
         const tags =
@@ -1277,7 +1277,7 @@ function SourceList({
             </div>
             <DataListItemActions className="max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
               <Badge className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
-              <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+              <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onEnqueueIngestion(source)}
@@ -1287,7 +1287,7 @@ function SourceList({
               >
                 Queue
               </Button>
-              <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+              <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                 aria-label={`Delete source ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onDeleteSource(source)}
@@ -1343,7 +1343,7 @@ function KnowledgeReviewPanel({
       title="Pending Proposals"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-        <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+        <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1386,7 +1386,7 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Knowledge Proposals" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''
@@ -1447,7 +1447,7 @@ function KnowledgeReviewPanel({
                     )}
                   </AuthoringField>
                   <DataListItemActions className="max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
-                    <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                    <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
@@ -1457,7 +1457,7 @@ function KnowledgeReviewPanel({
                     >
                       Refine
                     </Button>
-                    <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                    <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={proposalActionLabel('Approve', proposal)}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
@@ -1466,7 +1466,7 @@ function KnowledgeReviewPanel({
                     >
                       Approve
                     </Button>
-                    <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                    <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-describedby={`proposal-reject-${proposal.id}`}
                       aria-label={proposalActionLabel('Reject', proposal)}
                       disabled={isBusy || !canReject}
@@ -1518,7 +1518,7 @@ function IngestionJobsPanel({
       title="Jobs"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-        <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+        <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1530,7 +1530,7 @@ function IngestionJobsPanel({
             idleLabel="Refresh Jobs"
           />
         </Button>
-        <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} onClick={onRunNext} type="button">
+        <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} onClick={onRunNext} type="button">
           <ButtonLabel
             busy={isBusy}
             busyLabel="Running…"
@@ -1609,7 +1609,7 @@ function IngestionJobList({
             {jobStatusLabel(group.status)}
             <span className="max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
-          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:gap-0.5">
+          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:overflow-hidden max-[680px]:gap-0.5">
             {group.jobs.map((job) => {
               const isRunning = job.status === 'running'
               const sourceId = ingestionJobSourceId(job)
@@ -1622,7 +1622,7 @@ function IngestionJobList({
                       ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
                       : `Ingestion Job ${statusLabel}`
                   }
-                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   data-job-status={job.status}
                   key={job.id}
                 >
@@ -1671,7 +1671,7 @@ function IngestionJobList({
                   </div>
                   <DataListItemActions className="max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
                     {isRetryableIngestionJob(job) ? (
-                      <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
+                      <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                         aria-label={`Retry ingestion job ${job.id}`}
                         disabled={isBusy}
                         onClick={() => onRetry(job)}

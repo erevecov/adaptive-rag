@@ -130,7 +130,7 @@ export function RetrievalPlaygroundPanel({
           onSubmit={(event) => void handleSearch(event)}
         >
           <Field>
-            <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-query">Query</FieldLabel>
+            <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-query">Query</FieldLabel>
             <FieldControl>
               <Textarea
                 className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
@@ -144,7 +144,7 @@ export function RetrievalPlaygroundPanel({
           </Field>
           <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0.5">
             <Field>
-              <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
+              <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
                 <Select
                   className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
@@ -158,7 +158,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-limit">Limit</FieldLabel>
+              <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-limit">Limit</FieldLabel>
               <FieldControl>
                 <Input
                   className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
@@ -170,7 +170,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-rerank">Rerank</FieldLabel>
+              <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-rerank">Rerank</FieldLabel>
               <FieldControl>
                 <Select
                   className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
@@ -182,7 +182,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-rerank-limit">
+              <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor="retrieval-rerank-limit">
                 Rerank Candidates
               </FieldLabel>
               <FieldControl>
@@ -211,7 +211,7 @@ export function RetrievalPlaygroundPanel({
             </Field>
           </div>
           <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0.5">
-            <Button className="max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit" disabled={state === 'loading'}>
+            <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
             <StatusBadge
@@ -300,7 +300,7 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
               {results.map((result, index) => (
                 <DataListItem
                   className="max-[680px]:overflow-hidden grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"

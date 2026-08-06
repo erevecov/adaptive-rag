@@ -203,7 +203,7 @@ export function ObservabilityPanel({
               />
             )}
           </ObservabilityField>
-          <Button className="max-[680px]:truncate whitespace-nowrap max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isRefreshing} type="submit">
+          <Button className="max-[680px]:overflow-hidden max-[680px]:truncate whitespace-nowrap max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isRefreshing} type="submit">
             {isRefreshing ? 'Refreshing…' : 'Refresh Summary'}
           </Button>
         </form>
@@ -241,7 +241,7 @@ function ObservabilityField({
 }) {
   return (
     <Field className="max-[680px]:gap-0.5">
-      <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
     </Field>
   )
@@ -658,7 +658,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
           No Status Data Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {rows.map((row) => (
             <DataListItem
               className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
@@ -692,7 +692,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
           No Error Messages Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {summary.errors.top_messages.map((error) => (
             <DataListItem
               className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
