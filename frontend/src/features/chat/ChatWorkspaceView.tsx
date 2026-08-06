@@ -760,7 +760,7 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:p-1"
+          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/15"
           data-slot="chat-message"
         >
           <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
