@@ -246,6 +246,13 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     setActionError(null)
     const wasApproved = memory.status === 'approved'
     const rowIndex = items.findIndex((item) => item.id === memory.id)
+    const remainingApproved = wasApproved
+      ? items.filter(
+          (item) => item.id !== memory.id && item.status === 'approved',
+        ).length
+      : 0
+    const switchApprovedToRejected =
+      wasApproved && statusFilter === 'approved' && remainingApproved === 0
     try {
       await apiClient.rejectUserMemory(memory.id)
       if (editingId === memory.id) {
@@ -253,11 +260,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setEditDraft('')
       }
       setConfirmRemoveId(null)
-      await refreshList()
       if (wasApproved) {
         setUndoRemoveId(memory.id)
       } else {
         setUndoRemoveId(null)
+      }
+      if (switchApprovedToRejected) {
+        setStatusFilter('rejected')
+      } else {
+        await refreshList()
       }
       requestAnimationFrame(() => {
         if (wasApproved) {
