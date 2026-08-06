@@ -450,7 +450,7 @@ export function AppSidebar({
             'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
-              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-1.5 max-[680px]:top-1.5 max-[680px]:border max-[680px]:border-primary/95',
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-1 max-[680px]:top-1 max-[680px]:border max-[680px]:border-primary/95',
           )}
           label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
@@ -751,11 +751,11 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
