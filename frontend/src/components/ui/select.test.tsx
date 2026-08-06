@@ -70,7 +70,7 @@ describe('Select', () => {
     expect(option.className).toContain('data-[highlighted]:bg-primary/15')
     expect(option.className).toContain('max-[680px]:data-[highlighted]:bg-primary/20')
     expect(option.className).toContain('active:bg-primary/20')
-    expect(option.className).toContain('max-[680px]:active:bg-primary/25')
+    expect(option.className).toContain('max-[680px]:active:bg-primary/30')
     expect(option.className).toContain('max-[680px]:min-h-11')
     expect(option.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(option.className).toContain('max-[680px]:tracking-tighter')
