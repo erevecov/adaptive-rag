@@ -2780,17 +2780,17 @@ function AppearanceSettingsPanel({
                 style={{ background: option.swatch.bg }}
               >
                 <span
-                  className="block h-2 rounded-full max-[680px]:h-1.5"
+                  className="block h-2 rounded-full max-[680px]:h-1"
                   data-slot="theme-swatch-line-strong"
                   style={{ background: option.swatch.fg }}
                 />
                 <span
-                  className="block h-2 w-3/4 rounded-full max-[680px]:h-1.5"
+                  className="block h-2 w-3/4 rounded-full max-[680px]:h-1"
                   data-slot="theme-swatch-line-muted"
                   style={{ background: option.swatch.muted }}
                 />
                 <span
-                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full max-[680px]:bottom-1.5 max-[680px]:right-1.5 max-[680px]:h-2 max-[680px]:w-8"
+                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full max-[680px]:bottom-1 max-[680px]:right-1 max-[680px]:h-2 max-[680px]:w-8"
                   data-slot="theme-swatch-accent"
                   style={{ background: option.swatch.accent }}
                 />
