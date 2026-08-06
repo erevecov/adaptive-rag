@@ -211,7 +211,7 @@ export function RetrievalPlaygroundPanel({
             </Button>
             <StatusBadge
               aria-live="polite"
-              className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               role="status"
               tone={requestStateTone(state)}
             >
