@@ -413,7 +413,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,88px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,80px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -450,7 +450,7 @@ export function AppSidebar({
             'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
-              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-1 max-[680px]:top-1 max-[680px]:border max-[680px]:border-primary/95',
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-0.5 max-[680px]:top-0.5 max-[680px]:border max-[680px]:border-primary/95',
           )}
           label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
