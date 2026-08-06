@@ -24,7 +24,7 @@ describe('NavSection', () => {
     expect(title.className).toContain('max-[680px]:text-[0.625rem]')
     expect(
       screen.getByText('Activos').closest('[data-slot="nav-section"]')?.className,
-    ).toContain('max-[680px]:gap-1')
+    ).toContain('max-[680px]:gap-0.5')
     expect(
       screen
         .getByText('Activos')
@@ -45,7 +45,7 @@ describe('SidebarItem', () => {
     expect(item.className).toContain('hover:bg-primary/15')
     expect(item.className).toContain('data-[active]:text-foreground')
     expect(item.className).toContain('max-[680px]:min-h-11')
-    expect(item.className).toContain('max-[680px]:gap-1')
+    expect(item.className).toContain('max-[680px]:gap-0.5')
     expect(item.className).toContain('max-[680px]:text-[0.625rem]')
   })
 

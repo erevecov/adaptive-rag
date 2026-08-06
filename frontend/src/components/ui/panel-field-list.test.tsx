@@ -66,12 +66,12 @@ describe('Field disabled styling', () => {
 
     const field = screen.getByText('Name').closest('[data-slot="field"]')
     expect(field?.className).toContain('group/field')
-    expect(field?.className).toContain('max-[680px]:gap-1')
+    expect(field?.className).toContain('max-[680px]:gap-0.5')
     expect(
       screen.getByText('Name').closest('[data-slot="field"]')?.querySelector(
         '[data-slot="field-control"]',
       )?.className,
-    ).toContain('max-[680px]:gap-1')
+    ).toContain('max-[680px]:gap-0.5')
     expect(screen.getByText('Name').className).toContain('tracking-tight')
     expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.625rem]')
     expect(screen.getByText('Name').className).toContain(

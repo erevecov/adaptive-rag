@@ -11,7 +11,7 @@ export type FieldProps = HTMLAttributes<HTMLDivElement>
 export const Field = forwardRef<HTMLDivElement, FieldProps>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn('group/field flex flex-col gap-2 max-[680px]:gap-1', className)}
+      className={cn('group/field flex flex-col gap-2 max-[680px]:gap-0.5', className)}
       ref={ref}
       {...props}
       data-slot="field"
@@ -41,7 +41,7 @@ export type FieldControlProps = HTMLAttributes<HTMLDivElement>
 
 export const FieldControl = forwardRef<HTMLDivElement, FieldControlProps>(
   ({ className, ...props }, ref) => (
-    <div className={cn('flex flex-col gap-2 max-[680px]:gap-1', className)} ref={ref} {...props} data-slot="field-control" />
+    <div className={cn('flex flex-col gap-2 max-[680px]:gap-0.5', className)} ref={ref} {...props} data-slot="field-control" />
   ),
 )
 FieldControl.displayName = 'FieldControl'
