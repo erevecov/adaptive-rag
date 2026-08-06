@@ -450,7 +450,7 @@ export function AppSidebar({
             'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
-              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-3 max-[680px]:top-3',
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-2.5 max-[680px]:top-2.5 max-[680px]:border max-[680px]:border-primary/25',
           )}
           label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
