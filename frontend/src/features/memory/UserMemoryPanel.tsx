@@ -471,8 +471,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
       role="region"
     >
-      <header className="flex flex-col gap-2 max-[680px]:gap-0.5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1 max-[680px]:gap-0.5">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
@@ -483,8 +483,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             Memory
           </h2>
         </div>
-        <div className="grid justify-items-end gap-1 max-[680px]:gap-0.5">
-          <div className="flex flex-wrap justify-end gap-1 max-[680px]:gap-0.5">
+        <div className="grid justify-items-end gap-1">
+          <div className="flex flex-wrap justify-end gap-1">
             {listState !== 'loading' && statusCounts.proposed > 0 ? (
               <StatusBadge
                 aria-label={`${statusCounts.proposed} proposed`}
@@ -611,7 +611,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5"
+        className="flex flex-wrap gap-1.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -633,7 +633,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
-              <span aria-hidden className="tabular-nums text-[10px] opacity-80 max-[680px]:text-[0.5625rem]">
+              <span aria-hidden className="tabular-nums text-[10px] opacity-80">
                 {statusCounts[filter.id]}
               </span>
             </Button>
@@ -657,7 +657,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5">
+      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2">
             <InlineFeedback role="alert" tone="danger">

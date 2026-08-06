@@ -1496,18 +1496,10 @@ describe('UserMemoryPanel', () => {
     expect(form?.className).toContain('max-[680px]:gap-0.5')
     const contentStack = screen.getByText('Live preference').parentElement
     expect(contentStack?.className).toContain('max-[680px]:gap-0.5')
-    const filters = screen.getByRole('group', { name: 'Memory Status Filters' })
-    expect(filters.className).toContain('max-[680px]:gap-0.5')
-    const filterCount = filters.querySelector('span[aria-hidden]')
-    expect(filterCount?.className).toContain('max-[680px]:text-[0.5625rem]')
-    const header = screen.getByRole('heading', { name: 'Memory' }).closest('header')
-    expect(header?.className).toContain('max-[680px]:gap-0.5')
-    const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
-    expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
-    const badgeRow = screen.getByLabelText(/injectable/i).parentElement
-    expect(badgeRow?.className).toContain('max-[680px]:gap-0.5')
-    const badgeColumn = badgeRow?.parentElement
-    expect(badgeColumn?.className).toContain('max-[680px]:gap-0.5')
+    const feedbackLive = Array.from(
+      document.querySelectorAll<HTMLElement>('[aria-live="polite"]'),
+    ).find((el) => el.className.includes('grid'))
+    expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
