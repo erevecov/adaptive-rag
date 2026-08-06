@@ -570,17 +570,18 @@ describe('UserMemoryPanel', () => {
     expect(screen.queryByRole('status', { name: 'Loading Memories' })).toBeNull()
   })
 
-  test('shows confirm-remove guidance while soft-remove is pending', async () => {
+  test('shows confirm-remove guidance and Keep In Injection control', async () => {
     const user = userEvent.setup()
     const list = vi.fn(async () => ({
       items: [
         memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
       ],
     }))
+    const reject = vi.fn()
 
     render(
       <UserMemoryPanel
-        apiClient={createMemoryClient({ list })}
+        apiClient={createMemoryClient({ list, reject })}
         projectId="project-1"
       />,
     )
@@ -592,6 +593,37 @@ describe('UserMemoryPanel', () => {
     expect(
       await screen.findByText(/Confirm remove drops injection/i),
     ).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Keep In Injection' }),
+    )
+    expect(screen.queryByRole('button', { name: /Confirm remove/i })).toBeNull()
+    expect(reject).not.toHaveBeenCalled()
+  })
+
+  test('empty Proposed filter offers Focus Propose', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'proposed') {
+        return { items: [] }
+      }
+      return { items: [] }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: /^Proposed/ }))
+    expect(await screen.findByText('No Proposed Memories')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Focus Propose' }))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Propose Memory'),
+      ),
+    )
   })
 
   test('empty Rejected filter offers Focus Propose beside View Proposed', async () => {
@@ -655,6 +687,50 @@ describe('UserMemoryPanel', () => {
     await waitFor(() =>
       expect(document.getElementById('user-memory-mem-1')?.getAttribute('aria-busy')).toBeNull(),
     )
+  })
+
+  test('announces injectable count after approve and Esc cancels confirm globally', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Draft note', id: 'mem-1', status: 'proposed' }),
+      memory({
+        content: 'Live preference',
+        id: 'mem-2',
+        status: 'approved',
+      }),
+    ]
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const approve = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'approved'
+      return item
+    })
+    const reject = vi.fn()
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ approve, list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByLabelText('1 injectable')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(await screen.findByLabelText('2 injectable')).toBeTruthy()
+
+    const removeButtons = screen.getAllByRole('button', {
+      name: 'Remove from injection',
+    })
+    await user.click(removeButtons[0])
+    expect(
+      await screen.findByRole('button', { name: /Confirm remove/i }),
+    ).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('button', { name: /Confirm remove/i })).toBeNull()
+    expect(reject).not.toHaveBeenCalled()
   })
 
 })
