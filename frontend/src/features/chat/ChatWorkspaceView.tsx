@@ -196,13 +196,13 @@ export function ChatWorkspacePanel({
           'max-[680px]:border-t max-[680px]:border-border/60',
           // Purple hairline above sticky Ask dock (mirrors question sticky).
           'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/25',
-          'max-[680px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+          'max-[680px]:pb-[max(0.5rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-6 max-[680px]:h-6"
+          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-5 max-[680px]:h-5"
           data-slot="chat-composer-gradient"
         />
         <form
@@ -267,7 +267,7 @@ export function ChatWorkspacePanel({
             className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-0.5">
               <Button
                 aria-label="Open Context Sidebar"
                 aria-pressed={isContextInspectorActive}
@@ -379,7 +379,7 @@ function SpeechInputControl({
   return (
     <section
       aria-label="Transcript Input"
-      className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:gap-1"
+      className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:gap-0.5"
       data-slot="speech-input"
     >
       <Button
@@ -491,7 +491,7 @@ function ResponsePanel({
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
             </div>
-            <div className="flex gap-1.5 pt-1 max-[680px]:gap-1 max-[680px]:pt-0.5">
+            <div className="flex gap-1.5 pt-1 max-[680px]:gap-0.5 max-[680px]:pt-0.5">
               <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted/40" />
@@ -779,7 +779,7 @@ function ResponseContent({
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer Citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-1.5 max-[680px]:gap-1 max-[680px]:pt-1.5"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-1 max-[680px]:gap-0.5 max-[680px]:pt-1"
               data-slot="chat-answer-citations"
               role="group"
             >
