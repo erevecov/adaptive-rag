@@ -508,6 +508,78 @@ describe('UserMemoryPanel', () => {
     ).toBe('true')
   })
 
+  test('propose filter switch clears the Approved→Rejected notice', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      return item
+    })
+    const propose = vi.fn(async (body: { content: string }) => {
+      const item = memory({
+        content: body.content,
+        id: 'mem-2',
+        status: 'proposed',
+      })
+      store.push(item)
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, propose, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-1'))
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
+
+    const draftField = screen.getByLabelText('Propose Memory')
+    await user.click(draftField)
+    await user.clear(draftField)
+    await user.type(draftField, 'Replacement preference')
+    await user.click(screen.getByRole('button', { name: 'Propose' }))
+    await waitFor(() => expect(propose).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
+      ).toBe('true'),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          /Showing Rejected — soft-removed item is below with Propose Again/i,
+        ),
+      ).toBeNull(),
+    )
+    expect(await screen.findByText('Replacement preference')).toBeTruthy()
+  })
+
 
   test('shows rejected empty state with a path back to Proposed', async () => {
     const user = userEvent.setup()
