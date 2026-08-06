@@ -346,7 +346,7 @@ export function RuntimeSettingsPanel({
   return (
     <div className="grid gap-4 max-[680px]:gap-0.5">
       {error ? (
-        <Callout className="p-3" role="alert" tone="danger">
+        <Callout className="p-3 max-[680px]:p-0.5" role="alert" tone="danger">
           {operatorSafeMessage(error)}
         </Callout>
       ) : null}
@@ -531,11 +531,11 @@ export function RuntimeConnectionsPanel({
       status={<RuntimeStatus state={state} />}
       title="Connections"
     >
-      <section aria-label="Provider Connections" className="grid gap-3">
+      <section aria-label="Provider Connections" className="grid gap-3 max-[680px]:gap-0.5">
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="loading"
             role="status"
           >
@@ -543,14 +543,14 @@ export function RuntimeConnectionsPanel({
           </EmptyState>
         ) : state === 'canceled' && connections.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="canceled"
             role="status"
           >
             Connections Load Canceled.
           </EmptyState>
         ) : connections.length === 0 ? (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" data-slot-state="empty" role="status">
             No Connections Yet.
           </EmptyState>
         ) : (
@@ -563,15 +563,15 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="grid gap-3 max-[680px]:gap-0.5 md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
-                  <div className="grid min-w-0 gap-2">
+                  <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                     <div className="grid gap-1">
                       <strong className="truncate font-mono text-xs font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                         {connection.connection_id}
                       </strong>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
                         <Badge className="max-w-full truncate">
                           {providerLabel(connection.provider)} /{' '}
                           {connectionTypeLabel(connection.connection_type)}
@@ -601,7 +601,7 @@ export function RuntimeConnectionsPanel({
                   </div>
                   <DataListItemActions className="justify-start md:justify-end">
                     <Button
-                      aria-label={`Check ${connection.connection_id} connection`}
+                      aria-label={`Check ${connection.connection_id} Connection`}
                       disabled={state === 'loading' || isChecking}
                       onClick={() => onCheckConnection(connection.connection_id)}
                       size="sm"
@@ -610,7 +610,7 @@ export function RuntimeConnectionsPanel({
                       {isChecking ? 'Checking…' : 'Check'}
                     </Button>
                     <Button
-                      aria-label={`Edit ${connection.connection_id} connection`}
+                      aria-label={`Edit ${connection.connection_id} Connection`}
                       disabled={state === 'loading'}
                       onClick={() =>
                         onRequestEditConnection(connection.connection_id)
@@ -621,7 +621,7 @@ export function RuntimeConnectionsPanel({
                       Edit
                     </Button>
                     <Button
-                      aria-label={`Delete ${connection.connection_id} connection`}
+                      aria-label={`Delete ${connection.connection_id} Connection`}
                       disabled={state === 'loading'}
                       onClick={() =>
                         onRequestDeleteConnection(connection.connection_id)
@@ -634,13 +634,13 @@ export function RuntimeConnectionsPanel({
                   </DataListItemActions>
                   {deleteConnectionId === connection.connection_id ? (
                     <form
-                      aria-label={`Delete ${connection.connection_id} connection`}
-                      className="grid gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2"
+                      aria-label={`Delete ${connection.connection_id} Connection`}
+                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5"
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback tone="danger">
-                        Type <strong>{connection.connection_id}</strong> to confirm
-                        deletion.
+                        Type <strong>{connection.connection_id}</strong> to Confirm
+                        Deletion.
                       </InlineFeedback>
                       <RuntimeField
                         id={`delete-${connection.connection_id}-confirmation`}
@@ -691,8 +691,8 @@ export function RuntimeConnectionsPanel({
       </section>
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveConnection}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-semibold leading-none">
+        <div className="flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0.5">
+          <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">
             {isEditingConnection
               ? `Edit Connection ${editingConnectionId}`
               : 'New Connection'}
@@ -864,7 +864,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug"
+            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
@@ -875,7 +875,7 @@ export function CapabilitySelector({
                 <Badge className="gap-1 pr-1" key={capability} tone="primary">
                   <span>{slotLabel(capability)}</span>
                   <Button
-                    aria-label={`Remove ${slotLabel(capability)} capability`}
+                    aria-label={`Remove ${slotLabel(capability)} Capability`}
                     className="h-5 px-1 text-xs max-[680px]:min-h-11 max-[680px]:h-auto max-[680px]:text-[0.5625rem]"
                     onClick={(event) => {
                       event.stopPropagation()
@@ -948,7 +948,7 @@ export function CapabilitySelector({
             ) : (
               filteredOptions.map((capability) => (
                 <Button
-                  aria-label={`Add ${slotLabel(capability)} capability`}
+                  aria-label={`Add ${slotLabel(capability)} Capability`}
                   aria-selected={false}
                   className="justify-start"
                   key={capability}
@@ -1031,11 +1031,11 @@ export function RuntimeModelCatalogPanel({
       {selectedConnection ? (
         <section
           aria-label="Selected Model Sync Connection"
-          className="grid gap-3"
+          className="grid gap-3 max-[680px]:gap-0.5"
         >
           <DataList>
-            <DataListItem className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="grid min-w-0 gap-2">
+            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                 <div className="grid gap-1">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {connectionOptionLabel(selectedConnection)}
@@ -1218,12 +1218,12 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global Chat Models" className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat Models</h3>
+      <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0.5">
+        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="loading"
             role="status"
           >
@@ -1231,21 +1231,21 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatModels.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="canceled"
             role="status"
           >
             Chat Models Load Canceled.
           </EmptyState>
         ) : chatModels.length === 0 ? (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" data-slot-state="empty" role="status">
             No Chat Models Yet.
           </EmptyState>
         ) : (
           <DataList>
             {chatModels.map((model) => (
               <DataListItem
-                className="flex flex-wrap items-center justify-between gap-3"
+                className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
@@ -1305,12 +1305,12 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global Chat Retrieval" className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat Retrieval</h3>
+      <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0.5">
+        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="loading"
             role="status"
           >
@@ -1318,7 +1318,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatRetrievalSettings === null ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="canceled"
             role="status"
           >
@@ -1326,7 +1326,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : chatRetrievalSettings ? (
           <DataList>
-            <DataListItem className="flex flex-wrap items-center justify-between gap-3">
+            <DataListItem className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
               <div className="grid gap-1">
                 <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   Global Defaults
@@ -1344,7 +1344,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" data-slot-state="empty" role="status">
             No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
@@ -1462,10 +1462,10 @@ export function RuntimeProjectOverridesPanel({
 }) {
   return (
     <RuntimePanel
-      ariaLabel="Project runtime settings"
+      ariaLabel="Project Runtime Settings"
       id="runtime-project-overrides-title"
       status={
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0.5">
           <RuntimeStatus state={state} />
           <StatusBadge className="max-w-full break-all text-left" tone="neutral">
             {projectId.trim() || 'No Project'}
@@ -1633,7 +1633,7 @@ export function ConnectionSecretSummary({
     )
   }
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
       {connection.secrets.map((secret) => (
         <Badge key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secretNameLabel(secret.secret_name)}{' '}
@@ -1655,7 +1655,7 @@ export function ConnectionCheckSummary({
   if (isChecking) {
     return (
       <InlineFeedback aria-live="polite" role="status" tone="warning">
-        Checking connection…
+        Checking Connection…
       </InlineFeedback>
     )
   }
@@ -1670,17 +1670,17 @@ export function ConnectionCheckSummary({
     return (
       <Callout
         aria-live="polite"
-        className="p-2"
+        className="p-2 max-[680px]:p-0.5"
         role="status"
         tone="success"
       >
-        Connection check passed: {result.model_count} provider models reachable.
+        Connection Check Passed: {result.model_count} Provider Models Reachable.
       </Callout>
     )
   }
 
   return (
-    <Callout className="p-2" role="alert" tone="danger">
+    <Callout className="p-2 max-[680px]:p-0.5" role="alert" tone="danger">
       Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
         <span className="mt-1 block text-xs opacity-90 max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1774,26 +1774,26 @@ export function ProviderModelCatalogView({
   providerModels: ProviderModel[]
 }) {
   return (
-    <section aria-label="Provider Model Catalog" className="grid gap-3">
-      <h3 className="text-base font-semibold leading-none">Model Catalog</h3>
+    <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0.5">
+      <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
           data-slot-state="loading"
           role="status"
         >
           Loading Provider Models…
         </EmptyState>
       ) : providerModels.length === 0 ? (
-        <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5" data-slot-state="empty" role="status">
+        <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" data-slot-state="empty" role="status">
           No Provider Models Yet.
         </EmptyState>
       ) : (
         <DataList>
           {providerModels.map((model) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3"
+              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1">
@@ -1834,7 +1834,7 @@ export function RuntimeSlotList({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot-state="loading"
         role="status"
       >
@@ -1845,7 +1845,7 @@ export function RuntimeSlotList({
   if (state === 'canceled' && slots.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot-state="canceled"
         role="status"
       >
@@ -1856,7 +1856,7 @@ export function RuntimeSlotList({
   if (slots.length === 0) {
     return (
       <EmptyState
-        className="p-4 text-left tracking-tight max-[680px]:p-0.5"
+        className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot-state="empty"
         role="status"
       >
@@ -1868,7 +1868,7 @@ export function RuntimeSlotList({
     <DataList aria-label="Global Runtime Slots">
       {slots.map((slot) => (
         <DataListItem
-          className="flex flex-wrap items-center justify-between gap-3"
+          className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
           key={slot.slot}
         >
           <div className="grid gap-1">
@@ -1897,7 +1897,7 @@ export function ProjectRuntimeSettingsView({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot-state="loading"
         role="status"
       >
@@ -1908,7 +1908,7 @@ export function ProjectRuntimeSettingsView({
   if (state === 'canceled' && settings === null) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot-state="canceled"
         role="status"
       >
@@ -1918,18 +1918,18 @@ export function ProjectRuntimeSettingsView({
   }
   if (settings === null) {
     return (
-      <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5" data-slot-state="empty" role="status">
+      <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" data-slot-state="empty" role="status">
         No Project Runtime Settings Yet.
       </EmptyState>
     )
   }
   return (
     <div className="grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
-      <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Effective Slots</h3>
+      <section className="grid gap-3 max-[680px]:gap-0.5">
+        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
-            className="p-4 text-left tracking-tight max-[680px]:p-0.5"
+            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="empty"
             role="status"
           >
@@ -1938,7 +1938,7 @@ export function ProjectRuntimeSettingsView({
         ) : (
           <DataList>
             {settings.slots.map((slot) => (
-              <DataListItem className="grid gap-3" key={slot.slot}>
+              <DataListItem className="grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
                 <div className="grid gap-1">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1963,11 +1963,11 @@ export function ProjectRuntimeSettingsView({
           </DataList>
         )}
       </section>
-      <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat Pool</h3>
+      <section className="grid gap-3 max-[680px]:gap-0.5">
+        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
-            className="p-4 text-left tracking-tight max-[680px]:p-0.5"
+            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot-state="empty"
             role="status"
           >
@@ -1978,7 +1978,7 @@ export function ProjectRuntimeSettingsView({
           <DataList>
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="grid gap-3"
+                className="grid gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
@@ -2000,10 +2000,10 @@ export function ProjectRuntimeSettingsView({
           </DataList>
         )}
       </section>
-      <section className="grid gap-3">
-        <h3 className="text-base font-semibold leading-none">Chat Retrieval</h3>
+      <section className="grid gap-3 max-[680px]:gap-0.5">
+        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight">Chat Retrieval</h3>
         <DataList>
-          <DataListItem className="flex flex-wrap items-center justify-between gap-3">
+          <DataListItem className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
             <div className="grid gap-1">
               <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 Limit {settings.chat_retrieval.retrieval_limit}

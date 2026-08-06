@@ -419,7 +419,7 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByLabelText('Base URL')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Capabilities' })).toBeTruthy()
     expect(screen.getByLabelText('API Key')).toBeTruthy()
-    expect(screen.queryByLabelText('Secret connection')).toBeNull()
+    expect(screen.queryByLabelText('Secret Connection')).toBeNull()
     expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
   })
 
@@ -490,7 +490,7 @@ describe('RuntimeSettingsPanel', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(listbox.getAttribute('data-state')).toBe('open')
     expect(listbox.className).toContain('shadow-[var(--shadow-popover)]')
-    expect(screen.getByRole('option', { name: 'Add Dense Embedding capability' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Add Dense Embedding Capability' })).toBeTruthy()
     expect(selector).toBeTruthy()
     expect(selector?.contains(listbox)).toBe(false)
   })
@@ -516,7 +516,7 @@ describe('RuntimeSettingsPanel', () => {
     renderRuntimeSettingsPanel({ connectionCheckResults })
 
     const feedback = screen.getByText(
-      'Connection check passed: 2 provider models reachable.',
+      'Connection Check Passed: 2 Provider Models Reachable.',
     )
 
     expect(feedback.getAttribute('role')).toBe('status')
@@ -551,18 +551,18 @@ describe('RuntimeSettingsPanel', () => {
     })
     await user.click(
       within(providerConnectionsRegion).getByRole('button', {
-        name: 'Delete qwen-hosted connection',
+        name: 'Delete qwen-hosted Connection',
       }),
     )
 
     const deleteForm = screen.getByRole('form', {
-      name: 'Delete qwen-hosted connection',
+      name: 'Delete qwen-hosted Connection',
     })
     expect(
       within(deleteForm).getByText((_, element) => {
         return (
           element?.tagName.toLowerCase() === 'p' &&
-          element.textContent === 'Type qwen-hosted to confirm deletion.'
+          element.textContent === 'Type qwen-hosted to Confirm Deletion.'
         )
       }),
     ).toBeTruthy()

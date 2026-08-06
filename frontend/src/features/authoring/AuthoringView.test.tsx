@@ -237,7 +237,7 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('Project Name').getAttribute('data-slot')).toBe(
       'input',
     )
-    expect(screen.getByRole('region', { name: 'Authoring projects' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Authoring Projects' })).toBeTruthy()
     expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
     expect(
       view.container.querySelector('[data-slot="panel"]'),
@@ -350,7 +350,7 @@ describe('AuthoringPanel', () => {
       '[data-slot="ingestion-last-run"]',
     )
     expect(lastRun).toBeTruthy()
-    expect(lastRun?.textContent).toMatch(/Last run/)
+    expect(lastRun?.textContent).toMatch(/Last Run/)
     expect(lastRun?.textContent).toMatch(/Idle/)
     expect(
       lastRun?.querySelector('[data-slot="badge"]')?.getAttribute('data-tone'),

@@ -71,7 +71,7 @@ export function RetrievalPlaygroundPanel({
     }
     const parsedLimit = Number.parseInt(limit, 10)
     if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
-      setError('Limit must be a positive integer.')
+      setError('Limit Must Be a Positive Integer.')
       setState('failed')
       setResults([])
       return
@@ -81,7 +81,7 @@ export function RetrievalPlaygroundPanel({
       const candidateLimit = Number.parseInt(rerankCandidateLimit, 10)
       if (!Number.isFinite(candidateLimit) || candidateLimit < parsedLimit) {
         setError(
-          'Rerank candidate limit must be an integer >= limit when rerank is on.',
+          'Rerank Candidate Limit Must Be an Integer >= Limit When Rerank Is On.',
         )
         setState('failed')
         setResults([])
@@ -120,8 +120,8 @@ export function RetrievalPlaygroundPanel({
           Retrieval Playground
         </PanelTitle>
         <PanelDescription>
-          Run project retrieval without chat. Inspect ranked chunks, scores, and
-          strategy for the selected project.
+          Run Project Retrieval Without Chat. Inspect Ranked Chunks, Scores, and
+          Strategy for the Selected Project.
         </PanelDescription>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
@@ -136,7 +136,7 @@ export function RetrievalPlaygroundPanel({
                 id="retrieval-query"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="What should retrieval return?"
+                placeholder="What Should Retrieval Return?"
                 rows={3}
               />
             </FieldControl>
@@ -179,7 +179,7 @@ export function RetrievalPlaygroundPanel({
             </Field>
             <Field>
               <FieldLabel htmlFor="retrieval-rerank-limit">
-                Rerank candidates
+                Rerank Candidates
               </FieldLabel>
               <FieldControl>
                 <Input
@@ -202,7 +202,7 @@ export function RetrievalPlaygroundPanel({
               ) : null}
             </Field>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0.5">
             <Button type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
@@ -230,18 +230,18 @@ export function RetrievalPlaygroundPanel({
         <div
           aria-busy={state === 'loading' || undefined}
           aria-label="Retrieval Results"
-          className="grid gap-2"
+          className="grid gap-2 max-[680px]:gap-0.5"
           role="region"
         >
           {state === 'loading' ? (
             <EmptyState
               aria-busy="true"
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
               data-slot-state="loading"
               role="status"
             >
-              <p className="font-medium text-foreground/90">Searching…</p>
-              <span className="sr-only">Searching retrieval…</span>
+              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Searching…</p>
+              <span className="sr-only">Searching Retrieval…</span>
             </EmptyState>
           ) : null}
 
@@ -260,11 +260,11 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'idle' && results.length === 0 && !error ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
               data-slot-state="empty"
               role="status"
             >
-              <p className="font-medium text-foreground/90">
+              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 Run A Query To Inspect Ranked Chunks.
               </p>
               <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -275,11 +275,11 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'succeeded' && results.length === 0 ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
               data-slot-state="empty"
               role="status"
             >
-              <p className="font-medium text-foreground/90">
+              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 No Chunks Returned
               </p>
               <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -294,21 +294,21 @@ export function RetrievalPlaygroundPanel({
             <DataList aria-label="Ranked Retrieval Results">
               {results.map((result, index) => (
                 <DataListItem
-                  className="grid gap-2"
+                  className="grid gap-2 max-[680px]:gap-0.5"
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                     <Badge
                       aria-label={`Rank ${index + 1}`}
-                      className="min-w-[4.5ch] justify-center tabular-nums"
+                      className="min-w-[4.5ch] justify-center tabular-nums max-[680px]:text-[0.5625rem]"
                       tone="neutral"
                     >
                       #{index + 1}
                     </Badge>
                     <Badge
                       aria-label={`Score ${result.score.toFixed(4)}`}
-                      className="min-w-[7ch] justify-center font-mono tabular-nums"
+                      className="min-w-[7ch] justify-center font-mono tabular-nums max-[680px]:text-[0.5625rem]"
                     >
                       {result.score.toFixed(4)}
                     </Badge>
@@ -383,7 +383,7 @@ function formatError(error: unknown): string {
   if (error instanceof Error) {
     return operatorSafeMessage(error.message)
   }
-  return 'Retrieval search failed.'
+  return 'Retrieval Search Failed.'
 }
 
 function retrievalStrategyDisplay(strategy: string | null | undefined): string {
