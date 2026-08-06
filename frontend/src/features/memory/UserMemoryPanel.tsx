@@ -109,6 +109,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     return () => window.clearTimeout(timer)
   }, [filterSwitchNotice])
 
+  function dismissUndoBanner(memoryId: string) {
+    setUndoRemoveId(null)
+    setFilterSwitchNotice(null)
+    requestAnimationFrame(() => {
+      focusAfterUndoBannerClear(memoryId, draftFieldId)
+    })
+  }
+
   useEffect(() => {
     if (undoRemoveId === null) {
       return
@@ -125,8 +133,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         return
       }
       event.preventDefault()
-      setUndoRemoveId(null)
-      setFilterSwitchNotice(null)
+      dismissUndoBanner(undoRemoveId)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -691,8 +698,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             <Button
               aria-label="Dismiss undo remove"
               onClick={() => {
-                setUndoRemoveId(null)
-                setFilterSwitchNotice(null)
+                if (undoRemoveId !== null) {
+                  dismissUndoBanner(undoRemoveId)
+                }
               }}
               size="sm"
               type="button"
@@ -1197,6 +1205,18 @@ function MemoryListLoadingSkeleton() {
       <div aria-hidden="true" className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
     </div>
   )
+}
+
+function focusAfterUndoBannerClear(
+  memoryId: string,
+  draftFieldId: string,
+): void {
+  const proposeAgain = document.getElementById(`propose-again-${memoryId}`)
+  if (proposeAgain instanceof HTMLElement) {
+    proposeAgain.focus()
+    return
+  }
+  document.getElementById(draftFieldId)?.focus()
 }
 
 function focusAfterReview(memoryId: string, rowIndex: number): void {

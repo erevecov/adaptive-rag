@@ -234,8 +234,18 @@ describe('UserMemoryPanel', () => {
     await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalled())
     expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Undo remove from injection' }),
+      ),
+    )
     await user.keyboard('{Escape}')
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('propose-again-mem-2'),
+      ),
+    )
 
     await user.click(
       screen.getAllByRole('button', { name: 'Remove from injection' })[0],
@@ -244,6 +254,11 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Dismiss undo remove' }))
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('propose-again-mem-3'),
+      ),
+    )
   })
 
   test('changing status filter clears the soft-remove Undo banner', async () => {
