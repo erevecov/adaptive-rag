@@ -51,6 +51,7 @@ describe('Panel density', () => {
     expect(description.className).toContain('text-xs')
     expect(description.className).toContain('leading-relaxed')
     expect(description.className).toContain('max-[680px]:text-[0.5625rem]')
+    expect(description.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 
@@ -95,6 +96,7 @@ describe('FieldHelp density', () => {
     expect(help.getAttribute('data-slot')).toBe('field-help')
     expect(help.className).toContain('text-xs')
     expect(help.className).toContain('leading-relaxed')
+    expect(help.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 
@@ -107,6 +109,7 @@ describe('FieldError density', () => {
     expect(error.className).toContain('text-xs')
     expect(error.className).toContain('text-destructive')
     expect(error.className).toContain('leading-relaxed')
+    expect(error.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 

@@ -36,6 +36,7 @@ describe('DropdownMenu', () => {
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
     expect(trigger.className).toContain('max-[680px]:rounded-sm')
+    expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
@@ -46,6 +47,7 @@ describe('DropdownMenu', () => {
     expect(menu.getAttribute('data-slot')).toBe('dropdown-menu-content')
     expect(menu.className).toContain('focus-visible:ring-ring')
     expect(menu.className).toContain('max-[680px]:rounded-sm')
+    expect(menu.className).toContain('max-[680px]:tracking-tighter')
     expect(menu.className).toContain('max-[680px]:p-0.5')
     expect(menu.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(archiveItem.getAttribute('data-slot')).toBe('dropdown-menu-item')

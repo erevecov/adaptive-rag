@@ -67,6 +67,9 @@ describe('Select', () => {
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'max-[680px]:p-0.5',
     )
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'max-[680px]:tracking-tighter',
+    )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()
     expect(trigger.parentElement?.contains(option)).toBe(false)

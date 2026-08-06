@@ -23,7 +23,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
 EmptyState.displayName = 'EmptyState'
 
 const inlineFeedbackVariants = cva(
-  'text-sm font-medium leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+  'text-sm font-medium leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter',
   {
     defaultVariants: {
       tone: 'neutral',
