@@ -232,7 +232,7 @@ export function SessionNavigationPanel({
               data-slot="session-list-empty"
               data-status-filter={statusFilter}
             >
-              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-1.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {sessionEmptyCopy(statusFilter)}
               </EmptyState>
             </div>
@@ -389,7 +389,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
                           align="end"
-                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:text-[0.625rem] max-[680px]:gap-0.5 max-[680px]:p-1.5"
+                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:text-[0.625rem] max-[680px]:gap-0.5 max-[680px]:p-1"
                           data-slot="session-actions-menu"
                           onCloseAutoFocus={(event) => event.preventDefault()}
                           sideOffset={4}
@@ -604,13 +604,13 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
   return (
     <Panel aria-label="Source Viewer" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
         <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1.5 max-[680px]:pt-0">
+      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">
         {viewer.state === 'loading' ? (
           <div
             aria-busy="true"
@@ -731,14 +731,14 @@ function ConversationMinimap({
 }) {
   return (
     <Panel aria-label="Conversation Minimap" role="navigation">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
           {(detail?.messages.length ?? 0) === 1 ? 'Message' : 'Messages'}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Conversation Minimap"
@@ -786,13 +786,13 @@ function SessionContextPanel({
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
         <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Session Context"
@@ -850,7 +850,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-0.5 max-[680px]:p-1.5">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-0.5 max-[680px]:p-1">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:tracking-wider">
         {label}
       </span>
@@ -873,13 +873,13 @@ function InternalActionStepper({
 }) {
   return (
     <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
         <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+      <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Action Stepper"
@@ -969,10 +969,10 @@ function SessionDetailPanel({
   if (state === 'loading') {
     return (
       <Panel aria-live="polite" role="region">
-        <PanelHeader className="p-4 max-[680px]:p-1.5">
+        <PanelHeader className="p-4 max-[680px]:p-1">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
           <div
             aria-busy="true"
             aria-label="Loading Session Detail"
@@ -1001,10 +1001,10 @@ function SessionDetailPanel({
   if (error) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-1.5">
+        <PanelHeader className="p-4 max-[680px]:p-1">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
           <InlineFeedback role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </InlineFeedback>
@@ -1016,10 +1016,10 @@ function SessionDetailPanel({
   if (detail === null) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-1.5">
+        <PanelHeader className="p-4 max-[680px]:p-1">
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-1.5 max-[680px]:pt-0">
+        <PanelBody className="p-4 pt-0 max-[680px]:p-1 max-[680px]:pt-0">
           <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
@@ -1028,7 +1028,7 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1039,7 +1039,7 @@ function SessionDetailPanel({
           {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1.5 max-[680px]:pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">
         <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             Messages
@@ -1268,7 +1268,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:p-1.5">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:p-1">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
