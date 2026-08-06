@@ -53,7 +53,7 @@ export function Select({
         aria-labelledby={ariaLabelledBy}
         className={cn(
           [
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-1 max-[680px]:text-base max-[680px]:leading-snug',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug',
             'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 active:border-primary/50',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
@@ -92,7 +92,7 @@ export function Select({
               <SelectPrimitive.Item
                 className={cn(
                   [
-                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
                     'text-popover-foreground motion-safe:transition-colors active:bg-primary/20',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
