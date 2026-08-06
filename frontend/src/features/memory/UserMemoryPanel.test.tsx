@@ -149,9 +149,9 @@ describe('UserMemoryPanel', () => {
     await waitFor(() => expect(update).toHaveBeenCalled())
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove From Injection' }),
+      screen.getByRole('button', { name: 'Remove from injection' }),
     )
-    await user.click(screen.getByRole('button', { name: /Confirm Remove/ }))
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
   })
 
@@ -477,22 +477,22 @@ describe('UserMemoryPanel', () => {
     expect(stamped.getAttribute('title')).toBeTruthy()
 
     await user.click(
-      screen.getByRole('button', { name: 'Remove From Injection' }),
+      screen.getByRole('button', { name: 'Remove from injection' }),
     )
     expect(
-      await screen.findByRole('button', { name: /Confirm Remove/ }),
+      await screen.findByRole('button', { name: /Confirm remove/ }),
     ).toBeTruthy()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('button', { name: /Confirm Remove/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Confirm remove/ })).toBeNull()
     const removeButton = screen.getByRole('button', {
-      name: 'Remove From Injection',
+      name: 'Remove from injection',
     })
     expect(removeButton).toBeTruthy()
     await waitFor(() => expect(document.activeElement).toBe(removeButton))
     expect(reject).not.toHaveBeenCalled()
   })
 
-  test('focuses the edit textarea when Edit is clicked', async () => {
+  test('opens an editable textarea when Edit is clicked', async () => {
     const user = userEvent.setup()
     const list = vi.fn(async () => ({
       items: [
@@ -509,11 +509,10 @@ describe('UserMemoryPanel', () => {
 
     expect(await screen.findByText('Draft text')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    await waitFor(() =>
-      expect(document.activeElement).toBe(
-        screen.getByLabelText('Edit Memory Content'),
-      ),
-    )
+    const editor = await screen.findByLabelText('Edit Memory Content')
+    expect(editor).toBeTruthy()
+    expect(screen.getByText(/⌘\/Ctrl\+Enter save/)).toBeTruthy()
+    await waitFor(() => expect(document.activeElement).toBe(editor))
   })
 
   test('lists Proposed before Approved on the All filter', async () => {
@@ -539,6 +538,60 @@ describe('UserMemoryPanel', () => {
       'Live preference',
       'Dropped',
     ])
+  })
+
+  test('shows a loading skeleton while the first list fetch is in flight', async () => {
+    let resolveList: ((value: { items: UserMemory[] }) => void) | undefined
+    const list = vi.fn(
+      () =>
+        new Promise<{ items: UserMemory[] }>((resolve) => {
+          resolveList = resolve
+        }),
+    )
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByRole('status', { name: 'Loading Memories' })).toBeTruthy()
+    expect(
+      document.querySelector('[data-slot="memory-list-loading"]'),
+    ).toBeTruthy()
+
+    resolveList?.({
+      items: [
+        memory({ content: 'Loaded note', id: 'mem-1', status: 'proposed' }),
+      ],
+    })
+    expect(await screen.findByText('Loaded note')).toBeTruthy()
+    expect(screen.queryByRole('status', { name: 'Loading Memories' })).toBeNull()
+  })
+
+  test('shows confirm-remove guidance while soft-remove is pending', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    expect(
+      await screen.findByText(/Confirm remove drops injection/i),
+    ).toBeTruthy()
   })
 
 })

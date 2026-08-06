@@ -71,17 +71,6 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
 
   useEffect(() => {
-    if (editingId === null) {
-      return
-    }
-    const editor = document.querySelector<HTMLTextAreaElement>(
-      `textarea[aria-label="Edit Memory Content"]`,
-    )
-    editor?.focus()
-    editor?.setSelectionRange(editor.value.length, editor.value.length)
-  }, [editingId])
-
-  useEffect(() => {
     if (confirmRemoveId === null) {
       return
     }
@@ -319,16 +308,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   return (
     <Panel
       aria-labelledby={titleId}
-      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-1"
+      className="grid gap-4 p-4 max-[680px]:p-3"
       role="region"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
-        <div className="grid gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            My Account
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+            My account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug"
+            className="text-lg font-semibold leading-tight text-foreground"
             id={titleId}
           >
             Memory
@@ -346,7 +335,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         Propose → approve required. No automatic capture in this build.
       </PanelDescription>
 
-      <form className="grid gap-2 max-[680px]:gap-0.5" onSubmit={(event) => void handlePropose(event)}>
+      <form className="grid gap-2" onSubmit={(event) => void handlePropose(event)}>
         <Field>
           <FieldLabel htmlFor={draftFieldId}>Propose Memory</FieldLabel>
           <FieldControl>
@@ -382,7 +371,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </Field>
 
         {trimmedProjectId.length > 0 ? (
-          <label className="flex items-start gap-2 text-xs text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <label className="flex items-start gap-2 text-xs text-foreground">
             <input
               checked={scopeToProject}
               className="mt-0.5"
@@ -398,7 +387,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </label>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             disabled={
               draft.trim().length === 0 ||
@@ -425,7 +414,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5"
+        className="flex flex-wrap gap-1.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -452,14 +441,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         })}
       </div>
       {items.some((item) => item.status === 'proposed') ? (
-        <p className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]">
+        <p className="text-[11px] leading-snug text-muted-foreground">
           Focus a proposed row: Enter/A approve · R reject · E edit.
         </p>
       ) : null}
+      {confirmRemoveId !== null ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Confirm remove drops injection. Esc or Cancel keeps it approved.
+        </p>
+      ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
+      <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
-          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+          <div className="flex flex-wrap items-center gap-2">
             <InlineFeedback role="alert" tone="danger">
               {listError}
             </InlineFeedback>
@@ -481,7 +475,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       </div>
 
       {listState === 'loading' && items.length === 0 ? (
-        <EmptyState className="p-3 text-left">Loading Memories…</EmptyState>
+        <MemoryListLoadingSkeleton />
       ) : null}
 
       {listState !== 'loading' && items.length === 0 ? (
@@ -495,7 +489,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         <DataList
           aria-busy={listState === 'loading' || undefined}
           aria-label="User Memories"
-          className="gap-1.5 max-[680px]:gap-0.5"
+          className="gap-1.5"
         >
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
@@ -522,24 +516,24 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
                 tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-1.5 max-[680px]:gap-0.5">
-                  <div className="flex flex-wrap items-center gap-1.5 max-[680px]:gap-0.5">
+                <div className="grid gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge
                       className="w-fit"
                       tone={statusTone(memory.status)}
                     >
                       {statusLabel(memory.status)}
                     </StatusBadge>
-                    <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                    <span className="text-xs text-muted-foreground">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
                     </span>
                     {formatRelativeTime(memory.created_at) ? (
                       <>
-                        <span aria-hidden className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem]">
+                        <span aria-hidden className="text-xs text-muted-foreground">
                           ·
                         </span>
                         <time
-                          className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                          className="text-xs text-muted-foreground"
                           dateTime={memory.created_at ?? undefined}
                           title={formatAbsoluteTime(memory.created_at) ?? undefined}
                         >
@@ -554,6 +548,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       <Textarea
                         aria-describedby={`edit-memory-help-${memory.id}`}
                         aria-label="Edit Memory Content"
+                        autoFocus
                         className="min-h-16"
                         maxLength={USER_MEMORY_MAX_CHARS}
                         onChange={(event) => setEditDraft(event.target.value)}
@@ -575,7 +570,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                         value={editDraft}
                       />
                       <p
-                        className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                        className="text-xs text-muted-foreground"
                         id={`edit-memory-help-${memory.id}`}
                       >
                         <span
@@ -596,7 +591,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <div className="grid gap-1">
                       <p
                         className={cn(
-                          'whitespace-pre-wrap text-sm leading-snug text-foreground max-[680px]:text-[0.5625rem]',
+                          'whitespace-pre-wrap text-sm leading-snug text-foreground',
                           !expandedIds[memory.id] &&
                             memory.content.length > 220 &&
                             'line-clamp-3',
@@ -606,7 +601,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       </p>
                       {memory.content.length > 220 ? (
                         <Button
-                          className="h-auto w-fit px-0 py-0 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.5625rem]"
+                          className="h-auto w-fit px-0 py-0 text-xs"
                           onClick={() =>
                             setExpandedIds((current) => ({
                               ...current,
@@ -623,7 +618,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     </div>
                   )}
 
-                  <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
+                  <DataListItemActions className="gap-1.5">
                     {memory.status === 'proposed' && !isEditing ? (
                       <>
                         <Button
@@ -689,9 +684,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
                     {memory.status === 'approved' ? (
                       confirmRemoveId === memory.id ? (
-                        <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
+                        <DataListItemActions className="gap-1.5">
                           <Button
-                            aria-label="Confirm Remove From Injection"
+                            aria-label="Confirm remove from injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
                             onClick={() => void handleReject(memory)}
@@ -699,7 +694,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             type="button"
                             variant="danger"
                           >
-                            Confirm Remove
+                            Confirm remove
                           </Button>
                           <Button
                             disabled={busy}
@@ -728,13 +723,13 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           type="button"
                           variant="secondary"
                         >
-                          Remove From Injection
+                          Remove from injection
                         </Button>
                       )
                     ) : null}
 
                     {memory.status === 'rejected' ? (
-                      <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                      <span className="text-xs text-muted-foreground">
                         Not injectable. Propose again if still needed.
                       </span>
                     ) : null}
@@ -759,11 +754,11 @@ function FilterEmptyState({
   const copy = emptyCopyForFilter(filter)
   return (
     <EmptyState
-      className="gap-2 p-3 text-left max-[680px]:gap-0.5 max-[680px]:p-1"
+      className="gap-2 p-3 text-left"
       data-slot-state={`empty-${filter}`}
     >
       <p className="font-medium text-foreground/80">{copy.title}</p>
-      <p className="text-xs leading-relaxed max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{copy.body}</p>
+      <p className="text-xs leading-relaxed">{copy.body}</p>
       {filter === 'rejected' || filter === 'approved' ? (
         <Button
           className="w-fit"
@@ -846,6 +841,24 @@ function sortMemoriesForFilter(
     rejected: 2,
   }
   return [...items].sort((left, right) => rank[left.status] - rank[right.status])
+}
+
+function MemoryListLoadingSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading Memories"
+      className="grid w-full gap-2 p-1"
+      data-slot="memory-list-loading"
+      role="status"
+    >
+      <span className="sr-only">Loading Memories…</span>
+      <div aria-hidden="true" className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25" />
+      <div aria-hidden="true" className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
+      <div aria-hidden="true" className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
+      <div aria-hidden="true" className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
+    </div>
+  )
 }
 
 function focusAfterReview(memoryId: string, rowIndex: number): void {
