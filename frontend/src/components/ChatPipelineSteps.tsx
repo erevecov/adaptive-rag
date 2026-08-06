@@ -156,7 +156,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
   if (steps.length === 0) {
     return (
       <p
-        className="rounded-md border border-dashed border-border bg-background/60 p-2 text-xs text-muted-foreground"
+        className="rounded-md border border-dashed border-border bg-background/60 p-2 text-xs text-muted-foreground max-[680px]:p-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
         role="status"
       >
@@ -190,10 +190,10 @@ function StepRow({ step }: { step: ChatStep }) {
       )}
       <StatusDot status={step.status} />
       <span className="grid min-w-0 flex-1 gap-1">
-        <strong className="text-sm text-foreground">{stepLabel(step.id)}</strong>
+        <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
-      <small className="text-xs text-muted-foreground tabular-nums">
+      <small className="text-xs text-muted-foreground tabular-nums max-[680px]:text-[0.5625rem]">
         {formatStepDuration(step.elapsed_ms)}
       </small>
     </>
@@ -246,7 +246,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     <span className="flex flex-wrap gap-1.5">
       {chips.slice(0, 3).map((chip) => (
         <span
-          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground"
+          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
           data-slot="chat-pipeline-detail-chip"
           key={chip}
         >
@@ -263,7 +263,7 @@ function StepDetail({ step }: { step: ChatStep }) {
   if (detailEntries.length === 0 && usage === undefined) {
     return (
       <p
-        className="px-3 pb-3 text-sm text-muted-foreground"
+        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-1.5 max-[680px]:pb-1.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
       >
         No Step Detail Recorded.

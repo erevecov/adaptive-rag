@@ -324,11 +324,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
         <div className="grid gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             My Account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground"
+            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug"
             id={titleId}
           >
             Memory
@@ -382,7 +382,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </Field>
 
         {trimmedProjectId.length > 0 ? (
-          <label className="flex items-start gap-2 text-xs text-foreground">
+          <label className="flex items-start gap-2 text-xs text-foreground max-[680px]:gap-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             <input
               checked={scopeToProject}
               className="mt-0.5"
@@ -530,16 +530,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     >
                       {statusLabel(memory.status)}
                     </StatusBadge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {memory.project_id ? 'Project-scoped' : 'Global'}
                     </span>
                     {formatRelativeTime(memory.created_at) ? (
                       <>
-                        <span aria-hidden className="text-xs text-muted-foreground">
+                        <span aria-hidden className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem]">
                           ·
                         </span>
                         <time
-                          className="text-xs text-muted-foreground"
+                          className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                           dateTime={memory.created_at ?? undefined}
                           title={formatAbsoluteTime(memory.created_at) ?? undefined}
                         >
@@ -575,7 +575,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                         value={editDraft}
                       />
                       <p
-                        className="text-xs text-muted-foreground"
+                        className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                         id={`edit-memory-help-${memory.id}`}
                       >
                         <span
@@ -596,7 +596,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <div className="grid gap-1">
                       <p
                         className={cn(
-                          'whitespace-pre-wrap text-sm leading-snug text-foreground',
+                          'whitespace-pre-wrap text-sm leading-snug text-foreground max-[680px]:text-[0.625rem]',
                           !expandedIds[memory.id] &&
                             memory.content.length > 220 &&
                             'line-clamp-3',
@@ -606,7 +606,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       </p>
                       {memory.content.length > 220 ? (
                         <Button
-                          className="h-auto w-fit px-0 py-0 text-xs"
+                          className="h-auto w-fit px-0 py-0 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.5625rem]"
                           onClick={() =>
                             setExpandedIds((current) => ({
                               ...current,
@@ -734,7 +734,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     ) : null}
 
                     {memory.status === 'rejected' ? (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                         Not injectable. Propose again if still needed.
                       </span>
                     ) : null}
@@ -763,7 +763,7 @@ function FilterEmptyState({
       data-slot-state={`empty-${filter}`}
     >
       <p className="font-medium text-foreground/80">{copy.title}</p>
-      <p className="text-xs leading-relaxed">{copy.body}</p>
+      <p className="text-xs leading-relaxed max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{copy.body}</p>
       {filter === 'rejected' || filter === 'approved' ? (
         <Button
           className="w-fit"
