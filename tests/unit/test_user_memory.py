@@ -73,7 +73,7 @@ def test_propose_approve_and_injection_text() -> None:
     assert "Prefers Spanish answers" in injection
 
 
-def test_reject_blocks_injection_and_double_review() -> None:
+def test_reject_blocks_injection_until_restored() -> None:
     session = _session()
     user = UserRepository(session).create_user(
         login="mem-user-2",
@@ -92,6 +92,17 @@ def test_reject_blocks_injection_and_double_review() -> None:
     assert rejected.status == "rejected"
     assert user_memory.approved_injection_text(session, user_id=user.id) == ""
 
+    restored = user_memory.approve_memory(
+        session,
+        memory_id=memory.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    assert restored.status == "approved"
+    assert "Remember my timezone is UTC" in user_memory.approved_injection_text(
+        session, user_id=user.id
+    )
+
     try:
         user_memory.approve_memory(
             session,
@@ -99,7 +110,7 @@ def test_reject_blocks_injection_and_double_review() -> None:
             reviewer_user_id=user.id,
             owner_user_id=user.id,
         )
-        raise AssertionError("expected conflict")
+        raise AssertionError("expected conflict on already-approved")
     except user_memory.UserMemoryError as exc:
         assert exc.status_code == 409
 
@@ -336,3 +347,39 @@ def test_reject_approved_removes_injection() -> None:
     )
     assert rejected.status == "rejected"
     assert user_memory.approved_injection_text(session, user_id=user.id) == ""
+
+
+def test_approve_rejected_restores_injection() -> None:
+    session = _session()
+    user = UserRepository(session).create_user(
+        login="soft-restore",
+        display_name="Restore",
+        system_role="user",
+    )
+    proposed = user_memory.propose_memory(
+        session, user_id=user.id, content="Keep this preference"
+    )
+    user_memory.approve_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    user_memory.reject_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    assert user_memory.approved_injection_text(session, user_id=user.id) == ""
+
+    restored = user_memory.approve_memory(
+        session,
+        memory_id=proposed.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    assert restored.status == "approved"
+    assert "Keep this preference" in user_memory.approved_injection_text(
+        session, user_id=user.id
+    )

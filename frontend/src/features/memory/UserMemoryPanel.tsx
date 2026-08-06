@@ -65,10 +65,21 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     rejected: 0,
   })
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  const [undoRemoveId, setUndoRemoveId] = useState<string | null>(null)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
+
+  useEffect(() => {
+    if (undoRemoveId === null) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      setUndoRemoveId(null)
+    }, 10_000)
+    return () => window.clearTimeout(timer)
+  }, [undoRemoveId])
 
   useEffect(() => {
     if (confirmRemoveId === null) {
@@ -233,6 +244,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   async function handleReject(memory: UserMemory) {
     setBusyMemoryId(memory.id)
     setActionError(null)
+    const wasApproved = memory.status === 'approved'
     const rowIndex = items.findIndex((item) => item.id === memory.id)
     try {
       await apiClient.rejectUserMemory(memory.id)
@@ -242,11 +254,37 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       }
       setConfirmRemoveId(null)
       await refreshList()
+      if (wasApproved) {
+        setUndoRemoveId(memory.id)
+      } else {
+        setUndoRemoveId(null)
+      }
       requestAnimationFrame(() => {
+        if (wasApproved) {
+          document.getElementById('memory-undo-remove')?.focus()
+          return
+        }
         focusAfterReview(memory.id, rowIndex)
       })
     } catch (error) {
       setActionError(getErrorMessage(error, 'Could not reject memory.'))
+    } finally {
+      setBusyMemoryId(null)
+    }
+  }
+
+  async function handleUndoRemove(memoryId: string) {
+    setBusyMemoryId(memoryId)
+    setActionError(null)
+    try {
+      await apiClient.approveUserMemory(memoryId)
+      setUndoRemoveId(null)
+      await refreshList()
+      requestAnimationFrame(() => {
+        document.getElementById(`remove-injection-${memoryId}`)?.focus()
+      })
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Could not restore memory.'))
     } finally {
       setBusyMemoryId(null)
     }
@@ -522,6 +560,24 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           <InlineFeedback role="alert" tone="danger">
             {actionError}
           </InlineFeedback>
+        ) : null}
+        {undoRemoveId !== null ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <InlineFeedback role="status" tone="neutral">
+              Removed from injection.
+            </InlineFeedback>
+            <Button
+              aria-label="Undo remove from injection"
+              disabled={busyMemoryId === undoRemoveId}
+              id="memory-undo-remove"
+              onClick={() => void handleUndoRemove(undoRemoveId)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Undo
+            </Button>
+          </div>
         ) : null}
       </div>
 

@@ -19,6 +19,8 @@ or `rejected`.
 
 ### Requirement: Only approved memories are injectable
 
+The system MUST include only `approved` memories in chat injection text.
+
 #### Scenario: Injection text excludes non-approved
 
 - **WHEN** injection text is requested
@@ -45,3 +47,15 @@ from injection text. This reuses the existing status set (no `archived` status).
 - **WHEN** the owner rejects an `approved` memory
 - **THEN** status becomes `rejected`
 - **AND** injection text no longer includes that content
+
+### Requirement: Soft-removed memories MAY be restored via approve
+
+Approving a `rejected` memory SHALL transition it to `approved` and restore it
+to injection text. This reuses the existing status set (no fourth status) so
+soft-remove undo does not require re-propose.
+
+#### Scenario: Restore rejected memory to approved
+
+- **WHEN** the owner approves a `rejected` memory
+- **THEN** status becomes `approved`
+- **AND** injection text includes that content again
