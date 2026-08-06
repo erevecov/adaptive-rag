@@ -53,7 +53,7 @@ export function Select({
         aria-labelledby={ariaLabelledBy}
         className={cn(
           [
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/20 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug',
             'motion-safe:transition-colors placeholder:text-muted-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
@@ -78,7 +78,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:border-primary/20 max-[680px]:p-0.5',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:border-primary/25 max-[680px]:p-0.5',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
