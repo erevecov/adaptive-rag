@@ -908,7 +908,7 @@ export function CapabilitySelector({
                 aria-label={labelledBy === undefined ? 'Capabilities' : undefined}
                 aria-labelledby={labelledBy}
                 autoComplete="off"
-                className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-[680px]:h-6 max-[680px]:min-w-24 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="h-7 min-w-32 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-[680px]:h-6 max-[680px]:min-w-20 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={inputId}
                 onChange={(event) => {
                   setQuery(event.currentTarget.value)
