@@ -652,6 +652,7 @@ export function RuntimeConnectionsPanel({
                       >
                         {(fieldId) => (
                           <Input
+                            className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                             autoComplete="off"
                             id={fieldId}
                             onChange={(event) =>
@@ -716,6 +717,7 @@ export function RuntimeConnectionsPanel({
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
               <Select
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 onValueChange={onConnectionProviderChange}
                 options={[
@@ -736,6 +738,7 @@ export function RuntimeConnectionsPanel({
           >
             {(fieldId) => (
               <Select
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 onValueChange={onConnectionTypeChange}
                 options={[
@@ -750,6 +753,7 @@ export function RuntimeConnectionsPanel({
           <RuntimeField id="runtime-connection-base-url" label="Base URL">
             {(fieldId) => (
               <Input
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 onChange={(event) =>
                   onConnectionBaseUrlChange(event.currentTarget.value)
@@ -787,6 +791,7 @@ export function RuntimeConnectionsPanel({
           >
             {(fieldId) => (
               <Input
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 aria-describedby={
                   isEditingConnection ? `${fieldId}-help` : undefined
                 }
@@ -1171,6 +1176,7 @@ export function RuntimeGlobalDefaultsPanel({
           <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 data-testid="global-slot-select"
                 id={fieldId}
                 onValueChange={onGlobalSlotChange}
@@ -1361,6 +1367,7 @@ export function RuntimeGlobalDefaultsPanel({
             >
               {(fieldId) => (
                 <Input
+                  className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                   id={fieldId}
                   max={CHAT_RETRIEVAL_MAX_LIMIT}
                   min={1}
@@ -1377,6 +1384,7 @@ export function RuntimeGlobalDefaultsPanel({
             <RuntimeField id="runtime-global-rerank" label="Rerank">
               {(fieldId) => (
                 <Select
+                  className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                   id={fieldId}
                   onValueChange={(nextValue) =>
                     onGlobalChatRerankEnabledChange(nextValue === 'true')
@@ -1395,6 +1403,7 @@ export function RuntimeGlobalDefaultsPanel({
             >
               {(fieldId) => (
                 <Input
+                  className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                   id={fieldId}
                   max={CHAT_RETRIEVAL_MAX_LIMIT}
                   min={1}
@@ -1502,6 +1511,7 @@ export function RuntimeProjectOverridesPanel({
           >
             {(fieldId) => (
               <Input
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
@@ -1518,6 +1528,7 @@ export function RuntimeProjectOverridesPanel({
           <RuntimeField id="runtime-project-rerank" label="Rerank">
             {(fieldId) => (
               <Select
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 onValueChange={(nextValue) =>
                   onProjectChatRerankEnabledChange(nextValue === 'true')
@@ -1536,6 +1547,7 @@ export function RuntimeProjectOverridesPanel({
           >
             {(fieldId) => (
               <Input
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
@@ -1569,6 +1581,7 @@ export function RuntimeProjectOverridesPanel({
           <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select
+                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 onValueChange={onProjectSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
@@ -1714,6 +1727,7 @@ export function ConnectionSelect({
   const emptyLabel = isLoading ? 'Loading Connections…' : 'No Connections Yet'
   return (
     <Select
+      className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       data-testid={testId}
       disabled={isLoading && connections.length === 0}
       id={id}
@@ -1752,6 +1766,7 @@ export function ProviderModelSelect({
   const emptyLabel = isLoading ? 'Loading Models…' : 'No Models Yet'
   return (
     <Select
+      className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       data-testid={testId}
       disabled={models.length === 0}
       id={id}
