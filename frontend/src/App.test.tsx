@@ -2579,7 +2579,7 @@ describe('App chat workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'Run Next Job' }))
 
-    const lastRun = await screen.findByText('Last run')
+    const lastRun = await screen.findByText('Last Run')
     expect(lastRun).toBeTruthy()
     const lastRunCard = document.querySelector('[data-slot="ingestion-last-run"]')
     expect(lastRunCard?.textContent).toMatch(/Idle/i)
@@ -3992,14 +3992,14 @@ describe('App chat workspace', () => {
       name: 'Capabilities',
     })
     expect(
-      screen.getByRole('button', { name: 'Remove Chat capability' }),
+      screen.getByRole('button', { name: 'Remove Chat Capability' }),
     ).toBeTruthy()
     const saveConnectionButton = screen.getByRole('button', {
       name: 'Save Connection',
     }) as HTMLButtonElement
     await user.click(
       screen.getByRole('button', {
-        name: 'Remove Chat capability',
+        name: 'Remove Chat Capability',
       }),
     )
     expect(saveConnectionButton.disabled).toBe(true)
@@ -4007,18 +4007,18 @@ describe('App chat workspace', () => {
     await user.type(capabilitiesCombobox, 'chat')
     await user.click(
       await screen.findByRole('option', {
-        name: 'Add Chat capability',
+        name: 'Add Chat Capability',
       }),
     )
     await user.type(capabilitiesCombobox, 'dense')
     await user.click(
       await screen.findByRole('option', {
-        name: 'Add Dense Embedding capability',
+        name: 'Add Dense Embedding Capability',
       }),
     )
     expect(saveConnectionButton.disabled).toBe(false)
     expect(
-      screen.getByRole('button', { name: 'Remove Dense Embedding capability' }),
+      screen.getByRole('button', { name: 'Remove Dense Embedding Capability' }),
     ).toBeTruthy()
     fireEvent.change(screen.getByLabelText('API Key'), {
       target: { value: 'sk-hosted-secret' },
@@ -4118,7 +4118,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       within(providerConnections).getByRole('button', {
-        name: 'Delete qwen-hosted connection',
+        name: 'Delete qwen-hosted Connection',
       }),
     )
 
@@ -4172,7 +4172,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       within(providerConnections).getByRole('button', {
-        name: 'Check qwen-hosted connection',
+        name: 'Check qwen-hosted Connection',
       }),
     )
 
@@ -4180,7 +4180,7 @@ describe('App chat workspace', () => {
     expect(syncProviderModels).not.toHaveBeenCalled()
     expect(
       await within(providerConnections).findByText(
-        'Connection check passed: 2 provider models reachable.',
+        'Connection Check Passed: 2 Provider Models Reachable.',
       ),
     ).toBeTruthy()
   })
@@ -4412,7 +4412,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Reload Project Settings' }))
 
     const projectSettings = await screen.findByRole('region', {
-      name: 'Project runtime settings',
+      name: 'Project Runtime Settings',
     })
     expect(within(projectSettings).getAllByText('Dense Embedding').length).toBeGreaterThan(0)
     expect(within(projectSettings).getAllByText('Inherited').length).toBeGreaterThan(0)
@@ -4507,7 +4507,7 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Runtime', 'Project Overrides')
     await user.click(screen.getByRole('button', { name: 'Reload Project Settings' }))
     const projectSettings = await screen.findByRole('region', {
-      name: 'Project runtime settings',
+      name: 'Project Runtime Settings',
     })
     expect(
       (await within(projectSettings).findAllByText('Overridden')).length,
@@ -4531,7 +4531,7 @@ describe('App chat workspace', () => {
       await screen.findByRole('button', { name: /Project selector: Second/ }),
     ).toBeTruthy()
     const updatedProjectSettings = screen.getByRole('region', {
-      name: 'Project runtime settings',
+      name: 'Project Runtime Settings',
     })
     expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()
@@ -4585,7 +4585,7 @@ describe('App chat workspace', () => {
     })
 
     const updatedProjectSettings = screen.getByRole('region', {
-      name: 'Project runtime settings',
+      name: 'Project Runtime Settings',
     })
     expect(within(updatedProjectSettings).getByText('No Project Runtime Settings Yet.')).toBeTruthy()
     expect(within(updatedProjectSettings).queryByText('overridden')).toBeNull()

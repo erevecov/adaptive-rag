@@ -72,7 +72,7 @@ describe('RetrievalPlaygroundPanel', () => {
     const rerankHelp = screen.getByText(/Enable Rerank to Edit Candidate Limit/)
     expect(rerankHelp.getAttribute('data-slot')).toBe('field-help')
     expect(
-      screen.getByLabelText('Rerank candidates').getAttribute('aria-describedby'),
+      screen.getByLabelText('Rerank Candidates').getAttribute('aria-describedby'),
     ).toBe('rerank-limit-help')
 
     await user.type(
