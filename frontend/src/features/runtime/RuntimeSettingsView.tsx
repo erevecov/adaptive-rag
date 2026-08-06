@@ -563,7 +563,7 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0">
@@ -713,7 +713,7 @@ export function RuntimeConnectionsPanel({
             </Button>
           ) : null}
         </div>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
               <Select
@@ -1043,7 +1043,7 @@ export function RuntimeModelCatalogPanel({
           className="grid gap-3 max-[680px]:gap-0"
         >
           <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
+            <DataListItem className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0">
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
@@ -1171,7 +1171,7 @@ export function RuntimeGlobalDefaultsPanel({
       <RuntimeSlotList slots={slots} state={state} />
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalSlot}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
@@ -1276,7 +1276,7 @@ export function RuntimeGlobalDefaultsPanel({
       </section>
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatModel}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
           <RuntimeField
             id="runtime-chat-connection"
             label="Chat Connection"
@@ -1359,7 +1359,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         )}
         <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
+          <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
             <RuntimeField
               id="runtime-global-retrieval-limit"
               label="Retrieval Limit"
@@ -1503,7 +1503,7 @@ export function RuntimeProjectOverridesPanel({
       />
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectChatRetrieval}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField
             id="runtime-project-retrieval-limit"
             label="Retrieval Limit"
@@ -1576,7 +1576,7 @@ export function RuntimeProjectOverridesPanel({
       </form>
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectOverride}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select

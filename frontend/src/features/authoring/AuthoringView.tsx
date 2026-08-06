@@ -641,7 +641,7 @@ function ProjectAccessPanel({
       title="Users"
     >
       <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateUser}>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
@@ -671,7 +671,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
@@ -742,7 +742,7 @@ function ProjectAccessPanel({
       <div className="h-px bg-border" role="separator" />
 
       <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onSaveMembership}>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
@@ -827,7 +827,7 @@ function UserAccessLists({
   }
 
   return (
-    <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
+    <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
           className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -1090,7 +1090,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
@@ -1245,7 +1245,7 @@ function SourceList({
             : 'No Tags'
         return (
           <DataListItem
-            className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+            className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
@@ -1622,7 +1622,7 @@ function IngestionJobList({
                       ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
                       : `Ingestion Job ${statusLabel}`
                   }
-                  className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   data-job-status={job.status}
                   key={job.id}
                 >

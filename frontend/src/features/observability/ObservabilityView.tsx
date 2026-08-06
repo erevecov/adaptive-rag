@@ -621,7 +621,7 @@ function MetricCard({
 }
 
 function BreakdownGrid({ children }: { children: ReactNode }) {
-  return <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">{children}</div>
+  return <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">{children}</div>
 }
 
 function BreakdownCard({

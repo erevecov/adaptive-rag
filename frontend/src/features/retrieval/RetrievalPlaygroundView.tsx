@@ -142,7 +142,7 @@ export function RetrievalPlaygroundPanel({
               />
             </FieldControl>
           </Field>
-          <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0">
+          <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0">
             <Field>
               <FieldLabel className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
