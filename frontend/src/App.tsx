@@ -2735,7 +2735,7 @@ function AppearanceSettingsPanel({
       aria-labelledby="appearance-settings-title"
       className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-1"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-1">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
         <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             My Account
@@ -2775,7 +2775,7 @@ function AppearanceSettingsPanel({
             >
               <span
                 aria-hidden="true"
-                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-1 max-[680px]:p-1"
+                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-0.5 max-[680px]:p-1"
                 data-slot="theme-swatch"
                 style={{ background: option.swatch.bg }}
               >
@@ -2796,7 +2796,7 @@ function AppearanceSettingsPanel({
                 />
               </span>
               <span className="grid gap-1 max-[680px]:gap-0.5">
-                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {option.label}
                   {active ? (
                     <span

@@ -382,7 +382,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </Field>
 
         {trimmedProjectId.length > 0 ? (
-          <label className="flex items-start gap-2 text-xs text-foreground max-[680px]:gap-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <label className="flex items-start gap-2 text-xs text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             <input
               checked={scopeToProject}
               className="mt-0.5"
@@ -425,7 +425,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5 max-[680px]:gap-1"
+        className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -457,7 +457,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-1">
+      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
             <InlineFeedback role="alert" tone="danger">
@@ -495,7 +495,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         <DataList
           aria-busy={listState === 'loading' || undefined}
           aria-label="User Memories"
-          className="gap-1.5 max-[680px]:gap-1"
+          className="gap-1.5 max-[680px]:gap-0.5"
         >
           {items.map((memory) => {
             const busy = busyMemoryId === memory.id
@@ -522,8 +522,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
                 tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-1.5 max-[680px]:gap-1">
-                  <div className="flex flex-wrap items-center gap-1.5 max-[680px]:gap-1">
+                <div className="grid gap-1.5 max-[680px]:gap-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5 max-[680px]:gap-0.5">
                     <StatusBadge
                       className="w-fit"
                       tone={statusTone(memory.status)}
@@ -623,7 +623,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     </div>
                   )}
 
-                  <DataListItemActions className="gap-1.5 max-[680px]:gap-1">
+                  <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
                     {memory.status === 'proposed' && !isEditing ? (
                       <>
                         <Button
@@ -689,7 +689,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
                     {memory.status === 'approved' ? (
                       confirmRemoveId === memory.id ? (
-                        <DataListItemActions className="gap-1.5 max-[680px]:gap-1">
+                        <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
                           <Button
                             aria-label="Confirm Remove From Injection"
                             disabled={busy}
@@ -759,7 +759,7 @@ function FilterEmptyState({
   const copy = emptyCopyForFilter(filter)
   return (
     <EmptyState
-      className="gap-2 p-3 text-left max-[680px]:gap-1 max-[680px]:p-1"
+      className="gap-2 p-3 text-left max-[680px]:gap-0.5 max-[680px]:p-1"
       data-slot-state={`empty-${filter}`}
     >
       <p className="font-medium text-foreground/80">{copy.title}</p>

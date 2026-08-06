@@ -376,7 +376,7 @@ function RuntimePanel({
       aria-labelledby={ariaLabel === undefined ? id : undefined}
       role="region"
     >
-      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-1">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             Runtime
@@ -388,7 +388,7 @@ function RuntimePanel({
             <PanelDescription>{description}</PanelDescription>
           ) : null}
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-1">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0.5">
           {status}
         </div>
       </PanelHeader>

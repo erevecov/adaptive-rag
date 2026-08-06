@@ -104,7 +104,7 @@ export function ObservabilityPanel({
       aria-label={`Observability ${activeSubmodule}`}
       role="region"
     >
-      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0.5 max-[680px]:p-1">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             Observability
@@ -114,7 +114,7 @@ export function ObservabilityPanel({
             Inspect Chat Health, Cost, Error, and Latency Rollups.
           </PanelDescription>
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-1">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0.5">
           <StatusBadge
             aria-live="polite"
             className="max-w-full break-all text-left"

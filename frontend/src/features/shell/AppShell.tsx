@@ -263,7 +263,7 @@ export function WorkspaceTopline({
       aria-label={`Current session ${sessionName}, project ${projectName}`}
       className={cn(
         [
-          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-1',
+          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-1',
         !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/25 max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:px-2 max-[680px]:py-1',
+'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/25 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-2 max-[680px]:py-1',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -899,7 +899,7 @@ function SidebarProjectSelector({
                       aria-selected={isSelected}
                       className={cn(
                         [
-                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-1',
+                          'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-0.5',
                           'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
                           'hover:border-border',
                         ],
