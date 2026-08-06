@@ -1502,6 +1502,6 @@ describe('UserMemoryPanel', () => {
     expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
     const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
     expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
-  })
+    const badgeRow = screen.getByLabelText(/injectable/i).parentElement\n    expect(badgeRow?.className).toContain('max-[680px]:gap-0.5')\n  })
 
 })
