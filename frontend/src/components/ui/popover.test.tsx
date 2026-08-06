@@ -38,6 +38,8 @@ describe('Popover', () => {
     expect(trigger.className).toContain('max-[680px]:min-h-11')
     expect(trigger.className).toContain('max-[680px]:rounded-sm')
     expect(trigger.className).toContain('max-[680px]:tracking-tighter')
+    expect(trigger.className).toContain('hover:bg-primary/15')
+    expect(trigger.className).toContain('active:bg-primary/20')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 

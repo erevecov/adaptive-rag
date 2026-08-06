@@ -40,6 +40,7 @@ describe('Select', () => {
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     expect(trigger.className).toContain('hover:border-primary/40')
+    expect(trigger.className).toContain('active:border-primary/50')
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('disabled:hover:border-input')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
