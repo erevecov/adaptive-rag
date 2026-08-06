@@ -322,6 +322,11 @@ describe('UserMemoryPanel', () => {
         /Showing Rejected — soft-removed item is below with Propose Again/i,
       ),
     ).toBeTruthy()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: /Propose Again/i }),
+      ),
+    )
     await user.keyboard('{Escape}')
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
     expect(
