@@ -3,6 +3,7 @@ import {
   type KeyboardEvent,
   useEffect,
   useId,
+  useRef,
   useState,
 } from 'react'
 
@@ -72,6 +73,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [focusProposeAgainId, setFocusProposeAgainId] = useState<string | null>(
     null,
   )
+  // Monotonic id shared by load()/refreshList(): only the newest request may
+  // commit list state, so out-of-order or stale responses never win.
+  const listRequestIdRef = useRef(0)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -154,7 +158,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   }, [confirmRemoveId])
 
   useEffect(() => {
-    let cancelled = false
+    const requestId = ++listRequestIdRef.current
 
     async function load() {
       setListState('loading')
@@ -174,7 +178,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 project_id: projectScope,
                 status: statusFilter,
               })
-        if (cancelled) {
+        if (requestId !== listRequestIdRef.current) {
           return
         }
         const tally = tallyResponse.items
@@ -190,7 +194,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         })
         setListState('succeeded')
       } catch (error) {
-        if (cancelled) {
+        if (requestId !== listRequestIdRef.current) {
           return
         }
         setItems([])
@@ -201,12 +205,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
     void load()
     return () => {
-      cancelled = true
+      // Invalidate in-flight fetches on unmount or filter/project change so
+      // their responses can never commit over the newer request's state.
+      listRequestIdRef.current += 1
     }
   }, [apiClient, statusFilter, trimmedProjectId])
 
 
   async function refreshList() {
+    const requestId = ++listRequestIdRef.current
     setListState('loading')
     setListError(null)
     try {
@@ -223,6 +230,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               project_id: projectScope,
               status: statusFilter,
             })
+      if (requestId !== listRequestIdRef.current) {
+        return
+      }
       const tally = tallyResponse.items
       setItems(sortMemoriesForFilter(response.items, statusFilter))
       setInjectableCount(
@@ -236,6 +246,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       })
       setListState('succeeded')
     } catch (error) {
+      if (requestId !== listRequestIdRef.current) {
+        return
+      }
       setItems([])
       setListError(getErrorMessage(error, 'Could not load memories.'))
       setListState('failed')
