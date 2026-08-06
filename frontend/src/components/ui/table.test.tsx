@@ -96,7 +96,7 @@ describe('Table density', () => {
       'active:bg-primary/20',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'max-[680px]:active:bg-primary/60',
+      'max-[680px]:active:bg-primary/65',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'focus-visible:bg-primary/15',
