@@ -381,7 +381,7 @@ function RuntimePanel({
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             Runtime
           </p>
-          <h2 id={id} className="text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <h2 id={id} className="max-[680px]:truncate text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {title}
           </h2>
           {description ? (
@@ -697,7 +697,7 @@ export function RuntimeConnectionsPanel({
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveConnection}>
         <div className="flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0.5">
-          <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {isEditingConnection
               ? `Edit Connection ${editingConnectionId}`
               : 'New Connection'}
@@ -1229,7 +1229,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0.5">
-        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
+        <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
@@ -1316,7 +1316,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0.5">
-        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
+        <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
@@ -1794,7 +1794,7 @@ export function ProviderModelCatalogView({
 }) {
   return (
     <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0.5">
-      <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
+      <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
@@ -1945,7 +1945,7 @@ export function ProjectRuntimeSettingsView({
   return (
     <div className="grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
       <section className="grid gap-3 max-[680px]:gap-0.5">
-        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
+        <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
             className="max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -1983,7 +1983,7 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3 max-[680px]:gap-0.5">
-        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
+        <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
             className="max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -2020,7 +2020,7 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3 max-[680px]:gap-0.5">
-        <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
+        <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:gap-0.5">
           <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
             <div className="grid gap-1 max-[680px]:gap-0.5">
