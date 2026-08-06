@@ -87,7 +87,7 @@ describe('control primitives', () => {
     expect(tokens).not.toContain('min-h-24')
     expect(tokens).toContain('max-[680px]:min-h-28')
     expect(tokens).toContain('max-[680px]:px-1.5')
-    expect(tokens).toContain('max-[680px]:border-primary/75')
+    expect(tokens).toContain('max-[680px]:border-primary/80')
     expect(tokens).toContain('max-[680px]:py-2')
     expect(tokens).toContain('max-[680px]:text-base')
     expect(tokens).toContain('max-[680px]:leading-snug')
