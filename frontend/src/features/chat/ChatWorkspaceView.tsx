@@ -264,7 +264,7 @@ export function ChatWorkspacePanel({
           </Field>
 
           <div
-            className="mt-2 flex flex-wrap items-center justify-end gap-2 max-[680px]:gap-0.5 max-[680px]:mt-1"
+            className="mt-2 flex flex-wrap items-center justify-end gap-2"
             data-slot="chat-composer-actions"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-0.5">
@@ -333,7 +333,7 @@ export function ChatWorkspacePanel({
           </div>
 
           {requestError ? (
-            <InlineFeedback className="mt-2 max-[680px]:mt-1" tone="danger">
+            <InlineFeedback className="mt-2" tone="danger">
               {operatorSafeMessage(requestError)}
             </InlineFeedback>
           ) : null}
@@ -482,10 +482,10 @@ function ResponsePanel({
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:p-0.5"
+            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:p-0.5"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
-            <div className="space-y-2 max-[680px]:space-y-1">
+            <div className="space-y-2">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
@@ -767,7 +767,7 @@ function ResponseContent({
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (
-              <span className="inline-flex items-center gap-2 text-muted-foreground max-[680px]:gap-0.5">
+              <span className="inline-flex items-center gap-2 text-muted-foreground">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
@@ -969,7 +969,7 @@ function ResponseDetailsPanel({
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
-        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
@@ -1067,7 +1067,7 @@ function ResponseDetailsContent({
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-0.5"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
-                <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
+                <div className="grid min-w-0 gap-2">
                   <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.source_external_id}
                   </strong>
@@ -1113,7 +1113,7 @@ function ResponseDetailsContent({
 
 function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
   return (
-    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6 max-[680px]:gap-0.5">
+    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
       {usage.model !== null ? (
         <UsageItem label="Model" value={usage.model} />
       ) : null}
@@ -1204,7 +1204,7 @@ function KnowledgeDraftCard({
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
-      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap gap-2">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>
