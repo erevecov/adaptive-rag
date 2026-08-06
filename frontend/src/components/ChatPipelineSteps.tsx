@@ -46,7 +46,7 @@ export function ChatPipelineSteps({
       return (
         <section
           aria-label="Chat Pipeline Steps"
-          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85"
+          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
           data-slot="chat-pipeline-steps"
         >
           <Button
@@ -74,7 +74,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -107,7 +107,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85"
+        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -128,7 +128,7 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat Pipeline Steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
       data-slot="chat-pipeline-steps"
     >
       <Button
@@ -202,7 +202,7 @@ function StepRow({ step }: { step: ChatStep }) {
   if (!hasDetail) {
     return (
       <div
-        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85"
+        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
         data-slot="chat-pipeline-step-row"
       >
         {content}
@@ -276,7 +276,7 @@ function StepDetail({ step }: { step: ChatStep }) {
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
-        <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85" key={key}>
+        <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90" key={key}>
           <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {formatDetailKey(key)}
           </dt>
@@ -287,19 +287,19 @@ function StepDetail({ step }: { step: ChatStep }) {
       ))}
       {usage !== undefined ? (
         <>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Model
             </dt>
             <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Provider
             </dt>
             <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.provider}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Tokens
             </dt>
@@ -307,7 +307,7 @@ function StepDetail({ step }: { step: ChatStep }) {
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/85">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Cost
             </dt>
