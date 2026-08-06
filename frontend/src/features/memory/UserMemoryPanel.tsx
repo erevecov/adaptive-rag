@@ -611,7 +611,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5"
+        className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
