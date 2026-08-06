@@ -25,7 +25,7 @@ export type PanelHeaderProps = HTMLAttributes<HTMLDivElement>
 export const PanelHeader = forwardRef<HTMLDivElement, PanelHeaderProps>(
   ({ className, ...props }, ref) => (
     <div
-      className={cn('flex flex-col gap-1.5 p-4 max-[680px]:gap-1 max-[680px]:p-1', className)}
+      className={cn('flex flex-col gap-1.5 p-4 max-[680px]:gap-0.5 max-[680px]:p-1', className)}
       ref={ref}
       {...props}
       data-slot="panel-header"

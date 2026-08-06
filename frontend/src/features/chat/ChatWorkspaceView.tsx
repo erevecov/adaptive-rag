@@ -202,7 +202,7 @@ export function ChatWorkspacePanel({
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background"
+          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-6 max-[680px]:h-6"
           data-slot="chat-composer-gradient"
         />
         <form
@@ -910,7 +910,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:pb-1"
+      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/25 max-[680px]:pb-0.5"
       data-slot="chat-question-sticky"
     >
       {shouldCollapse ? (
