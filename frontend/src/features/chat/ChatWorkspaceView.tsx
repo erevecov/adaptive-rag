@@ -482,7 +482,7 @@ function ResponsePanel({
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/55 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/60 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
             <div className="space-y-2 max-[680px]:space-y-1">
