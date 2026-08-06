@@ -822,4 +822,54 @@ describe('UserMemoryPanel', () => {
     )
   })
 
+  test('shows a Proposed badge when proposals await review', async () => {
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Needs review', id: 'mem-1', status: 'proposed' }),
+        memory({ content: 'Live', id: 'mem-2', status: 'approved' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByLabelText('1 proposed')).toBeTruthy()
+    expect(screen.getByLabelText('1 injectable')).toBeTruthy()
+  })
+
+  test('Tab cycles between Confirm remove and Keep In Injection', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    const confirm = await screen.findByRole('button', {
+      name: /Confirm remove/i,
+    })
+    expect(document.activeElement).toBe(confirm)
+    await user.tab()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Keep In Injection' }),
+    )
+    await user.tab()
+    expect(document.activeElement).toBe(confirm)
+  })
+
 })
