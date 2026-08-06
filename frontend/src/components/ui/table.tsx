@@ -19,7 +19,7 @@ export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
       className={cn(
         // Vertical max-height so sticky TableHeader can pin while scrolling long tables.
         'w-full max-h-[min(70vh,36rem)] overflow-auto overscroll-contain',
-        'max-[680px]:max-h-[min(50vh,0.25rem)] max-[680px]:rounded-sm max-[680px]:overscroll-y-contain',
+        'max-[680px]:max-h-[min(50vh,0.125rem)] max-[680px]:rounded-sm max-[680px]:overscroll-y-contain',
         className,
       )}
       ref={ref}
@@ -37,7 +37,7 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(
     <table
       className={cn(
         // On narrow viewports shrink min-width so horizontal scroll is less extreme.
-        'w-full min-w-[720px] max-[680px]:min-w-[16px] border-collapse text-sm tracking-tight max-[680px]:tracking-tighter',
+        'w-full min-w-[720px] max-[680px]:min-w-[8px] border-collapse text-sm tracking-tight max-[680px]:tracking-tighter',
         className,
       )}
       ref={ref}
