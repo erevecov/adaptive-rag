@@ -328,7 +328,7 @@ export function RetrievalPlaygroundPanel({
                       {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5.5ch] max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5ch] max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                         Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}
