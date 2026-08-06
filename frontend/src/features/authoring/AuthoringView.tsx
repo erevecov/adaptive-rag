@@ -523,7 +523,7 @@ function ProjectList({
             : 'No Access'
         return (
           <DataListItem
-            className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0.5"
+            className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0.5"
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
@@ -531,7 +531,7 @@ function ProjectList({
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
-              className="h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0.5 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0.5 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
@@ -840,7 +840,7 @@ function UserAccessLists({
         <DataList aria-label="Users" className="max-[680px]:gap-0.5">
           {users.map((user) => (
             <DataListItem
-              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
+              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
               data-inactive={!user.is_active ? '' : undefined}
               key={user.id}
             >
@@ -893,7 +893,7 @@ function UserAccessLists({
       ) : (
         <DataList aria-label="Project Memberships" className="max-[680px]:gap-0.5">
           {memberships.map((membership) => (
-            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
+            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
                 <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.user_id}
@@ -961,7 +961,7 @@ function SourceFileField({
             : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
         aria-describedby={`${fieldId}-file-help`}
-        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium max-[680px]:min-h-11 max-[680px]:py-1 max-[680px]:file:mr-2 max-[680px]:file:px-2 max-[680px]:file:py-0.5 max-[680px]:file:rounded-sm max-[680px]:file:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium max-[680px]:min-h-11 max-[680px]:py-1 max-[680px]:file:mr-2 max-[680px]:file:px-2 max-[680px]:file:py-0.5 max-[680px]:file:rounded-sm max-[680px]:file:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
         disabled={isBusy}
         id={fieldId}
         name="source-file"
@@ -1245,7 +1245,7 @@ function SourceList({
             : 'No Tags'
         return (
           <DataListItem
-            className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+            className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
@@ -1392,7 +1392,7 @@ function KnowledgeReviewPanel({
             const rejectReason = rejectReasons[proposal.id] ?? ''
             const canReject = rejectReason.trim().length > 0
             return (
-              <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
+              <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
                 <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
                   <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
@@ -1543,7 +1543,7 @@ function IngestionJobsPanel({
 
       {run ? (
         <div
-          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:border-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot="ingestion-last-run"
         >
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
@@ -1622,7 +1622,7 @@ function IngestionJobList({
                       ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
                       : `Ingestion Job ${statusLabel}`
                   }
-                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   data-job-status={job.status}
                   key={job.id}
                 >

@@ -563,7 +563,7 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
@@ -874,7 +874,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:focus-within:ring-offset-0 max-[680px]:data-[state=open]:ring-offset-0 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"            onClick={() => {
+            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:focus-within:ring-offset-0 max-[680px]:data-[state=open]:ring-offset-0 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"            onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
             }}
@@ -1043,7 +1043,7 @@ export function RuntimeModelCatalogPanel({
           className="grid gap-3 max-[680px]:gap-0.5"
         >
           <DataList className="max-[680px]:gap-0.5">
-            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
+            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                 <div className="grid gap-1 max-[680px]:gap-0.5">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
@@ -1255,7 +1255,7 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList className="max-[680px]:gap-0.5">
             {chatModels.map((model) => (
               <DataListItem
-                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1336,7 +1336,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : chatRetrievalSettings ? (
           <DataList className="max-[680px]:gap-0.5">
-            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
               <div className="grid gap-1 max-[680px]:gap-0.5">
                 <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Global Defaults
@@ -1812,7 +1812,7 @@ export function ProviderModelCatalogView({
         <DataList className="max-[680px]:gap-0.5">
           {providerModels.map((model) => (
             <DataListItem
-              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1887,7 +1887,7 @@ export function RuntimeSlotList({
     <DataList aria-label="Global Runtime Slots" className="max-[680px]:gap-0.5">
       {slots.map((slot) => (
         <DataListItem
-          className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+          className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
           key={slot.slot}
         >
           <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1957,7 +1957,7 @@ export function ProjectRuntimeSettingsView({
         ) : (
           <DataList className="max-[680px]:gap-0.5">
             {settings.slots.map((slot) => (
-              <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
+              <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
                 <div className="grid gap-1 max-[680px]:gap-0.5">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
@@ -1997,7 +1997,7 @@ export function ProjectRuntimeSettingsView({
           <DataList className="max-[680px]:gap-0.5">
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -2022,7 +2022,7 @@ export function ProjectRuntimeSettingsView({
       <section className="grid gap-3 max-[680px]:gap-0.5">
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:gap-0.5">
-          <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+          <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
             <div className="grid gap-1 max-[680px]:gap-0.5">
               <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}

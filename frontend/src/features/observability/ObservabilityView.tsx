@@ -370,7 +370,7 @@ function ObservabilityMetricSkeleton({
       {Array.from({ length: cardCount }, (_, index) => (
         <article
           aria-hidden="true"
-          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
           key={index}
         >
           <div className="h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
@@ -598,7 +598,7 @@ function MetricCard({
   return (
     <article
       aria-labelledby={`${labelId} ${valueId}`}
-      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
     >
       <span
         className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:px-0.5"
@@ -660,7 +660,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList className="max-[680px]:gap-0.5">
           {rows.map((row) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={row.status}
             >
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
@@ -694,7 +694,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList className="max-[680px]:gap-0.5">
           {summary.errors.top_messages.map((error) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={error.message}
             >
               <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
