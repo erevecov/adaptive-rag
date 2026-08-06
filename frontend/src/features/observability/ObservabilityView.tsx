@@ -374,9 +374,9 @@ function ObservabilityMetricSkeleton({
           className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
           key={index}
         >
-          <div className="h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
-          <div className="h-7 w-2/3 motion-safe:animate-pulse max-[680px]:h-2 rounded bg-muted/40" />
-          <div className="h-3 w-4/5 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
+          <div className="max-[680px]:motion-reduce:animate-none h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
+          <div className="max-[680px]:motion-reduce:animate-none h-7 w-2/3 motion-safe:animate-pulse max-[680px]:h-2 rounded bg-muted/40" />
+          <div className="max-[680px]:motion-reduce:animate-none h-3 w-4/5 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
         </article>
       ))}
     </div>
