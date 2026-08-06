@@ -471,7 +471,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
       role="region"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-2 max-[680px]:gap-0.5 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
