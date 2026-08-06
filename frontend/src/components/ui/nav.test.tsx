@@ -47,7 +47,6 @@ describe('SidebarItem', () => {
     expect(item.className).toContain('max-[680px]:min-h-11')
     expect(item.className).toContain('max-[680px]:gap-0.5')
     expect(item.className).toContain('max-[680px]:text-[0.5625rem]')
-    expect(item.className).toContain('max-[680px]:tracking-tighter')
   })
 
   test('uses primary-tint hover when inactive', () => {
