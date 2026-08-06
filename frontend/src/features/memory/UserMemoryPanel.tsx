@@ -809,7 +809,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                   </div>
 
                   {isEditing ? (
-                    <div className="grid gap-1">
+                    <div className="grid gap-1 max-[680px]:gap-0.5">
                       <Textarea
                         aria-describedby={`edit-memory-help-${memory.id}`}
                         aria-label="Edit Memory Content"
@@ -853,7 +853,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       </p>
                     </div>
                   ) : (
-                    <div className="grid gap-1">
+                    <div className="grid gap-1 max-[680px]:gap-0.5">
                       <p
                         className={cn(
                           'whitespace-pre-wrap text-sm leading-snug text-foreground',
