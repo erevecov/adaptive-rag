@@ -210,7 +210,7 @@ export function RetrievalPlaygroundPanel({
               ) : null}
             </Field>
           </div>
-          <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0">
+          <div className="max-[680px]:items-start flex flex-wrap items-center gap-3 max-[680px]:gap-0">
             <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
@@ -307,7 +307,7 @@ export function RetrievalPlaygroundPanel({
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
-                  <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
+                  <div className="max-[680px]:items-start flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                     <Badge
                       aria-label={`Rank ${index + 1}`}
                       className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:self-start max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink min-w-[4.5ch] justify-center tabular-nums max-[680px]:rounded-sm max-[680px]:min-w-[2.5ch] max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"

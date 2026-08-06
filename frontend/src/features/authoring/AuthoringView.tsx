@@ -455,7 +455,7 @@ function ProjectsPanel({
             />
           )}
         </AuthoringField>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -708,7 +708,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -773,7 +773,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -861,7 +861,7 @@ function UserAccessLists({
                   {user.id}
                 </small>
               </div>
-              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+              <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
                   <StatusBadge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="warning">
@@ -902,7 +902,7 @@ function UserAccessLists({
                   {membership.project_id}
                 </small>
               </div>
-              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+              <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
                 <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                   aria-label={`Remove membership ${membership.user_id}`}
@@ -973,7 +973,7 @@ function SourceFileField({
         type="file"
       />
       {sourceFileName.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <span
             className="max-[680px]:text-left text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
             data-slot="source-file-status"
@@ -1170,7 +1170,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -1250,7 +1250,7 @@ function SourceList({
             key={source.id}
           >
             <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
+              <div className="max-[680px]:items-start flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <strong
                   className={
                     isDeleted
@@ -1342,7 +1342,7 @@ function KnowledgeReviewPanel({
       status={<KnowledgeStatus state={state} />}
       title="Pending Proposals"
     >
-      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+      <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
         <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
@@ -1517,7 +1517,7 @@ function IngestionJobsPanel({
       status={<IngestionStatus state={state} />}
       title="Jobs"
     >
-      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
+      <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
         <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
@@ -1546,7 +1546,7 @@ function IngestionJobsPanel({
           className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0 max-[680px]:border-primary max-[680px]:px-0 max-[680px]:py-0 max-[680px]:text-[0.5rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot="ingestion-last-run"
         >
-          <div className="max-[680px]:justify-start flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
+          <div className="max-[680px]:items-start max-[680px]:justify-start flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
             <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate font-medium text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Last Run</span>
             <StatusBadge
               className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0 max-[680px]:py-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -1627,7 +1627,7 @@ function IngestionJobList({
                   key={job.id}
                 >
                   <div className="grid min-w-0 gap-1.5 max-[680px]:gap-0">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
+                    <div className="max-[680px]:items-start flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                       {isRunning ? (
                         <span
                           aria-hidden="true"
