@@ -325,7 +325,7 @@ function RequestStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-w-full break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:rounded-sm max-w-full break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -556,7 +556,7 @@ function ProjectList({
                 ) : null}
               </span>
               <StatusBadge
-                className="shrink-0 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm shrink-0 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}
               >
                 {roleLabel}
@@ -857,7 +857,7 @@ function UserAccessLists({
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                 <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
-                  <StatusBadge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
+                  <StatusBadge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
                     Inactive
                   </StatusBadge>
                 ) : null}
@@ -1249,7 +1249,7 @@ function SourceList({
                   {source.external_id}
                 </strong>
                 {isDeleted ? (
-                  <StatusBadge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
+                  <StatusBadge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                     Deleted
                   </StatusBadge>
                 ) : null}
@@ -1621,7 +1621,7 @@ function IngestionJobList({
                           data-slot="ingestion-job-pulse"
                         />
                       ) : null}
-                      <StatusBadge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
+                      <StatusBadge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
                       <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
