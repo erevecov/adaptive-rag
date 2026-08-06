@@ -733,4 +733,93 @@ describe('UserMemoryPanel', () => {
     expect(reject).not.toHaveBeenCalled()
   })
 
+  test('Propose Again copies rejected content into the draft field', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({
+          content: 'Old preference worth retrying',
+          id: 'mem-rej',
+          status: 'rejected',
+        }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Old preference worth retrying')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: /Propose Again/i }),
+    )
+    const draft = screen.getByLabelText('Propose Memory') as HTMLTextAreaElement
+    expect(draft.value).toBe('Old preference worth retrying')
+    await waitFor(() => expect(document.activeElement).toBe(draft))
+  })
+
+  test('orders newer memories first within the same status on All', async () => {
+    const older = '2026-08-01T00:00:00Z'
+    const newer = '2026-08-05T00:00:00Z'
+    const list = vi.fn(async () => ({
+      items: [
+        memory({
+          content: 'Older proposed',
+          created_at: older,
+          id: 'mem-old',
+          status: 'proposed',
+        }),
+        memory({
+          content: 'Newer proposed',
+          created_at: newer,
+          id: 'mem-new',
+          status: 'proposed',
+        }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Newer proposed')).toBeTruthy()
+    const texts = screen.getAllByText(/Older proposed|Newer proposed/)
+    expect(texts.map((node) => node.textContent)).toEqual([
+      'Newer proposed',
+      'Older proposed',
+    ])
+  })
+
+  test('empty Approved filter offers Focus Propose', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      if (params?.status === 'approved') {
+        return { items: [] }
+      }
+      return { items: [] }
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: /^Approved/ }))
+    expect(await screen.findByText('No Approved Memories')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Focus Propose' }))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Propose Memory'),
+      ),
+    )
+  })
+
 })
