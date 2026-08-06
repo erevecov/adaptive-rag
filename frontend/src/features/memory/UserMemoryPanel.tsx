@@ -596,7 +596,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     <div className="grid gap-1">
                       <p
                         className={cn(
-                          'whitespace-pre-wrap text-sm leading-snug text-foreground max-[680px]:text-[0.625rem]',
+                          'whitespace-pre-wrap text-sm leading-snug text-foreground max-[680px]:text-[0.5625rem]',
                           !expandedIds[memory.id] &&
                             memory.content.length > 220 &&
                             'line-clamp-3',
