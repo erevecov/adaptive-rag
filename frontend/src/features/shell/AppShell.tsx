@@ -271,7 +271,7 @@ export function WorkspaceTopline({
       data-slot="workspace-topline"
     >
       <h1
-        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] tracking-tight text-foreground max-[680px]:text-xs"
+        className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-extrabold leading-[1.2] tracking-tight text-foreground max-[680px]:text-[0.6875rem]"
         id="workspace-title"
         title={sessionName}
       >
