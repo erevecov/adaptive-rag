@@ -26,7 +26,7 @@ export const FieldLabel = forwardRef<HTMLLabelElement, FieldLabelProps>(
   ({ className, ...props }, ref) => (
     <label
       className={cn(
-        'text-sm font-medium leading-none tracking-tight text-foreground max-[680px]:text-[0.5625rem] group-has-[:disabled]/field:cursor-not-allowed group-has-[:disabled]/field:opacity-70',
+        'text-sm font-medium leading-none tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wide group-has-[:disabled]/field:cursor-not-allowed group-has-[:disabled]/field:opacity-70',
         className,
       )}
       ref={ref}
@@ -53,7 +53,7 @@ export const FieldHelp = forwardRef<HTMLParagraphElement, FieldHelpProps>(
     <p
       className={cn(
         // Dense operator help: xs + relaxed leading; muted stays readable on purple.
-        'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+        'text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter',
         className,
       )}
       ref={ref}
@@ -71,7 +71,7 @@ export const FieldError = forwardRef<HTMLParagraphElement, FieldErrorProps>(
     <p
       className={cn(
         // Match FieldHelp density; keep medium weight for scan priority.
-        'text-xs font-medium leading-relaxed tracking-tight text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+        'text-xs font-medium leading-relaxed tracking-tight text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter',
         className,
       )}
       ref={ref}

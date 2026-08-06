@@ -36,6 +36,8 @@ describe('Popover', () => {
     expect(trigger.getAttribute('data-state')).toBe('closed')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
+    expect(trigger.className).toContain('max-[680px]:rounded-sm')
+    expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
@@ -46,6 +48,8 @@ describe('Popover', () => {
     expect(listbox.className).toContain('focus-visible:ring-ring')
     expect(listbox.className).toContain('p-1')
     expect(listbox.className).toContain('max-[680px]:p-0.5')
+    expect(listbox.className).toContain('max-[680px]:rounded-sm')
+    expect(listbox.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 

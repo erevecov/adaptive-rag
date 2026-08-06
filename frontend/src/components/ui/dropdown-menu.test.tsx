@@ -35,6 +35,8 @@ describe('DropdownMenu', () => {
     expect(trigger.getAttribute('data-state')).toBe('closed')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
+    expect(trigger.className).toContain('max-[680px]:rounded-sm')
+    expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
@@ -44,6 +46,8 @@ describe('DropdownMenu', () => {
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(menu.getAttribute('data-slot')).toBe('dropdown-menu-content')
     expect(menu.className).toContain('focus-visible:ring-ring')
+    expect(menu.className).toContain('max-[680px]:rounded-sm')
+    expect(menu.className).toContain('max-[680px]:tracking-tighter')
     expect(menu.className).toContain('max-[680px]:p-0.5')
     expect(menu.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(archiveItem.getAttribute('data-slot')).toBe('dropdown-menu-item')
@@ -52,6 +56,7 @@ describe('DropdownMenu', () => {
     expect(archiveItem.className).toContain('data-[highlighted]:bg-primary/15')
     expect(archiveItem.className).toContain('max-[680px]:min-h-11')
     expect(archiveItem.className).toContain('max-[680px]:text-[0.5625rem]')
+    expect(archiveItem.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.parentElement?.contains(menu)).toBe(false)
 
     await user.click(archiveItem)

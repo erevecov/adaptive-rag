@@ -54,7 +54,7 @@ export function Select({
         className={cn(
           [
             'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/35 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug',
-            'motion-safe:transition-colors placeholder:text-muted-foreground',
+            'motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
             'data-[placeholder]:text-muted-foreground',
@@ -78,7 +78,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:border-primary/35 max-[680px]:p-0.5',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/35 max-[680px]:p-0.5 max-[680px]:tracking-tighter',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
@@ -92,7 +92,7 @@ export function Select({
               <SelectPrimitive.Item
                 className={cn(
                   [
-                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
                     'text-popover-foreground motion-safe:transition-colors',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
@@ -109,7 +109,7 @@ export function Select({
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator
                   aria-hidden="true"
-                  className="ml-auto pl-2 text-muted-foreground"
+                  className="ml-auto pl-2 text-muted-foreground max-[680px]:pl-1"
                 >
                   <Check className="size-4 max-[680px]:size-5" />
                 </SelectPrimitive.ItemIndicator>

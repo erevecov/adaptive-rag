@@ -43,6 +43,7 @@ describe('Panel density', () => {
     expect(panel?.className).toContain('max-[680px]:rounded-md')
     expect(panel?.className).toContain('max-[680px]:shadow-primary/30')
     expect(screen.getByText('Appearance').className).toContain('tracking-tight')
+    expect(screen.getByText('Appearance').className).toContain('max-[680px]:tracking-tighter')
     expect(screen.getByText('Appearance').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('Appearance').className).toContain('max-[680px]:leading-tight')
     const description = screen.getByText('Choose the interface palette.')
@@ -50,6 +51,7 @@ describe('Panel density', () => {
     expect(description.className).toContain('text-xs')
     expect(description.className).toContain('leading-relaxed')
     expect(description.className).toContain('max-[680px]:text-[0.5625rem]')
+    expect(description.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 
@@ -73,6 +75,7 @@ describe('Field disabled styling', () => {
       )?.className,
     ).toContain('max-[680px]:gap-0.5')
     expect(screen.getByText('Name').className).toContain('tracking-tight')
+    expect(screen.getByText('Name').className).toContain('max-[680px]:tracking-wide')
     expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
@@ -93,6 +96,7 @@ describe('FieldHelp density', () => {
     expect(help.getAttribute('data-slot')).toBe('field-help')
     expect(help.className).toContain('text-xs')
     expect(help.className).toContain('leading-relaxed')
+    expect(help.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 
@@ -105,6 +109,7 @@ describe('FieldError density', () => {
     expect(error.className).toContain('text-xs')
     expect(error.className).toContain('text-destructive')
     expect(error.className).toContain('leading-relaxed')
+    expect(error.className).toContain('max-[680px]:tracking-tighter')
   })
 })
 
@@ -122,10 +127,14 @@ describe('DataListItem', () => {
     expect(row.className).toContain('min-w-0')
     expect(row.className).toContain('motion-safe:transition-colors')
     expect(row.className).toContain('hover:bg-primary/15')
+    expect(row.className).toContain('focus-visible:bg-primary/15')
+    expect(row.className).toContain('focus-visible:ring-inset')
+    expect(row.className).toContain('max-[680px]:rounded-sm')
     expect(row.className).toContain('max-[680px]:p-0.5')
     expect(row.className).toContain('tracking-tight')
     expect(row.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(row.className).toContain('max-[680px]:leading-snug')
+    expect(row.className).toContain('max-[680px]:tracking-tighter')
     expect(row.className).toContain('max-[680px]:shadow-primary/30')
   })
 })

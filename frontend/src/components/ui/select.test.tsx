@@ -39,6 +39,7 @@ describe('Select', () => {
     expect(trigger.getAttribute('data-slot')).toBe('select-trigger')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
+    expect(trigger.className).toContain('hover:border-primary/40')
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
     expect(trigger.className).toContain('max-[680px]:gap-0.5')
@@ -56,11 +57,18 @@ describe('Select', () => {
     expect(option.className).toContain('data-[highlighted]:bg-primary/15')
     expect(option.className).toContain('max-[680px]:min-h-11')
     expect(option.className).toContain('max-[680px]:text-[0.5625rem]')
+    expect(option.className).toContain('max-[680px]:tracking-tighter')
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'focus-visible:ring-ring',
     )
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'max-[680px]:rounded-sm',
+    )
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'max-[680px]:p-0.5',
+    )
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'max-[680px]:tracking-tighter',
     )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()

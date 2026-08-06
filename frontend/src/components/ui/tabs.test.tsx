@@ -49,8 +49,14 @@ describe('SegmentedControl', () => {
       screen.getByRole('button', { name: 'Connections' }).className,
     ).toContain('max-[680px]:text-[0.5625rem]')
     expect(
+      screen.getByRole('button', { name: 'Connections' }).className,
+    ).toContain('max-[680px]:tracking-tighter')
+    expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
     ).toContain('bg-muted/40')
+    expect(
+      screen.getByRole('group', { name: 'Runtime sections' }).className,
+    ).toContain('max-[680px]:rounded-sm')
     expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
     ).toContain('max-[680px]:p-0.5')

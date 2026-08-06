@@ -30,6 +30,7 @@ describe('EmptyState', () => {
     expect(empty.className).toContain('max-[680px]:p-0.5')
     expect(empty.className).toContain('max-[680px]:gap-0.5')
     expect(empty.className).toContain('max-[680px]:rounded-sm')
+    expect(empty.className).toContain('max-[680px]:tracking-tighter')
   })
 
   test('allows role override for failed empties', () => {
@@ -47,6 +48,7 @@ describe('InlineFeedback', () => {
     expect(feedback.className).toContain('dark:text-emerald-200')
     expect(feedback.className).toContain('motion-safe:transition-colors')
     expect(feedback.className).toContain('max-[680px]:leading-snug')
+    expect(feedback.className).toContain('max-[680px]:tracking-tighter')
     expect(feedback.getAttribute('data-tone')).toBe('success')
   })
 })
@@ -62,6 +64,7 @@ describe('Callout', () => {
     expect(callout.className).toContain('leading-relaxed')
     expect(callout.className).toContain('motion-safe:transition-colors')
     expect(callout.className).toContain('max-[680px]:p-0.5')
+    expect(callout.className).toContain('max-[680px]:rounded-sm')
   })
 
   test('neutral callout uses a soft muted wash', () => {
