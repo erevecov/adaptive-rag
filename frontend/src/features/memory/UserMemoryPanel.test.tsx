@@ -1496,6 +1496,8 @@ describe('UserMemoryPanel', () => {
     expect(form?.className).toContain('max-[680px]:gap-0.5')
     const contentStack = screen.getByText('Live preference').parentElement
     expect(contentStack?.className).toContain('max-[680px]:gap-0.5')
+    const badgeRow = screen.getByLabelText(/injectable/i).parentElement
+    expect(badgeRow?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
