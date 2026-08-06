@@ -47,7 +47,7 @@ describe('SegmentedControl', () => {
     ).toContain('active:bg-primary/20')
     expect(
       screen.getByRole('button', { name: 'Connections' }).className,
-    ).toContain('max-[680px]:active:bg-primary/75')
+    ).toContain('max-[680px]:active:bg-primary/80')
     expect(
       screen.getByRole('button', { name: 'Connections' }).className,
     ).toContain('max-[680px]:min-h-11')

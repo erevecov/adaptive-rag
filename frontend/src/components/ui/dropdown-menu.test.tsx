@@ -39,7 +39,7 @@ describe('DropdownMenu', () => {
     expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('hover:bg-primary/15')
     expect(trigger.className).toContain('active:bg-primary/20')
-    expect(trigger.className).toContain('max-[680px]:active:bg-primary/75')
+    expect(trigger.className).toContain('max-[680px]:active:bg-primary/80')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
@@ -60,7 +60,7 @@ describe('DropdownMenu', () => {
     expect(archiveItem.className).toContain('data-[highlighted]:bg-primary/15')
     expect(archiveItem.className).toContain('max-[680px]:data-[highlighted]:bg-primary/40')
     expect(archiveItem.className).toContain('active:bg-primary/20')
-    expect(archiveItem.className).toContain('max-[680px]:active:bg-primary/75')
+    expect(archiveItem.className).toContain('max-[680px]:active:bg-primary/80')
     expect(archiveItem.className).toContain('max-[680px]:min-h-11')
     expect(archiveItem.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(archiveItem.className).toContain('max-[680px]:tracking-tighter')
