@@ -474,13 +474,15 @@ function ResponsePanel({
           data-slot-state="loading"
           role="status"
         >
-          <p className="font-medium text-foreground/80">Waiting For Response…</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="font-medium text-foreground/80 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+            Waiting For Response…
+          </p>
+          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Retrieving Sources and Drafting an Answer
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left"
+            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left max-[680px]:space-y-1.5 max-[680px]:rounded-md max-[680px]:p-1.5"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
             <div className="space-y-2">
@@ -509,8 +511,8 @@ function ResponsePanel({
             data-slot-state="failed"
             role="alert"
           >
-            <p className="font-medium text-destructive">Request failed.</p>
-            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
+            <p className="font-medium text-destructive max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Request failed.</p>
+            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               Edit the question and resend, or open another session. Details are
               under the composer when available.
             </p>
@@ -526,8 +528,8 @@ function ResponsePanel({
             data-slot-state="canceled"
             role="status"
           >
-            <p className="font-medium text-foreground/90">Request canceled.</p>
-            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
+            <p className="font-medium text-foreground/90 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Request canceled.</p>
+            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               Nothing was stored for this turn. Ask again when ready.
             </p>
           </EmptyState>
@@ -541,8 +543,8 @@ function ResponsePanel({
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90">No Response Yet.</p>
-          <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:leading-snug">
+          <p className="font-medium text-foreground/90 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">No Response Yet.</p>
+          <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Ask about indexed sources. Enter to send · Shift+Enter for a new line.
           </p>
         </EmptyState>
@@ -847,20 +849,20 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:p-1.5"
           data-slot="chat-memory-applied"
         >
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
             <StatusBadge className="w-fit" tone="success">
               Memory Applied
             </StatusBadge>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {appliedMemories.length} approved item
               {appliedMemories.length === 1 ? '' : 's'} injected as system
               context (not a user turn).
             </span>
           </div>
-          <ul className="grid gap-1.5">
+          <ul className="grid gap-1.5 max-[680px]:gap-1">
             {appliedMemories.map((memory) => (
               <li
                 className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
@@ -924,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:px-2 max-[680px]:py-1.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
           {displayQuestion}
         </p>
       )}
