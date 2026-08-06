@@ -190,7 +190,7 @@ export function AppShell({
             ? [
                 'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
                 'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:px-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                'max-[680px]:gap-0 max-[680px]:px-0.5 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : 'mx-auto max-w-[1240px]',
         )}
@@ -278,7 +278,7 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
         data-slot="workspace-project-chip"
         title={projectName}
       >
@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/90 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5',
+'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/90 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:py-0.5',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -476,7 +476,7 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:pb-1 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -564,7 +564,7 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
         'hover:bg-primary/15 hover:text-foreground',
         active && 'bg-primary/15 font-semibold text-foreground',
         className,
@@ -822,7 +822,7 @@ function SidebarProjectSelector({
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
-                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90',
+                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90',
                 'hover:border-primary',
               ],
               isOpen && 'border-primary bg-primary/15',
@@ -900,7 +900,7 @@ function SidebarProjectSelector({
                       className={cn(
                         [
                           'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-0.5',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',
