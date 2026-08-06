@@ -783,9 +783,30 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     ) : null}
 
                     {memory.status === 'rejected' ? (
-                      <span className="text-xs text-muted-foreground">
-                        Not injectable. Propose again if still needed.
-                      </span>
+                      <DataListItemActions className="gap-1.5">
+                        <Button
+                          aria-label="Propose again from rejected memory"
+                          onClick={() => {
+                            setDraft(
+                              memory.content.slice(0, USER_MEMORY_MAX_CHARS),
+                            )
+                            setProposeSuccess(null)
+                            setProposeError(null)
+                            setConfirmRemoveId(null)
+                            requestAnimationFrame(() => {
+                              document.getElementById(draftFieldId)?.focus()
+                            })
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Propose Again
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Not injectable until re-proposed and approved.
+                        </span>
+                      </DataListItemActions>
                     ) : null}
                   </DataListItemActions>
                 </div>
@@ -826,17 +847,15 @@ function FilterEmptyState({
           >
             View Proposed
           </Button>
-          {filter === 'rejected' ? (
-            <Button
-              className="w-fit"
-              onClick={onPropose}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              Focus Propose
-            </Button>
-          ) : null}
+          <Button
+            className="w-fit"
+            onClick={onPropose}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Focus Propose
+          </Button>
         </div>
       ) : null}
       {filter === 'all' || filter === 'proposed' ? (
@@ -912,15 +931,23 @@ function sortMemoriesForFilter(
   items: UserMemory[],
   filter: MemoryStatusFilter,
 ): UserMemory[] {
+  const byNewest = (left: UserMemory, right: UserMemory) => {
+    const leftTime = Date.parse(left.created_at ?? '') || 0
+    const rightTime = Date.parse(right.created_at ?? '') || 0
+    return rightTime - leftTime
+  }
   if (filter !== 'all') {
-    return items
+    return [...items].sort(byNewest)
   }
   const rank: Record<UserMemoryStatus, number> = {
     proposed: 0,
     approved: 1,
     rejected: 2,
   }
-  return [...items].sort((left, right) => rank[left.status] - rank[right.status])
+  return [...items].sort((left, right) => {
+    const statusDelta = rank[left.status] - rank[right.status]
+    return statusDelta !== 0 ? statusDelta : byNewest(left, right)
+  })
 }
 
 function MemoryListLoadingSkeleton() {

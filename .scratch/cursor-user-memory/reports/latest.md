@@ -1,14 +1,14 @@
 # User memory parity report
 
 ## Merged to main
-- #214–#227 Memory UX · #229 skeleton/guidance · **#416** Keep In Injection + Focus Propose (All/Proposed)
+- #214–#227 · #229 skeleton · #416 Keep In Injection · #420 busy/refresh · **#423** injectable aria-live + global Esc
 
 ## Active
-- **#420** `feat/memory-ux-continuum-8` (rebased on main post-#416) — Rejected Focus Propose; row `aria-busy`; soft-refresh status
+- **feat/memory-ux-continuum-10** — Propose Again on rejected; newest-first within status; Focus Propose on empty Approved
 
 ## Next
-- Announce injectable count changes via aria-live
-- Confirm-remove trap focus within confirm controls
+- Confirm-remove Tab cycle between Confirm / Keep In Injection
+- Proposed-count chip beside Injectable badge
 
 ## Deferred
 - injection/capture toggles · cron/embeddings/unread/MCP
