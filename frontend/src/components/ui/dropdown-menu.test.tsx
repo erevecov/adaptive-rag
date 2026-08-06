@@ -38,7 +38,7 @@ describe('DropdownMenu', () => {
     expect(trigger.className).toContain('max-[680px]:rounded-sm')
     expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('hover:bg-primary/15')
-    expect(trigger.className).toContain('max-[680px]:hover:bg-primary/45')
+    expect(trigger.className).toContain('max-[680px]:hover:bg-primary/50')
     expect(trigger.className).toContain('active:bg-primary/20')
     expect(trigger.className).toContain('max-[680px]:active:bg-primary/95')
     expect(trigger.className).toContain('motion-safe:transition-colors')
