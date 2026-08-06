@@ -266,7 +266,7 @@ export function WorkspaceTopline({
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-8',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-7',
       )}
       data-slot="workspace-topline"
     >

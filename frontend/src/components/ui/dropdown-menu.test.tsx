@@ -59,7 +59,7 @@ describe('DropdownMenu', () => {
     expect(archiveItem.className).toContain('focus-visible:ring-2')
     expect(archiveItem.className).toContain('focus-visible:ring-inset')
     expect(archiveItem.className).toContain('data-[highlighted]:bg-primary/15')
-    expect(archiveItem.className).toContain('max-[680px]:data-[highlighted]:bg-primary/65')
+    expect(archiveItem.className).toContain('max-[680px]:data-[highlighted]:bg-primary/70')
     expect(archiveItem.className).toContain('active:bg-primary/20')
     expect(archiveItem.className).toContain('max-[680px]:active:bg-primary/95')
     expect(archiveItem.className).toContain('max-[680px]:min-h-11')
