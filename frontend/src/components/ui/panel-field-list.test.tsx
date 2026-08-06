@@ -41,7 +41,7 @@ describe('Panel density', () => {
     const panel = screen.getByText('Appearance').closest('[data-slot="panel"]')
     expect(panel?.className).toContain('motion-safe:transition-colors')
     expect(panel?.className).toContain('max-[680px]:rounded-md')
-    expect(panel?.className).toContain('max-[680px]:shadow-none')
+    expect(panel?.className).toContain('max-[680px]:shadow-primary/15')
     expect(screen.getByText('Appearance').className).toContain('tracking-tight')
     expect(screen.getByText('Appearance').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('Appearance').className).toContain('max-[680px]:leading-tight')
