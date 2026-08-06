@@ -291,7 +291,7 @@ export function RetrievalPlaygroundPanel({
               <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 No Chunks Returned
               </p>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:space-y-0 max-[680px]:pl-3 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:space-y-0 max-[680px]:pl-2 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 <li>Try Strategy Dense or Sparse</li>
                 <li>Confirm Sources Are Ingested for This Project</li>
                 <li>Raise Limit or Adjust the Query</li>

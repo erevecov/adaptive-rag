@@ -97,7 +97,7 @@ export function Select({
                     'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/95',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
-                    'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/90',
+                    'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/95',
                     'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                   ],
                 )}
