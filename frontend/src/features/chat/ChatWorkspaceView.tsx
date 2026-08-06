@@ -466,11 +466,11 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[8rem] place-items-center px-3 py-4"
+        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[6rem] max-[680px]:px-1.5 max-[680px]:py-2"
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:p-1.5"
           data-slot-state="loading"
           role="status"
         >
@@ -505,9 +505,9 @@ function ResponsePanel({
   if (response === null) {
     if (state === 'failed') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[6rem] max-[680px]:px-1.5 max-[680px]:py-2">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-1.5"
             data-slot-state="failed"
             role="alert"
           >
@@ -522,9 +522,9 @@ function ResponsePanel({
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[6rem] max-[680px]:px-1.5 max-[680px]:py-2">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/15 p-4 text-left"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-1.5"
             data-slot-state="canceled"
             role="status"
           >
@@ -537,9 +537,9 @@ function ResponsePanel({
       )
     }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-4">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[6rem] max-[680px]:px-1.5 max-[680px]:py-2">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/15 p-4"
+          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-1.5"
           data-slot-state="empty"
           role="status"
         >
@@ -1064,7 +1064,7 @@ function ResponseDetailsContent({
           <DataList>
             {response.citations.map((result, index) => (
               <DataListItem
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-1.5"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
