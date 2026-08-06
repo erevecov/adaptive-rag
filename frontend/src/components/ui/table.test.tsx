@@ -76,10 +76,10 @@ describe('Table density', () => {
     expect(screen.getByText('Latency').className).toContain('motion-safe:transition-colors')
     expect(screen.getByText('Latency').className).toContain('h-9')
     expect(screen.getByText('Latency').className).toContain('max-[680px]:h-11')
-    expect(screen.getByText('Latency').className).toContain('max-[680px]:text-[0.625rem]')
+    expect(screen.getByText('Latency').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:min-h-11')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:py-1.5')
-    expect(screen.getByText('12ms').className).toContain('max-[680px]:text-[0.625rem]')
+    expect(screen.getByText('12ms').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
       'max-[680px]:min-w-[480px]',
     )
