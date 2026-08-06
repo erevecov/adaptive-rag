@@ -29,7 +29,7 @@ export const buttonVariants = cva(
           'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',
         secondary:
           // Primary-tint hover reads clearer than accent wash on purple chrome.
-          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:border-primary/70',
+          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:border-primary/75',
       },
     },
   },
