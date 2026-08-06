@@ -405,7 +405,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   return (
     <Panel
       aria-labelledby={titleId}
-      className="grid gap-4 p-4 max-[680px]:p-3"
+      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
       role="region"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -457,20 +457,23 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </div>
       </header>
 
-      <PanelDescription>
+      <PanelDescription className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         Only approved items inject as system context (never as a user turn).
         Propose → approve required. No automatic capture in this build.
       </PanelDescription>
 
-      <form className="grid gap-2" onSubmit={(event) => void handlePropose(event)}>
-        <Field>
+      <form
+        className="grid gap-2 max-[680px]:gap-0.5"
+        onSubmit={(event) => void handlePropose(event)}
+      >
+        <Field className="max-[680px]:gap-0.5">
           <FieldLabel htmlFor={draftFieldId}>Propose Memory</FieldLabel>
           <FieldControl>
             <Textarea
               aria-describedby={`${draftFieldId}-help`}
               aria-invalid={draftOverLimit || undefined}
               aria-label="Propose Memory"
-              className="min-h-20"
+              className="min-h-20 max-[680px]:min-h-14 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
               id={draftFieldId}
               maxLength={USER_MEMORY_MAX_CHARS}
               onChange={(event) => {
@@ -481,7 +484,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               value={draft}
             />
           </FieldControl>
-          <FieldHelp id={`${draftFieldId}-help`}>
+          <FieldHelp
+            className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+            id={`${draftFieldId}-help`}
+          >
             <span
               className={cn(
                 draftOverLimit && 'text-destructive',
