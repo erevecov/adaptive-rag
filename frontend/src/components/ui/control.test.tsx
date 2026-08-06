@@ -33,6 +33,7 @@ function expectSharedControlTokens(element: Element): void {
   expect(tokens).toContain('focus-visible:ring-offset-background')
   expect(tokens).toContain('disabled:cursor-not-allowed')
   expect(tokens).toContain('disabled:opacity-50')
+  expect(tokens).toContain('disabled:hover:border-input')
 }
 
 afterEach(() => {
@@ -69,6 +70,7 @@ describe('control primitives', () => {
 
     const tokens = classTokens(screen.getByRole('textbox', { name: 'Broken field' }))
     expect(tokens).toContain('aria-invalid:border-destructive')
+    expect(tokens).toContain('aria-invalid:hover:border-destructive')
     expect(tokens).toContain('aria-invalid:focus-visible:ring-destructive')
   })
 
@@ -112,5 +114,6 @@ describe('control primitives', () => {
     expect(element.hasAttribute('disabled')).toBe(true)
     expect(tokens).toContain('disabled:cursor-not-allowed')
     expect(tokens).toContain('disabled:opacity-50')
+    expect(tokens).toContain('disabled:hover:border-input')
   })
 })

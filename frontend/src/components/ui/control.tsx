@@ -10,9 +10,9 @@ const controlClasses = [
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground',
   'motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-  'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+  'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
   // Invalid fields: destructive ring against fill (parity with danger Button).
-  'aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive',
+  'aria-invalid:border-destructive aria-invalid:hover:border-destructive aria-invalid:focus-visible:ring-destructive',
 ]
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>
