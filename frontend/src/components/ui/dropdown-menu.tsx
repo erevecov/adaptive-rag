@@ -100,8 +100,13 @@ export const Item = forwardRef<
       className={cn(
         [
           'flex min-h-8 max-[680px]:min-h-11 cursor-pointer items-center rounded-sm px-2 text-sm tracking-tight outline-none max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+<<<<<<< Updated upstream
           'motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/25 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
           'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/70',
+=======
+          'motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/20 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
+          'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/75',
+>>>>>>> Stashed changes
           'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         ],
