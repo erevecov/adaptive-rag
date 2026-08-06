@@ -43,6 +43,7 @@ describe('SidebarItem', () => {
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/15')
     expect(item.className).toContain('hover:bg-primary/15')
+    expect(item.className).toContain('active:bg-primary/20')
     expect(item.className).toContain('data-[active]:text-foreground')
     expect(item.className).toContain('max-[680px]:min-h-11')
     expect(item.className).toContain('max-[680px]:gap-0.5')

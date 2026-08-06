@@ -100,7 +100,7 @@ export const Item = forwardRef<
       className={cn(
         [
           'flex min-h-8 max-[680px]:min-h-11 cursor-pointer items-center rounded-sm px-2 text-sm tracking-tight outline-none max-[680px]:rounded-sm max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-          'motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground',
+          'motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20',
           'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground',
           'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',

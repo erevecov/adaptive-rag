@@ -44,6 +44,9 @@ describe('SegmentedControl', () => {
     ).toContain('hover:bg-primary/15')
     expect(
       screen.getByRole('button', { name: 'Connections' }).className,
+    ).toContain('active:bg-primary/20')
+    expect(
+      screen.getByRole('button', { name: 'Connections' }).className,
     ).toContain('max-[680px]:min-h-11')
     expect(
       screen.getByRole('button', { name: 'Connections' }).className,
