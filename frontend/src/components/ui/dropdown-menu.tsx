@@ -64,7 +64,7 @@ export const Content = forwardRef<
     <DropdownMenuPrimitive.Content
       className={cn(
         [
-          'z-50 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:text-[0.75rem]',
+          'z-50 grid min-w-36 gap-1 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:text-[0.6875rem]',
           'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         ],
         className,
@@ -99,7 +99,7 @@ export const Item = forwardRef<
     <DropdownMenuPrimitive.Item
       className={cn(
         [
-          'flex min-h-8 max-[680px]:min-h-11 cursor-pointer items-center rounded-sm px-2 text-sm tracking-tight outline-none max-[680px]:px-2 max-[680px]:text-[0.75rem]',
+          'flex min-h-8 max-[680px]:min-h-11 cursor-pointer items-center rounded-sm px-2 text-sm tracking-tight outline-none max-[680px]:px-2 max-[680px]:text-[0.6875rem]',
           'motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground',
           'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground',
           'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
