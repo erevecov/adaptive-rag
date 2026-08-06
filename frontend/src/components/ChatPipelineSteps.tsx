@@ -190,7 +190,7 @@ function StepRow({ step }: { step: ChatStep }) {
       )}
       <StatusDot status={step.status} />
       <span className="grid min-w-0 flex-1 gap-1">
-        <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{stepLabel(step.id)}</strong>
+        <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
       <small className="text-xs text-muted-foreground tabular-nums max-[680px]:text-[0.5625rem]">
@@ -280,7 +280,7 @@ function StepDetail({ step }: { step: ChatStep }) {
           <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {formatDetailKey(key)}
           </dt>
-          <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {formatDetailValue(value)}
           </dd>
         </div>
@@ -291,19 +291,19 @@ function StepDetail({ step }: { step: ChatStep }) {
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Model
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.model}</dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</dd>
           </div>
           <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Provider
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.provider}</dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.provider}</dd>
           </div>
           <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20">
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Tokens
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
@@ -311,7 +311,7 @@ function StepDetail({ step }: { step: ChatStep }) {
             <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Cost
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {formatCost(usage.estimated_cost_usd)}
             </dd>
           </div>

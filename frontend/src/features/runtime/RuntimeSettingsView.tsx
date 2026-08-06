@@ -939,7 +939,7 @@ export function CapabilitySelector({
           >
             {filteredOptions.length === 0 ? (
               <p
-                className="p-3 text-left text-sm text-muted-foreground max-[680px]:p-1 max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+                className="p-3 text-left text-sm text-muted-foreground max-[680px]:p-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                 data-slot-state="empty"
                 role="status"
               >
@@ -1037,7 +1037,7 @@ export function RuntimeModelCatalogPanel({
             <DataListItem className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2">
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1249,7 +1249,7 @@ export function RuntimeGlobalDefaultsPanel({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {model.model_id}
                   </strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1328,7 +1328,7 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList>
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
-                <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   Global Defaults
                 </strong>
                 <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1797,7 +1797,7 @@ export function ProviderModelCatalogView({
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1">
-                <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {model.model_id}
                 </strong>
                 <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1872,7 +1872,7 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="grid gap-1">
-            <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
+            <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
             <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {slot.connection_id} / {slot.model_id}
             </small>
@@ -1940,7 +1940,7 @@ export function ProjectRuntimeSettingsView({
             {settings.slots.map((slot) => (
               <DataListItem className="grid gap-3" key={slot.slot}>
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {slot.connection_id} / {slot.model_id}
                   </small>
@@ -1982,7 +1982,7 @@ export function ProjectRuntimeSettingsView({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {model.model_id}
                   </strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -2005,7 +2005,7 @@ export function ProjectRuntimeSettingsView({
         <DataList>
           <DataListItem className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
-              <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+              <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
               <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">

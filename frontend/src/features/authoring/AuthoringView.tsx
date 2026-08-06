@@ -304,7 +304,7 @@ function AuthoringSectionPanel({
     >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-1 max-[680px]:p-1">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {eyebrow}
           </p>
           <PanelTitle id={id}>{title}</PanelTitle>
@@ -539,8 +539,8 @@ function ProjectList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
-                      : 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
                   }
                 >
                   {project.name}
@@ -841,8 +841,8 @@ function UserAccessLists({
                 <strong
                   className={
                     user.is_active
-                      ? 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
-                      : 'break-words text-sm font-semibold text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      ? 'break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
                   }
                 >
                   {user.login}
@@ -888,7 +888,7 @@ function UserAccessLists({
           {memberships.map((membership) => (
             <DataListItem className="grid gap-2" key={membership.id}>
               <div className="grid min-w-0 gap-1">
-                <strong className="break-all text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {membership.user_id}
                 </strong>
                 <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1142,7 +1142,7 @@ function SourcesPanel({
             )}
           </AuthoringField>
         ) : (
-          <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             URL sources are fetched during ingestion; no content is required here.
           </p>
         )}
@@ -1242,8 +1242,8 @@ function SourceList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
-                      : 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
                   }
                 >
                   {source.external_id}
@@ -1382,7 +1382,7 @@ function KnowledgeReviewPanel({
             return (
               <DataListItem className="grid gap-3" key={proposal.id}>
                 <div className="grid min-w-0 gap-1">
-                  <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {proposal.proposed_text}
                   </strong>
                   <small
@@ -1541,7 +1541,7 @@ function IngestionJobsPanel({
               {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
-          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.625rem]">
+          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.5625rem]">
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (

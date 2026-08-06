@@ -608,7 +608,7 @@ function MetricCard({
       >
         {value}
       </strong>
-      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
@@ -660,7 +660,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
               key={row.status}
             >
               <div className="grid min-w-0 gap-1">
-                <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {sessionStatusDisplayLabel(row.status)}
                 </strong>
                 <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -693,7 +693,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               className="flex flex-wrap items-center justify-between gap-3 border-0 bg-transparent p-2 shadow-none"
               key={error.message}
             >
-              <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+              <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {operatorSafeMessage(error.message, error.message)}
               </strong>
               <Badge>{formatCount(error.count, 'Occurrence')}</Badge>
@@ -842,10 +842,10 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
           <strong className="text-2xl font-semibold leading-none tabular-nums">
             {formatPercent(succeeded, total)} Success
           </strong>
-          <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {formatCount(failed, 'Failed session')}
           </span>
-          <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {formatCount(running, 'Running session')}
           </span>
         </div>
