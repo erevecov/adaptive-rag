@@ -797,7 +797,7 @@ function ResponseContent({
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
                       'hover:border-primary/50 hover:bg-primary/15',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-3 max-[680px]:py-2 max-[680px]:text-xs',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2.5 max-[680px]:py-1.5 max-[680px]:text-[0.625rem]',
                     )}
                     key={chipKey}
                     onClick={() =>
@@ -1052,13 +1052,13 @@ function ResponseDetailsContent({
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
-                  <strong className="break-words text-sm text-foreground">
+                  <strong className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {result.citation.source_external_id}
                   </strong>
-                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {result.citation.snippet}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 max-[680px]:gap-1">
                     <Badge>
                       {sourceTypeLabel(result.citation.source_type)} Source
                     </Badge>
