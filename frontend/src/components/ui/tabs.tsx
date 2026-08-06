@@ -34,7 +34,7 @@ export const SegmentedControl = forwardRef<
     ref,
   ) => {
   const controlClassName = cn(
-    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted/40 p-1 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:p-0.5',
+    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted/40 p-1 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/45 max-[680px]:p-0.5',
     'motion-safe:transition-colors',
     className,
   )
