@@ -684,7 +684,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === OBSERVABILITY_NAVIGATION.id}
           onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
@@ -705,7 +705,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === RUNTIME_NAVIGATION.id}
           onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
@@ -821,7 +821,7 @@ function SidebarProjectSelector({
             aria-label={`Project selector: ${selectedLabel}`}
             className={cn(
               [
-                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
+                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
                 'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25',
                 'hover:border-primary',
               ],
@@ -870,7 +870,7 @@ function SidebarProjectSelector({
             </label>
 
             <div
-              className="flex items-center justify-between gap-2"
+              className="flex items-center justify-between gap-2 max-[680px]:gap-0.5"
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">

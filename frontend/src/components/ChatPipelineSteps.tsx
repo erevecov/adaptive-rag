@@ -90,7 +90,7 @@ export function ChatPipelineSteps({
         </Button>
         <StepList steps={steps} />
         {children ? (
-          <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">
+          <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
             {children}
           </div>
         ) : null}
@@ -144,7 +144,7 @@ export function ChatPipelineSteps({
       </Button>
       <StepList steps={steps} />
       {children ? (
-        <div className="grid gap-3" data-slot="chat-pipeline-extra-detail">
+        <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
           {children}
         </div>
       ) : null}
