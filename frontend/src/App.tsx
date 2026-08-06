@@ -2735,13 +2735,13 @@ function AppearanceSettingsPanel({
       aria-labelledby="appearance-settings-title"
       className="grid gap-4 p-4 max-[680px]:gap-1.5 max-[680px]:p-1.5"
     >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-1">
+        <div className="grid gap-1 max-[680px]:gap-0.5">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             My Account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground"
+            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug"
             id="appearance-settings-title"
           >
             Appearance
@@ -2754,14 +2754,14 @@ function AppearanceSettingsPanel({
 
       <PanelDescription>Choose the interface palette.</PanelDescription>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 max-[680px]:gap-1.5">
         {THEMES.map((option) => {
           const active = option.id === theme
           return (
             <Button
               aria-pressed={active}
               className={cn(
-                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground',
+                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-1.5 max-[680px]:p-1.5',
                 'hover:bg-primary/15',
                 active &&
                   'border-primary bg-primary/25 focus-visible:ring-primary',
@@ -2775,37 +2775,37 @@ function AppearanceSettingsPanel({
             >
               <span
                 aria-hidden="true"
-                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3"
+                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-1 max-[680px]:p-1.5"
                 data-slot="theme-swatch"
                 style={{ background: option.swatch.bg }}
               >
                 <span
-                  className="block h-2 rounded-full"
+                  className="block h-2 rounded-full max-[680px]:h-1.5"
                   data-slot="theme-swatch-line-strong"
                   style={{ background: option.swatch.fg }}
                 />
                 <span
-                  className="block h-2 w-3/4 rounded-full"
+                  className="block h-2 w-3/4 rounded-full max-[680px]:h-1.5"
                   data-slot="theme-swatch-line-muted"
                   style={{ background: option.swatch.muted }}
                 />
                 <span
-                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full"
+                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full max-[680px]:bottom-1.5 max-[680px]:right-1.5 max-[680px]:h-2 max-[680px]:w-8"
                   data-slot="theme-swatch-accent"
                   style={{ background: option.swatch.accent }}
                 />
               </span>
-              <span className="grid gap-1">
-                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground">
+              <span className="grid gap-1 max-[680px]:gap-0.5">
+                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-1 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {option.label}
                   {active ? (
                     <span
-                      className="inline-block size-2.5 rounded-full bg-primary"
+                      className="inline-block size-2.5 rounded-full bg-primary max-[680px]:size-2"
                       aria-hidden="true"
                     />
                   ) : null}
                 </span>
-                <span className="text-xs leading-relaxed text-muted-foreground">
+                <span className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {option.description}
                 </span>
               </span>
