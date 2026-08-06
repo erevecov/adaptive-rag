@@ -910,7 +910,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/25 max-[680px]:pb-0.5"
+      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/25 max-[680px]:pb-0.5 max-[680px]:shadow-primary/20"
       data-slot="chat-question-sticky"
     >
       {shouldCollapse ? (
