@@ -1496,6 +1496,10 @@ describe('UserMemoryPanel', () => {
     expect(form?.className).toContain('max-[680px]:gap-0.5')
     const contentStack = screen.getByText('Live preference').parentElement
     expect(contentStack?.className).toContain('max-[680px]:gap-0.5')
+    const feedbackLive = Array.from(
+      document.querySelectorAll<HTMLElement>('[aria-live="polite"]'),
+    ).find((el) => el.className.includes('grid'))
+    expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })

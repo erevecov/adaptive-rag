@@ -657,7 +657,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5">
+      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2">
             <InlineFeedback role="alert" tone="danger">
