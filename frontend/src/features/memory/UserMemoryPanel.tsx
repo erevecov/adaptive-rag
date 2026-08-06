@@ -337,23 +337,38 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </h2>
         </div>
         <div className="grid justify-items-end gap-1">
-          <StatusBadge
-            aria-label={
-              listState === 'loading'
-                ? 'Loading injectable count'
-                : `${injectableCount} injectable`
-            }
-            className="w-fit"
-            tone="primary"
-          >
-            {listState === 'loading'
-              ? 'Loading'
-              : `${injectableCount} Injectable`}
-          </StatusBadge>
+          <div className="flex flex-wrap justify-end gap-1">
+            {listState !== 'loading' && statusCounts.proposed > 0 ? (
+              <StatusBadge
+                aria-label={`${statusCounts.proposed} proposed`}
+                className="w-fit"
+                tone="warning"
+              >
+                {statusCounts.proposed} Proposed
+              </StatusBadge>
+            ) : null}
+            <StatusBadge
+              aria-label={
+                listState === 'loading'
+                  ? 'Loading injectable count'
+                  : `${injectableCount} injectable`
+              }
+              className="w-fit"
+              tone="primary"
+            >
+              {listState === 'loading'
+                ? 'Loading'
+                : `${injectableCount} Injectable`}
+            </StatusBadge>
+          </div>
           <p aria-live="polite" className="sr-only">
             {listState === 'loading'
               ? 'Loading memories'
-              : `${injectableCount} injectable ${injectableCount === 1 ? 'memory' : 'memories'}`}
+              : `${injectableCount} injectable ${injectableCount === 1 ? 'memory' : 'memories'}${
+                  statusCounts.proposed > 0
+                    ? `, ${statusCounts.proposed} proposed awaiting review`
+                    : ''
+                }`}
           </p>
         </div>
       </header>
@@ -736,7 +751,39 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
                     {memory.status === 'approved' ? (
                       confirmRemoveId === memory.id ? (
-                        <DataListItemActions className="gap-1.5">
+                        <DataListItemActions
+                          className="gap-1.5"
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Tab') {
+                              return
+                            }
+                            const confirm = document.getElementById(
+                              `confirm-remove-${memory.id}`,
+                            )
+                            const keep = document.getElementById(
+                              `keep-injection-${memory.id}`,
+                            )
+                            if (
+                              !(confirm instanceof HTMLElement) ||
+                              !(keep instanceof HTMLElement)
+                            ) {
+                              return
+                            }
+                            const ordered = [confirm, keep]
+                            const active = document.activeElement
+                            const index = ordered.findIndex(
+                              (node) => node === active,
+                            )
+                            if (index < 0) {
+                              return
+                            }
+                            event.preventDefault()
+                            const nextIndex = event.shiftKey
+                              ? (index - 1 + ordered.length) % ordered.length
+                              : (index + 1) % ordered.length
+                            ordered[nextIndex]?.focus()
+                          }}
+                        >
                           <Button
                             aria-describedby="memory-confirm-remove-hint"
                             aria-label="Confirm remove from injection"
@@ -752,6 +799,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                           <Button
                             aria-label="Keep In Injection"
                             disabled={busy}
+                            id={`keep-injection-${memory.id}`}
                             onClick={() => {
                               const memoryId = memory.id
                               setConfirmRemoveId(null)
