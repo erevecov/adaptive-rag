@@ -381,7 +381,7 @@ function RuntimePanel({
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:tracking-wider">
             Runtime
           </p>
-          <h2 id={id} className="text-lg font-semibold leading-none tracking-tight max-[680px]:text-sm max-[680px]:leading-tight">
+          <h2 id={id} className="text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.8125rem] max-[680px]:leading-tight">
             {title}
           </h2>
           {description ? (
