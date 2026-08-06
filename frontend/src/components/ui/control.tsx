@@ -36,7 +36,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, ...props }, ref) => (
     <textarea
       className={cn(
-        'min-h-24 resize-y max-[680px]:min-h-28 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-2 max-[680px]:text-base max-[680px]:leading-snug',
+        'min-h-24 resize-y max-[680px]:min-h-28 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-1.5 max-[680px]:text-base max-[680px]:leading-snug',
         controlClasses,
         className,
       )}
