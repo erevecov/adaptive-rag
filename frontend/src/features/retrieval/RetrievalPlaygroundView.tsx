@@ -322,10 +322,10 @@ export function RetrievalPlaygroundPanel({
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1">
-                    <strong className="break-words text-sm font-semibold">
+                    <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                       {result.citation.source_external_id}
                     </strong>
-                    <small className="text-xs text-muted-foreground">
+                    <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {retrievalSourceTypeDisplay(result.citation.source_type)}
                       {result.fallback_reason
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
