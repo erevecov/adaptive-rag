@@ -43,6 +43,7 @@ describe('SidebarItem', () => {
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/15')
     expect(item.className).toContain('hover:bg-primary/15')
+    expect(item.className).toContain('max-[680px]:hover:bg-primary/20')
     expect(item.className).toContain('active:bg-primary/20')
     expect(item.className).toContain('max-[680px]:active:bg-primary/95')
     expect(item.className).toContain('data-[active]:text-foreground')
@@ -57,6 +58,7 @@ describe('SidebarItem', () => {
 
     const item = screen.getByRole('button', { name: 'Projects' })
     expect(item.className).toContain('hover:bg-primary/15')
+    expect(item.className).toContain('max-[680px]:hover:bg-primary/20')
     expect(item.hasAttribute('aria-current')).toBe(false)
   })
 
