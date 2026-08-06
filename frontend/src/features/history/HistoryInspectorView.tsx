@@ -652,7 +652,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             <h4 className="text-sm font-semibold text-foreground">
               Citation Snippet
             </h4>
-            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
               {viewer.citationSnippet}
             </p>
           </section>
@@ -857,7 +857,7 @@ function MetricCard({
       <strong className="break-words text-xl font-semibold leading-none max-[680px]:text-lg max-[680px]:leading-tight">
         {value}
       </strong>
-      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
@@ -1059,7 +1059,7 @@ function SessionDetailPanel({
                     <strong className="text-sm capitalize text-foreground">
                       {message.role}
                     </strong>
-                    <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+                    <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                       {message.content}
                     </p>
                   </article>

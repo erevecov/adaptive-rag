@@ -608,7 +608,7 @@ function MetricCard({
       >
         {value}
       </strong>
-      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
