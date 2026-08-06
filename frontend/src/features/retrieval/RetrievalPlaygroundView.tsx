@@ -317,7 +317,7 @@ export function RetrievalPlaygroundPanel({
                       {result.score.toFixed(4)}
                     </Badge>
                     <StatusBadge
-                      className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                      className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                       tone="neutral"
                     >
                       {retrievalStrategyDisplay(result.strategy)}

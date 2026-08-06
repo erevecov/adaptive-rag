@@ -855,7 +855,7 @@ function UserAccessLists({
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-                <Badge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
+                <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
                   <StatusBadge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
                     Inactive
@@ -896,7 +896,7 @@ function UserAccessLists({
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-                <Badge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
+                <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
                 <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
@@ -1264,7 +1264,7 @@ function SourceList({
               </small>
             </div>
             <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
-              <Badge className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
+              <Badge className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
               <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
@@ -1391,7 +1391,7 @@ function KnowledgeReviewPanel({
                   >
                     {proposal.id}
                   </small>
-                  <Badge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
@@ -1624,7 +1624,7 @@ function IngestionJobList({
                       <StatusBadge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
-                      <Badge className="w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                      <Badge className="max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                         {titleCaseStatus(job.job_type)}
                       </Badge>
                     </div>
