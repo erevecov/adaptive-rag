@@ -90,6 +90,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     }
     const timer = window.setTimeout(() => {
       setUndoRemoveId(null)
+      setFilterSwitchNotice(null)
     }, 10_000)
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') {
@@ -100,6 +101,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       }
       event.preventDefault()
       setUndoRemoveId(null)
+      setFilterSwitchNotice(null)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -639,7 +641,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             </Button>
             <Button
               aria-label="Dismiss undo remove"
-              onClick={() => setUndoRemoveId(null)}
+              onClick={() => {
+                setUndoRemoveId(null)
+                setFilterSwitchNotice(null)
+              }}
               size="sm"
               type="button"
               variant="ghost"
