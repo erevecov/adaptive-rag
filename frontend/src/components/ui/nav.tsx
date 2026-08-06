@@ -45,7 +45,7 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
       className={cn(
         [
           'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-          'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/80',
+          'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/85',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
           // Primary tint reads clearer than accent wash on purple/dark sidebars.
