@@ -1019,8 +1019,8 @@ function ResponseDetailsContent({
     <div
       className={
         embedded
-          ? 'grid gap-3 pt-2 max-[680px]:gap-1.5 max-[680px]:pt-1'
-          : 'grid gap-3 pt-3 max-[680px]:gap-1.5 max-[680px]:pt-1.5'
+          ? 'grid gap-3 pt-2 max-[680px]:gap-0.5 max-[680px]:pt-1'
+          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-1.5'
       }
     >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
@@ -1064,7 +1064,7 @@ function ResponseDetailsContent({
           <DataList>
             {response.citations.map((result, index) => (
               <DataListItem
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-1.5"
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-0.5"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
@@ -1164,7 +1164,7 @@ function KnowledgeDraftCard({
   return (
     <article
       aria-label={`Knowledge draft ${draft.draftId}`}
-      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
+      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1">

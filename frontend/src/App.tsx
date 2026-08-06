@@ -2733,7 +2733,7 @@ function AppearanceSettingsPanel({
     <Panel
       role="region"
       aria-labelledby="appearance-settings-title"
-      className="grid gap-4 p-4 max-[680px]:gap-1.5 max-[680px]:p-1"
+      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-1"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-1">
         <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -2754,14 +2754,14 @@ function AppearanceSettingsPanel({
 
       <PanelDescription>Choose the interface palette.</PanelDescription>
 
-      <div className="grid gap-3 sm:grid-cols-3 max-[680px]:gap-1.5">
+      <div className="grid gap-3 sm:grid-cols-3 max-[680px]:gap-0.5">
         {THEMES.map((option) => {
           const active = option.id === theme
           return (
             <Button
               aria-pressed={active}
               className={cn(
-                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-1.5 max-[680px]:p-1',
+                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-1',
                 'hover:bg-primary/15',
                 active &&
                   'border-primary bg-primary/25 focus-visible:ring-primary',

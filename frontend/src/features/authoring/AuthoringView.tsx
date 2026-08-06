@@ -316,7 +316,7 @@ function AuthoringSectionPanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }

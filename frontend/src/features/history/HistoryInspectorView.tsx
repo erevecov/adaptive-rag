@@ -610,7 +610,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
           {sourceViewerStatusLabel(viewer.state)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">
+      <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">
         {viewer.state === 'loading' ? (
           <div
             aria-busy="true"
@@ -1039,7 +1039,7 @@ function SessionDetailPanel({
           {sessionStatusLabel(detail.session.status)}
         </StatusBadge>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">
         <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             Messages
