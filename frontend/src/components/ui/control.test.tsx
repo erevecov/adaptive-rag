@@ -27,6 +27,7 @@ function expectSharedControlTokens(element: Element): void {
   expect(tokens).toContain('placeholder:text-muted-foreground')
   expect(tokens).toContain('hover:border-primary/40')
   expect(tokens).toContain('active:border-primary/50')
+  expect(tokens).toContain('max-[680px]:active:border-primary/70')
   expect(tokens).toContain('focus-visible:outline-none')
   expect(tokens).toContain('focus-visible:ring-2')
   expect(tokens).toContain('focus-visible:ring-ring')
