@@ -266,7 +266,7 @@ export function WorkspaceTopline({
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-10',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-9',
       )}
       data-slot="workspace-topline"
     >
@@ -413,7 +413,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,80px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,72px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
