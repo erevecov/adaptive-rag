@@ -22,9 +22,9 @@ describe('Panel density', () => {
     )
 
     expect(screen.getByText('Header').className).toMatch(/\bp-4\b/)
-    expect(screen.getByText('Header').className).toContain('max-[680px]:p-1')
+    expect(screen.getByText('Header').className).toContain('max-[680px]:p-0.5')
     expect(screen.getByText('Body').className).toMatch(/\bp-4\b/)
-    expect(screen.getByText('Body').className).toContain('max-[680px]:p-1')
+    expect(screen.getByText('Body').className).toContain('max-[680px]:p-0.5')
     expect(screen.getByText('Body').className).toMatch(/pt-0/)
   })
 
@@ -122,7 +122,7 @@ describe('DataListItem', () => {
     expect(row.className).toContain('min-w-0')
     expect(row.className).toContain('motion-safe:transition-colors')
     expect(row.className).toContain('hover:bg-primary/15')
-    expect(row.className).toContain('max-[680px]:p-1')
+    expect(row.className).toContain('max-[680px]:p-0.5')
     expect(row.className).toContain('tracking-tight')
     expect(row.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(row.className).toContain('max-[680px]:leading-snug')
