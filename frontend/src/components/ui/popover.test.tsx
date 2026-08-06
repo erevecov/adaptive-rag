@@ -53,6 +53,7 @@ describe('Popover', () => {
     expect(listbox.className).toContain('max-[680px]:p-0.5')
     expect(listbox.className).toContain('max-[680px]:rounded-sm')
     expect(listbox.className).toContain('max-[680px]:tracking-tighter')
+    expect(listbox.className).toContain('max-[680px]:shadow-primary/90')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 
