@@ -410,6 +410,30 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText('1 Injectable')).toBeTruthy()
   })
 
+
+  test('caps injectable badge at injection max_items (8)', async () => {
+    const items = Array.from({ length: 10 }, (_, index) =>
+      memory({
+        content: `Approved preference ${index + 1}`,
+        id: `mem-${index + 1}`,
+        status: 'approved',
+      }),
+    )
+    const list = vi.fn(async () => ({ items }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('8 Injectable')).toBeTruthy()
+    expect(screen.queryByText('10 Injectable')).toBeNull()
+    expect(screen.getByLabelText('8 injectable')).toBeTruthy()
+  })
+
+
   test('badge reports approved injectable count even on Proposed filter', async () => {
     const user = userEvent.setup()
     const store: UserMemory[] = [

@@ -16,6 +16,7 @@ import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/fiel
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import {
   ApiClientError,
+  USER_MEMORY_INJECTION_MAX_ITEMS,
   USER_MEMORY_MAX_CHARS,
   USER_MEMORY_SOFT_HINT_CHARS,
   type ApiClient,
@@ -183,9 +184,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         }
         const tally = tallyResponse.items
         setItems(sortMemoriesForFilter(listResponse.items, statusFilter))
-        setInjectableCount(
-          tally.filter((item) => item.status === 'approved').length,
-        )
+        {
+          const approvedTotal = tally.filter(
+            (item) => item.status === 'approved',
+          ).length
+          setInjectableCount(
+            Math.min(approvedTotal, USER_MEMORY_INJECTION_MAX_ITEMS),
+          )
+        }
         setStatusCounts({
           all: tally.length,
           approved: tally.filter((item) => item.status === 'approved').length,
@@ -235,9 +241,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       }
       const tally = tallyResponse.items
       setItems(sortMemoriesForFilter(response.items, statusFilter))
-      setInjectableCount(
-        tally.filter((item) => item.status === 'approved').length,
-      )
+      {
+        const approvedTotal = tally.filter(
+          (item) => item.status === 'approved',
+        ).length
+        setInjectableCount(
+          Math.min(approvedTotal, USER_MEMORY_INJECTION_MAX_ITEMS),
+        )
+      }
       setStatusCounts({
         all: tally.length,
         approved: tally.filter((item) => item.status === 'approved').length,
