@@ -22,9 +22,9 @@ describe('Panel density', () => {
     )
 
     expect(screen.getByText('Header').className).toMatch(/\bp-4\b/)
-    expect(screen.getByText('Header').className).toContain('max-[680px]:p-2')
+    expect(screen.getByText('Header').className).toContain('max-[680px]:p-1.5')
     expect(screen.getByText('Body').className).toMatch(/\bp-4\b/)
-    expect(screen.getByText('Body').className).toContain('max-[680px]:p-2')
+    expect(screen.getByText('Body').className).toContain('max-[680px]:p-1.5')
     expect(screen.getByText('Body').className).toMatch(/pt-0/)
   })
 
