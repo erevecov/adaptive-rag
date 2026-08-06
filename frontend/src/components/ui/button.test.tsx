@@ -65,7 +65,7 @@ describe('Button', () => {
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Cancel' }))
     expect(tokens).toContain('hover:bg-primary/15')
-    expect(tokens).toContain('max-[680px]:hover:bg-primary/60')
+    expect(tokens).toContain('max-[680px]:hover:bg-primary/65')
     expect(tokens).toContain('hover:border-primary/40')
     expect(tokens).toContain('active:bg-primary/20')
     expect(tokens).toContain('max-[680px]:active:bg-primary/95')
@@ -76,7 +76,7 @@ describe('Button', () => {
 
     const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
     expect(tokens).toContain('hover:bg-primary/15')
-    expect(tokens).toContain('max-[680px]:hover:bg-primary/60')
+    expect(tokens).toContain('max-[680px]:hover:bg-primary/65')
     expect(tokens).toContain('active:bg-primary/20')
     expect(tokens).toContain('max-[680px]:active:bg-primary/95')
   })
