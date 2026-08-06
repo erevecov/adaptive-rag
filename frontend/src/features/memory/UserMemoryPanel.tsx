@@ -78,6 +78,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     if (button instanceof HTMLElement) {
       button.focus()
     }
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return
+      }
+      event.preventDefault()
+      const memoryId = confirmRemoveId
+      setConfirmRemoveId(null)
+      requestAnimationFrame(() => {
+        document.getElementById(`remove-injection-${memoryId}`)?.focus()
+      })
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [confirmRemoveId])
 
   useEffect(() => {
@@ -323,11 +336,26 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             Memory
           </h2>
         </div>
-        <StatusBadge className="w-fit" tone="primary">
-          {listState === 'loading'
-            ? 'Loading'
-            : `${injectableCount} Injectable`}
-        </StatusBadge>
+        <div className="grid justify-items-end gap-1">
+          <StatusBadge
+            aria-label={
+              listState === 'loading'
+                ? 'Loading injectable count'
+                : `${injectableCount} injectable`
+            }
+            className="w-fit"
+            tone="primary"
+          >
+            {listState === 'loading'
+              ? 'Loading'
+              : `${injectableCount} Injectable`}
+          </StatusBadge>
+          <p aria-live="polite" className="sr-only">
+            {listState === 'loading'
+              ? 'Loading memories'
+              : `${injectableCount} injectable ${injectableCount === 1 ? 'memory' : 'memories'}`}
+          </p>
+        </div>
       </header>
 
       <PanelDescription>
@@ -342,6 +370,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             <Textarea
               aria-describedby={`${draftFieldId}-help`}
               aria-invalid={draftOverLimit || undefined}
+              aria-label="Propose Memory"
               className="min-h-20"
               id={draftFieldId}
               maxLength={USER_MEMORY_MAX_CHARS}
@@ -446,8 +475,12 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
       {confirmRemoveId !== null ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          Confirm remove drops injection. Esc or Cancel keeps it approved.
+        <p
+          className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]"
+          id="memory-confirm-remove-hint"
+        >
+          Confirm remove drops injection. Esc or Keep In Injection leaves it
+          approved.
         </p>
       ) : null}
 
@@ -481,7 +514,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       {listState !== 'loading' && items.length === 0 ? (
         <FilterEmptyState
           filter={statusFilter}
-          onViewProposed={() => setStatusFilter('proposed')}
+          onPropose={() => {
+            setConfirmRemoveId(null)
+            document.getElementById(draftFieldId)?.focus()
+          }}
+          onViewProposed={() => {
+            setConfirmRemoveId(null)
+            setStatusFilter('proposed')
+          }}
         />
       ) : null}
 
@@ -698,6 +738,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions className="gap-1.5">
                           <Button
+                            aria-describedby="memory-confirm-remove-hint"
                             aria-label="Confirm remove from injection"
                             disabled={busy}
                             id={`confirm-remove-${memory.id}`}
@@ -709,6 +750,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             Confirm remove
                           </Button>
                           <Button
+                            aria-label="Keep In Injection"
                             disabled={busy}
                             onClick={() => {
                               const memoryId = memory.id
@@ -723,7 +765,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                             type="button"
                             variant="secondary"
                           >
-                            Cancel
+                            Keep In Injection
                           </Button>
                         </DataListItemActions>
                       ) : (
@@ -758,9 +800,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
 function FilterEmptyState({
   filter,
+  onPropose,
   onViewProposed,
 }: {
   filter: MemoryStatusFilter
+  onPropose(): void
   onViewProposed(): void
 }) {
   const copy = emptyCopyForFilter(filter)
@@ -794,6 +838,17 @@ function FilterEmptyState({
             </Button>
           ) : null}
         </div>
+      ) : null}
+      {filter === 'all' || filter === 'proposed' ? (
+        <Button
+          className="w-fit"
+          onClick={onPropose}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          Focus Propose
+        </Button>
       ) : null}
     </EmptyState>
   )
@@ -873,7 +928,7 @@ function MemoryListLoadingSkeleton() {
     <div
       aria-busy="true"
       aria-label="Loading Memories"
-      className="grid w-full gap-2 p-1"
+      className="grid w-full gap-2 p-1 max-[680px]:gap-1"
       data-slot="memory-list-loading"
       role="status"
     >
