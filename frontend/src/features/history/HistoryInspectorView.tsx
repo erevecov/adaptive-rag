@@ -519,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-1 max-[680px]:p-1 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.5rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.5rem,env(safe-area-inset-bottom))]'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-1 max-[680px]:p-1 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
