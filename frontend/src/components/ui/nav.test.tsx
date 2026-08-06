@@ -42,7 +42,7 @@ describe('SidebarItem', () => {
     expect(item.getAttribute('aria-current')).toBe('page')
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/15')
-    expect(item.className).toContain('max-[680px]:data-[active]:bg-primary/40')
+    expect(item.className).toContain('max-[680px]:data-[active]:bg-primary/45')
     expect(item.className).toContain('hover:bg-primary/15')
     expect(item.className).toContain('max-[680px]:hover:bg-primary/65')
     expect(item.className).toContain('active:bg-primary/20')

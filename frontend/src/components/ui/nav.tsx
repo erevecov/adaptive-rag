@@ -49,7 +49,7 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
           // Primary tint reads clearer than accent wash on purple/dark sidebars.
-          'data-[active]:bg-primary/15 data-[active]:font-semibold data-[active]:text-foreground max-[680px]:data-[active]:bg-primary/40',
+          'data-[active]:bg-primary/15 data-[active]:font-semibold data-[active]:text-foreground max-[680px]:data-[active]:bg-primary/45',
         ],
         className,
       )}
