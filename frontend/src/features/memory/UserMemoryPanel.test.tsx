@@ -872,4 +872,64 @@ describe('UserMemoryPanel', () => {
     expect(document.activeElement).toBe(confirm)
   })
 
+  test('disables status filters while the first list load is in flight', async () => {
+    let resolveList: ((value: { items: UserMemory[] }) => void) | undefined
+    const list = vi.fn(
+      () =>
+        new Promise<{ items: UserMemory[] }>((resolve) => {
+          resolveList = resolve
+        }),
+    )
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByRole('status', { name: 'Loading Memories' })).toBeTruthy()
+    expect(
+      (screen.getByRole('button', { name: /^All/ }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+
+    resolveList?.({
+      items: [
+        memory({ content: 'Loaded note', id: 'mem-1', status: 'proposed' }),
+      ],
+    })
+    expect(await screen.findByText('Loaded note')).toBeTruthy()
+    expect(
+      (screen.getByRole('button', { name: /^All/ }) as HTMLButtonElement).disabled,
+    ).toBe(false)
+  })
+
+  test('announces confirm-remove guidance assertively', async () => {
+    const user = userEvent.setup()
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    expect(
+      await screen.findByRole('button', { name: /Confirm remove/i }),
+    ).toBeTruthy()
+    const hint = document.getElementById('memory-confirm-remove-hint')
+    expect(hint).toBeTruthy()
+    expect(hint?.getAttribute('aria-live')).toBe('assertive')
+    expect(hint?.getAttribute('role')).toBe('status')
+  })
+
 })

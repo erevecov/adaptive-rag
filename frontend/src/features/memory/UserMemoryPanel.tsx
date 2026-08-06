@@ -467,6 +467,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             <Button
               aria-label={`${filter.label}, ${statusCounts[filter.id]} items`}
               aria-pressed={active}
+              disabled={listState === 'loading'}
               key={filter.id}
               onClick={() => {
                 setConfirmRemoveId(null)
@@ -491,8 +492,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       ) : null}
       {confirmRemoveId !== null ? (
         <p
+          aria-live="assertive"
           className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]"
           id="memory-confirm-remove-hint"
+          role="status"
         >
           Confirm remove drops injection. Esc or Keep In Injection leaves it
           approved.
