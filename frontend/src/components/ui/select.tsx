@@ -54,7 +54,7 @@ export function Select({
         className={cn(
           [
             'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug',
-            'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 max-[680px]:hover:border-primary/75 active:border-primary/50 max-[680px]:active:border-primary/90',
+            'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 max-[680px]:hover:border-primary/80 active:border-primary/50 max-[680px]:active:border-primary/95',
             'data-[state=open]:border-primary/80 data-[state=open]:bg-primary/20',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
