@@ -346,7 +346,7 @@ export function RuntimeSettingsPanel({
   return (
     <div className="grid gap-4 max-[680px]:gap-0.5">
       {error ? (
-        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
+        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/70 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/55 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           {operatorSafeMessage(error)}
         </Callout>
       ) : null}
@@ -385,7 +385,7 @@ function RuntimePanel({
             {title}
           </h2>
           {description ? (
-            <PanelDescription>{description}</PanelDescription>
+            <PanelDescription className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{description}</PanelDescription>
           ) : null}
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0.5">
@@ -463,8 +463,8 @@ function RuntimeField({
     <Field className={className}>
       <FieldLabel className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
-      {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
-      {error ? <FieldError>{error}</FieldError> : null}
+      {help ? <FieldHelp className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={`${id}-help`}>{help}</FieldHelp> : null}
+      {error ? <FieldError className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{error}</FieldError> : null}
     </Field>
   )
 }
@@ -535,7 +535,7 @@ export function RuntimeConnectionsPanel({
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="loading"
             role="status"
           >
@@ -543,18 +543,18 @@ export function RuntimeConnectionsPanel({
           </EmptyState>
         ) : state === 'canceled' && connections.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="canceled"
             role="status"
           >
             Connections Load Canceled.
           </EmptyState>
         ) : connections.length === 0 ? (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
             No Connections Yet.
           </EmptyState>
         ) : (
-          <DataList>
+          <DataList className="max-[680px]:gap-0.5">
             {connections.map((connection) => {
               const isChecking =
                 checkingConnectionId === connection.connection_id
@@ -563,7 +563,7 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="grid gap-3 max-[680px]:gap-0.5 md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
@@ -582,7 +582,11 @@ export function RuntimeConnectionsPanel({
                             .join(', ')}
                         </Badge>
                         {isChecking ? (
-                          <StatusBadge role="status" tone="warning">
+                          <StatusBadge
+                            className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                            role="status"
+                            tone="warning"
+                          >
                             Checking…
                           </StatusBadge>
                         ) : null}
@@ -600,7 +604,7 @@ export function RuntimeConnectionsPanel({
                     />
                   </div>
                   <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
-                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                    <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={`Check ${connection.connection_id} Connection`}
                       disabled={state === 'loading' || isChecking}
                       onClick={() => onCheckConnection(connection.connection_id)}
@@ -609,7 +613,7 @@ export function RuntimeConnectionsPanel({
                     >
                       {isChecking ? 'Checking…' : 'Check'}
                     </Button>
-                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                    <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={`Edit ${connection.connection_id} Connection`}
                       disabled={state === 'loading'}
                       onClick={() =>
@@ -620,7 +624,7 @@ export function RuntimeConnectionsPanel({
                     >
                       Edit
                     </Button>
-                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                    <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={`Delete ${connection.connection_id} Connection`}
                       disabled={state === 'loading'}
                       onClick={() =>
@@ -635,7 +639,7 @@ export function RuntimeConnectionsPanel({
                   {deleteConnectionId === connection.connection_id ? (
                     <form
                       aria-label={`Delete ${connection.connection_id} Connection`}
-                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5"
+                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/75 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/55 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
@@ -659,8 +663,8 @@ export function RuntimeConnectionsPanel({
                           />
                         )}
                       </RuntimeField>
-                      <DataListItemActions>
-                        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                      <DataListItemActions className="max-[680px]:gap-0.5">
+                        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                           disabled={state === 'loading'}
                           onClick={onCancelDeleteConnection}
                           size="sm"
@@ -668,7 +672,7 @@ export function RuntimeConnectionsPanel({
                         >
                           Cancel
                         </Button>
-                        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                           disabled={
                             state === 'loading' ||
                             deleteConnectionConfirmation.trim() !==
@@ -698,7 +702,7 @@ export function RuntimeConnectionsPanel({
               : 'New Connection'}
           </h3>
           {isEditingConnection ? (
-            <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+            <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
               disabled={state === 'loading'}
               onClick={onCancelEditConnection}
               size="sm"
@@ -754,8 +758,9 @@ export function RuntimeConnectionsPanel({
               />
             )}
           </RuntimeField>
-          <Field className="md:col-span-2">
+          <Field className="md:col-span-2 max-[680px]:gap-0.5">
             <FieldLabel
+              className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               htmlFor="runtime-capability-filter"
               id="runtime-connection-capabilities-label"
             >
@@ -797,7 +802,7 @@ export function RuntimeConnectionsPanel({
             )}
           </RuntimeField>
         </div>
-        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={!canSaveConnection} type="submit">
+        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={!canSaveConnection} type="submit">
           {isEditingConnection ? 'Update Connection' : 'Save Connection'}
         </Button>
       </form>
@@ -864,7 +869,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter"
+            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
@@ -872,11 +877,11 @@ export function CapabilitySelector({
           >
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0.5">
               {value.map((capability) => (
-                <Badge className="gap-1 pr-1 max-[680px]:gap-0.5 max-[680px]:pr-0.5 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" key={capability} tone="primary">
+                <Badge className="gap-1 pr-1 max-[680px]:gap-0.5 max-[680px]:pr-0.5 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:bg-primary/55 max-[680px]:rounded-sm" key={capability} tone="primary">
                   <span>{slotLabel(capability)}</span>
                   <Button
                     aria-label={`Remove ${slotLabel(capability)} Capability`}
-                    className="h-5 px-1 text-xs max-[680px]:min-h-11 max-[680px]:h-auto max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                    className="h-5 px-1 text-xs max-[680px]:min-h-11 max-[680px]:h-auto max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug max-[680px]:py-0.5"
                     onClick={(event) => {
                       event.stopPropagation()
                       toggleCapability(capability)
@@ -927,7 +932,7 @@ export function CapabilitySelector({
           <Popover.Content
             align="start"
             aria-label="Capability Options"
-            className="z-20 grid max-h-60 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:gap-0.5 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30"
+            className="z-20 grid max-h-60 max-[680px]:min-w-0 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:max-h-36 max-[680px]:overscroll-y-contain max-[680px]:gap-0.5 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:rounded-sm"
             id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
@@ -950,7 +955,7 @@ export function CapabilitySelector({
                 <Button
                   aria-label={`Add ${slotLabel(capability)} Capability`}
                   aria-selected={false}
-                  className="justify-start max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                  className="justify-start max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug max-[680px]:py-0.5"
                   key={capability}
                   onClick={() => {
                     toggleCapability(capability)
@@ -1000,7 +1005,7 @@ export function RuntimeModelCatalogPanel({
       status={<RuntimeStatus state={state} />}
       title="Model Catalog"
     >
-      <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+      <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
@@ -1025,7 +1030,7 @@ export function RuntimeModelCatalogPanel({
             />
           )}
         </RuntimeField>
-        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" type="submit">Sync Models</Button>
+        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit">Sync Models</Button>
       </form>
 
       {selectedConnection ? (
@@ -1033,8 +1038,8 @@ export function RuntimeModelCatalogPanel({
           aria-label="Selected Model Sync Connection"
           className="grid gap-3 max-[680px]:gap-0.5"
         >
-          <DataList>
-            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 md:grid-cols-[minmax(0,1fr)_auto]">
+          <DataList className="max-[680px]:gap-0.5">
+            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                 <div className="grid gap-1 max-[680px]:gap-0.5">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
@@ -1057,7 +1062,7 @@ export function RuntimeModelCatalogPanel({
                 <ConnectionSecretSummary connection={selectedConnection} />
               </div>
               <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
-                <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                   disabled={state === 'loading'}
                   onClick={() =>
                     onEditConnection(selectedConnection.connection_id)
@@ -1150,7 +1155,7 @@ export function RuntimeGlobalDefaultsPanel({
       status={<RuntimeStatus state={state} />}
       title="Global Defaults"
     >
-      <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+      <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
@@ -1213,7 +1218,7 @@ export function RuntimeGlobalDefaultsPanel({
             {globalSlotSyncMessage}
           </InlineFeedback>
         ) : null}
-        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={globalSlotSyncMessage !== null} type="submit">
+        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={globalSlotSyncMessage !== null} type="submit">
           Save Global Slot
         </Button>
       </form>
@@ -1223,7 +1228,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="loading"
             role="status"
           >
@@ -1231,21 +1236,21 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatModels.length === 0 ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="canceled"
             role="status"
           >
             Chat Models Load Canceled.
           </EmptyState>
         ) : chatModels.length === 0 ? (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
             No Chat Models Yet.
           </EmptyState>
         ) : (
-          <DataList>
+          <DataList className="max-[680px]:gap-0.5">
             {chatModels.map((model) => (
               <DataListItem
-                className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1300,7 +1305,7 @@ export function RuntimeGlobalDefaultsPanel({
             {chatSyncMessage}
           </InlineFeedback>
         ) : null}
-        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={chatSyncMessage !== null} type="submit">
+        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={chatSyncMessage !== null} type="submit">
           Save Chat Default
         </Button>
       </form>
@@ -1310,7 +1315,7 @@ export function RuntimeGlobalDefaultsPanel({
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="loading"
             role="status"
           >
@@ -1318,15 +1323,15 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : state === 'canceled' && chatRetrievalSettings === null ? (
           <EmptyState
-            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="canceled"
             role="status"
           >
             Chat Retrieval Defaults Load Canceled.
           </EmptyState>
         ) : chatRetrievalSettings ? (
-          <DataList>
-            <DataListItem className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
               <div className="grid gap-1 max-[680px]:gap-0.5">
                 <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Global Defaults
@@ -1344,7 +1349,7 @@ export function RuntimeGlobalDefaultsPanel({
             </DataListItem>
           </DataList>
         ) : (
-          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter" data-slot-state="empty" role="status">
+          <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
             No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
@@ -1404,7 +1409,7 @@ export function RuntimeGlobalDefaultsPanel({
               )}
             </RuntimeField>
           </div>
-          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" type="submit">Save Chat Retrieval</Button>
+          <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit">Save Chat Retrieval</Button>
         </form>
       </section>
     </RuntimePanel>
@@ -1474,7 +1479,7 @@ export function RuntimeProjectOverridesPanel({
       }
       title="Project Overrides"
     >
-      <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+      <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
         disabled={state === 'loading'}
         onClick={onRefresh}
         type="button"
@@ -1545,10 +1550,10 @@ export function RuntimeProjectOverridesPanel({
             )}
           </RuntimeField>
         </div>
-        <DataListItemActions>
-          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" type="submit">Save Project Retrieval Override</Button>
+        <DataListItemActions className="max-[680px]:gap-0.5">
+          <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit">Save Project Retrieval Override</Button>
           {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
-            <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+            <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
               onClick={onResetProjectChatRetrieval}
               type="button"
               variant="secondary"
@@ -1610,7 +1615,7 @@ export function RuntimeProjectOverridesPanel({
             {projectSlotSyncMessage}
           </InlineFeedback>
         ) : null}
-        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={projectSlotSyncMessage !== null} type="submit">
+        <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={projectSlotSyncMessage !== null} type="submit">
           Save Project Override
         </Button>
       </form>
@@ -1670,7 +1675,7 @@ export function ConnectionCheckSummary({
     return (
       <Callout
         aria-live="polite"
-        className="p-2 max-[680px]:p-0.5"
+        className="p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         role="status"
         tone="success"
       >
@@ -1680,7 +1685,7 @@ export function ConnectionCheckSummary({
   }
 
   return (
-    <Callout className="p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
+    <Callout className="p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/70 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/55 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
       Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
         <span className="mt-1 block text-xs opacity-90 max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
@@ -1779,21 +1784,21 @@ export function ProviderModelCatalogView({
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="loading"
           role="status"
         >
           Loading Provider Models…
         </EmptyState>
       ) : providerModels.length === 0 ? (
-        <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter" data-slot-state="empty" role="status">
+        <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
           No Provider Models Yet.
         </EmptyState>
       ) : (
-        <DataList>
+        <DataList className="max-[680px]:gap-0.5">
           {providerModels.map((model) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1834,7 +1839,7 @@ export function RuntimeSlotList({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="loading"
         role="status"
       >
@@ -1845,7 +1850,7 @@ export function RuntimeSlotList({
   if (state === 'canceled' && slots.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="canceled"
         role="status"
       >
@@ -1856,7 +1861,7 @@ export function RuntimeSlotList({
   if (slots.length === 0) {
     return (
       <EmptyState
-        className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+        className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -1865,10 +1870,10 @@ export function RuntimeSlotList({
     )
   }
   return (
-    <DataList aria-label="Global Runtime Slots">
+    <DataList aria-label="Global Runtime Slots" className="max-[680px]:gap-0.5">
       {slots.map((slot) => (
         <DataListItem
-          className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+          className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
           key={slot.slot}
         >
           <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1897,7 +1902,7 @@ export function ProjectRuntimeSettingsView({
     return (
       <EmptyState
         aria-busy="true"
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="loading"
         role="status"
       >
@@ -1908,7 +1913,7 @@ export function ProjectRuntimeSettingsView({
   if (state === 'canceled' && settings === null) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="canceled"
         role="status"
       >
@@ -1918,7 +1923,7 @@ export function ProjectRuntimeSettingsView({
   }
   if (settings === null) {
     return (
-      <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter" data-slot-state="empty" role="status">
+      <EmptyState className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
         No Project Runtime Settings Yet.
       </EmptyState>
     )
@@ -1929,26 +1934,26 @@ export function ProjectRuntimeSettingsView({
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
-            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="empty"
             role="status"
           >
             No Effective Slots Yet.
           </EmptyState>
         ) : (
-          <DataList>
+          <DataList className="max-[680px]:gap-0.5">
             {settings.slots.map((slot) => (
-              <DataListItem className="grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
+              <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
                 <div className="grid gap-1 max-[680px]:gap-0.5">
                   <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
                   </small>
                 </div>
-                <DataListItemActions>
+                <DataListItemActions className="max-[680px]:gap-0.5">
                   <Badge className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
                   {slot.source === 'overridden' ? (
-                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                    <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       onClick={() => onResetProjectSlot(slot.slot)}
                       size="sm"
                       type="button"
@@ -1967,7 +1972,7 @@ export function ProjectRuntimeSettingsView({
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
-            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+            className="p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="empty"
             role="status"
           >
@@ -1975,10 +1980,10 @@ export function ProjectRuntimeSettingsView({
             Sync Models.
           </EmptyState>
         ) : (
-          <DataList>
+          <DataList className="max-[680px]:gap-0.5">
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="grid gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 grid gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -1989,7 +1994,7 @@ export function ProjectRuntimeSettingsView({
                     {model.connection_id}
                   </small>
                 </div>
-                <DataListItemActions>
+                <DataListItemActions className="max-[680px]:gap-0.5">
                   <Badge className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(model.source)}</Badge>
                   <Badge className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
                     {model.is_default ? 'Default' : 'Enabled'}
@@ -2002,8 +2007,8 @@ export function ProjectRuntimeSettingsView({
       </section>
       <section className="grid gap-3 max-[680px]:gap-0.5">
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
-        <DataList>
-          <DataListItem className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+        <DataList className="max-[680px]:gap-0.5">
+          <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
             <div className="grid gap-1 max-[680px]:gap-0.5">
               <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
