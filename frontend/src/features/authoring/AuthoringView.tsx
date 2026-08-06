@@ -466,7 +466,7 @@ function ProjectsPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <ProjectList
         activeProjectId={projectId}
@@ -784,7 +784,7 @@ function ProjectAccessPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <UserAccessLists
         isBusy={isBusy}
@@ -1193,7 +1193,7 @@ function SourcesPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <SourceList
         isBusy={isBusy}
@@ -1357,7 +1357,7 @@ function KnowledgeReviewPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
         <LoadingListState label="Loading Proposals…" />
@@ -1539,7 +1539,7 @@ function IngestionJobsPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {run ? (
         <div
@@ -1559,7 +1559,7 @@ function IngestionJobsPanel({
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
-            <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:px-0.5 text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
+            <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
               {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
@@ -1664,7 +1664,7 @@ function IngestionJobList({
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
-                      <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:px-0.5 text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
+                      <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                         {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
