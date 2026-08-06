@@ -558,6 +558,7 @@ describe('UserMemoryPanel', () => {
         /Showing Rejected — soft-removed item is below with Propose Again/i,
       ),
     ).toBeTruthy()
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
 
     const draftField = screen.getByLabelText('Propose Memory')
     await user.click(draftField)
@@ -577,6 +578,7 @@ describe('UserMemoryPanel', () => {
         ),
       ).toBeNull(),
     )
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
     expect(await screen.findByText('Replacement preference')).toBeTruthy()
   })
 
