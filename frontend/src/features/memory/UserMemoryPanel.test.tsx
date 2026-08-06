@@ -1127,4 +1127,28 @@ describe('UserMemoryPanel', () => {
     expect(hint?.getAttribute('role')).toBe('status')
   })
 
+  test('uses denser ≤680 spacing on Memory shell and Propose form', async () => {
+    const list = vi.fn(async () => ({
+      items: [
+        memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      ],
+    }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    const panel = screen.getByRole('region', { name: 'Memory' })
+    expect(panel.className).toContain('max-[680px]:gap-0.5')
+    expect(panel.className).toContain('max-[680px]:p-0.5')
+    const draft = screen.getByLabelText('Propose Memory')
+    expect(draft.className).toContain('max-[680px]:min-h-14')
+    const form = draft.closest('form')
+    expect(form?.className).toContain('max-[680px]:gap-0.5')
+  })
+
 })
