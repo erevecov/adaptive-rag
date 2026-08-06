@@ -633,7 +633,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
-              <span aria-hidden className="tabular-nums text-[10px] opacity-80">
+              <span
+                aria-hidden
+                className="tabular-nums text-[10px] opacity-80 max-[680px]:text-[0.5625rem]"
+              >
                 {statusCounts[filter.id]}
               </span>
             </Button>
