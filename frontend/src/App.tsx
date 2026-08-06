@@ -2762,9 +2762,9 @@ function AppearanceSettingsPanel({
               aria-pressed={active}
               className={cn(
                 'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-0.5',
-                'hover:bg-primary/15',
+                'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
                 active &&
-                  'border-primary bg-primary/25 focus-visible:ring-primary',
+                  'border-primary bg-primary/25 max-[680px]:bg-primary/45 focus-visible:ring-primary',
               )}
               data-state={active ? 'active' : 'inactive'}
               key={option.id}

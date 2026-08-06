@@ -2253,6 +2253,8 @@ describe('App chat workspace', () => {
   })
 
   test('keeps appearance theme options out of App.css legacy selectors', () => {
+    expect(appSource).toContain('max-[680px]:hover:bg-primary/65')
+    expect(appSource).toContain('max-[680px]:bg-primary/45')
     expect(appStyles).not.toMatch(/\.theme-option\b/)
     expect(appStyles).not.toMatch(/\.theme-swatch\b/)
     expect(appStyles).not.toMatch(/\.settings-panel\b/)
