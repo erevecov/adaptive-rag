@@ -176,7 +176,7 @@ export function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
+    <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
       {activeSubmodule === 'projects' ? (
         <ProjectsPanel
           error={projectError}
@@ -641,7 +641,7 @@ function ProjectAccessPanel({
       title="Users"
     >
       <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onCreateUser}>
-        <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
@@ -671,7 +671,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
@@ -742,7 +742,7 @@ function ProjectAccessPanel({
       <div className="h-px bg-border" role="separator" />
 
       <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onSaveMembership}>
-        <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
@@ -827,7 +827,7 @@ function UserAccessLists({
   }
 
   return (
-    <div className="grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">
+    <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
           className="max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -952,7 +952,7 @@ function SourceFileField({
   const displaySizeBytes = sourceFileName.length === 0 ? null : sizeBytes
 
   return (
-    <div className="grid gap-2 max-[680px]:gap-0.5">
+    <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5">
       <Input
         key={inputKey}
         accept={
@@ -1090,7 +1090,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
@@ -1407,7 +1407,7 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
+                <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined Text"
@@ -1602,9 +1602,9 @@ function IngestionJobList({
   const groups = groupJobsByStatus(jobs)
 
   return (
-    <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
+    <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
       {groups.map((group) => (
-        <div className="grid gap-2 max-[680px]:gap-0.5" key={group.status}>
+        <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5" key={group.status}>
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {jobStatusLabel(group.status)}
             <span className="max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>

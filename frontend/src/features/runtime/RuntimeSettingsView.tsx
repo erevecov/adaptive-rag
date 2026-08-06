@@ -344,7 +344,7 @@ export function RuntimeSettingsPanel({
     )
 
   return (
-    <div className="grid gap-4 max-[680px]:gap-0.5">
+    <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5">
       {error ? (
         <Callout className="max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           {operatorSafeMessage(error)}
@@ -567,7 +567,7 @@ export function RuntimeConnectionsPanel({
                   key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
-                    <div className="grid gap-1 max-[680px]:gap-0.5">
+                    <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                       <strong className="truncate font-mono text-xs font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                         {connection.connection_id}
                       </strong>
@@ -713,7 +713,7 @@ export function RuntimeConnectionsPanel({
             </Button>
           ) : null}
         </div>
-        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
               <Select
@@ -1045,7 +1045,7 @@ export function RuntimeModelCatalogPanel({
           <DataList className="max-[680px]:gap-0.5">
             <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
-                <div className="grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
@@ -1171,7 +1171,7 @@ export function RuntimeGlobalDefaultsPanel({
       <RuntimeSlotList slots={slots} state={state} />
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalSlot}>
-        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
@@ -1258,7 +1258,7 @@ export function RuntimeGlobalDefaultsPanel({
                 className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
-                <div className="grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
@@ -1276,7 +1276,7 @@ export function RuntimeGlobalDefaultsPanel({
       </section>
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatModel}>
-        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
           <RuntimeField
             id="runtime-chat-connection"
             label="Chat Connection"
@@ -1337,7 +1337,7 @@ export function RuntimeGlobalDefaultsPanel({
         ) : chatRetrievalSettings ? (
           <DataList className="max-[680px]:gap-0.5">
             <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-              <div className="grid gap-1 max-[680px]:gap-0.5">
+              <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                 <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Global Defaults
                 </strong>
@@ -1359,7 +1359,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         )}
         <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+          <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
             <RuntimeField
               id="runtime-global-retrieval-limit"
               label="Retrieval Limit"
@@ -1503,7 +1503,7 @@ export function RuntimeProjectOverridesPanel({
       />
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectChatRetrieval}>
-        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField
             id="runtime-project-retrieval-limit"
             label="Retrieval Limit"
@@ -1576,7 +1576,7 @@ export function RuntimeProjectOverridesPanel({
       </form>
 
       <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectOverride}>
-        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select
@@ -1815,7 +1815,7 @@ export function ProviderModelCatalogView({
               className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
               key={`${model.connection_id}-${model.model_id}`}
             >
-              <div className="grid gap-1 max-[680px]:gap-0.5">
+              <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                 <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {model.model_id}
                 </strong>
@@ -1890,7 +1890,7 @@ export function RuntimeSlotList({
           className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
           key={slot.slot}
         >
-          <div className="grid gap-1 max-[680px]:gap-0.5">
+          <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
             <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
             <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
               {slot.connection_id} / {slot.model_id}
@@ -1943,7 +1943,7 @@ export function ProjectRuntimeSettingsView({
     )
   }
   return (
-    <div className="grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
+    <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
       <section className="grid gap-3 max-[680px]:gap-0.5">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
         {settings.slots.length === 0 ? (
@@ -1958,7 +1958,7 @@ export function ProjectRuntimeSettingsView({
           <DataList className="max-[680px]:gap-0.5">
             {settings.slots.map((slot) => (
               <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
-                <div className="grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
@@ -2000,7 +2000,7 @@ export function ProjectRuntimeSettingsView({
                 className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
-                <div className="grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
@@ -2023,7 +2023,7 @@ export function ProjectRuntimeSettingsView({
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:gap-0.5">
           <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-            <div className="grid gap-1 max-[680px]:gap-0.5">
+            <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
               <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>

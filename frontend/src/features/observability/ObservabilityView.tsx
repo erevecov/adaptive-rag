@@ -315,7 +315,7 @@ function ObservabilityContent({
 
   if (state === 'failed') {
     return (
-      <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
         <Callout className="max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
@@ -464,7 +464,7 @@ function ObservabilityCostsContent({
           value={String(summary.provider_usage.missing_cost_count)}
         />
       </MetricGrid>
-      <div className="grid gap-3 max-[680px]:gap-0.5">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5">
         <ProviderUsageTable summary={summary} />
       </div>
     </>
@@ -539,7 +539,7 @@ function ObservabilityLatencyContent({
           value={String(summary.provider_usage.total_records)}
         />
       </MetricGrid>
-      <div className="grid gap-3 max-[680px]:gap-0.5">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5">
         <ProviderLatencyTable summary={summary} />
       </div>
     </>
@@ -621,7 +621,7 @@ function MetricCard({
 }
 
 function BreakdownGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">{children}</div>
+  return <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">{children}</div>
 }
 
 function BreakdownCard({
@@ -843,7 +843,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
           No Sessions in This Filter Window.
         </EmptyState>
       ) : (
-        <div className="grid gap-2 max-[680px]:gap-0.5">
+        <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5">
           <strong className="text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {formatPercent(succeeded, total)} Success
           </strong>
