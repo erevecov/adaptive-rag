@@ -1502,6 +1502,6 @@ describe('UserMemoryPanel', () => {
     expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
     const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
     expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
-  })
+    const filters = screen.getByRole('group', { name: 'Memory Status Filters' })\n    expect(filters.className).toContain('max-[680px]:gap-0.5')\n  })
 
 })
