@@ -302,7 +302,7 @@ function AuthoringSectionPanel({
       aria-label={ariaLabel}
       role="region"
     >
-      <PanelHeader className="max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
+      <PanelHeader className="max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             {eyebrow}
@@ -316,7 +316,7 @@ function AuthoringSectionPanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -512,7 +512,7 @@ function ProjectList({
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Projects" className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
@@ -837,7 +837,7 @@ function UserAccessLists({
           No Users Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Users" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Users" className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
               className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0"
@@ -891,7 +891,7 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Project Memberships" className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
             <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
@@ -1236,7 +1236,7 @@ function SourceList({
   }
 
   return (
-    <DataList aria-label="Sources" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Sources" className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {sources.map((source) => {
         const isDeleted = Boolean(source.deleted_at)
         const tags =
@@ -1386,7 +1386,7 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Knowledge Proposals" className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''
@@ -1609,7 +1609,7 @@ function IngestionJobList({
             {jobStatusLabel(group.status)}
             <span className="max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
-          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {group.jobs.map((job) => {
               const isRunning = job.status === 'running'
               const sourceId = ingestionJobSourceId(job)
