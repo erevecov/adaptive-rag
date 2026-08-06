@@ -214,7 +214,7 @@ export function RetrievalPlaygroundPanel({
               {requestStateLabel(state)}
             </StatusBadge>
             {!projectId.trim() ? (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                 Select a Project in the Sidebar First.
               </span>
             ) : null}
@@ -252,7 +252,7 @@ export function RetrievalPlaygroundPanel({
               role="alert"
             >
               <p className="font-semibold text-destructive">Search Failed</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
             </EmptyState>
@@ -267,7 +267,7 @@ export function RetrievalPlaygroundPanel({
               <p className="font-medium text-foreground/90">
                 Run A Query To Inspect Ranked Chunks.
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 Choose Strategy, Optional Rerank, Then Search.
               </p>
             </EmptyState>
@@ -282,7 +282,7 @@ export function RetrievalPlaygroundPanel({
               <p className="font-medium text-foreground/90">
                 No Chunks Returned
               </p>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 <li>Try Strategy Dense or Sparse</li>
                 <li>Confirm Sources Are Ingested for This Project</li>
                 <li>Raise Limit or Adjust the Query</li>
@@ -316,7 +316,7 @@ export function RetrievalPlaygroundPanel({
                       {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground">
+                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:text-[0.5625rem]">
                         Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}

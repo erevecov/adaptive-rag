@@ -300,7 +300,7 @@ export function SessionNavigationPanel({
                     >
                       <Input
                         aria-label="Nuevo nombre de sesión"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.625rem]"
                         maxLength={60}
                         onBlur={(event) => {
                           // Submit click blurs first — don't discard a pending save.
@@ -438,7 +438,7 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
-          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11"
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11 max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -649,7 +649,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.citationSnippet === null ? null : (
           <section className="grid gap-1">
-            <h4 className="text-sm font-semibold text-foreground">
+            <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
               Citation Snippet
             </h4>
             <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
@@ -661,7 +661,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
         {viewer.source ? (
           <div className="grid gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <p className="min-w-0 break-all text-xs text-muted-foreground">
+              <p className="min-w-0 break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {viewer.source.external_id}
               </p>
               {viewer.source.deleted_at ? (
@@ -684,7 +684,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </dl>
 
             <section className="grid gap-2">
-              <h4 className="text-sm font-semibold text-foreground">Tags</h4>
+              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
                 <EmptyState>No Tags Stored.</EmptyState>
               ) : (
@@ -697,7 +697,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </section>
 
             <section className="grid gap-2">
-              <h4 className="text-sm font-semibold text-foreground">Metadata</h4>
+              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Metadata</h4>
               {viewer.source.extra_metadata === null ||
               Object.keys(viewer.source.extra_metadata).length === 0 ? (
                 <EmptyState>No Metadata Stored.</EmptyState>
@@ -758,10 +758,10 @@ function ConversationMinimap({
                   variant="ghost"
                 >
                   <span className="grid min-w-0 gap-1">
-                    <strong className="text-sm capitalize text-foreground">
+                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                       {message.role}
                     </strong>
-                    <span className="line-clamp-2 break-all text-sm text-muted-foreground">
+                    <span className="line-clamp-2 break-all text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                       {message.content}
                     </span>
                   </span>
@@ -894,8 +894,8 @@ function InternalActionStepper({
                 <Badge>
                   Tool Call {titleCaseToken(call.status)}
                 </Badge>
-                <strong className="text-sm text-foreground">{call.tool_name}</strong>
-                <p className="text-sm text-muted-foreground">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {formatJsonValue(call.arguments)}
                 </p>
                 <small className="text-xs text-muted-foreground">
@@ -912,7 +912,7 @@ function InternalActionStepper({
                   Retrieval {titleCaseToken(run.strategy)}
                 </Badge>
                 <strong className="text-sm text-foreground">{run.query}</strong>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
                 </p>
                 <DataList>
@@ -938,7 +938,7 @@ function InternalActionStepper({
                   Provider Usage {titleCaseToken(usage.status)}
                 </Badge>
                 <strong className="text-sm text-foreground">{usage.model}</strong>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {usage.provider} {usage.operation} /{' '}
                   {formatUnknownTokens(usage.total_tokens)} /{' '}
                   {formatUnknownCost(usage.estimated_cost_usd)}
@@ -1056,7 +1056,7 @@ function SessionDetailPanel({
                     id={messageElementId(message.message_id)}
                     tabIndex={-1}
                   >
-                    <strong className="text-sm capitalize text-foreground">
+                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                       {message.role}
                     </strong>
                     <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
@@ -1145,8 +1145,8 @@ function CompactStateList<T>({
 function ToolCallDetail({ call }: { call: ChatHistoryToolCall }) {
   return (
     <DataListItem key={call.tool_call_id}>
-      <strong className="text-sm text-foreground">{call.tool_name}</strong>
-      <p className="text-sm text-muted-foreground">
+      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
+      <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {formatJsonValue(call.arguments)}
       </p>
       <small className="text-xs text-muted-foreground">{call.status}</small>
@@ -1253,7 +1253,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
       <strong className="text-sm text-foreground">
         {usage.provider} / {usage.model}
       </strong>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {usage.total_tokens ?? 'Unknown'} Tokens
         {usage.estimated_cost_usd === null
           ? ''
