@@ -2741,7 +2741,7 @@ function AppearanceSettingsPanel({
             My Account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug"
+            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
             id="appearance-settings-title"
           >
             Appearance
@@ -2775,7 +2775,7 @@ function AppearanceSettingsPanel({
             >
               <span
                 aria-hidden="true"
-                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-12 max-[680px]:gap-0.5 max-[680px]:p-0.5"
                 data-slot="theme-swatch"
                 style={{ background: option.swatch.bg }}
               >
