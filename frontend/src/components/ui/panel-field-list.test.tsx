@@ -75,7 +75,7 @@ describe('Field disabled styling', () => {
       )?.className,
     ).toContain('max-[680px]:gap-0.5')
     expect(screen.getByText('Name').className).toContain('tracking-tight')
-    expect(screen.getByText('Name').className).toContain('max-[680px]:tracking-wide')
+    expect(screen.getByText('Name').className).toContain('max-[680px]:tracking-tighter')
     expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
