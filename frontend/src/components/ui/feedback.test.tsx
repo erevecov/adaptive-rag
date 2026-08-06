@@ -27,7 +27,7 @@ describe('EmptyState', () => {
     expect(empty.className).toContain('border-border/80')
     expect(empty.className).toContain('bg-muted/20')
     expect(empty.className).toContain('motion-safe:transition-colors')
-    expect(empty.className).toContain('max-[680px]:p-1.5')
+    expect(empty.className).toContain('max-[680px]:p-1')
     expect(empty.className).toContain('max-[680px]:gap-0.5')
     expect(empty.className).toContain('max-[680px]:rounded-sm')
   })
@@ -61,7 +61,7 @@ describe('Callout', () => {
     expect(callout.className).toContain('bg-emerald-500/15')
     expect(callout.className).toContain('leading-relaxed')
     expect(callout.className).toContain('motion-safe:transition-colors')
-    expect(callout.className).toContain('max-[680px]:p-1.5')
+    expect(callout.className).toContain('max-[680px]:p-1')
   })
 
   test('neutral callout uses a soft muted wash', () => {
