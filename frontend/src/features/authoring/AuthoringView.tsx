@@ -304,7 +304,7 @@ function AuthoringSectionPanel({
     >
       <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider max-[680px]:tracking-tighter">
             {eyebrow}
           </p>
           <PanelTitle id={id}>{title}</PanelTitle>
@@ -325,7 +325,7 @@ function RequestStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-w-full break-all text-left"
+      className="max-w-full break-all text-left max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -338,7 +338,7 @@ function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -351,7 +351,7 @@ function KnowledgeStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-w-full min-w-[4.75rem] justify-center break-all text-left"
+      className="max-w-full min-w-[4.75rem] justify-center break-all text-left max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -375,11 +375,11 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+      className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
       data-slot-state="loading"
       role="status"
     >
-      <p aria-hidden="true" className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+      <p aria-hidden="true" className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
         {label}
       </p>
     </EmptyState>
@@ -401,7 +401,7 @@ function AuthoringField({
 }) {
   return (
     <Field className={className}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
       {help ? <FieldHelp id={`${id}-help`}>{help}</FieldHelp> : null}
     </Field>
@@ -455,7 +455,7 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
@@ -465,7 +465,7 @@ function ProjectsPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <ProjectList
         activeProjectId={projectId}
@@ -498,12 +498,12 @@ function ProjectList({
   if (projects.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Projects Yet.</p>
-        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Projects Yet.</p>
+        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Create a project above to start indexing sources.
         </p>
       </EmptyState>
@@ -526,7 +526,7 @@ function ProjectList({
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
-            <div className="flex items-stretch gap-1 p-1">
+            <div className="flex items-stretch gap-1 p-1 max-[680px]:gap-0.5 max-[680px]:p-0.5">
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
@@ -535,28 +535,28 @@ function ProjectList({
               onClick={() => onSelectProject(project)}
               variant="ghost"
             >
-              <span className="grid min-w-0 gap-1">
+              <span className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter'
                       : 'break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
                   }
                 >
                   {project.name}
                 </strong>
-                <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {project.id}
                 </small>
                 {isDeleted ? (
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
                 ) : null}
               </span>
               <StatusBadge
-                className="shrink-0"
+                className="shrink-0 max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}
               >
                 {roleLabel}
@@ -564,7 +564,7 @@ function ProjectList({
             </Button>
             <Button
               aria-label={`Delete project ${project.name}`}
-              className="shrink-0 self-center"
+              className="shrink-0 self-center max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
               disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteProject(project)}
               type="button"
@@ -704,14 +704,14 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create User"
             />
           </Button>
-          <Button
+          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
             disabled={isBusy}
             onClick={onRefresh}
             type="button"
@@ -723,7 +723,7 @@ function ProjectAccessPanel({
               idleLabel="Refresh Access"
             />
           </Button>
-          <Button
+          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
             disabled={isBusy || userAccessToken.trim() === ''}
             onClick={onRevokeAccessToken}
             type="button"
@@ -767,7 +767,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button disabled={isBusy} type="submit">
+          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Saving…"
@@ -777,7 +777,7 @@ function ProjectAccessPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <UserAccessLists
         isBusy={isBusy}
@@ -810,7 +810,7 @@ function UserAccessLists({
   if (users.length === 0 && memberships.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
         data-slot-state="empty"
         role="status"
       >
@@ -823,7 +823,7 @@ function UserAccessLists({
     <div className="grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
           data-slot-state="empty"
           role="status"
         >
@@ -837,7 +837,7 @@ function UserAccessLists({
               data-inactive={!user.is_active ? '' : undefined}
               key={user.id}
             >
-              <div className="grid min-w-0 gap-1">
+              <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
                 <strong
                   className={
                     user.is_active
@@ -847,21 +847,21 @@ function UserAccessLists({
                 >
                   {user.login}
                 </strong>
-                <small className="break-words text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <small className="break-words text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {user.display_name}
                 </small>
-                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {user.id}
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-                <Badge className="w-fit">{titleCaseStatus(user.system_role)}</Badge>
+                <Badge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
-                  <StatusBadge className="w-fit" tone="warning">
+                  <StatusBadge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
                     Inactive
                   </StatusBadge>
                 ) : null}
-                <Button
+                <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                   aria-label={`Deactivate user ${user.login}`}
                   disabled={isBusy || !user.is_active}
                   onClick={() => onDeactivateUser(user)}
@@ -877,7 +877,7 @@ function UserAccessLists({
       )}
       {memberships.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
           data-slot-state="empty"
           role="status"
         >
@@ -887,17 +887,17 @@ function UserAccessLists({
         <DataList aria-label="Project Memberships">
           {memberships.map((membership) => (
             <DataListItem className="grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
-              <div className="grid min-w-0 gap-1">
-                <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+              <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+                <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.user_id}
                 </strong>
-                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.project_id}
                 </small>
               </div>
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-                <Badge className="w-fit">{titleCaseStatus(membership.role)}</Badge>
-                <Button
+                <Badge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
+                <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
                   onClick={() => onDeleteMembership(membership)}
@@ -954,7 +954,7 @@ function SourceFileField({
             : '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
         aria-describedby={`${fieldId}-file-help`}
-        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium max-[680px]:min-h-11 max-[680px]:file:text-[0.625rem]"
+        className="h-auto min-h-9 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium max-[680px]:min-h-11 max-[680px]:py-1 max-[680px]:file:mr-2 max-[680px]:file:px-2 max-[680px]:file:py-0.5 max-[680px]:file:text-[0.5625rem] max-[680px]:tracking-tighter"
         disabled={isBusy}
         id={fieldId}
         name="source-file"
@@ -968,7 +968,7 @@ function SourceFileField({
       {sourceFileName.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
           <span
-            className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+            className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
             data-slot="source-file-status"
             id={`${fieldId}-file-help`}
             role="status"
@@ -978,7 +978,7 @@ function SourceFileField({
               ? ` · ${formatFileSize(displaySizeBytes)}`
               : null}
           </span>
-          <Button
+          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
             aria-label="Clear Selected File"
             disabled={isBusy}
             onClick={() => {
@@ -994,7 +994,7 @@ function SourceFileField({
         </div>
       ) : (
         <span
-          className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
           data-slot="source-file-status"
           id={`${fieldId}-file-help`}
           role="status"
@@ -1142,7 +1142,7 @@ function SourcesPanel({
             )}
           </AuthoringField>
         ) : (
-          <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             URL sources are fetched during ingestion; no content is required here.
           </p>
         )}
@@ -1159,14 +1159,14 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
               idleLabel="Create Source"
             />
           </Button>
-          <Button
+          <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
             disabled={isBusy}
             onClick={onRefreshSources}
             type="button"
@@ -1181,7 +1181,7 @@ function SourcesPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <SourceList
         isBusy={isBusy}
@@ -1211,12 +1211,12 @@ function SourceList({
   if (sources.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Sources Yet.</p>
-        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Sources Yet.</p>
+        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
@@ -1237,35 +1237,35 @@ function SourceList({
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
-            <div className="grid min-w-0 gap-1">
+            <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
               <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter'
                       : 'break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug'
                   }
                 >
                   {source.external_id}
                 </strong>
                 {isDeleted ? (
-                  <StatusBadge className="w-fit" tone="danger">
+                  <StatusBadge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                     Deleted
                   </StatusBadge>
                 ) : null}
               </div>
-              <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+              <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {source.id}
               </small>
-              <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+              <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {isDeleted
                   ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}
               </small>
             </div>
-            <DataListItemActions className="justify-start md:justify-end">
-              <Badge>{sourceTypeLabel(source.source_type)}</Badge>
-              <Button
+            <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
+              <Badge className="max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
+              <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onEnqueueIngestion(source)}
@@ -1275,7 +1275,7 @@ function SourceList({
               >
                 Queue
               </Button>
-              <Button
+              <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                 aria-label={`Delete source ${source.external_id}`}
                 disabled={isBusy || isDeleted}
                 onClick={() => onDeleteSource(source)}
@@ -1331,7 +1331,7 @@ function KnowledgeReviewPanel({
       title="Pending Proposals"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-        <Button
+        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1345,31 +1345,31 @@ function KnowledgeReviewPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
         <LoadingListState label="Loading Proposals…" />
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
           data-slot-state="canceled"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Proposals Load Canceled.</p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Proposals Load Canceled.</p>
+          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             Refresh Again When Ready to Review Knowledge Drafts.
           </p>
         </EmptyState>
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Pending Proposals.</p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Pending Proposals.</p>
+          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             Refresh After Chat Surfaces a Knowledge Draft for This Project.
           </p>
         </EmptyState>
@@ -1381,17 +1381,17 @@ function KnowledgeReviewPanel({
             const canReject = rejectReason.trim().length > 0
             return (
               <DataListItem className="grid gap-3 max-[680px]:gap-0.5" key={proposal.id}>
-                <div className="grid min-w-0 gap-1">
-                  <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+                  <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
                   </strong>
                   <small
-                    className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                    className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                     title={proposal.id}
                   >
                     {proposal.id}
                   </small>
-                  <Badge className="w-fit">
+                  <Badge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
@@ -1427,13 +1427,13 @@ function KnowledgeReviewPanel({
                             event.currentTarget.value,
                           )
                         }
-                        placeholder="Reason"
+                        placeholder="Reject Reason"
                         value={rejectReason}
                       />
                     )}
                   </AuthoringField>
                   <DataListItemActions>
-                    <Button
+                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                       aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
                       onClick={() => onRefine(proposal)}
@@ -1443,7 +1443,7 @@ function KnowledgeReviewPanel({
                     >
                       Refine
                     </Button>
-                    <Button
+                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                       aria-label={proposalActionLabel('Approve', proposal)}
                       disabled={isBusy}
                       onClick={() => onApprove(proposal)}
@@ -1452,7 +1452,7 @@ function KnowledgeReviewPanel({
                     >
                       Approve
                     </Button>
-                    <Button
+                    <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                       aria-describedby={`proposal-reject-${proposal.id}`}
                       aria-label={proposalActionLabel('Reject', proposal)}
                       disabled={isBusy || !canReject}
@@ -1504,7 +1504,7 @@ function IngestionJobsPanel({
       title="Jobs"
     >
       <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-        <Button
+        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
           disabled={isBusy}
           onClick={onRefresh}
           type="button"
@@ -1516,7 +1516,7 @@ function IngestionJobsPanel({
             idleLabel="Refresh Jobs"
           />
         </Button>
-        <Button disabled={isBusy} onClick={onRunNext} type="button">
+        <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" disabled={isBusy} onClick={onRunNext} type="button">
           <ButtonLabel
             busy={isBusy}
             busyLabel="Running…"
@@ -1525,27 +1525,27 @@ function IngestionJobsPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {run ? (
         <div
-          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:border-primary/35 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30"
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:border-primary/35 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
           data-slot="ingestion-last-run"
         >
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <span className="font-medium text-muted-foreground">Last Run</span>
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
+            <span className="font-medium text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Last Run</span>
             <StatusBadge
-              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
+              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
               tone={jobTone(run.status)}
             >
               {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
-          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.5625rem]">
+          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
-            <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem]" tone="danger">
+            <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" tone="danger">
               {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
@@ -1573,12 +1573,12 @@ function IngestionJobList({
   if (jobs.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Ingestion Jobs Yet.</p>
-        <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Ingestion Jobs Yet.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>
@@ -1591,9 +1591,9 @@ function IngestionJobList({
     <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
       {groups.map((group) => (
         <div className="grid gap-2 max-[680px]:gap-0.5" key={group.status}>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider max-[680px]:tracking-tighter">
             {jobStatusLabel(group.status)}
-            <span className="ml-1 tabular-nums max-[680px]:text-[0.5625rem]">({group.jobs.length})</span>
+            <span className="ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
           <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`}>
             {group.jobs.map((job) => {
@@ -1621,28 +1621,28 @@ function IngestionJobList({
                           data-slot="ingestion-job-pulse"
                         />
                       ) : null}
-                      <StatusBadge className="w-fit" tone={jobTone(job.status)}>
+                      <StatusBadge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
-                      <Badge className="w-fit">
+                      <Badge className="w-fit max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                         {titleCaseStatus(job.job_type)}
                       </Badge>
                     </div>
                     {sourceId ? (
                       <small
-                        className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                        className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                         title="source_id from job payload"
                       >
                         Source {sourceId}
                       </small>
                     ) : null}
                     <small
-                      className="truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                      className="truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                       title={job.id}
                     >
                       {truncateId(job.id)}
                     </small>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground max-[680px]:gap-x-2 max-[680px]:text-[0.5625rem]">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground max-[680px]:gap-x-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
                       <span>{formatAttempts(job)}</span>
                       <span title={runAfter.absolute}>
                         Run after {runAfter.relative}
@@ -1650,14 +1650,14 @@ function IngestionJobList({
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
-                      <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem]" tone="danger">
+                      <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" tone="danger">
                         {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
                   </div>
-                  <DataListItemActions className="justify-start md:justify-end">
+                  <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
                     {isRetryableIngestionJob(job) ? (
-                      <Button
+                      <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                         aria-label={`Retry ingestion job ${job.id}`}
                         disabled={isBusy}
                         onClick={() => onRetry(job)}
