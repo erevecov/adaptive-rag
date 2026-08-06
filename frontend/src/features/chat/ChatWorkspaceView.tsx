@@ -40,10 +40,10 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
+  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter'
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -219,7 +219,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:bg-card max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-base',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:bg-card max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -798,7 +798,7 @@ function ResponseContent({
                     aria-label={`Open Source ${label}`}
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
-                      'hover:border-primary/50 hover:bg-primary/15',
+                      'hover:border-primary/50 hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
                       'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
                     )}
                     key={chipKey}
