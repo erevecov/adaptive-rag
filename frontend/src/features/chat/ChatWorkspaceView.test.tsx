@@ -613,6 +613,7 @@ describe('ChatWorkspacePanel', () => {
   })
 
   test('uses lucide icons instead of inline SVG icon functions', () => {
+    expect(chatWorkspaceSource).toContain('max-[680px]:px-1')
     expect(chatWorkspaceSource).toContain('lucide-react')
     expect(chatWorkspaceSource).not.toContain('<svg')
     expect(chatWorkspaceSource).not.toContain('function ContextRingIcon')
