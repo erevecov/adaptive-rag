@@ -835,7 +835,7 @@ function SidebarProjectSelector({
               <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Project
               </small>
-              <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground">
+              <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                 {selectedLabel}
               </strong>
             </span>
@@ -846,7 +846,7 @@ function SidebarProjectSelector({
         <Popover.Portal>
           <Popover.Content
             align="start"
-            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)]"
+            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-1 max-[680px]:text-[0.625rem]"
             data-slot="project-selector-popover"
             onCloseAutoFocus={(event) => event.preventDefault()}
             side="bottom"
@@ -938,7 +938,7 @@ function SidebarProjectSelector({
                 })
               ) : (
                 <p
-                  className="m-0 text-xs font-bold text-muted-foreground"
+                  className="m-0 text-xs font-bold text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                   data-slot="project-selector-empty"
                 >
                   No Projects match.

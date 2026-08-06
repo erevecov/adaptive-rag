@@ -124,6 +124,7 @@ describe('DataListItem', () => {
     expect(row.className).toContain('hover:bg-primary/15')
     expect(row.className).toContain('max-[680px]:p-1')
     expect(row.className).toContain('tracking-tight')
+    expect(row.className).toContain('max-[680px]:text-[0.625rem]')
     expect(row.className).toContain('max-[680px]:leading-snug')
   })
 })
