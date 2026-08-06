@@ -824,12 +824,12 @@ function SessionContextPanel({
               value={formatSessionCost(detail.provider_usage)}
             />
             <MetricCard
-              detail="Known usage only"
+              detail="Known Usage Only"
               label="Tokens"
               value={formatSessionTokens(detail.provider_usage)}
             />
             <MetricCard
-              detail="Average known latency"
+              detail="Average Known Latency"
               label="Latency"
               value={formatSessionLatency(detail.provider_usage)}
             />
@@ -886,7 +886,7 @@ function InternalActionStepper({
             slot="action-stepper-loading"
           />
         ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState>No Stored Internal Actions for This Session.</EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Stored Internal Actions For This Session.</EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -1046,7 +1046,7 @@ function SessionDetailPanel({
           </h4>
           <DataList aria-label="Session Messages">
             {detail.messages.length === 0 ? (
-              <EmptyState>No Messages in This Session.</EmptyState>
+              <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Messages In This Session.</EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>
@@ -1239,7 +1239,7 @@ function RetrievedChunkDetail({
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" role="status">
-            No Openable Source (Deleted or Uncited)
+            No Openable Source (Deleted Or Uncited)
           </span>
         )}
       </div>
@@ -1268,7 +1268,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>

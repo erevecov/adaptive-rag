@@ -219,7 +219,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:bg-card max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -374,7 +374,7 @@ function SpeechInputControl({
       ? 'Listening…'
       : isSupported
         ? null
-        : 'Speech recognition is not supported in this browser.')
+        : 'Speech Recognition Is Not Supported In This Browser.')
 
   return (
     <section
@@ -470,7 +470,7 @@ function ResponsePanel({
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:p-0.5"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
           data-slot-state="loading"
           role="status"
         >
@@ -478,7 +478,7 @@ function ResponsePanel({
             Waiting For Response…
           </p>
           <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Retrieving Sources and Drafting an Answer
+            Retrieving Sources And Drafting An Answer
           </p>
           <div
             aria-hidden="true"
@@ -507,14 +507,14 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[0.25rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:rounded-sm max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/25"
             data-slot-state="failed"
             role="alert"
           >
-            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request failed.</p>
+            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Failed.</p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Edit the question and resend, or open another session. Details are
-              under the composer when available.
+              Edit The Question And Resend, Or Open Another Session. Details Are
+              Under The Composer When Available.
             </p>
           </EmptyState>
         </div>
@@ -524,13 +524,13 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[0.25rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
             data-slot-state="canceled"
             role="status"
           >
-            <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request canceled.</p>
+            <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Canceled.</p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Nothing was stored for this turn. Ask again when ready.
+              Nothing Was Stored For This Turn. Ask Again When Ready.
             </p>
           </EmptyState>
         </div>
@@ -539,7 +539,7 @@ function ResponsePanel({
     return (
       <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[0.25rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
+          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
           data-slot-state="empty"
           role="status"
         >
@@ -564,8 +564,8 @@ function ResponsePanel({
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
           {state === 'failed'
-            ? 'Request failed. Partial answer below may be incomplete.'
-            : 'Request canceled. Partial answer below was not stored as a finished turn.'}
+            ? 'Request Failed. Partial Answer Below May Be Incomplete.'
+            : 'Request Canceled. Partial Answer Below Was Not Stored As A Finished Turn.'}
         </InlineFeedback>
       </div>
     ) : null
@@ -772,7 +772,7 @@ function ResponseContent({
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
                 />
-                Drafting answer…
+                Drafting Answer…
               </span>
             )}
           </p>
@@ -926,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
           {displayQuestion}
         </p>
       )}
@@ -1163,14 +1163,14 @@ function KnowledgeDraftCard({
 
   return (
     <article
-      aria-label={`Knowledge draft ${draft.draftId}`}
+      aria-label={`Knowledge Draft ${draft.draftId}`}
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            Knowledge draft
+            Knowledge Draft
           </span>
           <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {draft.scope}
@@ -1182,7 +1182,7 @@ function KnowledgeDraftCard({
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
-          Knowledge draft text
+          Knowledge Draft Text
         </FieldLabel>
         <FieldControl>
           <Textarea
@@ -1457,7 +1457,7 @@ function getJsonObject(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? operatorSafeMessage(error.message)
-    : 'Request failed.'
+    : 'Request Failed.'
 }
 
 function formatScore(score: number): string {
