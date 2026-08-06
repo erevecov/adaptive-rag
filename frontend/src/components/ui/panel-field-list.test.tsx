@@ -128,6 +128,7 @@ describe('DataListItem', () => {
     expect(row.className).toContain('motion-safe:transition-colors')
     expect(row.className).toContain('hover:bg-primary/15')
     expect(row.className).toContain('active:bg-primary/20')
+    expect(row.className).toContain('max-[680px]:active:bg-primary/25')
     expect(row.className).toContain('focus-visible:bg-primary/15')
     expect(row.className).toContain('focus-visible:ring-inset')
     expect(row.className).toContain('max-[680px]:rounded-sm')
