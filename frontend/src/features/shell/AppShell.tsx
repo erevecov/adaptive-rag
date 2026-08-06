@@ -265,7 +265,7 @@ export function WorkspaceTopline({
         [
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-1',
         ],
-        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-2',
+        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-1.5',
         !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-1.5"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-1"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
