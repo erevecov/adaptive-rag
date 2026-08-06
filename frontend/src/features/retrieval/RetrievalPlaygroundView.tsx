@@ -240,7 +240,7 @@ export function RetrievalPlaygroundPanel({
           {state === 'loading' ? (
             <EmptyState
               aria-busy="true"
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="loading"
               role="status"
             >
@@ -264,7 +264,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'idle' && results.length === 0 && !error ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -279,7 +279,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'succeeded' && results.length === 0 ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -298,7 +298,7 @@ export function RetrievalPlaygroundPanel({
             <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5">
               {results.map((result, index) => (
                 <DataListItem
-                  className="grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90"
+                  className="grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
