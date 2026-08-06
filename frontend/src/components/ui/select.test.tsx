@@ -49,6 +49,13 @@ describe('Select', () => {
     expect(
       trigger.querySelector('[aria-hidden="true"]')?.className,
     ).toContain('max-[680px]:size-5')
+    expect(
+      trigger.querySelector('[aria-hidden="true"]')?.className,
+    ).toContain('motion-safe:transition-transform')
+    expect(
+      trigger.querySelector('[aria-hidden="true"]')?.className,
+    ).toContain('group-data-[state=open]:rotate-180')
+    expect(trigger.className).toContain('group')
     expect(trigger.getAttribute('data-state')).toBe('closed')
     await user.click(trigger)
 
