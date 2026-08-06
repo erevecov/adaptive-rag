@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
   [
-    'inline-flex shrink-0 items-center rounded-md border px-2 py-0.5 text-xs font-medium leading-none tracking-tight tabular-nums max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+    'inline-flex shrink-0 items-center rounded-md border px-2 py-0.5 text-xs font-medium leading-none tracking-tight tabular-nums max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
     'motion-safe:transition-colors',
   ],
   {
