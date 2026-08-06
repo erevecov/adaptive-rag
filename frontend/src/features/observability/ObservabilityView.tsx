@@ -104,7 +104,7 @@ export function ObservabilityPanel({
       aria-label={`Observability ${activeSubmodule}`}
       role="region"
     >
-      <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
+      <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             Observability
@@ -125,10 +125,10 @@ export function ObservabilityPanel({
           </StatusBadge>
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:border-t max-[680px]:border-primary/95 grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
-          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:border max-[680px]:border-primary/95 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
+          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:border max-[680px]:border-primary max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
           role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
