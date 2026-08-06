@@ -366,7 +366,7 @@ function ObservabilityMetricSkeleton({
       {Array.from({ length: cardCount }, (_, index) => (
         <article
           aria-hidden="true"
-          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4"
+          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-1"
           key={index}
         >
           <div className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/40" />
@@ -594,7 +594,7 @@ function MetricCard({
   return (
     <article
       aria-labelledby={`${labelId} ${valueId}`}
-      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-0.5 max-[680px]:p-1.5"
+      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-1"
     >
       <span
         className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
