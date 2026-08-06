@@ -554,7 +554,7 @@ export function RuntimeConnectionsPanel({
             No Connections Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {connections.map((connection) => {
               const isChecking =
                 checkingConnectionId === connection.connection_id
@@ -563,7 +563,7 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0">
@@ -1042,8 +1042,8 @@ export function RuntimeModelCatalogPanel({
           aria-label="Selected Model Sync Connection"
           className="grid gap-3 max-[680px]:gap-0"
         >
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+            <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0">
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
@@ -1252,10 +1252,10 @@ export function RuntimeGlobalDefaultsPanel({
             No Chat Models Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {chatModels.map((model) => (
               <DataListItem
-                className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+                className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1335,8 +1335,8 @@ export function RuntimeGlobalDefaultsPanel({
             Chat Retrieval Defaults Load Canceled.
           </EmptyState>
         ) : chatRetrievalSettings ? (
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            <DataListItem className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+            <DataListItem className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
               <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
                 <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   Global Defaults
@@ -1809,10 +1809,10 @@ export function ProviderModelCatalogView({
           No Provider Models Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+        <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
           {providerModels.map((model) => (
             <DataListItem
-              className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+              className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1884,10 +1884,10 @@ export function RuntimeSlotList({
     )
   }
   return (
-    <DataList aria-label="Global Runtime Slots" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Global Runtime Slots" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {slots.map((slot) => (
         <DataListItem
-          className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+          className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
           key={slot.slot}
         >
           <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1955,9 +1955,9 @@ export function ProjectRuntimeSettingsView({
             No Effective Slots Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {settings.slots.map((slot) => (
-              <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0" key={slot.slot}>
+              <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0" key={slot.slot}>
                 <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
@@ -1994,10 +1994,10 @@ export function ProjectRuntimeSettingsView({
             Sync Models.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0"
+                className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -2021,8 +2021,8 @@ export function ProjectRuntimeSettingsView({
       </section>
       <section className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
-        <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-          <DataListItem className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+        <DataList className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataListItem className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
             <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
               <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}

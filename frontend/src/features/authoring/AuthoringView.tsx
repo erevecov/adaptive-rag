@@ -512,7 +512,7 @@ function ProjectList({
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Projects" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
@@ -523,7 +523,7 @@ function ProjectList({
             : 'No Access'
         return (
           <DataListItem
-            className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0"
+            className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0"
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
@@ -837,10 +837,10 @@ function UserAccessLists({
           No Users Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Users" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Users" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
-              className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0"
+              className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0"
               data-inactive={!user.is_active ? '' : undefined}
               key={user.id}
             >
@@ -891,9 +891,9 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Project Memberships" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
-            <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
+            <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong className="max-[680px]:font-medium break-all text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {membership.user_id}
@@ -1236,7 +1236,7 @@ function SourceList({
   }
 
   return (
-    <DataList aria-label="Sources" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Sources" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {sources.map((source) => {
         const isDeleted = Boolean(source.deleted_at)
         const tags =
@@ -1245,7 +1245,7 @@ function SourceList({
             : 'No Tags'
         return (
           <DataListItem
-            className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+            className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
@@ -1386,13 +1386,13 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Knowledge Proposals" className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''
             const canReject = rejectReason.trim().length > 0
             return (
-              <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
+              <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
                 <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
@@ -1609,7 +1609,7 @@ function IngestionJobList({
             {jobStatusLabel(group.status)}
             <span className="max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
-          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {group.jobs.map((job) => {
               const isRunning = job.status === 'running'
               const sourceId = ingestionJobSourceId(job)
@@ -1622,7 +1622,7 @@ function IngestionJobList({
                       ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
                       : `Ingestion Job ${statusLabel}`
                   }
-                  className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   data-job-status={job.status}
                   key={job.id}
                 >
