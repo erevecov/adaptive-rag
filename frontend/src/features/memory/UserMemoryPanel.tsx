@@ -759,7 +759,7 @@ function FilterEmptyState({
   const copy = emptyCopyForFilter(filter)
   return (
     <EmptyState
-      className="gap-2 p-3 text-left"
+      className="gap-2 p-3 text-left max-[680px]:gap-1 max-[680px]:p-1"
       data-slot-state={`empty-${filter}`}
     >
       <p className="font-medium text-foreground/80">{copy.title}</p>
