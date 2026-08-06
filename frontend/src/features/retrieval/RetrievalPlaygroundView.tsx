@@ -300,7 +300,7 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5">
+            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
               {results.map((result, index) => (
                 <DataListItem
                   className="grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
@@ -343,7 +343,7 @@ export function RetrievalPlaygroundPanel({
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
-                    <p className="line-clamp-4 max-[680px]:line-clamp-3 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                    <p className="line-clamp-4 max-[680px]:line-clamp-2 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                       {result.citation.snippet}
                     </p>
                   </div>
