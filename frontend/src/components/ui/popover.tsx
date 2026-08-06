@@ -73,7 +73,7 @@ export const Content = forwardRef<
     <PopoverPrimitive.Content
       className={cn(
         [
-          'z-50 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+          'z-50 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/85 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
           'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         ],
         className,
