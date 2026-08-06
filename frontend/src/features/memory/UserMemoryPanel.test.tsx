@@ -337,6 +337,11 @@ describe('UserMemoryPanel', () => {
     expect(
       screen.getByRole('button', { name: /^Rejected/ }).getAttribute('aria-pressed'),
     ).toBe('true')
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
     await user.click(
       screen.getByRole('button', { name: 'Undo remove from injection' }),
     )
@@ -346,6 +351,11 @@ describe('UserMemoryPanel', () => {
         screen.getByRole('button', { name: /^Approved/ }).getAttribute('aria-pressed'),
       ).toBe('true'),
     )
+    expect(
+      screen.queryByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeNull()
     expect(await screen.findByText('Live preference')).toBeTruthy()
     expect(await screen.findByText('1 Injectable')).toBeTruthy()
   })

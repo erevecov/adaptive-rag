@@ -321,6 +321,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     try {
       await apiClient.approveUserMemory(memoryId)
       setUndoRemoveId(null)
+      setFilterSwitchNotice(null)
       if (statusFilter === 'rejected') {
         setStatusFilter('approved')
       } else {
