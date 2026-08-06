@@ -66,23 +66,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   })
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const [undoRemoveId, setUndoRemoveId] = useState<string | null>(null)
-  const [filterSwitchNotice, setFilterSwitchNotice] = useState<string | null>(
-    null,
-  )
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
-
-  useEffect(() => {
-    if (filterSwitchNotice === null) {
-      return
-    }
-    const timer = window.setTimeout(() => {
-      setFilterSwitchNotice(null)
-    }, 8_000)
-    return () => window.clearTimeout(timer)
-  }, [filterSwitchNotice])
 
   useEffect(() => {
     if (undoRemoveId === null) {
@@ -293,12 +280,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setUndoRemoveId(null)
       }
       if (switchApprovedToRejected) {
-        setFilterSwitchNotice(
-          'Showing Rejected — soft-removed item is below with Propose Again.',
-        )
         setStatusFilter('rejected')
       } else {
-        setFilterSwitchNotice(null)
         await refreshList()
       }
       requestAnimationFrame(() => {
@@ -321,11 +304,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     try {
       await apiClient.approveUserMemory(memoryId)
       setUndoRemoveId(null)
-      if (statusFilter === 'rejected') {
-        setStatusFilter('approved')
-      } else {
-        await refreshList()
-      }
+      await refreshList()
       requestAnimationFrame(() => {
         document.getElementById(`remove-injection-${memoryId}`)?.focus()
       })
@@ -555,7 +534,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               key={filter.id}
               onClick={() => {
                 setConfirmRemoveId(null)
-                setFilterSwitchNotice(null)
+                setUndoRemoveId(null)
                 setStatusFilter(filter.id)
               }}
               size="sm"
@@ -606,11 +585,6 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         {actionError ? (
           <InlineFeedback role="alert" tone="danger">
             {actionError}
-          </InlineFeedback>
-        ) : null}
-        {filterSwitchNotice !== null ? (
-          <InlineFeedback role="status" tone="neutral">
-            {filterSwitchNotice}
           </InlineFeedback>
         ) : null}
         {undoRemoveId !== null ? (
