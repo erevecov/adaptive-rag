@@ -115,7 +115,7 @@ export function RetrievalPlaygroundPanel({
       data-testid="retrieval-playground"
       role="region"
     >
-      <PanelHeader className="p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <PanelTitle id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>

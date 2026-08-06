@@ -519,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-1 max-[680px]:p-1 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
@@ -604,7 +604,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
   return (
     <Panel aria-label="Source Viewer" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <PanelTitle>Source Viewer</PanelTitle>
         <StatusBadge tone={sourceViewerTone(viewer.state)}>
           {sourceViewerStatusLabel(viewer.state)}
@@ -731,7 +731,7 @@ function ConversationMinimap({
 }) {
   return (
     <Panel aria-label="Conversation Minimap" role="navigation">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <PanelTitle>Minimap</PanelTitle>
         <StatusBadge>
           {detail?.messages.length ?? 0}{' '}
@@ -786,7 +786,7 @@ function SessionContextPanel({
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <PanelTitle>Session Context</PanelTitle>
         <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
           {sessionStatusLabel(detail?.session.status)}
@@ -873,7 +873,7 @@ function InternalActionStepper({
 }) {
   return (
     <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <PanelTitle>Action Stepper</PanelTitle>
         <StatusBadge>
           {countInternalSteps(detail)} Steps
@@ -1028,7 +1028,7 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-1">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1040,7 +1040,7 @@ function SessionDetailPanel({
         </StatusBadge>
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">
-        <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
+        <section className="grid gap-2 max-[680px]:gap-0.5" aria-labelledby="messages-title">
           <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Messages
           </h4>
@@ -1117,7 +1117,7 @@ function DetailSection({
   title: string
 }) {
   return (
-    <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby={id}>
+    <section className="grid gap-2 max-[680px]:gap-0.5" aria-labelledby={id}>
       <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {title}
       </h4>
