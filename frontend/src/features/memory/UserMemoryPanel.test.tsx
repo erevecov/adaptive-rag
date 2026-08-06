@@ -1500,6 +1500,8 @@ describe('UserMemoryPanel', () => {
       document.querySelectorAll<HTMLElement>('[aria-live="polite"]'),
     ).find((el) => el.className.includes('grid'))
     expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
+    const badgeRow = screen.getByLabelText(/injectable/i).parentElement
+    expect(badgeRow?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })

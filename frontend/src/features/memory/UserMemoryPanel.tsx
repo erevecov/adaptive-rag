@@ -484,7 +484,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </h2>
         </div>
         <div className="grid justify-items-end gap-1">
-          <div className="flex flex-wrap justify-end gap-1">
+          <div className="flex flex-wrap justify-end gap-1 max-[680px]:gap-0.5">
             {listState !== 'loading' && statusCounts.proposed > 0 ? (
               <StatusBadge
                 aria-label={`${statusCounts.proposed} proposed`}
