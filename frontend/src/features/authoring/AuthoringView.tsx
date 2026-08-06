@@ -545,7 +545,7 @@ function ProjectList({
                 >
                   {project.name}
                 </strong>
-                <small className="break-all font-mono text-[11px] text-muted-foreground">
+                <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {project.id}
                 </small>
                 {isDeleted ? (
@@ -1254,7 +1254,7 @@ function SourceList({
                   </StatusBadge>
                 ) : null}
               </div>
-              <small className="break-all font-mono text-[11px] text-muted-foreground">
+              <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {source.id}
               </small>
               <small className="text-xs text-muted-foreground">
@@ -1637,7 +1637,7 @@ function IngestionJobList({
                       </small>
                     ) : null}
                     <small
-                      className="truncate font-mono text-[11px] text-muted-foreground"
+                      className="truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                       title={job.id}
                     >
                       {truncateId(job.id)}

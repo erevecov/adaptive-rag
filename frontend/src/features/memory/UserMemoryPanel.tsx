@@ -452,7 +452,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         })}
       </div>
       {items.some((item) => item.status === 'proposed') ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]">
           Focus a proposed row: Enter/A approve · R reject · E edit.
         </p>
       ) : null}
