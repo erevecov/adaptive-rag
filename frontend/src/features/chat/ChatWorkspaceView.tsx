@@ -466,7 +466,7 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-1 max-[680px]:py-0.5"
+        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-0.5 max-[680px]:py-0.5"
       >
         <EmptyState
           aria-busy="true"
@@ -505,7 +505,7 @@ function ResponsePanel({
   if (response === null) {
     if (state === 'failed') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-1 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="failed"
@@ -522,7 +522,7 @@ function ResponsePanel({
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-1 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="canceled"
@@ -537,7 +537,7 @@ function ResponsePanel({
       )
     }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-1 max-[680px]:py-0.5">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1rem] max-[680px]:px-0.5 max-[680px]:py-0.5">
         <EmptyState
           className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
           data-slot-state="empty"
@@ -926,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
           {displayQuestion}
         </p>
       )}
