@@ -93,7 +93,7 @@ describe('Table density', () => {
       'hover:bg-primary/15',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'max-[680px]:hover:bg-primary/35',
+      'max-[680px]:hover:bg-primary/40',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'active:bg-primary/20',
