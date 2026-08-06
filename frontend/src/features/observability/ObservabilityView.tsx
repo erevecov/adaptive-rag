@@ -658,7 +658,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
           No Status Data Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:gap-0.5">
+        <DataList className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {rows.map((row) => (
             <DataListItem
               className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
@@ -692,7 +692,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
           No Error Messages Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:gap-0.5">
+        <DataList className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {summary.errors.top_messages.map((error) => (
             <DataListItem
               className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
