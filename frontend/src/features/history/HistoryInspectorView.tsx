@@ -176,14 +176,14 @@ export function SessionNavigationPanel({
 
       <SegmentedControl
         aria-label="Session Filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/80"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/80 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
             active={statusFilter === filter.value}
             aria-label={filter.title}
             className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
               statusFilter === filter.value
                 ? 'font-semibold shadow-sm'
                 : 'font-medium',
@@ -212,7 +212,7 @@ export function SessionNavigationPanel({
 
       <DataList aria-label="Project Sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
-          <DataListItem className="border-0 bg-transparent p-2 shadow-none">
+          <DataListItem className="border-0 bg-transparent p-2 shadow-none max-[680px]:p-0.5">
             <div
               aria-busy="true"
               aria-label="Cargando sesiones"
@@ -227,7 +227,7 @@ export function SessionNavigationPanel({
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
-          <DataListItem className="border-0 bg-transparent p-2 shadow-none">
+          <DataListItem className="border-0 bg-transparent p-2 shadow-none max-[680px]:p-0.5">
             <div
               data-slot="session-list-empty"
               data-status-filter={statusFilter}
@@ -335,7 +335,7 @@ export function SessionNavigationPanel({
                     <Button
                       aria-current={isSelected ? 'true' : undefined}
                       aria-label={openSessionLabel}
-                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11"
+                      className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-none px-0 py-1.5 text-left hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:py-0.5"
                       onClick={() => onSelectSession(session.session_id)}
                       title={title}
                       type="button"
@@ -438,7 +438,7 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
-          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -519,7 +519,7 @@ export function WorkspaceInspectorPanel({
       className={
         layout === 'inline'
           ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5'
-          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
+          : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:border-t max-[680px]:border-t-primary/80 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
@@ -686,7 +686,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             <section className="grid gap-2 max-[680px]:gap-0.5">
               <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
-                <EmptyState>No Tags Stored.</EmptyState>
+                <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Tags Stored.</EmptyState>
               ) : (
                 <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
                   {viewer.source.tags.map((tag) => (
@@ -700,7 +700,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Metadata</h4>
               {viewer.source.extra_metadata === null ||
               Object.keys(viewer.source.extra_metadata).length === 0 ? (
-                <EmptyState>No Metadata Stored.</EmptyState>
+                <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Metadata Stored.</EmptyState>
               ) : (
                 <dl className="grid gap-2 max-[680px]:gap-0.5">
                   {Object.entries(viewer.source.extra_metadata).map(([key, value]) => (
@@ -745,14 +745,14 @@ function ConversationMinimap({
             slot="conversation-minimap-loading"
           />
         ) : detail === null || detail.messages.length === 0 ? (
-          <EmptyState>Select A Session To Navigate Messages.</EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Select A Session To Navigate Messages.</EmptyState>
         ) : (
           <DataList aria-label="Conversation Messages">
             {detail.messages.map((message) => (
               <DataListItem className="p-0 shadow-none" key={message.message_id}>
                 <Button
                   aria-label={minimapMessageLabel(message.role, message.content)}
-                  className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left max-[680px]:min-h-11"
+                  className="h-auto w-full justify-start whitespace-normal px-2 py-2 text-left max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]"
                   onClick={() => onNavigateMessage(message.message_id)}
                   type="button"
                   variant="ghost"
@@ -799,7 +799,7 @@ function SessionContextPanel({
             slot="session-context-loading"
           />
         ) : detail === null ? (
-          <EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Select A Session To Inspect Model, Prompt And Usage Context.
           </EmptyState>
         ) : (
@@ -824,12 +824,12 @@ function SessionContextPanel({
               value={formatSessionCost(detail.provider_usage)}
             />
             <MetricCard
-              detail="Known usage only"
+              detail="Known Usage Only"
               label="Tokens"
               value={formatSessionTokens(detail.provider_usage)}
             />
             <MetricCard
-              detail="Average known latency"
+              detail="Average Known Latency"
               label="Latency"
               value={formatSessionLatency(detail.provider_usage)}
             />
@@ -886,7 +886,7 @@ function InternalActionStepper({
             slot="action-stepper-loading"
           />
         ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState>No Stored Internal Actions for This Session.</EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Stored Internal Actions For This Session.</EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -1020,7 +1020,7 @@ function SessionDetailPanel({
           <PanelTitle>Session Detail</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
-          <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Select A Session To Inspect Stored History.</EmptyState>
         </PanelBody>
       </Panel>
     )
@@ -1046,7 +1046,7 @@ function SessionDetailPanel({
           </h4>
           <DataList aria-label="Session Messages">
             {detail.messages.length === 0 ? (
-              <EmptyState>No Messages in This Session.</EmptyState>
+              <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Messages In This Session.</EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>
@@ -1136,7 +1136,7 @@ function CompactStateList<T>({
   renderItem(item: T): ReactNode
 }) {
   if (items.length === 0) {
-    return <EmptyState>{emptyLabel}</EmptyState>
+    return <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{emptyLabel}</EmptyState>
   }
 
   return <DataList>{items.map(renderItem)}</DataList>
@@ -1239,7 +1239,7 @@ function RetrievedChunkDetail({
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" role="status">
-            No Openable Source (Deleted or Uncited)
+            No Openable Source (Deleted Or Uncited)
           </span>
         )}
       </div>
@@ -1268,7 +1268,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>

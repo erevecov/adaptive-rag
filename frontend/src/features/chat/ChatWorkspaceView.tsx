@@ -43,7 +43,7 @@ const COMPOSER_TOOL_BUTTON_CLASS =
   'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -196,7 +196,7 @@ export function ChatWorkspacePanel({
           'max-[680px]:border-t max-[680px]:border-primary/80',
           // Purple hairline above sticky Ask dock (mirrors question sticky).
           'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/75',
-          'max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]',
+          'max-[680px]:pb-[max(0.5rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
       >
@@ -219,7 +219,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
+                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:bg-card max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -362,7 +362,7 @@ function SpeechInputControl({
     : isListening
       ? 'Stop Transcript'
       : 'Start Transcript'
-  // Idle "Speech input ready." crowded the toolbar — only show status when useful.
+  // Idle "Speech Input Ready." crowded the toolbar — only show status when useful.
   const showStatus =
     feedback !== null ||
     state === 'failed' ||
@@ -374,7 +374,7 @@ function SpeechInputControl({
       ? 'Listening…'
       : isSupported
         ? null
-        : 'Speech recognition is not supported in this browser.')
+        : 'Speech Recognition Is Not Supported In This Browser.')
 
   return (
     <section
@@ -470,7 +470,7 @@ function ResponsePanel({
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:p-0.5"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
           data-slot-state="loading"
           role="status"
         >
@@ -478,14 +478,14 @@ function ResponsePanel({
             Waiting For Response…
           </p>
           <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Retrieving Sources and Drafting an Answer
+            Retrieving Sources And Drafting An Answer
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/35 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
+            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-0.5 max-[680px]:rounded-md max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
-            <div className="space-y-2 max-[680px]:space-y-1">
+            <div className="space-y-2 max-[680px]:space-y-0.5">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
@@ -507,14 +507,14 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1.75rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/25"
             data-slot-state="failed"
             role="alert"
           >
-            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request failed.</p>
+            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Failed.</p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Edit the question and resend, or open another session. Details are
-              under the composer when available.
+              Edit The Question And Resend, Or Open Another Session. Details Are
+              Under The Composer When Available.
             </p>
           </EmptyState>
         </div>
@@ -524,13 +524,13 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1.75rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
+            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
             data-slot-state="canceled"
             role="status"
           >
-            <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request canceled.</p>
+            <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Canceled.</p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Nothing was stored for this turn. Ask again when ready.
+              Nothing Was Stored For This Turn. Ask Again When Ready.
             </p>
           </EmptyState>
         </div>
@@ -539,7 +539,7 @@ function ResponsePanel({
     return (
       <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1.75rem] max-[680px]:px-1 max-[680px]:py-0.5">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
+          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
           data-slot-state="empty"
           role="status"
         >
@@ -564,8 +564,8 @@ function ResponsePanel({
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
           {state === 'failed'
-            ? 'Request failed. Partial answer below may be incomplete.'
-            : 'Request canceled. Partial answer below was not stored as a finished turn.'}
+            ? 'Request Failed. Partial Answer Below May Be Incomplete.'
+            : 'Request Canceled. Partial Answer Below Was Not Stored As A Finished Turn.'}
         </InlineFeedback>
       </div>
     ) : null
@@ -772,7 +772,7 @@ function ResponseContent({
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
                 />
-                Drafting answer…
+                Drafting Answer…
               </span>
             )}
           </p>
@@ -797,9 +797,9 @@ function ResponseContent({
                   <Button
                     aria-label={`Open Source ${label}`}
                     className={cn(
-                      'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
+                      'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
                       'hover:border-primary/50 hover:bg-primary/15',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
                     )}
                     key={chipKey}
                     onClick={() =>
@@ -849,7 +849,7 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
           data-slot="chat-memory-applied"
         >
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
@@ -857,9 +857,9 @@ function ResponseContent({
               Memory Applied
             </StatusBadge>
             <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              {appliedMemories.length} approved item
-              {appliedMemories.length === 1 ? '' : 's'} injected as system
-              context (not a user turn).
+              {appliedMemories.length} Approved Item
+              {appliedMemories.length === 1 ? '' : 's'} Injected As System
+              Context (Not A User Turn).
             </span>
           </div>
           <ul className="grid gap-1.5 max-[680px]:gap-0.5">
@@ -917,7 +917,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
         <Button
           aria-expanded={expanded}
           aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
-          className="max-w-full justify-start whitespace-normal text-left"
+          className="max-w-full justify-start whitespace-normal text-left max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
           onClick={() => setExpanded((current) => !current)}
           title={trimmedQuestion}
           type="button"
@@ -926,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75">
           {displayQuestion}
         </p>
       )}
@@ -964,22 +964,22 @@ function ResponseDetailsPanel({
   return (
     <section
       aria-label="Response Details"
-      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
+      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
     >
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
-        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
       >
         {expanded ? (
-          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground max-[680px]:size-3.5" />
         ) : (
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground max-[680px]:size-3.5" />
         )}
-        <span className="min-w-0 truncate">
+        <span className="min-w-0 truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Details · {summaryParts.join(' · ')}
         </span>
       </Button>
@@ -1163,14 +1163,14 @@ function KnowledgeDraftCard({
 
   return (
     <article
-      aria-label={`Knowledge draft ${draft.draftId}`}
+      aria-label={`Knowledge Draft ${draft.draftId}`}
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/80 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/75"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            Knowledge draft
+            Knowledge Draft
           </span>
           <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {draft.scope}
@@ -1182,7 +1182,7 @@ function KnowledgeDraftCard({
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
-          Knowledge draft text
+          Knowledge Draft Text
         </FieldLabel>
         <FieldControl>
           <Textarea
@@ -1205,10 +1205,16 @@ function KnowledgeDraftCard({
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
       <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
-        <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
+        <Button
+          className="max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]"
+          disabled={!canSubmitPrimary}
+          onClick={onSubmit}
+          type="button"
+        >
           {primaryAction}
         </Button>
         <Button
+          className="max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]"
           disabled={!canEdit}
           onClick={onRefine}
           type="button"
@@ -1217,6 +1223,7 @@ function KnowledgeDraftCard({
           Refine In Chat
         </Button>
         <Button
+          className="max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]"
           disabled={!canCancel}
           onClick={onCancel}
           type="button"
@@ -1457,7 +1464,7 @@ function getJsonObject(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? operatorSafeMessage(error.message)
-    : 'Request failed.'
+    : 'Request Failed.'
 }
 
 function formatScore(score: number): string {
