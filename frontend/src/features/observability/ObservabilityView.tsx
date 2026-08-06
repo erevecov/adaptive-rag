@@ -846,10 +846,10 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
           <strong className="text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {formatPercent(succeeded, total)} Success
           </strong>
-          <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <span className="max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             {formatCount(failed, 'Failed Session')}
           </span>
-          <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <span className="max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             {formatCount(running, 'Running Session')}
           </span>
         </div>

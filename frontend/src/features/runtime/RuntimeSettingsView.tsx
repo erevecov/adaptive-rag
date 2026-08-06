@@ -1700,7 +1700,7 @@ export function ConnectionCheckSummary({
     <Callout className="max-[680px]:truncate p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
       Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
-        <span className="mt-1 block text-xs opacity-90 max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+        <span className="max-[680px]:truncate mt-1 block text-xs opacity-90 max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           {operatorSafeMessage(result.message, 'Provider Rejected the Check.')}
         </span>
       ) : null}
