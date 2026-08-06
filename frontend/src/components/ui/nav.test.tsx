@@ -19,7 +19,7 @@ describe('NavSection', () => {
     expect(title.className).toContain('uppercase')
     expect(title.className).toContain('tracking-wide')
     expect(title.className).toContain('font-semibold')
-    expect(title.className).toContain('max-[680px]:px-1')
+    expect(title.className).toContain('max-[680px]:px-0.5')
     expect(title.className).toContain('max-[680px]:tracking-tighter')
     expect(title.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(
