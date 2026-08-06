@@ -1545,7 +1545,7 @@ function IngestionJobsPanel({
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
-            <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" tone="danger">
+            <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
               {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
@@ -1650,7 +1650,7 @@ function IngestionJobList({
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
-                      <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" tone="danger">
+                      <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                         {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
