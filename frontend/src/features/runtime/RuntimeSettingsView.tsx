@@ -1037,7 +1037,7 @@ export function RuntimeModelCatalogPanel({
             <DataListItem className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2">
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
                   <small className="text-xs text-muted-foreground">
@@ -1249,7 +1249,7 @@ export function RuntimeGlobalDefaultsPanel({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {model.model_id}
                   </strong>
                   <small className="text-xs text-muted-foreground">
@@ -1328,7 +1328,7 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList>
             <DataListItem className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-1">
-                <strong className="text-sm font-semibold">
+                <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   Global Defaults
                 </strong>
                 <small className="text-xs text-muted-foreground">
@@ -1797,7 +1797,7 @@ export function ProviderModelCatalogView({
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1">
-                <strong className="text-sm font-semibold">
+                <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {model.model_id}
                 </strong>
                 <small className="text-xs text-muted-foreground">
@@ -1872,7 +1872,7 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="grid gap-1">
-            <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
+            <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
             <small className="text-xs text-muted-foreground">
               {slot.connection_id} / {slot.model_id}
             </small>
@@ -1940,7 +1940,7 @@ export function ProjectRuntimeSettingsView({
             {settings.slots.map((slot) => (
               <DataListItem className="grid gap-3" key={slot.slot}>
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold">{slotLabel(slot.slot)}</strong>
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{slotLabel(slot.slot)}</strong>
                   <small className="text-xs text-muted-foreground">
                     {slot.connection_id} / {slot.model_id}
                   </small>
@@ -1982,7 +1982,7 @@ export function ProjectRuntimeSettingsView({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1">
-                  <strong className="text-sm font-semibold">
+                  <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {model.model_id}
                   </strong>
                   <small className="text-xs text-muted-foreground">
@@ -2005,7 +2005,7 @@ export function ProjectRuntimeSettingsView({
         <DataList>
           <DataListItem className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
-              <strong className="text-sm font-semibold">
+              <strong className="text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
               <small className="text-xs text-muted-foreground">

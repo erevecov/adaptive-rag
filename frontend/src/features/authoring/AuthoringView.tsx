@@ -539,8 +539,8 @@ function ProjectList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground'
-                      : 'break-words text-sm font-semibold'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
                   }
                 >
                   {project.name}
@@ -841,8 +841,8 @@ function UserAccessLists({
                 <strong
                   className={
                     user.is_active
-                      ? 'break-words text-sm font-semibold'
-                      : 'break-words text-sm font-semibold text-muted-foreground'
+                      ? 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
                   }
                 >
                   {user.login}
@@ -888,7 +888,7 @@ function UserAccessLists({
           {memberships.map((membership) => (
             <DataListItem className="grid gap-2" key={membership.id}>
               <div className="grid min-w-0 gap-1">
-                <strong className="break-all text-sm font-semibold">
+                <strong className="break-all text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {membership.user_id}
                 </strong>
                 <small className="break-all text-xs text-muted-foreground">
@@ -1242,8 +1242,8 @@ function SourceList({
                 <strong
                   className={
                     isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground'
-                      : 'break-words text-sm font-semibold'
+                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
+                      : 'break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug'
                   }
                 >
                   {source.external_id}
@@ -1382,7 +1382,7 @@ function KnowledgeReviewPanel({
             return (
               <DataListItem className="grid gap-3" key={proposal.id}>
                 <div className="grid min-w-0 gap-1">
-                  <strong className="break-words text-sm font-semibold">
+                  <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                     {proposal.proposed_text}
                   </strong>
                   <small
