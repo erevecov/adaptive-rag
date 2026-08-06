@@ -183,7 +183,7 @@ export function SessionNavigationPanel({
             active={statusFilter === filter.value}
             aria-label={filter.title}
             className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.625rem] max-[680px]:leading-snug',
+              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
               statusFilter === filter.value
                 ? 'font-semibold shadow-sm'
                 : 'font-medium',
@@ -300,7 +300,7 @@ export function SessionNavigationPanel({
                     >
                       <Input
                         aria-label="Nuevo nombre de sesión"
-                        className="h-7 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.625rem]"
+                        className="h-7 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.5625rem]"
                         maxLength={60}
                         onBlur={(event) => {
                           // Submit click blurs first — don't discard a pending save.
@@ -389,7 +389,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
                           align="end"
-                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:text-[0.625rem] max-[680px]:gap-0.5 max-[680px]:p-1"
+                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:text-[0.5625rem] max-[680px]:gap-0.5 max-[680px]:p-1"
                           data-slot="session-actions-menu"
                           onCloseAutoFocus={(event) => event.preventDefault()}
                           sideOffset={4}
@@ -438,7 +438,7 @@ export function SessionNavigationPanel({
       </DataList>
       {canLoadMore ? (
         <Button
-          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11 max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+          className="h-auto w-full justify-center py-1.5 text-xs text-muted-foreground hover:bg-primary/15 hover:text-foreground max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
           disabled={isLoading}
           onClick={onLoadMore}
           type="button"
@@ -649,10 +649,10 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
 
         {viewer.citationSnippet === null ? null : (
           <section className="grid gap-1">
-            <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+            <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               Citation Snippet
             </h4>
-            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {viewer.citationSnippet}
             </p>
           </section>
@@ -684,7 +684,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </dl>
 
             <section className="grid gap-2">
-              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Tags</h4>
+              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
                 <EmptyState>No Tags Stored.</EmptyState>
               ) : (
@@ -697,7 +697,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
             </section>
 
             <section className="grid gap-2">
-              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">Metadata</h4>
+              <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Metadata</h4>
               {viewer.source.extra_metadata === null ||
               Object.keys(viewer.source.extra_metadata).length === 0 ? (
                 <EmptyState>No Metadata Stored.</EmptyState>
@@ -758,10 +758,10 @@ function ConversationMinimap({
                   variant="ghost"
                 >
                   <span className="grid min-w-0 gap-1">
-                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {message.role}
                     </strong>
-                    <span className="line-clamp-2 break-all text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <span className="line-clamp-2 break-all text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {message.content}
                     </span>
                   </span>
@@ -851,13 +851,13 @@ function MetricCard({
 }) {
   return (
     <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:border-primary/25 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20">
-      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:tracking-wider">
+      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </span>
       <strong className="break-words text-xl font-semibold leading-none max-[680px]:text-lg max-[680px]:leading-tight">
         {value}
       </strong>
-      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {detail}
       </small>
     </article>
@@ -894,8 +894,8 @@ function InternalActionStepper({
                 <Badge>
                   Tool Call {titleCaseToken(call.status)}
                 </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {formatJsonValue(call.arguments)}
                 </p>
                 <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -911,14 +911,14 @@ function InternalActionStepper({
                 <Badge>
                   Retrieval {titleCaseToken(run.strategy)}
                 </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{run.query}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{run.query}</strong>
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
                 </p>
                 <DataList>
                   {run.retrieved_chunks.map((chunk) => (
                     <DataListItem key={chunk.retrieved_chunk_id}>
-                      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                         Rank {chunk.rank}
                       </strong>
                       <small className="block text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -937,8 +937,8 @@ function InternalActionStepper({
                 <Badge>
                   Provider Usage {titleCaseToken(usage.status)}
                 </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.model}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</strong>
+                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {usage.provider} {usage.operation} /{' '}
                   {formatUnknownTokens(usage.total_tokens)} /{' '}
                   {formatUnknownCost(usage.estimated_cost_usd)}
@@ -1041,7 +1041,7 @@ function SessionDetailPanel({
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">
         <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
-          <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Messages
           </h4>
           <DataList aria-label="Session Messages">
@@ -1056,10 +1056,10 @@ function SessionDetailPanel({
                     id={messageElementId(message.message_id)}
                     tabIndex={-1}
                   >
-                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {message.role}
                     </strong>
-                    <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {message.content}
                     </p>
                   </article>
@@ -1118,7 +1118,7 @@ function DetailSection({
 }) {
   return (
     <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby={id}>
-      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {title}
       </h4>
       {children}
@@ -1145,8 +1145,8 @@ function CompactStateList<T>({
 function ToolCallDetail({ call }: { call: ChatHistoryToolCall }) {
   return (
     <DataListItem key={call.tool_call_id}>
-      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
-      <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
+      <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {formatJsonValue(call.arguments)}
       </p>
       <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{call.status}</small>
@@ -1163,7 +1163,7 @@ function RetrievalRunDetail({
 }) {
   return (
     <DataListItem className="grid gap-2" key={run.retrieval_run_id}>
-      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{run.query}</strong>
+      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{run.query}</strong>
       <div className="flex flex-wrap gap-2">
         <Badge>{retrievalStrategyLabel(run)}</Badge>
         <Badge>Top {run.top_k}</Badge>
@@ -1250,10 +1250,10 @@ function RetrievedChunkDetail({
 function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
   return (
     <DataListItem key={usage.provider_usage_id}>
-      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {usage.provider} / {usage.model}
       </strong>
-      <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {usage.total_tokens ?? 'Unknown'} Tokens
         {usage.estimated_cost_usd === null
           ? ''
@@ -1272,7 +1272,7 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <dd className="mt-1 break-words text-sm text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {value}
       </dd>
     </div>

@@ -214,7 +214,7 @@ export function RetrievalPlaygroundPanel({
               {requestStateLabel(state)}
             </StatusBadge>
             {!projectId.trim() ? (
-              <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+              <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 Select a Project in the Sidebar First.
               </span>
             ) : null}
@@ -322,7 +322,7 @@ export function RetrievalPlaygroundPanel({
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1">
-                    <strong className="break-words text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {result.citation.source_external_id}
                     </strong>
                     <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -331,7 +331,7 @@ export function RetrievalPlaygroundPanel({
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
-                    <p className="line-clamp-4 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                    <p className="line-clamp-4 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {result.citation.snippet}
                     </p>
                   </div>

@@ -763,7 +763,7 @@ function ResponseContent({
           className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
           data-slot="chat-message"
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (
@@ -865,7 +865,7 @@ function ResponseContent({
           <ul className="grid gap-1.5 max-[680px]:gap-1">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                 key={memory.id}
               >
                 {memory.content}
@@ -1029,7 +1029,7 @@ function ResponseDetailsContent({
           aria-label="Tool Calls Detail"
           className="grid gap-2 max-[680px]:gap-1"
         >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Tool Calls · {toolCallCount}
           </h3>
           <DataList>
@@ -1038,10 +1038,10 @@ function ResponseDetailsContent({
                 className="grid gap-1 max-[680px]:gap-0.5"
                 key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
               >
-                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {call.name}
                 </strong>
-                <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {call.query ?? 'No Query Stored.'}
                 </span>
                 <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -1058,7 +1058,7 @@ function ResponseDetailsContent({
           aria-label="Sources Detail"
           className="grid gap-2 max-[680px]:gap-1"
         >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Sources · {sourceCount}
           </h3>
           <DataList>
@@ -1068,10 +1068,10 @@ function ResponseDetailsContent({
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
                 <div className="grid min-w-0 gap-2">
-                  <strong className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.source_external_id}
                   </strong>
-                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.snippet}
                   </p>
                   <div className="flex flex-wrap gap-2 max-[680px]:gap-1">
@@ -1134,7 +1134,7 @@ function UsageItem({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+      <dd className="mt-1 break-words text-sm font-semibold text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {value}
       </dd>
     </div>
@@ -1172,7 +1172,7 @@ function KnowledgeDraftCard({
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             Knowledge draft
           </span>
-          <strong className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {draft.scope}
           </strong>
         </div>
@@ -1197,7 +1197,7 @@ function KnowledgeDraftCard({
         </FieldControl>
       </Field>
       {draft.proposalId === null ? null : (
-        <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+        <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Proposal {draft.proposalId}
         </p>
       )}
