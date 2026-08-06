@@ -69,10 +69,30 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [filterSwitchNotice, setFilterSwitchNotice] = useState<string | null>(
     null,
   )
+  const [focusProposeAgainId, setFocusProposeAgainId] = useState<string | null>(
+    null,
+  )
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
+
+  useEffect(() => {
+    if (focusProposeAgainId === null || listState === 'loading') {
+      return
+    }
+    const targetId = focusProposeAgainId
+    const frame = window.requestAnimationFrame(() => {
+      const button = document.getElementById(`propose-again-${targetId}`)
+      if (button instanceof HTMLElement) {
+        button.focus()
+      }
+      setFocusProposeAgainId((current) =>
+        current === targetId ? null : current,
+      )
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [focusProposeAgainId, items, listState])
 
   useEffect(() => {
     if (filterSwitchNotice === null) {
@@ -298,12 +318,16 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         setFilterSwitchNotice(
           'Showing Rejected — soft-removed item is below with Propose Again.',
         )
+        setFocusProposeAgainId(memory.id)
         setStatusFilter('rejected')
       } else {
         setFilterSwitchNotice(null)
         await refreshList()
       }
       requestAnimationFrame(() => {
+        if (switchApprovedToRejected) {
+          return
+        }
         if (wasApproved) {
           document.getElementById('memory-undo-remove')?.focus()
           return
@@ -967,6 +991,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       <DataListItemActions className="gap-1.5">
                         <Button
                           aria-label="Propose again from rejected memory"
+                          id={`propose-again-${memory.id}`}
                           onClick={() => {
                             setDraft(
                               memory.content.slice(0, USER_MEMORY_MAX_CHARS),
