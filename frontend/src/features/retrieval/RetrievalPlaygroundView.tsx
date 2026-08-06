@@ -115,16 +115,16 @@ export function RetrievalPlaygroundPanel({
       data-testid="retrieval-playground"
       role="region"
     >
-      <PanelHeader className="p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <PanelTitle id="retrieval-playground-title">
+      <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+        <PanelTitle className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>
-        <PanelDescription>
+        <PanelDescription className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Run Project Retrieval Without Chat. Inspect Ranked Chunks, Scores, and
           Strategy for the Selected Project.
         </PanelDescription>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:border-t max-[680px]:border-primary/95 grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <form
           className="grid gap-4 max-[680px]:gap-0.5"
           onSubmit={(event) => void handleSearch(event)}
@@ -196,18 +196,22 @@ export function RetrievalPlaygroundPanel({
                 />
               </FieldControl>
               {!rerankEnabled ? (
-                <FieldHelp id="rerank-limit-help">
+                <FieldHelp
+                  className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                  id="rerank-limit-help"
+                >
                   Enable Rerank to Edit Candidate Limit.
                 </FieldHelp>
               ) : null}
             </Field>
           </div>
           <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0.5">
-            <Button className="max-[680px]:h-8 max-[680px]:px-2 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter" type="submit" disabled={state === 'loading'}>
+            <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
             <StatusBadge
               aria-live="polite"
+              className="max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               role="status"
               tone={requestStateTone(state)}
             >
@@ -236,7 +240,7 @@ export function RetrievalPlaygroundPanel({
           {state === 'loading' ? (
             <EmptyState
               aria-busy="true"
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="loading"
               role="status"
             >
@@ -247,11 +251,11 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'failed' ? (
             <EmptyState
-              className="border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5"
+              className="border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/80 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/65 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="failed"
               role="alert"
             >
-              <p className="font-semibold text-destructive">Search Failed</p>
+              <p className="font-semibold text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Search Failed</p>
               <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
@@ -260,7 +264,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'idle' && results.length === 0 && !error ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -275,7 +279,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'succeeded' && results.length === 0 ? (
             <EmptyState
-              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30 max-[680px]:tracking-tighter"
+              className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -291,32 +295,35 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked Retrieval Results">
+            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5">
               {results.map((result, index) => (
                 <DataListItem
-                  className="grid gap-2 max-[680px]:gap-0.5"
+                  className="grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
                   <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                     <Badge
                       aria-label={`Rank ${index + 1}`}
-                      className="min-w-[4.5ch] justify-center tabular-nums max-[680px]:min-w-[3.5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                      className="min-w-[4.5ch] justify-center tabular-nums max-[680px]:min-w-[3ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                       tone="neutral"
                     >
                       #{index + 1}
                     </Badge>
                     <Badge
                       aria-label={`Score ${result.score.toFixed(4)}`}
-                      className="min-w-[7ch] justify-center font-mono tabular-nums max-[680px]:min-w-[5.5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                      className="max-[680px]:leading-snug min-w-[7ch] justify-center font-mono tabular-nums max-[680px]:min-w-[5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                     >
                       {result.score.toFixed(4)}
                     </Badge>
-                    <StatusBadge tone="neutral">
+                    <StatusBadge
+                      className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                      tone="neutral"
+                    >
                       {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[6ch] max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
+                      <span className="min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5.5ch] max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                         Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}
