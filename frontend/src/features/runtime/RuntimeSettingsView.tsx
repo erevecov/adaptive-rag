@@ -378,10 +378,10 @@ function RuntimePanel({
     >
       <PanelHeader className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             Runtime
           </p>
-          <h2 id={id} className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <h2 id={id} className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {title}
           </h2>
           {description ? (
@@ -568,7 +568,7 @@ export function RuntimeConnectionsPanel({
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0">
                     <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                      <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium truncate font-mono text-xs font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                      <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium truncate font-mono text-xs font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                         {connection.connection_id}
                       </strong>
                       <div className="flex flex-wrap gap-2 max-[680px]:gap-0">
@@ -592,7 +592,7 @@ export function RuntimeConnectionsPanel({
                         ) : null}
                       </div>
                       {connection.base_url ? (
-                        <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                        <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                           {connection.base_url}
                         </small>
                       ) : null}
@@ -643,7 +643,7 @@ export function RuntimeConnectionsPanel({
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
-                        Type <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{connection.connection_id}</strong> to Confirm
+                        Type <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{connection.connection_id}</strong> to Confirm
                         Deletion.
                       </InlineFeedback>
                       <RuntimeField
@@ -697,7 +697,7 @@ export function RuntimeConnectionsPanel({
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveConnection}>
         <div className="flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0">
-          <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {isEditingConnection
               ? `Edit Connection ${editingConnectionId}`
               : 'New Connection'}
@@ -1046,10 +1046,10 @@ export function RuntimeModelCatalogPanel({
             <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0">
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {selectedConnection.connection_id}
                   </small>
                   <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
@@ -1058,7 +1058,7 @@ export function RuntimeModelCatalogPanel({
                       .join(', ')}
                   </Badge>
                   {selectedConnection.base_url ? (
-                    <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {selectedConnection.base_url}
                     </small>
                   ) : null}
@@ -1229,7 +1229,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
             aria-busy="true"
@@ -1259,10 +1259,10 @@ export function RuntimeGlobalDefaultsPanel({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.connection_id}
                   </small>
                 </div>
@@ -1316,7 +1316,7 @@ export function RuntimeGlobalDefaultsPanel({
       </form>
 
       <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
             aria-busy="true"
@@ -1338,10 +1338,10 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             <DataListItem className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
               <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   Global Defaults
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   Limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
@@ -1642,7 +1642,7 @@ export function ConnectionSecretSummary({
 }) {
   if (connection.secrets.length === 0) {
     return (
-      <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
         {connection.connection_type === 'fake'
           ? 'Secrets Not Required for This Connection'
           : 'No API Key on File'}
@@ -1679,7 +1679,7 @@ export function ConnectionCheckSummary({
 
   if (result === undefined) {
     return (
-      <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Not Checked</small>
+      <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Not Checked</small>
     )
   }
 
@@ -1700,7 +1700,7 @@ export function ConnectionCheckSummary({
     <Callout className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-2 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
       Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
-        <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate mt-1 block text-xs opacity-90 max-[680px]:mt-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+        <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate mt-1 block text-xs opacity-90 max-[680px]:mt-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
           {operatorSafeMessage(result.message, 'Provider Rejected the Check.')}
         </span>
       ) : null}
@@ -1794,7 +1794,7 @@ export function ProviderModelCatalogView({
 }) {
   return (
     <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0">
-      <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
+      <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
           aria-busy="true"
@@ -1816,17 +1816,17 @@ export function ProviderModelCatalogView({
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {model.model_id}
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {model.connection_id} /{' '}
                   {model.capabilities
                     .map((capability) => slotLabel(capability))
                     .join(', ')}
                 </small>
                 {model.pricing ? (
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     Pricing metadata saved
                   </small>
                 ) : null}
@@ -1891,8 +1891,8 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-            <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
-            <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+            <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
+            <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
               {slot.connection_id} / {slot.model_id}
             </small>
           </div>
@@ -1945,7 +1945,7 @@ export function ProjectRuntimeSettingsView({
   return (
     <div className="min-w-0 grid gap-4 max-[680px]:gap-0 xl:grid-cols-3">
       <section className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
             className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -1959,8 +1959,8 @@ export function ProjectRuntimeSettingsView({
             {settings.slots.map((slot) => (
               <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0" key={slot.slot}>
                 <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
                   </small>
                 </div>
@@ -1983,7 +1983,7 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
             className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -2001,10 +2001,10 @@ export function ProjectRuntimeSettingsView({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.connection_id}
                   </small>
                 </div>
@@ -2020,14 +2020,14 @@ export function ProjectRuntimeSettingsView({
         )}
       </section>
       <section className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
           <DataListItem className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
             <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
-              <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
-              <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
                 {settings.chat_retrieval.rerank_enabled ? 'Rerank On' : 'Rerank Off'}
               </small>

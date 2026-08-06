@@ -223,7 +223,7 @@ export function RetrievalPlaygroundPanel({
               {requestStateLabel(state)}
             </StatusBadge>
             {!projectId.trim() ? (
-              <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Select a Project in the Sidebar First.
               </span>
             ) : null}
@@ -249,7 +249,7 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="loading"
               role="status"
             >
-              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Searching…</p>
+              <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Searching…</p>
               <span className="sr-only">Searching Retrieval…</span>
             </EmptyState>
           ) : null}
@@ -260,8 +260,8 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="failed"
               role="alert"
             >
-              <p className="max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Search Failed</p>
-              <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:text-left max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Search Failed</p>
+              <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
             </EmptyState>
@@ -273,10 +273,10 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="empty"
               role="status"
             >
-              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Run A Query To Inspect Ranked Chunks.
               </p>
-              <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Choose Strategy, Optional Rerank, Then Search.
               </p>
             </EmptyState>
@@ -288,7 +288,7 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="empty"
               role="status"
             >
-              <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 No Chunks Returned
               </p>
               <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:space-y-0 max-[680px]:pl-3 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
@@ -328,22 +328,22 @@ export function RetrievalPlaygroundPanel({
                       {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5ch] max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                      <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5ch] max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                         Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                    <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>
-                    <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {retrievalSourceTypeDisplay(result.citation.source_type)}
                       {result.fallback_reason
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
-                    <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate line-clamp-4 max-[680px]:line-clamp-2 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate line-clamp-4 max-[680px]:line-clamp-2 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.snippet}
                     </p>
                   </div>

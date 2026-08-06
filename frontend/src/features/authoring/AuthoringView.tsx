@@ -304,7 +304,7 @@ function AuthoringSectionPanel({
     >
       <PanelHeader className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             {eyebrow}
           </p>
           <PanelTitle className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id={id}>{title}</PanelTitle>
@@ -379,7 +379,7 @@ function LoadingListState({ label }: { label: string }) {
       data-slot-state="loading"
       role="status"
     >
-      <p aria-hidden="true" className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <p aria-hidden="true" className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
         {label}
       </p>
     </EmptyState>
@@ -503,8 +503,8 @@ function ProjectList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Projects Yet.</p>
-        <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Projects Yet.</p>
+        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
           Create a project above to start indexing sources.
         </p>
       </EmptyState>
@@ -536,7 +536,7 @@ function ProjectList({
               onClick={() => onSelectProject(project)}
               variant="ghost"
             >
-              <span className="max-[680px]:max-w-full max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0">
+              <span className="max-[680px]:text-left max-[680px]:max-w-full max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong
                   className={
                     isDeleted
@@ -546,11 +546,11 @@ function ProjectList({
                 >
                   {project.name}
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {project.id}
                 </small>
                 {isDeleted ? (
-                  <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
@@ -854,10 +854,10 @@ function UserAccessLists({
                 >
                   {user.login}
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-words text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-words text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {user.display_name}
                 </small>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {user.id}
                 </small>
               </div>
@@ -895,10 +895,10 @@ function UserAccessLists({
           {memberships.map((membership) => (
             <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:font-medium break-all text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:text-left max-[680px]:font-medium break-all text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {membership.user_id}
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {membership.project_id}
                 </small>
               </div>
@@ -975,7 +975,7 @@ function SourceFileField({
       {sourceFileName.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <span
-            className="text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+            className="max-[680px]:text-left text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
             data-slot="source-file-status"
             id={`${fieldId}-file-help`}
             role="status"
@@ -1001,7 +1001,7 @@ function SourceFileField({
         </div>
       ) : (
         <span
-          className="text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+          className="max-[680px]:text-left text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
           data-slot="source-file-status"
           id={`${fieldId}-file-help`}
           role="status"
@@ -1153,7 +1153,7 @@ function SourcesPanel({
             )}
           </AuthoringField>
         ) : (
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             URL sources are fetched during ingestion; no content is required here.
           </p>
         )}
@@ -1227,8 +1227,8 @@ function SourceList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Sources Yet.</p>
-        <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Sources Yet.</p>
+        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
@@ -1266,10 +1266,10 @@ function SourceList({
                   </StatusBadge>
                 ) : null}
               </div>
-              <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {source.id}
               </small>
-              <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {isDeleted
                   ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}
@@ -1368,8 +1368,8 @@ function KnowledgeReviewPanel({
           data-slot-state="canceled"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Proposals Load Canceled.</p>
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Proposals Load Canceled.</p>
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             Refresh Again When Ready to Review Knowledge Drafts.
           </p>
         </EmptyState>
@@ -1380,8 +1380,8 @@ function KnowledgeReviewPanel({
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Pending Proposals.</p>
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Pending Proposals.</p>
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             Refresh After Chat Surfaces a Knowledge Draft for This Project.
           </p>
         </EmptyState>
@@ -1394,11 +1394,11 @@ function KnowledgeReviewPanel({
             return (
               <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
                 <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
                   </strong>
                   <small
-                    className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                    className="max-[680px]:text-left break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                     title={proposal.id}
                   >
                     {proposal.id}
@@ -1547,7 +1547,7 @@ function IngestionJobsPanel({
           data-slot="ingestion-last-run"
         >
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
-            <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate font-medium text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Last Run</span>
+            <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate font-medium text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Last Run</span>
             <StatusBadge
               className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0 max-[680px]:py-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               tone={jobTone(run.status)}
@@ -1555,7 +1555,7 @@ function IngestionJobsPanel({
               {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
-          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left text-sm leading-snug text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
@@ -1591,8 +1591,8 @@ function IngestionJobList({
         data-slot-state="empty"
         role="status"
       >
-        <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Ingestion Jobs Yet.</p>
-        <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Ingestion Jobs Yet.</p>
+        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>
@@ -1605,9 +1605,9 @@ function IngestionJobList({
     <div className="min-w-0 grid gap-3 max-[680px]:gap-0" data-slot="ingestion-job-groups">
       {groups.map((group) => (
         <div className="min-w-0 grid gap-2 max-[680px]:gap-0" key={group.status}>
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             {jobStatusLabel(group.status)}
-            <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
+            <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
           <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {group.jobs.map((job) => {
@@ -1631,7 +1631,7 @@ function IngestionJobList({
                       {isRunning ? (
                         <span
                           aria-hidden="true"
-                          className="max-[680px]:motion-reduce:animate-none size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
+                          className="max-[680px]:text-left max-[680px]:motion-reduce:animate-none size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
                           data-slot="ingestion-job-pulse"
                         />
                       ) : null}
@@ -1644,14 +1644,14 @@ function IngestionJobList({
                     </div>
                     {sourceId ? (
                       <small
-                        className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                        className="max-[680px]:text-left break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                         title="Source ID From Job Payload"
                       >
                         Source {sourceId}
                       </small>
                     ) : null}
                     <small
-                      className="max-[680px]:min-w-0 max-[680px]:max-w-full truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                      className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                       title={job.id}
                     >
                       {truncateId(job.id)}

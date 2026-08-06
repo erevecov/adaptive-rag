@@ -106,7 +106,7 @@ export function ObservabilityPanel({
     >
       <PanelHeader className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0 max-[680px]:p-0">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             Observability
           </p>
           <PanelTitle className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="observability-title">{activeLabel}</PanelTitle>
@@ -270,8 +270,8 @@ function ObservabilityContent({
           data-slot-state="failed"
           role="alert"
         >
-          <p className="max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Summary Unavailable.</p>
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Summary Unavailable.</p>
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             The Last Refresh Failed. Adjust Filters and Try Again.
           </p>
         </EmptyState>
@@ -284,8 +284,8 @@ function ObservabilityContent({
           data-slot-state="canceled"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Refresh Canceled.</p>
-          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Refresh Canceled.</p>
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             No Summary Loaded. Run Refresh Again When Ready.
           </p>
         </EmptyState>
@@ -332,7 +332,7 @@ function ObservabilityContent({
       className="relative"
       data-slot="observability-refreshing"
     >
-      <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status">
+      <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status">
         Refreshing…
       </p>
       {content}
@@ -602,18 +602,18 @@ function MetricCard({
       className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
     >
       <span
-        className="max-[680px]:font-medium text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:px-0"
+        className="max-[680px]:text-left max-[680px]:font-medium text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:px-0"
         id={labelId}
       >
         {label}
       </span>
       <strong
-        className="max-[680px]:font-medium break-words text-2xl font-semibold leading-none tabular-nums max-[680px]:text-base max-[680px]:leading-tight max-[680px]:tracking-tighter"
+        className="max-[680px]:text-left max-[680px]:font-medium break-words text-2xl font-semibold leading-none tabular-nums max-[680px]:text-base max-[680px]:leading-tight max-[680px]:tracking-tighter"
         id={valueId}
       >
         {value}
       </strong>
-      <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
         {detail}
       </small>
     </article>
@@ -640,7 +640,7 @@ function BreakdownCard({
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0">
-        <h3 className="max-[680px]:font-medium text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">{title}</h3>
+        <h3 className="max-[680px]:text-left max-[680px]:font-medium text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">{title}</h3>
         <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{label}</Badge>
       </div>
       {children}
@@ -665,10 +665,10 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
               key={row.status}
             >
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {sessionStatusDisplayLabel(row.status)}
                 </strong>
-                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
@@ -698,7 +698,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0 border-0 bg-transparent p-2 max-[680px]:p-0 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={error.message}
             >
-              <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {operatorSafeMessage(error.message, error.message)}
               </strong>
               <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{formatCount(error.count, 'Occurrence')}</Badge>
@@ -844,13 +844,13 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
         </EmptyState>
       ) : (
         <div className="min-w-0 grid gap-2 max-[680px]:gap-0">
-          <strong className="max-[680px]:font-medium text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <strong className="max-[680px]:text-left max-[680px]:font-medium text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {formatPercent(succeeded, total)} Success
           </strong>
-          <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             {formatCount(failed, 'Failed Session')}
           </span>
-          <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             {formatCount(running, 'Running Session')}
           </span>
         </div>
