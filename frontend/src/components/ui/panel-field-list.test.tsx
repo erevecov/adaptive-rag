@@ -131,7 +131,7 @@ describe('DataListItem', () => {
     expect(row.className).toContain('active:bg-primary/20')
     expect(row.className).toContain('max-[680px]:active:bg-primary/95')
     expect(row.className).toContain('focus-visible:bg-primary/15')
-    expect(row.className).toContain('max-[680px]:focus-visible:bg-primary/50')
+    expect(row.className).toContain('max-[680px]:focus-visible:bg-primary/55')
     expect(row.className).toContain('focus-visible:ring-inset')
     expect(row.className).toContain('max-[680px]:rounded-sm')
     expect(row.className).toContain('max-[680px]:p-0.5')
