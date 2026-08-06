@@ -246,7 +246,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     <span className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5">
       {chips.slice(0, 3).map((chip) => (
         <span
-          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
+          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
           data-slot="chat-pipeline-detail-chip"
           key={chip}
         >
@@ -263,7 +263,7 @@ function StepDetail({ step }: { step: ChatStep }) {
   if (detailEntries.length === 0 && usage === undefined) {
     return (
       <p
-        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-0.5 max-[680px]:pb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
       >
         No Step Detail Recorded.
