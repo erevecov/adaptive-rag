@@ -266,7 +266,7 @@ export function SessionNavigationPanel({
               >
                 {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
                     beflow-style mask fade on hover / open menu. */}
-                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] max-[680px]:gap-0.5">
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_1.25rem] max-[680px]:gap-0.5">
                   <span
                     aria-hidden={!hasTraining}
                     className="flex w-4 items-center justify-start text-muted-foreground"
