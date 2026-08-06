@@ -74,7 +74,7 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
         data-slot="chat-pipeline-steps"
       >
         <Button
@@ -128,7 +128,7 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat Pipeline Steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/25 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
       data-slot="chat-pipeline-steps"
     >
       <Button

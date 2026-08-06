@@ -344,7 +344,7 @@ export function RuntimeSettingsPanel({
     )
 
   return (
-    <div className="grid gap-4 max-[680px]:gap-1.5">
+    <div className="grid gap-4 max-[680px]:gap-0.5">
       {error ? (
         <Callout className="p-3" role="alert" tone="danger">
           {operatorSafeMessage(error)}
@@ -392,7 +392,7 @@ function RuntimePanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -690,7 +690,7 @@ export function RuntimeConnectionsPanel({
         )}
       </section>
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveConnection}>
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveConnection}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold leading-none">
             {isEditingConnection
@@ -708,7 +708,7 @@ export function RuntimeConnectionsPanel({
             </Button>
           ) : null}
         </div>
-        <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-2">
+        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
               <Select
@@ -1009,7 +1009,7 @@ export function RuntimeModelCatalogPanel({
         {state === 'loading' ? 'Refreshing…' : 'Refresh Catalog'}
       </Button>
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSyncProviderModels}>
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSyncProviderModels}>
         <RuntimeField
           id="runtime-model-sync-connection"
           label="Model Sync Connection"
@@ -1161,8 +1161,8 @@ export function RuntimeGlobalDefaultsPanel({
 
       <RuntimeSlotList slots={slots} state={state} />
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveGlobalSlot}>
-        <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalSlot}>
+        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
@@ -1265,8 +1265,8 @@ export function RuntimeGlobalDefaultsPanel({
         )}
       </section>
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveGlobalChatModel}>
-        <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-2">
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatModel}>
+        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
           <RuntimeField
             id="runtime-chat-connection"
             label="Chat Connection"
@@ -1348,8 +1348,8 @@ export function RuntimeGlobalDefaultsPanel({
             No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
-        <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-3">
+        <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatRetrieval}>
+          <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
             <RuntimeField
               id="runtime-global-retrieval-limit"
               label="Retrieval Limit"
@@ -1489,8 +1489,8 @@ export function RuntimeProjectOverridesPanel({
         state={state}
       />
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveProjectChatRetrieval}>
-        <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectChatRetrieval}>
+        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField
             id="runtime-project-retrieval-limit"
             label="Retrieval Limit"
@@ -1559,8 +1559,8 @@ export function RuntimeProjectOverridesPanel({
         </DataListItemActions>
       </form>
 
-      <form className="grid gap-4 max-[680px]:gap-1.5" onSubmit={onSaveProjectOverride}>
-        <div className="grid gap-4 max-[680px]:gap-1.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectOverride}>
+        <div className="grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
           <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select
@@ -1924,7 +1924,7 @@ export function ProjectRuntimeSettingsView({
     )
   }
   return (
-    <div className="grid gap-4 max-[680px]:gap-1.5 xl:grid-cols-3">
+    <div className="grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
       <section className="grid gap-3">
         <h3 className="text-base font-semibold leading-none">Effective Slots</h3>
         {settings.slots.length === 0 ? (
