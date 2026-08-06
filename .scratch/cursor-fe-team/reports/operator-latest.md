@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: Button w-full / max-w-full densify at ≤680
+- Pass: DataList overflow-x-auto densify (authoring + runtime slots)
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates
 - PR: https://github.com/erevecov/adaptive-rag/pull/530

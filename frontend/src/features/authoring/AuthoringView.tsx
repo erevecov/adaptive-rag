@@ -512,7 +512,7 @@ function ProjectList({
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:gap-0.5">
+    <DataList aria-label="Projects" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
@@ -837,7 +837,7 @@ function UserAccessLists({
           No Users Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Users" className="max-[680px]:gap-0.5">
+        <DataList aria-label="Users" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
               className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
@@ -891,7 +891,7 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:gap-0.5">
+        <DataList aria-label="Project Memberships" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
             <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
@@ -1236,7 +1236,7 @@ function SourceList({
   }
 
   return (
-    <DataList aria-label="Sources" className="max-[680px]:gap-0.5">
+    <DataList aria-label="Sources" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {sources.map((source) => {
         const isDeleted = Boolean(source.deleted_at)
         const tags =
@@ -1386,7 +1386,7 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:gap-0.5">
+        <DataList aria-label="Knowledge Proposals" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''

@@ -1884,7 +1884,7 @@ export function RuntimeSlotList({
     )
   }
   return (
-    <DataList aria-label="Global Runtime Slots" className="max-[680px]:gap-0.5">
+    <DataList aria-label="Global Runtime Slots" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {slots.map((slot) => (
         <DataListItem
           className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
