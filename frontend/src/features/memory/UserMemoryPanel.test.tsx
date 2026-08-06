@@ -597,6 +597,68 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText('Replacement preference')).toBeTruthy()
   })
 
+  test('View Proposed clears soft-remove banners after rejected list failure', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),
+    ]
+    let failRejectedLoad = false
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      if (failRejectedLoad && status === 'rejected') {
+        throw new Error('rejected list failed')
+      }
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      failRejectedLoad = true
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-1'))
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    expect(await screen.findByText(/rejected list failed/i)).toBeTruthy()
+    expect(await screen.findByText('No Rejected Memories')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
+    expect(
+      screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen.queryByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeNull()
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+  })
+
 
   test('shows rejected empty state with a path back to Proposed', async () => {
     const user = userEvent.setup()

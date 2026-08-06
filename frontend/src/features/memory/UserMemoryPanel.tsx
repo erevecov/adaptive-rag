@@ -722,10 +722,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           filter={statusFilter}
           onPropose={() => {
             setConfirmRemoveId(null)
+            setFilterSwitchNotice(null)
+            setUndoRemoveId(null)
             document.getElementById(draftFieldId)?.focus()
           }}
           onViewProposed={() => {
             setConfirmRemoveId(null)
+            setFilterSwitchNotice(null)
+            setUndoRemoveId(null)
             setStatusFilter('proposed')
           }}
         />
