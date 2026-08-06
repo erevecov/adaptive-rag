@@ -242,6 +242,40 @@ describe('UserMemoryPanel', () => {
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
   })
 
+  test('changing status filter clears the soft-remove Undo banner', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+      memory({ content: 'Other live', id: 'mem-3', status: 'approved' }),
+    ]
+    const list = vi.fn(async () => ({ items: [...store] }))
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(
+      screen.getAllByRole('button', { name: 'Remove from injection' })[0],
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalled())
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^All/ }))
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+  })
+
   test('switches to Rejected when soft-remove empties the Approved filter', async () => {
     const user = userEvent.setup()
     const store: UserMemory[] = [

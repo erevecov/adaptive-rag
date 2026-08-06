@@ -556,6 +556,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               onClick={() => {
                 setConfirmRemoveId(null)
                 setFilterSwitchNotice(null)
+                setUndoRemoveId(null)
                 setStatusFilter(filter.id)
               }}
               size="sm"
