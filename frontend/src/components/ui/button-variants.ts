@@ -23,13 +23,13 @@ export const buttonVariants = cva(
           // Solid ring against destructive fill (parity with primary; purple/dark).
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground',
         ghost:
-          'bg-transparent text-foreground hover:bg-primary/15 max-[680px]:hover:bg-primary/25 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
+          'bg-transparent text-foreground hover:bg-primary/15 max-[680px]:hover:bg-primary/30 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
         // Contrast ring against primary fill (dark near-white / purple violet)
         primary:
           'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',
         secondary:
           // Primary-tint hover reads clearer than accent wash on purple chrome.
-          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 max-[680px]:hover:bg-primary/25 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 max-[680px]:border-primary/95',
+          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 max-[680px]:hover:bg-primary/30 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 max-[680px]:border-primary/95',
       },
     },
   },
