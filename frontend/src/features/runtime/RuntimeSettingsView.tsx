@@ -1687,7 +1687,7 @@ export function ConnectionCheckSummary({
     return (
       <Callout
         aria-live="polite"
-        className="max-[680px]:hyphens-none max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden p-2 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:hyphens-none max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden p-2 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         role="status"
         tone="success"
       >
