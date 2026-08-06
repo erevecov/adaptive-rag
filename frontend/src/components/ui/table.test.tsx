@@ -93,7 +93,7 @@ describe('Table density', () => {
       'hover:bg-primary/15',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'max-[680px]:hover:bg-primary/75',
+      'max-[680px]:hover:bg-primary/80',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'active:bg-primary/20',
@@ -105,7 +105,7 @@ describe('Table density', () => {
       'focus-visible:bg-primary/15',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'max-[680px]:focus-visible:bg-primary/65',
+      'max-[680px]:focus-visible:bg-primary/70',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'max-[680px]:border-primary/95',
