@@ -126,5 +126,6 @@ describe('DataListItem', () => {
     expect(row.className).toContain('tracking-tight')
     expect(row.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(row.className).toContain('max-[680px]:leading-snug')
+    expect(row.className).toContain('max-[680px]:shadow-primary/15')
   })
 })
