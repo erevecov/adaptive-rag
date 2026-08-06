@@ -482,7 +482,7 @@ function ResponsePanel({
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/35 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/40 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
             <div className="space-y-2 max-[680px]:space-y-1">
@@ -779,7 +779,7 @@ function ResponseContent({
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer Citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-1 max-[680px]:gap-0.5 max-[680px]:pt-1"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-0.5 max-[680px]:gap-0.5 max-[680px]:pt-0.5"
               data-slot="chat-answer-citations"
               role="group"
             >
@@ -799,7 +799,7 @@ function ResponseContent({
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
                       'hover:border-primary/50 hover:bg-primary/15',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
                     )}
                     key={chipKey}
                     onClick={() =>
@@ -1019,8 +1019,8 @@ function ResponseDetailsContent({
     <div
       className={
         embedded
-          ? 'grid gap-3 pt-2 max-[680px]:gap-0.5 max-[680px]:pt-1'
-          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-1'
+          ? 'grid gap-3 pt-2 max-[680px]:gap-0.5 max-[680px]:pt-0.5'
+          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-0.5'
       }
     >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
