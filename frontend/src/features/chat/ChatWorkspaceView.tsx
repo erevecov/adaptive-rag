@@ -202,7 +202,7 @@ export function ChatWorkspacePanel({
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-5 max-[680px]:h-5"
+          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-4 max-[680px]:h-4"
           data-slot="chat-composer-gradient"
         />
         <form
