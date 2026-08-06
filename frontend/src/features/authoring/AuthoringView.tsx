@@ -455,7 +455,7 @@ function ProjectsPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-6 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
@@ -704,7 +704,7 @@ function ProjectAccessPanel({
           </AuthoringField>
         </div>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-6 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
@@ -1159,7 +1159,7 @@ function SourcesPanel({
           )}
         </AuthoringField>
         <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-          <Button className="min-h-9 max-[680px]:min-h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
+          <Button className="min-h-9 max-[680px]:min-h-6 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
