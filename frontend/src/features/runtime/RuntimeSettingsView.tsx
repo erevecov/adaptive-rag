@@ -642,7 +642,7 @@ export function RuntimeConnectionsPanel({
                       className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/70 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
                       onSubmit={onDeleteConnection}
                     >
-                      <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
+                      <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                         Type <strong className="break-all max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{connection.connection_id}</strong> to Confirm
                         Deletion.
                       </InlineFeedback>
@@ -1214,7 +1214,7 @@ export function RuntimeGlobalDefaultsPanel({
           </RuntimeField>
         </div>
         {globalSlotSyncMessage ? (
-          <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
+          <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
             {globalSlotSyncMessage}
           </InlineFeedback>
         ) : null}
@@ -1301,7 +1301,7 @@ export function RuntimeGlobalDefaultsPanel({
           </RuntimeField>
         </div>
         {chatSyncMessage ? (
-          <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
+          <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
             {chatSyncMessage}
           </InlineFeedback>
         ) : null}
@@ -1611,7 +1611,7 @@ export function RuntimeProjectOverridesPanel({
           </RuntimeField>
         </div>
         {projectSlotSyncMessage ? (
-          <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
+          <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status" tone="warning">
             {projectSlotSyncMessage}
           </InlineFeedback>
         ) : null}
@@ -1659,7 +1659,7 @@ export function ConnectionCheckSummary({
 }) {
   if (isChecking) {
     return (
-      <InlineFeedback className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" aria-live="polite" role="status" tone="warning">
+      <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" aria-live="polite" role="status" tone="warning">
         Checking Connection…
       </InlineFeedback>
     )
