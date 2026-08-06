@@ -20,6 +20,8 @@ describe('Badge', () => {
     expect(badge.className).toContain('tabular-nums')
     expect(badge.className).toContain('tracking-tight')
     expect(badge.className).toContain('shrink-0')
+    expect(badge.className).toContain('gap-1')
+    expect(badge.className).toContain('max-[680px]:gap-0.5')
     expect(badge.className).toContain('max-[680px]:rounded-sm')
     expect(badge.className).toContain('max-[680px]:px-0.5')
     expect(badge.className).toContain('max-[680px]:py-0')

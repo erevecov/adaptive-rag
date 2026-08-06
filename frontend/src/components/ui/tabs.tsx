@@ -34,7 +34,11 @@ export const SegmentedControl = forwardRef<
     ref,
   ) => {
   const controlClassName = cn(
+<<<<<<< HEAD
 'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted/40 p-1 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/35 max-[680px]:p-0.5',
+=======
+    'inline-flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-muted/40 p-1 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/35 max-[680px]:p-0.5',
+>>>>>>> cc71a9c (fix(ui): DS focus wash, tracking, overlay rounding (post-#421))
     'motion-safe:transition-colors',
     className,
   )
@@ -129,7 +133,7 @@ export const SegmentedControlItem = forwardRef<
   ) => {
     const itemClassName = cn(
       [
-        'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+        'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
         'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground',
         // Inset ring stays inside the muted track (offset rings clip / wash on purple).
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
