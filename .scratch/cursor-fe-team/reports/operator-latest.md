@@ -1,16 +1,11 @@
 # FE OPERATOR report
 
-STATUS: ready-for-lead-review
+STATUS: ready-for-lead-review · CONTINUOUS
 
-Branch: `feat/ui-polish-cont` (post-#226; **pushed**)
+Branch: `feat/ui-polish-cont` via WT `adaptive-rag-op-polish`
+PR: https://github.com/erevecov/adaptive-rag/pull/443
 
-## Shipped
-- Title Case residual fields/ARIA after #226
-- Obs Error Messages / Provider Usage / Latency cards
-- Rerank FieldHelp + Status Breakdown “N Total”
-- Memory not deleted
+Squashed reclaim on `origin/main` post-#483 (clean operator-only tip after stash thrash).
+Focused vitest **57**. Memory present.
 
-## Verify
-Retrieval+obs **20**; full operator suites **57**.
-
-Grok/coordinator opens PRs.
+Smoke: `Rerank Candidates` + `border-primary/35`.
