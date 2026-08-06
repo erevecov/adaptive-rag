@@ -115,7 +115,7 @@ export function RetrievalPlaygroundPanel({
       data-testid="retrieval-playground"
       role="region"
     >
-      <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+      <PanelHeader className="max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <PanelTitle className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>
