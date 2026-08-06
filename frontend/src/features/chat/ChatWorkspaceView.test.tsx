@@ -473,7 +473,7 @@ describe('ChatWorkspacePanel', () => {
         response,
       })
 
-      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      const card = screen.getByRole('region', { name: `Knowledge Draft ${status}` })
       expect(
         (
           within(card).getByRole('button', {
@@ -601,7 +601,7 @@ describe('ChatWorkspacePanel', () => {
         response,
       })
 
-      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      const card = screen.getByRole('region', { name: `Knowledge Draft ${status}` })
       expect(within(card).getByText(label).getAttribute('data-tone')).toBe(tone)
     }
   })
