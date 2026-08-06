@@ -78,8 +78,22 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     const timer = window.setTimeout(() => {
       setUndoRemoveId(null)
     }, 10_000)
-    return () => window.clearTimeout(timer)
-  }, [undoRemoveId])
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return
+      }
+      if (confirmRemoveId !== null) {
+        return
+      }
+      event.preventDefault()
+      setUndoRemoveId(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [confirmRemoveId, undoRemoveId])
 
   useEffect(() => {
     if (confirmRemoveId === null) {
@@ -370,23 +384,23 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   return (
     <Panel
       aria-labelledby={titleId}
-      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+      className="grid gap-4 p-4 max-[680px]:p-3"
       role="region"
     >
-      <header className="flex flex-col gap-2 max-[680px]:gap-0.5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem]">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1">
+          <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
           <h2
-            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+            className="text-lg font-semibold leading-tight text-foreground"
             id={titleId}
           >
             Memory
           </h2>
         </div>
-        <div className="grid justify-items-end gap-1 max-[680px]:gap-0.5">
-          <div className="flex flex-wrap justify-end gap-1 max-[680px]:gap-0.5">
+        <div className="grid justify-items-end gap-1">
+          <div className="flex flex-wrap justify-end gap-1">
             {listState !== 'loading' && statusCounts.proposed > 0 ? (
               <StatusBadge
                 aria-label={`${statusCounts.proposed} proposed`}
@@ -507,7 +521,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
       <div
         aria-label="Memory Status Filters"
-        className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5"
+        className="flex flex-wrap gap-1.5"
         role="group"
       >
         {STATUS_FILTERS.map((filter) => {
@@ -551,7 +565,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
+      <div aria-live="polite" className="grid gap-1.5">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2">
             <InlineFeedback role="alert" tone="danger">
@@ -573,9 +587,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </InlineFeedback>
         ) : null}
         {undoRemoveId !== null ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
             <InlineFeedback role="status" tone="neutral">
-              Removed from injection.
+              Removed from injection. Esc dismisses.
             </InlineFeedback>
             <Button
               aria-label="Undo remove from injection"
@@ -587,6 +601,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant="secondary"
             >
               Undo
+            </Button>
+            <Button
+              aria-label="Dismiss undo remove"
+              onClick={() => setUndoRemoveId(null)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              Dismiss
             </Button>
           </div>
         ) : null}
@@ -653,7 +676,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 onKeyDown={(event) => handleRowKeyDown(event, memory)}
                 tabIndex={keyboardReviewable ? 0 : -1}
               >
-                <div className="grid gap-1.5 max-[680px]:gap-0.5">
+                <div className="grid gap-1.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge
                       className="w-fit"
@@ -755,7 +778,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     </div>
                   )}
 
-                  <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
+                  <DataListItemActions className="gap-1.5">
                     {memory.status === 'proposed' && !isEditing ? (
                       <>
                         <Button
@@ -822,7 +845,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     {memory.status === 'approved' ? (
                       confirmRemoveId === memory.id ? (
                         <DataListItemActions
-                          className="gap-1.5 max-[680px]:gap-0.5"
+                          className="gap-1.5"
                           onKeyDown={(event) => {
                             if (event.key !== 'Tab') {
                               return
@@ -901,7 +924,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                     ) : null}
 
                     {memory.status === 'rejected' ? (
-                      <DataListItemActions className="gap-1.5 max-[680px]:gap-0.5">
+                      <DataListItemActions className="gap-1.5">
                         <Button
                           aria-label="Propose again from rejected memory"
                           onClick={() => {
@@ -921,7 +944,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                         >
                           Propose Again
                         </Button>
-                        <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                        <span className="text-xs text-muted-foreground">
                           Not injectable until re-proposed and approved.
                         </span>
                       </DataListItemActions>
@@ -1073,7 +1096,7 @@ function MemoryListLoadingSkeleton() {
     <div
       aria-busy="true"
       aria-label="Loading Memories"
-      className="grid w-full gap-2 p-1 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+      className="grid w-full gap-2 p-1 max-[680px]:gap-1"
       data-slot="memory-list-loading"
       role="status"
     >
