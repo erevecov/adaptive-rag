@@ -375,7 +375,7 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+      className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
       data-slot-state="loading"
       role="status"
     >
@@ -466,7 +466,7 @@ function ProjectsPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <ProjectList
         activeProjectId={projectId}
@@ -499,7 +499,7 @@ function ProjectList({
   if (projects.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -784,7 +784,7 @@ function ProjectAccessPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <UserAccessLists
         isBusy={isBusy}
@@ -817,7 +817,7 @@ function UserAccessLists({
   if (users.length === 0 && memberships.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -830,7 +830,7 @@ function UserAccessLists({
     <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
-          className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -884,7 +884,7 @@ function UserAccessLists({
       )}
       {memberships.length === 0 ? (
         <EmptyState
-          className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -1193,7 +1193,7 @@ function SourcesPanel({
         </div>
       </form>
 
-      {error ? <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <SourceList
         isBusy={isBusy}
@@ -1223,7 +1223,7 @@ function SourceList({
   if (sources.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -1275,7 +1275,7 @@ function SourceList({
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}
               </small>
             </div>
-            <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
+            <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
               <Badge className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
               <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
@@ -1357,14 +1357,14 @@ function KnowledgeReviewPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
         <LoadingListState label="Loading Proposals…" />
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="canceled"
           role="status"
         >
@@ -1376,7 +1376,7 @@ function KnowledgeReviewPanel({
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
@@ -1446,7 +1446,7 @@ function KnowledgeReviewPanel({
                       />
                     )}
                   </AuthoringField>
-                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
+                  <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
                     <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
@@ -1539,7 +1539,7 @@ function IngestionJobsPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       {run ? (
         <div
@@ -1559,7 +1559,7 @@ function IngestionJobsPanel({
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
-            <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 text-xs max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
+            <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 text-xs max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
               {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
@@ -1587,7 +1587,7 @@ function IngestionJobList({
   if (jobs.length === 0) {
     return (
       <EmptyState
-        className="max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+        className="max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
@@ -1664,12 +1664,12 @@ function IngestionJobList({
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
-                      <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 text-xs max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
+                      <InlineFeedback className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 text-xs max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
                         {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
                   </div>
-                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
+                  <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
                     {isRetryableIngestionJob(job) ? (
                       <Button className="max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                         aria-label={`Retry ingestion job ${job.id}`}
