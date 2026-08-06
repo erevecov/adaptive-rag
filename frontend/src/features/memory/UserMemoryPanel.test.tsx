@@ -1500,6 +1500,8 @@ describe('UserMemoryPanel', () => {
       document.querySelectorAll<HTMLElement>('[aria-live="polite"]'),
     ).find((el) => el.className.includes('grid'))
     expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
+    const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
+    expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
