@@ -852,15 +852,15 @@ function SidebarProjectSelector({
             side="bottom"
             sideOffset={6}
           >
-            <label className="grid gap-1.5" data-slot="project-selector-search">
-              <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
+            <label className="grid gap-1.5 max-[680px]:gap-1" data-slot="project-selector-search">
+              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Search Projects
               </span>
               <Input
                 aria-label="Search Projects"
                 autoComplete="off"
                 autoFocus
-                className="h-[34px] text-xs"
+                className="h-[34px] text-xs max-[680px]:min-h-11 max-[680px]:text-base max-[680px]:leading-snug"
                 name="project-search"
                 onChange={(event) => setProjectSearch(event.currentTarget.value)}
                 placeholder="Search Projects"

@@ -176,7 +176,7 @@ export function SessionNavigationPanel({
 
       <SegmentedControl
         aria-label="Session Filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
