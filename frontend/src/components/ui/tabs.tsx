@@ -135,8 +135,8 @@ export const SegmentedControlItem = forwardRef<
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         'disabled:pointer-events-none disabled:opacity-50',
         // Card pill + light primary ring: clearer active state on purple/dark tracks.
-        'data-[active]:bg-card data-[active]:font-semibold data-[active]:text-foreground data-[active]:shadow-sm data-[active]:ring-1 data-[active]:ring-primary/30 max-[680px]:data-[active]:ring-primary/80',
-        'data-[state=active]:bg-card data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/30 max-[680px]:data-[state=active]:ring-primary/80',
+        'data-[active]:bg-card data-[active]:font-semibold data-[active]:text-foreground data-[active]:shadow-sm data-[active]:ring-1 data-[active]:ring-primary/30 max-[680px]:data-[active]:ring-primary/90',
+        'data-[state=active]:bg-card data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/30 max-[680px]:data-[state=active]:ring-primary/90',
       ],
       className,
     )
