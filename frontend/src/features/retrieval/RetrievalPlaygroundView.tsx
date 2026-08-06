@@ -124,7 +124,7 @@ export function RetrievalPlaygroundPanel({
           Strategy for the Selected Project.
         </PanelDescription>
       </PanelHeader>
-      <PanelBody className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <form
           className="grid gap-4 max-[680px]:gap-0.5"
           onSubmit={(event) => void handleSearch(event)}
@@ -300,7 +300,7 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
               {results.map((result, index) => (
                 <DataListItem
                   className="max-[680px]:overflow-hidden grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
