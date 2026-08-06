@@ -159,8 +159,8 @@ export function AppShell({
       <a
         className={cn(
           'sr-only focus-visible:not-sr-only',
-          'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100]',
-          'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2',
+          'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100] max-[680px]:focus-visible:left-1.5 max-[680px]:focus-visible:top-1.5',
+          'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2 max-[680px]:focus-visible:px-1 max-[680px]:focus-visible:py-0.5 max-[680px]:focus-visible:text-[0.5625rem]',
           'focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground',
           // Match primary Button: ring against primary fill (critical on purple).
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -832,7 +832,7 @@ function SidebarProjectSelector({
             variant="ghost"
           >
             <span className="grid min-w-0 gap-0.5">
-              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
+              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Project
               </small>
               <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -853,7 +853,7 @@ function SidebarProjectSelector({
             sideOffset={6}
           >
             <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="project-selector-search">
-              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
+              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Search Projects
               </span>
               <Input
