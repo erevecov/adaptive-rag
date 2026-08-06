@@ -19,7 +19,7 @@ export const TableScroll = forwardRef<HTMLDivElement, TableScrollProps>(
       className={cn(
         // Vertical max-height so sticky TableHeader can pin while scrolling long tables.
         'w-full max-h-[min(70vh,36rem)] overflow-auto overscroll-contain',
-        'max-[680px]:max-h-[min(50vh,18rem)] max-[680px]:rounded-sm max-[680px]:overscroll-y-contain',
+        'max-[680px]:max-h-[min(50vh,18rem)] max-[680px]:overscroll-y-contain',
         className,
       )}
       ref={ref}
@@ -57,7 +57,7 @@ export const TableHeader = forwardRef<
   <thead
     className={cn(
       // Opaque card sticky header stays legible on purple/dark nested panels.
-      'sticky top-0 z-10 border-b border-border bg-card shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/30 max-[680px]:shadow-primary/25',
+      'sticky top-0 z-10 border-b border-border bg-card shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/35 max-[680px]:shadow-primary/30',
       className,
     )}
     ref={ref}
@@ -87,9 +87,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
       className={cn(
-        'border-b border-border motion-safe:transition-colors hover:bg-primary/15 max-[680px]:border-primary/20',
-        // Keyboard parity with hover when rows are focusable.
-        'focus-visible:bg-primary/15 focus-visible:outline-none',
+        'border-b border-border motion-safe:transition-colors hover:bg-primary/15',
         className,
       )}
       ref={ref}
@@ -124,7 +122,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, ...props }, ref) => (
     <td
       className={cn(
-        'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug align-middle text-foreground tracking-tight',
+'whitespace-nowrap px-3 py-2 max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:text-[0.5625rem] align-middle text-foreground tracking-tight',
         className,
       )}
       ref={ref}

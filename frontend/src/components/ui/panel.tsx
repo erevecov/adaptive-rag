@@ -8,7 +8,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
   ({ className, ...props }, ref) => (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card text-card-foreground shadow-sm max-[680px]:rounded-md max-[680px]:border-primary/30 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25',
+        'rounded-lg border border-border bg-card text-card-foreground shadow-sm max-[680px]:rounded-md max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30',
         'motion-safe:transition-colors',
         className,
       )}
@@ -39,10 +39,7 @@ export type PanelTitleProps = HTMLAttributes<HTMLHeadingElement>
 export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   ({ className, ...props }, ref) => (
     <h3
-      className={cn(
-        'text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter',
-        className,
-      )}
+      className={cn('text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-tight', className)}
       ref={ref}
       {...props}
       data-slot="panel-title"

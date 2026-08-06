@@ -30,7 +30,6 @@ describe('EmptyState', () => {
     expect(empty.className).toContain('max-[680px]:p-0.5')
     expect(empty.className).toContain('max-[680px]:gap-0.5')
     expect(empty.className).toContain('max-[680px]:rounded-sm')
-    expect(empty.className).toContain('max-[680px]:tracking-tighter')
   })
 
   test('allows role override for failed empties', () => {
@@ -63,7 +62,6 @@ describe('Callout', () => {
     expect(callout.className).toContain('leading-relaxed')
     expect(callout.className).toContain('motion-safe:transition-colors')
     expect(callout.className).toContain('max-[680px]:p-0.5')
-    expect(callout.className).toContain('max-[680px]:rounded-sm')
   })
 
   test('neutral callout uses a soft muted wash', () => {

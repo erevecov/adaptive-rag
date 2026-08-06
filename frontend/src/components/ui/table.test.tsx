@@ -66,7 +66,6 @@ describe('Table density', () => {
     const scroll = screen.getByText('Latency').closest('[data-slot="table-scroll"]')
     expect(scroll?.className).toContain('overscroll-contain')
     expect(scroll?.className).toContain('max-[680px]:overscroll-y-contain')
-    expect(scroll?.className).toContain('max-[680px]:rounded-sm')
     expect(scroll?.className).toContain('max-[680px]:max-h-[min(50vh,18rem)]')
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card')
@@ -81,18 +80,11 @@ describe('Table density', () => {
     expect(screen.getByText('12ms').className).toContain('max-[680px]:min-h-11')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:py-1')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:text-[0.5625rem]')
-    expect(screen.getByText('12ms').className).toContain('max-[680px]:leading-snug')
     expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
       'max-[680px]:min-w-[440px]',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
       'hover:bg-primary/15',
-    )
-    expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'focus-visible:bg-primary/15',
-    )
-    expect(screen.getByText('12ms').closest('[data-slot="table-row"]')?.className).toContain(
-      'max-[680px]:border-primary/20',
     )
   })
 })

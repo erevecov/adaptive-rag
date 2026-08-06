@@ -22,10 +22,8 @@ export const DataListItem = forwardRef<HTMLLIElement, DataListItemProps>(
   ({ className, ...props }, ref) => (
     <li
       className={cn(
-        'min-w-0 rounded-md border border-border bg-card p-3 text-sm tracking-tight text-card-foreground max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25',
+'min-w-0 rounded-md border border-border bg-card p-3 text-sm tracking-tight text-card-foreground max-[680px]:border-primary/35 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30',
         'motion-safe:transition-colors hover:bg-primary/15',
-        // Keyboard: same wash as hover when rows are made focusable (tabIndex).
-        'focus-visible:outline-none focus-visible:bg-primary/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         className,
       )}
       ref={ref}
