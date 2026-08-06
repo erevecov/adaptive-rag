@@ -195,4 +195,10 @@ describe('ChatPipelineSteps', () => {
     expect(chatPipelineStepsSource).toContain('./ui/button')
     expect(chatPipelineStepsSource).not.toContain('<button')
   })
+  test('≤680 pipeline summary uses denser hover/active wash', () => {
+    expect(chatPipelineStepsSource).toContain('max-[680px]:hover:bg-primary/65')
+    expect(chatPipelineStepsSource).toContain('max-[680px]:active:bg-primary/95')
+  })
+
+
 })
