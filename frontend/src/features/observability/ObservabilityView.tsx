@@ -128,7 +128,7 @@ export function ObservabilityPanel({
       <PanelBody className="max-[680px]:border-t max-[680px]:border-primary/95 grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
-          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-md max-[680px]:p-0.5 max-[680px]:px-0.5"
+          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
           role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
@@ -204,7 +204,7 @@ export function ObservabilityPanel({
         </form>
 
         {error ? (
-          <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/70 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/70 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+          <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </Callout>
         ) : null}
@@ -261,7 +261,7 @@ function ObservabilityContent({
     if (state === 'failed') {
       return (
         <EmptyState
-          className="border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/70 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="failed"
           role="alert"
         >
@@ -311,7 +311,7 @@ function ObservabilityContent({
   if (state === 'failed') {
     return (
       <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
-        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/70 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/70 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
         <div className="pointer-events-none" data-stale="">
@@ -656,7 +656,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList className="max-[680px]:gap-0.5">
           {rows.map((row) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
               key={row.status}
             >
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
@@ -690,7 +690,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
         <DataList className="max-[680px]:gap-0.5">
           {summary.errors.top_messages.map((error) => (
             <DataListItem
-              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+              className="flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
               key={error.message}
             >
               <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
