@@ -1020,7 +1020,7 @@ function ResponseDetailsContent({
       className={
         embedded
           ? 'grid gap-3 pt-2 max-[680px]:gap-0.5 max-[680px]:pt-1'
-          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-1.5'
+          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-1'
       }
     >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
