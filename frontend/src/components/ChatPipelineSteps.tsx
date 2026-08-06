@@ -263,7 +263,7 @@ function StepDetail({ step }: { step: ChatStep }) {
   if (detailEntries.length === 0 && usage === undefined) {
     return (
       <p
-        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-1.5 max-[680px]:pb-1.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
       >
         No Step Detail Recorded.
