@@ -117,7 +117,7 @@ export function ObservabilityPanel({
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0.5">
           <StatusBadge
             aria-live="polite"
-            className="max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+            className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
             role="status"
             tone={requestStateTone(state)}
           >

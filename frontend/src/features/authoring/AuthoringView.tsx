@@ -325,7 +325,7 @@ function RequestStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -338,7 +338,7 @@ function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -351,7 +351,7 @@ function KnowledgeStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -864,7 +864,7 @@ function UserAccessLists({
               <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                 <Badge className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
-                  <StatusBadge className="max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
+                  <StatusBadge className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="warning">
                     Inactive
                   </StatusBadge>
                 ) : null}
@@ -1261,7 +1261,7 @@ function SourceList({
                   {source.external_id}
                 </strong>
                 {isDeleted ? (
-                  <StatusBadge className="max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
+                  <StatusBadge className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
                     Deleted
                   </StatusBadge>
                 ) : null}
@@ -1549,7 +1549,7 @@ function IngestionJobsPanel({
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
             <span className="max-[680px]:truncate font-medium text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Last Run</span>
             <StatusBadge
-              className="max-[680px]:truncate w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="max-[680px]:shrink max-[680px]:truncate w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               tone={jobTone(run.status)}
             >
               {jobStatusLabel(run.status)}
@@ -1635,7 +1635,7 @@ function IngestionJobList({
                           data-slot="ingestion-job-pulse"
                         />
                       ) : null}
-                      <StatusBadge className="max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
+                      <StatusBadge className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
                         {statusLabel}
                       </StatusBadge>
                       <Badge className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">

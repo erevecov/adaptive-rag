@@ -400,7 +400,7 @@ function RuntimePanel({
 function RuntimeStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
-      className="max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       tone={runtimeStatusTone(state)}
     >
       {runtimeStatusLabel(state)}
@@ -583,7 +583,7 @@ export function RuntimeConnectionsPanel({
                         </Badge>
                         {isChecking ? (
                           <StatusBadge
-                            className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                            className="max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                             role="status"
                             tone="warning"
                           >
@@ -1480,7 +1480,7 @@ export function RuntimeProjectOverridesPanel({
       status={
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0.5">
           <RuntimeStatus state={state} />
-          <StatusBadge className="max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">
+          <StatusBadge className="max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">
             {projectId.trim() || 'No Project'}
           </StatusBadge>
         </div>
