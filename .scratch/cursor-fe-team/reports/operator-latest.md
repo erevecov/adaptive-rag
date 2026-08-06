@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: DataList/DataListItem text-left densify
+- Pass: Button text-left/justify-start densify (commit ~100)
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates + min-h-11
 - PR: https://github.com/erevecov/adaptive-rag/pull/530
