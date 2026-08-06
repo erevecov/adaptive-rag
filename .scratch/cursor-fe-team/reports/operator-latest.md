@@ -1,6 +1,6 @@
 # Operator polish latest
 
-- Reclaim tip on origin/main post-#509; Pass 71: panel eyebrow px densify
+- Pass 72: residual authoring eyebrow px + Last Run StatusBadge rounded-sm
 - Ownership: retrieval `border-primary/95` ×4 + Rerank Candidates
-- Vitest: 57 passed; Memory untouched
+- Vitest: 57 passed
 - PR: https://github.com/erevecov/adaptive-rag/pull/488

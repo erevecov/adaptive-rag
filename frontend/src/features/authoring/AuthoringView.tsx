@@ -1535,7 +1535,7 @@ function IngestionJobsPanel({
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
             <span className="font-medium text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Last Run</span>
             <StatusBadge
-              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="w-fit px-1.5 py-0 text-[10px] tabular-nums tracking-wide max-[680px]:px-0.5 max-[680px]:py-0 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               tone={jobTone(run.status)}
             >
               {jobStatusLabel(run.status)}
@@ -1591,7 +1591,7 @@ function IngestionJobList({
     <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
       {groups.map((group) => (
         <div className="grid gap-2 max-[680px]:gap-0.5" key={group.status}>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider max-[680px]:tracking-tighter">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {jobStatusLabel(group.status)}
             <span className="ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
