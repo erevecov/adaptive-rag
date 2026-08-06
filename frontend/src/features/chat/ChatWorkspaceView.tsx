@@ -374,7 +374,7 @@ function SpeechInputControl({
       ? 'Listening…'
       : isSupported
         ? null
-        : 'Speech recognition is not supported in this browser.')
+        : 'Speech Recognition Is Not Supported In This Browser.')
 
   return (
     <section
@@ -511,7 +511,7 @@ function ResponsePanel({
             data-slot-state="failed"
             role="alert"
           >
-            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request failed.</p>
+            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Failed.</p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               Edit the question and resend, or open another session. Details are
               under the composer when available.
@@ -564,7 +564,7 @@ function ResponsePanel({
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
           {state === 'failed'
-            ? 'Request failed. Partial answer below may be incomplete.'
+            ? 'Request Failed. Partial Answer Below May Be Incomplete.'
             : 'Request canceled. Partial answer below was not stored as a finished turn.'}
         </InlineFeedback>
       </div>
@@ -1163,14 +1163,14 @@ function KnowledgeDraftCard({
 
   return (
     <article
-      aria-label={`Knowledge draft ${draft.draftId}`}
+      aria-label={`Knowledge Draft ${draft.draftId}`}
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            Knowledge draft
+            Knowledge Draft
           </span>
           <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {draft.scope}
@@ -1182,7 +1182,7 @@ function KnowledgeDraftCard({
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
-          Knowledge draft text
+          Knowledge Draft Text
         </FieldLabel>
         <FieldControl>
           <Textarea
@@ -1457,7 +1457,7 @@ function getJsonObject(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? operatorSafeMessage(error.message)
-    : 'Request failed.'
+    : 'Request Failed.'
 }
 
 function formatScore(score: number): string {
