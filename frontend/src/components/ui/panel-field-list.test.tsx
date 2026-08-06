@@ -49,7 +49,7 @@ describe('Panel density', () => {
     expect(description.getAttribute('data-slot')).toBe('panel-description')
     expect(description.className).toContain('text-xs')
     expect(description.className).toContain('leading-relaxed')
-    expect(description.className).toContain('max-[680px]:text-[0.625rem]')
+    expect(description.className).toContain('max-[680px]:text-[0.5625rem]')
   })
 })
 
@@ -124,7 +124,7 @@ describe('DataListItem', () => {
     expect(row.className).toContain('hover:bg-primary/15')
     expect(row.className).toContain('max-[680px]:p-1')
     expect(row.className).toContain('tracking-tight')
-    expect(row.className).toContain('max-[680px]:text-[0.625rem]')
+    expect(row.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(row.className).toContain('max-[680px]:leading-snug')
   })
 })

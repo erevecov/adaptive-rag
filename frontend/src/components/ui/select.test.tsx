@@ -55,7 +55,7 @@ describe('Select', () => {
     expect(option.className).toContain('focus-visible:ring-ring')
     expect(option.className).toContain('data-[highlighted]:bg-primary/15')
     expect(option.className).toContain('max-[680px]:min-h-11')
-    expect(option.className).toContain('max-[680px]:text-[0.625rem]')
+    expect(option.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'focus-visible:ring-ring',
     )
