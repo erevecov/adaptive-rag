@@ -344,7 +344,7 @@ export function RuntimeSettingsPanel({
     )
 
   return (
-    <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5">
+    <div className="min-w-0 grid gap-4 max-[680px]:gap-0">
       {error ? (
         <Callout className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           {operatorSafeMessage(error)}
@@ -376,8 +376,8 @@ function RuntimePanel({
       aria-labelledby={ariaLabel === undefined ? id : undefined}
       role="region"
     >
-      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0.5">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             Runtime
           </p>
@@ -388,11 +388,11 @@ function RuntimePanel({
             <PanelDescription className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{description}</PanelDescription>
           ) : null}
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0.5">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0">
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -531,7 +531,7 @@ export function RuntimeConnectionsPanel({
       status={<RuntimeStatus state={state} />}
       title="Connections"
     >
-      <section aria-label="Provider Connections" className="grid gap-3 max-[680px]:gap-0.5">
+      <section aria-label="Provider Connections" className="grid gap-3 max-[680px]:gap-0">
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
             aria-busy="true"
@@ -554,7 +554,7 @@ export function RuntimeConnectionsPanel({
             No Connections Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {connections.map((connection) => {
               const isChecking =
                 checkingConnectionId === connection.connection_id
@@ -563,15 +563,15 @@ export function RuntimeConnectionsPanel({
               return (
                 <DataListItem
                   aria-busy={isChecking || undefined}
-                  className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   key={connection.connection_id}
                 >
-                  <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
-                    <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+                  <div className="grid min-w-0 gap-2 max-[680px]:gap-0">
+                    <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                       <strong className="truncate font-mono text-xs font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                         {connection.connection_id}
                       </strong>
-                      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+                      <div className="flex flex-wrap gap-2 max-[680px]:gap-0">
                         <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full truncate max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                           {providerLabel(connection.provider)} /{' '}
                           {connectionTypeLabel(connection.connection_type)}
@@ -603,7 +603,7 @@ export function RuntimeConnectionsPanel({
                       result={checkResult}
                     />
                   </div>
-                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0.5">
                     <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-label={`Check ${connection.connection_id} Connection`}
                       disabled={state === 'loading' || isChecking}
@@ -639,7 +639,7 @@ export function RuntimeConnectionsPanel({
                   {deleteConnectionId === connection.connection_id ? (
                     <form
                       aria-label={`Delete ${connection.connection_id} Connection`}
-                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+                      className="grid gap-3 max-[680px]:gap-0 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
@@ -664,7 +664,7 @@ export function RuntimeConnectionsPanel({
                           />
                         )}
                       </RuntimeField>
-                      <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                      <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0.5">
                         <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                           disabled={state === 'loading'}
                           onClick={onCancelDeleteConnection}
@@ -695,8 +695,8 @@ export function RuntimeConnectionsPanel({
         )}
       </section>
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveConnection}>
-        <div className="flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0.5">
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveConnection}>
+        <div className="flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0">
           <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {isEditingConnection
               ? `Edit Connection ${editingConnectionId}`
@@ -713,7 +713,7 @@ export function RuntimeConnectionsPanel({
             </Button>
           ) : null}
         </div>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
           <RuntimeField id="runtime-connection-provider" label="Provider">
             {(fieldId) => (
               <Select
@@ -762,7 +762,7 @@ export function RuntimeConnectionsPanel({
               />
             )}
           </RuntimeField>
-          <Field className="md:col-span-2 max-[680px]:gap-0.5">
+          <Field className="md:col-span-2 max-[680px]:gap-0">
             <FieldLabel
               className="max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
               htmlFor="runtime-capability-filter"
@@ -874,14 +874,14 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:focus-within:ring-offset-0 max-[680px]:data-[state=open]:ring-offset-0 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"            onClick={() => {
+            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:focus-within:ring-offset-0 max-[680px]:data-[state=open]:ring-offset-0 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"            onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
             }}
           >
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0.5 max-[680px]:overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0 max-[680px]:overflow-hidden">
               {value.map((capability) => (
-                <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate gap-1 pr-1 max-[680px]:gap-0.5 max-[680px]:pr-0.5 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:bg-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm" key={capability} tone="primary">
+                <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate gap-1 pr-1 max-[680px]:gap-0 max-[680px]:pr-0.5 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:bg-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm" key={capability} tone="primary">
                   <span>{slotLabel(capability)}</span>
                   <Button
                     aria-label={`Remove ${slotLabel(capability)} Capability`}
@@ -936,7 +936,7 @@ export function CapabilitySelector({
           <Popover.Content
             align="start"
             aria-label="Capability Options"
-            className="z-20 grid max-h-60 max-[680px]:min-w-0 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:max-h-14 max-[680px]:overscroll-y-contain max-[680px]:gap-0.5 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+            className="z-20 grid max-h-60 max-[680px]:min-w-0 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:max-h-14 max-[680px]:overscroll-y-contain max-[680px]:gap-0 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
             id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
@@ -1018,7 +1018,7 @@ export function RuntimeModelCatalogPanel({
         {state === 'loading' ? 'Refreshing…' : 'Refresh Catalog'}
       </Button>
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSyncProviderModels}>
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSyncProviderModels}>
         <RuntimeField
           id="runtime-model-sync-connection"
           label="Model Sync Connection"
@@ -1040,12 +1040,12 @@ export function RuntimeModelCatalogPanel({
       {selectedConnection ? (
         <section
           aria-label="Selected Model Sync Connection"
-          className="grid gap-3 max-[680px]:gap-0.5"
+          className="grid gap-3 max-[680px]:gap-0"
         >
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
-            <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0.5">
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+            <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
@@ -1065,7 +1065,7 @@ export function RuntimeModelCatalogPanel({
                 </div>
                 <ConnectionSecretSummary connection={selectedConnection} />
               </div>
-              <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
+              <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0.5">
                 <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                   disabled={state === 'loading'}
                   onClick={() =>
@@ -1170,8 +1170,8 @@ export function RuntimeGlobalDefaultsPanel({
 
       <RuntimeSlotList slots={slots} state={state} />
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalSlot}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalSlot}>
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField id="runtime-global-slot" label="Global Slot">
             {(fieldId) => (
               <Select
@@ -1228,7 +1228,7 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0.5">
+      <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
         {state === 'loading' && chatModels.length === 0 ? (
           <EmptyState
@@ -1252,13 +1252,13 @@ export function RuntimeGlobalDefaultsPanel({
             No Chat Models Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {chatModels.map((model) => (
               <DataListItem
-                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
                 key={`${model.connection_id}-${model.model_id}`}
               >
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
@@ -1275,8 +1275,8 @@ export function RuntimeGlobalDefaultsPanel({
         )}
       </section>
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatModel}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-2">
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatModel}>
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
           <RuntimeField
             id="runtime-chat-connection"
             label="Chat Connection"
@@ -1315,7 +1315,7 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0.5">
+      <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
           <EmptyState
@@ -1335,9 +1335,9 @@ export function RuntimeGlobalDefaultsPanel({
             Chat Retrieval Defaults Load Canceled.
           </EmptyState>
         ) : chatRetrievalSettings ? (
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
-            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-              <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+              <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
                 <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   Global Defaults
                 </strong>
@@ -1358,8 +1358,8 @@ export function RuntimeGlobalDefaultsPanel({
             No Chat Retrieval Defaults Yet.
           </EmptyState>
         )}
-        <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+        <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatRetrieval}>
+          <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
             <RuntimeField
               id="runtime-global-retrieval-limit"
               label="Retrieval Limit"
@@ -1478,7 +1478,7 @@ export function RuntimeProjectOverridesPanel({
       ariaLabel="Project Runtime Settings"
       id="runtime-project-overrides-title"
       status={
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0.5">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0">
           <RuntimeStatus state={state} />
           <StatusBadge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
             {projectId.trim() || 'No Project'}
@@ -1502,8 +1502,8 @@ export function RuntimeProjectOverridesPanel({
         state={state}
       />
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectChatRetrieval}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectChatRetrieval}>
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField
             id="runtime-project-retrieval-limit"
             label="Retrieval Limit"
@@ -1561,7 +1561,7 @@ export function RuntimeProjectOverridesPanel({
             )}
           </RuntimeField>
         </div>
-        <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
+        <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0.5">
           <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit">Save Project Retrieval Override</Button>
           {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
             <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
@@ -1575,8 +1575,8 @@ export function RuntimeProjectOverridesPanel({
         </DataListItemActions>
       </form>
 
-      <form className="grid gap-4 max-[680px]:gap-0.5" onSubmit={onSaveProjectOverride}>
-        <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 md:grid-cols-3">
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectOverride}>
+        <div className="min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField id="runtime-project-slot" label="Project Slot">
             {(fieldId) => (
               <Select
@@ -1650,7 +1650,7 @@ export function ConnectionSecretSummary({
     )
   }
   return (
-    <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+    <div className="flex flex-wrap gap-2 max-[680px]:gap-0">
       {connection.secrets.map((secret) => (
         <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secretNameLabel(secret.secret_name)}{' '}
@@ -1793,7 +1793,7 @@ export function ProviderModelCatalogView({
   providerModels: ProviderModel[]
 }) {
   return (
-    <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0.5">
+    <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0">
       <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
       {isLoading && providerModels.length === 0 ? (
         <EmptyState
@@ -1809,13 +1809,13 @@ export function ProviderModelCatalogView({
           No Provider Models Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
           {providerModels.map((model) => (
             <DataListItem
-              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
               key={`${model.connection_id}-${model.model_id}`}
             >
-              <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+              <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                 <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {model.model_id}
                 </strong>
@@ -1884,13 +1884,13 @@ export function RuntimeSlotList({
     )
   }
   return (
-    <DataList aria-label="Global Runtime Slots" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Global Runtime Slots" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {slots.map((slot) => (
         <DataListItem
-          className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+          className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
           key={slot.slot}
         >
-          <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+          <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
             <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
             <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
               {slot.connection_id} / {slot.model_id}
@@ -1943,8 +1943,8 @@ export function ProjectRuntimeSettingsView({
     )
   }
   return (
-    <div className="min-w-0 grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-3">
-      <section className="grid gap-3 max-[680px]:gap-0.5">
+    <div className="min-w-0 grid gap-4 max-[680px]:gap-0 xl:grid-cols-3">
+      <section className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Effective Slots</h3>
         {settings.slots.length === 0 ? (
           <EmptyState
@@ -1955,16 +1955,16 @@ export function ProjectRuntimeSettingsView({
             No Effective Slots Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {settings.slots.map((slot) => (
-              <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
-                <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
+              <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0" key={slot.slot}>
+                <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
                   </small>
                 </div>
-                <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0.5">
                   <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
                   {slot.source === 'overridden' ? (
                     <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
@@ -1982,7 +1982,7 @@ export function ProjectRuntimeSettingsView({
           </DataList>
         )}
       </section>
-      <section className="grid gap-3 max-[680px]:gap-0.5">
+      <section className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Pool</h3>
         {settings.chat_models.length === 0 ? (
           <EmptyState
@@ -1994,13 +1994,13 @@ export function ProjectRuntimeSettingsView({
             Sync Models.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+          <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0"
                 key={`${model.connection_id}-${model.model_id}`}
               >
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
@@ -2008,7 +2008,7 @@ export function ProjectRuntimeSettingsView({
                     {model.connection_id}
                   </small>
                 </div>
-                <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0.5">
                   <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(model.source)}</Badge>
                   <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
                     {model.is_default ? 'Default' : 'Enabled'}
@@ -2019,11 +2019,11 @@ export function ProjectRuntimeSettingsView({
           </DataList>
         )}
       </section>
-      <section className="grid gap-3 max-[680px]:gap-0.5">
+      <section className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
-        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
-          <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-            <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
+        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
+          <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+            <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
               <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>

@@ -115,7 +115,7 @@ export function RetrievalPlaygroundPanel({
       data-testid="retrieval-playground"
       role="region"
     >
-      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-4 max-[680px]:gap-0 max-[680px]:p-0.5">
         <PanelTitle className="max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>
@@ -124,9 +124,9 @@ export function RetrievalPlaygroundPanel({
           Strategy for the Selected Project.
         </PanelDescription>
       </PanelHeader>
-      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:pt-0">
         <form
-          className="grid gap-4 max-[680px]:gap-0.5"
+          className="grid gap-4 max-[680px]:gap-0"
           onSubmit={(event) => void handleSearch(event)}
         >
           <Field>
@@ -142,7 +142,7 @@ export function RetrievalPlaygroundPanel({
               />
             </FieldControl>
           </Field>
-          <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0.5">
+          <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0">
             <Field>
               <FieldLabel className="max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
@@ -210,7 +210,7 @@ export function RetrievalPlaygroundPanel({
               ) : null}
             </Field>
           </div>
-          <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0.5">
+          <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0">
             <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
@@ -239,7 +239,7 @@ export function RetrievalPlaygroundPanel({
         <div
           aria-busy={state === 'loading' || undefined}
           aria-label="Retrieval Results"
-          className="grid gap-2 max-[680px]:gap-0.5"
+          className="grid gap-2 max-[680px]:gap-0"
           role="region"
         >
           {state === 'loading' ? (
@@ -300,14 +300,14 @@ export function RetrievalPlaygroundPanel({
           ) : null}
 
           {results.length > 0 ? (
-            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+            <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
               {results.map((result, index) => (
                 <DataListItem
-                  className="max-[680px]:overflow-hidden grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+                  className="max-[680px]:overflow-hidden grid gap-2 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
-                  <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                     <Badge
                       aria-label={`Rank ${index + 1}`}
                       className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink min-w-[4.5ch] justify-center tabular-nums max-[680px]:rounded-sm max-[680px]:min-w-[2.5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -333,7 +333,7 @@ export function RetrievalPlaygroundPanel({
                       </span>
                     ) : null}
                   </div>
-                  <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+                  <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
                     <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>

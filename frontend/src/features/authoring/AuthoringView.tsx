@@ -176,7 +176,7 @@ export function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
+    <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5">
       {activeSubmodule === 'projects' ? (
         <ProjectsPanel
           error={projectError}
@@ -302,8 +302,8 @@ function AuthoringSectionPanel({
       aria-label={ariaLabel}
       role="region"
     >
-      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0.5">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {eyebrow}
           </p>
@@ -312,11 +312,11 @@ function AuthoringSectionPanel({
             <PanelDescription className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{description}</PanelDescription>
           ) : null}
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0.5">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0">
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -441,7 +441,7 @@ function ProjectsPanel({
       status={<RequestStatus state={state} />}
       title="Projects"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onCreateProject}>
+      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
@@ -455,7 +455,7 @@ function ProjectsPanel({
             />
           )}
         </AuthoringField>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -512,7 +512,7 @@ function ProjectList({
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Projects" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {projects.map((project) => {
         const canAccess = project.can_access !== false
         const isDeleted = Boolean(project.deleted_at)
@@ -523,20 +523,20 @@ function ProjectList({
             : 'No Access'
         return (
           <DataListItem
-            className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0.5"
+            className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0"
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
-            <div className="flex items-stretch gap-1 p-1 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+            <div className="flex items-stretch gap-1 p-1 max-[680px]:gap-0 max-[680px]:p-0.5">
             <Button
               aria-label={`Select ${project.name}`}
               aria-pressed={project.id === activeProjectId}
-              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0.5 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0 whitespace-normal p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
               onClick={() => onSelectProject(project)}
               variant="ghost"
             >
-              <span className="max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0.5">
+              <span className="max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong
                   className={
                     isDeleted
@@ -640,8 +640,8 @@ function ProjectAccessPanel({
       status={<RequestStatus state={state} />}
       title="Users"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onCreateUser}>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5" onSubmit={onCreateUser}>
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
@@ -671,7 +671,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
@@ -708,7 +708,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -741,8 +741,8 @@ function ProjectAccessPanel({
 
       <div className="h-px bg-border" role="separator" />
 
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onSaveMembership}>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5" onSubmit={onSaveMembership}>
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
@@ -773,7 +773,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -827,7 +827,7 @@ function UserAccessLists({
   }
 
   return (
-    <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">
+    <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
           className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -837,14 +837,14 @@ function UserAccessLists({
           No Users Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Users" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Users" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
-              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
+              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0"
               data-inactive={!user.is_active ? '' : undefined}
               key={user.id}
             >
-              <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+              <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong
                   className={
                     user.is_active
@@ -861,7 +861,7 @@ function UserAccessLists({
                   {user.id}
                 </small>
               </div>
-              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
                 {!user.is_active ? (
                   <StatusBadge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="warning">
@@ -891,10 +891,10 @@ function UserAccessLists({
           No Project Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Project Memberships" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
-            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
-              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
+              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {membership.user_id}
                 </strong>
@@ -902,7 +902,7 @@ function UserAccessLists({
                   {membership.project_id}
                 </small>
               </div>
-              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+              <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
                 <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                   aria-label={`Remove membership ${membership.user_id}`}
@@ -952,7 +952,7 @@ function SourceFileField({
   const displaySizeBytes = sourceFileName.length === 0 ? null : sizeBytes
 
   return (
-    <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5">
+    <div className="min-w-0 grid gap-2 max-[680px]:gap-0">
       <Input
         key={inputKey}
         accept={
@@ -973,7 +973,7 @@ function SourceFileField({
         type="file"
       />
       {sourceFileName.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <span
             className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
             data-slot="source-file-status"
@@ -1076,7 +1076,7 @@ function SourcesPanel({
       status={<RequestStatus state={sourceState} />}
       title="Content Registry"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5" onSubmit={onCreateSource}>
+      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
@@ -1090,7 +1090,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5 md:grid-cols-2">
+        <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
@@ -1170,7 +1170,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
           <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
             <ButtonLabel
               busy={isBusy}
@@ -1236,7 +1236,7 @@ function SourceList({
   }
 
   return (
-    <DataList aria-label="Sources" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+    <DataList aria-label="Sources" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {sources.map((source) => {
         const isDeleted = Boolean(source.deleted_at)
         const tags =
@@ -1245,12 +1245,12 @@ function SourceList({
             : 'No Tags'
         return (
           <DataListItem
-            className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+            className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
-            <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+            <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                 <strong
                   className={
                     isDeleted
@@ -1275,7 +1275,7 @@ function SourceList({
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}
               </small>
             </div>
-            <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
+            <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0.5">
               <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
               <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                 aria-label={`Enqueue ingestion for ${source.external_id}`}
@@ -1342,7 +1342,7 @@ function KnowledgeReviewPanel({
       status={<KnowledgeStatus state={state} />}
       title="Pending Proposals"
     >
-      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
         <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
@@ -1386,14 +1386,14 @@ function KnowledgeReviewPanel({
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Knowledge Proposals" className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''
             const canReject = rejectReason.trim().length > 0
             return (
-              <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
-                <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0.5">
+              <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
+                <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
                   <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
                   </strong>
@@ -1407,7 +1407,7 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0.5 max-[680px]:p-0.5">
+                <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0.5">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined Text"
@@ -1446,7 +1446,7 @@ function KnowledgeReviewPanel({
                       />
                     )}
                   </AuthoringField>
-                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0.5">
                     <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       aria-label={proposalActionLabel('Refine', proposal)}
                       disabled={isBusy}
@@ -1517,7 +1517,7 @@ function IngestionJobsPanel({
       status={<IngestionStatus state={state} />}
       title="Jobs"
     >
-      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0">
         <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
           disabled={isBusy}
           onClick={onRefresh}
@@ -1543,7 +1543,7 @@ function IngestionJobsPanel({
 
       {run ? (
         <div
-          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:border-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0 max-[680px]:border-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot="ingestion-last-run"
         >
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 max-[680px]:gap-x-1 max-[680px]:gap-y-0.5">
@@ -1602,14 +1602,14 @@ function IngestionJobList({
   const groups = groupJobsByStatus(jobs)
 
   return (
-    <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
+    <div className="min-w-0 grid gap-3 max-[680px]:gap-0" data-slot="ingestion-job-groups">
       {groups.map((group) => (
-        <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5" key={group.status}>
+        <div className="min-w-0 grid gap-2 max-[680px]:gap-0" key={group.status}>
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {jobStatusLabel(group.status)}
             <span className="max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
-          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5">
+          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {group.jobs.map((job) => {
               const isRunning = job.status === 'running'
               const sourceId = ingestionJobSourceId(job)
@@ -1622,12 +1622,12 @@ function IngestionJobList({
                       ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
                       : `Ingestion Job ${statusLabel}`
                   }
-                  className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
                   data-job-status={job.status}
                   key={job.id}
                 >
-                  <div className="grid min-w-0 gap-1.5 max-[680px]:gap-0.5">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+                  <div className="grid min-w-0 gap-1.5 max-[680px]:gap-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
                       {isRunning ? (
                         <span
                           aria-hidden="true"
@@ -1669,7 +1669,7 @@ function IngestionJobList({
                       </InlineFeedback>
                     ) : null}
                   </div>
-                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
+                  <DataListItemActions className="max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0.5">
                     {isRetryableIngestionJob(job) ? (
                       <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                         aria-label={`Retry ingestion job ${job.id}`}

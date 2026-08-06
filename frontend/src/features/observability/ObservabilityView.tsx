@@ -104,8 +104,8 @@ export function ObservabilityPanel({
       aria-label={`Observability ${activeSubmodule}`}
       role="region"
     >
-      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+      <PanelHeader className="max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0 max-[680px]:p-0.5">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
           <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             Observability
           </p>
@@ -114,7 +114,7 @@ export function ObservabilityPanel({
             Inspect Chat Health, Cost, Error, and Latency Rollups.
           </PanelDescription>
         </div>
-        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0.5">
+        <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0">
           <StatusBadge
             aria-live="polite"
             className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -125,10 +125,10 @@ export function ObservabilityPanel({
           </StatusBadge>
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
-          className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:border max-[680px]:border-primary max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
+          className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:border max-[680px]:border-primary max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:px-0.5"
           role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
@@ -146,7 +146,7 @@ export function ObservabilityPanel({
           ))}
         </SegmentedControl>
 
-        <form className="grid gap-4 max-[680px]:gap-0.5 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
+        <form className="grid gap-4 max-[680px]:gap-0 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
           <ObservabilityField id="observability-project-id" label="Project ID">
             {(fieldId) => (
               <Input
@@ -240,7 +240,7 @@ function ObservabilityField({
   label: string
 }) {
   return (
-    <Field className="max-[680px]:gap-0.5">
+    <Field className="max-[680px]:gap-0">
       <FieldLabel className="max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
     </Field>
@@ -315,7 +315,7 @@ function ObservabilityContent({
 
   if (state === 'failed') {
     return (
-      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0" data-slot="observability-stale-failed">
         <Callout className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
@@ -361,8 +361,8 @@ function ObservabilityMetricSkeleton({
       aria-label={label}
       className={
         cardCount === 5
-          ? 'grid gap-3 max-[680px]:gap-0.5 md:grid-cols-2 xl:grid-cols-5'
-          : 'grid gap-3 max-[680px]:gap-0.5 md:grid-cols-2 xl:grid-cols-3'
+          ? 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-3'
       }
       data-slot="observability-metric-skeleton"
       role="status"
@@ -371,7 +371,7 @@ function ObservabilityMetricSkeleton({
       {Array.from({ length: cardCount }, (_, index) => (
         <article
           aria-hidden="true"
-          className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+          className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
           key={index}
         >
           <div className="h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
@@ -464,7 +464,7 @@ function ObservabilityCostsContent({
           value={String(summary.provider_usage.missing_cost_count)}
         />
       </MetricGrid>
-      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0">
         <ProviderUsageTable summary={summary} />
       </div>
     </>
@@ -539,7 +539,7 @@ function ObservabilityLatencyContent({
           value={String(summary.provider_usage.total_records)}
         />
       </MetricGrid>
-      <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5">
+      <div className="min-w-0 grid gap-3 max-[680px]:gap-0">
         <ProviderLatencyTable summary={summary} />
       </div>
     </>
@@ -575,8 +575,8 @@ function MetricGrid({
       aria-label={label}
       className={
         columns === 5
-          ? 'grid gap-3 max-[680px]:gap-0.5 md:grid-cols-2 xl:grid-cols-5'
-          : 'grid gap-3 max-[680px]:gap-0.5 md:grid-cols-2 xl:grid-cols-3'
+          ? 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-5'
+          : 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-3'
       }
     >
       {children}
@@ -599,7 +599,7 @@ function MetricCard({
   return (
     <article
       aria-labelledby={`${labelId} ${valueId}`}
-      className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+      className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-0 max-[680px]:gap-0 max-[680px]:p-0.5 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
     >
       <span
         className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:px-0.5"
@@ -621,7 +621,7 @@ function MetricCard({
 }
 
 function BreakdownGrid({ children }: { children: ReactNode }) {
-  return <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5 lg:grid-cols-2">{children}</div>
+  return <div className="min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">{children}</div>
 }
 
 function BreakdownCard({
@@ -636,10 +636,10 @@ function BreakdownCard({
   return (
     <section
       aria-label={title}
-      className="max-[680px]:overflow-hidden grid min-w-0 gap-3 max-[680px]:gap-0.5 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
+      className="max-[680px]:overflow-hidden grid min-w-0 gap-3 max-[680px]:gap-0 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
       role="region"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0">
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">{title}</h3>
         <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{label}</Badge>
       </div>
@@ -658,13 +658,13 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
           No Status Data Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {rows.map((row) => (
             <DataListItem
-              className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={row.status}
             >
-              <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+              <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
                 <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {sessionStatusDisplayLabel(row.status)}
                 </strong>
@@ -692,10 +692,10 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
           No Error Messages Yet.
         </EmptyState>
       ) : (
-        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
+        <DataList className="max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {summary.errors.top_messages.map((error) => (
             <DataListItem
-              className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+              className="max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0 border-0 bg-transparent p-2 max-[680px]:p-0.5 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={error.message}
             >
               <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
@@ -843,7 +843,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
           No Sessions in This Filter Window.
         </EmptyState>
       ) : (
-        <div className="min-w-0 grid gap-2 max-[680px]:gap-0.5">
+        <div className="min-w-0 grid gap-2 max-[680px]:gap-0">
           <strong className="text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {formatPercent(succeeded, total)} Success
           </strong>
