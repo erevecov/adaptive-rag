@@ -8,7 +8,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
   ({ className, ...props }, ref) => (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card text-card-foreground shadow-sm max-[680px]:rounded-md max-[680px]:border-primary/35 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/30',
+        'rounded-lg border border-border bg-card text-card-foreground shadow-sm max-[680px]:rounded-md max-[680px]:border-primary/40 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/35',
         'motion-safe:transition-colors',
         className,
       )}
