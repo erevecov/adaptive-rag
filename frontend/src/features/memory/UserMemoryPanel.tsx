@@ -483,7 +483,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             Memory
           </h2>
         </div>
-        <div className="grid justify-items-end gap-1">
+        <div className="grid justify-items-end gap-1 max-[680px]:gap-0.5">
           <div className="flex flex-wrap justify-end gap-1">
             {listState !== 'loading' && statusCounts.proposed > 0 ? (
               <StatusBadge

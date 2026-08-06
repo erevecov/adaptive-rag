@@ -1494,6 +1494,9 @@ describe('UserMemoryPanel', () => {
     expect(draft.className).toContain('max-[680px]:min-h-14')
     const form = draft.closest('form')
     expect(form?.className).toContain('max-[680px]:gap-0.5')
+    const badgeColumn = screen.getByLabelText(/injectable/i).parentElement
+      ?.parentElement
+    expect(badgeColumn?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
