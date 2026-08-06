@@ -869,7 +869,7 @@ export function CapabilitySelector({
       <div className="relative" data-slot="capability-selector">
         <Popover.Trigger asChild>
           <div
-            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+            className="flex min-h-9 w-full items-center gap-2 max-[680px]:gap-0.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground motion-safe:transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-background max-[680px]:min-h-11 max-[680px]:focus-within:ring-offset-0 max-[680px]:data-[state=open]:ring-offset-0 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary/95 max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
             onClick={() => {
               setIsOpen(true)
               inputRef.current?.focus()
