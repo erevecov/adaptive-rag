@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:px-2 max-[680px]:py-1',
+'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/20 max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:px-2 max-[680px]:py-1',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -491,7 +491,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:gap-0.5 max-[680px]:pb-1"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/20 max-[680px]:gap-0.5 max-[680px]:pb-1"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
@@ -587,7 +587,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-1"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/20 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -657,7 +657,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pt-1"
+      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/20 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
