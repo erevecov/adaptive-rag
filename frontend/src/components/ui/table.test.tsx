@@ -67,7 +67,7 @@ describe('Table density', () => {
     expect(scroll?.className).toContain('overscroll-contain')
     expect(scroll?.className).toContain('max-[680px]:overscroll-y-contain')
     expect(scroll?.className).toContain('max-[680px]:rounded-sm')
-    expect(scroll?.className).toContain('max-[680px]:max-h-[min(50vh,18rem)]')
+    expect(scroll?.className).toContain('max-[680px]:max-h-[min(50vh,16rem)]')
     const header = screen.getByText('Latency').closest('[data-slot="table-header"]')
     expect(header?.className).toContain('bg-card')
     expect(header?.className).toContain('shadow-primary/15')
@@ -84,7 +84,7 @@ describe('Table density', () => {
     expect(screen.getByText('12ms').className).toContain('max-[680px]:leading-snug')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:tracking-tighter')
     expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
-      'max-[680px]:min-w-[440px]',
+      'max-[680px]:min-w-[420px]',
     )
     expect(screen.getByText('12ms').closest('[data-slot="table"]')?.className).toContain(
       'max-[680px]:tracking-tighter',
