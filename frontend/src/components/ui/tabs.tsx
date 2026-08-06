@@ -130,7 +130,7 @@ export const SegmentedControlItem = forwardRef<
     const itemClassName = cn(
       [
         'inline-flex h-8 items-center justify-center rounded-sm px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-        'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/55 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
+        'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/60 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
         // Inset ring stays inside the muted track (offset rings clip / wash on purple).
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         'disabled:pointer-events-none disabled:opacity-50',
