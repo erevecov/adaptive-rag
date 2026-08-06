@@ -53,6 +53,7 @@ describe('DropdownMenu', () => {
     expect(menu.className).toContain('max-[680px]:tracking-tighter')
     expect(menu.className).toContain('max-[680px]:p-0.5')
     expect(menu.className).toContain('max-[680px]:text-[0.5625rem]')
+    expect(menu.className).toContain('max-[680px]:shadow-primary/90')
     expect(archiveItem.getAttribute('data-slot')).toBe('dropdown-menu-item')
     expect(archiveItem.className).toContain('focus-visible:ring-2')
     expect(archiveItem.className).toContain('focus-visible:ring-inset')
