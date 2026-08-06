@@ -849,7 +849,7 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:p-1"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:border-primary/20 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/15"
           data-slot="chat-memory-applied"
         >
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
@@ -926,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:px-2 max-[680px]:py-1.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/20 max-[680px]:px-2 max-[680px]:py-1.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/15">
           {displayQuestion}
         </p>
       )}
@@ -1130,7 +1130,7 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
 
 function UsageItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:p-1">
+    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:border-primary/20 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/15">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
@@ -1164,7 +1164,7 @@ function KnowledgeDraftCard({
   return (
     <article
       aria-label={`Knowledge draft ${draft.draftId}`}
-      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:p-1"
+      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:border-primary/20 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/15"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1">
