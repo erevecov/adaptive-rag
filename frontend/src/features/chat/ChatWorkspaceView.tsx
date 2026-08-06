@@ -507,7 +507,7 @@ function ResponsePanel({
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[1.75rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:rounded-sm max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/25"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:rounded-sm max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/25"
             data-slot-state="failed"
             role="alert"
           >
