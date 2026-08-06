@@ -257,14 +257,14 @@ export function ChatWorkspacePanel({
                 placeholder="Ask A Question About Indexed Sources"
                 ref={questionInputRef}
                 rows={2}
-                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
+                title="Enter To Send · Shift+Enter For A New Line · Escape To Cancel"
                 value={question}
               />
             </FieldControl>
           </Field>
 
           <div
-            className="mt-2 flex flex-wrap items-center justify-end gap-2"
+            className="mt-2 flex flex-wrap items-center justify-end gap-2 max-[680px]:gap-0.5 max-[680px]:mt-1"
             data-slot="chat-composer-actions"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-0.5">
@@ -324,7 +324,7 @@ export function ChatWorkspacePanel({
                 className={COMPOSER_PRIMARY_ACTION_CLASS}
                 disabled={question.trim().length === 0}
                 size="sm"
-                title="Enter to send"
+                title="Enter To Send"
                 type="submit"
               >
                 Ask
@@ -333,7 +333,7 @@ export function ChatWorkspacePanel({
           </div>
 
           {requestError ? (
-            <InlineFeedback className="mt-2" tone="danger">
+            <InlineFeedback className="mt-2 max-[680px]:mt-1" tone="danger">
               {operatorSafeMessage(requestError)}
             </InlineFeedback>
           ) : null}
@@ -466,7 +466,7 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-1.5"
+        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-0.5"
       >
         <EmptyState
           aria-busy="true"
@@ -482,10 +482,10 @@ function ResponsePanel({
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:p-0.5"
+            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/35 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/35"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
-            <div className="space-y-2">
+            <div className="space-y-2 max-[680px]:space-y-1">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
@@ -505,7 +505,7 @@ function ResponsePanel({
   if (response === null) {
     if (state === 'failed') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="failed"
@@ -522,7 +522,7 @@ function ResponsePanel({
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="canceled"
@@ -537,7 +537,7 @@ function ResponsePanel({
       )
     }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-1.5">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.5rem] max-[680px]:px-1 max-[680px]:py-0.5">
         <EmptyState
           className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
           data-slot-state="empty"
@@ -545,7 +545,7 @@ function ResponsePanel({
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Response Yet.</p>
           <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Ask about indexed sources. Enter to send · Shift+Enter for a new line.
+            Ask About Indexed Sources. Enter To Send · Shift+Enter For A New Line.
           </p>
         </EmptyState>
       </div>
@@ -767,7 +767,7 @@ function ResponseContent({
             {response.answer.trim().length > 0 ? (
               response.answer
             ) : (
-              <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <span className="inline-flex items-center gap-2 text-muted-foreground max-[680px]:gap-0.5">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
@@ -849,7 +849,7 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/40"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/40"
           data-slot="chat-memory-applied"
         >
           <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
@@ -926,7 +926,7 @@ function QuestionPrompt({ question }: { question: string | null }) {
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:px-1.5 max-[680px]:py-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/40">
+        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:px-1.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/40">
           {displayQuestion}
         </p>
       )}
@@ -964,12 +964,12 @@ function ResponseDetailsPanel({
   return (
     <section
       aria-label="Response Details"
-      className="rounded-md border border-border bg-muted/15 p-3"
+      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/40 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/40"
     >
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
-        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
@@ -1067,7 +1067,7 @@ function ResponseDetailsContent({
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-0.5"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
-                <div className="grid min-w-0 gap-2">
+                <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                   <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     {result.citation.source_external_id}
                   </strong>
@@ -1113,7 +1113,7 @@ function ResponseDetailsContent({
 
 function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
   return (
-    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+    <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6 max-[680px]:gap-0.5">
       {usage.model !== null ? (
         <UsageItem label="Model" value={usage.model} />
       ) : null}
@@ -1204,7 +1204,7 @@ function KnowledgeDraftCard({
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>

@@ -439,7 +439,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/35 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-2 max-[680px]:py-1',
+'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/35 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -450,7 +450,7 @@ export function AppSidebar({
             'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
-              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-2.5 max-[680px]:top-2.5 max-[680px]:border max-[680px]:border-primary/40',
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-1.5 max-[680px]:top-1.5 max-[680px]:border max-[680px]:border-primary/40',
           )}
           label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
@@ -684,7 +684,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === OBSERVABILITY_NAVIGATION.id}
           onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
@@ -705,7 +705,7 @@ function SettingsNavigationPanel({
             )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === RUNTIME_NAVIGATION.id}
           onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
@@ -821,7 +821,7 @@ function SidebarProjectSelector({
             aria-label={`Project selector: ${selectedLabel}`}
             className={cn(
               [
-                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
+                'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
                 'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/40 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/35',
                 'hover:border-primary',
               ],
@@ -870,7 +870,7 @@ function SidebarProjectSelector({
             </label>
 
             <div
-              className="flex items-center justify-between gap-2"
+              className="flex items-center justify-between gap-2 max-[680px]:gap-0.5"
               data-slot="project-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
@@ -880,7 +880,7 @@ function SidebarProjectSelector({
 
             <div
               aria-label="Projects"
-              className="grid max-h-72 gap-1 overflow-auto"
+              className="grid max-h-72 gap-1 overflow-auto max-[680px]:gap-0.5"
               data-slot="project-selector-list"
               role="listbox"
             >
