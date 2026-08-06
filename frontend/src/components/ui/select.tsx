@@ -94,7 +94,7 @@ export function Select({
                 className={cn(
                   [
                     'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/50',
+                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/55',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
                     'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/20',
