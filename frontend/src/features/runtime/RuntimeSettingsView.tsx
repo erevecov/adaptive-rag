@@ -400,7 +400,7 @@ function RuntimePanel({
 function RuntimeStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
-      className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+      className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
       tone={runtimeStatusTone(state)}
     >
       {runtimeStatusLabel(state)}
@@ -572,18 +572,18 @@ export function RuntimeConnectionsPanel({
                         {connection.connection_id}
                       </strong>
                       <div className="flex flex-wrap gap-2 max-[680px]:gap-0">
-                        <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full truncate max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                        <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full truncate max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                           {providerLabel(connection.provider)} /{' '}
                           {connectionTypeLabel(connection.connection_type)}
                         </Badge>
-                        <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full truncate max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
+                        <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full truncate max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
                           {connection.capabilities
                             .map((capability) => slotLabel(capability))
                             .join(', ')}
                         </Badge>
                         {isChecking ? (
                           <StatusBadge
-                            className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                            className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                             role="status"
                             tone="warning"
                           >
@@ -881,7 +881,7 @@ export function CapabilitySelector({
           >
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0 max-[680px]:overflow-hidden">
               {value.map((capability) => (
-                <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate gap-1 pr-1 max-[680px]:gap-0 max-[680px]:pr-0 max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:bg-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm" key={capability} tone="primary">
+                <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate gap-1 pr-1 max-[680px]:gap-0 max-[680px]:pr-0 max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:bg-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm" key={capability} tone="primary">
                   <span>{slotLabel(capability)}</span>
                   <Button
                     aria-label={`Remove ${slotLabel(capability)} Capability`}
@@ -1052,7 +1052,7 @@ export function RuntimeModelCatalogPanel({
                   <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     {selectedConnection.connection_id}
                   </small>
-                  <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
+                  <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
                     {selectedConnection.capabilities
                       .map((capability) => slotLabel(capability))
                       .join(', ')}
@@ -1255,7 +1255,7 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
             {chatModels.map((model) => (
               <DataListItem
-                className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+                className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1266,7 +1266,7 @@ export function RuntimeGlobalDefaultsPanel({
                     {model.connection_id}
                   </small>
                 </div>
-                <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
+                <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
                   {model.is_default ? 'Default' : 'Enabled'}
                 </Badge>
               </DataListItem>
@@ -1336,7 +1336,7 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : chatRetrievalSettings ? (
           <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+            <DataListItem className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
               <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
                 <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   Global Defaults
@@ -1346,7 +1346,7 @@ export function RuntimeGlobalDefaultsPanel({
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
               </div>
-              <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
+              <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
                 {chatRetrievalSettings.rerank_enabled
                   ? 'Rerank On'
                   : 'Rerank Off'}
@@ -1480,7 +1480,7 @@ export function RuntimeProjectOverridesPanel({
       status={
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0">
           <RuntimeStatus state={state} />
-          <StatusBadge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
+          <StatusBadge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
             {projectId.trim() || 'No Project'}
           </StatusBadge>
         </div>
@@ -1652,7 +1652,7 @@ export function ConnectionSecretSummary({
   return (
     <div className="flex flex-wrap gap-2 max-[680px]:gap-0">
       {connection.secrets.map((secret) => (
-        <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
+        <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" key={secret.secret_name} tone={secret.configured ? 'success' : 'neutral'}>
           {secretNameLabel(secret.secret_name)}{' '}
           {secret.configured ? 'Configured' : 'Not Configured'}
           {secret.last_four ? ` / Last Four ${secret.last_four}` : ''}
@@ -1812,7 +1812,7 @@ export function ProviderModelCatalogView({
         <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
           {providerModels.map((model) => (
             <DataListItem
-              className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+              className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1831,7 +1831,7 @@ export function ProviderModelCatalogView({
                   </small>
                 ) : null}
               </div>
-              <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.pricing ? 'primary' : 'neutral'}>
+              <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.pricing ? 'primary' : 'neutral'}>
                 {model.pricing ? 'Pricing' : 'Metadata'}
               </Badge>
             </DataListItem>
@@ -1887,7 +1887,7 @@ export function RuntimeSlotList({
     <DataList aria-label="Global Runtime Slots" className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
       {slots.map((slot) => (
         <DataListItem
-          className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+          className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
           key={slot.slot}
         >
           <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -1896,7 +1896,7 @@ export function RuntimeSlotList({
               {slot.connection_id} / {slot.model_id}
             </small>
           </div>
-          <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel('global')}</Badge>
+          <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel('global')}</Badge>
         </DataListItem>
       ))}
     </DataList>
@@ -1965,7 +1965,7 @@ export function ProjectRuntimeSettingsView({
                   </small>
                 </div>
                 <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
-                  <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
+                  <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
                   {slot.source === 'overridden' ? (
                     <Button className="max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
                       onClick={() => onResetProjectSlot(slot.slot)}
@@ -2009,8 +2009,8 @@ export function ProjectRuntimeSettingsView({
                   </small>
                 </div>
                 <DataListItemActions className="max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
-                  <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(model.source)}</Badge>
-                  <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
+                  <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(model.source)}</Badge>
+                  <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
                     {model.is_default ? 'Default' : 'Enabled'}
                   </Badge>
                 </DataListItemActions>
@@ -2022,7 +2022,7 @@ export function ProjectRuntimeSettingsView({
       <section className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-          <DataListItem className="max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
+          <DataListItem className="max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0">
             <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0">
               <strong className="max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
@@ -2032,7 +2032,7 @@ export function ProjectRuntimeSettingsView({
                 {settings.chat_retrieval.rerank_enabled ? 'Rerank On' : 'Rerank Off'}
               </small>
             </div>
-            <Badge className="max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
+            <Badge className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
               {sourceLabel(settings.chat_retrieval.source)}
             </Badge>
           </DataListItem>
