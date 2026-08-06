@@ -231,7 +231,7 @@ export function RetrievalPlaygroundPanel({
         </form>
 
         {error && state !== 'failed' ? (
-          <InlineFeedback className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
+          <InlineFeedback className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
             {error}
           </InlineFeedback>
         ) : null}
