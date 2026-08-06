@@ -266,7 +266,7 @@ export function WorkspaceTopline({
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-2',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-1',
       )}
       data-slot="workspace-topline"
     >
@@ -447,7 +447,7 @@ export function AppSidebar({
         <IconButton
           aria-expanded={isOpen}
           className={cn(
-            'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
+            'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
               'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-0.5 max-[680px]:top-0.5 max-[680px]:border max-[680px]:border-primary/95',
@@ -565,8 +565,8 @@ function SidebarNavButton({
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
         'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
-        'hover:bg-primary/15 hover:text-foreground',
-        active && 'bg-primary/15 font-semibold text-foreground',
+        'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
+        active && 'bg-primary/15 max-[680px]:bg-primary/45 font-semibold text-foreground',
         className,
       )}
       onClick={onClick}
