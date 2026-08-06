@@ -128,7 +128,7 @@ export function ObservabilityPanel({
       <PanelBody className="max-[680px]:border-t max-[680px]:border-primary/95 grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         <SegmentedControl
           aria-label="Observability Views"
-          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-md max-[680px]:p-0.5"
+          className="max-w-full flex-wrap justify-start max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:border max-[680px]:border-primary/95 max-[680px]:rounded-md max-[680px]:p-0.5 max-[680px]:px-0.5"
           role="tablist"
         >
           {OBSERVABILITY_TABS.map((tab) => (
@@ -366,7 +366,7 @@ function ObservabilityMetricSkeleton({
       {Array.from({ length: cardCount }, (_, index) => (
         <article
           aria-hidden="true"
-          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-8 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
+          className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-7 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
           key={index}
         >
           <div className="h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1.5 rounded bg-muted/40" />
@@ -594,7 +594,7 @@ function MetricCard({
   return (
     <article
       aria-labelledby={`${labelId} ${valueId}`}
-      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-8 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
+      className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-7 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
     >
       <span
         className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-wider max-[680px]:tracking-tighter max-[680px]:px-0.5"
