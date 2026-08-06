@@ -39,7 +39,7 @@ export const Trigger = forwardRef<
     className={cn(
       // Bare triggers render a button — match Popover / DS focus-visible rings.
       !asChild &&
-        'rounded-md max-[680px]:min-h-11 max-[680px]:rounded-sm max-[680px]:tracking-tighter motion-safe:transition-colors hover:bg-primary/15 active:bg-primary/20 max-[680px]:active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'rounded-md max-[680px]:min-h-11 max-[680px]:rounded-sm max-[680px]:tracking-tighter motion-safe:transition-colors hover:bg-primary/15 active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       className,
     )}
     ref={ref}
@@ -100,7 +100,7 @@ export const Item = forwardRef<
       className={cn(
         [
           'flex min-h-8 max-[680px]:min-h-11 cursor-pointer items-center rounded-sm px-2 text-sm tracking-tight outline-none max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-          'motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/90',
+          'motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
           'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/55',
           'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
           'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
