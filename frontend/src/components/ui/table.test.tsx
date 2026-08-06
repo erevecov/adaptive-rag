@@ -79,7 +79,7 @@ describe('Table density', () => {
     expect(screen.getByText('Latency').className).toContain('max-[680px]:h-11')
     expect(screen.getByText('Latency').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:min-h-11')
-    expect(screen.getByText('12ms').className).toContain('max-[680px]:py-1')
+    expect(screen.getByText('12ms').className).toContain('max-[680px]:py-0.5')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:text-[0.5625rem]')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:leading-snug')
     expect(screen.getByText('12ms').className).toContain('max-[680px]:tracking-tighter')

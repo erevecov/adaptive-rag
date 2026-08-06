@@ -822,7 +822,7 @@ function SidebarProjectSelector({
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
-                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/70 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65',
+                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/70 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65',
                 'hover:border-primary',
               ],
               isOpen && 'border-primary bg-primary/15',
