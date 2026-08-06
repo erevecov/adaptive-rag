@@ -196,7 +196,7 @@ export function ChatWorkspacePanel({
           'max-[680px]:border-t max-[680px]:border-primary/60',
           // Purple hairline above sticky Ask dock (mirrors question sticky).
           'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/60',
-          'max-[680px]:pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+          'max-[680px]:pb-[max(0.375rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
       >
@@ -466,7 +466,7 @@ function ResponsePanel({
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.25rem] max-[680px]:px-1 max-[680px]:py-0.5"
+        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3rem] max-[680px]:px-1 max-[680px]:py-0.5"
       >
         <EmptyState
           aria-busy="true"
@@ -505,7 +505,7 @@ function ResponsePanel({
   if (response === null) {
     if (state === 'failed') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.25rem] max-[680px]:px-1 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="failed"
@@ -522,7 +522,7 @@ function ResponsePanel({
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.25rem] max-[680px]:px-1 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3rem] max-[680px]:px-1 max-[680px]:py-0.5">
           <EmptyState
             className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:p-0.5"
             data-slot-state="canceled"
@@ -537,7 +537,7 @@ function ResponsePanel({
       )
     }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3.25rem] max-[680px]:px-1 max-[680px]:py-0.5">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-[3rem] max-[680px]:px-1 max-[680px]:py-0.5">
         <EmptyState
           className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:p-0.5"
           data-slot-state="empty"
