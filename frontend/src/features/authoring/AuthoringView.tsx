@@ -338,7 +338,7 @@ function IngestionStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4.25rem] justify-center break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
@@ -351,7 +351,7 @@ function KnowledgeStatus({ state }: { state: RequestState }) {
   return (
     <StatusBadge
       aria-live="polite"
-      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4.25rem] justify-center break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+      className="max-[680px]:rounded-sm max-w-full min-w-[4.75rem] max-[680px]:min-w-[4rem] justify-center break-all text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
       role="status"
       tone={requestStateTone(state)}
     >
