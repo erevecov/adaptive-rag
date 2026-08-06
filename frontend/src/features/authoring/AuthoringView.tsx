@@ -503,7 +503,7 @@ function ProjectList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No Projects Yet.</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Create a project above to start indexing sources.
         </p>
       </EmptyState>
@@ -549,7 +549,7 @@ function ProjectList({
                   {project.id}
                 </small>
                 {isDeleted ? (
-                  <small className="text-xs text-muted-foreground">
+                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                     Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
@@ -847,10 +847,10 @@ function UserAccessLists({
                 >
                   {user.login}
                 </strong>
-                <small className="break-words text-xs text-muted-foreground">
+                <small className="break-words text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {user.display_name}
                 </small>
-                <small className="break-all text-xs text-muted-foreground">
+                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {user.id}
                 </small>
               </div>
@@ -891,7 +891,7 @@ function UserAccessLists({
                 <strong className="break-all text-sm font-semibold max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {membership.user_id}
                 </strong>
-                <small className="break-all text-xs text-muted-foreground">
+                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {membership.project_id}
                 </small>
               </div>
@@ -968,7 +968,7 @@ function SourceFileField({
       {sourceFileName.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
             data-slot="source-file-status"
             id={`${fieldId}-file-help`}
             role="status"
@@ -994,7 +994,7 @@ function SourceFileField({
         </div>
       ) : (
         <span
-          className="text-xs text-muted-foreground"
+          className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
           data-slot="source-file-status"
           id={`${fieldId}-file-help`}
           role="status"
@@ -1142,7 +1142,7 @@ function SourcesPanel({
             )}
           </AuthoringField>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             URL sources are fetched during ingestion; no content is required here.
           </p>
         )}
@@ -1216,7 +1216,7 @@ function SourceList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No Sources Yet.</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
@@ -1257,7 +1257,7 @@ function SourceList({
               <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {source.id}
               </small>
-              <small className="text-xs text-muted-foreground">
+              <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {isDeleted
                   ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}
@@ -1357,7 +1357,7 @@ function KnowledgeReviewPanel({
           role="status"
         >
           <p className="font-medium text-foreground/90">Proposals Load Canceled.</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Refresh Again When Ready to Review Knowledge Drafts.
           </p>
         </EmptyState>
@@ -1369,7 +1369,7 @@ function KnowledgeReviewPanel({
           role="status"
         >
           <p className="font-medium text-foreground/90">No Pending Proposals.</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             Refresh After Chat Surfaces a Knowledge Draft for This Project.
           </p>
         </EmptyState>
@@ -1386,7 +1386,7 @@ function KnowledgeReviewPanel({
                     {proposal.proposed_text}
                   </strong>
                   <small
-                    className="break-all text-xs text-muted-foreground"
+                    className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                     title={proposal.id}
                   >
                     {proposal.id}
@@ -1529,7 +1529,7 @@ function IngestionJobsPanel({
 
       {run ? (
         <div
-          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug"
+          className="grid gap-1 rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs leading-snug max-[680px]:gap-0.5 max-[680px]:px-1.5 max-[680px]:py-1 max-[680px]:text-[0.5625rem]"
           data-slot="ingestion-last-run"
         >
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
@@ -1541,11 +1541,11 @@ function IngestionJobsPanel({
               {jobStatusLabel(run.status)}
             </StatusBadge>
           </div>
-          <p className="text-sm leading-snug text-foreground/90">
+          <p className="text-sm leading-snug text-foreground/90 max-[680px]:text-[0.625rem]">
             {ingestionRunMessage(run)}
           </p>
           {run.error_message ? (
-            <InlineFeedback className="text-xs" tone="danger">
+            <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem]" tone="danger">
               {operatorSafeMessage(run.error_message)}
             </InlineFeedback>
           ) : null}
@@ -1578,7 +1578,7 @@ function IngestionJobList({
         role="status"
       >
         <p className="font-medium text-foreground/90">No Ingestion Jobs Yet.</p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>
@@ -1591,7 +1591,7 @@ function IngestionJobList({
     <div className="grid gap-3" data-slot="ingestion-job-groups">
       {groups.map((group) => (
         <div className="grid gap-2" key={group.status}>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {jobStatusLabel(group.status)}
             <span className="ml-1 tabular-nums">({group.jobs.length})</span>
           </p>
@@ -1630,7 +1630,7 @@ function IngestionJobList({
                     </div>
                     {sourceId ? (
                       <small
-                        className="break-all text-xs text-muted-foreground"
+                        className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
                         title="source_id from job payload"
                       >
                         Source {sourceId}
@@ -1642,7 +1642,7 @@ function IngestionJobList({
                     >
                       {truncateId(job.id)}
                     </small>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground max-[680px]:gap-x-2 max-[680px]:text-[0.5625rem]">
                       <span>{formatAttempts(job)}</span>
                       <span title={runAfter.absolute}>
                         Run after {runAfter.relative}
@@ -1650,7 +1650,7 @@ function IngestionJobList({
                       <span>{formatLockState(job)}</span>
                     </div>
                     {job.last_error ? (
-                      <InlineFeedback className="text-xs" tone="danger">
+                      <InlineFeedback className="text-xs max-[680px]:text-[0.5625rem]" tone="danger">
                         {operatorSafeMessage(job.last_error)}
                       </InlineFeedback>
                     ) : null}
