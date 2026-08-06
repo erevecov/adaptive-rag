@@ -521,9 +521,14 @@ describe('UserMemoryPanel', () => {
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Propose Memory'),
+      ),
+    )
   })
 
-  test('propose filter switch clears the Approved→Rejected notice', async () => {
+  test('successful propose cancels pending confirm-remove', async () => {
     const user = userEvent.setup()
     const store: UserMemory[] = [
       memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),

@@ -300,6 +300,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       } else {
         await refreshList()
       }
+      requestAnimationFrame(() => {
+        document.getElementById(draftFieldId)?.focus()
+      })
     } catch (error) {
       setProposeState('failed')
       setProposeError(getErrorMessage(error, 'Could not propose memory.'))
