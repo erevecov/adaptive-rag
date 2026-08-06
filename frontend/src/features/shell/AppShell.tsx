@@ -130,7 +130,7 @@ export function AppShell({
 }) {
   const skipHref = primaryView === 'chat' ? '#chat-composer' : '#main-content'
   const skipLabel =
-    primaryView === 'chat' ? 'Skip to chat composer' : 'Skip to main content'
+    primaryView === 'chat' ? 'Skip To Chat Composer' : 'Skip To Main Content'
 
   return (
     <main
@@ -266,7 +266,7 @@ export function WorkspaceTopline({
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-11',
       )}
       data-slot="workspace-topline"
     >
@@ -278,7 +278,7 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
         data-slot="workspace-project-chip"
         title={projectName}
       >
@@ -591,7 +591,7 @@ function AccountNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         My Account
@@ -661,7 +661,7 @@ function SettingsNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         Settings
@@ -801,7 +801,7 @@ function SidebarProjectSelector({
   const selectedProject = projects.find((project) => project.id === trimmedProjectId)
   const selectedLabel =
     selectedProject?.name ??
-    (trimmedProjectId.length > 0 ? 'Project selected' : 'Select project')
+    (trimmedProjectId.length > 0 ? 'Project Selected' : 'Select Project')
   const visibleProjects = useMemo(
     () => getVisibleProjectOptions(projects, projectSearch),
     [projectSearch, projects],
@@ -893,7 +893,7 @@ function SidebarProjectSelector({
                     <Button
                       aria-label={
                         canAccess
-                          ? `Select project ${project.name}`
+                          ? `Select Project ${project.name}`
                           : `Project ${project.name}. No tienes acceso para ese proyecto`
                       }
                       aria-selected={isSelected}

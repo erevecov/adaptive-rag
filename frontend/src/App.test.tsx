@@ -1380,7 +1380,7 @@ describe('App chat workspace', () => {
     expect(screen.queryByRole('combobox', { name: 'Project' })).toBeNull()
 
     await user.click(selector)
-    await user.click(screen.getByRole('option', { name: /Select project Demo/ }))
+    await user.click(screen.getByRole('option', { name: /Select Project Demo/ }))
 
     expect(localStorage.getItem('adaptive-rag:last-project-id')).toBe(projectId)
     expect(updateCurrentUserPreferences).toHaveBeenCalledWith({
@@ -1511,14 +1511,14 @@ describe('App chat workspace', () => {
         .getAllByRole('option')
         .map((option) => option.getAttribute('aria-label')),
     ).toEqual([
-      'Select project Beta Enabled',
-      'Select project Zulu Enabled',
+      'Select Project Beta Enabled',
+      'Select Project Zulu Enabled',
       'Project Alpha Restricted. No tienes acceso para ese proyecto',
       'Project Omega Restricted. No tienes acceso para ese proyecto',
     ])
 
     const betaOption = screen.getByRole('option', {
-      name: /Select project Beta Enabled/,
+      name: /Select Project Beta Enabled/,
     })
     expect(betaOption.textContent).toBe('Beta Enabled')
     expect(betaOption.textContent).not.toContain(accessibleBeta.id)
@@ -1552,7 +1552,7 @@ describe('App chat workspace', () => {
     await user.click(
       await screen.findByRole('button', { name: /Project selector/i }),
     )
-    await user.click(screen.getByRole('option', { name: /Select project Demo/ }))
+    await user.click(screen.getByRole('option', { name: /Select Project Demo/ }))
     expect(localStorage.getItem('adaptive-rag:last-project-id')).toBe(projectId)
 
     unmount()
@@ -1670,7 +1670,7 @@ describe('App chat workspace', () => {
 
     expect(
       await screen.findByRole('region', {
-        name: 'Knowledge draft draft-33333333',
+        name: 'Knowledge Draft draft-33333333',
       }),
     ).toBeTruthy()
     const draftText = screen.getByLabelText('Knowledge Draft Text')
@@ -1734,7 +1734,7 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       [
         '[refining knowledge draft draft-viewer]',
-        'Current draft:',
+        'Current Draft:',
         'Viewer draft knowledge.',
         'Requested change: ',
       ].join('\n'),
@@ -2313,7 +2313,7 @@ describe('App chat workspace', () => {
   test('renders a keyboard skip link targeting the chat composer', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
+    const skip = screen.getByRole('link', { name: 'Skip To Chat Composer' })
     expect(skip.getAttribute('href')).toBe('#chat-composer')
     expect(skip.getAttribute('data-slot')).toBe('skip-link')
     expect(skip.className).toContain('focus-visible:ring-primary-foreground')
@@ -2326,7 +2326,7 @@ describe('App chat workspace', () => {
     setViewportWidth(900)
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
-    const skip = screen.getByRole('link', { name: 'Skip to chat composer' })
+    const skip = screen.getByRole('link', { name: 'Skip To Chat Composer' })
     expect(skip.hasAttribute('inert')).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -2873,7 +2873,7 @@ describe('App chat workspace', () => {
     }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     expect(
-      screen.getByText('Speech recognition is not supported in this browser.'),
+      screen.getByText('Speech Recognition Is Not Supported In This Browser.'),
     ).toBeTruthy()
   })
 
@@ -2894,7 +2894,7 @@ describe('App chat workspace', () => {
 
     const question = screen.getByLabelText('Question') as HTMLTextAreaElement
     expect(question.value).toBe('How do I retry from voice?')
-    expect(screen.getByText('Voice transcript added.')).toBeTruthy()
+    expect(screen.getByText('Voice Transcript Added.')).toBeTruthy()
   })
 
   test('shows speech recognition errors without submitting chat', async () => {
@@ -2910,7 +2910,7 @@ describe('App chat workspace', () => {
     })
 
     expect(screen.getByRole('alert').textContent).toContain(
-      'Speech recognition error: not-allowed',
+      'Speech Recognition Error: not-allowed',
     )
     expect(client.askChatStream).not.toHaveBeenCalled()
   })
@@ -3088,7 +3088,7 @@ describe('App chat workspace', () => {
       alerts.some((node) => node.textContent?.includes('backend unavailable')),
     ).toBe(true)
     expect(
-      alerts.some((node) => node.textContent?.includes('Request failed.')),
+      alerts.some((node) => node.textContent?.includes('Request Failed.')),
     ).toBe(true)
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
@@ -4525,7 +4525,7 @@ describe('App chat workspace', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
-    await user.click(screen.getByRole('option', { name: 'Select project Second' }))
+    await user.click(screen.getByRole('option', { name: 'Select Project Second' }))
 
     expect(
       await screen.findByRole('button', { name: /Project selector: Second/ }),
@@ -4573,7 +4573,7 @@ describe('App chat workspace', () => {
     )
 
     await user.click(await screen.findByRole('button', { name: /Project selector: Demo/ }))
-    await user.click(screen.getByRole('option', { name: 'Select project Second' }))
+    await user.click(screen.getByRole('option', { name: 'Select Project Second' }))
 
     expect(
       await screen.findByRole('button', { name: /Project selector: Second/ }),

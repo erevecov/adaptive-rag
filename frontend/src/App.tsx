@@ -783,7 +783,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setQuestion(
       [
         `[refining knowledge draft ${draft.draftId}]`,
-        'Current draft:',
+        'Current Draft:',
         draft.text,
         'Requested change: ',
       ].join('\n'),
@@ -1010,7 +1010,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     const Recognition = getSpeechRecognitionConstructor()
     if (Recognition === null) {
       setSpeechState('failed')
-      setSpeechFeedback('Speech recognition is not supported in this browser.')
+      setSpeechFeedback('Speech Recognition Is Not Supported In This Browser.')
       return
     }
 
@@ -1022,16 +1022,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       const transcript = extractSpeechTranscript(event)
       if (transcript.length === 0) {
         setSpeechState('failed')
-        setSpeechFeedback('Speech recognition returned an empty transcript.')
+        setSpeechFeedback('Speech Recognition Returned An Empty Transcript.')
         return
       }
       setQuestion((current) => appendTranscript(current, transcript))
       setSpeechState('succeeded')
-      setSpeechFeedback('Voice transcript added.')
+      setSpeechFeedback('Voice Transcript Added.')
     }
     recognition.onerror = (event) => {
       setSpeechState('failed')
-      setSpeechFeedback(`Speech recognition error: ${event.error ?? 'unknown'}`)
+      setSpeechFeedback(`Speech Recognition Error: ${event.error ?? 'unknown'}`)
     }
     recognition.onend = () => {
       setActiveSpeechRecognition(null)
@@ -1053,7 +1053,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     activeSpeechRecognition?.stop()
     setActiveSpeechRecognition(null)
     setSpeechState('idle')
-    setSpeechFeedback('Transcript stopped.')
+    setSpeechFeedback('Transcript Stopped.')
   }
 
   async function handleSelectSession(sessionId: string) {
@@ -2987,7 +2987,7 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return operatorSafeMessage(error.message)
   }
-  return 'Request failed.'
+  return 'Request Failed.'
 }
 
 function appendAnswerDelta(

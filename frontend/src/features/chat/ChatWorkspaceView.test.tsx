@@ -265,6 +265,7 @@ describe('ChatWorkspacePanel', () => {
     )
     expect(loading).toBeTruthy()
     expect(loading?.textContent).toContain('Waiting For Response…')
+    expect(loading?.className).toMatch(/max-\[680px\]:bg-card/)
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
@@ -287,7 +288,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="failed"]',
     )
     expect(failedState).toBeTruthy()
-    expect(failedState?.textContent).toContain('Request failed.')
+    expect(failedState?.textContent).toContain('Request Failed.')
     expect(failedState?.getAttribute('role')).toBe('alert')
     failed.view.unmount()
 
@@ -299,7 +300,8 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="canceled"]',
     )
     expect(canceledState).toBeTruthy()
-    expect(canceledState?.textContent).toContain('Request canceled.')
+    expect(canceledState?.textContent).toContain('Request Canceled.')
+    expect(canceledState?.className).toMatch(/max-\[680px\]:bg-card/)
     canceled.view.unmount()
 
     const canceledPartial = renderChatWorkspace({
@@ -310,7 +312,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(canceledBanner).toBeTruthy()
-    expect(canceledBanner?.textContent).toMatch(/Request canceled/)
+    expect(canceledBanner?.textContent).toMatch(/Request Canceled/)
     expect(canceledBanner?.querySelector('[role="status"]')).toBeTruthy()
     expect(
       canceledPartial.view.container.querySelector('[data-slot="chat-message"]'),
@@ -326,7 +328,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
     )
     expect(failedBanner).toBeTruthy()
-    expect(failedBanner?.textContent).toMatch(/Request failed/)
+    expect(failedBanner?.textContent).toMatch(/Request Failed/)
     expect(failedBanner?.querySelector('[role="alert"]')).toBeTruthy()
     failedPartial.view.unmount()
   })
@@ -368,7 +370,8 @@ describe('ChatWorkspacePanel', () => {
     expect(emptyState).toBeTruthy()
     expect(emptyState?.textContent).toContain('No Response Yet.')
     expect(emptyState?.textContent).toMatch(/Enter To Send/)
-    expect(screen.queryByText('Speech input ready.')).toBeNull()
+    expect(emptyState?.className).toMatch(/max-\[680px\]:bg-card/)
+    expect(screen.queryByText('Speech Input Ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
     expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
@@ -443,7 +446,7 @@ describe('ChatWorkspacePanel', () => {
       response: draftResponse,
     })
 
-    const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
+    const draft = screen.getByRole('region', { name: 'Knowledge Draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge Draft Text')).toBeTruthy()
     const approve = within(draft).getByRole('button', { name: 'Approve Knowledge' })
     expect(approve).toBeTruthy()
@@ -532,7 +535,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(banner).toBeTruthy()
-    expect(banner?.textContent).toMatch(/Request canceled/)
+    expect(banner?.textContent).toMatch(/Request Canceled/)
     expect(screen.getByText('Partial before cancel')).toBeTruthy()
     canceled.view.unmount()
 
@@ -544,8 +547,8 @@ describe('ChatWorkspacePanel', () => {
       failed.view.container.querySelector(
         '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
       )?.textContent,
-    ).toMatch(/Request failed/)
-    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/)
+    ).toMatch(/Request Failed/)
+    expect(screen.getByRole('alert').textContent).toMatch(/Incomplete/)
     failed.view.unmount()
   })
 
