@@ -57,7 +57,7 @@ export const TableHeader = forwardRef<
   <thead
     className={cn(
       // Opaque card sticky header stays legible on purple/dark nested panels.
-      'sticky top-0 z-10 border-b border-border bg-card shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/65 max-[680px]:shadow-primary/60',
+      'sticky top-0 z-10 border-b border-border bg-card shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/70 max-[680px]:shadow-primary/65',
       className,
     )}
     ref={ref}
@@ -87,7 +87,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ className, ...props }, ref) => (
     <tr
       className={cn(
-        'border-b border-border motion-safe:transition-colors hover:bg-primary/15 active:bg-primary/20 max-[680px]:border-primary/65',
+        'border-b border-border motion-safe:transition-colors hover:bg-primary/15 active:bg-primary/20 max-[680px]:border-primary/70',
         'focus-visible:bg-primary/15 focus-visible:outline-none',
         className,
       )}
