@@ -46,7 +46,7 @@ describe('SidebarItem', () => {
     expect(item.className).toContain('data-[active]:text-foreground')
     expect(item.className).toContain('max-[680px]:min-h-11')
     expect(item.className).toContain('max-[680px]:gap-1')
-    expect(item.className).toContain('max-[680px]:text-[0.6875rem]')
+    expect(item.className).toContain('max-[680px]:text-[0.625rem]')
   })
 
   test('uses primary-tint hover when inactive', () => {
