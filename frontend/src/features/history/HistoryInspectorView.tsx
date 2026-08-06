@@ -232,7 +232,7 @@ export function SessionNavigationPanel({
               data-slot="session-list-empty"
               data-status-filter={statusFilter}
             >
-              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-1.5 max-[680px]:leading-snug">
+              <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-1.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {sessionEmptyCopy(statusFilter)}
               </EmptyState>
             </div>
@@ -389,7 +389,7 @@ export function SessionNavigationPanel({
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
                           align="end"
-                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:p-1.5"
+                          className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:text-[0.625rem] max-[680px]:gap-0.5 max-[680px]:p-1.5"
                           data-slot="session-actions-menu"
                           onCloseAutoFocus={(event) => event.preventDefault()}
                           sideOffset={4}
@@ -898,7 +898,7 @@ function InternalActionStepper({
                 <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {formatJsonValue(call.arguments)}
                 </p>
-                <small className="text-xs text-muted-foreground">
+                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {formatUnknownMs(call.latency_ms)}
                 </small>
               </DataListItem>
@@ -911,17 +911,17 @@ function InternalActionStepper({
                 <Badge>
                   Retrieval {titleCaseToken(run.strategy)}
                 </Badge>
-                <strong className="text-sm text-foreground">{run.query}</strong>
+                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{run.query}</strong>
                 <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
                 </p>
                 <DataList>
                   {run.retrieved_chunks.map((chunk) => (
                     <DataListItem key={chunk.retrieved_chunk_id}>
-                      <strong className="text-sm text-foreground">
+                      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                         Rank {chunk.rank}
                       </strong>
-                      <small className="block text-xs text-muted-foreground">
+                      <small className="block text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                         {formatStepperScores(chunk)}
                       </small>
                     </DataListItem>
@@ -937,13 +937,13 @@ function InternalActionStepper({
                 <Badge>
                   Provider Usage {titleCaseToken(usage.status)}
                 </Badge>
-                <strong className="text-sm text-foreground">{usage.model}</strong>
+                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.model}</strong>
                 <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {usage.provider} {usage.operation} /{' '}
                   {formatUnknownTokens(usage.total_tokens)} /{' '}
                   {formatUnknownCost(usage.estimated_cost_usd)}
                 </p>
-                <small className="text-xs text-muted-foreground">
+                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   {formatUnknownMs(usage.latency_ms)}
                 </small>
               </DataListItem>
@@ -1031,7 +1031,7 @@ function SessionDetailPanel({
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-1 max-[680px]:p-1.5">
         <div className="grid min-w-0 gap-1">
           <PanelTitle>Session Detail</PanelTitle>
-          <p className="break-all text-xs text-muted-foreground">
+          <p className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {detail.session.session_id}
           </p>
         </div>
@@ -1041,7 +1041,7 @@ function SessionDetailPanel({
       </PanelHeader>
       <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-1.5 max-[680px]:p-1.5 max-[680px]:pt-0">
         <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby="messages-title">
-          <h4 id="messages-title" className="text-sm font-semibold text-foreground">
+          <h4 id="messages-title" className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             Messages
           </h4>
           <DataList aria-label="Session Messages">
@@ -1149,7 +1149,7 @@ function ToolCallDetail({ call }: { call: ChatHistoryToolCall }) {
       <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {formatJsonValue(call.arguments)}
       </p>
-      <small className="text-xs text-muted-foreground">{call.status}</small>
+      <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{call.status}</small>
     </DataListItem>
   )
 }
@@ -1163,7 +1163,7 @@ function RetrievalRunDetail({
 }) {
   return (
     <DataListItem className="grid gap-2" key={run.retrieval_run_id}>
-      <strong className="text-sm text-foreground">{run.query}</strong>
+      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{run.query}</strong>
       <div className="flex flex-wrap gap-2">
         <Badge>{retrievalStrategyLabel(run)}</Badge>
         <Badge>Top {run.top_k}</Badge>
@@ -1223,7 +1223,7 @@ function RetrievedChunkDetail({
           {getCitationText(chunk.citation, 'snippet')}
         </p>
         {scores.length > 0 ? (
-          <small className="text-xs text-muted-foreground">
+          <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {scores.join(' / ')}
           </small>
         ) : null}
@@ -1238,7 +1238,7 @@ function RetrievedChunkDetail({
             View Source
           </Button>
         ) : (
-          <span className="text-xs text-muted-foreground" role="status">
+          <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" role="status">
             No Openable Source (Deleted or Uncited)
           </span>
         )}
@@ -1250,7 +1250,7 @@ function RetrievedChunkDetail({
 function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
   return (
     <DataListItem key={usage.provider_usage_id}>
-      <strong className="text-sm text-foreground">
+      <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {usage.provider} / {usage.model}
       </strong>
       <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
@@ -1259,7 +1259,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
           ? ''
           : ` / $${usage.estimated_cost_usd.toFixed(4)}`}
       </p>
-      <small className="text-xs text-muted-foreground">
+      <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
         {titleCaseToken(usage.status)}
       </small>
     </DataListItem>
