@@ -211,7 +211,7 @@ export function RetrievalPlaygroundPanel({
             </Field>
           </div>
           <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0.5">
-            <Button className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit" disabled={state === 'loading'}>
+            <Button className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-6 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
             <StatusBadge
