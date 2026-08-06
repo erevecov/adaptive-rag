@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: max-[680px] shadow-primary solid (drop /95) across operator surfaces
+- Pass: solid destructive hairline shadows; capability popover sideOffset 2
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates
 - PR: https://github.com/erevecov/adaptive-rag/pull/530

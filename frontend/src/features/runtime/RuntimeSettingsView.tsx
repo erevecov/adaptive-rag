@@ -346,7 +346,7 @@ export function RuntimeSettingsPanel({
   return (
     <div className="grid gap-4 max-[680px]:gap-0.5">
       {error ? (
-        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           {operatorSafeMessage(error)}
         </Callout>
       ) : null}
@@ -639,7 +639,7 @@ export function RuntimeConnectionsPanel({
                   {deleteConnectionId === connection.connection_id ? (
                     <form
                       aria-label={`Delete ${connection.connection_id} Connection`}
-                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+                      className="grid gap-3 max-[680px]:gap-0.5 rounded-md border border-destructive/30 bg-destructive/10 p-3 md:col-span-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
@@ -944,7 +944,7 @@ export function CapabilitySelector({
             }}
             role="listbox"
             side="bottom"
-            sideOffset={4}
+            sideOffset={2}
           >
             {filteredOptions.length === 0 ? (
               <p
@@ -1697,7 +1697,7 @@ export function ConnectionCheckSummary({
   }
 
   return (
-    <Callout className="p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/80 max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+    <Callout className="p-2 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
       Connection Check Failed. Verify Base URL, Capabilities, and API Key.
       {result.message.trim().length > 0 ? (
         <span className="mt-1 block text-xs opacity-90 max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
