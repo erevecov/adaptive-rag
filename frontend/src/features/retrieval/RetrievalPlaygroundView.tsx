@@ -260,7 +260,7 @@ export function RetrievalPlaygroundPanel({
               data-slot-state="failed"
               role="alert"
             >
-              <p className="font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Search Failed</p>
+              <p className="max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Search Failed</p>
               <p className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
@@ -334,7 +334,7 @@ export function RetrievalPlaygroundPanel({
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                    <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <strong className="max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>
                     <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">

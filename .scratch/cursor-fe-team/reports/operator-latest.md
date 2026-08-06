@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: SegmentedControl antialiased/select-none/touch densify
+- Pass: font-semibold/bold → font-medium densify at ≤680 (28 sites)
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates + min-h-11
 - PR: https://github.com/erevecov/adaptive-rag/pull/530
