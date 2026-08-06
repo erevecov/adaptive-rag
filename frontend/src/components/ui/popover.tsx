@@ -42,7 +42,7 @@ export const Trigger = forwardRef<
     className={cn(
       // Bare triggers render a button — match DS focus-visible rings.
       !asChild &&
-        'rounded-md max-[680px]:min-h-11 max-[680px]:rounded-sm max-[680px]:tracking-tighter motion-safe:transition-colors hover:bg-primary/15 active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'rounded-md max-[680px]:min-h-11 max-[680px]:rounded-sm max-[680px]:tracking-tighter motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/20 active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       className,
     )}
     ref={ref}
