@@ -15,8 +15,8 @@ export const buttonVariants = cva(
       size: {
         // ≤680: 44px min touch targets (composer/operator chrome parity).
         icon: 'size-9 p-0 max-[680px]:size-11',
-        md: 'h-9 px-4 py-2 max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
-        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11 max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
+        md: 'h-9 px-4 py-2 max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:text-[0.5625rem]',
+        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11 max-[680px]:px-1.5 max-[680px]:text-[0.5625rem]',
       },
       variant: {
         danger:
