@@ -165,7 +165,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
     )
   }
   return (
-    <ol className="grid gap-2 max-[680px]:gap-1" data-slot="chat-pipeline-step-list">
+    <ol className="grid gap-2 max-[680px]:gap-0.5" data-slot="chat-pipeline-step-list">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
           <StepRow step={step} />
@@ -202,7 +202,7 @@ function StepRow({ step }: { step: ChatStep }) {
   if (!hasDetail) {
     return (
       <div
-        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-1 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
+        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/30 max-[680px]:p-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/25"
         data-slot="chat-pipeline-step-row"
       >
         {content}
@@ -215,7 +215,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-1 max-[680px]:p-1">
+      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:p-1">
         {content}
       </summary>
       <StepDetail step={step} />
@@ -243,7 +243,7 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     return null
   }
   return (
-    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-1">
+    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5">
       {chips.slice(0, 3).map((chip) => (
         <span
           className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
@@ -272,7 +272,7 @@ function StepDetail({ step }: { step: ChatStep }) {
   }
   return (
     <dl
-      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-1 max-[680px]:p-1"
+      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-0.5 max-[680px]:p-1"
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
