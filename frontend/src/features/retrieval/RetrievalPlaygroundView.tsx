@@ -337,7 +337,7 @@ export function RetrievalPlaygroundPanel({
                     <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>
-                    <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                    <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                       {retrievalSourceTypeDisplay(result.citation.source_type)}
                       {result.fallback_reason
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`

@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: strong label truncate at ≤680 (authoring/obs/retrieval)
+- Pass: strong/small truncate densify across operator surfaces
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates
 - PR: https://github.com/erevecov/adaptive-rag/pull/530

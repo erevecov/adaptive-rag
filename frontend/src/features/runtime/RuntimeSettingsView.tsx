@@ -592,7 +592,7 @@ export function RuntimeConnectionsPanel({
                         ) : null}
                       </div>
                       {connection.base_url ? (
-                        <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                        <small className="max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                           {connection.base_url}
                         </small>
                       ) : null}
@@ -643,7 +643,7 @@ export function RuntimeConnectionsPanel({
                       onSubmit={onDeleteConnection}
                     >
                       <InlineFeedback className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="danger">
-                        Type <strong className="break-all max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{connection.connection_id}</strong> to Confirm
+                        Type <strong className="max-[680px]:truncate break-all max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{connection.connection_id}</strong> to Confirm
                         Deletion.
                       </InlineFeedback>
                       <RuntimeField
@@ -1046,10 +1046,10 @@ export function RuntimeModelCatalogPanel({
             <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
                 <div className="grid gap-1 max-[680px]:gap-0.5">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {connectionOptionLabel(selectedConnection)}
                   </strong>
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {selectedConnection.connection_id}
                   </small>
                   <Badge className="max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">
@@ -1058,7 +1058,7 @@ export function RuntimeModelCatalogPanel({
                       .join(', ')}
                   </Badge>
                   {selectedConnection.base_url ? (
-                    <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                    <small className="max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                       {selectedConnection.base_url}
                     </small>
                   ) : null}
@@ -1259,10 +1259,10 @@ export function RuntimeGlobalDefaultsPanel({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.connection_id}
                   </small>
                 </div>
@@ -1338,10 +1338,10 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList className="max-[680px]:gap-0.5">
             <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
               <div className="grid gap-1 max-[680px]:gap-0.5">
-                <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Global Defaults
                 </strong>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Limit {chatRetrievalSettings.retrieval_limit} / candidate{' '}
                   {chatRetrievalSettings.rerank_candidate_limit}
                 </small>
@@ -1642,7 +1642,7 @@ export function ConnectionSecretSummary({
 }) {
   if (connection.secrets.length === 0) {
     return (
-      <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+      <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
         {connection.connection_type === 'fake'
           ? 'Secrets Not Required for This Connection'
           : 'No API Key on File'}
@@ -1679,7 +1679,7 @@ export function ConnectionCheckSummary({
 
   if (result === undefined) {
     return (
-      <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Not Checked</small>
+      <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Not Checked</small>
     )
   }
 
@@ -1816,17 +1816,17 @@ export function ProviderModelCatalogView({
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="grid gap-1 max-[680px]:gap-0.5">
-                <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {model.model_id}
                 </strong>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {model.connection_id} /{' '}
                   {model.capabilities
                     .map((capability) => slotLabel(capability))
                     .join(', ')}
                 </small>
                 {model.pricing ? (
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     Pricing metadata saved
                   </small>
                 ) : null}
@@ -1891,8 +1891,8 @@ export function RuntimeSlotList({
           key={slot.slot}
         >
           <div className="grid gap-1 max-[680px]:gap-0.5">
-            <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
-            <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+            <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
+            <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
               {slot.connection_id} / {slot.model_id}
             </small>
           </div>
@@ -1959,8 +1959,8 @@ export function ProjectRuntimeSettingsView({
             {settings.slots.map((slot) => (
               <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
                 <div className="grid gap-1 max-[680px]:gap-0.5">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
                   </small>
                 </div>
@@ -2001,10 +2001,10 @@ export function ProjectRuntimeSettingsView({
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="grid gap-1 max-[680px]:gap-0.5">
-                  <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.model_id}
                   </strong>
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {model.connection_id}
                   </small>
                 </div>
@@ -2024,10 +2024,10 @@ export function ProjectRuntimeSettingsView({
         <DataList className="max-[680px]:gap-0.5">
           <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
             <div className="grid gap-1 max-[680px]:gap-0.5">
-              <strong className="text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+              <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>
-              <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+              <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Candidate {settings.chat_retrieval.rerank_candidate_limit} /{' '}
                 {settings.chat_retrieval.rerank_enabled ? 'Rerank On' : 'Rerank Off'}
               </small>

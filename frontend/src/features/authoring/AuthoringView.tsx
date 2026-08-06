@@ -546,11 +546,11 @@ function ProjectList({
                 >
                   {project.name}
                 </strong>
-                <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {project.id}
                 </small>
                 {isDeleted ? (
-                  <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                  <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     Deleted{' '}
                     {formatOperatorTimestamp(project.deleted_at ?? null)}
                   </small>
@@ -854,10 +854,10 @@ function UserAccessLists({
                 >
                   {user.login}
                 </strong>
-                <small className="break-words text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate break-words text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {user.display_name}
                 </small>
-                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {user.id}
                 </small>
               </div>
@@ -898,7 +898,7 @@ function UserAccessLists({
                 <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.user_id}
                 </strong>
-                <small className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.project_id}
                 </small>
               </div>
@@ -1266,10 +1266,10 @@ function SourceList({
                   </StatusBadge>
                 ) : null}
               </div>
-              <small className="break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+              <small className="max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {source.id}
               </small>
-              <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+              <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {isDeleted
                   ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
                   : `${sourceTypeLabel(source.source_type)} · ${tags}`}

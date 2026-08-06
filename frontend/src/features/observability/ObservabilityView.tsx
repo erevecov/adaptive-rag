@@ -612,7 +612,7 @@ function MetricCard({
       >
         {value}
       </strong>
-      <small className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+      <small className="max-[680px]:truncate text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
         {detail}
       </small>
     </article>
@@ -667,7 +667,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
                 <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {sessionStatusDisplayLabel(row.status)}
                 </strong>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
