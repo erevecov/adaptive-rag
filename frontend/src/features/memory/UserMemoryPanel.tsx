@@ -472,7 +472,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       role="region"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
+        <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
