@@ -92,7 +92,7 @@ export function Select({
               <SelectPrimitive.Item
                 className={cn(
                   [
-                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-2 max-[680px]:text-[0.625rem]',
+                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-1.5 max-[680px]:text-[0.5625rem]',
                     'text-popover-foreground motion-safe:transition-colors',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
