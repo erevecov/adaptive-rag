@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 const controlClasses = [
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground',
-  'motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 max-[680px]:hover:border-primary/80 active:border-primary/50 max-[680px]:active:border-primary/95',
+  'motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 max-[680px]:hover:border-primary/85 active:border-primary/50 max-[680px]:active:border-primary/95',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
   'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
   // Invalid fields: destructive ring against fill (parity with danger Button).
