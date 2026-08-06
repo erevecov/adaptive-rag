@@ -603,7 +603,7 @@ export function RuntimeConnectionsPanel({
                       result={checkResult}
                     />
                   </div>
-                  <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
+                  <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
                     <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                       aria-label={`Check ${connection.connection_id} Connection`}
                       disabled={state === 'loading' || isChecking}
@@ -663,7 +663,7 @@ export function RuntimeConnectionsPanel({
                           />
                         )}
                       </RuntimeField>
-                      <DataListItemActions className="max-[680px]:gap-0.5">
+                      <DataListItemActions className="max-[680px]:gap-0.5 max-[680px]:px-0.5">
                         <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                           disabled={state === 'loading'}
                           onClick={onCancelDeleteConnection}
@@ -1061,7 +1061,7 @@ export function RuntimeModelCatalogPanel({
                 </div>
                 <ConnectionSecretSummary connection={selectedConnection} />
               </div>
-              <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5">
+              <DataListItemActions className="justify-start gap-2 md:justify-end max-[680px]:gap-0.5 max-[680px]:px-0.5">
                 <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
                   disabled={state === 'loading'}
                   onClick={() =>
@@ -1550,7 +1550,7 @@ export function RuntimeProjectOverridesPanel({
             )}
           </RuntimeField>
         </div>
-        <DataListItemActions className="max-[680px]:gap-0.5">
+        <DataListItemActions className="max-[680px]:gap-0.5 max-[680px]:px-0.5">
           <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug" type="submit">Save Project Retrieval Override</Button>
           {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
             <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
@@ -1950,7 +1950,7 @@ export function ProjectRuntimeSettingsView({
                     {slot.connection_id} / {slot.model_id}
                   </small>
                 </div>
-                <DataListItemActions className="max-[680px]:gap-0.5">
+                <DataListItemActions className="max-[680px]:gap-0.5 max-[680px]:px-0.5">
                   <Badge className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
                   {slot.source === 'overridden' ? (
                     <Button className="max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug"
@@ -1994,7 +1994,7 @@ export function ProjectRuntimeSettingsView({
                     {model.connection_id}
                   </small>
                 </div>
-                <DataListItemActions className="max-[680px]:gap-0.5">
+                <DataListItemActions className="max-[680px]:gap-0.5 max-[680px]:px-0.5">
                   <Badge className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(model.source)}</Badge>
                   <Badge className="max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
                     {model.is_default ? 'Default' : 'Enabled'}
