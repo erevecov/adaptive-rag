@@ -334,7 +334,7 @@ export function RetrievalPlaygroundPanel({
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-                    <strong className="break-words text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+                    <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>
                     <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
