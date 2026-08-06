@@ -290,6 +290,66 @@ describe('UserMemoryPanel', () => {
     ).toBeTruthy()
   })
 
+  test('Undo from Rejected after empty-Approved switch returns to Approved', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-2', status: 'approved' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      return item
+    })
+    const approve = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'approved'
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ approve, list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-2'))
+    expect(
+      screen.getByRole('button', { name: /^Rejected/ }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    await user.click(
+      screen.getByRole('button', { name: 'Undo remove from injection' }),
+    )
+    await waitFor(() => expect(approve).toHaveBeenCalledWith('mem-2'))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Approved/ }).getAttribute('aria-pressed'),
+      ).toBe('true'),
+    )
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    expect(await screen.findByText('1 Injectable')).toBeTruthy()
+  })
+
   test('badge reports approved injectable count even on Proposed filter', async () => {
     const user = userEvent.setup()
     const store: UserMemory[] = [

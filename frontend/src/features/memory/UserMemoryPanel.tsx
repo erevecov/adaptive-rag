@@ -321,7 +321,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     try {
       await apiClient.approveUserMemory(memoryId)
       setUndoRemoveId(null)
-      await refreshList()
+      if (statusFilter === 'rejected') {
+        setStatusFilter('approved')
+      } else {
+        await refreshList()
+      }
       requestAnimationFrame(() => {
         document.getElementById(`remove-injection-${memoryId}`)?.focus()
       })
