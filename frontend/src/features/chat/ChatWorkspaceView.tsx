@@ -196,7 +196,7 @@ export function ChatWorkspacePanel({
           'max-[680px]:border-t max-[680px]:border-primary/65',
           // Purple hairline above sticky Ask dock (mirrors question sticky).
           'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/60',
-          'max-[680px]:pb-[max(0.375rem,env(safe-area-inset-bottom))]',
+          'max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
       >
@@ -799,7 +799,7 @@ function ResponseContent({
                     className={cn(
                       'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
                       'hover:border-primary/50 hover:bg-primary/15',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2 max-[680px]:py-1 max-[680px]:text-[0.5625rem]',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
                     )}
                     key={chipKey}
                     onClick={() =>
