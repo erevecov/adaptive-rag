@@ -850,7 +850,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </span>
@@ -1268,7 +1268,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>

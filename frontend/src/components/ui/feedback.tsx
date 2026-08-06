@@ -76,7 +76,7 @@ export const InlineFeedback = forwardRef<
 InlineFeedback.displayName = 'InlineFeedback'
 
 const calloutVariants = cva(
-'rounded-md border p-4 text-sm leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/90',
+'rounded-md border p-4 text-sm leading-relaxed tracking-tight motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95',
   {
     defaultVariants: {
       tone: 'neutral',
