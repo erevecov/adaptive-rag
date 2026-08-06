@@ -69,6 +69,11 @@ def approve_memory(
     owner_user_id: UUID | None = None,
     is_superadmin: bool = False,
 ) -> UserMemory:
+    """Approve a proposed memory, or restore a rejected one to injection.
+
+    Rejected → approved covers soft-remove undo without a fourth status.
+    """
+
     return _review(
         session,
         memory_id=memory_id,
@@ -77,6 +82,7 @@ def approve_memory(
         status="approved",
         require_project_access=True,
         is_superadmin=is_superadmin,
+        allowed_from_statuses=("proposed", "rejected"),
     )
 
 

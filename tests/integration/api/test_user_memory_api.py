@@ -146,7 +146,7 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
     assert "Prefer concise answers" in injected.user_memory
 
 
-def test_reject_and_double_review_via_api() -> None:
+def test_reject_and_restore_via_approve_api() -> None:
     session = _make_session()
     _create_user(session, login="rej@example.com", token="rej-token")
     session.commit()
@@ -166,6 +166,13 @@ def test_reject_and_double_review_via_api() -> None:
     )
     assert rejected.status_code == 200
     assert rejected.json()["status"] == "rejected"
+
+    restored = client.post(
+        f"/users/me/memories/{memory_id}/approve",
+        headers=_bearer("rej-token"),
+    )
+    assert restored.status_code == 200
+    assert restored.json()["status"] == "approved"
 
     conflict = client.post(
         f"/users/me/memories/{memory_id}/approve",
@@ -381,3 +388,16 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
         session, request=request, user_id=user.id, project_id=None
     )
     assert cleared.user_memory is None
+
+    restored = client.post(
+        f"/users/me/memories/{memory_id}/approve",
+        headers=_bearer("patch-token"),
+    )
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["status"] == "approved"
+
+    reinjected = _with_approved_user_memory(
+        session, request=request, user_id=user.id, project_id=None
+    )
+    assert reinjected.user_memory is not None
+    assert "Edited preference" in reinjected.user_memory
