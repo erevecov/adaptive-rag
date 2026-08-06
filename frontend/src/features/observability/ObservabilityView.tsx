@@ -106,18 +106,18 @@ export function ObservabilityPanel({
     >
       <PanelHeader className="max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0 max-[680px]:p-0">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-          <p className="max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             Observability
           </p>
-          <PanelTitle className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="observability-title">{activeLabel}</PanelTitle>
-          <PanelDescription className="max-[680px]:max-w-full max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <PanelTitle className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="observability-title">{activeLabel}</PanelTitle>
+          <PanelDescription className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             Inspect Chat Health, Cost, Error, and Latency Rollups.
           </PanelDescription>
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0">
           <StatusBadge
             aria-live="polite"
-            className="max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+            className="max-[680px]:min-w-0 max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
             role="status"
             tone={requestStateTone(state)}
           >
@@ -135,7 +135,7 @@ export function ObservabilityPanel({
             <SegmentedControlItem
               active={activeSubmodule === tab.value}
               aria-controls={`observability-panel-${tab.value}`}
-              className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:px-0"
+              className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:px-0"
               id={`observability-tab-${tab.value}`}
               key={tab.value}
               onClick={() => onSubmoduleChange(tab.value)}
@@ -203,13 +203,13 @@ export function ObservabilityPanel({
               />
             )}
           </ObservabilityField>
-          <Button className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate whitespace-nowrap max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isRefreshing} type="submit">
+          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate whitespace-nowrap max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isRefreshing} type="submit">
             {isRefreshing ? 'Refreshing…' : 'Refresh Summary'}
           </Button>
         </form>
 
         {error ? (
-          <Callout className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+          <Callout className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </Callout>
         ) : null}
@@ -241,7 +241,7 @@ function ObservabilityField({
 }) {
   return (
     <Field className="max-[680px]:gap-0">
-      <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
     </Field>
   )
@@ -271,7 +271,7 @@ function ObservabilityContent({
           role="alert"
         >
           <p className="max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Summary Unavailable.</p>
-          <p className="max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             The Last Refresh Failed. Adjust Filters and Try Again.
           </p>
         </EmptyState>
@@ -285,7 +285,7 @@ function ObservabilityContent({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Refresh Canceled.</p>
-          <p className="max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             No Summary Loaded. Run Refresh Again When Ready.
           </p>
         </EmptyState>
@@ -316,7 +316,7 @@ function ObservabilityContent({
   if (state === 'failed') {
     return (
       <div className="min-w-0 grid gap-3 max-[680px]:gap-0" data-slot="observability-stale-failed">
-        <Callout className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+        <Callout className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
         <div className="pointer-events-none" data-stale="">
@@ -332,7 +332,7 @@ function ObservabilityContent({
       className="relative"
       data-slot="observability-refreshing"
     >
-      <p className="max-[680px]:max-w-full max-[680px]:truncate mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status">
+      <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status">
         Refreshing…
       </p>
       {content}
@@ -613,7 +613,7 @@ function MetricCard({
       >
         {value}
       </strong>
-      <small className="max-[680px]:max-w-full max-[680px]:truncate text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
         {detail}
       </small>
     </article>
@@ -641,7 +641,7 @@ function BreakdownCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0">
         <h3 className="max-[680px]:font-medium text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">{title}</h3>
-        <Badge className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{label}</Badge>
+        <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{label}</Badge>
       </div>
       {children}
     </section>
@@ -665,14 +665,14 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
               key={row.status}
             >
               <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {sessionStatusDisplayLabel(row.status)}
                 </strong>
-                <small className="max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
-              <Badge className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{formatCount(row.count, 'Session')}</Badge>
+              <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{formatCount(row.count, 'Session')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -698,10 +698,10 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               className="max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0 border-0 bg-transparent p-2 max-[680px]:p-0 max-[680px]:tracking-tighter shadow-none max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               key={error.message}
             >
-              <strong className="max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {operatorSafeMessage(error.message, error.message)}
               </strong>
-              <Badge className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{formatCount(error.count, 'Occurrence')}</Badge>
+              <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{formatCount(error.count, 'Occurrence')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -847,10 +847,10 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
           <strong className="max-[680px]:font-medium text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {formatPercent(succeeded, total)} Success
           </strong>
-          <span className="max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             {formatCount(failed, 'Failed Session')}
           </span>
-          <span className="max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
             {formatCount(running, 'Running Session')}
           </span>
         </div>

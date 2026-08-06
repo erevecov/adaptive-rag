@@ -116,10 +116,10 @@ export function RetrievalPlaygroundPanel({
       role="region"
     >
       <PanelHeader className="max-[680px]:text-left max-[680px]:items-start max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-4 max-[680px]:gap-0 max-[680px]:p-0">
-        <PanelTitle className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="retrieval-playground-title">
+        <PanelTitle className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" id="retrieval-playground-title">
           Retrieval Playground
         </PanelTitle>
-        <PanelDescription className="max-[680px]:max-w-full max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+        <PanelDescription className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
           Run Project Retrieval Without Chat. Inspect Ranked Chunks, Scores, and
           Strategy for the Selected Project.
         </PanelDescription>
@@ -130,7 +130,7 @@ export function RetrievalPlaygroundPanel({
           onSubmit={(event) => void handleSearch(event)}
         >
           <Field>
-            <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-query">Query</FieldLabel>
+            <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-query">Query</FieldLabel>
             <FieldControl>
               <Textarea
                 className="max-[680px]:text-left max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:py-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -144,7 +144,7 @@ export function RetrievalPlaygroundPanel({
           </Field>
           <div className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 max-[680px]:gap-0">
             <Field>
-              <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
+              <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-strategy">Strategy</FieldLabel>
               <FieldControl>
                 <Select
                   className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -158,7 +158,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-limit">Limit</FieldLabel>
+              <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-limit">Limit</FieldLabel>
               <FieldControl>
                 <Input
                   className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -170,7 +170,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-rerank">Rerank</FieldLabel>
+              <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-rerank">Rerank</FieldLabel>
               <FieldControl>
                 <Select
                   className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -182,7 +182,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
             </Field>
             <Field>
-              <FieldLabel className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-rerank-limit">
+              <FieldLabel className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" htmlFor="retrieval-rerank-limit">
                 Rerank Candidates
               </FieldLabel>
               <FieldControl>
@@ -202,7 +202,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
               {!rerankEnabled ? (
                 <FieldHelp
-                  className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                   id="rerank-limit-help"
                 >
                   Enable Rerank to Edit Candidate Limit.
@@ -211,19 +211,19 @@ export function RetrievalPlaygroundPanel({
             </Field>
           </div>
           <div className="flex flex-wrap items-center gap-3 max-[680px]:gap-0">
-            <Button className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit" disabled={state === 'loading'}>
+            <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit" disabled={state === 'loading'}>
               {state === 'loading' ? 'Searching…' : 'Search'}
             </Button>
             <StatusBadge
               aria-live="polite"
-              className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+              className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
               role="status"
               tone={requestStateTone(state)}
             >
               {requestStateLabel(state)}
             </StatusBadge>
             {!projectId.trim() ? (
-              <span className="max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Select a Project in the Sidebar First.
               </span>
             ) : null}
@@ -231,7 +231,7 @@ export function RetrievalPlaygroundPanel({
         </form>
 
         {error && state !== 'failed' ? (
-          <InlineFeedback className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="alert" tone="danger">
+          <InlineFeedback className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="alert" tone="danger">
             {error}
           </InlineFeedback>
         ) : null}
@@ -261,7 +261,7 @@ export function RetrievalPlaygroundPanel({
               role="alert"
             >
               <p className="max-[680px]:font-medium font-semibold text-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Search Failed</p>
-              <p className="max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 {error ?? 'Adjust Query or Strategy and Retry.'}
               </p>
             </EmptyState>
@@ -276,7 +276,7 @@ export function RetrievalPlaygroundPanel({
               <p className="font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Run A Query To Inspect Ranked Chunks.
               </p>
-              <p className="max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+              <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 Choose Strategy, Optional Rerank, Then Search.
               </p>
             </EmptyState>
@@ -322,28 +322,28 @@ export function RetrievalPlaygroundPanel({
                       {result.score.toFixed(4)}
                     </Badge>
                     <StatusBadge
-                      className="max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                      className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                       tone="neutral"
                     >
                       {retrievalStrategyDisplay(result.strategy)}
                     </StatusBadge>
                     {result.distance != null ? (
-                      <span className="max-[680px]:max-w-full max-[680px]:truncate min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5ch] max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                      <span className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate min-w-[8ch] text-xs tabular-nums text-muted-foreground max-[680px]:min-w-[5ch] max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                         Dist {result.distance.toFixed(4)}
                       </span>
                     ) : null}
                   </div>
                   <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                    <strong className="max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <strong className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.source_external_id}
                     </strong>
-                    <small className="max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <small className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {retrievalSourceTypeDisplay(result.citation.source_type)}
                       {result.fallback_reason
                         ? ` · Fallback: ${retrievalFallbackDisplay(result.fallback_reason)}`
                         : ''}
                     </small>
-                    <p className="max-[680px]:max-w-full max-[680px]:truncate line-clamp-4 max-[680px]:line-clamp-2 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    <p className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate line-clamp-4 max-[680px]:line-clamp-2 whitespace-pre-wrap text-sm tracking-tight text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                       {result.citation.snippet}
                     </p>
                   </div>
