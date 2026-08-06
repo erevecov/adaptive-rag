@@ -2733,7 +2733,7 @@ function AppearanceSettingsPanel({
     <Panel
       role="region"
       aria-labelledby="appearance-settings-title"
-      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-1"
+      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
         <div className="grid gap-1 max-[680px]:gap-0.5">
@@ -2761,7 +2761,7 @@ function AppearanceSettingsPanel({
             <Button
               aria-pressed={active}
               className={cn(
-                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-1',
+                'grid h-auto w-full min-w-0 justify-stretch gap-3 rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-0.5',
                 'hover:bg-primary/15',
                 active &&
                   'border-primary bg-primary/25 focus-visible:ring-primary',
@@ -2775,7 +2775,7 @@ function AppearanceSettingsPanel({
             >
               <span
                 aria-hidden="true"
-                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-0.5 max-[680px]:p-1"
+                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-14 max-[680px]:gap-0.5 max-[680px]:p-0.5"
                 data-slot="theme-swatch"
                 style={{ background: option.swatch.bg }}
               >

@@ -176,7 +176,7 @@ export function AuthoringPanel({
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
-    <div className="grid gap-4 tracking-tight max-[680px]:p-1">
+    <div className="grid gap-4 tracking-tight max-[680px]:p-0.5">
       {activeSubmodule === 'projects' ? (
         <ProjectsPanel
           error={projectError}
@@ -302,7 +302,7 @@ function AuthoringSectionPanel({
       aria-label={ariaLabel}
       role="region"
     >
-      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-1">
+      <PanelHeader className="min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {eyebrow}
@@ -316,7 +316,7 @@ function AuthoringSectionPanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-1 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="grid gap-4 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -375,7 +375,7 @@ function LoadingListState({ label }: { label: string }) {
     <EmptyState
       aria-busy="true"
       aria-label={label}
-      className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-1"
+      className="border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5"
       data-slot-state="loading"
       role="status"
     >
@@ -441,7 +441,7 @@ function ProjectsPanel({
       status={<RequestStatus state={state} />}
       title="Projects"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:p-1" onSubmit={onCreateProject}>
+      <form className="grid gap-4 tracking-tight max-[680px]:p-0.5" onSubmit={onCreateProject}>
         <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
@@ -498,7 +498,7 @@ function ProjectList({
   if (projects.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
         data-slot-state="empty"
         role="status"
       >
@@ -639,8 +639,8 @@ function ProjectAccessPanel({
       status={<RequestStatus state={state} />}
       title="Users"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:p-1" onSubmit={onCreateUser}>
-        <div className="grid gap-4 tracking-tight max-[680px]:p-1 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:p-0.5" onSubmit={onCreateUser}>
+        <div className="grid gap-4 tracking-tight max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
@@ -668,7 +668,7 @@ function ProjectAccessPanel({
             )}
           </AuthoringField>
         </div>
-        <div className="grid gap-4 tracking-tight max-[680px]:p-1 md:grid-cols-2">
+        <div className="grid gap-4 tracking-tight max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
@@ -736,8 +736,8 @@ function ProjectAccessPanel({
 
       <div className="h-px bg-border" role="separator" />
 
-      <form className="grid gap-4 tracking-tight max-[680px]:p-1" onSubmit={onSaveMembership}>
-        <div className="grid gap-4 tracking-tight max-[680px]:p-1 md:grid-cols-2">
+      <form className="grid gap-4 tracking-tight max-[680px]:p-0.5" onSubmit={onSaveMembership}>
+        <div className="grid gap-4 tracking-tight max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
@@ -810,7 +810,7 @@ function UserAccessLists({
   if (users.length === 0 && memberships.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
         data-slot-state="empty"
         role="status"
       >
@@ -823,7 +823,7 @@ function UserAccessLists({
     <div className="grid gap-3 lg:grid-cols-2">
       {users.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
           data-slot-state="empty"
           role="status"
         >
@@ -877,7 +877,7 @@ function UserAccessLists({
       )}
       {memberships.length === 0 ? (
         <EmptyState
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
           data-slot-state="empty"
           role="status"
         >
@@ -1069,7 +1069,7 @@ function SourcesPanel({
       status={<RequestStatus state={sourceState} />}
       title="Content Registry"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:p-1" onSubmit={onCreateSource}>
+      <form className="grid gap-4 tracking-tight max-[680px]:p-0.5" onSubmit={onCreateSource}>
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
@@ -1082,7 +1082,7 @@ function SourcesPanel({
             />
           )}
         </AuthoringField>
-        <div className="grid gap-4 tracking-tight max-[680px]:p-1 md:grid-cols-2">
+        <div className="grid gap-4 tracking-tight max-[680px]:p-0.5 md:grid-cols-2">
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
@@ -1211,7 +1211,7 @@ function SourceList({
   if (sources.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
         data-slot-state="empty"
         role="status"
       >
@@ -1352,7 +1352,7 @@ function KnowledgeReviewPanel({
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
           data-slot-state="canceled"
           role="status"
         >
@@ -1364,7 +1364,7 @@ function KnowledgeReviewPanel({
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+          className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
           data-slot-state="empty"
           role="status"
         >
@@ -1395,7 +1395,7 @@ function KnowledgeReviewPanel({
                     {titleCaseStatus(proposal.status)}
                   </Badge>
                 </div>
-                <div className="grid gap-4 tracking-tight max-[680px]:p-1">
+                <div className="grid gap-4 tracking-tight max-[680px]:p-0.5">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined Text"
@@ -1573,7 +1573,7 @@ function IngestionJobList({
   if (jobs.length === 0) {
     return (
       <EmptyState
-        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-1"
+        className="border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5"
         data-slot-state="empty"
         role="status"
       >
