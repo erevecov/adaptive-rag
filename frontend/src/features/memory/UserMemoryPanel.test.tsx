@@ -1494,6 +1494,8 @@ describe('UserMemoryPanel', () => {
     expect(draft.className).toContain('max-[680px]:min-h-14')
     const form = draft.closest('form')
     expect(form?.className).toContain('max-[680px]:gap-0.5')
+    const header = screen.getByRole('heading', { name: 'Memory' }).closest('header')
+    expect(header?.className).toContain('max-[680px]:gap-0.5')
   })
 
 })
