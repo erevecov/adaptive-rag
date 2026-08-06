@@ -153,7 +153,7 @@ export function SessionNavigationPanel({
   return (
     <Panel
       aria-labelledby="history-title"
-      className="grid min-h-0 min-w-0 content-start gap-2 border-0 bg-transparent p-0 shadow-none"
+      className="grid min-h-0 min-w-0 content-start gap-2 border-0 bg-transparent p-0 shadow-none max-[680px]:gap-0.5"
       role="complementary"
     >
       <h2 className="sr-only" id="history-title">
@@ -162,7 +162,7 @@ export function SessionNavigationPanel({
 
       <Button
         className={cn(
-          'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none',
+          'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
           'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
         )}
         onClick={onStartNewSession}
@@ -216,7 +216,7 @@ export function SessionNavigationPanel({
             <div
               aria-busy="true"
               aria-label="Cargando sesiones"
-              className="grid w-full gap-2"
+              className="grid w-full gap-2 max-[680px]:gap-0.5"
               data-slot="session-list-loading"
               role="status"
             >
@@ -266,7 +266,7 @@ export function SessionNavigationPanel({
               >
                 {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
                     beflow-style mask fade on hover / open menu. */}
-                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_2.75rem]">
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_2.75rem] max-[680px]:gap-0.5">
                   <span
                     aria-hidden={!hasTraining}
                     className="flex w-4 items-center justify-start text-muted-foreground"
@@ -395,7 +395,7 @@ export function SessionNavigationPanel({
                           sideOffset={4}
                         >
                           <DropdownMenu.Item
-                            className="justify-between gap-3 px-3 py-1.5 text-left"
+                            className="justify-between gap-3 px-3 py-1.5 text-left max-[680px]:gap-0.5 max-[680px]:px-1.5 max-[680px]:py-0.5"
                             data-testid={`copy-id-${session.session_id}`}
                             onClick={() => {
                               void handleCopySessionId(session.session_id)
@@ -404,7 +404,7 @@ export function SessionNavigationPanel({
                             <span>Copiar ID de sesión</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left"
+                            className="px-3 py-1.5 text-left max-[680px]:px-1.5 max-[680px]:py-0.5"
                             data-testid={`rename-${session.session_id}`}
                             onClick={() => {
                               setRenamingSessionId(session.session_id)
@@ -414,7 +414,7 @@ export function SessionNavigationPanel({
                             Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left"
+                            className="px-3 py-1.5 text-left max-[680px]:px-1.5 max-[680px]:py-0.5"
                             data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
                             onClick={() => {
                               if (isArchived) {
@@ -518,14 +518,14 @@ export function WorkspaceInspectorPanel({
       aria-modal={isOverlay ? true : undefined}
       className={
         layout === 'inline'
-          ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3'
+          ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5'
           : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}
       role={isOverlay ? 'dialog' : 'complementary'}
       tabIndex={isOverlay ? -1 : undefined}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 max-[680px]:gap-0.5">
         <SegmentedControl
           aria-label="Inspector Panels"
           className="max-w-full flex-wrap"
@@ -565,7 +565,7 @@ export function WorkspaceInspectorPanel({
       {activeTab === 'context' ? (
         <div
           aria-labelledby="context-tab"
-          className="grid min-h-0 gap-4 overflow-y-auto"
+          className="grid min-h-0 gap-4 overflow-y-auto max-[680px]:gap-0.5"
           id="context-panel"
           role="tabpanel"
         >
@@ -615,7 +615,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
           <div
             aria-busy="true"
             aria-label={`Loading Source ${viewer.sourceId ?? ''}`}
-            className="grid w-full gap-2"
+            className="grid w-full gap-2 max-[680px]:gap-0.5"
             data-slot="source-viewer-loading"
             role="status"
           >
@@ -648,7 +648,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
         ) : null}
 
         {viewer.citationSnippet === null ? null : (
-          <section className="grid gap-1">
+          <section className="grid gap-1 max-[680px]:gap-0.5">
             <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               Citation Snippet
             </h4>
@@ -659,8 +659,8 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
         )}
 
         {viewer.source ? (
-          <div className="grid gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="grid gap-3 max-[680px]:gap-0.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
               <p className="min-w-0 break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {viewer.source.external_id}
               </p>
@@ -670,7 +670,7 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
                 </StatusBadge>
               ) : null}
             </div>
-            <dl className="grid gap-2">
+            <dl className="grid gap-2 max-[680px]:gap-0.5">
               <MetadataItem label="ID" value={viewer.source.id} />
               <MetadataItem label="Type" value={viewer.source.source_type} />
               <MetadataItem label="Created" value={viewer.source.created_at} />
@@ -683,12 +683,12 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               ) : null}
             </dl>
 
-            <section className="grid gap-2">
+            <section className="grid gap-2 max-[680px]:gap-0.5">
               <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Tags</h4>
               {viewer.source.tags === null || viewer.source.tags.length === 0 ? (
                 <EmptyState>No Tags Stored.</EmptyState>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
                   {viewer.source.tags.map((tag) => (
                     <Badge key={tag}>{tag}</Badge>
                   ))}
@@ -696,13 +696,13 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
               )}
             </section>
 
-            <section className="grid gap-2">
+            <section className="grid gap-2 max-[680px]:gap-0.5">
               <h4 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Metadata</h4>
               {viewer.source.extra_metadata === null ||
               Object.keys(viewer.source.extra_metadata).length === 0 ? (
                 <EmptyState>No Metadata Stored.</EmptyState>
               ) : (
-                <dl className="grid gap-2">
+                <dl className="grid gap-2 max-[680px]:gap-0.5">
                   {Object.entries(viewer.source.extra_metadata).map(([key, value]) => (
                     <MetadataItem
                       key={key}
@@ -757,7 +757,7 @@ function ConversationMinimap({
                   type="button"
                   variant="ghost"
                 >
-                  <span className="grid min-w-0 gap-1">
+                  <span className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
                     <strong className="text-sm capitalize text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                       {message.role}
                     </strong>
@@ -803,7 +803,7 @@ function SessionContextPanel({
             Select A Session To Inspect Model, Prompt And Usage Context.
           </EmptyState>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 max-[680px]:gap-0.5">
             <MetricCard
               detail={detail.session.session_id}
               label="Prompt"
@@ -890,7 +890,7 @@ function InternalActionStepper({
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
-              <DataListItem className="grid gap-1" key={`tool-${call.tool_call_id}`}>
+              <DataListItem className="grid gap-1 max-[680px]:gap-0.5" key={`tool-${call.tool_call_id}`}>
                 <Badge>
                   Tool Call {titleCaseToken(call.status)}
                 </Badge>
@@ -905,7 +905,7 @@ function InternalActionStepper({
             ))}
             {detail.retrieval_runs.map((run) => (
               <DataListItem
-                className="grid gap-2"
+                className="grid gap-2 max-[680px]:gap-0.5"
                 key={`retrieval-${run.retrieval_run_id}`}
               >
                 <Badge>
@@ -931,7 +931,7 @@ function InternalActionStepper({
             ))}
             {detail.provider_usage.map((usage) => (
               <DataListItem
-                className="grid gap-1"
+                className="grid gap-1 max-[680px]:gap-0.5"
                 key={`provider-${usage.provider_usage_id}`}
               >
                 <Badge>
@@ -976,18 +976,18 @@ function SessionDetailPanel({
           <div
             aria-busy="true"
             aria-label="Loading Session Detail"
-            className="grid w-full gap-3"
+            className="grid w-full gap-3 max-[680px]:gap-0.5"
             data-slot="session-detail-loading"
             role="status"
           >
             <span className="sr-only">Loading Session Detail...</span>
-            <div aria-hidden="true" className="grid gap-2">
+            <div aria-hidden="true" className="grid gap-2 max-[680px]:gap-0.5">
               <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/25" />
               <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
             </div>
-            <div aria-hidden="true" className="grid gap-2 pt-1">
+            <div aria-hidden="true" className="grid gap-2 pt-1 max-[680px]:gap-0.5 max-[680px]:pt-0.5">
               <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/25" />
               <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
               <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
@@ -1029,7 +1029,7 @@ function SessionDetailPanel({
   return (
     <Panel aria-label="Selected Session Detail" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <div className="grid min-w-0 gap-1">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
           <PanelTitle>Session Detail</PanelTitle>
           <p className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {detail.session.session_id}
@@ -1052,7 +1052,7 @@ function SessionDetailPanel({
                 <DataListItem key={message.message_id}>
                   <article
                     aria-label={`${message.role} message`}
-                    className="grid gap-1"
+                    className="grid gap-1 max-[680px]:gap-0.5"
                     id={messageElementId(message.message_id)}
                     tabIndex={-1}
                   >
@@ -1162,9 +1162,9 @@ function RetrievalRunDetail({
   run: ChatHistoryRetrievalRun
 }) {
   return (
-    <DataListItem className="grid gap-2" key={run.retrieval_run_id}>
+    <DataListItem className="grid gap-2 max-[680px]:gap-0.5" key={run.retrieval_run_id}>
       <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{run.query}</strong>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
         <Badge>{retrievalStrategyLabel(run)}</Badge>
         <Badge>Top {run.top_k}</Badge>
         {run.latency_ms === null ? null : (
@@ -1204,8 +1204,8 @@ function RetrievedChunkDetail({
   const isCascadeDeleted = chunk.chunk_id === null
 
   return (
-    <DataListItem className="grid gap-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <DataListItem className="grid gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
         <Badge>Rank {chunk.rank}</Badge>
         {isCascadeDeleted ? (
           <StatusBadge className="w-fit" tone="warning">
@@ -1213,7 +1213,7 @@ function RetrievedChunkDetail({
           </StatusBadge>
         ) : null}
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-2 max-[680px]:gap-0.5">
         <p
           className={cn(
             'text-sm text-muted-foreground',
@@ -1291,7 +1291,7 @@ function InspectorLoadingSkeleton({
     <div
       aria-busy="true"
       aria-label={ariaLabel}
-      className="grid w-full gap-2"
+      className="grid w-full gap-2 max-[680px]:gap-0.5"
       data-slot={slot}
       role="status"
     >

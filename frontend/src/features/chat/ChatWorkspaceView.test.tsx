@@ -367,7 +367,7 @@ describe('ChatWorkspacePanel', () => {
     )
     expect(emptyState).toBeTruthy()
     expect(emptyState?.textContent).toContain('No Response Yet.')
-    expect(emptyState?.textContent).toMatch(/Enter to send/)
+    expect(emptyState?.textContent).toMatch(/Enter To Send/)
     expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
