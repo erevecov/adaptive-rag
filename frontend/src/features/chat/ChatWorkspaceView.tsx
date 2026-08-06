@@ -1014,24 +1014,35 @@ function ResponseDetailsContent({
   }
 
   return (
-    <div className={embedded ? 'grid gap-3 pt-2' : 'grid gap-3 pt-3'}>
+    <div
+      className={
+        embedded
+          ? 'grid gap-3 pt-2 max-[680px]:gap-1.5 max-[680px]:pt-1'
+          : 'grid gap-3 pt-3 max-[680px]:gap-1.5 max-[680px]:pt-1.5'
+      }
+    >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
-        <section aria-label="Tool Calls Detail" className="grid gap-2">
-          <h3 className="text-sm font-semibold text-foreground">
+        <section
+          aria-label="Tool Calls Detail"
+          className="grid gap-2 max-[680px]:gap-1"
+        >
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             Tool Calls · {toolCallCount}
           </h3>
           <DataList>
             {response.tool_calls.map((call, index) => (
               <DataListItem
-                className="grid gap-1"
+                className="grid gap-1 max-[680px]:gap-0.5"
                 key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
               >
-                <strong className="text-sm text-foreground">{call.name}</strong>
-                <span className="text-sm text-muted-foreground">
+                <strong className="text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+                  {call.name}
+                </strong>
+                <span className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
                   {call.query ?? 'No Query Stored.'}
                 </span>
-                <small className="text-xs text-muted-foreground">
+                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                   Limit {call.limit ?? 'Unknown'} /{' '}
                   {call.result_count ?? 'Unknown'} Results
                 </small>
@@ -1041,8 +1052,11 @@ function ResponseDetailsContent({
         </section>
       ) : null}
       {sourceCount > 0 ? (
-        <section aria-label="Sources Detail" className="grid gap-2">
-          <h3 className="text-sm font-semibold text-foreground">
+        <section
+          aria-label="Sources Detail"
+          className="grid gap-2 max-[680px]:gap-1"
+        >
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             Sources · {sourceCount}
           </h3>
           <DataList>
@@ -1114,11 +1128,11 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
 
 function UsageItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-card p-3">
-      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:p-1.5">
+      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-foreground">
+      <dd className="mt-1 break-words text-sm font-semibold text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
         {value}
       </dd>
     </div>
@@ -1148,15 +1162,15 @@ function KnowledgeDraftCard({
   return (
     <article
       aria-label={`Knowledge draft ${draft.draftId}`}
-      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground"
+      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-1.5 max-[680px]:rounded-sm max-[680px]:p-1.5"
       role="region"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="grid min-w-0 gap-1">
-          <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+          <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             Knowledge draft
           </span>
-          <strong className="break-words text-sm text-foreground">
+          <strong className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             {draft.scope}
           </strong>
         </div>
@@ -1181,7 +1195,9 @@ function KnowledgeDraftCard({
         </FieldControl>
       </Field>
       {draft.proposalId === null ? null : (
-        <p className="text-sm text-muted-foreground">Proposal {draft.proposalId}</p>
+        <p className="text-sm text-muted-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+          Proposal {draft.proposalId}
+        </p>
       )}
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
