@@ -208,7 +208,7 @@ export function ObservabilityPanel({
         </form>
 
         {error ? (
-          <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+          <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </Callout>
         ) : null}
@@ -265,7 +265,7 @@ function ObservabilityContent({
     if (state === 'failed') {
       return (
         <EmptyState
-          className="border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="failed"
           role="alert"
         >
@@ -315,7 +315,7 @@ function ObservabilityContent({
   if (state === 'failed') {
     return (
       <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
-        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+        <Callout className="p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/90 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
         <div className="pointer-events-none" data-stale="">
