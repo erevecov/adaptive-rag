@@ -202,7 +202,7 @@ export function RetrievalPlaygroundPanel({
               </FieldControl>
               {!rerankEnabled ? (
                 <FieldHelp
-                  className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                  className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                   id="rerank-limit-help"
                 >
                   Enable Rerank to Edit Candidate Limit.

@@ -463,8 +463,8 @@ function RuntimeField({
     <Field className={className}>
       <FieldLabel className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" htmlFor={id}>{label}</FieldLabel>
       <FieldControl>{children(id)}</FieldControl>
-      {help ? <FieldHelp className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={`${id}-help`}>{help}</FieldHelp> : null}
-      {error ? <FieldError className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{error}</FieldError> : null}
+      {help ? <FieldHelp className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={`${id}-help`}>{help}</FieldHelp> : null}
+      {error ? <FieldError className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{error}</FieldError> : null}
     </Field>
   )
 }
