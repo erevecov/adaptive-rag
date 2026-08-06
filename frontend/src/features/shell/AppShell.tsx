@@ -822,7 +822,7 @@ function SidebarProjectSelector({
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2',
-                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/25 max-[680px]:px-1.5 max-[680px]:py-1.5',
+                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/25 max-[680px]:px-1 max-[680px]:py-1 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20',
                 'hover:border-primary',
               ],
               isOpen && 'border-primary bg-primary/15',
@@ -846,13 +846,13 @@ function SidebarProjectSelector({
         <Popover.Portal>
           <Popover.Content
             align="start"
-            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-1 max-[680px]:text-[0.625rem]"
+            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:rounded-md max-[680px]:border-primary/25 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/20"
             data-slot="project-selector-popover"
             onCloseAutoFocus={(event) => event.preventDefault()}
             side="bottom"
             sideOffset={6}
           >
-            <label className="grid gap-1.5 max-[680px]:gap-1" data-slot="project-selector-search">
+            <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="project-selector-search">
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Search Projects
               </span>
