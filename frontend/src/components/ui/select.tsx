@@ -54,7 +54,7 @@ export function Select({
         className={cn(
           [
             'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/70 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug',
-            'motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 active:border-primary/50',
+            'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 active:border-primary/50',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
             'data-[placeholder]:text-muted-foreground',
@@ -69,7 +69,7 @@ export function Select({
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon
           aria-hidden="true"
-          className="size-4 shrink-0 text-muted-foreground max-[680px]:size-5"
+          className="size-4 shrink-0 text-muted-foreground motion-safe:transition-transform max-[680px]:size-5 group-data-[state=open]:rotate-180"
         >
           <ChevronDown className="size-full" />
         </SelectPrimitive.Icon>
