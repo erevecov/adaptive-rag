@@ -879,7 +879,7 @@ export function CapabilitySelector({
               inputRef.current?.focus()
             }}
           >
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0.5">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 max-[680px]:gap-0.5 max-[680px]:overflow-hidden">
               {value.map((capability) => (
                 <Badge className="max-[680px]:truncate gap-1 pr-1 max-[680px]:gap-0.5 max-[680px]:pr-0.5 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter max-[680px]:border-primary max-[680px]:bg-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm" key={capability} tone="primary">
                   <span>{slotLabel(capability)}</span>
