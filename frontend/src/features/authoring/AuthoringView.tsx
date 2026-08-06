@@ -523,7 +523,7 @@ function ProjectList({
             : 'No Access'
         return (
           <DataListItem
-            className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0.5"
+            className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0.5"
             data-deleted={isDeleted ? '' : undefined}
             key={project.id}
           >
@@ -840,7 +840,7 @@ function UserAccessLists({
         <DataList aria-label="Users" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {users.map((user) => (
             <DataListItem
-              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
+              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5"
               data-inactive={!user.is_active ? '' : undefined}
               key={user.id}
             >
@@ -893,8 +893,8 @@ function UserAccessLists({
       ) : (
         <DataList aria-label="Project Memberships" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
-            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
-              <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0.5" key={membership.id}>
+              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0.5">
                 <strong className="break-all text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   {membership.user_id}
                 </strong>
@@ -1245,7 +1245,7 @@ function SourceList({
             : 'No Tags'
         return (
           <DataListItem
-            className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
+            className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
             data-deleted={isDeleted ? '' : undefined}
             key={source.id}
           >
@@ -1392,8 +1392,8 @@ function KnowledgeReviewPanel({
             const rejectReason = rejectReasons[proposal.id] ?? ''
             const canReject = rejectReason.trim().length > 0
             return (
-              <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
-                <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
+              <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
+                <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0.5">
                   <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {proposal.proposed_text}
                   </strong>

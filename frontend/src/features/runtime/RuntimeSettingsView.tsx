@@ -1043,8 +1043,8 @@ export function RuntimeModelCatalogPanel({
           className="grid gap-3 max-[680px]:gap-0.5"
         >
           <DataList className="max-[680px]:gap-0.5">
-            <DataListItem className="grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-2 max-[680px]:gap-0.5">
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {connectionOptionLabel(selectedConnection)}
@@ -1255,7 +1255,7 @@ export function RuntimeGlobalDefaultsPanel({
           <DataList className="max-[680px]:gap-0.5">
             {chatModels.map((model) => (
               <DataListItem
-                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
@@ -1336,8 +1336,8 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         ) : chatRetrievalSettings ? (
           <DataList className="max-[680px]:gap-0.5">
-            <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-              <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+            <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+              <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
                 <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                   Global Defaults
                 </strong>
@@ -1812,7 +1812,7 @@ export function ProviderModelCatalogView({
         <DataList className="max-[680px]:gap-0.5">
           {providerModels.map((model) => (
             <DataListItem
-              className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+              className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
               key={`${model.connection_id}-${model.model_id}`}
             >
               <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
@@ -1887,7 +1887,7 @@ export function RuntimeSlotList({
     <DataList aria-label="Global Runtime Slots" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
       {slots.map((slot) => (
         <DataListItem
-          className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
+          className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5"
           key={slot.slot}
         >
           <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
@@ -1957,8 +1957,8 @@ export function ProjectRuntimeSettingsView({
         ) : (
           <DataList className="max-[680px]:gap-0.5">
             {settings.slots.map((slot) => (
-              <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+              <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5" key={slot.slot}>
+                <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
                   <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{slotLabel(slot.slot)}</strong>
                   <small className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                     {slot.connection_id} / {slot.model_id}
@@ -1997,7 +1997,7 @@ export function ProjectRuntimeSettingsView({
           <DataList className="max-[680px]:gap-0.5">
             {settings.chat_models.map((model) => (
               <DataListItem
-                className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
+                className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-3 max-[680px]:gap-0.5"
                 key={`${model.connection_id}-${model.model_id}`}
               >
                 <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
@@ -2022,8 +2022,8 @@ export function ProjectRuntimeSettingsView({
       <section className="grid gap-3 max-[680px]:gap-0.5">
         <h3 className="max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         <DataList className="max-[680px]:gap-0.5">
-          <DataListItem className="max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
-            <div className="min-w-0 grid gap-1 max-[680px]:gap-0.5">
+          <DataListItem className="max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0.5">
+            <div className="max-[680px]:overflow-hidden min-w-0 grid gap-1 max-[680px]:gap-0.5">
               <strong className="max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 Limit {settings.chat_retrieval.retrieval_limit}
               </strong>

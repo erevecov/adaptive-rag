@@ -303,7 +303,7 @@ export function RetrievalPlaygroundPanel({
             <DataList aria-label="Ranked Retrieval Results" className="max-[680px]:gap-0.5 max-[680px]:overflow-x-auto">
               {results.map((result, index) => (
                 <DataListItem
-                  className="grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
+                  className="max-[680px]:overflow-hidden grid gap-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
                   key={result.chunk_id}
                   data-rank={index + 1}
                 >
