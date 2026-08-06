@@ -266,7 +266,7 @@ export function WorkspaceTopline({
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
         isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-11',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-10',
       )}
       data-slot="workspace-topline"
     >
@@ -413,7 +413,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,96px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,88px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -751,11 +751,11 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
