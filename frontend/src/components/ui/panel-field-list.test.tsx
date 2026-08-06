@@ -43,7 +43,7 @@ describe('Panel density', () => {
     expect(panel?.className).toContain('max-[680px]:rounded-md')
     expect(panel?.className).toContain('max-[680px]:shadow-none')
     expect(screen.getByText('Appearance').className).toContain('tracking-tight')
-    expect(screen.getByText('Appearance').className).toContain('max-[680px]:text-[0.6875rem]')
+    expect(screen.getByText('Appearance').className).toContain('max-[680px]:text-[0.625rem]')
     expect(screen.getByText('Appearance').className).toContain('max-[680px]:leading-tight')
     const description = screen.getByText('Choose the interface palette.')
     expect(description.getAttribute('data-slot')).toBe('panel-description')
@@ -73,7 +73,7 @@ describe('Field disabled styling', () => {
       )?.className,
     ).toContain('max-[680px]:gap-1')
     expect(screen.getByText('Name').className).toContain('tracking-tight')
-    expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.6875rem]')
+    expect(screen.getByText('Name').className).toContain('max-[680px]:text-[0.625rem]')
     expect(screen.getByText('Name').className).toContain(
       'group-has-[:disabled]/field:opacity-70',
     )
