@@ -106,11 +106,11 @@ export function ObservabilityPanel({
     >
       <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 lg:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
+          <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             Observability
           </p>
-          <PanelTitle className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id="observability-title">{activeLabel}</PanelTitle>
-          <PanelDescription className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <PanelTitle className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id="observability-title">{activeLabel}</PanelTitle>
+          <PanelDescription className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             Inspect Chat Health, Cost, Error, and Latency Rollups.
           </PanelDescription>
         </div>
@@ -270,7 +270,7 @@ function ObservabilityContent({
           role="alert"
         >
           <p className="font-semibold text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Summary Unavailable.</p>
-          <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <p className="max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             The Last Refresh Failed. Adjust Filters and Try Again.
           </p>
         </EmptyState>
@@ -284,7 +284,7 @@ function ObservabilityContent({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Refresh Canceled.</p>
-          <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <p className="max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             No Summary Loaded. Run Refresh Again When Ready.
           </p>
         </EmptyState>
@@ -331,7 +331,7 @@ function ObservabilityContent({
       className="relative"
       data-slot="observability-refreshing"
     >
-      <p className="mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status">
+      <p className="max-[680px]:truncate mb-2 text-xs font-medium text-muted-foreground max-[680px]:mb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="status">
         Refreshing…
       </p>
       {content}

@@ -304,12 +304,12 @@ function AuthoringSectionPanel({
     >
       <PanelHeader className="max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
+          <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {eyebrow}
           </p>
-          <PanelTitle className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={id}>{title}</PanelTitle>
+          <PanelTitle className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" id={id}>{title}</PanelTitle>
           {description ? (
-            <PanelDescription className="max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{description}</PanelDescription>
+            <PanelDescription className="max-[680px]:truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{description}</PanelDescription>
           ) : null}
         </div>
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 sm:justify-end max-[680px]:gap-0.5">
@@ -504,7 +504,7 @@ function ProjectList({
         role="status"
       >
         <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Projects Yet.</p>
-        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+        <p className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Create a project above to start indexing sources.
         </p>
       </EmptyState>
@@ -1153,7 +1153,7 @@ function SourcesPanel({
             )}
           </AuthoringField>
         ) : (
-          <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <p className="max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             URL sources are fetched during ingestion; no content is required here.
           </p>
         )}
@@ -1228,7 +1228,7 @@ function SourceList({
         role="status"
       >
         <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Sources Yet.</p>
-        <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+        <p className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
@@ -1369,7 +1369,7 @@ function KnowledgeReviewPanel({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">Proposals Load Canceled.</p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <p className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             Refresh Again When Ready to Review Knowledge Drafts.
           </p>
         </EmptyState>
@@ -1381,7 +1381,7 @@ function KnowledgeReviewPanel({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Pending Proposals.</p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+          <p className="max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
             Refresh After Chat Surfaces a Knowledge Draft for This Project.
           </p>
         </EmptyState>
@@ -1592,7 +1592,7 @@ function IngestionJobList({
         role="status"
       >
         <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">No Ingestion Jobs Yet.</p>
-        <p className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
+        <p className="max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>
@@ -1605,7 +1605,7 @@ function IngestionJobList({
     <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="ingestion-job-groups">
       {groups.map((group) => (
         <div className="grid gap-2 max-[680px]:gap-0.5" key={group.status}>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
+          <p className="max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:px-0.5">
             {jobStatusLabel(group.status)}
             <span className="ml-1 tabular-nums max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
           </p>
