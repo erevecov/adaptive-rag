@@ -445,7 +445,7 @@ function ProjectsPanel({
         <AuthoringField id="authoring-project-name" label="Project Name">
           {(fieldId) => (
             <Input
-              className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               autoComplete="off"
               id={fieldId}
               name="project-name"
@@ -645,7 +645,7 @@ function ProjectAccessPanel({
           <AuthoringField id="authoring-user-login" label="User Login">
             {(fieldId) => (
               <Input
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 autoComplete="off"
                 id={fieldId}
                 name="user-login"
@@ -658,7 +658,7 @@ function ProjectAccessPanel({
           <AuthoringField id="authoring-user-display-name" label="Display Name">
             {(fieldId) => (
               <Input
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 autoComplete="off"
                 id={fieldId}
                 name="user-display-name"
@@ -675,7 +675,7 @@ function ProjectAccessPanel({
           <AuthoringField id="authoring-user-system-role" label="System Role">
             {(fieldId) => (
               <Select
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 name="user-system-role"
                 onValueChange={onUserSystemRoleChange}
@@ -694,7 +694,7 @@ function ProjectAccessPanel({
           >
             {(fieldId) => (
               <Input
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 aria-describedby={`${fieldId}-help`}
                 autoComplete="off"
                 id={fieldId}
@@ -746,7 +746,7 @@ function ProjectAccessPanel({
           <AuthoringField id="authoring-member-user-id" label="Member User ID">
             {(fieldId) => (
               <Input
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 autoComplete="off"
                 id={fieldId}
                 name="member-user-id"
@@ -759,7 +759,7 @@ function ProjectAccessPanel({
           <AuthoringField id="authoring-member-role" label="Project Role">
             {(fieldId) => (
               <Select
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 name="member-role"
                 onValueChange={onMemberRoleChange}
@@ -1080,7 +1080,7 @@ function SourcesPanel({
         <AuthoringField id="authoring-source-project-id" label="Project ID">
           {(fieldId) => (
             <Input
-              className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               autoComplete="off"
               id={fieldId}
               name="authoring-project-id"
@@ -1094,7 +1094,7 @@ function SourcesPanel({
           <AuthoringField id="authoring-source-type" label="Source Type">
             {(fieldId) => (
               <Select
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 name="source-type"
                 onValueChange={onSourceTypeChange}
@@ -1113,7 +1113,7 @@ function SourcesPanel({
           <AuthoringField id="authoring-source-external-id" label="External ID">
             {(fieldId) => (
               <Input
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 autoComplete="off"
                 id={fieldId}
                 name="source-external-id"
@@ -1142,7 +1142,7 @@ function SourcesPanel({
           <AuthoringField id="authoring-source-content" label="Content">
             {(fieldId) => (
               <Textarea
-                className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                 id={fieldId}
                 name="source-content"
                 onChange={(event) => onSourceContentChange(event.currentTarget.value)}
@@ -1160,7 +1160,7 @@ function SourcesPanel({
         <AuthoringField id="authoring-source-tags" label="Tags">
           {(fieldId) => (
             <Input
-              className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               autoComplete="off"
               id={fieldId}
               name="source-tags"
@@ -1414,7 +1414,7 @@ function KnowledgeReviewPanel({
                   >
                     {(fieldId) => (
                       <Textarea
-                        className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                        className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                         id={fieldId}
                         name={`proposal-refined-${proposal.id}`}
                         onChange={(event) =>
@@ -1431,7 +1431,7 @@ function KnowledgeReviewPanel({
                   >
                     {(fieldId) => (
                       <Input
-                        className="max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                        className="max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                         autoComplete="off"
                         id={fieldId}
                         name={`proposal-reject-${proposal.id}`}
