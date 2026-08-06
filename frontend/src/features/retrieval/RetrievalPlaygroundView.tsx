@@ -251,7 +251,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'failed' ? (
             <EmptyState
-              className="border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/80 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/65 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive/85 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/70 max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="failed"
               role="alert"
             >

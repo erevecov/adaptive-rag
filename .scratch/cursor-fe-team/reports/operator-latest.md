@@ -1,6 +1,7 @@
 # Operator polish latest
 
-- Soft-rebase: reset to origin/main post-#488; Memory restored from main (never staged)
-- Small PR: denser MetricCard/Create buttons min-h-6; obs Badge rounded-sm; capability popover max-h-28
+- Soft-rebase from origin/main post-#488; Memory == main (never staged)
+- PR #530: MetricCard/popover densify + obs skeleton + stronger destructive hairlines
 - Ownership: retrieval `border-primary/95` + Rerank Candidates
 - Vitest: 57 passed
+- PR: https://github.com/erevecov/adaptive-rag/pull/530
