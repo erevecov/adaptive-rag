@@ -591,7 +591,7 @@ function AccountNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
         data-slot="sidebar-contextual-title"
       >
         My Account
@@ -661,7 +661,7 @@ function SettingsNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
         data-slot="sidebar-contextual-title"
       >
         Settings
@@ -832,7 +832,7 @@ function SidebarProjectSelector({
             variant="ghost"
           >
             <span className="grid min-w-0 gap-0.5">
-              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
                 Project
               </small>
               <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -853,7 +853,7 @@ function SidebarProjectSelector({
             sideOffset={6}
           >
             <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="project-selector-search">
-              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
                 Search Projects
               </span>
               <Input
