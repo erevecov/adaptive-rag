@@ -1118,7 +1118,7 @@ function DetailSection({
 }) {
   return (
     <section className="grid gap-2 max-[680px]:gap-1" aria-labelledby={id}>
-      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.75rem] max-[680px]:leading-snug">
+      <h4 id={id} className="text-sm font-semibold tracking-tight text-foreground max-[680px]:text-[0.6875rem] max-[680px]:leading-snug">
         {title}
       </h4>
       {children}
