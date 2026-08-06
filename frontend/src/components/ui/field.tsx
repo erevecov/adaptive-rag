@@ -26,7 +26,7 @@ export const FieldLabel = forwardRef<HTMLLabelElement, FieldLabelProps>(
   ({ className, ...props }, ref) => (
     <label
       className={cn(
-        'text-sm font-medium leading-none tracking-tight text-foreground max-[680px]:text-[0.625rem] group-has-[:disabled]/field:cursor-not-allowed group-has-[:disabled]/field:opacity-70',
+        'text-sm font-medium leading-none tracking-tight text-foreground max-[680px]:text-[0.5625rem] group-has-[:disabled]/field:cursor-not-allowed group-has-[:disabled]/field:opacity-70',
         className,
       )}
       ref={ref}
