@@ -932,7 +932,7 @@ export function CapabilitySelector({
           <Popover.Content
             align="start"
             aria-label="Capability Options"
-            className="z-20 grid max-h-60 max-[680px]:min-w-0 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:max-h-36 max-[680px]:overscroll-y-contain max-[680px]:gap-0.5 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
+            className="z-20 grid max-h-60 max-[680px]:min-w-0 w-[var(--radix-popover-trigger-width)] gap-1 max-[680px]:max-h-32 max-[680px]:overscroll-y-contain max-[680px]:gap-0.5 overflow-auto rounded-md border border-border bg-popover p-1 max-[680px]:p-0.5 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95 max-[680px]:rounded-sm"
             id={listboxId}
             onOpenAutoFocus={(event) => {
               event.preventDefault()
