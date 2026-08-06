@@ -135,6 +135,7 @@ export function ObservabilityPanel({
             <SegmentedControlItem
               active={activeSubmodule === tab.value}
               aria-controls={`observability-panel-${tab.value}`}
+              className="max-[680px]:truncate max-[680px]:px-0.5"
               id={`observability-tab-${tab.value}`}
               key={tab.value}
               onClick={() => onSubmoduleChange(tab.value)}
