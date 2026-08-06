@@ -176,7 +176,7 @@ export function SessionNavigationPanel({
 
       <SegmentedControl
         aria-label="Session Filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/45"
+        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/50"
       >
         {SESSION_FILTERS.map((filter) => (
           <SegmentedControlItem
@@ -850,7 +850,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/45 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/45">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/50 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/50">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </span>
@@ -1268,7 +1268,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/45 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/45">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/50 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/50">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
