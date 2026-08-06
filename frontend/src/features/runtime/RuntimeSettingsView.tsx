@@ -955,7 +955,7 @@ export function CapabilitySelector({
                 <Button
                   aria-label={`Add ${slotLabel(capability)} Capability`}
                   aria-selected={false}
-                  className="justify-start max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug max-[680px]:py-0.5"
+                  className="justify-start max-[680px]:h-8 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter max-[680px]:leading-snug max-[680px]:py-0.5 max-[680px]:rounded-sm"
                   key={capability}
                   onClick={() => {
                     toggleCapability(capability)
