@@ -272,46 +272,46 @@ function StepDetail({ step }: { step: ChatStep }) {
   }
   return (
     <dl
-      className="grid gap-2 border-t border-border p-3"
+      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-1 max-[680px]:p-1.5"
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
-        <div className="grid gap-1 rounded-md bg-muted/15 p-2" key={key}>
-          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+        <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-1" key={key}>
+          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {formatDetailKey(key)}
           </dt>
-          <dd className="break-words text-sm text-foreground">
+          <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
             {formatDetailValue(value)}
           </dd>
         </div>
       ))}
       {usage !== undefined ? (
         <>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-1">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Model
             </dt>
-            <dd className="break-words text-sm text-foreground">{usage.model}</dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.model}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-1">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Provider
             </dt>
-            <dd className="break-words text-sm text-foreground">{usage.provider}</dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">{usage.provider}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-1">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Tokens
             </dt>
-            <dd className="break-words text-sm text-foreground">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:p-1">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Cost
             </dt>
-            <dd className="break-words text-sm text-foreground">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
               {formatCost(usage.estimated_cost_usd)}
             </dd>
           </div>

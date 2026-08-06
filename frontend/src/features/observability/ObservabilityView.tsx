@@ -597,13 +597,13 @@ function MetricCard({
       className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-24 max-[680px]:gap-0.5 max-[680px]:p-1.5"
     >
       <span
-        className="text-xs font-semibold uppercase tracking-normal text-muted-foreground"
+        className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
         id={labelId}
       >
         {label}
       </span>
       <strong
-        className="break-words text-2xl font-semibold leading-none tabular-nums"
+        className="break-words text-2xl font-semibold leading-none tabular-nums max-[680px]:text-lg max-[680px]:leading-none"
         id={valueId}
       >
         {value}

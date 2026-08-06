@@ -1268,11 +1268,13 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3">
-      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:p-1.5">
+      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm text-foreground">{value}</dd>
+      <dd className="mt-1 break-words text-sm text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.625rem] max-[680px]:leading-snug">
+        {value}
+      </dd>
     </div>
   )
 }
