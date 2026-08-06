@@ -88,7 +88,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
     <tr
       className={cn(
         'border-b border-border motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/55 active:bg-primary/20 max-[680px]:active:bg-primary/95 max-[680px]:border-primary/95',
-        'focus-visible:bg-primary/15 max-[680px]:focus-visible:bg-primary/45 focus-visible:outline-none',
+        'focus-visible:bg-primary/15 max-[680px]:focus-visible:bg-primary/50 focus-visible:outline-none',
         className,
       )}
       ref={ref}
