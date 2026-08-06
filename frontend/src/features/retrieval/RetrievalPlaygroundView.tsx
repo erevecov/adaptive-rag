@@ -216,7 +216,7 @@ export function RetrievalPlaygroundPanel({
             </Button>
             <StatusBadge
               aria-live="polite"
-              className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
               role="status"
               tone={requestStateTone(state)}
             >
@@ -231,7 +231,7 @@ export function RetrievalPlaygroundPanel({
         </form>
 
         {error && state !== 'failed' ? (
-          <InlineFeedback className="max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
+          <InlineFeedback className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter" role="alert" tone="danger">
             {error}
           </InlineFeedback>
         ) : null}
@@ -245,7 +245,7 @@ export function RetrievalPlaygroundPanel({
           {state === 'loading' ? (
             <EmptyState
               aria-busy="true"
-              className="max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="loading"
               role="status"
             >
@@ -256,7 +256,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'failed' ? (
             <EmptyState
-              className="max-[680px]:overflow-hidden max-[680px]:truncate border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-destructive/40 bg-destructive/5 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="failed"
               role="alert"
             >
@@ -269,7 +269,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'idle' && results.length === 0 && !error ? (
             <EmptyState
-              className="max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -284,7 +284,7 @@ export function RetrievalPlaygroundPanel({
 
           {state === 'succeeded' && results.length === 0 ? (
             <EmptyState
-              className="max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+              className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
               data-slot-state="empty"
               role="status"
             >
@@ -310,19 +310,19 @@ export function RetrievalPlaygroundPanel({
                   <div className="flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0.5">
                     <Badge
                       aria-label={`Rank ${index + 1}`}
-                      className="max-[680px]:overflow-hidden max-[680px]:shrink min-w-[4.5ch] justify-center tabular-nums max-[680px]:rounded-sm max-[680px]:min-w-[2.5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                      className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink min-w-[4.5ch] justify-center tabular-nums max-[680px]:rounded-sm max-[680px]:min-w-[2.5ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                       tone="neutral"
                     >
                       #{index + 1}
                     </Badge>
                     <Badge
                       aria-label={`Score ${result.score.toFixed(4)}`}
-                      className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-[680px]:leading-snug min-w-[7ch] justify-center font-mono tabular-nums max-[680px]:min-w-[4.25ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+                      className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-[680px]:leading-snug min-w-[7ch] justify-center font-mono tabular-nums max-[680px]:min-w-[4.25ch] max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
                     >
                       {result.score.toFixed(4)}
                     </Badge>
                     <StatusBadge
-                      className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+                      className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
                       tone="neutral"
                     >
                       {retrievalStrategyDisplay(result.strategy)}

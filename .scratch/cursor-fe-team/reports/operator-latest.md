@@ -1,6 +1,6 @@
 # Operator polish latest
 
 - Soft-rebase from origin/main; Memory == main (never staged)
-- Pass: input/textarea/select max-[680px]:ring-offset-0 densify
+- Pass: Badge/StatusBadge/Callout/InlineFeedback/EmptyState ring-offset densify
 - Vitest: 57; ownership border-primary/95 + Rerank Candidates
 - PR: https://github.com/erevecov/adaptive-rag/pull/530

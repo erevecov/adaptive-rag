@@ -117,7 +117,7 @@ export function ObservabilityPanel({
         <div className="flex max-w-full min-w-0 flex-wrap items-start justify-start gap-2 lg:justify-end max-[680px]:gap-0.5">
           <StatusBadge
             aria-live="polite"
-            className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
+            className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter"
             role="status"
             tone={requestStateTone(state)}
           >
@@ -209,7 +209,7 @@ export function ObservabilityPanel({
         </form>
 
         {error ? (
-          <Callout className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+          <Callout className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </Callout>
         ) : null}
@@ -266,7 +266,7 @@ function ObservabilityContent({
     if (state === 'failed') {
       return (
         <EmptyState
-          className="max-[680px]:overflow-hidden max-[680px]:truncate border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-destructive/40 bg-destructive/5 p-4 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="failed"
           role="alert"
         >
@@ -280,7 +280,7 @@ function ObservabilityContent({
     if (state === 'canceled') {
       return (
         <EmptyState
-          className="max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
+          className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="canceled"
           role="status"
         >
@@ -292,7 +292,7 @@ function ObservabilityContent({
       )
     }
     return (
-      <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+      <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
         {EMPTY_OBSERVABILITY_MESSAGES[activeSubmodule]}
       </EmptyState>
     )
@@ -316,7 +316,7 @@ function ObservabilityContent({
   if (state === 'failed') {
     return (
       <div className="min-w-0 grid gap-3 max-[680px]:gap-0.5" data-slot="observability-stale-failed">
-        <Callout className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
+        <Callout className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-destructive max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive max-[680px]:tracking-tighter max-[680px]:rounded-sm" role="alert" tone="danger">
           Showing last successful summary — Refresh Failed.
         </Callout>
         <div className="pointer-events-none" data-stale="">
@@ -641,7 +641,7 @@ function BreakdownCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
         <h3 className="text-base font-semibold leading-none max-[680px]:text-[0.5625rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">{title}</h3>
-        <Badge className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{label}</Badge>
+        <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{label}</Badge>
       </div>
       {children}
     </section>
@@ -654,7 +654,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
   return (
     <BreakdownCard label={`${summary.sessions.total} Total`} title="Status Breakdown">
       {rows.length === 0 ? (
-        <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+        <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
           No Status Data Yet.
         </EmptyState>
       ) : (
@@ -672,7 +672,7 @@ function StatusBreakdown({ summary }: { summary: ChatObservabilitySummary }) {
                   {formatPercent(row.count, summary.sessions.total)}
                 </small>
               </div>
-              <Badge className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{formatCount(row.count, 'Session')}</Badge>
+              <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{formatCount(row.count, 'Session')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -688,7 +688,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
       title="Error Messages"
     >
       {summary.errors.top_messages.length === 0 ? (
-        <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+        <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
           No Error Messages Yet.
         </EmptyState>
       ) : (
@@ -701,7 +701,7 @@ function ErrorMessages({ summary }: { summary: ChatObservabilitySummary }) {
               <strong className="break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">
                 {operatorSafeMessage(error.message, error.message)}
               </strong>
-              <Badge className="max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{formatCount(error.count, 'Occurrence')}</Badge>
+              <Badge className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:tracking-tighter">{formatCount(error.count, 'Occurrence')}</Badge>
             </DataListItem>
           ))}
         </DataList>
@@ -722,7 +722,7 @@ function ProviderUsageTable({
         title="Provider Usage"
       >
         {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+          <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
             No Provider Usage Groups Yet.
           </EmptyState>
         ) : (
@@ -780,7 +780,7 @@ function ProviderLatencyTable({
         title="Provider Latency"
       >
         {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+          <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
             No Provider Latency Groups Yet.
           </EmptyState>
         ) : (
@@ -839,7 +839,7 @@ function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   return (
     <BreakdownCard label="Current Filter" title="Session Health">
       {total === 0 ? (
-        <EmptyState className="max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
+        <EmptyState className="max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
           No Sessions in This Filter Window.
         </EmptyState>
       ) : (
