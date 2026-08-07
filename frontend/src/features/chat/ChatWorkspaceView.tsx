@@ -198,14 +198,14 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat Workspace"
-      className="grid h-full max-h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden border-0 bg-transparent shadow-none"
+      className="flex h-full max-h-full min-h-0 flex-col overflow-hidden border-0 bg-transparent shadow-none"
       role="region"
     >
-      {/* Transcript + composer are direct grid children so the form pins bottom. */}
+      {/* flex-1 + min-h-0: only the transcript scrolls; composer stays pinned. */}
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat Transcript"
-        className="scrollbar-chat min-h-0 overflow-x-hidden overflow-y-auto"
+        className="scrollbar-chat min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
         ref={transcriptRef}

@@ -2335,6 +2335,10 @@ describe('App chat workspace', () => {
     expect(workspace?.className).not.toMatch(/overflow-auto/)
     expect(workspace?.className).toMatch(/self-stretch/)
     expect(workspace?.className).not.toMatch(/self-start/)
+    // Critical: min-h-0 overrides grid item min-height:auto so long sessions
+    // cannot expand the shell past the viewport (composer stays pinned).
+    expect(workspace?.className).toMatch(/min-h-0/)
+    expect(workspace?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
   })
 
   test('renders a keyboard skip link targeting the chat composer', () => {

@@ -182,19 +182,22 @@ export function AppShell({
       <section
         aria-labelledby="workspace-title"
         className={cn(
-          'workspace h-screen w-full min-w-0',
+          // min-h-0 is required: as a grid item of app-shell, default min-height:auto
+          // would expand this section to full chat content height (infinite scroll
+          // when loading multi-turn sessions) instead of staying viewport-bound.
+          'workspace h-full min-h-0 w-full min-w-0',
           primaryView === 'chat'
             ? [
                 // Chat: fixed viewport. overflow-hidden ONLY (never overflow-auto)
                 // so the transcript is the sole scroller and the composer stays pinned.
                 // pr-0: scrollbar sits on the right edge; content pads itself.
-                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden pl-[18px] pr-0 pb-2.5 pt-1.5',
+                'workspace-chat grid max-h-full grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden pl-[18px] pr-0 pb-2.5 pt-1.5',
                 'max-[900px]:pl-3.5 max-[900px]:py-3',
                 'max-[680px]:gap-0 max-[680px]:overflow-hidden max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : [
                 'self-start overflow-auto p-7 mx-auto max-w-[1240px]',
-                'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-0.5',
+                'max-[900px]:p-[18px] max-[680px]:h-full max-[680px]:overflow-hidden max-[680px]:p-0.5',
               ],
         )}
         data-slot="workspace"
@@ -202,12 +205,15 @@ export function AppShell({
         tabIndex={-1}
       >
         <div
+          className="min-h-0 shrink-0"
           data-slot="workspace-topline-host"
           {...(isBackgroundInert ? { inert: true } : {})}
         >
           {topline}
         </div>
-        {children}
+        <div className="min-h-0 min-w-0 overflow-hidden">
+          {children}
+        </div>
       </section>
     </main>
   )
@@ -224,6 +230,8 @@ export function ChatWorkspaceGrid({
     <div
       className={cn(
         [
+          // min-h-0: prevent min-content (long session transcripts) from growing
+          // past the shell viewport — that was the infinite-scroll-in-session bug.
           'workspace-grid chat-workspace-grid grid h-full max-h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden',
           'max-[680px]:min-h-0',
         ],

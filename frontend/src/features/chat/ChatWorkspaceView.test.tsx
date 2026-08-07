@@ -548,17 +548,18 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/max-\[680px\]:shadow-primary\/65/)
-    // Height chain: panel fills its host, transcript scrolls, composer pins bottom.
+    // Height chain: flex column — transcript flex-1 scrolls, composer pins bottom.
     expect(workspace.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
-    expect(workspace.className).toMatch(/grid-rows-\[minmax\(0,1fr\)_auto\]/)
+    expect(workspace.className).toMatch(/flex-col/)
+    expect(workspace.className).toMatch(/overflow-hidden/)
+    expect(workspace.className).toMatch(/max-h-full/)
+    expect(workspace.className).toMatch(/min-h-0/)
     const transcript = view.container.querySelector('[data-slot="chat-transcript"]')
     expect(transcript?.className).toMatch(/overflow-y-auto/)
     expect(transcript?.className).toMatch(/min-h-0/)
+    expect(transcript?.className).toMatch(/flex-1/)
     expect(transcript?.className).toMatch(/scrollbar-chat/)
-    // No negative-margin flush (that broke height / infinite scroll).
     expect(transcript?.className).not.toMatch(/-mr-/)
-    expect(workspace.className).toMatch(/overflow-hidden/)
-    expect(workspace.className).toMatch(/max-h-full/)
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/shrink-0/)
