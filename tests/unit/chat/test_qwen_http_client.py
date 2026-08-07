@@ -66,8 +66,12 @@ def test_qwen_http_chat_client_posts_openai_compatible_chat_request() -> None:
             "type": "function",
             "function": {"name": "retrieval.search"},
         },
+        "enable_thinking": False,
         "temperature": 0,
     }
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert "response_format" not in payload
     assert response["choices"][0]["message"]["content"] == (
         '{"answer":"ok","cited_chunk_ids":[]}'
     )
@@ -109,6 +113,8 @@ def test_qwen_http_chat_client_omits_tool_choice_without_tools() -> None:
         "model": "qwen-plus",
         "messages": [{"role": "user", "content": "hello"}],
         "temperature": 0,
+        "enable_thinking": False,
+        "response_format": {"type": "json_object"},
     }
 
 
@@ -156,8 +162,12 @@ def test_qwen_http_chat_client_uses_auto_tool_choice_for_multiple_tools() -> Non
             {"type": "function", "function": {"name": "commit_knowledge"}},
         ],
         "tool_choice": "auto",
+        "enable_thinking": False,
         "temperature": 0,
     }
+    multi_payload = captured["payload"]
+    assert isinstance(multi_payload, dict)
+    assert "response_format" not in multi_payload
 
 
 def test_qwen_http_chat_client_records_usage_and_estimated_cost() -> None:

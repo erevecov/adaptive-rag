@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import logging
+import queue
+import threading
 from collections.abc import Callable, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from inspect import signature
 from time import monotonic
 from typing import Any, Protocol
 from uuid import UUID
@@ -27,11 +31,15 @@ from adaptive_rag.chat.streaming import (
     chat_stream_answer_delta_event,
     chat_stream_error_event,
     chat_stream_final_event,
+    chat_stream_heartbeat_event,
     chat_stream_session_started_event,
     chat_stream_step_event,
     chat_stream_tool_call_event,
     serialize_chat_step,
 )
+
+# Heartbeat interval while the runner is blocked on LLM/retrieval work.
+_STREAM_HEARTBEAT_SECONDS = 5.0
 from adaptive_rag.chat.tools import (
     ChatKnowledgeProposalTool,
     ChatRetrievalTool,
@@ -208,9 +216,13 @@ class ChatService:
                 self._audit_writer.fail_session(
                     request.project_id,
                     session_id,
-                    str(exc),
+                    _operator_safe_chat_error(exc),
                 )
-            raise
+            if isinstance(exc, ChatServiceError):
+                raise
+            # Surface provider/runtime failures as ChatServiceError so the API
+            # returns a stable 422 (with Retry UX) instead of an opaque 500.
+            raise ChatServiceError(_operator_safe_chat_error(exc)) from exc
 
     def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
         message = _validate_request(request)
@@ -270,15 +282,17 @@ class ChatService:
         answer_start: float | None = None
         retrieval_steps_flushed = False
         try:
+            # Record user turn before advertising session_started so an eager
+            # commit after that event already has a durable user message.
             user_message_id = None
             if session_id is not None:
-                yield chat_stream_session_started_event(session_id)
                 user_message_id = self._audit_writer.record_message(
                     request.project_id,
                     session_id,
                     "user",
                     message,
                 )
+                yield chat_stream_session_started_event(session_id)
             knowledge_tool = self._build_knowledge_tool(
                 request=request,
                 session_id=session_id,
@@ -286,9 +300,13 @@ class ChatService:
             )
             answer_start = monotonic()
             yield chat_stream_step_event(ChatStep(id="answer", status="start"))
-            output = self._runner.run(
-                runner_request,
-                ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool),
+            streamed_answer_parts: list[str] = []
+            output = yield from self._run_runner_with_heartbeats(
+                runner_request=runner_request,
+                retrieval_tool=retrieval_tool,
+                knowledge_tool=knowledge_tool,
+                answer_start=answer_start,
+                streamed_answer_parts=streamed_answer_parts,
             )
             citations = _resolve_citations(
                 cited_chunk_ids=output.cited_chunk_ids,
@@ -321,8 +339,14 @@ class ChatService:
             yield chat_stream_step_event(answer_step)
             for tool_call in response.tool_calls:
                 yield chat_stream_tool_call_event(tool_call)
+            streamed = "".join(streamed_answer_parts)
             if response.answer:
-                yield chat_stream_answer_delta_event(response.answer)
+                if not streamed:
+                    yield chat_stream_answer_delta_event(response.answer)
+                elif response.answer.startswith(streamed):
+                    rest = response.answer[len(streamed) :]
+                    if rest:
+                        yield chat_stream_answer_delta_event(rest)
             if session_id is not None:
                 self._audit_writer.record_message(
                     request.project_id,
@@ -348,6 +372,26 @@ class ChatService:
                 )
                 self._audit_writer.succeed_session(request.project_id, session_id)
             yield chat_stream_final_event(response)
+        except GeneratorExit:
+            if session_id is not None:
+                provider_usage_recorded = self._record_provider_usage_once(
+                    project_id=request.project_id,
+                    session_id=session_id,
+                    already_recorded=provider_usage_recorded,
+                )
+                try:
+                    self._audit_writer.fail_session(
+                        request.project_id,
+                        session_id,
+                        "client_disconnected",
+                    )
+                except Exception as audit_exc:
+                    logger.warning(
+                        "chat_cancel_audit_failed",
+                        extra={"error_type": type(audit_exc).__name__},
+                        exc_info=audit_exc,
+                    )
+            raise
         except Exception as exc:
             if not retrieval_steps_flushed:
                 for step in retrieval_tool.steps:
@@ -371,9 +415,102 @@ class ChatService:
                 self._audit_writer.fail_session(
                     request.project_id,
                     session_id,
-                    str(exc),
+                    _operator_safe_chat_error(exc),
                 )
-            yield chat_stream_error_event(str(exc))
+            yield chat_stream_error_event(_operator_safe_chat_error(exc))
+
+    def _run_runner_with_heartbeats(
+        self,
+        *,
+        runner_request: ChatRunnerRequest,
+        retrieval_tool: ChatRetrievalTool,
+        knowledge_tool: ChatKnowledgeProposalTool | None,
+        answer_start: float,
+        streamed_answer_parts: list[str],
+    ) -> Iterator[ChatStreamEvent]:
+        """Run the chat runner off the stream loop; emit heartbeats + deltas.
+
+        Yields heartbeat / answer_delta events while work is in flight, then
+        returns the ``ChatRunnerOutput`` (``yield from`` captures the return).
+        """
+
+        tools = ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool)
+        holder: dict[str, Any] = {}
+        delta_queue: queue.Queue[str | None] = queue.Queue()
+        cancel_event = threading.Event()
+        client = getattr(self._runner, "client", None)
+        if client is not None and hasattr(client, "set_cancel_event"):
+            client.set_cancel_event(cancel_event)
+
+        def _on_answer_delta(text: str) -> None:
+            if text:
+                delta_queue.put(text)
+
+        def _run() -> None:
+            try:
+                run_kwargs: dict[str, Any] = {}
+                try:
+                    parameters = signature(self._runner.run).parameters
+                except (TypeError, ValueError):
+                    parameters = {}
+                if "on_answer_delta" in parameters:
+                    run_kwargs["on_answer_delta"] = _on_answer_delta
+                holder["output"] = self._runner.run(
+                    runner_request, tools, **run_kwargs
+                )
+            except Exception as exc:  # noqa: BLE001 — re-raised on main thread
+                holder["error"] = exc
+            finally:
+                delta_queue.put(None)
+
+        # Exclusive DB access: main thread only yields stream events (no session
+        # I/O) while the worker runs the runner/tools; after the future completes
+        # the main thread resumes audit I/O.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run)
+            last_heartbeat = monotonic()
+            try:
+                while not future.done():
+                    # Prefer draining answer deltas quickly for progressive UI.
+                    try:
+                        item = delta_queue.get(timeout=0.15)
+                    except queue.Empty:
+                        item = object()
+                    if item is None:
+                        break
+                    if isinstance(item, str):
+                        streamed_answer_parts.append(item)
+                        yield chat_stream_answer_delta_event(item)
+                    now = monotonic()
+                    if now - last_heartbeat >= _STREAM_HEARTBEAT_SECONDS:
+                        yield chat_stream_heartbeat_event(
+                            elapsed_ms=elapsed_ms(answer_start)
+                        )
+                        last_heartbeat = now
+                # Drain remaining deltas after worker finishes.
+                while True:
+                    try:
+                        item = delta_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    if item is None:
+                        break
+                    if isinstance(item, str):
+                        streamed_answer_parts.append(item)
+                        yield chat_stream_answer_delta_event(item)
+            except GeneratorExit:
+                cancel_event.set()
+                if client is not None and hasattr(client, "request_cancel"):
+                    client.request_cancel()
+                raise
+            future.result()  # re-raise unexpected executor failures
+
+        if "error" in holder:
+            raise holder["error"]
+        output = holder.get("output")
+        if not isinstance(output, ChatRunnerOutput):
+            raise ChatServiceError("chat runner returned no output")
+        return output
 
     def _load_history(
         self,
@@ -463,6 +600,25 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
+
+
+def _operator_safe_chat_error(exc: BaseException) -> str:
+    """Map provider/runtime exceptions to short, actionable operator messages."""
+
+    text = str(exc).strip() or type(exc).__name__
+    lowered = text.lower()
+    if "429" in text or "rate limit" in lowered or "too many requests" in lowered:
+        return (
+            "Chat provider rate-limited the request (HTTP 429). "
+            "Wait a moment and use Try again."
+        )
+    if "timeout" in lowered:
+        return "Chat provider timed out. Use Try again, or lower retrieval limit."
+    if "status 5" in lowered:
+        return "Chat provider returned a temporary server error. Use Try again."
+    if len(text) > 280:
+        return text[:277] + "..."
+    return text
 
 
 def _collect_tool_calls(
@@ -557,14 +713,27 @@ def _resolve_citations(
     cited_chunk_ids: tuple[UUID, ...],
     retrieved_results: dict[UUID, RetrievalResultPayload],
 ) -> tuple[RetrievalResultPayload, ...]:
+    """Map model-cited chunk ids to retrieval payloads.
+
+    Unknown ids are skipped (not fatal): production models occasionally emit a
+    stale/hallucinated UUID while still producing a usable answer grounded in
+    valid citations. Fabricated ids never invent retrieval content.
+    """
+
     citations: list[RetrievalResultPayload] = []
+    seen: set[UUID] = set()
     for chunk_id in cited_chunk_ids:
-        try:
-            citations.append(retrieved_results[chunk_id])
-        except KeyError as exc:
-            raise ChatServiceError(
-                f"citation {chunk_id} was not returned by retrieval"
-            ) from exc
+        if chunk_id in seen:
+            continue
+        payload = retrieved_results.get(chunk_id)
+        if payload is None:
+            logger.warning(
+                "chat_citation_skipped_unknown",
+                extra={"chunk_id": str(chunk_id)},
+            )
+            continue
+        seen.add(chunk_id)
+        citations.append(payload)
     return tuple(citations)
 
 

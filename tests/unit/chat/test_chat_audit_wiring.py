@@ -340,7 +340,7 @@ def test_non_chat_service_error_after_session_start_records_failure() -> None:
         audit_writer=audit,
     )
 
-    with pytest.raises(RuntimeError, match="provider exploded"):
+    with pytest.raises(ChatServiceError, match="provider exploded"):
         service.respond(ChatRequest(project_id=uuid4(), message="alpha"))
 
     assert audit.events[-1] == {

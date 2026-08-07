@@ -504,7 +504,9 @@ def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
     assert len(retrieval.requests) == 1
 
 
-def test_chat_service_rejects_citations_not_returned_by_retrieval() -> None:
+def test_chat_service_skips_citations_not_returned_by_retrieval(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     project_id = uuid4()
     retrieved_chunk_id = uuid4()
     unknown_chunk_id = uuid4()
@@ -518,13 +520,21 @@ def test_chat_service_rejects_citations_not_returned_by_retrieval() -> None:
     )
     runner = ToolCallingRunner(
         retrieval_query="alpha evidence",
-        cited_chunk_ids=(unknown_chunk_id,),
+        cited_chunk_ids=(unknown_chunk_id, retrieved_chunk_id, retrieved_chunk_id),
     )
 
-    with pytest.raises(ChatServiceError, match="citation .* was not returned"):
-        ChatService(runner=runner, retrieval_service=retrieval).respond(
+    with caplog.at_level(logging.WARNING, logger="adaptive_rag.chat.service"):
+        response = ChatService(runner=runner, retrieval_service=retrieval).respond(
             ChatRequest(project_id=project_id, message="What supports alpha?")
         )
+
+    assert response.answer == "Alpha is backed by retrieved evidence."
+    assert len(response.citations) == 1
+    assert response.citations[0]["chunk_id"] == str(retrieved_chunk_id)
+    assert any(
+        record.getMessage() == "chat_citation_skipped_unknown"
+        for record in caplog.records
+    )
 
 
 def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
@@ -598,3 +608,30 @@ def _retrieval_result(
         citation=citation,
         embedding_metadata={"provider": "fake"},
     )
+
+def test_chat_service_stream_emits_heartbeats_while_runner_blocks() -> None:
+    import adaptive_rag.chat.service as service_module
+    from time import sleep
+
+    class SlowRunner:
+        def run(self, request, tools, **kwargs):  # noqa: ANN001
+            sleep(0.35)
+            return ChatRunnerOutput(answer="slow ok", cited_chunk_ids=())
+
+    old = service_module._STREAM_HEARTBEAT_SECONDS
+    service_module._STREAM_HEARTBEAT_SECONDS = 0.08
+    try:
+        events = list(
+            ChatService(
+                runner=SlowRunner(),
+                retrieval_service=RecordingRetrievalService([]),
+                audit_writer=InMemoryChatAuditWriter(session_id=uuid4()),
+            ).stream(ChatRequest(project_id=uuid4(), message="hello"))
+        )
+    finally:
+        service_module._STREAM_HEARTBEAT_SECONDS = old
+
+    names = [event.event for event in events]
+    assert names[0] == "session_started"
+    assert "heartbeat" in names
+    assert names[-1] == "final"

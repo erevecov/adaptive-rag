@@ -263,7 +263,23 @@ def _stream_chat_events(
     try:
         for event in events:
             yield serialize_chat_stream_event(event)
+            # Persist session + user message as soon as the client learns the
+            # session_id so cancel/disconnect cannot leave a ghost id in the UI.
+            if event.event == "session_started":
+                session.commit()
         session.commit()
+    except GeneratorExit:
+        # Client aborted; keep any durable fail_session/user-message writes.
+        try:
+            session.commit()
+        except Exception as exc:
+            logger.warning(
+                "chat_stream_disconnect_commit_failed; rolling back",
+                extra={"error_type": type(exc).__name__},
+                exc_info=exc,
+            )
+            session.rollback()
+        raise
     except Exception:
         _commit_or_rollback_chat_error(session)
         raise
