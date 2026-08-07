@@ -43,15 +43,20 @@ class Settings(BaseSettings):
     sparse_embedding_model: str = "fake-sparse-embedding-v1"
     chat_provider: str = "fake"
     chat_model: str = "retrieval-grounded-local-v1"
+    # Optional second model tried once after primary chat 429/5xx budget is spent.
+    chat_fallback_model: str | None = None
     rerank_provider: str = "fake"
     rerank_model: str = "fake-rerank-v1"
     provider_timeout_seconds: float = 30.0
     provider_max_retries: int = 2
     provider_max_cost_usd: float | None = None
-    provider_chat_input_price_per_million_tokens_usd: float | None = None
-    provider_chat_output_price_per_million_tokens_usd: float | None = None
-    provider_embedding_input_price_per_million_tokens_usd: float | None = None
-    provider_rerank_input_price_per_million_tokens_usd: float | None = None
+    # Defaults: Alibaba Model Studio international list prices for the Token Plan
+    # stack (qwen3.7-plus ≤256K tier, text-embedding-v4, qwen3-rerank). Override
+    # via ADAPTIVE_RAG_PROVIDER_* env when the catalog changes.
+    provider_chat_input_price_per_million_tokens_usd: float | None = 0.4
+    provider_chat_output_price_per_million_tokens_usd: float | None = 1.6
+    provider_embedding_input_price_per_million_tokens_usd: float | None = 0.07
+    provider_rerank_input_price_per_million_tokens_usd: float | None = 0.08
     provider_secrets_key: SecretStr | None = Field(default=None)
     provider_secrets_key_file: Path | None = Field(
         default=Path(".adaptive-rag/provider-secrets.key")

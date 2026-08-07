@@ -261,6 +261,7 @@ def _build_resolved_chat_runner(
     return QwenChatRunner(
         model_name=resolved.model_id,
         provider_name=resolved.provider,
+        fallback_model_name=settings.chat_fallback_model,
         client=QwenHTTPChatClient(
             api_key=resolved.api_key,
             base_url=resolved.base_url,
@@ -426,6 +427,7 @@ def _build_chat_runner(
         raise ProviderConfigurationError("qwen credentials were not validated")
     return QwenChatRunner(
         model_name=settings.chat_model,
+        fallback_model_name=settings.chat_fallback_model,
         client=QwenHTTPChatClient(
             api_key=settings.qwen_api_key.get_secret_value(),
             base_url=settings.qwen_base_url,

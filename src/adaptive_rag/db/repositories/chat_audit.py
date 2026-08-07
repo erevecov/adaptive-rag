@@ -205,6 +205,22 @@ class ChatAuditRepository:
         self._session.flush()
         return chat_session
 
+    def cancel_session(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> ChatSession:
+        chat_session = self._require_session(
+            project_id=project_id,
+            session_id=session_id,
+        )
+        chat_session.status = "canceled"
+        chat_session.error_message = error_message
+        self._session.flush()
+        return chat_session
+
     def update_session_title(
         self,
         *,
@@ -261,6 +277,25 @@ class ChatAuditRepository:
         chat_session.archived_at = None
         self._session.flush()
         return chat_session
+
+    def delete_session(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        user_id: UUID | None = None,
+    ) -> None:
+        """Hard-delete a session; related messages/runs cascade via FK."""
+
+        chat_session = self.get_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
+        if chat_session is None:
+            raise ValueError("chat session does not belong to project")
+        self._session.delete(chat_session)
+        self._session.flush()
 
     def start_tool_call(
         self,

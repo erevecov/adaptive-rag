@@ -38,28 +38,33 @@ app = typer.Typer(no_args_is_help=True)
 def embedding_smoke(
     text: Annotated[str, typer.Option("--text")] = "Adaptive RAG smoke",
 ) -> None:
-    provider = get_cli_dense_embedding_provider()
-    try:
-        embeddings = provider.embed_texts([text])
-    except (
-        ProviderBudgetExceededError,
-        ProviderConfigurationError,
-        QwenEmbeddingProviderError,
-    ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
+    # Resolve global dense_embedding slot (DB connection/secret) when present so
+    # dual-key setups (Token Plan chat + DashScope embeddings) work.
+    from adaptive_rag.db.session import session_scope
 
-    typer.echo(
-        json.dumps(
-            {
-                "provider": provider.provider_name,
-                "model": provider.model_name,
-                "dimensions": provider.dimensions,
-                "input_count": 1,
-                "embedding_count": len(embeddings),
-            }
+    with session_scope() as session:
+        provider = get_cli_dense_embedding_provider(session=session)
+        try:
+            embeddings = provider.embed_texts([text])
+        except (
+            ProviderBudgetExceededError,
+            ProviderConfigurationError,
+            QwenEmbeddingProviderError,
+        ) as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+        typer.echo(
+            json.dumps(
+                {
+                    "provider": provider.provider_name,
+                    "model": provider.model_name,
+                    "dimensions": provider.dimensions,
+                    "input_count": 1,
+                    "embedding_count": len(embeddings),
+                }
+            )
         )
-    )
 
 
 @app.command("chat-smoke")
@@ -67,40 +72,43 @@ def chat_smoke(
     message: Annotated[str, typer.Option("--message")] = "What supports alpha?",
     retrieval_limit: Annotated[int, typer.Option("--retrieval-limit")] = 1,
 ) -> None:
+    from adaptive_rag.db.session import session_scope
+
     project_id = UUID("00000000-0000-0000-0000-000000000001")
-    runner = get_cli_chat_runner()
-    service = ChatService(
-        runner=runner,
-        retrieval_service=_StaticSmokeRetrievalService(project_id=project_id),
-    )
-    try:
-        response = service.respond(
-            ChatRequest(
-                project_id=project_id,
-                message=message,
-                retrieval_limit=retrieval_limit,
+    with session_scope() as session:
+        runner = get_cli_chat_runner(session=session)
+        service = ChatService(
+            runner=runner,
+            retrieval_service=_StaticSmokeRetrievalService(project_id=project_id),
+        )
+        try:
+            response = service.respond(
+                ChatRequest(
+                    project_id=project_id,
+                    message=message,
+                    retrieval_limit=retrieval_limit,
+                )
+            )
+        except (
+            ProviderBudgetExceededError,
+            ProviderConfigurationError,
+            QwenChatRunnerError,
+            ChatServiceError,
+        ) as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+        typer.echo(
+            json.dumps(
+                {
+                    "provider": getattr(runner, "provider_name", "fake"),
+                    "model": getattr(runner, "model_name", "retrieval-grounded-local-v1"),
+                    "answer": response.answer,
+                    "citation_count": len(response.citations),
+                    "tool_call_count": len(response.tool_calls),
+                }
             )
         )
-    except (
-        ProviderBudgetExceededError,
-        ProviderConfigurationError,
-        QwenChatRunnerError,
-        ChatServiceError,
-    ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
-
-    typer.echo(
-        json.dumps(
-            {
-                "provider": getattr(runner, "provider_name", "fake"),
-                "model": getattr(runner, "model_name", "retrieval-grounded-local-v1"),
-                "answer": response.answer,
-                "citation_count": len(response.citations),
-                "tool_call_count": len(response.tool_calls),
-            }
-        )
-    )
 
 
 @app.command("rerank-smoke")
@@ -109,46 +117,51 @@ def rerank_smoke(
     documents: Annotated[list[str] | None, typer.Option("--document")] = None,
     top_k: Annotated[int, typer.Option("--top-k")] = 1,
 ) -> None:
-    provider = get_cli_rerank_provider()
+    from adaptive_rag.db.session import session_scope
+
     active_documents = documents or [
         "Beta only",
         "Alpha evidence supports smoke retrieval.",
     ]
-    try:
-        result = provider.rerank(
-            RerankRequest(
-                query=query,
-                candidates=tuple(
-                    RerankCandidate(
-                        candidate_id=f"candidate-{index}",
-                        text=document,
-                    )
-                    for index, document in enumerate(active_documents, start=1)
-                ),
-                top_k=top_k,
+    with session_scope() as session:
+        provider = get_cli_rerank_provider(session=session)
+        try:
+            result = provider.rerank(
+                RerankRequest(
+                    query=query,
+                    candidates=tuple(
+                        RerankCandidate(
+                            candidate_id=f"candidate-{index}",
+                            text=document,
+                        )
+                        for index, document in enumerate(active_documents, start=1)
+                    ),
+                    top_k=top_k,
+                )
+            )
+        except (
+            ProviderBudgetExceededError,
+            ProviderConfigurationError,
+            QwenRerankProviderError,
+            RerankProviderError,
+        ) as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+        typer.echo(
+            json.dumps(
+                {
+                    "provider": result.provider_name,
+                    "model": result.model_name,
+                    "query": query,
+                    "candidate_count": len(active_documents),
+                    "result_count": len(result.scores),
+                    "results": [
+                        _serialize_rerank_score(score) for score in result.scores
+                    ],
+                }
             )
         )
-    except (
-        ProviderBudgetExceededError,
-        ProviderConfigurationError,
-        QwenRerankProviderError,
-        RerankProviderError,
-    ) as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
-
-    typer.echo(
-        json.dumps(
-            {
-                "provider": result.provider_name,
-                "model": result.model_name,
-                "query": query,
-                "candidate_count": len(active_documents),
-                "result_count": len(result.scores),
-                "results": [_serialize_rerank_score(score) for score in result.scores],
-            }
-        )
-    )
 
 
 def _serialize_rerank_score(score: RerankScore) -> dict[str, object]:

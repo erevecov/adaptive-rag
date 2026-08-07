@@ -30,10 +30,34 @@ def test_estimate_cost_returns_none_without_configured_price() -> None:
     cost = estimate_cost_usd(
         operation="embedding",
         usage=ProviderTokenUsage(input_tokens=1_000),
-        price_catalog=ProviderPriceCatalog(),
+        price_catalog=ProviderPriceCatalog(
+            embedding_input_price_per_million_tokens_usd=None,
+        ),
     )
 
     assert cost is None
+
+
+def test_estimate_cost_uses_token_plan_catalog_defaults_shape() -> None:
+    # Mirrors Settings defaults for qwen3.7-plus / text-embedding-v4 / qwen3-rerank.
+    catalog = ProviderPriceCatalog(
+        chat_input_price_per_million_tokens_usd=0.4,
+        chat_output_price_per_million_tokens_usd=1.6,
+        embedding_input_price_per_million_tokens_usd=0.07,
+        rerank_input_price_per_million_tokens_usd=0.08,
+    )
+    chat_cost = estimate_cost_usd(
+        operation="chat",
+        usage=ProviderTokenUsage(input_tokens=1_000_000, output_tokens=1_000_000),
+        price_catalog=catalog,
+    )
+    assert chat_cost == 2.0
+    emb_cost = estimate_cost_usd(
+        operation="embedding",
+        usage=ProviderTokenUsage(input_tokens=1_000_000),
+        price_catalog=catalog,
+    )
+    assert emb_cost == 0.07
 
 
 def test_budget_guard_blocks_cost_above_configured_limit() -> None:

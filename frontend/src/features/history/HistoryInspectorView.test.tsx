@@ -182,6 +182,27 @@ describe('SessionNavigationPanel', () => {
     )
 
     expect(screen.getByRole('complementary', { name: 'Sesiones' })).toBeTruthy()
+    // Scroll starts at the first session (chrome fixed above list).
+    const listScroll = container.querySelector('[data-slot="session-list-scroll"]')
+    expect(listScroll).toBeTruthy()
+    expect(listScroll?.className).toMatch(/scrollbar-chat/)
+    expect(listScroll?.className).toMatch(/overflow-y-auto/)
+    expect(listScroll?.className).toMatch(/min-h-0/)
+    // Flush right via parent pr-0, not negative margins (layout-safe).
+    expect(listScroll?.className).not.toMatch(/-mr-/)
+    expect(
+      container.querySelector('[data-slot="session-list-chrome"]'),
+    ).toBeTruthy()
+    expect(
+      listScroll?.contains(
+        container.querySelector('[data-slot="data-list"]') as Node,
+      ),
+    ).toBe(true)
+    expect(
+      listScroll?.contains(
+        container.querySelector('[data-slot="session-list-chrome"]') as Node,
+      ),
+    ).toBe(false)
     expect(container.querySelector('[data-slot="segmented-control"]')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: 'Sesiones activas' }).getAttribute('aria-pressed'),
@@ -253,6 +274,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
@@ -299,6 +321,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
@@ -397,6 +420,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
@@ -422,6 +446,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
@@ -448,6 +473,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}

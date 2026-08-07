@@ -82,6 +82,7 @@ export function SessionNavigationPanel({
   statusFilter,
   error,
   onArchiveSession,
+  onDeleteSession,
   onLoadMore,
   onRenameSession,
   onSelectSession,
@@ -96,6 +97,7 @@ export function SessionNavigationPanel({
   statusFilter: SessionNavigationFilter
   error: string | null
   onArchiveSession(sessionId: string): void
+  onDeleteSession(sessionId: string): void
   onLoadMore(): void
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
@@ -153,64 +155,77 @@ export function SessionNavigationPanel({
   return (
     <Panel
       aria-labelledby="history-title"
-      className="grid min-h-0 min-w-0 content-start gap-2 border-0 bg-transparent p-0 shadow-none max-[680px]:gap-0.5"
+      className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2 border-0 bg-transparent p-0 shadow-none max-[680px]:gap-0.5"
       role="complementary"
     >
       <h2 className="sr-only" id="history-title">
         Sesiones
       </h2>
 
-      <Button
-        className={cn(
-          'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
-          'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
-        )}
-        onClick={onStartNewSession}
-        size="sm"
-        type="button"
-        variant="ghost"
+      {/* Fixed chrome above the list — scrollbar starts at the first session. */}
+      <div
+        className="grid shrink-0 gap-2 pr-2.5 max-[680px]:gap-0.5 max-[680px]:pr-1"
+        data-slot="session-list-chrome"
       >
-        <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-        Nuevo chat
-      </Button>
-
-      <SegmentedControl
-        aria-label="Session Filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/95"
-      >
-        {SESSION_FILTERS.map((filter) => (
-          <SegmentedControlItem
-            active={statusFilter === filter.value}
-            aria-label={filter.title}
-            className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
-              statusFilter === filter.value
-                ? 'font-semibold shadow-sm'
-                : 'font-medium',
-            )}
-            key={filter.value}
-            onClick={() => onStatusFilterChange(filter.value)}
-            title={filter.title}
-          >
-            <span className="block truncate">{filter.label}</span>
-          </SegmentedControlItem>
-        ))}
-      </SegmentedControl>
-
-      {error ? (
-        <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
-      ) : null}
-      {copyFeedback ? (
-        <InlineFeedback
-          data-slot="session-copy-feedback"
-          role="status"
-          tone="neutral"
+        <Button
+          className={cn(
+            'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
+            'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
+          )}
+          onClick={onStartNewSession}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
-          {copyFeedback}
-        </InlineFeedback>
-      ) : null}
+          <Plus aria-hidden="true" className="size-3.5 shrink-0" />
+          Nuevo chat
+        </Button>
 
-      <DataList aria-label="Project Sessions" className="min-w-0 gap-0.5">
+        <SegmentedControl
+          aria-label="Session Filters"
+          className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/70"
+        >
+          {SESSION_FILTERS.map((filter) => (
+            <SegmentedControlItem
+              active={statusFilter === filter.value}
+              aria-label={filter.title}
+              className={cn(
+                'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+                statusFilter === filter.value
+                  ? 'font-semibold shadow-sm'
+                  : 'font-medium',
+              )}
+              key={filter.value}
+              onClick={() => onStatusFilterChange(filter.value)}
+              title={filter.title}
+            >
+              <span className="block truncate">{filter.label}</span>
+            </SegmentedControlItem>
+          ))}
+        </SegmentedControl>
+
+        {error ? (
+          <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
+        ) : null}
+        {copyFeedback ? (
+          <InlineFeedback
+            data-slot="session-copy-feedback"
+            role="status"
+            tone="neutral"
+          >
+            {copyFeedback}
+          </InlineFeedback>
+        ) : null}
+      </div>
+
+      <div
+        className="scrollbar-chat min-h-0 overflow-x-hidden overflow-y-auto"
+        data-slot="session-list-scroll"
+      >
+      <DataList
+        aria-label="Project Sessions"
+        className="min-w-0 gap-0.5 pr-2.5 max-[680px]:pr-1"
+      >
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
             <div
@@ -426,6 +441,21 @@ export function SessionNavigationPanel({
                           >
                             {isArchived ? 'Desarchivar' : 'Archivar'}
                           </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="px-3 py-1.5 text-left text-destructive max-[680px]:px-1 max-[680px]:py-0.5"
+                            data-testid={`delete-${session.session_id}`}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  '¿Eliminar esta sesión de forma permanente? No se puede deshacer.',
+                                )
+                              ) {
+                                onDeleteSession(session.session_id)
+                              }
+                            }}
+                          >
+                            Eliminar
+                          </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>
                     </DropdownMenu.Root>
@@ -447,6 +477,7 @@ export function SessionNavigationPanel({
           {isLoading ? 'Cargando…' : 'Ver más'}
         </Button>
       ) : null}
+      </div>
     </Panel>
   )
 }
@@ -518,7 +549,7 @@ export function WorkspaceInspectorPanel({
       aria-modal={isOverlay ? true : undefined}
       className={
         layout === 'inline'
-          ? 'workspace-inspector-inline relative z-[1] grid min-h-0 gap-3 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5'
+          ? 'workspace-inspector-inline relative z-[1] grid h-full min-h-0 w-[360px] min-w-[330px] max-w-[390px] shrink-0 gap-3 overflow-hidden p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5'
           : 'workspace-inspector-overlay fixed bottom-6 right-6 top-6 z-[70] grid min-h-0 max-h-none w-[min(420px,calc(100vw-48px))] gap-3 rounded-none border-y-0 border-r-0 border-l border-l-primary/25 p-3 shadow-[var(--shadow-inspector-overlay)] max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:inset-0 max-[680px]:w-auto max-[680px]:border-l-0 max-[680px]:pt-[max(0.25rem,env(safe-area-inset-top))] max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
       }
       ref={panelRef}

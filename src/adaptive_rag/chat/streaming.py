@@ -125,8 +125,23 @@ def chat_stream_final_event(response: ChatResponse) -> ChatStreamEvent:
     return ChatStreamEvent(event="final", data=payload)
 
 
-def chat_stream_error_event(detail: str) -> ChatStreamEvent:
-    return ChatStreamEvent(event="error", data={"detail": detail})
+def chat_stream_error_event(
+    detail: str,
+    *,
+    code: str = "chat_error",
+    retryable: bool = False,
+) -> ChatStreamEvent:
+    """Emit a structured SSE error; ``detail`` aliases ``message`` for older clients."""
+
+    return ChatStreamEvent(
+        event="error",
+        data={
+            "code": code,
+            "detail": detail,
+            "message": detail,
+            "retryable": retryable,
+        },
+    )
 
 
 def serialize_chat_stream_event(event: ChatStreamEvent) -> str:

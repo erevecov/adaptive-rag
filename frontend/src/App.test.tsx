@@ -76,6 +76,14 @@ const shellSource =
   ).process
     ?.getBuiltinModule?.('fs')
     .readFileSync('src/features/shell/AppShell.tsx', 'utf8') ?? ''
+const indexStyles =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process
+    ?.getBuiltinModule?.('fs')
+    .readFileSync('src/index.css', 'utf8') ?? ''
 
 installPointerEventMocks()
 
@@ -167,6 +175,7 @@ function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
   archiveChatSession?: ApiClient['archiveChatSession']
+  deleteChatSession?: ApiClient['deleteChatSession']
   checkProviderConnection?: ApiClient['checkProviderConnection']
   createProject?: ApiClient['createProject']
   createProviderConnection?: ApiClient['createProviderConnection']
@@ -233,6 +242,7 @@ function createClientStub(options: {
     askChatStream: options.askChatStream ?? vi.fn(),
     searchRetrieval: options.searchRetrieval ?? vi.fn(),
     archiveChatSession: options.archiveChatSession ?? vi.fn(),
+    deleteChatSession: options.deleteChatSession ?? vi.fn(),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
@@ -2229,13 +2239,13 @@ describe('App chat workspace', () => {
     expect(
       darkThemeButton.querySelector<HTMLElement>('[data-slot="theme-swatch"]')?.style
         .background,
-    ).toBe('rgb(0, 0, 0)')
+    ).toBe('rgb(20, 20, 20)')
     expect(
       darkThemeButton
         .querySelector<HTMLElement>('[data-slot="theme-swatch-accent"]')
         ?.style
         .background,
-    ).toBe('rgb(245, 245, 245)')
+    ).toBe('rgb(192, 132, 252)')
 
     await user.click(screen.getByRole('button', { name: /Light/ }))
 
@@ -2310,6 +2320,60 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('data-slot="workspace-topline"')
     expect(shellSource).toContain('data-slot="chat-workspace-grid"')
     expect(shellSource).toContain('data-slot="workspace-project-chip"')
+  })
+
+  test('bounds the chat workspace height chain so only the transcript scrolls', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const host = document.querySelector('[data-slot="chat-workspace-inert-host"]')
+    expect(host).toBeTruthy()
+    expect(host?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(host?.className).toMatch(/min-h-0/)
+    expect(host?.className).toMatch(/overflow-hidden/)
+    // Shell is flex-based so long session content cannot grow past the viewport.
+    expect(shellSource).toContain('min-h-0')
+    expect(shellSource).toContain('data-slot="workspace-body"')
+    expect(shellSource).toMatch(/h-full|max-h-full/)
+  })
+
+  test('chat workspace uses overflow-hidden only and stretches in the shell grid', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const shell = document.querySelector('[data-slot="app-shell"]')
+    const workspace = document.querySelector('[data-slot="workspace"]')
+    expect(shell).toBeTruthy()
+    expect(workspace).toBeTruthy()
+    // Flex shell pins the viewport; long sessions must not grow the document.
+    expect(shell?.className).toMatch(/(?:^|\s)flex(?:\s|$)/)
+    expect(shell?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(shell?.className).toMatch(/max-h-full|min-h-0/)
+    expect(shell?.className).toMatch(/overflow-hidden/)
+    // Never both on the same node: overflow-auto here would scroll the whole
+    // workspace and steal scroll from the transcript, losing the composer.
+    expect(workspace?.className).toMatch(/overflow-hidden/)
+    expect(workspace?.className).not.toMatch(/overflow-auto/)
+    expect(workspace?.className).toMatch(/flex-1/)
+    expect(workspace?.className).toMatch(/flex-col/)
+    expect(workspace?.className).toMatch(/min-h-0/)
+    expect(workspace?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(
+      document.querySelector('[data-slot="workspace-body"]')?.className,
+    ).toMatch(/flex-1/)
+    expect(
+      document.querySelector('[data-slot="workspace-body"]')?.className,
+    ).toMatch(/min-h-0/)
+  })
+
+  test('locks the document viewport so tall chat content can never scroll the page', () => {
+    // Backstop for the session-load regression: html/body/#root are pinned to
+    // 100% with overflow hidden, so only designated regions (transcript,
+    // session list) scroll regardless of transcript length.
+    expect(indexStyles).toMatch(
+      /html,\s*body,\s*#root\s*\{[^}]*height:\s*100%[^}]*\}/,
+    )
+    expect(indexStyles).toMatch(
+      /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden[^}]*\}/,
+    )
   })
 
   test('renders a keyboard skip link targeting the chat composer', () => {
@@ -2759,7 +2823,7 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
-      name: 'Expand Full Question',
+      name: 'Expand full question',
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
@@ -2768,7 +2832,7 @@ describe('App chat workspace', () => {
     await user.click(prompt)
 
     expect(prompt.textContent).toBe(longQuestion)
-    expect(prompt.getAttribute('aria-label')).toBe('Collapse Full Question')
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
   })
 
   test('consolidates response sources and tool calls under a compact details panel', async () => {
@@ -3084,13 +3148,15 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Question'), 'Why did it fail?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
-    // Failed transcript surface + composer InlineFeedback both expose role=alert.
+    // Error detail is co-located with the transcript failure state (no second
+    // under-composer callout).
     const alerts = await screen.findAllByRole('alert')
     expect(
-      alerts.some((node) => node.textContent?.includes('backend unavailable')),
-    ).toBe(true)
-    expect(
-      alerts.some((node) => node.textContent?.includes('Request Failed.')),
+      alerts.some(
+        (node) =>
+          node.textContent?.includes('Request failed') &&
+          node.textContent?.includes('backend unavailable'),
+      ),
     ).toBe(true)
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
@@ -3324,7 +3390,7 @@ describe('App chat workspace', () => {
         .closest('[data-slot="data-list-item"]')
         ?.hasAttribute('data-selected'),
     ).toBe(false)
-    expect(screen.getByText('No Response Yet.')).toBeTruthy()
+    expect(screen.getByText('No response yet')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       '',
     )
@@ -3454,15 +3520,155 @@ describe('App chat workspace', () => {
       }),
     )
 
-    expect(await screen.findByText('Second answer only')).toBeTruthy()
-    await user.click(
-      screen.getByRole('button', { name: 'Expand Response Details' }),
-    )
+    // Multi-turn transcript shows every completed turn, not only the latest.
+    expect(await screen.findByText('First answer')).toBeTruthy()
+    expect(screen.getByText('Second answer only')).toBeTruthy()
+    const expandButtons = screen.getAllByRole('button', {
+      name: 'Expand Response Details',
+    })
+    expect(expandButtons.length).toBeGreaterThanOrEqual(2)
+    await user.click(expandButtons[expandButtons.length - 1])
     expect(screen.getByText('web_lookup')).toBeTruthy()
     expect(screen.getByText('second turn query')).toBeTruthy()
-    expect(screen.queryByText('rag_search')).toBeNull()
-    expect(screen.queryByText('first turn query')).toBeNull()
     expect(screen.getByText('Second turn citation only.')).toBeTruthy()
+    // Earlier turn tools remain scoped to that turn's expand panel.
+    await user.click(expandButtons[0])
+    expect(screen.getByText('rag_search')).toBeTruthy()
+    expect(screen.getByText('first turn query')).toBeTruthy()
+  })
+
+  test('regenerate resends the last question without archiving priorTurns', async () => {
+    const user = userEvent.setup()
+    const askChatStream = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'First grounded answer.',
+        session_id: 'session-regenerate-1',
+      })
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'Regenerated grounded answer.',
+        session_id: 'session-regenerate-1',
+      })
+    const client = createClientStub({
+      askChatStream,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'What is Nimbus?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByText('First grounded answer.')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Regenerate answer' }))
+    expect(await screen.findByText('Regenerated grounded answer.')).toBeTruthy()
+    // Replaced in place: the first answer is not left as a prior turn.
+    expect(screen.queryByText('First grounded answer.')).toBeNull()
+    expect(askChatStream).toHaveBeenCalledTimes(2)
+    expect(askChatStream.mock.calls[1][1]).toEqual({
+      message: 'What is Nimbus?',
+      session_id: 'session-regenerate-1',
+    })
+  })
+
+  test('try again resends the failed question on the same session', async () => {
+    const user = userEvent.setup()
+    const askChatStream = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiClientError(
+          'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+          {
+            code: 'provider_rate_limited',
+            detail: {
+              code: 'provider_rate_limited',
+              detail:
+                'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+              message:
+                'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+              retryable: true,
+            },
+            retryable: true,
+            status: 422,
+          },
+        ),
+      )
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'Recovered after retry.',
+        session_id: 'session-retry-1',
+      })
+    const client = createClientStub({
+      askChatStream,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'What is Orion?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(
+      await screen.findByText(
+        /Chat provider rate-limited the request \(HTTP 429\)/,
+      ),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Recovered after retry.')).toBeTruthy()
+    expect(askChatStream).toHaveBeenCalledTimes(2)
+    expect(askChatStream.mock.calls[1][1]).toEqual({
+      message: 'What is Orion?',
+    })
+  })
+
+  test('shows user question when selecting a failed session with no assistant reply', async () => {
+    const user = userEvent.setup()
+    const failedUserOnlyDetail: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      session: {
+        ...sessionDetailResponse.session,
+        status: 'failed',
+        error_message:
+          'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+      },
+      messages: [
+        {
+          content: 'What is the release mascot?',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'message-user-only',
+          metadata: null,
+          role: 'user',
+        },
+      ],
+      retrieval_runs: [],
+      tool_calls: [],
+      provider_usage: [],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => failedUserOnlyDetail),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+
+    // Must not blank the transcript: user message is still visible.
+    expect(
+      await screen.findByText('What is the release mascot?'),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        /Chat provider rate-limited the request \(HTTP 429\)/,
+      ),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 
   test('refreshes history and renders selected session detail read-only', async () => {

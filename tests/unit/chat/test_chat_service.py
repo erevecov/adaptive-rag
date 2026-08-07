@@ -417,7 +417,11 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
     assert events[1].data["status"] == "start"
     assert events[2].data["id"] == "answer"
     assert events[2].data["status"] == "error"
-    assert events[2].data["detail"] == {"error": "runner failed"}
+    assert events[2].data["detail"] == {
+        "code": "chat_error",
+        "error": "runner failed",
+        "retryable": False,
+    }
     assert events[3] == chat_stream_error_event("runner failed")
     assert audit.events[-1] == {
         "event": "fail_session",
@@ -504,7 +508,9 @@ def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
     assert len(retrieval.requests) == 1
 
 
-def test_chat_service_rejects_citations_not_returned_by_retrieval() -> None:
+def test_chat_service_skips_citations_not_returned_by_retrieval(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     project_id = uuid4()
     retrieved_chunk_id = uuid4()
     unknown_chunk_id = uuid4()
@@ -518,13 +524,21 @@ def test_chat_service_rejects_citations_not_returned_by_retrieval() -> None:
     )
     runner = ToolCallingRunner(
         retrieval_query="alpha evidence",
-        cited_chunk_ids=(unknown_chunk_id,),
+        cited_chunk_ids=(unknown_chunk_id, retrieved_chunk_id, retrieved_chunk_id),
     )
 
-    with pytest.raises(ChatServiceError, match="citation .* was not returned"):
-        ChatService(runner=runner, retrieval_service=retrieval).respond(
+    with caplog.at_level(logging.WARNING, logger="adaptive_rag.chat.service"):
+        response = ChatService(runner=runner, retrieval_service=retrieval).respond(
             ChatRequest(project_id=project_id, message="What supports alpha?")
         )
+
+    assert response.answer == "Alpha is backed by retrieved evidence."
+    assert len(response.citations) == 1
+    assert response.citations[0]["chunk_id"] == str(retrieved_chunk_id)
+    assert any(
+        record.getMessage() == "chat_citation_skipped_unknown"
+        for record in caplog.records
+    )
 
 
 def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
@@ -598,3 +612,116 @@ def _retrieval_result(
         citation=citation,
         embedding_metadata={"provider": "fake"},
     )
+
+def test_chat_service_stream_emits_heartbeats_while_runner_blocks() -> None:
+    import adaptive_rag.chat.service as service_module
+    from time import sleep
+
+    class SlowRunner:
+        def run(self, request, tools, **kwargs):  # noqa: ANN001
+            sleep(0.35)
+            return ChatRunnerOutput(answer="slow ok", cited_chunk_ids=())
+
+    old = service_module._STREAM_HEARTBEAT_SECONDS
+    service_module._STREAM_HEARTBEAT_SECONDS = 0.08
+    try:
+        events = list(
+            ChatService(
+                runner=SlowRunner(),
+                retrieval_service=RecordingRetrievalService([]),
+                audit_writer=InMemoryChatAuditWriter(session_id=uuid4()),
+            ).stream(ChatRequest(project_id=uuid4(), message="hello"))
+        )
+    finally:
+        service_module._STREAM_HEARTBEAT_SECONDS = old
+
+    names = [event.event for event in events]
+    assert names[0] == "session_started"
+    assert "heartbeat" in names
+    assert names[-1] == "final"
+
+
+def test_chat_service_stream_close_fails_session_as_client_disconnected() -> None:
+    """Closing the stream generator mid-flight must fail_session promptly."""
+
+    from time import sleep
+
+    class SlowRunner:
+        def run(self, request, tools, **kwargs):  # noqa: ANN001
+            sleep(1.5)
+            return ChatRunnerOutput(answer="should not finish", cited_chunk_ids=())
+
+    audit = InMemoryChatAuditWriter(session_id=uuid4())
+    stream = ChatService(
+        runner=SlowRunner(),
+        retrieval_service=RecordingRetrievalService([]),
+        audit_writer=audit,
+    ).stream(ChatRequest(project_id=uuid4(), message="cancel me"))
+
+    assert next(stream).event == "session_started"
+    assert next(stream).event == "step"  # answer start
+    stream.close()
+
+    assert any(
+        event.get("event") == "cancel_session"
+        and event.get("error_message") == "client_disconnected"
+        for event in audit.events
+    )
+
+
+def test_chat_service_stream_emits_retrieval_steps_before_answer_deltas() -> None:
+    """Retrieval step start/done must interleave before final answer deltas."""
+
+    from time import sleep
+
+    chunk_id = uuid4()
+    retrieval = RecordingRetrievalService(
+        [_retrieval_result(chunk_id=chunk_id, snippet="live step evidence")]
+    )
+
+    class RetrievalThenStreamRunner:
+        def run(self, request, tools, **kwargs):  # noqa: ANN001
+            tools.retrieval.search(query="live step query", limit=2)
+            # Keep the worker alive briefly so the main loop can drain steps
+            # before the answer_delta sink runs.
+            sleep(0.05)
+            on_delta = kwargs.get("on_answer_delta")
+            if on_delta is not None:
+                on_delta("Live ")
+                on_delta("answer.")
+            return ChatRunnerOutput(
+                answer="Live answer.",
+                cited_chunk_ids=(chunk_id,),
+            )
+
+    events = list(
+        ChatService(
+            runner=RetrievalThenStreamRunner(),
+            retrieval_service=retrieval,
+            audit_writer=InMemoryChatAuditWriter(session_id=uuid4()),
+        ).stream(
+            ChatRequest(
+                project_id=uuid4(),
+                message="What is live?",
+                retrieval_limit=2,
+            )
+        )
+    )
+
+    names = [event.event for event in events]
+    first_retrieval = next(
+        i
+        for i, event in enumerate(events)
+        if event.event == "step" and event.data.get("id") == "retrieval"
+    )
+    first_delta = names.index("answer_delta")
+    assert first_retrieval < first_delta
+    assert events[first_retrieval].data["status"] == "start"
+    retrieval_done = next(
+        event
+        for event in events
+        if event.event == "step"
+        and event.data.get("id") == "retrieval"
+        and event.data.get("status") == "done"
+    )
+    assert retrieval_done.data["detail"]["result_count"] == 1

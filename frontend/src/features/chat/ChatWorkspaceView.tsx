@@ -11,20 +11,24 @@ import {
   useState,
 } from 'react'
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Copy,
   Map as MapIcon,
   Mic,
+  RefreshCw,
   Square,
 } from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
+import { MarkdownAnswer } from '@/components/MarkdownAnswer'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
-import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
+import { Callout, EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import { Panel } from '@/components/ui/panel'
 import type {
@@ -54,8 +58,11 @@ export type ChatKnowledgeDraftStatus =
   | 'cancelled'
   | string
 export type ChatKnowledgeDraft = {
+  approvedSourceId: string | null
   draftId: string
   error: string | null
+  /** Latest known ingestion job status for the approved source, if any. */
+  ingestStatus: string | null
   proposalId: string | null
   reviewAction: ChatKnowledgeDraftAction
   scope: string
@@ -72,10 +79,24 @@ type ChatKnowledgeLifecycleEvent = {
   key: string
 }
 
+/** Prior multi-turn Q/A already stored for the selected session. */
+export type ChatTranscriptTurn = {
+  answer: string
+  citations: ChatResponseBody['citations']
+  id: string
+  question: string
+  steps: ChatResponseBody['steps']
+  tool_calls: ChatResponseBody['tool_calls']
+}
+
 export type ChatWorkspacePanelProps = {
   activeResponseQuestion: string | null
   appliedMemories?: UserMemory[]
+  /** When set, follow-ups continue this multi-turn session. */
+  continuingSessionId?: string | null
   drafts: ChatKnowledgeDraftMap
+  /** Elapsed ms from last SSE heartbeat while a request is in flight. */
+  heartbeatElapsedMs?: number | null
   isAsking: boolean
   isContextInspectorActive: boolean
   isMinimapInspectorActive: boolean
@@ -86,6 +107,13 @@ export type ChatWorkspacePanelProps = {
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onQuestionChange(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  /** Re-run the last succeeded answer without archiving it into prior turns. */
+  onRegenerateLastAnswer?(): void
+  /** Resend the last failed/canceled question without retyping. */
+  onRetryLastQuestion?(): void
+  onStartNewSession?(): void
+  /** Load a prior/current user question into the composer (optional fork of later turns). */
+  onEditQuestion?(text: string, turnId?: string): void
   onStartSpeechRecognition(): void
   onStopSpeechRecognition(): void
   onSubmit(event: FormEvent<HTMLFormElement>): void
@@ -94,6 +122,8 @@ export type ChatWorkspacePanelProps = {
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
   onTranscriptScroll?: () => void
+  /** Earlier turns in the selected session (newest last). */
+  priorTurns?: ChatTranscriptTurn[]
   providerUsage: ChatHistoryProviderUsage[]
   question: string
   requestError: string | null
@@ -120,7 +150,9 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 export function ChatWorkspacePanel({
   activeResponseQuestion,
   appliedMemories = [],
+  continuingSessionId = null,
   drafts,
+  heartbeatElapsedMs = null,
   isAsking,
   isContextInspectorActive,
   isMinimapInspectorActive,
@@ -131,11 +163,16 @@ export function ChatWorkspacePanel({
   onOpenSource,
   onQuestionChange,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
+  onRetryLastQuestion,
+  onStartNewSession,
+  onEditQuestion,
   onStartSpeechRecognition,
   onStopSpeechRecognition,
   onSubmit,
   onSubmitKnowledgeDraft,
   onTranscriptScroll,
+  priorTurns = [],
   providerUsage,
   question,
   requestError,
@@ -161,36 +198,72 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat Workspace"
-      className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
+      className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden border-0 bg-transparent shadow-none"
       role="region"
     >
-      {/* Transcript + composer are direct grid children so the form pins bottom. */}
+      {/* flex-1 + min-h-0: only the transcript scrolls; composer stays pinned. */}
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat Transcript"
-        className="min-h-0 overflow-y-auto px-0.5 pr-1"
+        className="scrollbar-chat min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
         ref={transcriptRef}
         role="region"
       >
-        <ResponsePanel
-          appliedMemories={appliedMemories}
-          drafts={drafts}
-          onOpenSource={onOpenSource}
-          onRefineKnowledgeDraft={onRefineKnowledgeDraft}
-          onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
-          providerUsage={providerUsage}
-          question={activeResponseQuestion}
-          response={response}
-          setDrafts={setDrafts}
-          state={requestState}
-        />
+        <div className="mx-auto grid w-full max-w-3xl gap-3 px-0.5 pr-[18px] max-[900px]:pr-3.5 max-[680px]:gap-2 max-[680px]:pr-1">
+          {priorTurns.map((turn) => (
+            <ResponseContent
+              key={turn.id}
+              appliedMemories={[]}
+              drafts={{}}
+              onEditQuestion={
+                onEditQuestion === undefined
+                  ? undefined
+                  : (text) => onEditQuestion(text, turn.id)
+              }
+              onOpenSource={onOpenSource}
+              onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+              onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+              providerUsage={[]}
+              question={turn.question}
+              questionSticky={false}
+              response={{
+                answer: turn.answer,
+                citations: turn.citations,
+                session_id: continuingSessionId,
+                steps: turn.steps,
+                tool_calls: turn.tool_calls,
+              }}
+              setDrafts={setDrafts}
+              state="succeeded"
+            />
+          ))}
+          <ResponsePanel
+            appliedMemories={appliedMemories}
+            drafts={drafts}
+            errorDetail={requestError}
+            heartbeatElapsedMs={heartbeatElapsedMs}
+            onEditQuestion={onEditQuestion}
+            onOpenSource={onOpenSource}
+            onQuestionChange={onQuestionChange}
+            onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+            onRegenerateLastAnswer={onRegenerateLastAnswer}
+            onRetryLastQuestion={onRetryLastQuestion}
+            onStartNewSession={onStartNewSession}
+            onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+            providerUsage={providerUsage}
+            question={activeResponseQuestion}
+            response={response}
+            setDrafts={setDrafts}
+            state={requestState}
+          />
+        </div>
       </div>
 
       <div
         className={cn(
-          'relative shrink-0 bg-background max-[680px]:bg-card',
+          'relative shrink-0 bg-background pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1',
           // Keep Ask docked above the fold on narrow shells / soft keyboards.
           'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
           'max-[680px]:border-t max-[680px]:border-primary/95',
@@ -206,12 +279,46 @@ export function ChatWorkspacePanel({
           data-slot="chat-composer-gradient"
         />
         <form
-          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:px-0.5 max-[680px]:pb-0.5 max-[680px]:pt-0.5"
+          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:px-1 max-[680px]:pb-1.5 max-[680px]:pt-1"
           data-slot="chat-composer"
           id="chat-composer"
           onSubmit={onSubmit}
           tabIndex={-1}
         >
+          {continuingSessionId ? (
+            <div
+              aria-label="Continuing thread"
+              className="mb-1.5 flex min-w-0 items-center gap-2 max-[680px]:mb-1 max-[680px]:gap-1.5"
+              data-slot="chat-session-continuity"
+              role="status"
+            >
+              <StatusBadge className="shrink-0" tone="primary">
+                Continuing thread
+              </StatusBadge>
+              <span
+                className="min-w-0 truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-xs"
+                title={continuingSessionId}
+              >
+                {shortSessionId(continuingSessionId)}
+              </span>
+              <ContextWindowChip
+                priorTurnCount={priorTurns.length}
+                steps={response?.steps ?? []}
+              />
+              {onStartNewSession !== undefined ? (
+                <Button
+                  className="ml-auto h-7 px-2 text-[11px]"
+                  data-slot="chat-start-new-thread"
+                  onClick={onStartNewSession}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           <Field className="gap-0">
             <FieldLabel className="sr-only" htmlFor="chat-question">
               Question
@@ -219,7 +326,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:bg-card max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-base',
+                  'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -254,93 +361,195 @@ export function ChatWorkspacePanel({
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
-                placeholder="Ask A Question About Indexed Sources"
+                placeholder="Ask a question about indexed sources"
                 ref={questionInputRef}
                 rows={2}
-                title="Enter To Send · Shift+Enter For A New Line · Escape To Cancel"
+                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
               />
             </FieldControl>
           </Field>
 
           <div
-            className="mt-2 flex flex-wrap items-center justify-end gap-2 max-[680px]:gap-0.5 max-[680px]:mt-1"
+            className="mt-2 flex flex-wrap items-center justify-between gap-2 max-[680px]:mt-1.5 max-[680px]:gap-1.5"
             data-slot="chat-composer-actions"
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:justify-end max-[680px]:gap-0.5">
-              <Button
-                aria-label="Open Context Sidebar"
-                aria-pressed={isContextInspectorActive}
-                className={cn(
-                  COMPOSER_TOOL_BUTTON_CLASS,
-                  isContextInspectorActive &&
-                    'border-primary bg-primary/25 text-foreground',
-                )}
-                onClick={onOpenContextInspector}
-                type="button"
-                variant="ghost"
-              >
-                <CircleDot aria-hidden="true" className="size-4" />
-              </Button>
-              <Button
-                aria-label="Open Minimap Sidebar"
-                aria-pressed={isMinimapInspectorActive}
-                className={cn(
-                  COMPOSER_TOOL_BUTTON_CLASS,
-                  isMinimapInspectorActive &&
-                    'border-primary bg-primary/25 text-foreground',
-                )}
-                onClick={onOpenMinimapInspector}
-                type="button"
-                variant="ghost"
-              >
-                <MapIcon aria-hidden="true" className="size-4" />
-              </Button>
-              <SpeechInputControl
-                feedback={speechFeedback}
-                isSupported={isSpeechSupported}
-                onStart={onStartSpeechRecognition}
-                onStop={onStopSpeechRecognition}
-                state={speechState}
-              />
-            </div>
+            <p
+              className="order-last w-full text-[11px] leading-snug text-muted-foreground sm:order-none sm:w-auto max-[680px]:text-xs"
+              data-slot="chat-composer-shortcuts"
+            >
+              <ComposerShortcutHint keys="Enter" label="Send" />
+              <span aria-hidden="true" className="mx-1.5 text-border">
+                ·
+              </span>
+              <ComposerShortcutHint keys="⇧Enter" label="New line" />
+              {isAsking ? (
+                <>
+                  <span aria-hidden="true" className="mx-1.5 text-border">
+                    ·
+                  </span>
+                  <ComposerShortcutHint keys="Esc" label="Cancel" />
+                </>
+              ) : null}
+            </p>
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
+                <Button
+                  aria-label="Open Context Sidebar"
+                  aria-pressed={isContextInspectorActive}
+                  className={cn(
+                    COMPOSER_TOOL_BUTTON_CLASS,
+                    isContextInspectorActive &&
+                      'border-primary bg-primary/25 text-foreground',
+                  )}
+                  onClick={onOpenContextInspector}
+                  type="button"
+                  variant="ghost"
+                >
+                  <CircleDot aria-hidden="true" className="size-4" />
+                </Button>
+                <Button
+                  aria-label="Open Minimap Sidebar"
+                  aria-pressed={isMinimapInspectorActive}
+                  className={cn(
+                    COMPOSER_TOOL_BUTTON_CLASS,
+                    isMinimapInspectorActive &&
+                      'border-primary bg-primary/25 text-foreground',
+                  )}
+                  onClick={onOpenMinimapInspector}
+                  type="button"
+                  variant="ghost"
+                >
+                  <MapIcon aria-hidden="true" className="size-4" />
+                </Button>
+                <SpeechInputControl
+                  feedback={speechFeedback}
+                  isSupported={isSpeechSupported}
+                  onStart={onStartSpeechRecognition}
+                  onStop={onStopSpeechRecognition}
+                  state={speechState}
+                />
+              </div>
 
-            {isAsking ? (
-              <Button
-                className={cn(
-                  COMPOSER_PRIMARY_ACTION_CLASS,
-                  'border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive',
-                )}
-                onClick={onCancelRequest}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                Cancel Request
-              </Button>
-            ) : (
-              <Button
-                aria-label="Ask"
-                className={COMPOSER_PRIMARY_ACTION_CLASS}
-                disabled={question.trim().length === 0}
-                size="sm"
-                title="Enter To Send"
-                type="submit"
-              >
-                Ask
-              </Button>
-            )}
+              {isAsking ? (
+                <Button
+                  className={cn(
+                    COMPOSER_PRIMARY_ACTION_CLASS,
+                    'border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive',
+                  )}
+                  onClick={onCancelRequest}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  Cancel Request
+                </Button>
+              ) : (
+                <Button
+                  aria-label="Ask"
+                  className={COMPOSER_PRIMARY_ACTION_CLASS}
+                  disabled={question.trim().length === 0}
+                  size="sm"
+                  title="Enter to send"
+                  type="submit"
+                >
+                  Ask
+                </Button>
+              )}
+            </div>
           </div>
 
-          {requestError ? (
-            <InlineFeedback className="mt-2 max-[680px]:mt-1" tone="danger">
-              {operatorSafeMessage(requestError)}
-            </InlineFeedback>
-          ) : null}
+          {/* Error detail is co-located with the transcript failure/cancel state
+              (see ResponsePanel). Avoid a second under-composer callout. */}
         </form>
       </div>
     </Panel>
   )
+}
+
+function ContextWindowChip({
+  priorTurnCount,
+  steps,
+}: {
+  priorTurnCount: number
+  steps: ChatResponseBody['steps']
+}) {
+  const contextStep = (steps ?? []).find((step) => step.id === 'context')
+  const detail = contextStep?.detail
+  const summarized =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'summarized_messages' in detail &&
+    typeof (detail as { summarized_messages: unknown }).summarized_messages ===
+      'number'
+      ? (detail as { summarized_messages: number }).summarized_messages
+      : 0
+  const kept =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'kept_recent' in detail &&
+    typeof (detail as { kept_recent: unknown }).kept_recent === 'number'
+      ? (detail as { kept_recent: number }).kept_recent
+      : null
+  const total =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'total_messages' in detail &&
+    typeof (detail as { total_messages: unknown }).total_messages === 'number'
+      ? (detail as { total_messages: number }).total_messages
+      : priorTurnCount * 2
+  if (total <= 0 && priorTurnCount <= 0) {
+    return null
+  }
+  const label =
+    summarized > 0
+      ? `Context: ${kept ?? 'recent'} recent + ${summarized} summarized`
+      : `Context: ${total > 0 ? total : priorTurnCount * 2} messages`
+  return (
+    <span
+      className="truncate text-[11px] text-muted-foreground max-[680px]:text-xs"
+      data-slot="chat-context-window"
+      title={
+        detail !== null &&
+        detail !== undefined &&
+        typeof detail === 'object' &&
+        'summary_preview' in detail &&
+        typeof (detail as { summary_preview: unknown }).summary_preview ===
+          'string'
+          ? (detail as { summary_preview: string }).summary_preview
+          : label
+      }
+    >
+      {label}
+    </span>
+  )
+}
+
+function ComposerShortcutHint({
+  keys,
+  label,
+}: {
+  keys: string
+  label: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <kbd className="rounded border border-border bg-muted/40 px-1 py-px font-mono text-[10px] font-medium text-foreground/80 max-[680px]:text-[11px]">
+        {keys}
+      </kbd>
+      <span>{label}</span>
+    </span>
+  )
+}
+
+function shortSessionId(sessionId: string): string {
+  if (sessionId.length <= 12) {
+    return sessionId
+  }
+  return sessionId.slice(0, 8)
 }
 
 function SpeechInputControl({
@@ -420,11 +629,24 @@ function SpeechInputControl({
   )
 }
 
+const SAMPLE_QUESTIONS = [
+  'What is the release mascot?',
+  'What is the project codename?',
+  'Which sources cover deployment?',
+] as const
+
 function ResponsePanel({
   appliedMemories,
   drafts,
+  errorDetail = null,
+  heartbeatElapsedMs = null,
+  onEditQuestion,
   onOpenSource,
+  onQuestionChange,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
+  onRetryLastQuestion,
+  onStartNewSession,
   onSubmitKnowledgeDraft,
   providerUsage,
   question,
@@ -434,8 +656,15 @@ function ResponsePanel({
 }: {
   appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
+  errorDetail?: string | null
+  heartbeatElapsedMs?: number | null
+  onEditQuestion?(text: string, turnId?: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
+  onQuestionChange?(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onRegenerateLastAnswer?(): void
+  onRetryLastQuestion?(): void
+  onStartNewSession?(): void
   onSubmitKnowledgeDraft(
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
@@ -463,35 +692,44 @@ function ResponsePanel({
         />
       )
     }
+    const elapsedSeconds =
+      heartbeatElapsedMs !== null && heartbeatElapsedMs >= 10_000
+        ? Math.round(heartbeatElapsedMs / 1000)
+        : null
     return (
       <div
         aria-live="polite"
-        className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-0 max-[680px]:px-0.5 max-[680px]:py-0.5"
+        className="grid min-h-[8rem] place-items-center px-3 py-6 max-[680px]:min-h-[6rem] max-[680px]:px-2 max-[680px]:py-4"
       >
         <EmptyState
           aria-busy="true"
-          className="w-full max-w-lg border-border/60 bg-muted/15 p-4 text-center max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+          className="w-full max-w-lg border-border/60 bg-muted/15 p-5 text-center max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-relaxed max-[680px]:tracking-tight"
           data-slot-state="loading"
           role="status"
         >
-          <p className="font-medium text-foreground/80 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Waiting For Response…
+          <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
+            Waiting for response…
           </p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Retrieving Sources And Drafting An Answer
+          <p
+            className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug"
+            data-slot="chat-stall-indicator"
+          >
+            {elapsedSeconds === null
+              ? 'Connecting and retrieving sources…'
+              : `Still working on the provider — ${elapsedSeconds}s`}
           </p>
           <div
             aria-hidden="true"
-            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-1 max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+            className="space-y-3 rounded-lg border border-border/60 bg-card p-4 text-left max-[680px]:space-y-2 max-[680px]:rounded-md max-[680px]:border-border/70 max-[680px]:p-3"
           >
             <div className="h-2.5 w-1/3 motion-safe:animate-pulse rounded-full bg-muted/40" />
-            <div className="space-y-2 max-[680px]:space-y-1">
+            <div className="space-y-2 max-[680px]:space-y-1.5">
               <div className="h-3 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/40" />
               <div className="h-3 w-2/3 motion-safe:animate-pulse rounded bg-muted/40" />
             </div>
-            <div className="flex gap-1.5 pt-1 max-[680px]:gap-0.5 max-[680px]:pt-0.5">
+            <div className="flex gap-1.5 pt-1 max-[680px]:gap-1.5 max-[680px]:pt-1">
               <div className="h-5 w-16 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-20 motion-safe:animate-pulse rounded-full bg-muted/40" />
               <div className="h-5 w-14 motion-safe:animate-pulse rounded-full bg-muted/40" />
@@ -504,80 +742,181 @@ function ResponsePanel({
 
   if (response === null) {
     if (state === 'failed') {
+      const failedDetail =
+        errorDetail !== null && errorDetail.trim().length > 0
+          ? operatorSafeMessage(errorDetail)
+          : 'Transient provider errors are often fixable with retry.'
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-0 max-[680px]:px-0.5 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-6 max-[680px]:min-h-[6rem] max-[680px]:px-2 max-[680px]:py-4">
           <EmptyState
-            className="max-w-md border-destructive/30 bg-destructive/5 p-4 text-left max-[680px]:rounded-sm max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-destructive/25"
+            className="max-w-md border-destructive/30 bg-destructive/5 p-5 text-left max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-relaxed max-[680px]:tracking-tight"
             data-slot-state="failed"
             role="alert"
           >
-            <p className="font-medium text-destructive max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Failed.</p>
-            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Edit The Question And Resend, Or Open Another Session. Details Are
-              Under The Composer When Available.
+            <p className="font-medium text-destructive max-[680px]:text-sm max-[680px]:leading-snug">
+              Request failed
             </p>
+            <p
+              className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug"
+              data-slot="chat-error-detail"
+            >
+              {failedDetail}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {onRetryLastQuestion !== undefined && question !== null ? (
+                <Button
+                  data-slot="chat-retry"
+                  onClick={onRetryLastQuestion}
+                  type="button"
+                  variant="secondary"
+                >
+                  Try again
+                </Button>
+              ) : null}
+              {onStartNewSession !== undefined ? (
+                <Button
+                  data-slot="chat-start-new-on-error"
+                  onClick={onStartNewSession}
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
+            </div>
           </EmptyState>
         </div>
       )
     }
     if (state === 'canceled') {
       return (
-        <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-0 max-[680px]:px-0.5 max-[680px]:py-0.5">
+        <div className="grid min-h-[8rem] place-items-center px-3 py-6 max-[680px]:min-h-[6rem] max-[680px]:px-2 max-[680px]:py-4">
           <EmptyState
-            className="max-w-md border-border/60 bg-muted/15 p-4 text-left max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+            className="max-w-md border-border/60 bg-muted/15 p-5 text-left max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-relaxed max-[680px]:tracking-tight"
             data-slot-state="canceled"
             role="status"
           >
-            <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">Request Canceled.</p>
-            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              Nothing Was Stored For This Turn. Ask Again When Ready.
+            <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
+              Request canceled
             </p>
+            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+              The session stays open so you can continue the thread. The
+              canceled turn is marked failed in history when it was started.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {onRetryLastQuestion !== undefined && question !== null ? (
+                <Button
+                  data-slot="chat-retry"
+                  onClick={onRetryLastQuestion}
+                  type="button"
+                  variant="secondary"
+                >
+                  Try again
+                </Button>
+              ) : null}
+              {onStartNewSession !== undefined ? (
+                <Button
+                  onClick={onStartNewSession}
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
+            </div>
           </EmptyState>
         </div>
       )
     }
     return (
-      <div className="grid min-h-[8rem] place-items-center px-3 py-4 max-[680px]:min-h-0 max-[680px]:px-0.5 max-[680px]:py-0.5">
+      <div className="grid min-h-[8rem] place-items-center px-3 py-6 max-[680px]:min-h-[6rem] max-[680px]:px-2 max-[680px]:py-4">
         <EmptyState
-          className="max-w-md border-border/60 bg-muted/15 p-4 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+          className="max-w-md border-border/60 bg-muted/15 p-5 max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:p-3 max-[680px]:text-xs max-[680px]:leading-relaxed max-[680px]:tracking-tight"
           data-slot-state="empty"
           role="status"
         >
-          <p className="font-medium text-foreground/90 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Response Yet.</p>
-          <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            Ask About Indexed Sources. Enter To Send · Shift+Enter For A New Line.
+          <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
+            No response yet
           </p>
+          <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+            Ask about indexed sources. Enter to send · Shift+Enter for a new
+            line.
+          </p>
+          {onQuestionChange !== undefined ? (
+            <div
+              className="mt-3 flex flex-wrap justify-center gap-1.5"
+              data-slot="chat-sample-questions"
+            >
+              {SAMPLE_QUESTIONS.map((sample) => (
+                <Button
+                  key={sample}
+                  className="h-auto max-w-full whitespace-normal rounded-full px-2.5 py-1 text-[11px]"
+                  onClick={() => onQuestionChange(sample)}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  {sample}
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </EmptyState>
       </div>
     )
   }
 
+  const failedBannerDetail =
+    errorDetail !== null && errorDetail.trim().length > 0
+      ? operatorSafeMessage(errorDetail)
+      : null
   const terminalBanner =
     state === 'failed' || state === 'canceled' ? (
-      <div
-        data-slot="chat-terminal-banner"
-        data-slot-state={state}
-      >
-        <InlineFeedback
+      <div data-slot="chat-terminal-banner" data-slot-state={state}>
+        <Callout
           className="mx-0.5"
           role={state === 'failed' ? 'alert' : 'status'}
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
-          {state === 'failed'
-            ? 'Request Failed. Partial Answer Below May Be Incomplete.'
-            : 'Request Canceled. Partial Answer Below Was Not Stored As A Finished Turn.'}
-        </InlineFeedback>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span data-slot="chat-error-detail">
+              {state === 'failed'
+                ? (failedBannerDetail ??
+                  'Request failed. Partial answer below may be incomplete.')
+                : 'Stopped — partial answer below may be incomplete. You can retry or continue.'}
+            </span>
+            {onRetryLastQuestion !== undefined ? (
+              <Button
+                data-slot="chat-retry"
+                onClick={onRetryLastQuestion}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        </Callout>
       </div>
     ) : null
 
   return (
-    <div className="grid gap-3 max-[680px]:gap-0.5">
+    <div className="grid gap-3 max-[680px]:gap-2">
       {terminalBanner}
       <ResponseContent
         appliedMemories={appliedMemories}
         drafts={drafts}
+        onEditQuestion={
+          state === 'loading' || onEditQuestion === undefined
+            ? undefined
+            : (text) => onEditQuestion(text)
+        }
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+        onRegenerateLastAnswer={
+          state === 'succeeded' ? onRegenerateLastAnswer : undefined
+        }
         onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
         providerUsage={providerUsage}
         question={question}
@@ -592,25 +931,32 @@ function ResponsePanel({
 function ResponseContent({
   appliedMemories,
   drafts,
+  onEditQuestion,
   onOpenSource,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
   onSubmitKnowledgeDraft,
   providerUsage,
   question,
+  questionSticky = true,
   response,
   setDrafts,
   state,
 }: {
   appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
+  onEditQuestion?(text: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onRegenerateLastAnswer?(): void
   onSubmitKnowledgeDraft(
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
   providerUsage: ChatHistoryProviderUsage[]
   question: string | null
+  /** Prior turns render their question in normal flow (no sticky stacking). */
+  questionSticky?: boolean
   response: ChatResponseBody
   setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
@@ -674,13 +1020,27 @@ function ResponseContent({
     })
   }, [lifecycleEvents, response.tool_calls, setDrafts])
 
+  const inFlightDraftSubmits = useRef<Set<string>>(new Set())
+
   const handleSubmitDraft = useCallback(
     async (draft: ChatKnowledgeDraft) => {
+      if (inFlightDraftSubmits.current.has(draft.draftId)) {
+        return
+      }
+      if (
+        draft.status === 'approved' ||
+        draft.status === 'cancelled' ||
+        draft.status === 'rejected'
+      ) {
+        return
+      }
+      inFlightDraftSubmits.current.add(draft.draftId)
       setDrafts((current) => ({
         ...current,
         [draft.draftId]: {
           ...current[draft.draftId],
           error: null,
+          status: 'pending',
         },
       }))
       try {
@@ -692,6 +1052,7 @@ function ResponseContent({
           ...current,
           [draft.draftId]: {
             ...current[draft.draftId],
+            approvedSourceId: proposal.approved_source_id,
             error: null,
             proposalId: proposal.id,
             status: proposal.status,
@@ -704,8 +1065,11 @@ function ResponseContent({
           [draft.draftId]: {
             ...current[draft.draftId],
             error: getErrorMessage(error),
+            status: current[draft.draftId]?.status ?? draft.status,
           },
         }))
+      } finally {
+        inFlightDraftSubmits.current.delete(draft.draftId)
       }
     },
     [drafts, onSubmitKnowledgeDraft, response.session_id, setDrafts],
@@ -720,7 +1084,14 @@ function ResponseContent({
         continue
       }
       const draft = drafts[event.draftId]
-      if (draft === undefined || draft.status !== 'draft') {
+      // Durable chat commits start as pending; auto-approve still allowed once.
+      if (
+        draft === undefined ||
+        (draft.status !== 'draft' && draft.status !== 'pending')
+      ) {
+        continue
+      }
+      if (draft.reviewAction !== 'approve') {
         continue
       }
       processedLifecycleEvents.current.add(event.key)
@@ -755,39 +1126,126 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-0.5" role="region">
-      <QuestionPrompt key={question ?? 'empty-question'} question={question} />
+    /* Beflow chat rhythm: user bubble then open assistant column (no twin cards). */
+    <div
+      aria-label="Chat Response"
+      className="grid gap-2 max-[680px]:gap-1.5"
+      role="region"
+    >
+      <QuestionPrompt
+        key={question ?? 'empty-question'}
+        onEdit={
+          onEditQuestion !== undefined &&
+          !isStreaming &&
+          question !== null &&
+          question.trim().length > 0
+            ? () => onEditQuestion(question)
+            : undefined
+        }
+        question={question}
+        sticky={questionSticky}
+      />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+          aria-label="Answer"
+          className={cn(
+            /* beflow AssistantTurn: no card chrome; soft hover wash only */
+            'group/assistant-turn relative flex gap-2 rounded-lg px-1 py-2 text-foreground tracking-tight',
+            'transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.025]',
+            'sm:gap-2.5 sm:px-2 max-[680px]:gap-1.5 max-[680px]:px-0.5 max-[680px]:py-1.5',
+          )}
           data-slot="chat-message"
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            {response.answer.trim().length > 0 ? (
-              response.answer
-            ) : (
-              <span className="inline-flex items-center gap-2 text-muted-foreground max-[680px]:gap-0.5">
+          <ChatRoleMarker tone="assistant" />
+          <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex min-h-5 flex-wrap items-center gap-2 max-[680px]:mb-1">
+            {isStreaming ? (
+              <StatusBadge className="w-fit" tone="primary">
+                Streaming
+              </StatusBadge>
+            ) : null}
+            <div
+              className={cn(
+                'ml-auto flex items-center gap-1 opacity-0 transition-opacity',
+                'group-hover/assistant-turn:opacity-100 group-focus-within/assistant-turn:opacity-100',
+              )}
+            >
+              {response.answer.trim().length > 0 ? (
+                <CopyAnswerButton text={response.answer} />
+              ) : null}
+              {onRegenerateLastAnswer !== undefined &&
+              !isStreaming &&
+              question !== null &&
+              question.trim().length > 0 ? (
+                <Button
+                  aria-label="Regenerate answer"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={onRegenerateLastAnswer}
+                  size="sm"
+                  slotName="chat-regenerate"
+                  type="button"
+                  variant="ghost"
+                >
+                  <RefreshCw aria-hidden="true" className="size-3.5" />
+                  Regenerate
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {response.answer.trim().length > 0 ? (
+            <MarkdownAnswer
+              onCitationClick={(ordinal) => {
+                const citation = response.citations[ordinal - 1]
+                if (citation === undefined) {
+                  return
+                }
+                onOpenSource(
+                  citation.citation.source_id,
+                  citation.citation.snippet,
+                )
+              }}
+            >
+              {response.answer}
+            </MarkdownAnswer>
+          ) : (
+            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
                 />
                 Drafting Answer…
               </span>
-            )}
-          </p>
+            </p>
+          )}
+          {!isStreaming &&
+          response.answer.trim().length > 0 &&
+          response.citations.length === 0 ? (
+            <Callout
+              className="mt-3"
+              data-slot="chat-no-sources"
+              role="status"
+              tone="neutral"
+            >
+              No sources cited. The answer may be general knowledge or retrieval
+              returned nothing useful — verify before trusting project claims.
+            </Callout>
+          ) : null}
           {response.citations.length > 0 ? (
             <div
               aria-label="Answer Citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-0.5 max-[680px]:gap-0.5 max-[680px]:pt-0.5"
+              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-2.5 max-[680px]:gap-1.5 max-[680px]:pt-2"
               data-slot="chat-answer-citations"
               role="group"
             >
               {response.citations.map((citation, index) => {
+                const ordinal = index + 1
                 const label =
                   citation.citation.source_external_id ||
                   citation.citation.source_id ||
-                  `Source ${index + 1}`
+                  `Source ${ordinal}`
+                const snippet = citation.citation.snippet?.trim() ?? ''
                 const chipKey = [
                   citation.chunk_id ?? 'no-chunk',
                   citation.citation.source_id ?? 'no-source',
@@ -797,9 +1255,9 @@ function ResponseContent({
                   <Button
                     aria-label={`Open Source ${label}`}
                     className={cn(
-                      'h-auto max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
-                      'hover:border-primary/50 hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
+                      'h-auto max-w-full gap-1.5 truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
+                      'hover:border-primary/50 hover:bg-primary/15',
+                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2.5 max-[680px]:py-1 max-[680px]:text-xs',
                     )}
                     key={chipKey}
                     onClick={() =>
@@ -809,16 +1267,23 @@ function ResponseContent({
                       )
                     }
                     size="sm"
-                    title={label}
+                    title={snippet.length > 0 ? `${label} — ${snippet}` : label}
                     type="button"
                     variant="secondary"
                   >
-                    {label}
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold tabular-nums text-foreground"
+                    >
+                      {ordinal}
+                    </span>
+                    <span className="min-w-0 truncate">{label}</span>
                   </Button>
                 )
               })}
             </div>
           ) : null}
+          </div>
         </article>
       ) : null}
 
@@ -849,23 +1314,23 @@ function ResponseContent({
       {appliedMemories.length > 0 ? (
         <section
           aria-label="Memory Applied"
-          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+          className="grid gap-2 rounded-md border border-border/80 bg-muted/20 p-3 max-[680px]:gap-1.5 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2.5 max-[680px]:shadow-none"
           data-slot="chat-memory-applied"
         >
-          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+          <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1.5">
             <StatusBadge className="w-fit" tone="success">
               Memory Applied
             </StatusBadge>
-            <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+            <span className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
               {appliedMemories.length} approved item
               {appliedMemories.length === 1 ? '' : 's'} injected as system
               context (not a user turn).
             </span>
           </div>
-          <ul className="grid gap-1.5 max-[680px]:gap-0.5">
+          <ul className="grid gap-1.5 max-[680px]:gap-1.5">
             {appliedMemories.map((memory) => (
               <li
-                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+                className="text-sm leading-relaxed tracking-tight text-foreground max-[680px]:text-sm max-[680px]:leading-relaxed"
                 key={memory.id}
               >
                 {memory.content}
@@ -876,7 +1341,7 @@ function ResponseContent({
       ) : null}
 
       {knowledgeDrafts.length === 0 ? null : (
-        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-0.5">
+        <section aria-label="Knowledge Drafts" className="grid gap-3 max-[680px]:gap-2">
           {knowledgeDrafts.map((draft) => (
             <KnowledgeDraftCard
               draft={draft}
@@ -895,7 +1360,36 @@ function ResponseContent({
   )
 }
 
-function QuestionPrompt({ question }: { question: string | null }) {
+/** Compact role glyph (›) — user uses ring accent; assistant is muted. */
+function ChatRoleMarker({ tone }: { tone: 'user' | 'assistant' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'mt-0.5 inline-flex size-5 shrink-0 select-none items-center justify-center',
+        'font-mono text-[15px] font-semibold leading-none tracking-tight',
+        tone === 'user'
+          ? 'text-[color:var(--ring)]'
+          : 'text-muted-foreground/80',
+      )}
+      data-slot="chat-role-marker"
+      data-tone={tone}
+    >
+      ›
+    </span>
+  )
+}
+
+function QuestionPrompt({
+  onEdit,
+  question,
+  sticky = true,
+}: {
+  onEdit?(): void
+  question: string | null
+  /** Current turn sticks to the transcript top; prior turns flow normally. */
+  sticky?: boolean
+}) {
   const [expanded, setExpanded] = useState(false)
   const trimmedQuestion = question?.trim() ?? ''
   if (trimmedQuestion.length === 0) {
@@ -909,27 +1403,86 @@ function QuestionPrompt({ question }: { question: string | null }) {
       : trimmedQuestion
 
   return (
+    /* beflow UserTurn: full-width plomo card, role label, soft inset ring */
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:pb-0.5 max-[680px]:shadow-primary/95"
+      className={cn(
+        'group/user-turn w-full pb-1',
+        sticky && 'sticky top-0 z-10',
+      )}
+      aria-label="Your question"
       data-slot="chat-question-sticky"
     >
-      {shouldCollapse ? (
-        <Button
-          aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
-          className="max-w-full justify-start whitespace-normal text-left max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
-          onClick={() => setExpanded((current) => !current)}
-          title={trimmedQuestion}
-          type="button"
-          variant="secondary"
-        >
-          {displayQuestion}
-        </Button>
-      ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm text-foreground max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-          {displayQuestion}
-        </p>
-      )}
+      <div
+        className={cn(
+          'flex w-full gap-2 rounded-xl border border-border/80 bg-chat-user-bubble px-3 py-2.5 shadow-sm sm:gap-2.5 sm:px-4',
+          'backdrop-blur-md supports-[backdrop-filter]:bg-chat-user-bubble/90',
+          'ring-1 ring-inset ring-white/5',
+          'max-[680px]:gap-1.5 max-[680px]:px-2.5 max-[680px]:py-2',
+        )}
+        data-slot="chat-question-surface"
+      >
+        <ChatRoleMarker tone="user" />
+        <div className="min-w-0 flex-1">
+          {onEdit !== undefined ? (
+            <div className="mb-1 flex justify-end">
+              <Button
+                aria-label="Edit question"
+                className={cn(
+                  'h-7 px-2 text-[11px] opacity-0 transition-opacity',
+                  'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
+                )}
+                data-slot="chat-edit-question"
+                onClick={onEdit}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Edit
+              </Button>
+            </div>
+          ) : null}
+          {shouldCollapse ? (
+            <button
+              aria-expanded={expanded}
+              aria-label={
+                expanded ? 'Collapse full question' : 'Expand full question'
+              }
+              className={cn(
+                'flex min-w-0 w-full gap-1 text-left text-sm leading-5 text-foreground',
+                expanded ? 'items-start' : 'items-center',
+              )}
+              onClick={() => setExpanded((current) => !current)}
+              title={trimmedQuestion}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+              >
+                {expanded ? (
+                  <ChevronDown className="size-3.5" />
+                ) : (
+                  <ChevronRight className="size-3.5" />
+                )}
+              </span>
+              <span
+                className={cn(
+                  'min-w-0 flex-1',
+                  expanded
+                    ? 'whitespace-pre-wrap break-words'
+                    : 'truncate whitespace-nowrap',
+                )}
+              >
+                {displayQuestion}
+              </span>
+            </button>
+          ) : (
+            <p className="min-w-0 text-sm leading-5 text-foreground whitespace-pre-wrap break-words">
+              {displayQuestion}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -964,12 +1517,12 @@ function ResponseDetailsPanel({
   return (
     <section
       aria-label="Response Details"
-      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+      className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
     >
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse Response Details' : 'Expand Response Details'}
-        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5"
+        className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:min-h-11 max-[680px]:gap-2 max-[680px]:text-sm"
         onClick={() => setExpanded((current) => !current)}
         type="button"
         variant="secondary"
@@ -1019,32 +1572,32 @@ function ResponseDetailsContent({
     <div
       className={
         embedded
-          ? 'grid gap-3 pt-2 max-[680px]:gap-0.5 max-[680px]:pt-0.5'
-          : 'grid gap-3 pt-3 max-[680px]:gap-0.5 max-[680px]:pt-0.5'
+          ? 'grid gap-3 pt-2 max-[680px]:gap-2 max-[680px]:pt-2'
+          : 'grid gap-3 pt-3 max-[680px]:gap-2 max-[680px]:pt-2'
       }
     >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
         <section
           aria-label="Tool Calls Detail"
-          className="grid gap-2 max-[680px]:gap-0.5"
+          className="grid gap-2 max-[680px]:gap-1.5"
         >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
             Tool Calls · {toolCallCount}
           </h3>
           <DataList>
             {response.tool_calls.map((call, index) => (
               <DataListItem
-                className="grid gap-1 max-[680px]:gap-0.5"
+                className="grid gap-1 max-[680px]:gap-1"
                 key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
               >
-                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <strong className="text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
                   {call.name}
                 </strong>
-                <span className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <span className="text-sm text-muted-foreground max-[680px]:text-sm max-[680px]:leading-snug">
                   {call.query ?? 'No Query Stored.'}
                 </span>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <small className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
                   Limit {call.limit ?? 'Unknown'} /{' '}
                   {call.result_count ?? 'Unknown'} Results
                 </small>
@@ -1056,25 +1609,28 @@ function ResponseDetailsContent({
       {sourceCount > 0 ? (
         <section
           aria-label="Sources Detail"
-          className="grid gap-2 max-[680px]:gap-0.5"
+          className="grid gap-2 max-[680px]:gap-1.5"
         >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
             Sources · {sourceCount}
           </h3>
           <DataList>
             {response.citations.map((result, index) => (
               <DataListItem
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-0.5"
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-2"
                 key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
               >
-                <div className="grid min-w-0 gap-2 max-[680px]:gap-0.5">
-                  <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                <div className="grid min-w-0 gap-2 max-[680px]:gap-1.5">
+                  <strong className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
+                    <span className="mr-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold tabular-nums">
+                      {index + 1}
+                    </span>
                     {result.citation.source_external_id}
                   </strong>
-                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-sm max-[680px]:leading-relaxed">
                     {result.citation.snippet}
                   </p>
-                  <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+                  <div className="flex flex-wrap gap-2 max-[680px]:gap-1.5">
                     <Badge>
                       {sourceTypeLabel(result.citation.source_type)} Source
                     </Badge>
@@ -1130,11 +1686,11 @@ function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {
 
 function UsageItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+    <div className="rounded-md border border-border bg-card p-3 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none">
+      <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-foreground max-[680px]:mt-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+      <dd className="mt-1 break-words text-sm font-semibold text-foreground max-[680px]:mt-0.5 max-[680px]:text-sm max-[680px]:leading-snug">
         {value}
       </dd>
     </div>
@@ -1164,15 +1720,15 @@ function KnowledgeDraftCard({
   return (
     <article
       aria-label={`Knowledge Draft ${draft.draftId}`}
-      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+      className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-3 max-[680px]:shadow-none"
       role="region"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-0.5">
-        <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+      <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1.5">
+        <div className="grid min-w-0 gap-1 max-[680px]:gap-1">
+          <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
             Knowledge Draft
           </span>
-          <strong className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          <strong className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
             {draft.scope}
           </strong>
         </div>
@@ -1197,14 +1753,25 @@ function KnowledgeDraftCard({
         </FieldControl>
       </Field>
       {draft.proposalId === null ? null : (
-        <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+        <p className="text-sm text-muted-foreground max-[680px]:text-sm max-[680px]:leading-snug">
           Proposal {draft.proposalId}
         </p>
       )}
+      {draft.approvedSourceId !== null ? (
+        <p
+          className="text-sm text-muted-foreground max-[680px]:text-sm max-[680px]:leading-snug"
+          data-slot="chat-knowledge-ingest-status"
+        >
+          Source {shortSessionId(draft.approvedSourceId)}
+          {draft.ingestStatus !== null
+            ? ` · ingest ${draft.ingestStatus}`
+            : ' · saved (indexing may still be pending)'}
+        </p>
+      ) : null}
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
-      <div className="flex flex-wrap gap-2 max-[680px]:gap-0.5">
+      <div className="flex flex-wrap gap-2 max-[680px]:gap-1.5">
         <Button disabled={!canSubmitPrimary} onClick={onSubmit} type="button">
           {primaryAction}
         </Button>
@@ -1300,8 +1867,10 @@ function extractKnowledgeDraft(call: ChatToolCall): ChatKnowledgeDraft | null {
     return null
   }
   return {
+    approvedSourceId: getJsonString(call.result_summary, 'approved_source_id'),
     draftId,
     error: null,
+    ingestStatus: null,
     proposalId: getJsonString(call.result_summary, 'proposal_id'),
     reviewAction:
       getJsonString(call.result_summary, 'review_action') ?? 'request_approval',
@@ -1407,6 +1976,34 @@ function summarizeResponseUsage(
       providerUsage.map((usage) => usage.total_tokens),
     ),
   }
+}
+
+function CopyAnswerButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <Button
+      aria-label={copied ? 'Copied answer' : 'Copy answer'}
+      className="h-7 gap-1 px-2 text-[11px]"
+      data-slot="chat-copy-answer"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+      size="sm"
+      type="button"
+      variant="ghost"
+    >
+      {copied ? (
+        <Check aria-hidden="true" className="size-3.5" />
+      ) : (
+        <Copy aria-hidden="true" className="size-3.5" />
+      )}
+      {copied ? 'Copied' : 'Copy'}
+    </Button>
+  )
 }
 
 function sumOptionalNumbers(values: Array<number | null | undefined>): number | null {

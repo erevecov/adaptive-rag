@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+import re
+import threading
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any, Protocol
@@ -45,8 +47,12 @@ class QwenChatClient(Protocol):
         model: str,
         messages: list[ChatMessage],
         tools: list[ChatToolDefinition] | None = None,
+        on_answer_delta: Callable[[str], None] | None = None,
     ) -> ChatCompletionResponse:
         """Ejecuta una llamada chat completion compatible con OpenAI."""
+
+    def request_cancel(self) -> None:
+        """Best-effort cancel of the in-flight HTTP call."""
 
 
 @dataclass(slots=True)
@@ -56,15 +62,52 @@ class QwenChatRunner:
     model_name: str
     client: QwenChatClient
     provider_name: str = "qwen"
+    # Optional second model tried once after primary 429/5xx exhaustion.
+    fallback_model_name: str | None = None
+    last_used_model: str | None = field(default=None, init=False, repr=False)
+    used_fallback: bool = field(default=False, init=False, repr=False)
 
     def run(
         self,
         request: ChatRunnerRequest,
         tools: ChatTools,
+        *,
+        on_answer_delta: Callable[[str], None] | None = None,
+    ) -> ChatRunnerOutput:
+        self.used_fallback = False
+        try:
+            output = self._run_with_model(
+                self.model_name,
+                request,
+                tools,
+                on_answer_delta=on_answer_delta,
+            )
+            self.last_used_model = self.model_name
+            return output
+        except QwenChatRunnerError as exc:
+            if not _should_use_fallback(exc, self.fallback_model_name, self.model_name):
+                raise
+            output = self._run_with_model(
+                self.fallback_model_name or self.model_name,
+                request,
+                tools,
+                on_answer_delta=on_answer_delta,
+            )
+            self.last_used_model = self.fallback_model_name
+            self.used_fallback = True
+            return output
+
+    def _run_with_model(
+        self,
+        model_name: str,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+        *,
+        on_answer_delta: Callable[[str], None] | None = None,
     ) -> ChatRunnerOutput:
         messages = _initial_messages(request)
         first_response = self.client.create_chat_completion(
-            model=self.model_name,
+            model=model_name,
             messages=messages,
             tools=_tool_schemas(tools),
         )
@@ -81,16 +124,40 @@ class QwenChatRunner:
                 )
                 messages.append(_tool_result_message(tool_call, result))
             final_response = self.client.create_chat_completion(
-                model=self.model_name,
+                model=model_name,
                 messages=messages,
+                on_answer_delta=on_answer_delta,
             )
             final_message = _first_message(final_response)
             return _parse_runner_output(_message_content(final_message))
 
-        return _parse_runner_output(_message_content(first_message))
+        # No tool calls: use the first completion (avoid a second provider call).
+        # Emit progressive deltas from the already-complete answer for UI stream.
+        output = _parse_runner_output(_message_content(first_message))
+        if on_answer_delta is not None and output.answer:
+            on_answer_delta(output.answer)
+        return output
 
 
-@dataclass(frozen=True, slots=True)
+def _should_use_fallback(
+    exc: QwenChatRunnerError,
+    fallback_model: str | None,
+    primary_model: str,
+) -> bool:
+    if fallback_model is None or not fallback_model.strip():
+        return False
+    if fallback_model.strip() == primary_model:
+        return False
+    text = str(exc).lower()
+    return (
+        "429" in text
+        or "rate limit" in text
+        or "status 5" in text
+        or "failed before receiving" in text
+    )
+
+
+@dataclass(slots=True)
 class QwenHTTPChatClient:
     """Cliente HTTP pequeno para chat completions Qwen/OpenAI-compatible."""
 
@@ -103,6 +170,22 @@ class QwenHTTPChatClient:
     provider_name: str = "qwen"
     price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
     budget_guard: ProviderBudgetGuard | None = None
+    # Interactive chat should fail fast under rate limits (default ≤12s budget).
+    max_retry_budget_seconds: float = 12.0
+    _cancel_event: threading.Event = field(default_factory=threading.Event, repr=False)
+    _active_client: httpx.Client | None = field(default=None, repr=False)
+
+    def set_cancel_event(self, event: threading.Event) -> None:
+        self._cancel_event = event
+
+    def request_cancel(self) -> None:
+        self._cancel_event.set()
+        client = self._active_client
+        if client is not None:
+            try:
+                client.close()
+            except Exception:  # noqa: BLE001 — best-effort cancel
+                pass
 
     def create_chat_completion(
         self,
@@ -110,21 +193,41 @@ class QwenHTTPChatClient:
         model: str,
         messages: list[ChatMessage],
         tools: list[ChatToolDefinition] | None = None,
+        on_answer_delta: Callable[[str], None] | None = None,
     ) -> ChatCompletionResponse:
+        if self._cancel_event.is_set():
+            raise QwenChatRunnerError("qwen chat request canceled")
         payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "temperature": 0,
+            # Bailian/Qwen thinking models reject object tool_choice (HTTP 400)
+            # and often wrap final answers in non-JSON reasoning channels.
+            # RAG tool-calling + JSON answer contract require non-thinking turns.
+            "enable_thinking": False,
         }
         if tools is not None:
             payload["tools"] = tools
             payload["tool_choice"] = _tool_choice(tools)
+        else:
+            # Final answer turn: force machine-parseable JSON object contract.
+            payload["response_format"] = {"type": "json_object"}
+            if on_answer_delta is not None:
+                payload["stream"] = True
+
         started = perf_counter()
         try:
-            response_data, request_id = self._post(
-                endpoint=_chat_endpoint(self.base_url),
-                payload=payload,
-            )
+            if tools is None and on_answer_delta is not None:
+                response_data, request_id = self._post_stream(
+                    endpoint=_chat_endpoint(self.base_url),
+                    payload=payload,
+                    on_answer_delta=on_answer_delta,
+                )
+            else:
+                response_data, request_id = self._post(
+                    endpoint=_chat_endpoint(self.base_url),
+                    payload=payload,
+                )
             record = build_success_record(
                 provider=self.provider_name,
                 model=model,
@@ -155,23 +258,43 @@ class QwenHTTPChatClient:
         endpoint: str,
         payload: dict[str, Any],
     ) -> tuple[dict[str, Any], str | None]:
+        from time import sleep
+
         last_error: Exception | None = None
-        attempts = max(0, self.max_retries) + 1
+        # Cap interactive retries: at most 2 attempts (1 retry) for chat UX.
+        attempts = min(max(0, self.max_retries), 1) + 1
+        budget_started = perf_counter()
         for attempt in range(attempts):
+            if self._cancel_event.is_set():
+                raise QwenChatRunnerError("qwen chat request canceled")
             try:
                 with httpx.Client(
                     timeout=self.timeout_seconds,
                     transport=self.transport,
                 ) as client:
-                    response = client.post(
-                        endpoint,
-                        headers={
-                            "Authorization": f"Bearer {self.api_key}",
-                            "Content-Type": "application/json",
-                        },
-                        json=payload,
-                    )
-                if response.status_code >= 500 and attempt < attempts - 1:
+                    self._active_client = client
+                    try:
+                        response = client.post(
+                            endpoint,
+                            headers={
+                                "Authorization": f"Bearer {self.api_key}",
+                                "Content-Type": "application/json",
+                            },
+                            json=payload,
+                        )
+                    finally:
+                        self._active_client = None
+                retryable = response.status_code >= 500 or response.status_code == 429
+                if retryable and attempt < attempts - 1:
+                    sleep_s = _retry_backoff_seconds(response, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        raise QwenChatRunnerError(
+                            f"qwen chat request failed with status {response.status_code}"
+                        )
+                    sleep(sleep_s)
                     continue
                 if response.status_code >= 400:
                     raise QwenChatRunnerError(
@@ -183,11 +306,157 @@ class QwenHTTPChatClient:
                         "qwen chat response must be a JSON object"
                     )
                 return data, _response_request_id(response)
+            except QwenChatRunnerError:
+                raise
             except (httpx.TimeoutException, httpx.TransportError) as exc:
+                if self._cancel_event.is_set():
+                    raise QwenChatRunnerError("qwen chat request canceled") from exc
                 last_error = exc
                 if attempt < attempts - 1:
+                    sleep_s = _retry_backoff_seconds(None, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        break
+                    sleep(sleep_s)
                     continue
                 break
+
+        raise QwenChatRunnerError(
+            "qwen chat request failed before receiving a response"
+        ) from last_error
+
+    def _post_stream(
+        self,
+        *,
+        endpoint: str,
+        payload: dict[str, Any],
+        on_answer_delta: Callable[[str], None],
+    ) -> tuple[dict[str, Any], str | None]:
+        """Stream a final (no-tools) completion and emit progressive answer text."""
+
+        from time import sleep
+
+        if self._cancel_event.is_set():
+            raise QwenChatRunnerError("qwen chat request canceled")
+        attempts = min(max(0, self.max_retries), 1) + 1
+        budget_started = perf_counter()
+        last_error: Exception | None = None
+        for attempt in range(attempts):
+            if self._cancel_event.is_set():
+                raise QwenChatRunnerError("qwen chat request canceled")
+            content_parts: list[str] = []
+            request_id: str | None = None
+            emitted_answer = ""
+            try:
+                with httpx.Client(
+                    timeout=self.timeout_seconds,
+                    transport=self.transport,
+                ) as client:
+                    self._active_client = client
+                    try:
+                        with client.stream(
+                            "POST",
+                            endpoint,
+                            headers={
+                                "Authorization": f"Bearer {self.api_key}",
+                                "Content-Type": "application/json",
+                            },
+                            json=payload,
+                        ) as response:
+                            if response.status_code >= 400:
+                                body = response.read()
+                                _ = body
+                                retryable = (
+                                    response.status_code >= 500
+                                    or response.status_code == 429
+                                )
+                                if retryable and attempt < attempts - 1:
+                                    sleep_s = _retry_backoff_seconds(
+                                        response, attempt=attempt
+                                    )
+                                    if (
+                                        perf_counter() - budget_started + sleep_s
+                                        > self.max_retry_budget_seconds
+                                    ):
+                                        raise QwenChatRunnerError(
+                                            "qwen chat request failed with status "
+                                            f"{response.status_code}"
+                                        )
+                                    sleep(sleep_s)
+                                    continue
+                                raise QwenChatRunnerError(
+                                    "qwen chat request failed with status "
+                                    f"{response.status_code}"
+                                )
+                            request_id = _response_request_id(response)
+                            for line in response.iter_lines():
+                                if self._cancel_event.is_set():
+                                    raise QwenChatRunnerError(
+                                        "qwen chat request canceled"
+                                    )
+                                if not line:
+                                    continue
+                                if line.startswith("data:"):
+                                    data_str = line[5:].strip()
+                                else:
+                                    continue
+                                if data_str == "[DONE]":
+                                    break
+                                try:
+                                    chunk = json.loads(data_str)
+                                except json.JSONDecodeError:
+                                    continue
+                                if not isinstance(chunk, dict):
+                                    continue
+                                delta_text = _stream_chunk_text(chunk)
+                                if delta_text:
+                                    content_parts.append(delta_text)
+                                    partial = _partial_answer_from_json_buffer(
+                                        "".join(content_parts)
+                                    )
+                                    if partial is not None and len(partial) > len(
+                                        emitted_answer
+                                    ):
+                                        piece = partial[len(emitted_answer) :]
+                                        emitted_answer = partial
+                                        on_answer_delta(piece)
+                    finally:
+                        self._active_client = None
+            except QwenChatRunnerError:
+                raise
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                if self._cancel_event.is_set():
+                    raise QwenChatRunnerError("qwen chat request canceled") from exc
+                last_error = exc
+                if attempt < attempts - 1:
+                    sleep_s = _retry_backoff_seconds(None, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        break
+                    sleep(sleep_s)
+                    continue
+                break
+
+            full_content = "".join(content_parts)
+            if not full_content.strip():
+                raise QwenChatRunnerError("qwen chat stream returned empty content")
+            return (
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "content": full_content,
+                            }
+                        }
+                    ]
+                },
+                request_id,
+            )
 
         raise QwenChatRunnerError(
             "qwen chat request failed before receiving a response"
@@ -213,14 +482,72 @@ class QwenHTTPChatClient:
         )
 
 
+def _stream_chunk_text(chunk: dict[str, Any]) -> str:
+    choices = chunk.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    delta = first.get("delta")
+    if isinstance(delta, dict):
+        content = delta.get("content")
+        if isinstance(content, str):
+            return content
+    message = first.get("message")
+    if isinstance(message, dict):
+        content = message.get("content")
+        if isinstance(content, str):
+            return content
+    return ""
+
+
+def _partial_answer_from_json_buffer(buffer: str) -> str | None:
+    """Extract progressive answer text from a partial JSON object stream."""
+
+    match = re.search(r'"answer"\s*:\s*"', buffer)
+    if match is None:
+        return None
+    index = match.end()
+    chars: list[str] = []
+    while index < len(buffer):
+        char = buffer[index]
+        if char == "\\" and index + 1 < len(buffer):
+            escape = buffer[index + 1]
+            if escape == "n":
+                chars.append("\n")
+            elif escape == "t":
+                chars.append("\t")
+            elif escape == '"':
+                chars.append('"')
+            elif escape == "\\":
+                chars.append("\\")
+            else:
+                chars.append(escape)
+            index += 2
+            continue
+        if char == '"':
+            break
+        chars.append(char)
+        index += 1
+    return "".join(chars)
+
+
 def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
     system_content = (
         "You are Adaptive RAG's retrieval-grounded chat runner. "
-        "Use the retrieval_search tool before answering when evidence "
-        "is needed. Prefer the retrieval query when provided in the "
-        "latest user turn metadata. When the user explicitly asks to "
-        "save, learn, remember, or capture project knowledge, call "
-        "commit_knowledge. "
+        "You MUST call retrieval_search before answering factual or "
+        "project-knowledge questions. If retrieval returns no useful "
+        "evidence, say you could not find sources and keep "
+        "cited_chunk_ids empty. Never invent chunk ids or unsupported "
+        "facts. "
+        "Conversation history (including any condensed earlier context and "
+        "USER_FACT lines) is authoritative for user-stated preferences, "
+        "names, and thread-only facts even when retrieval returns nothing. "
+        "Answer those from history without inventing chunk ids. "
+        "Prefer the retrieval query when provided in the latest "
+        "user turn metadata. When the user explicitly asks to save, learn, "
+        "remember, or capture project knowledge, call commit_knowledge. "
         "Choose scope=message when the knowledge is only in the latest "
         "user message, or scope=session when it summarizes this chat "
         "session. If the user asks to change an existing knowledge "
@@ -600,22 +927,52 @@ def _tool_call_id(tool_call: dict[str, Any]) -> str:
     return value
 
 
+_THINK_TAG_RE = re.compile(
+    r"<think>[\s\S]*?</think>|<thinking>[\s\S]*?</thinking>",
+    re.IGNORECASE,
+)
+_FENCED_JSON_RE = re.compile(
+    r"```(?:json)?\s*([\s\S]*?)```",
+    re.IGNORECASE,
+)
+
+
 def _message_content(message: ChatMessage) -> str:
     content = message.get("content")
-    if not isinstance(content, str) or not content.strip():
+    text = _coerce_text_content(content)
+    if text is None or not text.strip():
         raise QwenChatRunnerError("qwen chat response content must be a JSON object")
-    return content
+    return text
+
+
+def _coerce_text_content(content: object) -> str | None:
+    """Normalize OpenAI-compatible content (string or text parts) to plain text."""
+
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str) and item.strip():
+                parts.append(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            text = item.get("text")
+            if isinstance(text, str) and text.strip():
+                parts.append(text)
+                continue
+            # Some providers use content parts with type/content keys.
+            nested = item.get("content")
+            if isinstance(nested, str) and nested.strip():
+                parts.append(nested)
+        if parts:
+            return "".join(parts)
+    return None
 
 
 def _parse_runner_output(content: str) -> ChatRunnerOutput:
-    try:
-        parsed = json.loads(content)
-    except json.JSONDecodeError as exc:
-        raise QwenChatRunnerError(
-            "qwen chat response content must be a JSON object"
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise QwenChatRunnerError("qwen chat response content must be a JSON object")
+    parsed = _loads_json_object(content)
 
     answer = parsed.get("answer")
     if not isinstance(answer, str) or not answer.strip():
@@ -642,6 +999,55 @@ def _parse_runner_output(content: str) -> ChatRunnerOutput:
     )
 
 
+def _loads_json_object(content: str) -> dict[str, Any]:
+    """Parse the JSON answer contract from model text with production fallbacks.
+
+    Qwen/Bailian models sometimes wrap the required object in markdown fences,
+    preambles, or residual think tags even when asked for JSON only.
+    """
+
+    text = _THINK_TAG_RE.sub("", content).strip()
+    if not text:
+        raise QwenChatRunnerError("qwen chat response content must be a JSON object")
+
+    for candidate in _json_object_candidates(text):
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+
+    extracted = _extract_first_json_object(text)
+    if extracted is not None:
+        return extracted
+
+    raise QwenChatRunnerError("qwen chat response content must be a JSON object")
+
+
+def _json_object_candidates(text: str) -> list[str]:
+    candidates = [text]
+    for match in _FENCED_JSON_RE.finditer(text):
+        fenced = match.group(1).strip()
+        if fenced:
+            candidates.append(fenced)
+    return candidates
+
+
+def _extract_first_json_object(text: str) -> dict[str, Any] | None:
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(text):
+        if char != "{":
+            continue
+        try:
+            parsed, _end = decoder.raw_decode(text[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
 def _chat_endpoint(base_url: str) -> str:
     value = base_url.rstrip("/")
     if value.endswith("/chat/completions"):
@@ -655,6 +1061,24 @@ def _response_request_id(response: httpx.Response) -> str | None:
         if value is not None:
             return str(value)
     return None
+
+
+def _retry_backoff_seconds(
+    response: httpx.Response | None,
+    *,
+    attempt: int,
+) -> float:
+    """Backoff for transport/5xx/429 retries. Honors Retry-After when present."""
+
+    if response is not None:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is not None:
+            try:
+                return max(0.0, min(float(retry_after), 30.0))
+            except ValueError:
+                pass
+    # attempt 0 → 0.5s, 1 → 1s, 2 → 2s (capped)
+    return min(0.5 * (2**attempt), 8.0)
 
 
 def _elapsed_ms(started: float) -> int:

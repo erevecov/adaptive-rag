@@ -27,7 +27,10 @@ class RecordingChatClient:
         model: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
+        on_answer_delta: object | None = None,
+        **kwargs: object,
     ) -> dict[str, Any]:
+        _ = (on_answer_delta, kwargs)
         self.requests.append(
             {
                 "model": model,
@@ -310,6 +313,108 @@ def test_qwen_chat_runner_rejects_non_json_final_response() -> None:
                 default_limit=2,
             ),
         )
+
+
+def test_qwen_chat_runner_parses_fenced_json_answer_contract() -> None:
+    project_id = uuid4()
+    chunk_id = uuid4()
+    fenced = (
+        "Here is the result:\n"
+        "```json\n"
+        + json.dumps(
+            {"answer": "Fenced answer", "cited_chunk_ids": [str(chunk_id)]}
+        )
+        + "\n```\n"
+    )
+    client = RecordingChatClient([_final_response(fenced)])
+
+    output = QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="What supports alpha?",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        _tools(
+            project_id=project_id,
+            retrieval=RecordingRetrievalService([]),
+            default_limit=2,
+        ),
+    )
+
+    assert output.answer == "Fenced answer"
+    assert output.cited_chunk_ids == (chunk_id,)
+
+
+def test_qwen_chat_runner_parses_json_with_think_tags_and_preamble() -> None:
+    project_id = uuid4()
+    payload = {
+        "answer": "Stripped think answer",
+        "cited_chunk_ids": [],
+    }
+    wrapped = (
+        "<think>internal monologue</think>\n"
+        "Sure.\n"
+        + json.dumps(payload)
+        + "\nThanks!"
+    )
+    client = RecordingChatClient([_final_response(wrapped)])
+
+    output = QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="What supports alpha?",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        _tools(
+            project_id=project_id,
+            retrieval=RecordingRetrievalService([]),
+            default_limit=2,
+        ),
+    )
+
+    assert output.answer == "Stripped think answer"
+    assert output.cited_chunk_ids == ()
+
+
+def test_qwen_chat_runner_parses_multipart_text_content() -> None:
+    project_id = uuid4()
+    content_parts = [
+        {"type": "text", "text": '{"answer":"Multipart answer",'},
+        {"type": "text", "text": '"cited_chunk_ids":[]}'},
+    ]
+    client = RecordingChatClient(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": content_parts,
+                        }
+                    }
+                ]
+            }
+        ]
+    )
+
+    output = QwenChatRunner(model_name="qwen-plus", client=client).run(
+        ChatRunnerRequest(
+            project_id=project_id,
+            message="What supports alpha?",
+            retrieval_limit=2,
+            metadata_filter=None,
+        ),
+        _tools(
+            project_id=project_id,
+            retrieval=RecordingRetrievalService([]),
+            default_limit=2,
+        ),
+    )
+
+    assert output.answer == "Multipart answer"
+    assert output.cited_chunk_ids == ()
 
 
 def _tools(

@@ -229,23 +229,29 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
+    expect(chip.textContent).toMatch(/1/)
+    expect(chip.textContent).toContain('architecture.md')
+    expect(chip.getAttribute('title')).toContain(
+      'Architecture notes mention adaptive retrieval.',
+    )
     expect(chip.className).toMatch(/hover:bg-primary\/15/)
     expect(chip.className).toMatch(/max-\[680px\]:min-h-11/)
+    // Assistant column: open beflow-style turn (no twin card border).
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).toMatch(/focus-within:border-primary/)
+    ).toMatch(/group\/assistant-turn/)
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).not.toMatch(/focus-within:border-primary\/40/)
-    expect(
-      view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
-    expect(
-      view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).not.toMatch(/border-border\/70/)
+    ).not.toMatch(/bg-card/)
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
     ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="assistant"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Answer')).toBeTruthy()
     await user.click(chip)
     expect(onOpenSource).toHaveBeenCalledWith(
       'source-1',
@@ -253,9 +259,46 @@ describe('ChatWorkspacePanel', () => {
     )
   })
 
+  test('shows thread continuity and composer keyboard shortcuts', () => {
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-abcdef12-3456',
+      response: null,
+      requestState: 'idle',
+    })
+
+    const continuity = view.container.querySelector(
+      '[data-slot="chat-session-continuity"]',
+    )
+    expect(continuity).toBeTruthy()
+    expect(continuity?.textContent).toContain('Continuing thread')
+    expect(continuity?.textContent).toContain('session-')
+
+    const shortcuts = view.container.querySelector(
+      '[data-slot="chat-composer-shortcuts"]',
+    )
+    expect(shortcuts).toBeTruthy()
+    expect(shortcuts?.textContent).toMatch(/Enter/)
+    expect(shortcuts?.textContent).toMatch(/Send/)
+    expect(shortcuts?.textContent).toMatch(/New line/)
+    expect(shortcuts?.textContent).not.toMatch(/Cancel/)
+    view.unmount()
+
+    const asking = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      isAsking: true,
+      question: 'still going',
+      requestState: 'loading',
+      response: null,
+    })
+    expect(
+      asking.view.container.querySelector(
+        '[data-slot="chat-composer-shortcuts"]',
+      )?.textContent,
+    ).toMatch(/Cancel/)
+  })
+
   test('renders waiting and error states with feedback primitives', () => {
     const { view } = renderChatWorkspace({
-      requestError: 'Request failed',
       requestState: 'loading',
       response: null,
     })
@@ -264,9 +307,10 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loading).toBeTruthy()
-    expect(loading?.textContent).toContain('Waiting For Response…')
-    expect(loading?.className).toMatch(/max-\[680px\]:bg-card/)
-    expect(screen.getByRole('alert').textContent).toContain('Request failed')
+    expect(loading?.textContent).toContain('Waiting for response…')
+    // Errors are co-located with the transcript failure state, not under the
+    // composer while the request is still loading.
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-composer-actions"]'),
@@ -288,7 +332,12 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="failed"]',
     )
     expect(failedState).toBeTruthy()
-    expect(failedState?.textContent).toContain('Request Failed.')
+    expect(failedState?.textContent).toContain('Request failed')
+    expect(failedState?.textContent).toContain('Upstream timeout')
+    expect(
+      failed.view.container.querySelector('[data-slot="chat-error-detail"]')
+        ?.textContent,
+    ).toContain('Upstream timeout')
     expect(failedState?.getAttribute('role')).toBe('alert')
     failed.view.unmount()
 
@@ -300,8 +349,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="canceled"]',
     )
     expect(canceledState).toBeTruthy()
-    expect(canceledState?.textContent).toContain('Request Canceled.')
-    expect(canceledState?.className).toMatch(/max-\[680px\]:bg-card/)
+    expect(canceledState?.textContent).toContain('Request canceled')
     canceled.view.unmount()
 
     const canceledPartial = renderChatWorkspace({
@@ -312,7 +360,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(canceledBanner).toBeTruthy()
-    expect(canceledBanner?.textContent).toMatch(/Request Canceled/)
+    expect(canceledBanner?.textContent).toMatch(/Stopped — partial answer/)
     expect(canceledBanner?.querySelector('[role="status"]')).toBeTruthy()
     expect(
       canceledPartial.view.container.querySelector('[data-slot="chat-message"]'),
@@ -328,9 +376,96 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
     )
     expect(failedBanner).toBeTruthy()
-    expect(failedBanner?.textContent).toMatch(/Request Failed/)
+    expect(failedBanner?.textContent).toContain('Upstream timeout')
     expect(failedBanner?.querySelector('[role="alert"]')).toBeTruthy()
     failedPartial.view.unmount()
+  })
+
+  test('shows regenerate for succeeded answers and wires the handler', async () => {
+    const userDriver = userEvent.setup()
+    const onRegenerateLastAnswer = vi.fn()
+    const { view } = renderChatWorkspace({
+      onRegenerateLastAnswer,
+      requestState: 'succeeded',
+      response,
+    })
+
+    const regenerate = screen.getByRole('button', { name: 'Regenerate answer' })
+    expect(regenerate.textContent).toMatch(/Regenerate/)
+    await userDriver.click(regenerate)
+    expect(onRegenerateLastAnswer).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  test('edit question loads text into the composer via onEditQuestion', async () => {
+    const userDriver = userEvent.setup()
+    const onEditQuestion = vi.fn()
+    renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      onEditQuestion,
+      requestState: 'succeeded',
+      response,
+    })
+
+    await userDriver.click(screen.getByRole('button', { name: 'Edit question' }))
+    expect(onEditQuestion).toHaveBeenCalledWith('What is Nimbus?')
+  })
+
+  test('context window chip shows summarized counts from context step', () => {
+    const responseWithContext = {
+      ...response,
+      steps: [
+        {
+          id: 'context',
+          status: 'done' as const,
+          detail: {
+            total_messages: 20,
+            kept_recent: 8,
+            summarized_messages: 12,
+            used_summary: true,
+            summary_preview: 'Pinned user-stated facts…',
+          },
+        },
+      ],
+    }
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      priorTurns: [
+        {
+          id: 't1',
+          question: 'Earlier Q',
+          answer: 'Earlier A',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+      ],
+      response: responseWithContext,
+      requestState: 'succeeded',
+    })
+    const chip = view.container.querySelector('[data-slot="chat-context-window"]')
+    expect(chip).toBeTruthy()
+    expect(chip?.textContent).toMatch(/8 recent/)
+    expect(chip?.textContent).toMatch(/12 summarized/)
+  })
+
+  test('retry button appears on failed empty state with error detail', async () => {
+    const userDriver = userEvent.setup()
+    const onRetryLastQuestion = vi.fn()
+    renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      onRetryLastQuestion,
+      requestError:
+        'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+      requestState: 'failed',
+      response: null,
+    })
+
+    expect(
+      screen.getByText(/Chat provider rate-limited the request \(HTTP 429\)/),
+    ).toBeTruthy()
+    await userDriver.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(onRetryLastQuestion).toHaveBeenCalledTimes(1)
   })
 
   test('Enter on empty question does not submit', async () => {
@@ -368,10 +503,12 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="empty"]',
     )
     expect(emptyState).toBeTruthy()
-    expect(emptyState?.textContent).toContain('No Response Yet.')
-    expect(emptyState?.textContent).toMatch(/Enter To Send/)
-    expect(emptyState?.className).toMatch(/max-\[680px\]:bg-card/)
-    expect(screen.queryByText('Speech Input Ready.')).toBeNull()
+    expect(emptyState?.textContent).toContain('No response yet')
+    expect(emptyState?.textContent).toMatch(/Enter to send/)
+    expect(
+      empty.view.container.querySelector('[data-slot="chat-sample-questions"]'),
+    ).toBeTruthy()
+    expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
     expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
@@ -411,13 +548,94 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/max-\[680px\]:shadow-primary\/95/)
+    // Height chain: flex column — transcript flex-1 scrolls, composer pins bottom.
+    expect(workspace.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(workspace.className).toMatch(/flex-col/)
+    expect(workspace.className).toMatch(/overflow-hidden/)
+    expect(workspace.className).toMatch(/max-h-full/)
+    expect(workspace.className).toMatch(/min-h-0/)
+    const transcript = view.container.querySelector('[data-slot="chat-transcript"]')
+    expect(transcript?.className).toMatch(/overflow-y-auto/)
+    expect(transcript?.className).toMatch(/min-h-0/)
+    expect(transcript?.className).toMatch(/flex-1/)
+    expect(transcript?.className).toMatch(/scrollbar-chat/)
+    expect(transcript?.className).not.toMatch(/-mr-/)
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
-    ).toMatch(/max-\[680px\]:bg-card/)
-    expect(
-      view.container.querySelector('[data-slot="chat-question-sticky"]')?.className,
-    ).toMatch(/max-\[680px\]:bg-card/)
+    ).toMatch(/shrink-0/)
+    expect(screen.getByLabelText('Question').className).toMatch(/scrollbar-chat/)
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
+  })
+
+  test('renders beflow-style user bubble vs open assistant column', () => {
+    const { view } = renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      requestState: 'succeeded',
+      response,
+    })
+
+    const sticky = view.container.querySelector('[data-slot="chat-question-sticky"]')
+    expect(sticky).toBeTruthy()
+    expect(sticky?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
+    const surface = view.container.querySelector(
+      '[data-slot="chat-question-surface"]',
+    )
+    expect(surface).toBeTruthy()
+    // UserTurn card: plomo fill + rounded shell (beflow strategy, Grok tokens).
+    expect(surface?.className).toMatch(/bg-chat-user-bubble/)
+    expect(surface?.className).toMatch(/rounded-xl/)
+    expect(surface?.className).toMatch(/border-border\/80/)
+    expect(surface?.textContent).not.toMatch(/\bYou\b/)
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="user"]',
+      )?.textContent,
+    ).toBe('›')
+    const answer = view.container.querySelector('[data-slot="chat-message"]')
+    // AssistantTurn: no twin card — open column with hover wash only.
+    expect(answer?.className).not.toMatch(/bg-card/)
+    expect(answer?.className).not.toMatch(/bg-chat-user-bubble/)
+    expect(answer?.className).toMatch(/group\/assistant-turn/)
+    expect(answer?.textContent).not.toMatch(/\bAnswer\b/)
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="assistant"]',
+      )?.textContent,
+    ).toBe('›')
+  })
+
+  test('prior turn questions flow normally while the current question stays sticky', () => {
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      priorTurns: [
+        {
+          id: 't1',
+          question: 'Earlier question one',
+          answer: 'Earlier answer one',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+        {
+          id: 't2',
+          question: 'Earlier question two',
+          answer: 'Earlier answer two',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+      ],
+      requestState: 'succeeded',
+      response,
+    })
+
+    const strips = view.container.querySelectorAll(
+      '[data-slot="chat-question-sticky"]',
+    )
+    expect(strips.length).toBe(3)
+    expect(strips[0]?.className).not.toMatch(/(?:^|\s)sticky(?:\s|$)/)
+    expect(strips[1]?.className).not.toMatch(/(?:^|\s)sticky(?:\s|$)/)
+    expect(strips[2]?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
   })
 
   test('renders knowledge draft actions with editable text', () => {
@@ -440,8 +658,10 @@ describe('ChatWorkspacePanel', () => {
     const { view } = renderChatWorkspace({
       drafts: {
         'draft-1': {
+          approvedSourceId: null,
           draftId: 'draft-1',
           error: null,
+          ingestStatus: null,
           proposalId: null,
           reviewAction: 'approve',
           scope: 'project',
@@ -467,8 +687,10 @@ describe('ChatWorkspacePanel', () => {
       renderChatWorkspace({
         drafts: {
           [status]: {
+            approvedSourceId: null,
             draftId: status,
             error: null,
+            ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
             scope: 'project',
@@ -541,7 +763,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(banner).toBeTruthy()
-    expect(banner?.textContent).toMatch(/Request Canceled/)
+    expect(banner?.textContent).toMatch(/Stopped — partial answer/)
     expect(screen.getByText('Partial before cancel')).toBeTruthy()
     canceled.view.unmount()
 
@@ -553,8 +775,8 @@ describe('ChatWorkspacePanel', () => {
       failed.view.container.querySelector(
         '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
       )?.textContent,
-    ).toMatch(/Request Failed/)
-    expect(screen.getByRole('alert').textContent).toMatch(/Incomplete/)
+    ).toMatch(/Request failed/i)
+    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/i)
     failed.view.unmount()
   })
 
@@ -595,8 +817,10 @@ describe('ChatWorkspacePanel', () => {
       renderChatWorkspace({
         drafts: {
           [status]: {
+            approvedSourceId: null,
             draftId: status,
             error: null,
+            ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
             scope: 'project',

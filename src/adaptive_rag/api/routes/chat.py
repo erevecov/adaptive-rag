@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
+from collections import defaultdict, deque
 from collections.abc import Iterator
 from dataclasses import replace
 from datetime import datetime
@@ -181,6 +184,27 @@ def unarchive_chat_session(
     return Response(status_code=204)
 
 
+@router.delete("/sessions/{session_id}", status_code=204)
+def delete_chat_session(
+    project_id: UUID,
+    session_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+) -> Response:
+    try:
+        ChatAuditRepository(session).delete_session(
+            project_id=project_id,
+            session_id=session_id,
+            user_id=_history_user_id(current),
+        )
+        session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=404, detail="chat session not found") from exc
+    return Response(status_code=204)
+
+
 @router.post("/stream")
 def stream_chat(
     project_id: UUID,
@@ -190,6 +214,68 @@ def stream_chat(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
     _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> StreamingResponse:
+    """Start streaming ASAP; attach user memory inside the event generator.
+
+    Rate/flight locks still run pre-stream. Approved user-memory injection is
+    deferred so the first SSE byte is not blocked on that query (cold TTFS).
+    """
+
+    rate_key = _chat_rate_key(project_id=project_id, user_id=current.user_id)
+    if not _try_acquire_chat_rate(rate_key):
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "chat_rate_limited",
+                "message": (
+                    "Too many chat requests. Wait a moment before sending another."
+                ),
+                "retryable": True,
+                "detail": (
+                    "Too many chat requests. Wait a moment before sending another."
+                ),
+            },
+        )
+    flight_key = _chat_flight_key(
+        project_id=project_id,
+        user_id=current.user_id,
+        session_id=body.session_id,
+    )
+    user_flight_key = _chat_user_flight_key(
+        project_id=project_id, user_id=current.user_id
+    )
+    if not _try_acquire_chat_user_flight(user_flight_key):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "chat_user_in_flight",
+                "message": (
+                    "You already have a chat turn in progress. "
+                    "Wait for it to finish or cancel it first."
+                ),
+                "retryable": True,
+                "detail": (
+                    "You already have a chat turn in progress. "
+                    "Wait for it to finish or cancel it first."
+                ),
+            },
+        )
+    if not _try_acquire_chat_flight(flight_key):
+        _release_chat_user_flight(user_flight_key)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "chat_in_flight",
+                "message": (
+                    "A chat turn is already in progress for this session. "
+                    "Wait for it to finish or cancel it first."
+                ),
+                "retryable": True,
+                "detail": (
+                    "A chat turn is already in progress for this session. "
+                    "Wait for it to finish or cancel it first."
+                ),
+            },
+        )
     try:
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
@@ -199,21 +285,35 @@ def stream_chat(
             chat_retrieval_settings=chat_retrieval_settings,
             user_id=current.user_id,
         )
-        request = _with_approved_user_memory(
-            session,
-            request=request,
-            user_id=current.user_id,
-            project_id=project_id,
-        )
-        events = service.stream(request)
+
+        def _enrich(active: ChatRequest) -> ChatRequest:
+            return _with_approved_user_memory(
+                session,
+                request=active,
+                user_id=current.user_id,
+                project_id=project_id,
+            )
+
+        events = service.stream(request, enrich_request=_enrich)
     except ChatServiceError as exc:
+        _release_chat_flight(flight_key)
+        _release_chat_user_flight(user_flight_key)
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
-            status_code=422,
-            detail=str(exc),
+            status_code=exc.status_code,
+            detail=exc.to_payload().as_dict(),
         ) from exc
+    except Exception:
+        _release_chat_flight(flight_key)
+        _release_chat_user_flight(user_flight_key)
+        raise
     return StreamingResponse(
-        _stream_chat_events(events, session),
+        _stream_chat_events(
+            events,
+            session,
+            flight_key=flight_key,
+            user_flight_key=user_flight_key,
+        ),
         media_type="text/event-stream",
     )
 
@@ -247,8 +347,8 @@ def chat(
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
-            status_code=422,
-            detail=str(exc),
+            status_code=exc.status_code,
+            detail=exc.to_payload().as_dict(),
         ) from exc
     except Exception:
         _commit_or_rollback_chat_error(session)
@@ -259,14 +359,123 @@ def chat(
 def _stream_chat_events(
     events: Iterator[ChatStreamEvent],
     session: Session,
+    *,
+    flight_key: str | None = None,
+    user_flight_key: str | None = None,
 ) -> Iterator[str]:
     try:
         for event in events:
             yield serialize_chat_stream_event(event)
+            # Persist session + user message as soon as the client learns the
+            # session_id so cancel/disconnect cannot leave a ghost id in the UI.
+            if event.event == "session_started":
+                session.commit()
         session.commit()
+    except GeneratorExit:
+        # Client aborted; keep any durable fail_session/user-message writes.
+        try:
+            session.commit()
+        except Exception as exc:
+            logger.warning(
+                "chat_stream_disconnect_commit_failed; rolling back",
+                extra={"error_type": type(exc).__name__},
+                exc_info=exc,
+            )
+            session.rollback()
+        raise
     except Exception:
         _commit_or_rollback_chat_error(session)
         raise
+    finally:
+        if flight_key is not None:
+            _release_chat_flight(flight_key)
+        if user_flight_key is not None:
+            _release_chat_user_flight(user_flight_key)
+
+
+# Per-process guards: session in-flight, user in-flight, and request rate.
+_CHAT_FLIGHT_LOCK = threading.Lock()
+_CHAT_IN_FLIGHT: set[str] = set()
+_CHAT_USER_IN_FLIGHT: set[str] = set()
+_CHAT_RATE_WINDOWS: dict[str, deque[float]] = defaultdict(deque)
+# Max chat stream starts per user/project in a rolling 60s window.
+_CHAT_RATE_LIMIT_PER_MINUTE = 20
+# Max concurrent streams per user/project (across sessions).
+_CHAT_MAX_USER_IN_FLIGHT = 1
+
+
+def _chat_flight_key(
+    *,
+    project_id: UUID,
+    user_id: UUID | None,
+    session_id: UUID | None,
+) -> str | None:
+    """Only continuations (known session_id) are session-concurrency-guarded."""
+
+    if session_id is None:
+        return None
+    owner = str(user_id) if user_id is not None else "anonymous"
+    return f"{project_id}:{owner}:{session_id}"
+
+
+def _chat_user_flight_key(
+    *,
+    project_id: UUID,
+    user_id: UUID | None,
+) -> str:
+    owner = str(user_id) if user_id is not None else "anonymous"
+    return f"{project_id}:{owner}"
+
+
+def _chat_rate_key(*, project_id: UUID, user_id: UUID | None) -> str:
+    return _chat_user_flight_key(project_id=project_id, user_id=user_id)
+
+
+def _try_acquire_chat_flight(flight_key: str | None) -> bool:
+    if flight_key is None:
+        return True
+    with _CHAT_FLIGHT_LOCK:
+        if flight_key in _CHAT_IN_FLIGHT:
+            return False
+        _CHAT_IN_FLIGHT.add(flight_key)
+        return True
+
+
+def _release_chat_flight(flight_key: str | None) -> None:
+    if flight_key is None:
+        return
+    with _CHAT_FLIGHT_LOCK:
+        _CHAT_IN_FLIGHT.discard(flight_key)
+
+
+def _try_acquire_chat_user_flight(user_flight_key: str) -> bool:
+    """At most one concurrent stream per (project, user)."""
+
+    with _CHAT_FLIGHT_LOCK:
+        if user_flight_key in _CHAT_USER_IN_FLIGHT:
+            return False
+        _CHAT_USER_IN_FLIGHT.add(user_flight_key)
+        return True
+
+
+def _release_chat_user_flight(user_flight_key: str | None) -> None:
+    if user_flight_key is None:
+        return
+    with _CHAT_FLIGHT_LOCK:
+        _CHAT_USER_IN_FLIGHT.discard(user_flight_key)
+
+
+def _try_acquire_chat_rate(rate_key: str) -> bool:
+    now = time.monotonic()
+    window_start = now - 60.0
+    with _CHAT_FLIGHT_LOCK:
+        bucket = _CHAT_RATE_WINDOWS[rate_key]
+        while bucket and bucket[0] < window_start:
+            bucket.popleft()
+        if len(bucket) >= _CHAT_RATE_LIMIT_PER_MINUTE:
+            return False
+        bucket.append(now)
+        return True
 
 
 def _commit_or_rollback_chat_error(session: Session) -> None:

@@ -135,10 +135,13 @@ export function AppShell({
   return (
     <main
       className={cn(
+        // Flex shell (not CSS grid): grid min-height:auto on items let long
+        // session transcripts expand the main column past 100vh and scroll the
+        // whole page (composer mid-screen + empty void). Flex + min-h-0 pins it.
         [
-          'app-shell grid h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground',
-            'grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)] motion-safe:transition-[grid-template-columns] motion-safe:duration-200 motion-safe:ease-out',
-          'max-[680px]:grid-cols-1',
+          'app-shell flex h-full max-h-full min-h-0 overflow-hidden bg-background p-0 text-foreground',
+          'motion-safe:transition-[padding] motion-safe:duration-200 motion-safe:ease-out',
+          'max-[680px]:flex-col',
         ],
         isLeftSidebarOpen
           ? 'app-shell-sidebar-open'
@@ -173,6 +176,12 @@ export function AppShell({
       </a>
 
       <div
+        className={cn(
+          'h-full min-h-0 shrink-0 overflow-hidden',
+          'w-[var(--left-sidebar-width)] motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out',
+          // Mobile: sidebar is fixed overlay; host takes no flow width.
+          'max-[680px]:w-0',
+        )}
         data-slot="app-shell-sidebar-host"
         {...(isBackgroundInert ? { inert: true } : {})}
       >
@@ -182,29 +191,41 @@ export function AppShell({
       <section
         aria-labelledby="workspace-title"
         className={cn(
-          [
-            'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
-            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-0.5',
-          ],
+          'workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
           primaryView === 'chat'
             ? [
-                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
-                'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:px-0.5 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                // Chat: fixed viewport. overflow-hidden ONLY (never overflow-auto)
+                // so the transcript is the sole scroller and the composer stays pinned.
+                // pr-0: scrollbar sits on the right edge; content pads itself.
+                'workspace-chat gap-1 pl-[18px] pr-0 pb-2.5 pt-1.5',
+                'max-[900px]:pl-3.5 max-[900px]:py-3',
+                'max-[680px]:gap-0 max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
-            : 'mx-auto max-w-[1240px]',
+            : [
+                'overflow-auto p-7 mx-auto max-w-[1240px]',
+                'max-[900px]:p-[18px] max-[680px]:p-0.5',
+              ],
         )}
         data-slot="workspace"
         id="main-content"
         tabIndex={-1}
       >
         <div
+          className="min-h-0 shrink-0"
           data-slot="workspace-topline-host"
           {...(isBackgroundInert ? { inert: true } : {})}
         >
           {topline}
         </div>
-        {children}
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+            primaryView !== 'chat' && 'overflow-auto',
+          )}
+          data-slot="workspace-body"
+        >
+          {children}
+        </div>
       </section>
     </main>
   )
@@ -221,11 +242,12 @@ export function ChatWorkspaceGrid({
     <div
       className={cn(
         [
-          'workspace-grid chat-workspace-grid grid h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)]',
+          // Flex fill of workspace-body — never size from transcript content.
+          'workspace-grid chat-workspace-grid flex h-full min-h-0 min-w-0 flex-1 gap-[18px] overflow-hidden',
           'max-[680px]:min-h-0',
         ],
         isRightDockInline &&
-          'chat-workspace-grid-docked grid-cols-[minmax(0,1fr)_minmax(330px,390px)] max-[900px]:grid-cols-1',
+          'chat-workspace-grid-docked max-[900px]:flex-col',
       )}
       data-slot="chat-workspace-grid"
     >
@@ -265,8 +287,10 @@ export function WorkspaceTopline({
         [
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
-        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
-        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-1',
+        isChatWorkspace
+          ? 'mb-0 pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1'
+          : 'mb-[22px] max-[680px]:mb-0.5',
+        !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
     >
@@ -297,6 +321,7 @@ export function AppSidebar({
   observabilitySubmodule,
   onArchiveSession,
   onAccountModuleChange,
+  onDeleteSession,
   onLoadMoreSessions,
   onPrimaryViewChange,
   onProjectIdChange,
@@ -327,6 +352,7 @@ export function AppSidebar({
   observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
   onAccountModuleChange(module: AccountModule): void
+  onDeleteSession(sessionId: string): void
   onLoadMoreSessions(): void
   onPrimaryViewChange(view: PrimaryView): void
   onProjectIdChange(projectId: string): void
@@ -407,10 +433,10 @@ export function AppSidebar({
       aria-label="Primary Sidebar"
       className={cn(
         [
-          'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
+          'relative z-40 grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
           // Solid card (not /90) keeps the rail opaque on purple/dark backgrounds.
           'border-r border-border bg-card shadow-[1px_0_0_0] shadow-primary/15 motion-safe:transition-[background,border-color,box-shadow,opacity,width] motion-safe:duration-200',
-          'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
+          'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-svh',
         ],
         isOpen
           ? 'w-[280px] max-[680px]:w-[min(86vw,2px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
@@ -476,12 +502,16 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:pb-0.5 max-[680px]:pt-0.5',
+          // overflow-hidden: only the session list (or contextual nav) scrolls —
+          // not project selector / primary nav — so the thumb starts at row 1.
+          // pr-0: session list scrollbar flush to the rail edge.
+          'grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 overflow-hidden pl-2.5 pr-0 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:pl-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
         {...(!isOpen ? { inert: true } : {})}
       >
+        <div className="grid shrink-0 gap-2.5 pr-2.5 max-[680px]:gap-0.5 max-[680px]:pr-1">
         <SidebarProjectSelector
           onProjectIdChange={onProjectIdChange}
           projectId={projectId}
@@ -511,12 +541,14 @@ export function AppSidebar({
             onClick={() => onPrimaryViewChange('settings')}
           />
         </nav>
+        </div>
 
         {primaryView === 'chat' ? (
           <SessionNavigationPanel
             canLoadMore={canLoadMoreSessions}
             error={error}
             onArchiveSession={onArchiveSession}
+            onDeleteSession={onDeleteSession}
             onLoadMore={onLoadMoreSessions}
             onRenameSession={onRenameSession}
             onSelectSession={onSelectSession}
@@ -587,7 +619,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-0.5"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto overflow-x-hidden border-t border-border pr-2.5 pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -657,7 +689,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:pt-0.5"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto overflow-x-hidden border-t border-border pr-2.5 pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2

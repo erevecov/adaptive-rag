@@ -141,6 +141,15 @@ class ChatAuditWriter(Protocol):
         """Marca una sesion como fallida."""
         ...
 
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        """Marca una sesion como cancelada por el cliente."""
+        ...
+
     def record_provider_usage(
         self,
         project_id: UUID,
@@ -269,6 +278,14 @@ class NullChatAuditWriter:
         project_id: UUID,
         session_id: UUID,
         error_message: str,
+    ) -> None:
+        return None
+
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
     ) -> None:
         return None
 
@@ -504,6 +521,19 @@ class InMemoryChatAuditWriter:
             }
         )
 
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        self.events.append(
+            {
+                "event": "cancel_session",
+                "error_message": error_message,
+            }
+        )
+
     def record_provider_usage(
         self,
         project_id: UUID,
@@ -550,6 +580,8 @@ class SqlAlchemyChatAuditWriter:
             )
             if existing is None:
                 raise ValueError("chat session not found")
+            if existing.archived_at is not None:
+                raise ValueError("session is archived")
             # Re-open for multi-turn follow-ups after a prior succeed/fail.
             existing.status = "running"
             existing.error_message = None
@@ -796,6 +828,20 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None:
             return
         self._chat_audit_repository.fail_session(
+            project_id=project_id,
+            session_id=session_id,
+            error_message=error_message,
+        )
+
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        if session_id is None:
+            return
+        self._chat_audit_repository.cancel_session(
             project_id=project_id,
             session_id=session_id,
             error_message=error_message,

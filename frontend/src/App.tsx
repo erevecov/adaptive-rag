@@ -11,7 +11,12 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
-import { ChatWorkspacePanel } from '@/features/chat/ChatWorkspaceView'
+import {
+  ChatWorkspacePanel,
+  type ChatKnowledgeDraft,
+  type ChatKnowledgeDraftMap,
+  type ChatTranscriptTurn,
+} from '@/features/chat/ChatWorkspaceView'
 import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
 import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
@@ -98,23 +103,6 @@ const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   settings: '/settings/authoring',
 }
 type InspectorTab = 'context' | 'minimap'
-type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
-type ChatKnowledgeDraftStatus =
-  | 'draft'
-  | 'pending'
-  | 'approved'
-  | 'cancelled'
-  | string
-type ChatKnowledgeDraft = {
-  draftId: string
-  error: string | null
-  proposalId: string | null
-  reviewAction: ChatKnowledgeDraftAction
-  scope: string
-  status: ChatKnowledgeDraftStatus
-  text: string
-}
-type ChatKnowledgeDraftMap = Record<string, ChatKnowledgeDraft>
 type SourceViewerState = {
   citationSnippet: string | null
   error: string | null
@@ -162,6 +150,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
     useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [heartbeatElapsedMs, setHeartbeatElapsedMs] = useState<number | null>(
+    null,
+  )
   const [appliedMemories, setAppliedMemories] = useState<UserMemory[]>([])
   const [activeResponseQuestion, setActiveResponseQuestion] = useState<
     string | null
@@ -179,6 +170,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [sessionDetail, setSessionDetail] =
     useState<ChatSessionDetailResponse | null>(null)
+  /** Earlier turns in the open multi-turn session (excludes the live/current turn). */
+  const [priorTurns, setPriorTurns] = useState<ChatTranscriptTurn[]>([])
   const [requestState, setRequestState] = useState<RequestState>('idle')
   const [historyState, setHistoryState] = useState<RequestState>('idle')
   const [historyStatusFilter, setHistoryStatusFilter] =
@@ -580,13 +573,24 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const trimmedQuestion = question.trim()
+    if (trimmedQuestion.length === 0) {
+      setRequestState('failed')
+      setRequestError('Project ID and question are required.')
+      return
+    }
+    await submitChatQuestion(trimmedQuestion, { replaceLast: false })
+  }
 
+  async function submitChatQuestion(
+    trimmedQuestion: string,
+    options: { replaceLast: boolean },
+  ) {
     if (requestState === 'loading') {
       return
     }
 
     const trimmedProjectId = projectId.trim()
-    const trimmedQuestion = question.trim()
 
     if (trimmedProjectId.length === 0 || trimmedQuestion.length === 0) {
       setRequestState('failed')
@@ -596,11 +600,42 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     setRequestState('loading')
     setRequestError(null)
+    setHeartbeatElapsedMs(null)
     setHistoryError(null)
+    // Keep prior turns visible. Archive the current turn when it completed
+    // successfully, or when it failed/canceled so the user still sees it
+    // after the next submit (Cursor multi-turn residual).
+    if (
+      !options.replaceLast &&
+      activeResponseQuestion !== null &&
+      activeResponseQuestion.trim().length > 0 &&
+      (requestState === 'succeeded' ||
+        requestState === 'failed' ||
+        requestState === 'canceled')
+    ) {
+      const answerText =
+        response !== null && response.answer.trim().length > 0
+          ? response.answer
+          : requestState === 'succeeded'
+            ? ''
+            : requestState === 'canceled'
+              ? '_(Request canceled — no complete answer.)_'
+              : '_(Request failed — no complete answer.)_'
+      setPriorTurns((current) => [
+        ...current,
+        {
+          id: `local-${Date.now()}`,
+          question: activeResponseQuestion,
+          answer: answerText,
+          citations: response?.citations ?? [],
+          steps: response?.steps,
+          tool_calls: response?.tool_calls ?? [],
+        },
+      ])
+    }
     setResponse(null)
     setAppliedMemories([])
     setActiveResponseQuestion(trimmedQuestion)
-    setSessionDetail(null)
     setDetailState('idle')
     setDetailError(null)
     // Keep selectedSessionId so follow-ups continue the same multi-turn session.
@@ -610,6 +645,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     chatAutoFollowRef.current = true
 
     const continueSessionId = selectedSessionId
+    if (continueSessionId === null && !options.replaceLast) {
+      setPriorTurns([])
+    }
     const requestBody = {
       message: trimmedQuestion,
       ...(continueSessionId === null ? {} : { session_id: continueSessionId }),
@@ -630,6 +668,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setResponse((current) => appendAnswerDelta(current, text))
           },
           onEvent: markStreamOpened,
+          onHeartbeat: (elapsedMs) => {
+            markStreamOpened()
+            setHeartbeatElapsedMs(elapsedMs)
+          },
           onSessionStarted: (sessionId) => {
             markStreamOpened()
             setResponse((current) => setResponseSessionId(current, sessionId))
@@ -660,6 +702,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         setSelectedSessionId(nextSessionId)
       }
       setRequestState('succeeded')
+      setHeartbeatElapsedMs(null)
       setQuestion('')
       try {
         const memories = await client.listUserMemories({
@@ -688,6 +731,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       if (isAbortError(error)) {
         setRequestState('canceled')
         setRequestError(null)
+        setHeartbeatElapsedMs(null)
+        // Session was committed at session_started; refresh history so the
+        // failed/canceled turn is visible and continuity stays valid.
+        // Partial streamed answer (if any) is left on screen for the user.
+        if (selectedSessionId !== null) {
+          void handleRefreshHistory(trimmedProjectId, 'active')
+          void refreshOpenSessionDetail(trimmedProjectId, selectedSessionId)
+        }
         return
       }
       if (!streamOpened && shouldFallbackToJsonChat(error)) {
@@ -732,6 +783,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       }
       setRequestState('failed')
       setRequestError(getErrorMessage(error))
+      setHeartbeatElapsedMs(null)
     } finally {
       setActiveRequestController((current) =>
         current === controller ? null : current,
@@ -769,13 +821,74 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       throw new Error('Project ID and knowledge text are required.')
     }
 
-    const proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
-      ...(sessionId === null ? {} : { origin_session_id: sessionId }),
-      proposed_text: text,
-    })
+    // Durable path: commit_knowledge already created a pending proposal whose
+    // id is the draft_id. Prefer approve to avoid duplicate proposals.
+    const looksLikeUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        draft.draftId,
+      )
+    let proposal: KnowledgeProposal
+    if (looksLikeUuid || draft.proposalId !== null) {
+      const proposalId = draft.proposalId ?? draft.draftId
+      try {
+        proposal = await client.approveKnowledgeProposal(
+          trimmedProjectId,
+          proposalId,
+          {},
+        )
+      } catch {
+        // Fall back to create if approve fails (e.g. not yet durable).
+        proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+          ...(sessionId === null ? {} : { origin_session_id: sessionId }),
+          proposed_text: text,
+        })
+      }
+    } else {
+      proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+        ...(sessionId === null ? {} : { origin_session_id: sessionId }),
+        proposed_text: text,
+      })
+    }
     setKnowledgeProposals((current) =>
       upsertKnowledgeProposal(current, proposal),
     )
+    // Best-effort: surface latest ingestion job status for the approved source.
+    if (proposal.approved_source_id !== null && proposal.status === 'approved') {
+      const sourceId = proposal.approved_source_id
+      void (async () => {
+        try {
+          const jobs = await client.listIngestionJobs(trimmedProjectId, {
+            source_id: sourceId,
+          })
+          const latest = jobs.items[0]
+          if (latest === undefined) {
+            return
+          }
+          setKnowledgeDrafts((current) => {
+            const match = Object.entries(current).find(
+              ([, draft]) =>
+                draft.proposalId === proposal.id ||
+                draft.draftId === proposal.id ||
+                draft.approvedSourceId === sourceId,
+            )
+            if (match === undefined) {
+              return current
+            }
+            const [key, draft] = match
+            return {
+              ...current,
+              [key]: {
+                ...draft,
+                approvedSourceId: sourceId,
+                ingestStatus: latest.status,
+              },
+            }
+          })
+        } catch {
+          // Non-blocking: card still shows "indexing may still be pending".
+        }
+      })()
+    }
     return proposal
   }
 
@@ -792,6 +905,50 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function handleCancelRequest() {
     activeRequestController?.abort()
+  }
+
+  function handleRetryLastQuestion() {
+    const lastQuestion = activeResponseQuestion?.trim()
+    if (lastQuestion === undefined || lastQuestion.length === 0) {
+      return
+    }
+    void submitChatQuestion(lastQuestion, { replaceLast: true })
+  }
+
+  function handleRegenerateLastAnswer() {
+    const lastQuestion = activeResponseQuestion?.trim()
+    if (
+      lastQuestion === undefined ||
+      lastQuestion.length === 0 ||
+      requestState === 'loading'
+    ) {
+      return
+    }
+    void submitChatQuestion(lastQuestion, { replaceLast: true })
+  }
+
+  function handleEditQuestion(text: string, turnId?: string) {
+    if (requestState === 'loading') {
+      return
+    }
+    setQuestion(text)
+    if (turnId !== undefined) {
+      // Fork-lite: drop this turn and everything after it from the local transcript.
+      setPriorTurns((current) => {
+        const index = current.findIndex((turn) => turn.id === turnId)
+        if (index < 0) {
+          return current
+        }
+        return current.slice(0, index)
+      })
+      setResponse(null)
+      setActiveResponseQuestion(null)
+      setRequestState('idle')
+      setRequestError(null)
+    }
+    window.setTimeout(() => {
+      document.getElementById('chat-question')?.focus()
+    }, 0)
   }
 
   async function handleRefreshHistory(
@@ -889,6 +1046,28 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
+  async function handleDeleteSession(sessionId: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to delete a session.')
+      return
+    }
+
+    setHistoryError(null)
+    setHistoryState('loading')
+    try {
+      await client.deleteChatSession(trimmedProjectId, sessionId)
+      if (selectedSessionId === sessionId) {
+        handleStartNewSession()
+      }
+      await handleRefreshHistory(trimmedProjectId)
+    } catch (error) {
+      setHistoryError(getErrorMessage(error))
+      setHistoryState('failed')
+    }
+  }
+
   function handleChangeProjectId(nextProjectId: string) {
     const selectedProject = projects.find((project) => project.id === nextProjectId)
     if (selectedProject !== undefined) {
@@ -939,6 +1118,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setQuestion('')
     setResponse(null)
     setActiveResponseQuestion(null)
+    setPriorTurns([])
     setSelectedSessionId(null)
     setSessionDetail(null)
     setRequestState('idle')
@@ -1069,6 +1249,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setQuestion('')
     setActiveResponseQuestion(null)
     setSelectedSessionId(sessionId)
+    setPriorTurns([])
     setRequestState('idle')
     setRequestError(null)
     resetSourceViewer()
@@ -1078,12 +1259,66 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     try {
       const detail = await client.getChatSession(trimmedProjectId, sessionId)
       setSessionDetail(detail)
-      setActiveResponseQuestion(extractLatestUserQuestion(detail))
-      setResponse(chatResponseFromSessionDetail(detail))
+      const turns = transcriptTurnsFromSessionDetail(detail)
+      const sessionStatus = detail.session.status
+      if (turns.length === 0) {
+        // Still surface the latest user message if present (parser edge case).
+        const latestQuestion = extractLatestUserQuestion(detail)
+        setPriorTurns([])
+        setResponse(null)
+        setActiveResponseQuestion(latestQuestion)
+        if (sessionStatus === 'failed') {
+          setRequestState('failed')
+          setRequestError(
+            detail.session.error_message ?? 'This session failed without a reply.',
+          )
+        } else if (sessionStatus === 'canceled' || sessionStatus === 'cancelled') {
+          setRequestState('canceled')
+          setRequestError(null)
+        } else {
+          setRequestState('idle')
+          setRequestError(null)
+        }
+      } else {
+        const earlier = turns.slice(0, -1)
+        const latest = turns[turns.length - 1]
+        setPriorTurns(earlier)
+        setResponse({
+          answer: latest.answer,
+          citations: latest.citations,
+          session_id: detail.session.session_id,
+          steps: latest.steps,
+          tool_calls: latest.tool_calls,
+        })
+        setActiveResponseQuestion(latest.question)
+        if (sessionStatus === 'failed') {
+          setRequestState('failed')
+          setRequestError(
+            detail.session.error_message ??
+              (latest.answer.trim().length === 0
+                ? 'This turn failed before an answer was stored.'
+                : null),
+          )
+        } else if (sessionStatus === 'canceled' || sessionStatus === 'cancelled') {
+          setRequestState('canceled')
+          setRequestError(null)
+        } else if (sessionStatus === 'running') {
+          setRequestState('loading')
+          setRequestError(null)
+        } else {
+          setRequestState('succeeded')
+          setRequestError(null)
+        }
+      }
       setDetailState('succeeded')
     } catch (error) {
       setDetailState('failed')
       setDetailError(getErrorMessage(error))
+      // Leave the chat pane idle; session-detail errors surface in the inspector.
+      setPriorTurns([])
+      setResponse(null)
+      setRequestState('idle')
+      setRequestError(null)
     }
   }
 
@@ -2326,6 +2561,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           observabilitySubmodule={observabilitySubmodule}
           onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
           onAccountModuleChange={setAccountModule}
+          onDeleteSession={(sessionId) => void handleDeleteSession(sessionId)}
           onLoadMoreSessions={handleLoadMoreSessions}
           onPrimaryViewChange={handlePrimaryViewChange}
           onProjectIdChange={handleChangeProjectId}
@@ -2382,14 +2618,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ) : null}
 
             <div
-              className="min-h-0 min-w-0"
+              className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               data-slot="chat-workspace-inert-host"
               {...(isRightDockOverlay ? { inert: true } : {})}
             >
               <ChatWorkspacePanel
                 activeResponseQuestion={activeResponseQuestion}
                 appliedMemories={appliedMemories}
+                continuingSessionId={selectedSessionId}
                 drafts={knowledgeDrafts}
+                heartbeatElapsedMs={heartbeatElapsedMs}
                 isAsking={isAsking}
                 isContextInspectorActive={
                   isRightDockOpen && inspectorTab === 'context'
@@ -2406,11 +2644,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onQuestionChange={setQuestion}
                 onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                onEditQuestion={handleEditQuestion}
+                onRegenerateLastAnswer={handleRegenerateLastAnswer}
+                onRetryLastQuestion={handleRetryLastQuestion}
+                onStartNewSession={handleStartNewSession}
                 onStartSpeechRecognition={handleStartSpeechRecognition}
                 onStopSpeechRecognition={handleStopSpeechRecognition}
                 onSubmit={handleSubmit}
                 onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
                 onTranscriptScroll={handleChatTranscriptScroll}
+                priorTurns={priorTurns}
                 providerUsage={
                   response !== null &&
                   sessionDetail?.session.session_id === response.session_id
@@ -3045,68 +3288,74 @@ function emptyChatResponse(): ChatResponseBody {
   }
 }
 
-function chatResponseFromSessionDetail(
+function transcriptTurnsFromSessionDetail(
   detail: ChatSessionDetailResponse,
-): ChatResponseBody {
+): ChatTranscriptTurn[] {
+  const turns: ChatTranscriptTurn[] = []
   const messages = detail.messages
-  let assistantIndex = -1
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === 'assistant') {
-      assistantIndex = index
-      break
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index]
+    if (message?.role !== 'user') {
+      continue
     }
-  }
-  const assistantMessage =
-    assistantIndex >= 0
-      ? messages[assistantIndex]
-      : messages[messages.length - 1]
-
-  let turnStartMs = Number.NEGATIVE_INFINITY
-  if (assistantIndex >= 0) {
-    for (let index = assistantIndex - 1; index >= 0; index -= 1) {
-      if (messages[index]?.role === 'user') {
-        turnStartMs = Date.parse(messages[index].created_at)
+    const question = message.content.trim()
+    if (question.length === 0) {
+      continue
+    }
+    let assistantIndex = -1
+    for (let j = index + 1; j < messages.length; j += 1) {
+      if (messages[j]?.role === 'user') {
+        break
+      }
+      if (messages[j]?.role === 'assistant') {
+        assistantIndex = j
         break
       }
     }
-  }
-
-  let turnEndMs = Number.POSITIVE_INFINITY
-  if (assistantIndex >= 0) {
-    for (let index = assistantIndex + 1; index < messages.length; index += 1) {
-      if (messages[index]?.role === 'user') {
-        turnEndMs = Date.parse(messages[index].created_at)
+    // Keep user-only turns (failed/canceled before assistant reply) so session
+    // switching never shows a blank transcript when messages exist.
+    const assistantMessage =
+      assistantIndex >= 0 ? messages[assistantIndex] : undefined
+    const turnStartMs = Date.parse(message.created_at)
+    let turnEndMs = Number.POSITIVE_INFINITY
+    const scanFrom = assistantIndex >= 0 ? assistantIndex + 1 : index + 1
+    for (let j = scanFrom; j < messages.length; j += 1) {
+      if (messages[j]?.role === 'user') {
+        turnEndMs = Date.parse(messages[j].created_at)
         break
       }
     }
+    const turnToolCalls = detail.tool_calls.filter((call) => {
+      const createdAtMs = Date.parse(call.created_at)
+      return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+    })
+    const turnToolCallIds = new Set(
+      turnToolCalls.map((call) => call.tool_call_id),
+    )
+    const turnRetrievalRuns = detail.retrieval_runs.filter((run) => {
+      if (run.tool_call_id !== null) {
+        return turnToolCallIds.has(run.tool_call_id)
+      }
+      const createdAtMs = Date.parse(run.created_at)
+      return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+    })
+    turns.push({
+      id:
+        assistantMessage?.message_id ??
+        message.message_id ??
+        `turn-${index}`,
+      question,
+      answer: assistantMessage?.content ?? '',
+      citations: turnRetrievalRuns.flatMap((run) =>
+        run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
+      ),
+      steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
+      tool_calls: turnToolCalls.map((call) =>
+        chatToolCallFromHistory(call, turnRetrievalRuns),
+      ),
+    })
   }
-
-  const turnToolCalls = detail.tool_calls.filter((call) => {
-    const createdAtMs = Date.parse(call.created_at)
-    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
-  })
-  const turnToolCallIds = new Set(
-    turnToolCalls.map((call) => call.tool_call_id),
-  )
-  const turnRetrievalRuns = detail.retrieval_runs.filter((run) => {
-    if (run.tool_call_id !== null) {
-      return turnToolCallIds.has(run.tool_call_id)
-    }
-    const createdAtMs = Date.parse(run.created_at)
-    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
-  })
-
-  return {
-    answer: assistantMessage?.content ?? '',
-    citations: turnRetrievalRuns.flatMap((run) =>
-      run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
-    ),
-    session_id: detail.session.session_id,
-    steps: parseChatStepsFromMetadata(assistantMessage?.metadata ?? null),
-    tool_calls: turnToolCalls.map((call) =>
-      chatToolCallFromHistory(call, turnRetrievalRuns),
-    ),
-  }
+  return turns
 }
 
 function extractLatestUserQuestion(detail: ChatSessionDetailResponse): string | null {

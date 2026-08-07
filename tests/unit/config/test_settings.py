@@ -139,10 +139,11 @@ def test_empty_optional_env_values_are_ignored(tmp_path):
     settings = Settings(_env_file=env_file)
 
     assert settings.provider_max_cost_usd is None
-    assert settings.provider_chat_input_price_per_million_tokens_usd is None
-    assert settings.provider_chat_output_price_per_million_tokens_usd is None
-    assert settings.provider_embedding_input_price_per_million_tokens_usd is None
-    assert settings.provider_rerank_input_price_per_million_tokens_usd is None
+    # Empty env is ignored (env_ignore_empty); Token Plan catalog defaults apply.
+    assert settings.provider_chat_input_price_per_million_tokens_usd == 0.4
+    assert settings.provider_chat_output_price_per_million_tokens_usd == 1.6
+    assert settings.provider_embedding_input_price_per_million_tokens_usd == 0.07
+    assert settings.provider_rerank_input_price_per_million_tokens_usd == 0.08
     assert settings.provider_secrets_key is None
     assert settings.qwen_api_key is None
     assert settings.qwen_base_url is None
