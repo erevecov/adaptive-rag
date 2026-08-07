@@ -3082,13 +3082,15 @@ describe('App chat workspace', () => {
     await user.type(screen.getByLabelText('Question'), 'Why did it fail?')
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
-    // Failed transcript surface + composer InlineFeedback both expose role=alert.
+    // Error detail is co-located with the transcript failure state (no second
+    // under-composer callout).
     const alerts = await screen.findAllByRole('alert')
     expect(
-      alerts.some((node) => node.textContent?.includes('backend unavailable')),
-    ).toBe(true)
-    expect(
-      alerts.some((node) => node.textContent?.includes('Request failed.')),
+      alerts.some(
+        (node) =>
+          node.textContent?.includes('Request failed') &&
+          node.textContent?.includes('backend unavailable'),
+      ),
     ).toBe(true)
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       'Why did it fail?',
@@ -3467,6 +3469,92 @@ describe('App chat workspace', () => {
     await user.click(expandButtons[0])
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getByText('first turn query')).toBeTruthy()
+  })
+
+  test('regenerate resends the last question without archiving priorTurns', async () => {
+    const user = userEvent.setup()
+    const askChatStream = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'First grounded answer.',
+        session_id: 'session-regenerate-1',
+      })
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'Regenerated grounded answer.',
+        session_id: 'session-regenerate-1',
+      })
+    const client = createClientStub({
+      askChatStream,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'What is Nimbus?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(await screen.findByText('First grounded answer.')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Regenerate answer' }))
+    expect(await screen.findByText('Regenerated grounded answer.')).toBeTruthy()
+    // Replaced in place: the first answer is not left as a prior turn.
+    expect(screen.queryByText('First grounded answer.')).toBeNull()
+    expect(askChatStream).toHaveBeenCalledTimes(2)
+    expect(askChatStream.mock.calls[1][1]).toEqual({
+      message: 'What is Nimbus?',
+      session_id: 'session-regenerate-1',
+    })
+  })
+
+  test('try again resends the failed question on the same session', async () => {
+    const user = userEvent.setup()
+    const askChatStream = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiClientError(
+          'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+          {
+            code: 'provider_rate_limited',
+            detail: {
+              code: 'provider_rate_limited',
+              detail:
+                'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+              message:
+                'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+              retryable: true,
+            },
+            retryable: true,
+            status: 422,
+          },
+        ),
+      )
+      .mockResolvedValueOnce({
+        ...chatResponse,
+        answer: 'Recovered after retry.',
+        session_id: 'session-retry-1',
+      })
+    const client = createClientStub({
+      askChatStream,
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.type(screen.getByLabelText('Question'), 'What is Orion?')
+    await user.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(
+      await screen.findByText(
+        /Chat provider rate-limited the request \(HTTP 429\)/,
+      ),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Recovered after retry.')).toBeTruthy()
+    expect(askChatStream).toHaveBeenCalledTimes(2)
+    expect(askChatStream.mock.calls[1][1]).toEqual({
+      message: 'What is Orion?',
+    })
   })
 
   test('shows user question when selecting a failed session with no assistant reply', async () => {

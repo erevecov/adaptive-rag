@@ -18,6 +18,7 @@ import {
   Copy,
   Map as MapIcon,
   Mic,
+  RefreshCw,
   Square,
 } from 'lucide-react'
 
@@ -101,6 +102,8 @@ export type ChatWorkspacePanelProps = {
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onQuestionChange(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  /** Re-run the last succeeded answer without archiving it into prior turns. */
+  onRegenerateLastAnswer?(): void
   /** Resend the last failed/canceled question without retyping. */
   onRetryLastQuestion?(): void
   onStartSpeechRecognition(): void
@@ -151,6 +154,7 @@ export function ChatWorkspacePanel({
   onOpenSource,
   onQuestionChange,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
   onRetryLastQuestion,
   onStartSpeechRecognition,
   onStopSpeechRecognition,
@@ -221,8 +225,10 @@ export function ChatWorkspacePanel({
           <ResponsePanel
             appliedMemories={appliedMemories}
             drafts={drafts}
+            errorDetail={requestError}
             onOpenSource={onOpenSource}
             onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+            onRegenerateLastAnswer={onRegenerateLastAnswer}
             onRetryLastQuestion={onRetryLastQuestion}
             onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
             providerUsage={providerUsage}
@@ -416,11 +422,8 @@ export function ChatWorkspacePanel({
             </div>
           </div>
 
-          {requestError ? (
-            <Callout className="mt-2 max-[680px]:mt-1.5" role="alert" tone="danger">
-              {operatorSafeMessage(requestError)}
-            </Callout>
-          ) : null}
+          {/* Error detail is co-located with the transcript failure/cancel state
+              (see ResponsePanel). Avoid a second under-composer callout. */}
         </form>
       </div>
     </Panel>
@@ -531,8 +534,10 @@ function SpeechInputControl({
 function ResponsePanel({
   appliedMemories,
   drafts,
+  errorDetail = null,
   onOpenSource,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
   onRetryLastQuestion,
   onSubmitKnowledgeDraft,
   providerUsage,
@@ -543,8 +548,10 @@ function ResponsePanel({
 }: {
   appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
+  errorDetail?: string | null
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onRegenerateLastAnswer?(): void
   onRetryLastQuestion?(): void
   onSubmitKnowledgeDraft(
     draft: ChatKnowledgeDraft,
@@ -614,6 +621,10 @@ function ResponsePanel({
 
   if (response === null) {
     if (state === 'failed') {
+      const failedDetail =
+        errorDetail !== null && errorDetail.trim().length > 0
+          ? operatorSafeMessage(errorDetail)
+          : 'Transient provider errors are often fixable with retry.'
       return (
         <div className="grid min-h-[8rem] place-items-center px-3 py-6 max-[680px]:min-h-[6rem] max-[680px]:px-2 max-[680px]:py-4">
           <EmptyState
@@ -622,11 +633,13 @@ function ResponsePanel({
             role="alert"
           >
             <p className="font-medium text-destructive max-[680px]:text-sm max-[680px]:leading-snug">
-              Request failed.
+              Request failed
             </p>
-            <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
-              Transient provider errors are often fixable with retry. Details
-              appear under the composer when available.
+            <p
+              className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug"
+              data-slot="chat-error-detail"
+            >
+              {failedDetail}
             </p>
             {onRetryLastQuestion !== undefined && question !== null ? (
               <Button
@@ -652,7 +665,7 @@ function ResponsePanel({
             role="status"
           >
             <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
-              Request canceled.
+              Request canceled
             </p>
             <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
               The session stays open so you can continue the thread. The
@@ -691,6 +704,10 @@ function ResponsePanel({
     )
   }
 
+  const failedBannerDetail =
+    errorDetail !== null && errorDetail.trim().length > 0
+      ? operatorSafeMessage(errorDetail)
+      : null
   const terminalBanner =
     state === 'failed' || state === 'canceled' ? (
       <div data-slot="chat-terminal-banner" data-slot-state={state}>
@@ -700,9 +717,10 @@ function ResponsePanel({
           tone={state === 'failed' ? 'danger' : 'neutral'}
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>
+            <span data-slot="chat-error-detail">
               {state === 'failed'
-                ? 'Request failed. Partial answer below may be incomplete.'
+                ? (failedBannerDetail ??
+                  'Request failed. Partial answer below may be incomplete.')
                 : 'Request canceled. You can retry or continue the thread.'}
             </span>
             {onRetryLastQuestion !== undefined ? (
@@ -729,6 +747,9 @@ function ResponsePanel({
         drafts={drafts}
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
+        onRegenerateLastAnswer={
+          state === 'succeeded' ? onRegenerateLastAnswer : undefined
+        }
         onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
         providerUsage={providerUsage}
         question={question}
@@ -745,6 +766,7 @@ function ResponseContent({
   drafts,
   onOpenSource,
   onRefineKnowledgeDraft,
+  onRegenerateLastAnswer,
   onSubmitKnowledgeDraft,
   providerUsage,
   question,
@@ -756,6 +778,7 @@ function ResponseContent({
   drafts: ChatKnowledgeDraftMap
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
+  onRegenerateLastAnswer?(): void
   onSubmitKnowledgeDraft(
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
@@ -947,9 +970,28 @@ function ResponseContent({
                 Streaming
               </StatusBadge>
             ) : null}
-            {response.answer.trim().length > 0 ? (
-              <CopyAnswerButton text={response.answer} />
-            ) : null}
+            <div className="ml-auto flex items-center gap-1">
+              {response.answer.trim().length > 0 ? (
+                <CopyAnswerButton text={response.answer} />
+              ) : null}
+              {onRegenerateLastAnswer !== undefined &&
+              !isStreaming &&
+              question !== null &&
+              question.trim().length > 0 ? (
+                <Button
+                  aria-label="Regenerate answer"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={onRegenerateLastAnswer}
+                  size="sm"
+                  slotName="chat-regenerate"
+                  type="button"
+                  variant="ghost"
+                >
+                  <RefreshCw aria-hidden="true" className="size-3.5" />
+                  Regenerate
+                </Button>
+              ) : null}
+            </div>
           </div>
           {response.answer.trim().length > 0 ? (
             <MarkdownAnswer
@@ -1643,7 +1685,7 @@ function CopyAnswerButton({ text }: { text: string }) {
   return (
     <Button
       aria-label={copied ? 'Copied answer' : 'Copy answer'}
-      className="ml-auto h-7 gap-1 px-2 text-[11px]"
+      className="h-7 gap-1 px-2 text-[11px]"
       data-slot="chat-copy-answer"
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {

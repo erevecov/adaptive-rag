@@ -209,8 +209,8 @@ def stream_chat(
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
-            status_code=422,
-            detail=str(exc),
+            status_code=exc.status_code,
+            detail=exc.to_payload().as_dict(),
         ) from exc
     return StreamingResponse(
         _stream_chat_events(events, session),
@@ -247,8 +247,8 @@ def chat(
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
-            status_code=422,
-            detail=str(exc),
+            status_code=exc.status_code,
+            detail=exc.to_payload().as_dict(),
         ) from exc
     except Exception:
         _commit_or_rollback_chat_error(session)

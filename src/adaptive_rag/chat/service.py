@@ -14,7 +14,7 @@ from uuid import UUID
 
 from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter, elapsed_ms
 from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
-from adaptive_rag.chat.errors import ChatServiceError
+from adaptive_rag.chat.errors import ChatServiceError, classify_chat_error
 from adaptive_rag.chat.models import (
     DEFAULT_CHAT_HISTORY_MESSAGES,
     ChatHistoryTurn,
@@ -207,6 +207,7 @@ class ChatService:
                 self._audit_writer.succeed_session(request.project_id, session_id)
             return response
         except Exception as exc:
+            error = classify_chat_error(exc)
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
                     project_id=request.project_id,
@@ -216,13 +217,17 @@ class ChatService:
                 self._audit_writer.fail_session(
                     request.project_id,
                     session_id,
-                    _operator_safe_chat_error(exc),
+                    error.message,
                 )
             if isinstance(exc, ChatServiceError):
                 raise
             # Surface provider/runtime failures as ChatServiceError so the API
             # returns a stable 422 (with Retry UX) instead of an opaque 500.
-            raise ChatServiceError(_operator_safe_chat_error(exc)) from exc
+            raise ChatServiceError(
+                error.message,
+                code=error.code,
+                retryable=error.retryable,
+            ) from exc
 
     def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
         message = _validate_request(request)
@@ -406,6 +411,7 @@ class ChatService:
                     detail={"error": str(exc)},
                 )
             )
+            error = classify_chat_error(exc)
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
                     project_id=request.project_id,
@@ -415,9 +421,13 @@ class ChatService:
                 self._audit_writer.fail_session(
                     request.project_id,
                     session_id,
-                    _operator_safe_chat_error(exc),
+                    error.message,
                 )
-            yield chat_stream_error_event(_operator_safe_chat_error(exc))
+            yield chat_stream_error_event(
+                error.message,
+                code=error.code,
+                retryable=error.retryable,
+            )
 
     def _run_runner_with_heartbeats(
         self,
@@ -623,25 +633,6 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
-
-
-def _operator_safe_chat_error(exc: BaseException) -> str:
-    """Map provider/runtime exceptions to short, actionable operator messages."""
-
-    text = str(exc).strip() or type(exc).__name__
-    lowered = text.lower()
-    if "429" in text or "rate limit" in lowered or "too many requests" in lowered:
-        return (
-            "Chat provider rate-limited the request (HTTP 429). "
-            "Wait a moment and use Try again."
-        )
-    if "timeout" in lowered:
-        return "Chat provider timed out. Use Try again, or lower retrieval limit."
-    if "status 5" in lowered:
-        return "Chat provider returned a temporary server error. Use Try again."
-    if len(text) > 280:
-        return text[:277] + "..."
-    return text
 
 
 def _collect_tool_calls(

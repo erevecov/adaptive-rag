@@ -299,7 +299,6 @@ describe('ChatWorkspacePanel', () => {
 
   test('renders waiting and error states with feedback primitives', () => {
     const { view } = renderChatWorkspace({
-      requestError: 'Request failed',
       requestState: 'loading',
       response: null,
     })
@@ -309,10 +308,9 @@ describe('ChatWorkspacePanel', () => {
     )
     expect(loading).toBeTruthy()
     expect(loading?.textContent).toContain('Waiting For Response…')
-    expect(screen.getByRole('alert').textContent).toContain('Request failed')
-    expect(
-      view.container.querySelector('[data-slot="callout"][data-tone="danger"]'),
-    ).toBeTruthy()
+    // Errors are co-located with the transcript failure state, not under the
+    // composer while the request is still loading.
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-composer-actions"]'),
@@ -334,7 +332,12 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="failed"]',
     )
     expect(failedState).toBeTruthy()
-    expect(failedState?.textContent).toContain('Request failed.')
+    expect(failedState?.textContent).toContain('Request failed')
+    expect(failedState?.textContent).toContain('Upstream timeout')
+    expect(
+      failed.view.container.querySelector('[data-slot="chat-error-detail"]')
+        ?.textContent,
+    ).toContain('Upstream timeout')
     expect(failedState?.getAttribute('role')).toBe('alert')
     failed.view.unmount()
 
@@ -346,7 +349,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="canceled"]',
     )
     expect(canceledState).toBeTruthy()
-    expect(canceledState?.textContent).toContain('Request canceled.')
+    expect(canceledState?.textContent).toContain('Request canceled')
     canceled.view.unmount()
 
     const canceledPartial = renderChatWorkspace({
@@ -373,9 +376,43 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
     )
     expect(failedBanner).toBeTruthy()
-    expect(failedBanner?.textContent).toMatch(/Request failed/)
+    expect(failedBanner?.textContent).toContain('Upstream timeout')
     expect(failedBanner?.querySelector('[role="alert"]')).toBeTruthy()
     failedPartial.view.unmount()
+  })
+
+  test('shows regenerate for succeeded answers and wires the handler', async () => {
+    const userDriver = userEvent.setup()
+    const onRegenerateLastAnswer = vi.fn()
+    const { view } = renderChatWorkspace({
+      onRegenerateLastAnswer,
+      requestState: 'succeeded',
+      response,
+    })
+
+    const regenerate = screen.getByRole('button', { name: 'Regenerate answer' })
+    expect(regenerate.textContent).toMatch(/Regenerate/)
+    await userDriver.click(regenerate)
+    expect(onRegenerateLastAnswer).toHaveBeenCalledTimes(1)
+  })
+
+  test('retry button appears on failed empty state with error detail', async () => {
+    const userDriver = userEvent.setup()
+    const onRetryLastQuestion = vi.fn()
+    renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      onRetryLastQuestion,
+      requestError:
+        'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+      requestState: 'failed',
+      response: null,
+    })
+
+    expect(
+      screen.getByText(/Chat provider rate-limited the request \(HTTP 429\)/),
+    ).toBeTruthy()
+    await userDriver.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(onRetryLastQuestion).toHaveBeenCalledTimes(1)
   })
 
   test('Enter on empty question does not submit', async () => {

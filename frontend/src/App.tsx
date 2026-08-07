@@ -585,13 +585,24 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const trimmedQuestion = question.trim()
+    if (trimmedQuestion.length === 0) {
+      setRequestState('failed')
+      setRequestError('Project ID and question are required.')
+      return
+    }
+    await submitChatQuestion(trimmedQuestion, { replaceLast: false })
+  }
 
+  async function submitChatQuestion(
+    trimmedQuestion: string,
+    options: { replaceLast: boolean },
+  ) {
     if (requestState === 'loading') {
       return
     }
 
     const trimmedProjectId = projectId.trim()
-    const trimmedQuestion = question.trim()
 
     if (trimmedProjectId.length === 0 || trimmedQuestion.length === 0) {
       setRequestState('failed')
@@ -602,8 +613,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestState('loading')
     setRequestError(null)
     setHistoryError(null)
-    // Keep completed prior turns visible; archive the current succeeded turn.
+    // Keep completed prior turns visible; archive the current succeeded turn
+    // unless regenerate/retry is replacing the last answer in place.
     if (
+      !options.replaceLast &&
       response !== null &&
       requestState === 'succeeded' &&
       activeResponseQuestion !== null &&
@@ -633,7 +646,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     chatAutoFollowRef.current = true
 
     const continueSessionId = selectedSessionId
-    if (continueSessionId === null) {
+    if (continueSessionId === null && !options.replaceLast) {
       setPriorTurns([])
     }
     const requestBody = {
@@ -855,12 +868,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     if (lastQuestion === undefined || lastQuestion.length === 0) {
       return
     }
-    setQuestion(lastQuestion)
-    // Defer submit so the controlled textarea commits lastQuestion first.
-    window.setTimeout(() => {
-      const form = document.querySelector<HTMLFormElement>('#chat-composer')
-      form?.requestSubmit()
-    }, 0)
+    void submitChatQuestion(lastQuestion, { replaceLast: true })
+  }
+
+  function handleRegenerateLastAnswer() {
+    const lastQuestion = activeResponseQuestion?.trim()
+    if (
+      lastQuestion === undefined ||
+      lastQuestion.length === 0 ||
+      requestState === 'loading'
+    ) {
+      return
+    }
+    void submitChatQuestion(lastQuestion, { replaceLast: true })
   }
 
   async function handleRefreshHistory(
@@ -2532,6 +2552,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onQuestionChange={setQuestion}
                 onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                onRegenerateLastAnswer={handleRegenerateLastAnswer}
                 onRetryLastQuestion={handleRetryLastQuestion}
                 onStartSpeechRecognition={handleStartSpeechRecognition}
                 onStopSpeechRecognition={handleStopSpeechRecognition}

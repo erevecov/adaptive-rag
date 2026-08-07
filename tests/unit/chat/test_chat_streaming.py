@@ -83,7 +83,20 @@ def test_progress_event_factories_produce_stable_payloads() -> None:
         "elapsed_ms": 1200,
     }
     assert chat_stream_error_event("runner failed").data == {
+        "code": "chat_error",
         "detail": "runner failed",
+        "message": "runner failed",
+        "retryable": False,
+    }
+    assert chat_stream_error_event(
+        "rate limited",
+        code="provider_rate_limited",
+        retryable=True,
+    ).data == {
+        "code": "provider_rate_limited",
+        "detail": "rate limited",
+        "message": "rate limited",
+        "retryable": True,
     }
 
 

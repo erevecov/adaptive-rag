@@ -707,7 +707,7 @@ def test_chat_endpoint_persists_current_user_as_session_owner(
     assert chat_session.user_id == user.id
 
 
-def test_chat_endpoint_commit_knowledge_tool_returns_draft_without_persisting_proposal(
+def test_chat_endpoint_commit_knowledge_tool_persists_pending_proposal(
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
@@ -740,12 +740,13 @@ def test_chat_endpoint_commit_knowledge_tool_returns_draft_without_persisting_pr
         "knowledge_text": proposed_text,
         "scope": "session",
     }
+    draft_id = data["tool_calls"][0]["result_summary"]["draft_id"]
     assert data["tool_calls"][0]["result_summary"] == {
-        "draft_id": data["tool_calls"][0]["result_summary"]["draft_id"],
+        "draft_id": draft_id,
         "proposed_text": proposed_text,
         "review_action": "request_approval",
         "scope": "session",
-        "status": "draft",
+        "status": "pending",
     }
     fresh_session = session_factory()
     user_message = (
@@ -753,7 +754,10 @@ def test_chat_endpoint_commit_knowledge_tool_returns_draft_without_persisting_pr
         .filter_by(session_id=session_id, role="user")
         .one()
     )
-    assert fresh_session.query(KnowledgeProposal).count() == 0
+    proposal = fresh_session.query(KnowledgeProposal).one()
+    assert str(proposal.id) == draft_id
+    assert proposal.status == "pending"
+    assert proposal.proposed_text == proposed_text
     tool_call = fresh_session.query(ToolCall).filter_by(session_id=session_id).one()
     assert tool_call.tool_name == "commit_knowledge"
     assert tool_call.status == "succeeded"
@@ -762,11 +766,11 @@ def test_chat_endpoint_commit_knowledge_tool_returns_draft_without_persisting_pr
         "scope": "session",
     }
     assert tool_call.result_summary_json == {
-        "draft_id": data["tool_calls"][0]["result_summary"]["draft_id"],
+        "draft_id": draft_id,
         "proposed_text": proposed_text,
         "review_action": "request_approval",
         "scope": "session",
-        "status": "draft",
+        "status": "pending",
     }
     assert user_message.id is not None
 
@@ -819,7 +823,14 @@ def test_chat_stream_endpoint_rejects_invalid_requests_before_stream_start(
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "message must not be empty"}
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "message must not be empty",
+            "message": "message must not be empty",
+            "retryable": False,
+        }
+    }
     assert runner.requests == []
     fresh_session = session_factory()
     assert fresh_session.query(ChatSession).count() == 0
@@ -842,7 +853,10 @@ def test_chat_stream_endpoint_yields_error_event_after_session_failure(
     )
 
     assert response.status_code == 200
-    assert 'event: error\ndata: {"detail":"runner exploded"}\n\n' in response.text
+    assert (
+        'event: error\ndata: {"code":"chat_error","detail":"runner exploded",'
+        '"message":"runner exploded","retryable":false}\n\n'
+    ) in response.text
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
@@ -886,7 +900,14 @@ def test_chat_endpoint_maps_service_errors_to_422(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "message must not be empty"}
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "message must not be empty",
+            "message": "message must not be empty",
+            "retryable": False,
+        }
+    }
     assert provider.inputs == []
     assert runner.requests == []
 
@@ -1104,7 +1125,14 @@ def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
         f"expected {EMBEDDING_DIMENSIONS}, got {EMBEDDING_DIMENSIONS + 1}"
     )
     assert response.status_code == 422
-    assert response.json() == {"detail": expected_error}
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": expected_error,
+            "message": expected_error,
+            "retryable": False,
+        }
+    }
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
@@ -1140,12 +1168,20 @@ def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
     runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
     client = _client(session=session, provider=provider, runner=runner)
 
-    with pytest.raises(RuntimeError, match="embedding transport unavailable"):
-        client.post(
-            f"/projects/{project.id}/chat",
-            json={"message": "What supports alpha?", "retrieval_limit": 4},
-        )
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "What supports alpha?", "retrieval_limit": 4},
+    )
 
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "embedding transport unavailable",
+            "message": "embedding transport unavailable",
+            "retryable": False,
+        }
+    }
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
     assert chat_session.status == "failed"
@@ -1204,12 +1240,20 @@ def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
     runner = ExplodingChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
-    with pytest.raises(RuntimeError, match="runner exploded"):
-        client.post(
-            f"/projects/{project.id}/chat",
-            json={"message": "Please answer."},
-        )
+    response = client.post(
+        f"/projects/{project.id}/chat",
+        json={"message": "Please answer."},
+    )
 
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "runner exploded",
+            "message": "runner exploded",
+            "retryable": False,
+        }
+    }
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
@@ -1816,7 +1860,14 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "chat session not found"}
+    assert response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "chat session not found",
+            "message": "chat session not found",
+            "retryable": False,
+        }
+    }
     assert runner.requests == []
     fresh_session = session_factory()
     assert fresh_session.query(ChatSession).count() == 0
@@ -1827,7 +1878,14 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     )
 
     assert stream_response.status_code == 422
-    assert stream_response.json() == {"detail": "chat session not found"}
+    assert stream_response.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "chat session not found",
+            "message": "chat session not found",
+            "retryable": False,
+        }
+    }
     assert runner.requests == []
     fresh_session = session_factory()
     assert fresh_session.query(ChatSession).count() == 0
@@ -1870,7 +1928,14 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
     )
 
     assert hijack.status_code == 422
-    assert hijack.json() == {"detail": "chat session not found"}
+    assert hijack.json() == {
+        "detail": {
+            "code": "chat_error",
+            "detail": "chat session not found",
+            "message": "chat session not found",
+            "retryable": False,
+        }
+    }
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     messages = fresh_session.query(ChatMessage).filter_by(session_id=UUID(session_id))

@@ -1331,7 +1331,9 @@ describe('createApiClient', () => {
   test('raises structured errors for chat stream error events', async () => {
     const projectId = '11111111-1111-4111-8111-111111111111'
     const { fetch } = createFetchStub(
-      sseResponse(['event: error\ndata: {"detail":"runner failed"}\n\n']),
+      sseResponse([
+        'event: error\ndata: {"code":"provider_rate_limited","detail":"runner failed","message":"runner failed","retryable":true}\n\n',
+      ]),
     )
     const client = createApiClient({
       baseUrl: 'http://api.local',
@@ -1343,7 +1345,35 @@ describe('createApiClient', () => {
     ).rejects.toMatchObject({
       name: 'ApiClientError',
       status: 200,
-      detail: 'runner failed',
+      code: 'provider_rate_limited',
+      retryable: true,
+      message: 'runner failed',
+      detail: {
+        code: 'provider_rate_limited',
+        detail: 'runner failed',
+        message: 'runner failed',
+        retryable: true,
+      },
+    } satisfies Partial<ApiClientError>)
+  })
+
+  test('accepts legacy stream error events with detail only', async () => {
+    const projectId = '11111111-1111-4111-8111-111111111111'
+    const { fetch } = createFetchStub(
+      sseResponse(['event: error\ndata: {"detail":"legacy failure"}\n\n']),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await expect(
+      client.askChatStream(projectId, { message: 'What changed?' }, {}),
+    ).rejects.toMatchObject({
+      name: 'ApiClientError',
+      message: 'legacy failure',
+      code: null,
+      retryable: false,
     } satisfies Partial<ApiClientError>)
   })
 

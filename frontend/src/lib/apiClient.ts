@@ -307,12 +307,20 @@ export type ChatStreamEvent =
     }
   | {
       event: 'error'
-      data: { detail: string }
+      data: ChatStreamErrorData
     }
+
+/** Structured chat error from SSE error events and HTTP 4xx bodies. */
+export type ChatStreamErrorData = {
+  code?: string
+  detail: string
+  message?: string
+  retryable?: boolean
+}
 
 export type ChatStreamHandlers = {
   onAnswerDelta?(text: string): void
-  onErrorEvent?(detail: string): void
+  onErrorEvent?(error: ChatStreamErrorData): void
   onEvent?(event: ChatStreamEvent): void
   onHeartbeat?(elapsedMs: number): void
   onSessionStarted?(sessionId: string): void
@@ -745,13 +753,25 @@ export const USER_MEMORY_MAX_CHARS = 4000
 export const USER_MEMORY_SOFT_HINT_CHARS = 500
 
 export class ApiClientError extends Error {
+  readonly code: string | null
   readonly detail: unknown
+  readonly retryable: boolean
   readonly status: number
 
-  constructor(message: string, options: { detail: unknown; status: number }) {
+  constructor(
+    message: string,
+    options: {
+      code?: string | null
+      detail: unknown
+      retryable?: boolean
+      status: number
+    },
+  ) {
     super(message)
     this.name = 'ApiClientError'
+    this.code = options.code ?? extractErrorCode(options.detail)
     this.detail = options.detail
+    this.retryable = options.retryable ?? extractErrorRetryable(options.detail)
     this.status = options.status
   }
 }
@@ -1807,9 +1827,12 @@ function handleChatStreamEvent(
     return null
   }
   if (event.event === 'error') {
-    handlers.onErrorEvent?.(event.data.detail)
-    throw new ApiClientError(event.data.detail, {
-      detail: event.data.detail,
+    handlers.onErrorEvent?.(event.data)
+    const message = event.data.message ?? event.data.detail
+    throw new ApiClientError(message, {
+      code: event.data.code ?? null,
+      detail: event.data,
+      retryable: event.data.retryable ?? false,
       status,
     })
   }
@@ -1864,9 +1887,19 @@ function toChatStreamEvent(
     }
   }
   if (eventName === 'error') {
+    const detail = readOptionalString(data, 'detail')
+    const message = readOptionalString(data, 'message') ?? detail
+    if (message === undefined) {
+      throw new Error('Chat stream error event requires detail or message')
+    }
     return {
       event: eventName,
-      data: { detail: readString(data, 'detail') },
+      data: {
+        code: readOptionalString(data, 'code'),
+        detail: detail ?? message,
+        message,
+        retryable: readOptionalBoolean(data, 'retryable'),
+      },
     }
   }
   throw new Error(`Unknown chat stream event: ${eventName}`)
@@ -1911,7 +1944,53 @@ function getApiErrorMessage(detail: unknown, status: number): string {
   ) {
     return (detail as { message: string }).message
   }
+  if (
+    detail !== null &&
+    typeof detail === 'object' &&
+    'detail' in detail &&
+    typeof (detail as { detail: unknown }).detail === 'string'
+  ) {
+    return (detail as { detail: string }).detail
+  }
   return `Request failed with status ${status}`
+}
+
+function extractErrorCode(detail: unknown): string | null {
+  if (
+    detail !== null &&
+    typeof detail === 'object' &&
+    'code' in detail &&
+    typeof (detail as { code: unknown }).code === 'string'
+  ) {
+    return (detail as { code: string }).code
+  }
+  return null
+}
+
+function extractErrorRetryable(detail: unknown): boolean {
+  if (
+    detail !== null &&
+    typeof detail === 'object' &&
+    'retryable' in detail &&
+    typeof (detail as { retryable: unknown }).retryable === 'boolean'
+  ) {
+    return (detail as { retryable: boolean }).retryable
+  }
+  return false
+}
+
+function readOptionalBoolean(
+  value: JsonObject,
+  key: string,
+): boolean | undefined {
+  const field = value[key]
+  if (field === undefined || field === null) {
+    return undefined
+  }
+  if (typeof field !== 'boolean') {
+    throw new Error(`Chat stream event field ${key} must be a boolean`)
+  }
+  return field
 }
 
 function readNumber(value: JsonObject, key: string): number {
