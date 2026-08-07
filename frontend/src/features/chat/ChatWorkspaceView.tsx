@@ -198,14 +198,14 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat Workspace"
-      className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
+      className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
       role="region"
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat Transcript"
-        className="min-h-0 overflow-y-auto px-0.5 pr-1"
+        className="scrollbar-chat min-h-0 overflow-y-auto px-0.5 pr-1"
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
         ref={transcriptRef}
@@ -325,7 +325,7 @@ export function ChatWorkspacePanel({
             <FieldControl className="gap-0">
               <Textarea
                 className={cn(
-                  'max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
+                  'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
                   'placeholder:text-muted-foreground',
                   'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
@@ -1360,7 +1360,7 @@ function QuestionPrompt({
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background/95 pb-2 backdrop-blur-sm shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80"
+      className="sticky top-0 z-10 border-b border-border bg-muted/90 pb-2 backdrop-blur-sm shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80"
       data-slot="chat-question-sticky"
     >
       <div className="mb-1 flex items-center gap-2">
@@ -1387,6 +1387,7 @@ function QuestionPrompt({
           aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
           className="max-w-full justify-start whitespace-normal text-left max-[680px]:min-h-11 max-[680px]:text-sm"
           onClick={() => setExpanded((current) => !current)}
+          slotName="chat-question-surface"
           title={trimmedQuestion}
           type="button"
           variant="secondary"
@@ -1394,7 +1395,10 @@ function QuestionPrompt({
           {displayQuestion}
         </Button>
       ) : (
-        <p className="rounded-md border border-border bg-muted/15 px-3 py-2 text-sm leading-relaxed text-foreground max-[680px]:rounded-md max-[680px]:border-border max-[680px]:px-2.5 max-[680px]:py-2 max-[680px]:text-sm max-[680px]:leading-relaxed max-[680px]:shadow-none">
+        <p
+          className="rounded-md border border-border bg-muted/80 px-3 py-2 text-sm leading-relaxed text-foreground max-[680px]:rounded-md max-[680px]:border-border max-[680px]:px-2.5 max-[680px]:py-2 max-[680px]:text-sm max-[680px]:leading-relaxed max-[680px]:shadow-none"
+          data-slot="chat-question-surface"
+        >
           {displayQuestion}
         </p>
       )}

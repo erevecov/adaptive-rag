@@ -548,7 +548,38 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/max-\[680px\]:shadow-primary\/65/)
+    // Height chain: panel fills its host, transcript scrolls, composer pins bottom.
+    expect(workspace.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(workspace.className).toMatch(/grid-rows-\[minmax\(0,1fr\)_auto\]/)
+    const transcript = view.container.querySelector('[data-slot="chat-transcript"]')
+    expect(transcript?.className).toMatch(/overflow-y-auto/)
+    expect(transcript?.className).toMatch(/min-h-0/)
+    expect(transcript?.className).toMatch(/scrollbar-chat/)
+    expect(
+      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+    ).toMatch(/shrink-0/)
+    expect(screen.getByLabelText('Question').className).toMatch(/scrollbar-chat/)
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
+  })
+
+  test('renders the user question on a plomo muted surface distinct from the answer', () => {
+    const { view } = renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      requestState: 'succeeded',
+      response,
+    })
+
+    const sticky = view.container.querySelector('[data-slot="chat-question-sticky"]')
+    expect(sticky).toBeTruthy()
+    expect(sticky?.className).toMatch(/bg-muted\/90/)
+    const surface = view.container.querySelector(
+      '[data-slot="chat-question-surface"]',
+    )
+    expect(surface).toBeTruthy()
+    expect(surface?.className).toMatch(/bg-muted\/80/)
+    const answer = view.container.querySelector('[data-slot="chat-message"]')
+    expect(answer?.className).toMatch(/bg-card/)
+    expect(answer?.className).not.toMatch(/bg-muted\/80/)
   })
 
   test('renders knowledge draft actions with editable text', () => {

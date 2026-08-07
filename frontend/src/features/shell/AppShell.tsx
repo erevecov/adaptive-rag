@@ -221,7 +221,7 @@ export function ChatWorkspaceGrid({
     <div
       className={cn(
         [
-          'workspace-grid chat-workspace-grid grid h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)]',
+          'workspace-grid chat-workspace-grid grid h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]',
           'max-[680px]:min-h-0',
         ],
         isRightDockInline &&

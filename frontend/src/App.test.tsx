@@ -2312,6 +2312,18 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('data-slot="workspace-project-chip"')
   })
 
+  test('bounds the chat workspace height chain so only the transcript scrolls', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const host = document.querySelector('[data-slot="chat-workspace-inert-host"]')
+    expect(host).toBeTruthy()
+    expect(host?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(host?.className).toMatch(/min-h-0/)
+    expect(host?.className).toMatch(/overflow-hidden/)
+    // ChatWorkspaceGrid row is explicit so the column cannot grow past the shell.
+    expect(shellSource).toContain('grid-rows-[minmax(0,1fr)]')
+  })
+
   test('renders a keyboard skip link targeting the chat composer', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
