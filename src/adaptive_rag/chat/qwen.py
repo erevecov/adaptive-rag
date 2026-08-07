@@ -96,15 +96,12 @@ class QwenChatRunner:
             final_message = _first_message(final_response)
             return _parse_runner_output(_message_content(final_message))
 
-        # No tools: still stream final-shaped content when a delta sink is set.
-        if on_answer_delta is not None:
-            streamed = self.client.create_chat_completion(
-                model=self.model_name,
-                messages=messages,
-                on_answer_delta=on_answer_delta,
-            )
-            return _parse_runner_output(_message_content(_first_message(streamed)))
-        return _parse_runner_output(_message_content(first_message))
+        # No tool calls: use the first completion (avoid a second provider call).
+        # Emit progressive deltas from the already-complete answer for UI stream.
+        output = _parse_runner_output(_message_content(first_message))
+        if on_answer_delta is not None and output.answer:
+            on_answer_delta(output.answer)
+        return output
 
 
 @dataclass(slots=True)
@@ -120,6 +117,8 @@ class QwenHTTPChatClient:
     provider_name: str = "qwen"
     price_catalog: ProviderPriceCatalog = ProviderPriceCatalog()
     budget_guard: ProviderBudgetGuard | None = None
+    # Interactive chat should fail fast under rate limits (default ≤12s budget).
+    max_retry_budget_seconds: float = 12.0
     _cancel_event: threading.Event = field(default_factory=threading.Event, repr=False)
     _active_client: httpx.Client | None = field(default=None, repr=False)
 
@@ -209,7 +208,9 @@ class QwenHTTPChatClient:
         from time import sleep
 
         last_error: Exception | None = None
-        attempts = max(0, self.max_retries) + 1
+        # Cap interactive retries: at most 2 attempts (1 retry) for chat UX.
+        attempts = min(max(0, self.max_retries), 1) + 1
+        budget_started = perf_counter()
         for attempt in range(attempts):
             if self._cancel_event.is_set():
                 raise QwenChatRunnerError("qwen chat request canceled")
@@ -232,7 +233,15 @@ class QwenHTTPChatClient:
                         self._active_client = None
                 retryable = response.status_code >= 500 or response.status_code == 429
                 if retryable and attempt < attempts - 1:
-                    sleep(_retry_backoff_seconds(response, attempt=attempt))
+                    sleep_s = _retry_backoff_seconds(response, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        raise QwenChatRunnerError(
+                            f"qwen chat request failed with status {response.status_code}"
+                        )
+                    sleep(sleep_s)
                     continue
                 if response.status_code >= 400:
                     raise QwenChatRunnerError(
@@ -251,7 +260,13 @@ class QwenHTTPChatClient:
                     raise QwenChatRunnerError("qwen chat request canceled") from exc
                 last_error = exc
                 if attempt < attempts - 1:
-                    sleep(_retry_backoff_seconds(None, attempt=attempt))
+                    sleep_s = _retry_backoff_seconds(None, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        break
+                    sleep(sleep_s)
                     continue
                 break
 
@@ -268,82 +283,131 @@ class QwenHTTPChatClient:
     ) -> tuple[dict[str, Any], str | None]:
         """Stream a final (no-tools) completion and emit progressive answer text."""
 
+        from time import sleep
+
         if self._cancel_event.is_set():
             raise QwenChatRunnerError("qwen chat request canceled")
-        content_parts: list[str] = []
-        request_id: str | None = None
-        emitted_answer = ""
-        with httpx.Client(
-            timeout=self.timeout_seconds,
-            transport=self.transport,
-        ) as client:
-            self._active_client = client
+        attempts = min(max(0, self.max_retries), 1) + 1
+        budget_started = perf_counter()
+        last_error: Exception | None = None
+        for attempt in range(attempts):
+            if self._cancel_event.is_set():
+                raise QwenChatRunnerError("qwen chat request canceled")
+            content_parts: list[str] = []
+            request_id: str | None = None
+            emitted_answer = ""
             try:
-                with client.stream(
-                    "POST",
-                    endpoint,
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                ) as response:
-                    if response.status_code >= 400:
-                        # Drain body for debugging-friendly error.
-                        body = response.read()
-                        raise QwenChatRunnerError(
-                            "qwen chat request failed with status "
-                            f"{response.status_code}"
-                        )
-                    request_id = _response_request_id(response)
-                    for line in response.iter_lines():
-                        if self._cancel_event.is_set():
-                            raise QwenChatRunnerError("qwen chat request canceled")
-                        if not line:
-                            continue
-                        if line.startswith("data:"):
-                            data_str = line[5:].strip()
-                        else:
-                            continue
-                        if data_str == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data_str)
-                        except json.JSONDecodeError:
-                            continue
-                        if not isinstance(chunk, dict):
-                            continue
-                        delta_text = _stream_chunk_text(chunk)
-                        if delta_text:
-                            content_parts.append(delta_text)
-                            partial = _partial_answer_from_json_buffer(
-                                "".join(content_parts)
-                            )
-                            if partial is not None and len(partial) > len(
-                                emitted_answer
-                            ):
-                                piece = partial[len(emitted_answer) :]
-                                emitted_answer = partial
-                                on_answer_delta(piece)
-            finally:
-                self._active_client = None
+                with httpx.Client(
+                    timeout=self.timeout_seconds,
+                    transport=self.transport,
+                ) as client:
+                    self._active_client = client
+                    try:
+                        with client.stream(
+                            "POST",
+                            endpoint,
+                            headers={
+                                "Authorization": f"Bearer {self.api_key}",
+                                "Content-Type": "application/json",
+                            },
+                            json=payload,
+                        ) as response:
+                            if response.status_code >= 400:
+                                body = response.read()
+                                _ = body
+                                retryable = (
+                                    response.status_code >= 500
+                                    or response.status_code == 429
+                                )
+                                if retryable and attempt < attempts - 1:
+                                    sleep_s = _retry_backoff_seconds(
+                                        response, attempt=attempt
+                                    )
+                                    if (
+                                        perf_counter() - budget_started + sleep_s
+                                        > self.max_retry_budget_seconds
+                                    ):
+                                        raise QwenChatRunnerError(
+                                            "qwen chat request failed with status "
+                                            f"{response.status_code}"
+                                        )
+                                    sleep(sleep_s)
+                                    continue
+                                raise QwenChatRunnerError(
+                                    "qwen chat request failed with status "
+                                    f"{response.status_code}"
+                                )
+                            request_id = _response_request_id(response)
+                            for line in response.iter_lines():
+                                if self._cancel_event.is_set():
+                                    raise QwenChatRunnerError(
+                                        "qwen chat request canceled"
+                                    )
+                                if not line:
+                                    continue
+                                if line.startswith("data:"):
+                                    data_str = line[5:].strip()
+                                else:
+                                    continue
+                                if data_str == "[DONE]":
+                                    break
+                                try:
+                                    chunk = json.loads(data_str)
+                                except json.JSONDecodeError:
+                                    continue
+                                if not isinstance(chunk, dict):
+                                    continue
+                                delta_text = _stream_chunk_text(chunk)
+                                if delta_text:
+                                    content_parts.append(delta_text)
+                                    partial = _partial_answer_from_json_buffer(
+                                        "".join(content_parts)
+                                    )
+                                    if partial is not None and len(partial) > len(
+                                        emitted_answer
+                                    ):
+                                        piece = partial[len(emitted_answer) :]
+                                        emitted_answer = partial
+                                        on_answer_delta(piece)
+                    finally:
+                        self._active_client = None
+            except QwenChatRunnerError:
+                raise
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                if self._cancel_event.is_set():
+                    raise QwenChatRunnerError("qwen chat request canceled") from exc
+                last_error = exc
+                if attempt < attempts - 1:
+                    sleep_s = _retry_backoff_seconds(None, attempt=attempt)
+                    if (
+                        perf_counter() - budget_started + sleep_s
+                        > self.max_retry_budget_seconds
+                    ):
+                        break
+                    sleep(sleep_s)
+                    continue
+                break
 
-        full_content = "".join(content_parts)
-        if not full_content.strip():
-            raise QwenChatRunnerError("qwen chat stream returned empty content")
-        return (
-            {
-                "choices": [
-                    {
-                        "message": {
-                            "role": "assistant",
-                            "content": full_content,
+            full_content = "".join(content_parts)
+            if not full_content.strip():
+                raise QwenChatRunnerError("qwen chat stream returned empty content")
+            return (
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "content": full_content,
+                            }
                         }
-                    }
-                ]
-            },
-            request_id,
-        )
+                    ]
+                },
+                request_id,
+            )
+
+        raise QwenChatRunnerError(
+            "qwen chat request failed before receiving a response"
+        ) from last_error
 
     def _record_failure(
         self,

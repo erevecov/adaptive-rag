@@ -466,28 +466,34 @@ class ChatService:
         # Exclusive DB access: main thread only yields stream events (no session
         # I/O) while the worker runs the runner/tools; after the future completes
         # the main thread resumes audit I/O.
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run)
-            last_heartbeat = monotonic()
-            try:
-                while not future.done():
-                    # Prefer draining answer deltas quickly for progressive UI.
-                    try:
-                        item = delta_queue.get(timeout=0.15)
-                    except queue.Empty:
-                        item = object()
-                    if item is None:
-                        break
-                    if isinstance(item, str):
-                        streamed_answer_parts.append(item)
-                        yield chat_stream_answer_delta_event(item)
-                    now = monotonic()
-                    if now - last_heartbeat >= _STREAM_HEARTBEAT_SECONDS:
-                        yield chat_stream_heartbeat_event(
-                            elapsed_ms=elapsed_ms(answer_start)
-                        )
-                        last_heartbeat = now
-                # Drain remaining deltas after worker finishes.
+        # Do not block forever on cancel: shutdown(wait=False) so disconnect
+        # can fail_session quickly while the worker aborts httpx best-effort.
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(_run)
+        last_heartbeat = monotonic()
+        cancelled = False
+        try:
+            while not future.done():
+                if cancel_event.is_set():
+                    cancelled = True
+                    break
+                try:
+                    item = delta_queue.get(timeout=0.15)
+                except queue.Empty:
+                    item = object()
+                if item is None:
+                    break
+                if isinstance(item, str):
+                    streamed_answer_parts.append(item)
+                    yield chat_stream_answer_delta_event(item)
+                now = monotonic()
+                if now - last_heartbeat >= _STREAM_HEARTBEAT_SECONDS:
+                    yield chat_stream_heartbeat_event(
+                        elapsed_ms=elapsed_ms(answer_start)
+                    )
+                    last_heartbeat = now
+            # Drain remaining deltas after worker finishes (unless cancelled).
+            if not cancelled:
                 while True:
                     try:
                         item = delta_queue.get_nowait()
@@ -498,15 +504,28 @@ class ChatService:
                     if isinstance(item, str):
                         streamed_answer_parts.append(item)
                         yield chat_stream_answer_delta_event(item)
-            except GeneratorExit:
-                cancel_event.set()
-                if client is not None and hasattr(client, "request_cancel"):
-                    client.request_cancel()
-                raise
-            future.result()  # re-raise unexpected executor failures
+        except GeneratorExit:
+            cancelled = True
+            cancel_event.set()
+            if client is not None and hasattr(client, "request_cancel"):
+                client.request_cancel()
+            delta_queue.put(None)
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        finally:
+            if not cancelled:
+                executor.shutdown(wait=True, cancel_futures=False)
+            else:
+                executor.shutdown(wait=False, cancel_futures=True)
 
+        if cancelled:
+            raise ChatServiceError("client_disconnected")
         if "error" in holder:
             raise holder["error"]
+        try:
+            future.result(timeout=0.1)
+        except Exception:
+            pass
         output = holder.get("output")
         if not isinstance(output, ChatRunnerOutput):
             raise ChatServiceError("chat runner returned no output")
@@ -536,6 +555,10 @@ class ChatService:
         origin_message_id: UUID | None,
     ) -> ChatKnowledgeProposalTool | None:
         if self._knowledge_proposal_submitter is None:
+            return None
+        # Anonymous / bootstrap turns cannot persist proposals; omit tools so a
+        # failed commit does not abort the whole chat turn.
+        if request.user_id is None:
             return None
         return ChatKnowledgeProposalTool(
             submitter=self._knowledge_proposal_submitter,

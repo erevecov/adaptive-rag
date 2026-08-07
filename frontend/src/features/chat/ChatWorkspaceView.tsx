@@ -11,15 +11,18 @@ import {
   useState,
 } from 'react'
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Copy,
   Map as MapIcon,
   Mic,
   Square,
 } from 'lucide-react'
 
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
+import { MarkdownAnswer } from '@/components/MarkdownAnswer'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
@@ -944,20 +947,36 @@ function ResponseContent({
                 Streaming
               </StatusBadge>
             ) : null}
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed tracking-tight max-[680px]:text-sm max-[680px]:leading-relaxed">
             {response.answer.trim().length > 0 ? (
-              response.answer
-            ) : (
-              <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <CopyAnswerButton text={response.answer} />
+            ) : null}
+          </div>
+          {response.answer.trim().length > 0 ? (
+            <MarkdownAnswer
+              onCitationClick={(ordinal) => {
+                const citation = response.citations[ordinal - 1]
+                if (citation === undefined) {
+                  return
+                }
+                onOpenSource(
+                  citation.citation.source_id,
+                  citation.citation.snippet,
+                )
+              }}
+            >
+              {response.answer}
+            </MarkdownAnswer>
+          ) : (
+            <p className="text-sm leading-relaxed tracking-tight text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
                 />
                 Drafting answer…
               </span>
-            )}
-          </p>
+            </p>
+          )}
           {!isStreaming &&
           response.answer.trim().length > 0 &&
           response.citations.length === 0 ? (
@@ -1616,6 +1635,34 @@ function summarizeResponseUsage(
       providerUsage.map((usage) => usage.total_tokens),
     ),
   }
+}
+
+function CopyAnswerButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <Button
+      aria-label={copied ? 'Copied answer' : 'Copy answer'}
+      className="ml-auto h-7 gap-1 px-2 text-[11px]"
+      data-slot="chat-copy-answer"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+      size="sm"
+      type="button"
+      variant="ghost"
+    >
+      {copied ? (
+        <Check aria-hidden="true" className="size-3.5" />
+      ) : (
+        <Copy aria-hidden="true" className="size-3.5" />
+      )}
+      {copied ? 'Copied' : 'Copy'}
+    </Button>
+  )
 }
 
 function sumOptionalNumbers(values: Array<number | null | undefined>): number | null {

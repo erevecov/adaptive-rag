@@ -1008,6 +1008,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setQuestion('')
     setResponse(null)
     setActiveResponseQuestion(null)
+    setPriorTurns([])
     setSelectedSessionId(null)
     setSessionDetail(null)
     setRequestState('idle')

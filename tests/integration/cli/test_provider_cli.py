@@ -5,13 +5,21 @@ import json
 from typer.testing import CliRunner
 
 from adaptive_rag.chat import ChatRunnerRequest
+from adaptive_rag.chat.runners import RetrievalGroundedChatRunner
 from adaptive_rag.chat.tools import ChatTools
 from adaptive_rag.cli.app import app
+from adaptive_rag.embeddings.dense import FakeDenseEmbeddingProvider
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import RerankRequest, RerankResult
+from adaptive_rag.rerank.providers import FakeRerankProvider
 
 
-def test_provider_embedding_smoke_outputs_json_for_fake_provider() -> None:
+def test_provider_embedding_smoke_outputs_json_for_fake_provider(monkeypatch) -> None:
+    # Hermetic: factories may resolve live runtime slots from the ambient DB.
+    monkeypatch.setattr(
+        "adaptive_rag.cli.providers.get_cli_dense_embedding_provider",
+        lambda **_kwargs: FakeDenseEmbeddingProvider(),
+    )
     result = CliRunner().invoke(
         app,
         [
@@ -33,7 +41,11 @@ def test_provider_embedding_smoke_outputs_json_for_fake_provider() -> None:
     }
 
 
-def test_provider_chat_smoke_outputs_json_for_fake_runner() -> None:
+def test_provider_chat_smoke_outputs_json_for_fake_runner(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "adaptive_rag.cli.providers.get_cli_chat_runner",
+        lambda **_kwargs: RetrievalGroundedChatRunner(),
+    )
     result = CliRunner().invoke(
         app,
         [
@@ -55,7 +67,11 @@ def test_provider_chat_smoke_outputs_json_for_fake_runner() -> None:
     }
 
 
-def test_provider_rerank_smoke_outputs_json_for_fake_provider() -> None:
+def test_provider_rerank_smoke_outputs_json_for_fake_provider(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "adaptive_rag.cli.providers.get_cli_rerank_provider",
+        lambda **_kwargs: FakeRerankProvider(),
+    )
     result = CliRunner().invoke(
         app,
         [
@@ -102,7 +118,7 @@ def test_provider_embedding_smoke_reports_budget_errors(monkeypatch) -> None:
 
     monkeypatch.setattr(
         "adaptive_rag.cli.providers.get_cli_dense_embedding_provider",
-        lambda: BudgetBlockedProvider(),
+        lambda **_kwargs: BudgetBlockedProvider(),
     )
 
     result = CliRunner().invoke(app, ["providers", "embedding-smoke"])
@@ -125,7 +141,7 @@ def test_provider_chat_smoke_reports_budget_errors(monkeypatch) -> None:
 
     monkeypatch.setattr(
         "adaptive_rag.cli.providers.get_cli_chat_runner",
-        lambda: BudgetBlockedRunner(),
+        lambda **_kwargs: BudgetBlockedRunner(),
     )
 
     result = CliRunner().invoke(app, ["providers", "chat-smoke"])
@@ -144,7 +160,7 @@ def test_provider_rerank_smoke_reports_budget_errors(monkeypatch) -> None:
 
     monkeypatch.setattr(
         "adaptive_rag.cli.providers.get_cli_rerank_provider",
-        lambda: BudgetBlockedReranker(),
+        lambda **_kwargs: BudgetBlockedReranker(),
     )
 
     result = CliRunner().invoke(app, ["providers", "rerank-smoke"])
