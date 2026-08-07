@@ -216,10 +216,17 @@ export function SessionNavigationPanel({
       </div>
 
       <div
-        className="scrollbar-chat min-h-0 overflow-y-auto pr-0.5"
+        className={cn(
+          'scrollbar-chat min-h-0 overflow-y-auto',
+          // Flush thumb to the right edge of the sidebar rail (cancel content px).
+          '-mr-2.5 max-[680px]:-mr-1',
+        )}
         data-slot="session-list-scroll"
       >
-      <DataList aria-label="Project Sessions" className="min-w-0 gap-0.5">
+      <DataList
+        aria-label="Project Sessions"
+        className="min-w-0 gap-0.5 pr-2.5 max-[680px]:pr-1"
+      >
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
             <div

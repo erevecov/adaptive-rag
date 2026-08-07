@@ -188,6 +188,9 @@ describe('SessionNavigationPanel', () => {
     expect(listScroll?.className).toMatch(/scrollbar-chat/)
     expect(listScroll?.className).toMatch(/overflow-y-auto/)
     expect(listScroll?.className).toMatch(/min-h-0/)
+    // Thumb flush to the sidebar right edge (break out of content padding).
+    expect(listScroll?.className).toMatch(/-mr-2\.5/)
+    expect(listScroll?.className).not.toMatch(/(?:^|\s)pr-0\.5(?:\s|$)/)
     expect(
       container.querySelector('[data-slot="session-list-chrome"]'),
     ).toBeTruthy()

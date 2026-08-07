@@ -594,7 +594,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat -mr-2.5 grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:-mr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -664,7 +664,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat -mr-2.5 grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:-mr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2

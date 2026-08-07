@@ -555,6 +555,9 @@ describe('ChatWorkspacePanel', () => {
     expect(transcript?.className).toMatch(/overflow-y-auto/)
     expect(transcript?.className).toMatch(/min-h-0/)
     expect(transcript?.className).toMatch(/scrollbar-chat/)
+    // Thumb flush to the chat column right edge (break out of workspace px).
+    expect(transcript?.className).toMatch(/-mr-\[18px\]/)
+    expect(transcript?.className).not.toMatch(/(?:^|\s)pr-1(?:\s|$)/)
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
     ).toMatch(/shrink-0/)

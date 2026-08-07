@@ -205,13 +205,17 @@ export function ChatWorkspacePanel({
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat Transcript"
-        className="scrollbar-chat min-h-0 overflow-y-auto px-0.5 pr-1"
+        className={cn(
+          'scrollbar-chat min-h-0 overflow-y-auto',
+          // Flush thumb to the right edge of the chat workspace (cancel parent px).
+          '-mr-[18px] max-[900px]:-mr-3.5 max-[680px]:-mr-1',
+        )}
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
         ref={transcriptRef}
         role="region"
       >
-        <div className="mx-auto grid w-full max-w-3xl gap-3 max-[680px]:gap-2">
+        <div className="mx-auto grid w-full max-w-3xl gap-3 px-0.5 pr-[18px] max-[900px]:pr-3.5 max-[680px]:gap-2 max-[680px]:pr-1">
           {priorTurns.map((turn) => (
             <ResponseContent
               key={turn.id}
