@@ -3452,15 +3452,21 @@ describe('App chat workspace', () => {
       }),
     )
 
-    expect(await screen.findByText('Second answer only')).toBeTruthy()
-    await user.click(
-      screen.getByRole('button', { name: 'Expand Response Details' }),
-    )
+    // Multi-turn transcript shows every completed turn, not only the latest.
+    expect(await screen.findByText('First answer')).toBeTruthy()
+    expect(screen.getByText('Second answer only')).toBeTruthy()
+    const expandButtons = screen.getAllByRole('button', {
+      name: 'Expand Response Details',
+    })
+    expect(expandButtons.length).toBeGreaterThanOrEqual(2)
+    await user.click(expandButtons[expandButtons.length - 1])
     expect(screen.getByText('web_lookup')).toBeTruthy()
     expect(screen.getByText('second turn query')).toBeTruthy()
-    expect(screen.queryByText('rag_search')).toBeNull()
-    expect(screen.queryByText('first turn query')).toBeNull()
     expect(screen.getByText('Second turn citation only.')).toBeTruthy()
+    // Earlier turn tools remain scoped to that turn's expand panel.
+    await user.click(expandButtons[0])
+    expect(screen.getByText('rag_search')).toBeTruthy()
+    expect(screen.getByText('first turn query')).toBeTruthy()
   })
 
   test('refreshes history and renders selected session detail read-only', async () => {

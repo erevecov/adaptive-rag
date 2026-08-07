@@ -229,6 +229,11 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
     ).toBeTruthy()
+    expect(chip.textContent).toMatch(/1/)
+    expect(chip.textContent).toContain('architecture.md')
+    expect(chip.getAttribute('title')).toContain(
+      'Architecture notes mention adaptive retrieval.',
+    )
     expect(chip.className).toMatch(/hover:bg-primary\/15/)
     expect(chip.className).toMatch(/max-\[680px\]:min-h-11/)
     expect(
@@ -246,11 +251,50 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
     ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
+    expect(screen.getByText('Answer')).toBeTruthy()
     await user.click(chip)
     expect(onOpenSource).toHaveBeenCalledWith(
       'source-1',
       'Architecture notes mention adaptive retrieval.',
     )
+  })
+
+  test('shows thread continuity and composer keyboard shortcuts', () => {
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-abcdef12-3456',
+      response: null,
+      requestState: 'idle',
+    })
+
+    const continuity = view.container.querySelector(
+      '[data-slot="chat-session-continuity"]',
+    )
+    expect(continuity).toBeTruthy()
+    expect(continuity?.textContent).toContain('Continuing Thread')
+    expect(continuity?.textContent).toContain('session-')
+
+    const shortcuts = view.container.querySelector(
+      '[data-slot="chat-composer-shortcuts"]',
+    )
+    expect(shortcuts).toBeTruthy()
+    expect(shortcuts?.textContent).toMatch(/Enter/)
+    expect(shortcuts?.textContent).toMatch(/Send/)
+    expect(shortcuts?.textContent).toMatch(/New line/)
+    expect(shortcuts?.textContent).not.toMatch(/Cancel/)
+    view.unmount()
+
+    const asking = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      isAsking: true,
+      question: 'still going',
+      requestState: 'loading',
+      response: null,
+    })
+    expect(
+      asking.view.container.querySelector(
+        '[data-slot="chat-composer-shortcuts"]',
+      )?.textContent,
+    ).toMatch(/Cancel/)
   })
 
   test('renders waiting and error states with feedback primitives', () => {
@@ -266,6 +310,9 @@ describe('ChatWorkspacePanel', () => {
     expect(loading).toBeTruthy()
     expect(loading?.textContent).toContain('Waiting For Response…')
     expect(screen.getByRole('alert').textContent).toContain('Request failed')
+    expect(
+      view.container.querySelector('[data-slot="callout"][data-tone="danger"]'),
+    ).toBeTruthy()
     expect(view.container.querySelector('[data-slot="chat-composer"]')).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-composer-actions"]'),
