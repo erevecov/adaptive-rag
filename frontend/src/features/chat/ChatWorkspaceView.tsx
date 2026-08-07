@@ -631,7 +631,7 @@ function ResponsePanel({
                 data-slot="chat-retry"
                 onClick={onRetryLastQuestion}
                 type="button"
-                variant="outline"
+                variant="secondary"
               >
                 Try again
               </Button>
@@ -661,7 +661,7 @@ function ResponsePanel({
                 data-slot="chat-retry"
                 onClick={onRetryLastQuestion}
                 type="button"
-                variant="outline"
+                variant="secondary"
               >
                 Try again
               </Button>
@@ -708,7 +708,7 @@ function ResponsePanel({
                 onClick={onRetryLastQuestion}
                 size="sm"
                 type="button"
-                variant="outline"
+                variant="secondary"
               >
                 Try again
               </Button>

@@ -1149,11 +1149,25 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       const detail = await client.getChatSession(trimmedProjectId, sessionId)
       setSessionDetail(detail)
       const turns = transcriptTurnsFromSessionDetail(detail)
+      const sessionStatus = detail.session.status
       if (turns.length === 0) {
+        // Still surface the latest user message if present (parser edge case).
+        const latestQuestion = extractLatestUserQuestion(detail)
         setPriorTurns([])
         setResponse(null)
-        setActiveResponseQuestion(null)
-        setRequestState('idle')
+        setActiveResponseQuestion(latestQuestion)
+        if (sessionStatus === 'failed') {
+          setRequestState('failed')
+          setRequestError(
+            detail.session.error_message ?? 'This session failed without a reply.',
+          )
+        } else if (sessionStatus === 'canceled' || sessionStatus === 'cancelled') {
+          setRequestState('canceled')
+          setRequestError(null)
+        } else {
+          setRequestState('idle')
+          setRequestError(null)
+        }
       } else {
         const earlier = turns.slice(0, -1)
         const latest = turns[turns.length - 1]
@@ -1166,12 +1180,34 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           tool_calls: latest.tool_calls,
         })
         setActiveResponseQuestion(latest.question)
-        setRequestState('succeeded')
+        if (sessionStatus === 'failed') {
+          setRequestState('failed')
+          setRequestError(
+            detail.session.error_message ??
+              (latest.answer.trim().length === 0
+                ? 'This turn failed before an answer was stored.'
+                : null),
+          )
+        } else if (sessionStatus === 'canceled' || sessionStatus === 'cancelled') {
+          setRequestState('canceled')
+          setRequestError(null)
+        } else if (sessionStatus === 'running') {
+          setRequestState('loading')
+          setRequestError(null)
+        } else {
+          setRequestState('succeeded')
+          setRequestError(null)
+        }
       }
       setDetailState('succeeded')
     } catch (error) {
       setDetailState('failed')
       setDetailError(getErrorMessage(error))
+      // Leave the chat pane idle; session-detail errors surface in the inspector.
+      setPriorTurns([])
+      setResponse(null)
+      setRequestState('idle')
+      setRequestError(null)
     }
   }
 
@@ -3136,23 +3172,6 @@ function emptyChatResponse(): ChatResponseBody {
   }
 }
 
-function chatResponseFromSessionDetail(
-  detail: ChatSessionDetailResponse,
-): ChatResponseBody {
-  const turns = transcriptTurnsFromSessionDetail(detail)
-  const latest = turns[turns.length - 1]
-  if (latest === undefined) {
-    return emptyChatResponse()
-  }
-  return {
-    answer: latest.answer,
-    citations: latest.citations,
-    session_id: detail.session.session_id,
-    steps: latest.steps,
-    tool_calls: latest.tool_calls,
-  }
-}
-
 function transcriptTurnsFromSessionDetail(
   detail: ChatSessionDetailResponse,
 ): ChatTranscriptTurn[] {
@@ -3177,13 +3196,14 @@ function transcriptTurnsFromSessionDetail(
         break
       }
     }
-    if (assistantIndex < 0) {
-      continue
-    }
-    const assistantMessage = messages[assistantIndex]
+    // Keep user-only turns (failed/canceled before assistant reply) so session
+    // switching never shows a blank transcript when messages exist.
+    const assistantMessage =
+      assistantIndex >= 0 ? messages[assistantIndex] : undefined
     const turnStartMs = Date.parse(message.created_at)
     let turnEndMs = Number.POSITIVE_INFINITY
-    for (let j = assistantIndex + 1; j < messages.length; j += 1) {
+    const scanFrom = assistantIndex >= 0 ? assistantIndex + 1 : index + 1
+    for (let j = scanFrom; j < messages.length; j += 1) {
       if (messages[j]?.role === 'user') {
         turnEndMs = Date.parse(messages[j].created_at)
         break
@@ -3204,7 +3224,10 @@ function transcriptTurnsFromSessionDetail(
       return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
     })
     turns.push({
-      id: assistantMessage?.message_id ?? `turn-${index}`,
+      id:
+        assistantMessage?.message_id ??
+        message.message_id ??
+        `turn-${index}`,
       question,
       answer: assistantMessage?.content ?? '',
       citations: turnRetrievalRuns.flatMap((run) =>

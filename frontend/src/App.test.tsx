@@ -3469,6 +3469,54 @@ describe('App chat workspace', () => {
     expect(screen.getByText('first turn query')).toBeTruthy()
   })
 
+  test('shows user question when selecting a failed session with no assistant reply', async () => {
+    const user = userEvent.setup()
+    const failedUserOnlyDetail: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      session: {
+        ...sessionDetailResponse.session,
+        status: 'failed',
+        error_message:
+          'Chat provider rate-limited the request (HTTP 429). Wait a moment and use Try again.',
+      },
+      messages: [
+        {
+          content: 'What is the release mascot?',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'message-user-only',
+          metadata: null,
+          role: 'user',
+        },
+      ],
+      retrieval_runs: [],
+      tool_calls: [],
+      provider_usage: [],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => failedUserOnlyDetail),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialProjectId={projectId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+
+    // Must not blank the transcript: user message is still visible.
+    expect(
+      await screen.findByText('What is the release mascot?'),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        /Chat provider rate-limited the request \(HTTP 429\)/,
+      ),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  })
+
   test('refreshes history and renders selected session detail read-only', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
