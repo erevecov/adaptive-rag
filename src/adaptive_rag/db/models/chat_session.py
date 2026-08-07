@@ -13,7 +13,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.db.models.project import JSONWithJSONB
 
-CHAT_SESSION_STATUS_VALUES = ("running", "succeeded", "failed")
+CHAT_SESSION_STATUS_VALUES = ("running", "succeeded", "failed", "canceled")
 
 
 class ChatSession(Base):
@@ -22,7 +22,7 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('running', 'succeeded', 'failed')",
+            "status IN ('running', 'succeeded', 'failed', 'canceled')",
             name="chat_sessions_status_check",
         ),
         Index("ix_chat_sessions_project_created_at", "project_id", "created_at"),

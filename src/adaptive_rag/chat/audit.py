@@ -141,6 +141,15 @@ class ChatAuditWriter(Protocol):
         """Marca una sesion como fallida."""
         ...
 
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        """Marca una sesion como cancelada por el cliente."""
+        ...
+
     def record_provider_usage(
         self,
         project_id: UUID,
@@ -269,6 +278,14 @@ class NullChatAuditWriter:
         project_id: UUID,
         session_id: UUID,
         error_message: str,
+    ) -> None:
+        return None
+
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
     ) -> None:
         return None
 
@@ -500,6 +517,19 @@ class InMemoryChatAuditWriter:
         self.events.append(
             {
                 "event": "fail_session",
+                "error_message": error_message,
+            }
+        )
+
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        self.events.append(
+            {
+                "event": "cancel_session",
                 "error_message": error_message,
             }
         )
@@ -798,6 +828,20 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None:
             return
         self._chat_audit_repository.fail_session(
+            project_id=project_id,
+            session_id=session_id,
+            error_message=error_message,
+        )
+
+    def cancel_session(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+        error_message: str = "client_disconnected",
+    ) -> None:
+        if session_id is None:
+            return
+        self._chat_audit_repository.cancel_session(
             project_id=project_id,
             session_id=session_id,
             error_message=error_message,

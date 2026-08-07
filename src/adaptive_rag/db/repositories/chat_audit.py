@@ -205,6 +205,22 @@ class ChatAuditRepository:
         self._session.flush()
         return chat_session
 
+    def cancel_session(
+        self,
+        *,
+        project_id: UUID,
+        session_id: UUID,
+        error_message: str = "client_disconnected",
+    ) -> ChatSession:
+        chat_session = self._require_session(
+            project_id=project_id,
+            session_id=session_id,
+        )
+        chat_session.status = "canceled"
+        chat_session.error_message = error_message
+        self._session.flush()
+        return chat_session
+
     def update_session_title(
         self,
         *,

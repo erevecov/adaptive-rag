@@ -388,7 +388,7 @@ class ChatService:
                     already_recorded=provider_usage_recorded,
                 )
                 try:
-                    self._audit_writer.fail_session(
+                    self._audit_writer.cancel_session(
                         request.project_id,
                         session_id,
                         "client_disconnected",
@@ -720,7 +720,16 @@ def _runner_model_config(runner: ChatRunner) -> dict[str, str] | None:
     model = _string_attr(runner, "model_name")
     if provider is None or model is None:
         return None
-    return {"provider": provider, "model": model}
+    config: dict[str, str] = {"provider": provider, "model": model}
+    fallback = _string_attr(runner, "fallback_model_name")
+    if fallback is not None:
+        config["fallback_model"] = fallback
+    used = _string_attr(runner, "last_used_model")
+    if used is not None:
+        config["resolved_model"] = used
+    if bool(getattr(runner, "used_fallback", False)):
+        config["used_fallback"] = "true"
+    return config
 
 
 def _runner_prompt_version(runner: ChatRunner) -> str | None:

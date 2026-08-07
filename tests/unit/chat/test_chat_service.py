@@ -663,7 +663,7 @@ def test_chat_service_stream_close_fails_session_as_client_disconnected() -> Non
     stream.close()
 
     assert any(
-        event.get("event") == "fail_session"
+        event.get("event") == "cancel_session"
         and event.get("error_message") == "client_disconnected"
         for event in audit.events
     )

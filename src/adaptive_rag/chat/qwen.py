@@ -62,6 +62,10 @@ class QwenChatRunner:
     model_name: str
     client: QwenChatClient
     provider_name: str = "qwen"
+    # Optional second model tried once after primary 429/5xx exhaustion.
+    fallback_model_name: str | None = None
+    last_used_model: str | None = field(default=None, init=False, repr=False)
+    used_fallback: bool = field(default=False, init=False, repr=False)
 
     def run(
         self,
@@ -70,9 +74,40 @@ class QwenChatRunner:
         *,
         on_answer_delta: Callable[[str], None] | None = None,
     ) -> ChatRunnerOutput:
+        self.used_fallback = False
+        try:
+            output = self._run_with_model(
+                self.model_name,
+                request,
+                tools,
+                on_answer_delta=on_answer_delta,
+            )
+            self.last_used_model = self.model_name
+            return output
+        except QwenChatRunnerError as exc:
+            if not _should_use_fallback(exc, self.fallback_model_name, self.model_name):
+                raise
+            output = self._run_with_model(
+                self.fallback_model_name or self.model_name,
+                request,
+                tools,
+                on_answer_delta=on_answer_delta,
+            )
+            self.last_used_model = self.fallback_model_name
+            self.used_fallback = True
+            return output
+
+    def _run_with_model(
+        self,
+        model_name: str,
+        request: ChatRunnerRequest,
+        tools: ChatTools,
+        *,
+        on_answer_delta: Callable[[str], None] | None = None,
+    ) -> ChatRunnerOutput:
         messages = _initial_messages(request)
         first_response = self.client.create_chat_completion(
-            model=self.model_name,
+            model=model_name,
             messages=messages,
             tools=_tool_schemas(tools),
         )
@@ -89,7 +124,7 @@ class QwenChatRunner:
                 )
                 messages.append(_tool_result_message(tool_call, result))
             final_response = self.client.create_chat_completion(
-                model=self.model_name,
+                model=model_name,
                 messages=messages,
                 on_answer_delta=on_answer_delta,
             )
@@ -102,6 +137,24 @@ class QwenChatRunner:
         if on_answer_delta is not None and output.answer:
             on_answer_delta(output.answer)
         return output
+
+
+def _should_use_fallback(
+    exc: QwenChatRunnerError,
+    fallback_model: str | None,
+    primary_model: str,
+) -> bool:
+    if fallback_model is None or not fallback_model.strip():
+        return False
+    if fallback_model.strip() == primary_model:
+        return False
+    text = str(exc).lower()
+    return (
+        "429" in text
+        or "rate limit" in text
+        or "status 5" in text
+        or "failed before receiving" in text
+    )
 
 
 @dataclass(slots=True)

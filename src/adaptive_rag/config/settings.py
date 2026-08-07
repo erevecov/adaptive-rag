@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     sparse_embedding_model: str = "fake-sparse-embedding-v1"
     chat_provider: str = "fake"
     chat_model: str = "retrieval-grounded-local-v1"
+    # Optional second model tried once after primary chat 429/5xx budget is spent.
+    chat_fallback_model: str | None = None
     rerank_provider: str = "fake"
     rerank_model: str = "fake-rerank-v1"
     provider_timeout_seconds: float = 30.0
