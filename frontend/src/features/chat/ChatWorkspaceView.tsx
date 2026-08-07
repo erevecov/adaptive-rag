@@ -299,6 +299,10 @@ export function ChatWorkspacePanel({
               >
                 {shortSessionId(continuingSessionId)}
               </span>
+              <ContextWindowChip
+                priorTurnCount={priorTurns.length}
+                steps={response?.steps ?? []}
+              />
               {onStartNewSession !== undefined ? (
                 <Button
                   className="ml-auto h-7 px-2 text-[11px]"
@@ -458,6 +462,67 @@ export function ChatWorkspacePanel({
         </form>
       </div>
     </Panel>
+  )
+}
+
+function ContextWindowChip({
+  priorTurnCount,
+  steps,
+}: {
+  priorTurnCount: number
+  steps: ChatResponseBody['steps']
+}) {
+  const contextStep = (steps ?? []).find((step) => step.id === 'context')
+  const detail = contextStep?.detail
+  const summarized =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'summarized_messages' in detail &&
+    typeof (detail as { summarized_messages: unknown }).summarized_messages ===
+      'number'
+      ? (detail as { summarized_messages: number }).summarized_messages
+      : 0
+  const kept =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'kept_recent' in detail &&
+    typeof (detail as { kept_recent: unknown }).kept_recent === 'number'
+      ? (detail as { kept_recent: number }).kept_recent
+      : null
+  const total =
+    detail !== null &&
+    detail !== undefined &&
+    typeof detail === 'object' &&
+    'total_messages' in detail &&
+    typeof (detail as { total_messages: unknown }).total_messages === 'number'
+      ? (detail as { total_messages: number }).total_messages
+      : priorTurnCount * 2
+  if (total <= 0 && priorTurnCount <= 0) {
+    return null
+  }
+  const label =
+    summarized > 0
+      ? `Context: ${kept ?? 'recent'} recent + ${summarized} summarized`
+      : `Context: ${total > 0 ? total : priorTurnCount * 2} messages`
+  return (
+    <span
+      className="truncate text-[11px] text-muted-foreground max-[680px]:text-xs"
+      data-slot="chat-context-window"
+      title={
+        detail !== null &&
+        detail !== undefined &&
+        typeof detail === 'object' &&
+        'summary_preview' in detail &&
+        typeof (detail as { summary_preview: unknown }).summary_preview ===
+          'string'
+          ? (detail as { summary_preview: string }).summary_preview
+          : label
+      }
+    >
+      {label}
+    </span>
   )
 }
 

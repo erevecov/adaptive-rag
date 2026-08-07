@@ -15,6 +15,11 @@ from uuid import UUID
 from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter, elapsed_ms
 from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
 from adaptive_rag.chat.errors import ChatServiceError, classify_chat_error
+from adaptive_rag.chat.history import (
+    DEFAULT_HISTORY_LOAD_LIMIT,
+    PreparedChatHistory,
+    prepare_chat_history,
+)
 from adaptive_rag.chat.models import (
     DEFAULT_CHAT_HISTORY_MESSAGES,
     ChatHistoryTurn,
@@ -97,6 +102,7 @@ class ChatService:
         knowledge_proposal_submitter: KnowledgeProposalSubmitter | None = None,
         query_condenser: QueryCondenser | None = None,
         history_message_limit: int = DEFAULT_CHAT_HISTORY_MESSAGES,
+        history_load_limit: int = DEFAULT_HISTORY_LOAD_LIMIT,
         graph_readiness: GraphReadinessChecker | None = None,
     ) -> None:
         self._runner = runner
@@ -115,7 +121,9 @@ class ChatService:
             if query_condenser is not None
             else DeterministicQueryCondenser()
         )
+        # Verbatim window kept in the prompt; older turns are summarized.
         self._history_message_limit = history_message_limit
+        self._history_load_limit = max(history_load_limit, history_message_limit)
         self._graph_readiness = graph_readiness or _graph_never_ready
 
     def respond(self, request: ChatRequest) -> ChatResponse:
@@ -131,7 +139,8 @@ class ChatService:
         except ValueError as exc:
             raise _session_start_error(exc) from exc
         provider_usage_recorded = False
-        history = self._load_history(request.project_id, session_id)
+        prepared = self._prepare_history(request.project_id, session_id)
+        history = prepared.turns
         retrieval_query = self._query_condenser.condense(
             history=history,
             message=message,
@@ -240,7 +249,8 @@ class ChatService:
             )
         except ValueError as exc:
             raise _session_start_error(exc) from exc
-        history = self._load_history(request.project_id, session_id)
+        prepared = self._prepare_history(request.project_id, session_id)
+        history = prepared.turns
         retrieval_query = self._query_condenser.condense(
             history=history,
             message=message,
@@ -272,6 +282,7 @@ class ChatService:
             session_id=session_id,
             runner_request=runner_request,
             retrieval_tool=retrieval_tool,
+            prepared_history=prepared,
         )
 
     def _stream_response(
@@ -282,6 +293,7 @@ class ChatService:
         session_id: UUID | None,
         runner_request: ChatRunnerRequest,
         retrieval_tool: ChatRetrievalTool,
+        prepared_history: PreparedChatHistory | None = None,
     ) -> Iterator[ChatStreamEvent]:
         provider_usage_recorded = False
         answer_start: float | None = None
@@ -304,6 +316,14 @@ class ChatService:
                 origin_message_id=user_message_id,
             )
             answer_start = monotonic()
+            if prepared_history is not None and prepared_history.total_messages > 0:
+                yield chat_stream_step_event(
+                    ChatStep(
+                        id="context",
+                        status="done",
+                        detail=prepared_history.as_step_detail(),
+                    )
+                )
             yield chat_stream_step_event(ChatStep(id="answer", status="start"))
             streamed_answer_parts: list[str] = []
             live_steps_emitted = [0]
@@ -356,6 +376,18 @@ class ChatService:
                     if rest:
                         yield chat_stream_answer_delta_event(rest)
             if session_id is not None:
+                context_steps: list[ChatStep] = []
+                if (
+                    prepared_history is not None
+                    and prepared_history.total_messages > 0
+                ):
+                    context_steps.append(
+                        ChatStep(
+                            id="context",
+                            status="done",
+                            detail=prepared_history.as_step_detail(),
+                        )
+                    )
                 self._audit_writer.record_message(
                     request.project_id,
                     session_id,
@@ -365,6 +397,7 @@ class ChatService:
                         "steps": [
                             serialize_chat_step(step)
                             for step in (
+                                *context_steps,
                                 *retrieval_tool.steps,
                                 answer_step,
                             )
@@ -573,21 +606,35 @@ class ChatService:
             raise ChatServiceError("chat runner returned no output")
         return output
 
+    def _prepare_history(
+        self,
+        project_id: UUID,
+        session_id: UUID | None,
+    ) -> PreparedChatHistory:
+        if session_id is None:
+            return PreparedChatHistory(
+                turns=(),
+                summary=None,
+                total_messages=0,
+                kept_recent=0,
+                summarized_messages=0,
+            )
+        raw_turns = self._audit_writer.list_history_turns(
+            project_id=project_id,
+            session_id=session_id,
+            limit=self._history_load_limit,
+        )
+        return prepare_chat_history(
+            raw_turns,
+            keep_recent=self._history_message_limit,
+        )
+
     def _load_history(
         self,
         project_id: UUID,
         session_id: UUID | None,
     ) -> tuple[ChatHistoryTurn, ...]:
-        if session_id is None:
-            return ()
-        raw_turns = self._audit_writer.list_history_turns(
-            project_id=project_id,
-            session_id=session_id,
-            limit=self._history_message_limit,
-        )
-        return tuple(
-            ChatHistoryTurn(role=role, content=content) for role, content in raw_turns
-        )
+        return self._prepare_history(project_id, session_id).turns
 
     def _build_knowledge_tool(
         self,
