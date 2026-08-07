@@ -147,8 +147,8 @@ body {
   }
 }
 
-/* Chat scrollbars: thin, token-themed (light / dark / purple). Static colors
-   only — no animated gimmicks, per prefers-reduced-motion. */
+/* Shared thin scrollbars (chat transcript + sidebar session list). Token-
+   themed for light / dark / purple. Static colors only — no motion. */
 .scrollbar-chat {
   scrollbar-width: thin;
   scrollbar-color:

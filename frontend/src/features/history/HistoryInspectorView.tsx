@@ -155,63 +155,70 @@ export function SessionNavigationPanel({
   return (
     <Panel
       aria-labelledby="history-title"
-      className="grid min-h-0 min-w-0 content-start gap-2 border-0 bg-transparent p-0 shadow-none max-[680px]:gap-0.5"
+      className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2 border-0 bg-transparent p-0 shadow-none max-[680px]:gap-0.5"
       role="complementary"
     >
       <h2 className="sr-only" id="history-title">
         Sesiones
       </h2>
 
-      <Button
-        className={cn(
-          'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
-          'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
-        )}
-        onClick={onStartNewSession}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-        Nuevo chat
-      </Button>
-
-      <SegmentedControl
-        aria-label="Session Filters"
-        className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/70"
-      >
-        {SESSION_FILTERS.map((filter) => (
-          <SegmentedControlItem
-            active={statusFilter === filter.value}
-            aria-label={filter.title}
-            className={cn(
-              'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
-              statusFilter === filter.value
-                ? 'font-semibold shadow-sm'
-                : 'font-medium',
-            )}
-            key={filter.value}
-            onClick={() => onStatusFilterChange(filter.value)}
-            title={filter.title}
-          >
-            <span className="block truncate">{filter.label}</span>
-          </SegmentedControlItem>
-        ))}
-      </SegmentedControl>
-
-      {error ? (
-        <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
-      ) : null}
-      {copyFeedback ? (
-        <InlineFeedback
-          data-slot="session-copy-feedback"
-          role="status"
-          tone="neutral"
+      {/* Fixed chrome above the list — scrollbar starts at the first session. */}
+      <div className="grid shrink-0 gap-2 max-[680px]:gap-0.5" data-slot="session-list-chrome">
+        <Button
+          className={cn(
+            'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
+            'hover:border-primary/40 hover:bg-primary/15 hover:text-foreground',
+          )}
+          onClick={onStartNewSession}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
-          {copyFeedback}
-        </InlineFeedback>
-      ) : null}
+          <Plus aria-hidden="true" className="size-3.5 shrink-0" />
+          Nuevo chat
+        </Button>
 
+        <SegmentedControl
+          aria-label="Session Filters"
+          className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/70"
+        >
+          {SESSION_FILTERS.map((filter) => (
+            <SegmentedControlItem
+              active={statusFilter === filter.value}
+              aria-label={filter.title}
+              className={cn(
+                'h-auto min-h-0 min-w-0 w-full overflow-hidden px-0.5 py-1.5 text-[11px] leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug',
+                statusFilter === filter.value
+                  ? 'font-semibold shadow-sm'
+                  : 'font-medium',
+              )}
+              key={filter.value}
+              onClick={() => onStatusFilterChange(filter.value)}
+              title={filter.title}
+            >
+              <span className="block truncate">{filter.label}</span>
+            </SegmentedControlItem>
+          ))}
+        </SegmentedControl>
+
+        {error ? (
+          <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
+        ) : null}
+        {copyFeedback ? (
+          <InlineFeedback
+            data-slot="session-copy-feedback"
+            role="status"
+            tone="neutral"
+          >
+            {copyFeedback}
+          </InlineFeedback>
+        ) : null}
+      </div>
+
+      <div
+        className="scrollbar-chat min-h-0 overflow-y-auto pr-0.5"
+        data-slot="session-list-scroll"
+      >
       <DataList aria-label="Project Sessions" className="min-w-0 gap-0.5">
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
@@ -464,6 +471,7 @@ export function SessionNavigationPanel({
           {isLoading ? 'Cargando…' : 'Ver más'}
         </Button>
       ) : null}
+      </div>
     </Panel>
   )
 }

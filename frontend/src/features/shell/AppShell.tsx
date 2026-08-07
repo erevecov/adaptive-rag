@@ -480,7 +480,9 @@ export function AppSidebar({
 
       <div
         className={cn(
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-x-hidden overflow-y-auto px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
+          // overflow-hidden: only the session list (or contextual nav) scrolls —
+          // not project selector / primary nav — so the thumb starts at row 1.
+          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-hidden px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -592,7 +594,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -662,7 +664,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="grid content-start items-stretch self-start border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
