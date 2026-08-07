@@ -397,18 +397,56 @@ describe('ChatWorkspacePanel', () => {
     view.unmount()
   })
 
-  test('edit question loads text into the composer via onQuestionChange', async () => {
+  test('edit question loads text into the composer via onEditQuestion', async () => {
     const userDriver = userEvent.setup()
-    const onQuestionChange = vi.fn()
+    const onEditQuestion = vi.fn()
     renderChatWorkspace({
       activeResponseQuestion: 'What is Nimbus?',
-      onQuestionChange,
+      onEditQuestion,
       requestState: 'succeeded',
       response,
     })
 
     await userDriver.click(screen.getByRole('button', { name: 'Edit question' }))
-    expect(onQuestionChange).toHaveBeenCalledWith('What is Nimbus?')
+    expect(onEditQuestion).toHaveBeenCalledWith('What is Nimbus?')
+  })
+
+  test('context window chip shows summarized counts from context step', () => {
+    const responseWithContext = {
+      ...response,
+      steps: [
+        {
+          id: 'context',
+          status: 'done' as const,
+          detail: {
+            total_messages: 20,
+            kept_recent: 8,
+            summarized_messages: 12,
+            used_summary: true,
+            summary_preview: 'Pinned user-stated facts…',
+          },
+        },
+      ],
+    }
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      priorTurns: [
+        {
+          id: 't1',
+          question: 'Earlier Q',
+          answer: 'Earlier A',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+      ],
+      response: responseWithContext,
+      requestState: 'succeeded',
+    })
+    const chip = view.container.querySelector('[data-slot="chat-context-window"]')
+    expect(chip).toBeTruthy()
+    expect(chip?.textContent).toMatch(/8 recent/)
+    expect(chip?.textContent).toMatch(/12 summarized/)
   })
 
   test('retry button appears on failed empty state with error detail', async () => {

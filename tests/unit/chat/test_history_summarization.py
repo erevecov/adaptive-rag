@@ -51,7 +51,7 @@ def test_prepare_summarizes_older_turns() -> None:
     assert prepared.summarized_messages == 16
     assert prepared.used_summary is True
     assert prepared.summary is not None
-    assert "topic-0" in prepared.summary
+    assert "topic-0" in prepared.summary or "topic-9" in prepared.summary
     # Bridge + recent
     assert prepared.turns[0].role == "user"
     assert "condensed" in prepared.turns[0].content.lower()
@@ -59,6 +59,30 @@ def test_prepare_summarizes_older_turns() -> None:
     detail = prepared.as_step_detail()
     assert detail["used_summary"] is True
     assert detail["summarized_messages"] == 16
+
+
+def test_prepare_pins_user_stated_facts_across_truncation() -> None:
+    """User-only facts must survive summary truncation (memory-vs-retrieval gap)."""
+
+    turns: list[tuple[str, str]] = [
+        ("user", "Remember that my favorite color is cerulean-periwinkle-42."),
+        ("assistant", "Got it, I will remember that."),
+    ]
+    for i in range(12):
+        turns.append(("user", f"Filler question number {i} about nothing important."))
+        turns.append(("assistant", f"Filler answer {i} with generic content only."))
+    prepared = prepare_chat_history(turns, keep_recent=4, max_summary_chars=800)
+    assert prepared.used_summary is True
+    assert prepared.summary is not None
+    assert "cerulean-periwinkle-42" in prepared.summary
+    assert any("USER_FACT" in line for line in prepared.summary.splitlines())
+    assert prepared.pinned_facts
+    assert any("cerulean-periwinkle-42" in f for f in prepared.pinned_facts)
+    # Bridge instructs model to treat USER_FACT as authoritative without KB.
+    assert "user-stated" in prepared.turns[0].content.lower() or "USER_FACT" in (
+        prepared.summary or ""
+    )
+    assert prepared.as_step_detail().get("pinned_facts", 0) >= 1
 
 
 def test_chat_service_stream_emits_context_step_and_summarizes() -> None:

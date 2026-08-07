@@ -238,11 +238,17 @@ class ChatService:
                 retryable=error.retryable,
             ) from exc
 
-    def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
+    def stream(
+        self,
+        request: ChatRequest,
+        *,
+        enrich_request: Callable[[ChatRequest], ChatRequest] | None = None,
+    ) -> Iterator[ChatStreamEvent]:
         """Stream chat events; emit session_started before heavy prep.
 
-        History summarization and tool construction run *after* the first SSE
-        event so clients hit the first-status latency bar (see RAG-LATENCY-BAR).
+        History summarization, optional request enrichment (user memory), and
+        tool construction run *after* the first SSE event so clients hit the
+        first-status latency bar (see RAG-LATENCY-BAR).
         """
 
         message = _validate_request(request)
@@ -273,6 +279,9 @@ class ChatService:
                     message,
                 )
                 yield chat_stream_session_started_event(session_id)
+
+            if enrich_request is not None:
+                request = enrich_request(request)
 
             # Exclude the user message we just recorded so the runner does not
             # see the active turn twice (history + latest user content).

@@ -602,24 +602,34 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRequestError(null)
     setHeartbeatElapsedMs(null)
     setHistoryError(null)
-    // Keep completed prior turns visible; archive the current succeeded turn
-    // unless regenerate/retry is replacing the last answer in place.
+    // Keep prior turns visible. Archive the current turn when it completed
+    // successfully, or when it failed/canceled so the user still sees it
+    // after the next submit (Cursor multi-turn residual).
     if (
       !options.replaceLast &&
-      response !== null &&
-      requestState === 'succeeded' &&
       activeResponseQuestion !== null &&
-      activeResponseQuestion.trim().length > 0
+      activeResponseQuestion.trim().length > 0 &&
+      (requestState === 'succeeded' ||
+        requestState === 'failed' ||
+        requestState === 'canceled')
     ) {
+      const answerText =
+        response !== null && response.answer.trim().length > 0
+          ? response.answer
+          : requestState === 'succeeded'
+            ? ''
+            : requestState === 'canceled'
+              ? '_(Request canceled — no complete answer.)_'
+              : '_(Request failed — no complete answer.)_'
       setPriorTurns((current) => [
         ...current,
         {
           id: `local-${Date.now()}`,
           question: activeResponseQuestion,
-          answer: response.answer,
-          citations: response.citations,
-          steps: response.steps,
-          tool_calls: response.tool_calls,
+          answer: answerText,
+          citations: response?.citations ?? [],
+          steps: response?.steps,
+          tool_calls: response?.tool_calls ?? [],
         },
       ])
     }

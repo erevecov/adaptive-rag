@@ -214,6 +214,12 @@ def stream_chat(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
     _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> StreamingResponse:
+    """Start streaming ASAP; attach user memory inside the event generator.
+
+    Rate/flight locks still run pre-stream. Approved user-memory injection is
+    deferred so the first SSE byte is not blocked on that query (cold TTFS).
+    """
+
     rate_key = _chat_rate_key(project_id=project_id, user_id=current.user_id)
     if not _try_acquire_chat_rate(rate_key):
         raise HTTPException(
@@ -279,13 +285,16 @@ def stream_chat(
             chat_retrieval_settings=chat_retrieval_settings,
             user_id=current.user_id,
         )
-        request = _with_approved_user_memory(
-            session,
-            request=request,
-            user_id=current.user_id,
-            project_id=project_id,
-        )
-        events = service.stream(request)
+
+        def _enrich(active: ChatRequest) -> ChatRequest:
+            return _with_approved_user_memory(
+                session,
+                request=active,
+                user_id=current.user_id,
+                project_id=project_id,
+            )
+
+        events = service.stream(request, enrich_request=_enrich)
     except ChatServiceError as exc:
         _release_chat_flight(flight_key)
         _release_chat_user_flight(user_flight_key)

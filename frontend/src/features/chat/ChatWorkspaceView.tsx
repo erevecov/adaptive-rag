@@ -243,6 +243,7 @@ export function ChatWorkspacePanel({
             drafts={drafts}
             errorDetail={requestError}
             heartbeatElapsedMs={heartbeatElapsedMs}
+            onEditQuestion={onEditQuestion}
             onOpenSource={onOpenSource}
             onQuestionChange={onQuestionChange}
             onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -638,6 +639,7 @@ function ResponsePanel({
   drafts,
   errorDetail = null,
   heartbeatElapsedMs = null,
+  onEditQuestion,
   onOpenSource,
   onQuestionChange,
   onRefineKnowledgeDraft,
@@ -655,6 +657,7 @@ function ResponsePanel({
   drafts: ChatKnowledgeDraftMap
   errorDetail?: string | null
   heartbeatElapsedMs?: number | null
+  onEditQuestion?(text: string, turnId?: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onQuestionChange?(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
@@ -904,9 +907,9 @@ function ResponsePanel({
         appliedMemories={appliedMemories}
         drafts={drafts}
         onEditQuestion={
-          onQuestionChange === undefined || state === 'loading'
+          state === 'loading' || onEditQuestion === undefined
             ? undefined
-            : (text) => onQuestionChange(text)
+            : (text) => onEditQuestion(text)
         }
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
