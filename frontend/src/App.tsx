@@ -165,6 +165,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [activeSpeechRecognition, setActiveSpeechRecognition] =
     useState<BrowserSpeechRecognition | null>(null)
   const [response, setResponse] = useState<ChatResponseBody | null>(null)
+  const [heartbeatElapsedMs, setHeartbeatElapsedMs] = useState<number | null>(
+    null,
+  )
   const [appliedMemories, setAppliedMemories] = useState<UserMemory[]>([])
   const [activeResponseQuestion, setActiveResponseQuestion] = useState<
     string | null
@@ -612,6 +615,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     setRequestState('loading')
     setRequestError(null)
+    setHeartbeatElapsedMs(null)
     setHistoryError(null)
     // Keep completed prior turns visible; archive the current succeeded turn
     // unless regenerate/retry is replacing the last answer in place.
@@ -669,6 +673,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             setResponse((current) => appendAnswerDelta(current, text))
           },
           onEvent: markStreamOpened,
+          onHeartbeat: (elapsedMs) => {
+            markStreamOpened()
+            setHeartbeatElapsedMs(elapsedMs)
+          },
           onSessionStarted: (sessionId) => {
             markStreamOpened()
             setResponse((current) => setResponseSessionId(current, sessionId))
@@ -699,6 +707,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         setSelectedSessionId(nextSessionId)
       }
       setRequestState('succeeded')
+      setHeartbeatElapsedMs(null)
       setQuestion('')
       try {
         const memories = await client.listUserMemories({
@@ -727,8 +736,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       if (isAbortError(error)) {
         setRequestState('canceled')
         setRequestError(null)
+        setHeartbeatElapsedMs(null)
         // Session was committed at session_started; refresh history so the
         // failed/canceled turn is visible and continuity stays valid.
+        // Partial streamed answer (if any) is left on screen for the user.
         if (selectedSessionId !== null) {
           void handleRefreshHistory(trimmedProjectId, 'active')
           void refreshOpenSessionDetail(trimmedProjectId, selectedSessionId)
@@ -777,6 +788,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       }
       setRequestState('failed')
       setRequestError(getErrorMessage(error))
+      setHeartbeatElapsedMs(null)
     } finally {
       setActiveRequestController((current) =>
         current === controller ? null : current,
@@ -2536,6 +2548,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 appliedMemories={appliedMemories}
                 continuingSessionId={selectedSessionId}
                 drafts={knowledgeDrafts}
+                heartbeatElapsedMs={heartbeatElapsedMs}
                 isAsking={isAsking}
                 isContextInspectorActive={
                   isRightDockOpen && inspectorTab === 'context'
@@ -2554,6 +2567,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
                 onRegenerateLastAnswer={handleRegenerateLastAnswer}
                 onRetryLastQuestion={handleRetryLastQuestion}
+                onStartNewSession={handleStartNewSession}
                 onStartSpeechRecognition={handleStartSpeechRecognition}
                 onStopSpeechRecognition={handleStopSpeechRecognition}
                 onSubmit={handleSubmit}

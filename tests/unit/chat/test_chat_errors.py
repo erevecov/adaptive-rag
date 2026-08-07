@@ -43,3 +43,16 @@ def test_classify_preserves_chat_service_error_fields() -> None:
     assert payload.code == "client_disconnected"
     assert payload.message == "client_disconnected"
     assert payload.retryable is False
+
+
+def test_classify_maps_raw_client_disconnected_string() -> None:
+    payload = classify_chat_error(RuntimeError("client_disconnected"))
+    assert payload.code == "client_disconnected"
+    assert payload.retryable is False
+    assert "canceled" in payload.message.lower() or "disconnect" in payload.message.lower()
+
+
+def test_classify_maps_archived_session() -> None:
+    payload = classify_chat_error(ValueError("session is archived"))
+    assert payload.code == "session_archived"
+    assert payload.retryable is False

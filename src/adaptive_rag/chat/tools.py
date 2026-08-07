@@ -42,7 +42,7 @@ class RetrievalSearcher(Protocol):
 
 
 class KnowledgeProposalSubmitter(Protocol):
-    """Backend que prepara un draft de conocimiento desde chat."""
+    """Backend que prepara y lifecyclea drafts de conocimiento desde chat."""
 
     def commit(
         self,
@@ -56,6 +56,26 @@ class KnowledgeProposalSubmitter(Protocol):
         draft_id: str | None = None,
     ) -> KnowledgeProposalSubmissionResult:
         """Crea un draft revisable y devuelve un resumen serializable."""
+
+    def refine(
+        self,
+        *,
+        project_id: UUID,
+        draft_id: str,
+        knowledge_text: str,
+        scope: str,
+    ) -> KnowledgeProposalSubmissionResult:
+        """Actualiza el texto de un draft pending."""
+
+    def cancel(
+        self,
+        *,
+        project_id: UUID,
+        draft_id: str,
+        reviewed_by_user_id: UUID,
+        scope: str = "message",
+    ) -> KnowledgeProposalSubmissionResult:
+        """Rechaza un draft pending (cancel desde chat)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +132,7 @@ class ChatRetrievalTool:
         audit_session_id: UUID | None = None,
         query_router: QueryRouter | None = None,
         graph_ready: bool = False,
+        on_step: Callable[[ChatStep], None] | None = None,
     ) -> None:
         self._retrieval_service = retrieval_service
         self._project_id = project_id
@@ -125,9 +146,15 @@ class ChatRetrievalTool:
         self._audit_session_id = audit_session_id
         self._query_router = query_router or RuleBasedQueryRouter()
         self._graph_ready = graph_ready
+        self._on_step = on_step
         self._tool_calls: list[ChatToolCall] = []
         self._retrieved_results: dict[UUID, RetrievalResultPayload] = {}
         self._steps: list[ChatStep] = []
+
+    def set_on_step(self, on_step: Callable[[ChatStep], None] | None) -> None:
+        """Wire a live step sink (used by streaming to emit retrieval steps early)."""
+
+        self._on_step = on_step
 
     @property
     def tool_calls(self) -> tuple[ChatToolCall, ...]:
@@ -309,6 +336,8 @@ class ChatRetrievalTool:
 
     def _record_step(self, step: ChatStep) -> None:
         self._steps.append(step)
+        if self._on_step is not None:
+            self._on_step(step)
 
 
 class ChatKnowledgeProposalTool:
@@ -402,7 +431,6 @@ class ChatKnowledgeProposalTool:
         normalized_scope = _normalize_knowledge_scope(scope)
         if self._submitted_by_user_id is None:
             raise ChatServiceError("authenticated user required to refine knowledge")
-        submitted_by_user_id = self._submitted_by_user_id
 
         arguments = {
             "draft_id": normalized_draft_id,
@@ -411,14 +439,11 @@ class ChatKnowledgeProposalTool:
         }
 
         def action() -> dict[str, Any]:
-            result = self._submitter.commit(
+            result = self._submitter.refine(
                 project_id=self._project_id,
-                submitted_by_user_id=submitted_by_user_id,
+                draft_id=normalized_draft_id,
                 knowledge_text=text,
                 scope=normalized_scope,
-                origin_session_id=self._origin_session_id,
-                origin_message_id=self._origin_message_id,
-                draft_id=normalized_draft_id,
             )
             summary = result.as_summary()
             summary["knowledge_lifecycle"] = {
@@ -435,24 +460,25 @@ class ChatKnowledgeProposalTool:
 
     def cancel(self, *, draft_id: str | None = None) -> dict[str, Any]:
         normalized_draft_id = draft_id.strip() if draft_id is not None else None
-        if normalized_draft_id == "":
+        if not normalized_draft_id:
             raise ChatServiceError("draft_id must not be empty")
-        arguments: dict[str, Any] = {}
-        if normalized_draft_id is not None:
-            arguments["draft_id"] = normalized_draft_id
+        if self._submitted_by_user_id is None:
+            raise ChatServiceError("authenticated user required to cancel knowledge")
+        reviewed_by_user_id = self._submitted_by_user_id
+        arguments: dict[str, Any] = {"draft_id": normalized_draft_id}
 
         def action() -> dict[str, Any]:
-            summary: dict[str, Any] = {
-                "status": "cancelled",
-                "knowledge_lifecycle": {
-                    "action": "cancel",
-                },
+            result = self._submitter.cancel(
+                project_id=self._project_id,
+                draft_id=normalized_draft_id,
+                reviewed_by_user_id=reviewed_by_user_id,
+            )
+            summary = result.as_summary()
+            summary["status"] = "cancelled"
+            summary["knowledge_lifecycle"] = {
+                "action": "cancel",
+                "draft_id": normalized_draft_id,
             }
-            if normalized_draft_id is not None:
-                summary["draft_id"] = normalized_draft_id
-                summary["knowledge_lifecycle"]["draft_id"] = normalized_draft_id
-            else:
-                summary["knowledge_lifecycle"]["all_pending"] = True
             return summary
 
         return self._record_lifecycle_tool(

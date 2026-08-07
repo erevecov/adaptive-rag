@@ -270,7 +270,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-session-continuity"]',
     )
     expect(continuity).toBeTruthy()
-    expect(continuity?.textContent).toContain('Continuing Thread')
+    expect(continuity?.textContent).toContain('Continuing thread')
     expect(continuity?.textContent).toContain('session-')
 
     const shortcuts = view.container.querySelector(
@@ -307,7 +307,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loading).toBeTruthy()
-    expect(loading?.textContent).toContain('Waiting For Response…')
+    expect(loading?.textContent).toContain('Waiting for response…')
     // Errors are co-located with the transcript failure state, not under the
     // composer while the request is still loading.
     expect(screen.queryByRole('alert')).toBeNull()
@@ -360,7 +360,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(canceledBanner).toBeTruthy()
-    expect(canceledBanner?.textContent).toMatch(/Request canceled/)
+    expect(canceledBanner?.textContent).toMatch(/Stopped — partial answer/)
     expect(canceledBanner?.querySelector('[role="status"]')).toBeTruthy()
     expect(
       canceledPartial.view.container.querySelector('[data-slot="chat-message"]'),
@@ -450,8 +450,11 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="empty-state"][data-slot-state="empty"]',
     )
     expect(emptyState).toBeTruthy()
-    expect(emptyState?.textContent).toContain('No Response Yet.')
-    expect(emptyState?.textContent).toMatch(/Enter To Send/)
+    expect(emptyState?.textContent).toContain('No response yet')
+    expect(emptyState?.textContent).toMatch(/Enter to send/)
+    expect(
+      empty.view.container.querySelector('[data-slot="chat-sample-questions"]'),
+    ).toBeTruthy()
     expect(screen.queryByText('Speech input ready.')).toBeNull()
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
@@ -616,7 +619,7 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-terminal-banner"][data-slot-state="canceled"]',
     )
     expect(banner).toBeTruthy()
-    expect(banner?.textContent).toMatch(/Request canceled/)
+    expect(banner?.textContent).toMatch(/Stopped — partial answer/)
     expect(screen.getByText('Partial before cancel')).toBeTruthy()
     canceled.view.unmount()
 

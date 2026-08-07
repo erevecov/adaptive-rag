@@ -11,6 +11,8 @@ from adaptive_rag.chat.tools import (
 class RecordingSubmitter:
     def __init__(self) -> None:
         self.commits: list[tuple[str, str, str | None]] = []
+        self.refines: list[tuple[str, str, str]] = []
+        self.cancels: list[str] = []
 
     def commit(
         self,
@@ -26,7 +28,41 @@ class RecordingSubmitter:
             proposed_text=knowledge_text,
             review_action="approve",
             scope=scope,
-            status="draft",
+            status="pending",
+        )
+
+    def refine(
+        self,
+        *,
+        project_id,  # noqa: ANN001
+        draft_id,
+        knowledge_text,
+        scope,
+    ):
+        self.refines.append((draft_id, knowledge_text, scope))
+        return KnowledgeProposalSubmissionResult(
+            draft_id=draft_id,
+            proposed_text=knowledge_text,
+            review_action="approve",
+            scope=scope,
+            status="pending",
+        )
+
+    def cancel(
+        self,
+        *,
+        project_id,  # noqa: ANN001
+        draft_id,
+        reviewed_by_user_id,  # noqa: ANN001
+        scope="message",
+    ):
+        self.cancels.append(draft_id)
+        return KnowledgeProposalSubmissionResult(
+            draft_id=draft_id,
+            proposed_text="stale",
+            review_action="none",
+            scope=scope,
+            status="rejected",
         )
 
 
@@ -57,7 +93,7 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
         "proposed_text": "Refined project knowledge.",
         "review_action": "approve",
         "scope": "session",
-        "status": "draft",
+        "status": "pending",
     }
     assert cancelled == {
         "draft_id": "draft-123",
@@ -65,6 +101,9 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
             "action": "cancel",
             "draft_id": "draft-123",
         },
+        "proposed_text": "stale",
+        "review_action": "none",
+        "scope": "message",
         "status": "cancelled",
     }
     assert approved == {
@@ -80,6 +119,8 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
         "cancel_knowledge",
         "approve_knowledge",
     ]
-    assert submitter.commits == [
-        ("Refined project knowledge.", "session", "draft-123")
+    assert submitter.refines == [
+        ("draft-123", "Refined project knowledge.", "session")
     ]
+    assert submitter.cancels == ["draft-123"]
+    assert submitter.commits == []

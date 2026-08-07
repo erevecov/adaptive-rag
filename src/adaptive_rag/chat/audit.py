@@ -550,6 +550,8 @@ class SqlAlchemyChatAuditWriter:
             )
             if existing is None:
                 raise ValueError("chat session not found")
+            if existing.archived_at is not None:
+                raise ValueError("session is archived")
             # Re-open for multi-turn follow-ups after a prior succeed/fail.
             existing.status = "running"
             existing.error_message = None

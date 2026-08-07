@@ -77,16 +77,18 @@ def classify_chat_error(exc: BaseException) -> ChatErrorPayload:
             message="Chat provider returned a temporary server error. Use Try again.",
             retryable=True,
         )
-    if text == "client_disconnected":
+    if text == "client_disconnected" or "client_disconnected" in lowered:
         return ChatErrorPayload(
             code="client_disconnected",
-            message="client_disconnected",
+            message="Request canceled (client disconnected).",
             retryable=False,
         )
-    if "session" in lowered and "archiv" in lowered:
+    if "session is archived" in lowered or (
+        "session" in lowered and "archiv" in lowered
+    ):
         return ChatErrorPayload(
             code="session_archived",
-            message=text if len(text) <= 280 else text[:277] + "...",
+            message="This chat session is archived. Start a new session to continue.",
             retryable=False,
         )
     if len(text) > 280:

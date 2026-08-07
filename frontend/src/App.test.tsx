@@ -3324,7 +3324,7 @@ describe('App chat workspace', () => {
         .closest('[data-slot="data-list-item"]')
         ?.hasAttribute('data-selected'),
     ).toBe(false)
-    expect(screen.getByText('No Response Yet.')).toBeTruthy()
+    expect(screen.getByText('No response yet')).toBeTruthy()
     expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toBe(
       '',
     )

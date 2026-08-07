@@ -1544,6 +1544,28 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
     assert archived_list.json()["items"][0]["title"] == "Renamed session"
     assert archived_list.json()["items"][0]["archived_at"] is not None
 
+    blocked = client.post(
+        f"/projects/{project.id}/chat",
+        json={
+            "message": "Continue after archive.",
+            "session_id": str(chat_session.id),
+        },
+    )
+    assert blocked.status_code == 422
+    assert blocked.json() == {
+        "detail": {
+            "code": "session_archived",
+            "detail": (
+                "This chat session is archived. Start a new session to continue."
+            ),
+            "message": (
+                "This chat session is archived. Start a new session to continue."
+            ),
+            "retryable": False,
+        }
+    }
+    assert runner.requests == []
+
     unarchive = client.post(
         f"/projects/{project.id}/chat/sessions/{chat_session.id}/unarchive"
     )
@@ -1862,7 +1884,7 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     assert response.status_code == 422
     assert response.json() == {
         "detail": {
-            "code": "chat_error",
+            "code": "session_not_found",
             "detail": "chat session not found",
             "message": "chat session not found",
             "retryable": False,
@@ -1880,7 +1902,7 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     assert stream_response.status_code == 422
     assert stream_response.json() == {
         "detail": {
-            "code": "chat_error",
+            "code": "session_not_found",
             "detail": "chat session not found",
             "message": "chat session not found",
             "retryable": False,
@@ -1930,7 +1952,7 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
     assert hijack.status_code == 422
     assert hijack.json() == {
         "detail": {
-            "code": "chat_error",
+            "code": "session_not_found",
             "detail": "chat session not found",
             "message": "chat session not found",
             "retryable": False,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Iterator
 from dataclasses import replace
 from datetime import datetime
@@ -190,6 +191,27 @@ def stream_chat(
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
     _access: Annotated[tuple[Project, str], Depends(get_project_access)],
 ) -> StreamingResponse:
+    flight_key = _chat_flight_key(
+        project_id=project_id,
+        user_id=current.user_id,
+        session_id=body.session_id,
+    )
+    if not _try_acquire_chat_flight(flight_key):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "chat_in_flight",
+                "message": (
+                    "A chat turn is already in progress for this session. "
+                    "Wait for it to finish or cancel it first."
+                ),
+                "retryable": True,
+                "detail": (
+                    "A chat turn is already in progress for this session. "
+                    "Wait for it to finish or cancel it first."
+                ),
+            },
+        )
     try:
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
@@ -207,13 +229,17 @@ def stream_chat(
         )
         events = service.stream(request)
     except ChatServiceError as exc:
+        _release_chat_flight(flight_key)
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
             status_code=exc.status_code,
             detail=exc.to_payload().as_dict(),
         ) from exc
+    except Exception:
+        _release_chat_flight(flight_key)
+        raise
     return StreamingResponse(
-        _stream_chat_events(events, session),
+        _stream_chat_events(events, session, flight_key=flight_key),
         media_type="text/event-stream",
     )
 
@@ -259,6 +285,8 @@ def chat(
 def _stream_chat_events(
     events: Iterator[ChatStreamEvent],
     session: Session,
+    *,
+    flight_key: str | None = None,
 ) -> Iterator[str]:
     try:
         for event in events:
@@ -283,6 +311,45 @@ def _stream_chat_events(
     except Exception:
         _commit_or_rollback_chat_error(session)
         raise
+    finally:
+        if flight_key is not None:
+            _release_chat_flight(flight_key)
+
+
+# Per-process in-flight guard: one active stream per (project, user, session).
+_CHAT_FLIGHT_LOCK = threading.Lock()
+_CHAT_IN_FLIGHT: set[str] = set()
+
+
+def _chat_flight_key(
+    *,
+    project_id: UUID,
+    user_id: UUID | None,
+    session_id: UUID | None,
+) -> str | None:
+    """Only continuations (known session_id) are concurrency-guarded."""
+
+    if session_id is None:
+        return None
+    owner = str(user_id) if user_id is not None else "anonymous"
+    return f"{project_id}:{owner}:{session_id}"
+
+
+def _try_acquire_chat_flight(flight_key: str | None) -> bool:
+    if flight_key is None:
+        return True
+    with _CHAT_FLIGHT_LOCK:
+        if flight_key in _CHAT_IN_FLIGHT:
+            return False
+        _CHAT_IN_FLIGHT.add(flight_key)
+        return True
+
+
+def _release_chat_flight(flight_key: str | None) -> None:
+    if flight_key is None:
+        return
+    with _CHAT_FLIGHT_LOCK:
+        _CHAT_IN_FLIGHT.discard(flight_key)
 
 
 def _commit_or_rollback_chat_error(session: Session) -> None:

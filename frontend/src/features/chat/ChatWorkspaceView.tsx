@@ -92,6 +92,8 @@ export type ChatWorkspacePanelProps = {
   /** When set, follow-ups continue this multi-turn session. */
   continuingSessionId?: string | null
   drafts: ChatKnowledgeDraftMap
+  /** Elapsed ms from last SSE heartbeat while a request is in flight. */
+  heartbeatElapsedMs?: number | null
   isAsking: boolean
   isContextInspectorActive: boolean
   isMinimapInspectorActive: boolean
@@ -106,6 +108,7 @@ export type ChatWorkspacePanelProps = {
   onRegenerateLastAnswer?(): void
   /** Resend the last failed/canceled question without retyping. */
   onRetryLastQuestion?(): void
+  onStartNewSession?(): void
   onStartSpeechRecognition(): void
   onStopSpeechRecognition(): void
   onSubmit(event: FormEvent<HTMLFormElement>): void
@@ -144,6 +147,7 @@ export function ChatWorkspacePanel({
   appliedMemories = [],
   continuingSessionId = null,
   drafts,
+  heartbeatElapsedMs = null,
   isAsking,
   isContextInspectorActive,
   isMinimapInspectorActive,
@@ -156,6 +160,7 @@ export function ChatWorkspacePanel({
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
   onRetryLastQuestion,
+  onStartNewSession,
   onStartSpeechRecognition,
   onStopSpeechRecognition,
   onSubmit,
@@ -226,10 +231,13 @@ export function ChatWorkspacePanel({
             appliedMemories={appliedMemories}
             drafts={drafts}
             errorDetail={requestError}
+            heartbeatElapsedMs={heartbeatElapsedMs}
             onOpenSource={onOpenSource}
+            onQuestionChange={onQuestionChange}
             onRefineKnowledgeDraft={onRefineKnowledgeDraft}
             onRegenerateLastAnswer={onRegenerateLastAnswer}
             onRetryLastQuestion={onRetryLastQuestion}
+            onStartNewSession={onStartNewSession}
             onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
             providerUsage={providerUsage}
             question={activeResponseQuestion}
@@ -266,13 +274,13 @@ export function ChatWorkspacePanel({
         >
           {continuingSessionId ? (
             <div
-              aria-label="Continuing Thread"
+              aria-label="Continuing thread"
               className="mb-1.5 flex min-w-0 items-center gap-2 max-[680px]:mb-1 max-[680px]:gap-1.5"
               data-slot="chat-session-continuity"
               role="status"
             >
               <StatusBadge className="shrink-0" tone="primary">
-                Continuing Thread
+                Continuing thread
               </StatusBadge>
               <span
                 className="min-w-0 truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-xs"
@@ -280,6 +288,18 @@ export function ChatWorkspacePanel({
               >
                 {shortSessionId(continuingSessionId)}
               </span>
+              {onStartNewSession !== undefined ? (
+                <Button
+                  className="ml-auto h-7 px-2 text-[11px]"
+                  data-slot="chat-start-new-thread"
+                  onClick={onStartNewSession}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
             </div>
           ) : null}
           <Field className="gap-0">
@@ -324,10 +344,10 @@ export function ChatWorkspacePanel({
                     event.currentTarget.form?.requestSubmit()
                   }
                 }}
-                placeholder="Ask A Question About Indexed Sources"
+                placeholder="Ask a question about indexed sources"
                 ref={questionInputRef}
                 rows={2}
-                title="Enter To Send · Shift+Enter For A New Line · Escape To Cancel"
+                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
                 value={question}
               />
             </FieldControl>
@@ -413,7 +433,7 @@ export function ChatWorkspacePanel({
                   className={COMPOSER_PRIMARY_ACTION_CLASS}
                   disabled={question.trim().length === 0}
                   size="sm"
-                  title="Enter To Send"
+                  title="Enter to send"
                   type="submit"
                 >
                   Ask
@@ -531,14 +551,23 @@ function SpeechInputControl({
   )
 }
 
+const SAMPLE_QUESTIONS = [
+  'What is the release mascot?',
+  'What is the project codename?',
+  'Which sources cover deployment?',
+] as const
+
 function ResponsePanel({
   appliedMemories,
   drafts,
   errorDetail = null,
+  heartbeatElapsedMs = null,
   onOpenSource,
+  onQuestionChange,
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
   onRetryLastQuestion,
+  onStartNewSession,
   onSubmitKnowledgeDraft,
   providerUsage,
   question,
@@ -549,10 +578,13 @@ function ResponsePanel({
   appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
   errorDetail?: string | null
+  heartbeatElapsedMs?: number | null
   onOpenSource(sourceId: string, citationSnippet: string | null): void
+  onQuestionChange?(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
   onRegenerateLastAnswer?(): void
   onRetryLastQuestion?(): void
+  onStartNewSession?(): void
   onSubmitKnowledgeDraft(
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
@@ -580,6 +612,10 @@ function ResponsePanel({
         />
       )
     }
+    const elapsedSeconds =
+      heartbeatElapsedMs !== null && heartbeatElapsedMs >= 10_000
+        ? Math.round(heartbeatElapsedMs / 1000)
+        : null
     return (
       <div
         aria-live="polite"
@@ -592,10 +628,15 @@ function ResponsePanel({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
-            Waiting For Response…
+            Waiting for response…
           </p>
-          <p className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
-            Retrieving Sources and Drafting an Answer
+          <p
+            className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug"
+            data-slot="chat-stall-indicator"
+          >
+            {elapsedSeconds === null
+              ? 'Retrieving sources and drafting an answer'
+              : `Still working on the provider — ${elapsedSeconds}s`}
           </p>
           <div
             aria-hidden="true"
@@ -641,17 +682,28 @@ function ResponsePanel({
             >
               {failedDetail}
             </p>
-            {onRetryLastQuestion !== undefined && question !== null ? (
-              <Button
-                className="mt-2"
-                data-slot="chat-retry"
-                onClick={onRetryLastQuestion}
-                type="button"
-                variant="secondary"
-              >
-                Try again
-              </Button>
-            ) : null}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {onRetryLastQuestion !== undefined && question !== null ? (
+                <Button
+                  data-slot="chat-retry"
+                  onClick={onRetryLastQuestion}
+                  type="button"
+                  variant="secondary"
+                >
+                  Try again
+                </Button>
+              ) : null}
+              {onStartNewSession !== undefined ? (
+                <Button
+                  data-slot="chat-start-new-on-error"
+                  onClick={onStartNewSession}
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
+            </div>
           </EmptyState>
         </div>
       )
@@ -671,17 +723,27 @@ function ResponsePanel({
               The session stays open so you can continue the thread. The
               canceled turn is marked failed in history when it was started.
             </p>
-            {onRetryLastQuestion !== undefined && question !== null ? (
-              <Button
-                className="mt-2"
-                data-slot="chat-retry"
-                onClick={onRetryLastQuestion}
-                type="button"
-                variant="secondary"
-              >
-                Try again
-              </Button>
-            ) : null}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {onRetryLastQuestion !== undefined && question !== null ? (
+                <Button
+                  data-slot="chat-retry"
+                  onClick={onRetryLastQuestion}
+                  type="button"
+                  variant="secondary"
+                >
+                  Try again
+                </Button>
+              ) : null}
+              {onStartNewSession !== undefined ? (
+                <Button
+                  onClick={onStartNewSession}
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              ) : null}
+            </div>
           </EmptyState>
         </div>
       )
@@ -694,11 +756,31 @@ function ResponsePanel({
           role="status"
         >
           <p className="font-medium text-foreground/90 max-[680px]:text-sm max-[680px]:leading-snug">
-            No Response Yet.
+            No response yet
           </p>
           <p className="text-xs leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
-            Ask About Indexed Sources. Enter To Send · Shift+Enter For A New Line.
+            Ask about indexed sources. Enter to send · Shift+Enter for a new
+            line.
           </p>
+          {onQuestionChange !== undefined ? (
+            <div
+              className="mt-3 flex flex-wrap justify-center gap-1.5"
+              data-slot="chat-sample-questions"
+            >
+              {SAMPLE_QUESTIONS.map((sample) => (
+                <Button
+                  key={sample}
+                  className="h-auto max-w-full whitespace-normal rounded-full px-2.5 py-1 text-[11px]"
+                  onClick={() => onQuestionChange(sample)}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  {sample}
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </EmptyState>
       </div>
     )
@@ -721,7 +803,7 @@ function ResponsePanel({
               {state === 'failed'
                 ? (failedBannerDetail ??
                   'Request failed. Partial answer below may be incomplete.')
-                : 'Request canceled. You can retry or continue the thread.'}
+                : 'Stopped — partial answer below may be incomplete. You can retry or continue.'}
             </span>
             {onRetryLastQuestion !== undefined ? (
               <Button

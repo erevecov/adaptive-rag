@@ -129,7 +129,7 @@ class ChatService:
                 prompt_version=_runner_prompt_version(self._runner),
             )
         except ValueError as exc:
-            raise ChatServiceError(str(exc)) from exc
+            raise _session_start_error(exc) from exc
         provider_usage_recorded = False
         history = self._load_history(request.project_id, session_id)
         retrieval_query = self._query_condenser.condense(
@@ -239,7 +239,7 @@ class ChatService:
                 prompt_version=_runner_prompt_version(self._runner),
             )
         except ValueError as exc:
-            raise ChatServiceError(str(exc)) from exc
+            raise _session_start_error(exc) from exc
         history = self._load_history(request.project_id, session_id)
         retrieval_query = self._query_condenser.condense(
             history=history,
@@ -306,12 +306,14 @@ class ChatService:
             answer_start = monotonic()
             yield chat_stream_step_event(ChatStep(id="answer", status="start"))
             streamed_answer_parts: list[str] = []
+            live_steps_emitted = [0]
             output = yield from self._run_runner_with_heartbeats(
                 runner_request=runner_request,
                 retrieval_tool=retrieval_tool,
                 knowledge_tool=knowledge_tool,
                 answer_start=answer_start,
                 streamed_answer_parts=streamed_answer_parts,
+                live_steps_emitted=live_steps_emitted,
             )
             citations = _resolve_citations(
                 cited_chunk_ids=output.cited_chunk_ids,
@@ -338,7 +340,8 @@ class ChatService:
                 detail={"sources": len(response.citations)},
                 usage=_chat_step_usage(provider_usage_records),
             )
-            for step in retrieval_tool.steps:
+            # Emit any retrieval steps not already streamed live mid-tool.
+            for step in retrieval_tool.steps[live_steps_emitted[0] :]:
                 yield chat_stream_step_event(step)
             retrieval_steps_flushed = True
             yield chat_stream_step_event(answer_step)
@@ -401,6 +404,7 @@ class ChatService:
             if not retrieval_steps_flushed:
                 for step in retrieval_tool.steps:
                     yield chat_stream_step_event(step)
+            error = classify_chat_error(exc)
             yield chat_stream_step_event(
                 ChatStep(
                     id="answer",
@@ -408,10 +412,13 @@ class ChatService:
                     elapsed_ms=(
                         elapsed_ms(answer_start) if answer_start is not None else None
                     ),
-                    detail={"error": str(exc)},
+                    detail={
+                        "error": error.message,
+                        "code": error.code,
+                        "retryable": error.retryable,
+                    },
                 )
             )
-            error = classify_chat_error(exc)
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
                     project_id=request.project_id,
@@ -437,16 +444,19 @@ class ChatService:
         knowledge_tool: ChatKnowledgeProposalTool | None,
         answer_start: float,
         streamed_answer_parts: list[str],
+        live_steps_emitted: list[int],
     ) -> Iterator[ChatStreamEvent]:
         """Run the chat runner off the stream loop; emit heartbeats + deltas.
 
-        Yields heartbeat / answer_delta events while work is in flight, then
-        returns the ``ChatRunnerOutput`` (``yield from`` captures the return).
+        Yields retrieval step / heartbeat / answer_delta events while work is
+        in flight, then returns the ``ChatRunnerOutput`` (``yield from``
+        captures the return).
         """
 
         tools = ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool)
         holder: dict[str, Any] = {}
         delta_queue: queue.Queue[str | None] = queue.Queue()
+        step_queue: queue.Queue[ChatStep] = queue.Queue()
         cancel_event = threading.Event()
         client = getattr(self._runner, "client", None)
         if client is not None and hasattr(client, "set_cancel_event"):
@@ -455,6 +465,11 @@ class ChatService:
         def _on_answer_delta(text: str) -> None:
             if text:
                 delta_queue.put(text)
+
+        def _on_step(step: ChatStep) -> None:
+            step_queue.put(step)
+
+        retrieval_tool.set_on_step(_on_step)
 
         def _run() -> None:
             try:
@@ -473,6 +488,15 @@ class ChatService:
             finally:
                 delta_queue.put(None)
 
+        def _drain_steps() -> Iterator[ChatStreamEvent]:
+            while True:
+                try:
+                    step = step_queue.get_nowait()
+                except queue.Empty:
+                    break
+                live_steps_emitted[0] += 1
+                yield chat_stream_step_event(step)
+
         # Exclusive DB access: main thread only yields stream events (no session
         # I/O) while the worker runs the runner/tools; after the future completes
         # the main thread resumes audit I/O.
@@ -487,8 +511,9 @@ class ChatService:
                 if cancel_event.is_set():
                     cancelled = True
                     break
+                yield from _drain_steps()
                 try:
-                    item = delta_queue.get(timeout=0.15)
+                    item = delta_queue.get(timeout=0.1)
                 except queue.Empty:
                     item = object()
                 if item is None:
@@ -502,8 +527,9 @@ class ChatService:
                         elapsed_ms=elapsed_ms(answer_start)
                     )
                     last_heartbeat = now
-            # Drain remaining deltas after worker finishes (unless cancelled).
+            # Drain remaining steps/deltas after worker finishes (unless cancelled).
             if not cancelled:
+                yield from _drain_steps()
                 while True:
                     try:
                         item = delta_queue.get_nowait()
@@ -514,6 +540,7 @@ class ChatService:
                     if isinstance(item, str):
                         streamed_answer_parts.append(item)
                         yield chat_stream_answer_delta_event(item)
+                yield from _drain_steps()
         except GeneratorExit:
             cancelled = True
             cancel_event.set()
@@ -523,13 +550,18 @@ class ChatService:
             executor.shutdown(wait=False, cancel_futures=True)
             raise
         finally:
+            retrieval_tool.set_on_step(None)
             if not cancelled:
                 executor.shutdown(wait=True, cancel_futures=False)
             else:
                 executor.shutdown(wait=False, cancel_futures=True)
 
         if cancelled:
-            raise ChatServiceError("client_disconnected")
+            raise ChatServiceError(
+                "client_disconnected",
+                code="client_disconnected",
+                retryable=False,
+            )
         if "error" in holder:
             raise holder["error"]
         try:
@@ -633,6 +665,23 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
+
+
+def _session_start_error(exc: BaseException) -> ChatServiceError:
+    message_text = str(exc)
+    if message_text == "session is archived":
+        return ChatServiceError(
+            "This chat session is archived. Start a new session to continue.",
+            code="session_archived",
+            retryable=False,
+        )
+    if message_text == "chat session not found":
+        return ChatServiceError(
+            message_text,
+            code="session_not_found",
+            retryable=False,
+        )
+    return ChatServiceError(message_text)
 
 
 def _collect_tool_calls(
