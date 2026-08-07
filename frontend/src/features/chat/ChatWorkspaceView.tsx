@@ -211,7 +211,7 @@ export function ChatWorkspacePanel({
         ref={transcriptRef}
         role="region"
       >
-        <div className="grid gap-4 max-[680px]:gap-3">
+        <div className="mx-auto grid w-full max-w-3xl gap-3 max-[680px]:gap-2">
           {priorTurns.map((turn) => (
             <ResponseContent
               key={turn.id}
@@ -1126,7 +1126,12 @@ function ResponseContent({
   const hasStepDetails = isStreaming || steps.length > 0
 
   return (
-    <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-2" role="region">
+    /* Beflow chat rhythm: user bubble then open assistant column (no twin cards). */
+    <div
+      aria-label="Chat Response"
+      className="grid gap-2 max-[680px]:gap-1.5"
+      role="region"
+    >
       <QuestionPrompt
         key={question ?? 'empty-question'}
         onEdit={
@@ -1143,11 +1148,16 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
-          className="rounded-lg border border-border bg-card p-3.5 text-card-foreground tracking-tight focus-within:border-primary max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-3 max-[680px]:shadow-none"
+          className={cn(
+            /* beflow AssistantTurn: no card chrome; soft hover wash only */
+            'group/assistant-turn relative rounded-lg px-1 py-2 text-foreground tracking-tight',
+            'transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.025]',
+            'sm:px-2 max-[680px]:px-0.5 max-[680px]:py-1.5',
+          )}
           data-slot="chat-message"
         >
           <div className="mb-2 flex flex-wrap items-center gap-2 max-[680px]:mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground max-[680px]:text-xs">
               Answer
             </span>
             {isStreaming ? (
@@ -1155,7 +1165,12 @@ function ResponseContent({
                 Streaming
               </StatusBadge>
             ) : null}
-            <div className="ml-auto flex items-center gap-1">
+            <div
+              className={cn(
+                'ml-auto flex items-center gap-1 opacity-0 transition-opacity',
+                'group-hover/assistant-turn:opacity-100 group-focus-within/assistant-turn:opacity-100',
+              )}
+            >
               {response.answer.trim().length > 0 ? (
                 <CopyAnswerButton text={response.answer} />
               ) : null}
@@ -1367,52 +1382,85 @@ function QuestionPrompt({
       : trimmedQuestion
 
   return (
+    /* beflow UserTurn: full-width plomo card, role label, soft inset ring */
     <div
       className={cn(
-        'border-b border-border bg-chat-user-bubble pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80',
-        sticky && 'sticky top-0 z-10 backdrop-blur-sm',
+        'group/user-turn w-full pb-1',
+        sticky && 'sticky top-0 z-10',
       )}
       data-slot="chat-question-sticky"
     >
-      <div className="mb-1 flex items-center gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-xs">
-          Your question
-        </p>
-        {onEdit !== undefined ? (
-          <Button
-            aria-label="Edit question"
-            className="ml-auto h-7 px-2 text-[11px]"
-            data-slot="chat-edit-question"
-            onClick={onEdit}
-            size="sm"
+      <div
+        className={cn(
+          'w-full rounded-xl border border-border/80 bg-chat-user-bubble px-3 py-2.5 shadow-sm sm:px-4',
+          'backdrop-blur-md supports-[backdrop-filter]:bg-chat-user-bubble/90',
+          'ring-1 ring-inset ring-white/5',
+          'max-[680px]:px-2.5 max-[680px]:py-2',
+        )}
+        data-slot="chat-question-surface"
+      >
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--ring)] max-[680px]:text-xs">
+            You
+          </p>
+          {onEdit !== undefined ? (
+            <Button
+              aria-label="Edit question"
+              className={cn(
+                'h-7 px-2 text-[11px] opacity-0 transition-opacity',
+                'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
+              )}
+              data-slot="chat-edit-question"
+              onClick={onEdit}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              Edit
+            </Button>
+          ) : null}
+        </div>
+        {shouldCollapse ? (
+          <button
+            aria-expanded={expanded}
+            aria-label={
+              expanded ? 'Collapse full question' : 'Expand full question'
+            }
+            className={cn(
+              'flex min-w-0 w-full gap-1 text-left text-sm leading-5 text-foreground',
+              expanded ? 'items-start' : 'items-center',
+            )}
+            onClick={() => setExpanded((current) => !current)}
+            title={trimmedQuestion}
             type="button"
-            variant="ghost"
           >
-            Edit
-          </Button>
-        ) : null}
+            <span
+              aria-hidden="true"
+              className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+            >
+              {expanded ? (
+                <ChevronDown className="size-3.5" />
+              ) : (
+                <ChevronRight className="size-3.5" />
+              )}
+            </span>
+            <span
+              className={cn(
+                'min-w-0 flex-1',
+                expanded
+                  ? 'whitespace-pre-wrap break-words'
+                  : 'truncate whitespace-nowrap',
+              )}
+            >
+              {displayQuestion}
+            </span>
+          </button>
+        ) : (
+          <p className="min-w-0 text-sm leading-5 text-foreground whitespace-pre-wrap break-words">
+            {displayQuestion}
+          </p>
+        )}
       </div>
-      {shouldCollapse ? (
-        <Button
-          aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
-          className="max-w-full justify-start whitespace-normal bg-chat-user-bubble text-left max-[680px]:min-h-11 max-[680px]:text-sm"
-          onClick={() => setExpanded((current) => !current)}
-          slotName="chat-question-surface"
-          title={trimmedQuestion}
-          type="button"
-          variant="secondary"
-        >
-          {displayQuestion}
-        </Button>
-      ) : (
-        <p
-          className="rounded-md border border-border bg-chat-user-bubble px-3 py-2 text-sm leading-relaxed text-foreground max-[680px]:rounded-md max-[680px]:border-border max-[680px]:px-2.5 max-[680px]:py-2 max-[680px]:text-sm max-[680px]:leading-relaxed max-[680px]:shadow-none"
-          data-slot="chat-question-surface"
-        >
-          {displayQuestion}
-        </p>
-      )}
     </div>
   )
 }

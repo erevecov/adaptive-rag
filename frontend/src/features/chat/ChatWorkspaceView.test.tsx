@@ -236,18 +236,13 @@ describe('ChatWorkspacePanel', () => {
     )
     expect(chip.className).toMatch(/hover:bg-primary\/15/)
     expect(chip.className).toMatch(/max-\[680px\]:min-h-11/)
+    // Assistant column: open beflow-style turn (no twin card border).
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).toMatch(/focus-within:border-primary/)
+    ).toMatch(/group\/assistant-turn/)
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).not.toMatch(/focus-within:border-primary\/40/)
-    expect(
-      view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
-    expect(
-      view.container.querySelector('[data-slot="chat-message"]')?.className,
-    ).not.toMatch(/border-border\/70/)
+    ).not.toMatch(/bg-card/)
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
     ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
@@ -562,7 +557,7 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 
-  test('renders the user question on a plomo bubble surface distinct from the answer', () => {
+  test('renders beflow-style user bubble vs open assistant column', () => {
     const { view } = renderChatWorkspace({
       activeResponseQuestion: 'What is Nimbus?',
       requestState: 'succeeded',
@@ -571,17 +566,22 @@ describe('ChatWorkspacePanel', () => {
 
     const sticky = view.container.querySelector('[data-slot="chat-question-sticky"]')
     expect(sticky).toBeTruthy()
-    expect(sticky?.className).toMatch(/bg-chat-user-bubble/)
     expect(sticky?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
     const surface = view.container.querySelector(
       '[data-slot="chat-question-surface"]',
     )
     expect(surface).toBeTruthy()
+    // UserTurn card: plomo fill + rounded shell (beflow strategy, Grok tokens).
     expect(surface?.className).toMatch(/bg-chat-user-bubble/)
-    expect(surface?.className).not.toMatch(/bg-muted\//)
+    expect(surface?.className).toMatch(/rounded-xl/)
+    expect(surface?.className).toMatch(/border-border\/80/)
+    expect(surface?.textContent).toMatch(/You/)
     const answer = view.container.querySelector('[data-slot="chat-message"]')
-    expect(answer?.className).toMatch(/bg-card/)
+    // AssistantTurn: no twin card — open column with hover wash only.
+    expect(answer?.className).not.toMatch(/bg-card/)
     expect(answer?.className).not.toMatch(/bg-chat-user-bubble/)
+    expect(answer?.className).toMatch(/group\/assistant-turn/)
+    expect(answer?.textContent).toMatch(/Answer/)
   })
 
   test('prior turn questions flow normally while the current question stays sticky', () => {
