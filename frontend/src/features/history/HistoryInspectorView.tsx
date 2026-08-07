@@ -163,7 +163,10 @@ export function SessionNavigationPanel({
       </h2>
 
       {/* Fixed chrome above the list — scrollbar starts at the first session. */}
-      <div className="grid shrink-0 gap-2 max-[680px]:gap-0.5" data-slot="session-list-chrome">
+      <div
+        className="grid shrink-0 gap-2 pr-2.5 max-[680px]:gap-0.5 max-[680px]:pr-1"
+        data-slot="session-list-chrome"
+      >
         <Button
           className={cn(
             'h-auto w-full justify-center gap-1 rounded-md border border-dashed border-border bg-transparent py-2 text-xs font-medium text-muted-foreground shadow-none max-[680px]:gap-0.5 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem]',
@@ -216,11 +219,7 @@ export function SessionNavigationPanel({
       </div>
 
       <div
-        className={cn(
-          'scrollbar-chat min-h-0 overflow-y-auto',
-          // Flush thumb to the right edge of the sidebar rail (cancel content px).
-          '-mr-2.5 max-[680px]:-mr-1',
-        )}
+        className="scrollbar-chat min-h-0 overflow-x-hidden overflow-y-auto"
         data-slot="session-list-scroll"
       >
       <DataList

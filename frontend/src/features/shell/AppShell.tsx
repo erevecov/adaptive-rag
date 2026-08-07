@@ -187,9 +187,10 @@ export function AppShell({
             ? [
                 // Chat: fixed viewport. overflow-hidden ONLY (never overflow-auto)
                 // so the transcript is the sole scroller and the composer stays pinned.
-                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden px-[18px] pb-2.5 pt-1.5',
-                'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:overflow-hidden max-[680px]:px-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                // pr-0: scrollbar sits on the right edge; content pads itself.
+                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden pl-[18px] pr-0 pb-2.5 pt-1.5',
+                'max-[900px]:pl-3.5 max-[900px]:py-3',
+                'max-[680px]:gap-0 max-[680px]:overflow-hidden max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : [
                 'self-start overflow-auto p-7 mx-auto max-w-[1240px]',
@@ -223,7 +224,7 @@ export function ChatWorkspaceGrid({
     <div
       className={cn(
         [
-          'workspace-grid chat-workspace-grid grid h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]',
+          'workspace-grid chat-workspace-grid grid h-full max-h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden',
           'max-[680px]:min-h-0',
         ],
         isRightDockInline &&
@@ -267,7 +268,9 @@ export function WorkspaceTopline({
         [
           'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
         ],
-        isChatWorkspace ? 'mb-0' : 'mb-[22px] max-[680px]:mb-0.5',
+        isChatWorkspace
+          ? 'mb-0 pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1'
+          : 'mb-[22px] max-[680px]:mb-0.5',
         !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
@@ -482,12 +485,14 @@ export function AppSidebar({
         className={cn(
           // overflow-hidden: only the session list (or contextual nav) scrolls —
           // not project selector / primary nav — so the thumb starts at row 1.
-          'grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2.5 overflow-hidden px-2.5 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
+          // pr-0: session list scrollbar flush to the rail edge.
+          'grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 overflow-hidden pl-2.5 pr-0 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:pl-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
         {...(!isOpen ? { inert: true } : {})}
       >
+        <div className="grid shrink-0 gap-2.5 pr-2.5 max-[680px]:gap-0.5 max-[680px]:pr-1">
         <SidebarProjectSelector
           onProjectIdChange={onProjectIdChange}
           projectId={projectId}
@@ -517,6 +522,7 @@ export function AppSidebar({
             onClick={() => onPrimaryViewChange('settings')}
           />
         </nav>
+        </div>
 
         {primaryView === 'chat' ? (
           <SessionNavigationPanel
@@ -594,7 +600,7 @@ function AccountNavigationPanel({
   return (
     <nav
       aria-label="My Account Navigation"
-      className="scrollbar-chat -mr-2.5 grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:-mr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto overflow-x-hidden border-t border-border pr-2.5 pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2
@@ -664,7 +670,7 @@ function SettingsNavigationPanel({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="scrollbar-chat -mr-2.5 grid min-h-0 content-start items-stretch self-stretch overflow-y-auto border-t border-border pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:-mr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
+      className="scrollbar-chat grid min-h-0 content-start items-stretch self-stretch overflow-y-auto overflow-x-hidden border-t border-border pr-2.5 pt-[18px] shadow-[0_-1px_0_0] shadow-primary/15 max-[680px]:pr-1 max-[680px]:shadow-primary/65 max-[680px]:pt-1"
       data-slot="sidebar-contextual-navigation"
     >
       <h2

@@ -198,18 +198,14 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat Workspace"
-      className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] border-0 bg-transparent shadow-none"
+      className="grid h-full max-h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden border-0 bg-transparent shadow-none"
       role="region"
     >
       {/* Transcript + composer are direct grid children so the form pins bottom. */}
       <div
         aria-busy={isAsking || requestState === 'loading' || undefined}
         aria-label="Chat Transcript"
-        className={cn(
-          'scrollbar-chat min-h-0 overflow-y-auto',
-          // Flush thumb to the right edge of the chat workspace (cancel parent px).
-          '-mr-[18px] max-[900px]:-mr-3.5 max-[680px]:-mr-1',
-        )}
+        className="scrollbar-chat min-h-0 overflow-x-hidden overflow-y-auto"
         data-slot="chat-transcript"
         onScroll={onTranscriptScroll}
         ref={transcriptRef}
@@ -267,7 +263,7 @@ export function ChatWorkspacePanel({
 
       <div
         className={cn(
-          'relative shrink-0 bg-background',
+          'relative shrink-0 bg-background pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1',
           // Keep Ask docked above the fold on narrow shells / soft keyboards.
           'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
           'max-[680px]:border-t max-[680px]:border-primary/70',
