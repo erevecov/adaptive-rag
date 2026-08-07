@@ -1148,18 +1148,18 @@ function ResponseContent({
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
+          aria-label="Answer"
           className={cn(
             /* beflow AssistantTurn: no card chrome; soft hover wash only */
-            'group/assistant-turn relative rounded-lg px-1 py-2 text-foreground tracking-tight',
+            'group/assistant-turn relative flex gap-2 rounded-lg px-1 py-2 text-foreground tracking-tight',
             'transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.025]',
-            'sm:px-2 max-[680px]:px-0.5 max-[680px]:py-1.5',
+            'sm:gap-2.5 sm:px-2 max-[680px]:gap-1.5 max-[680px]:px-0.5 max-[680px]:py-1.5',
           )}
           data-slot="chat-message"
         >
-          <div className="mb-2 flex flex-wrap items-center gap-2 max-[680px]:mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground max-[680px]:text-xs">
-              Answer
-            </span>
+          <ChatRoleMarker tone="assistant" />
+          <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex min-h-5 flex-wrap items-center gap-2 max-[680px]:mb-1">
             {isStreaming ? (
               <StatusBadge className="w-fit" tone="primary">
                 Streaming
@@ -1283,6 +1283,7 @@ function ResponseContent({
               })}
             </div>
           ) : null}
+          </div>
         </article>
       ) : null}
 
@@ -1359,6 +1360,26 @@ function ResponseContent({
   )
 }
 
+/** Compact role glyph (›) — user uses ring accent; assistant is muted. */
+function ChatRoleMarker({ tone }: { tone: 'user' | 'assistant' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'mt-0.5 inline-flex size-5 shrink-0 select-none items-center justify-center',
+        'font-mono text-[15px] font-semibold leading-none tracking-tight',
+        tone === 'user'
+          ? 'text-[color:var(--ring)]'
+          : 'text-muted-foreground/80',
+      )}
+      data-slot="chat-role-marker"
+      data-tone={tone}
+    >
+      ›
+    </span>
+  )
+}
+
 function QuestionPrompt({
   onEdit,
   question,
@@ -1388,78 +1409,79 @@ function QuestionPrompt({
         'group/user-turn w-full pb-1',
         sticky && 'sticky top-0 z-10',
       )}
+      aria-label="Your question"
       data-slot="chat-question-sticky"
     >
       <div
         className={cn(
-          'w-full rounded-xl border border-border/80 bg-chat-user-bubble px-3 py-2.5 shadow-sm sm:px-4',
+          'flex w-full gap-2 rounded-xl border border-border/80 bg-chat-user-bubble px-3 py-2.5 shadow-sm sm:gap-2.5 sm:px-4',
           'backdrop-blur-md supports-[backdrop-filter]:bg-chat-user-bubble/90',
           'ring-1 ring-inset ring-white/5',
-          'max-[680px]:px-2.5 max-[680px]:py-2',
+          'max-[680px]:gap-1.5 max-[680px]:px-2.5 max-[680px]:py-2',
         )}
         data-slot="chat-question-surface"
       >
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--ring)] max-[680px]:text-xs">
-            You
-          </p>
+        <ChatRoleMarker tone="user" />
+        <div className="min-w-0 flex-1">
           {onEdit !== undefined ? (
-            <Button
-              aria-label="Edit question"
-              className={cn(
-                'h-7 px-2 text-[11px] opacity-0 transition-opacity',
-                'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
-              )}
-              data-slot="chat-edit-question"
-              onClick={onEdit}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              Edit
-            </Button>
+            <div className="mb-1 flex justify-end">
+              <Button
+                aria-label="Edit question"
+                className={cn(
+                  'h-7 px-2 text-[11px] opacity-0 transition-opacity',
+                  'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
+                )}
+                data-slot="chat-edit-question"
+                onClick={onEdit}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Edit
+              </Button>
+            </div>
           ) : null}
-        </div>
-        {shouldCollapse ? (
-          <button
-            aria-expanded={expanded}
-            aria-label={
-              expanded ? 'Collapse full question' : 'Expand full question'
-            }
-            className={cn(
-              'flex min-w-0 w-full gap-1 text-left text-sm leading-5 text-foreground',
-              expanded ? 'items-start' : 'items-center',
-            )}
-            onClick={() => setExpanded((current) => !current)}
-            title={trimmedQuestion}
-            type="button"
-          >
-            <span
-              aria-hidden="true"
-              className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground"
-            >
-              {expanded ? (
-                <ChevronDown className="size-3.5" />
-              ) : (
-                <ChevronRight className="size-3.5" />
-              )}
-            </span>
-            <span
+          {shouldCollapse ? (
+            <button
+              aria-expanded={expanded}
+              aria-label={
+                expanded ? 'Collapse full question' : 'Expand full question'
+              }
               className={cn(
-                'min-w-0 flex-1',
-                expanded
-                  ? 'whitespace-pre-wrap break-words'
-                  : 'truncate whitespace-nowrap',
+                'flex min-w-0 w-full gap-1 text-left text-sm leading-5 text-foreground',
+                expanded ? 'items-start' : 'items-center',
               )}
+              onClick={() => setExpanded((current) => !current)}
+              title={trimmedQuestion}
+              type="button"
             >
+              <span
+                aria-hidden="true"
+                className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+              >
+                {expanded ? (
+                  <ChevronDown className="size-3.5" />
+                ) : (
+                  <ChevronRight className="size-3.5" />
+                )}
+              </span>
+              <span
+                className={cn(
+                  'min-w-0 flex-1',
+                  expanded
+                    ? 'whitespace-pre-wrap break-words'
+                    : 'truncate whitespace-nowrap',
+                )}
+              >
+                {displayQuestion}
+              </span>
+            </button>
+          ) : (
+            <p className="min-w-0 text-sm leading-5 text-foreground whitespace-pre-wrap break-words">
               {displayQuestion}
-            </span>
-          </button>
-        ) : (
-          <p className="min-w-0 text-sm leading-5 text-foreground whitespace-pre-wrap break-words">
-            {displayQuestion}
-          </p>
-        )}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )

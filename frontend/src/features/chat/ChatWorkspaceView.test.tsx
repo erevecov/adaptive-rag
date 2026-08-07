@@ -246,7 +246,12 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
     ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
-    expect(screen.getByText('Answer')).toBeTruthy()
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="assistant"]',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Answer')).toBeTruthy()
     await user.click(chip)
     expect(onOpenSource).toHaveBeenCalledWith(
       'source-1',
@@ -575,13 +580,23 @@ describe('ChatWorkspacePanel', () => {
     expect(surface?.className).toMatch(/bg-chat-user-bubble/)
     expect(surface?.className).toMatch(/rounded-xl/)
     expect(surface?.className).toMatch(/border-border\/80/)
-    expect(surface?.textContent).toMatch(/You/)
+    expect(surface?.textContent).not.toMatch(/\bYou\b/)
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="user"]',
+      )?.textContent,
+    ).toBe('›')
     const answer = view.container.querySelector('[data-slot="chat-message"]')
     // AssistantTurn: no twin card — open column with hover wash only.
     expect(answer?.className).not.toMatch(/bg-card/)
     expect(answer?.className).not.toMatch(/bg-chat-user-bubble/)
     expect(answer?.className).toMatch(/group\/assistant-turn/)
-    expect(answer?.textContent).toMatch(/Answer/)
+    expect(answer?.textContent).not.toMatch(/\bAnswer\b/)
+    expect(
+      view.container.querySelector(
+        '[data-slot="chat-role-marker"][data-tone="assistant"]',
+      )?.textContent,
+    ).toBe('›')
   })
 
   test('prior turn questions flow normally while the current question stays sticky', () => {
