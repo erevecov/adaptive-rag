@@ -239,6 +239,12 @@ class ChatService:
             ) from exc
 
     def stream(self, request: ChatRequest) -> Iterator[ChatStreamEvent]:
+        """Stream chat events; emit session_started before heavy prep.
+
+        History summarization and tool construction run *after* the first SSE
+        event so clients hit the first-status latency bar (see RAG-LATENCY-BAR).
+        """
+
         message = _validate_request(request)
         try:
             session_id = self._audit_writer.start_session(
@@ -249,58 +255,15 @@ class ChatService:
             )
         except ValueError as exc:
             raise _session_start_error(exc) from exc
-        prepared = self._prepare_history(request.project_id, session_id)
-        history = prepared.turns
-        retrieval_query = self._query_condenser.condense(
-            history=history,
-            message=message,
-        )
-        runner_request = ChatRunnerRequest(
-            project_id=request.project_id,
-            message=message,
-            user_id=request.user_id,
-            retrieval_limit=request.retrieval_limit,
-            metadata_filter=request.metadata_filter,
-            history=history,
-            retrieval_query=retrieval_query,
-            user_memory=request.user_memory,
-        )
-        retrieval_tool = ChatRetrievalTool(
-            retrieval_service=self._retrieval_service,
-            project_id=request.project_id,
-            default_limit=request.retrieval_limit,
-            rerank_enabled=request.rerank_enabled,
-            rerank_candidate_limit=request.rerank_candidate_limit,
-            default_metadata_filter=request.metadata_filter,
-            audit_writer=self._audit_writer,
-            audit_session_id=session_id,
-            graph_ready=self._graph_readiness(request.project_id),
-        )
-        return self._stream_response(
-            request=request,
-            message=message,
-            session_id=session_id,
-            runner_request=runner_request,
-            retrieval_tool=retrieval_tool,
-            prepared_history=prepared,
-        )
 
-    def _stream_response(
-        self,
-        *,
-        request: ChatRequest,
-        message: str,
-        session_id: UUID | None,
-        runner_request: ChatRunnerRequest,
-        retrieval_tool: ChatRetrievalTool,
-        prepared_history: PreparedChatHistory | None = None,
-    ) -> Iterator[ChatStreamEvent]:
         provider_usage_recorded = False
         answer_start: float | None = None
         retrieval_steps_flushed = False
+        prepared_history: PreparedChatHistory | None = None
+        retrieval_tool: ChatRetrievalTool | None = None
         try:
-            # Record user turn before advertising session_started so an eager
-            # commit after that event already has a durable user message.
+            # Record user turn then advertise session_id immediately so the
+            # client sees a durable session before history prep / retrieval.
             user_message_id = None
             if session_id is not None:
                 user_message_id = self._audit_writer.record_message(
@@ -310,13 +273,47 @@ class ChatService:
                     message,
                 )
                 yield chat_stream_session_started_event(session_id)
+
+            # Exclude the user message we just recorded so the runner does not
+            # see the active turn twice (history + latest user content).
+            prepared_history = self._prepare_history(
+                request.project_id,
+                session_id,
+                exclude_trailing_user_message=message,
+            )
+            history = prepared_history.turns
+            retrieval_query = self._query_condenser.condense(
+                history=history,
+                message=message,
+            )
+            runner_request = ChatRunnerRequest(
+                project_id=request.project_id,
+                message=message,
+                user_id=request.user_id,
+                retrieval_limit=request.retrieval_limit,
+                metadata_filter=request.metadata_filter,
+                history=history,
+                retrieval_query=retrieval_query,
+                user_memory=request.user_memory,
+            )
+            retrieval_tool = ChatRetrievalTool(
+                retrieval_service=self._retrieval_service,
+                project_id=request.project_id,
+                default_limit=request.retrieval_limit,
+                rerank_enabled=request.rerank_enabled,
+                rerank_candidate_limit=request.rerank_candidate_limit,
+                default_metadata_filter=request.metadata_filter,
+                audit_writer=self._audit_writer,
+                audit_session_id=session_id,
+                graph_ready=self._graph_readiness(request.project_id),
+            )
             knowledge_tool = self._build_knowledge_tool(
                 request=request,
                 session_id=session_id,
                 origin_message_id=user_message_id,
             )
             answer_start = monotonic()
-            if prepared_history is not None and prepared_history.total_messages > 0:
+            if prepared_history.total_messages > 0:
                 yield chat_stream_step_event(
                     ChatStep(
                         id="context",
@@ -434,7 +431,10 @@ class ChatService:
                     )
             raise
         except Exception as exc:
-            if not retrieval_steps_flushed:
+            if (
+                not retrieval_steps_flushed
+                and retrieval_tool is not None
+            ):
                 for step in retrieval_tool.steps:
                     yield chat_stream_step_event(step)
             error = classify_chat_error(exc)
@@ -610,6 +610,8 @@ class ChatService:
         self,
         project_id: UUID,
         session_id: UUID | None,
+        *,
+        exclude_trailing_user_message: str | None = None,
     ) -> PreparedChatHistory:
         if session_id is None:
             return PreparedChatHistory(
@@ -619,11 +621,20 @@ class ChatService:
                 kept_recent=0,
                 summarized_messages=0,
             )
-        raw_turns = self._audit_writer.list_history_turns(
-            project_id=project_id,
-            session_id=session_id,
-            limit=self._history_load_limit,
+        raw_turns = list(
+            self._audit_writer.list_history_turns(
+                project_id=project_id,
+                session_id=session_id,
+                limit=self._history_load_limit,
+            )
         )
+        if exclude_trailing_user_message is not None and raw_turns:
+            role, content = raw_turns[-1]
+            if (
+                role == "user"
+                and content.strip() == exclude_trailing_user_message.strip()
+            ):
+                raw_turns = raw_turns[:-1]
         return prepare_chat_history(
             raw_turns,
             keep_recent=self._history_message_limit,

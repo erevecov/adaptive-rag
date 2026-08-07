@@ -711,7 +711,7 @@ function ResponsePanel({
             data-slot="chat-stall-indicator"
           >
             {elapsedSeconds === null
-              ? 'Retrieving sources and drafting an answer'
+              ? 'Connecting and retrieving sources…'
               : `Still working on the provider — ${elapsedSeconds}s`}
           </p>
           <div
