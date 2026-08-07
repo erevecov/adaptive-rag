@@ -109,6 +109,8 @@ export type ChatWorkspacePanelProps = {
   /** Resend the last failed/canceled question without retyping. */
   onRetryLastQuestion?(): void
   onStartNewSession?(): void
+  /** Load a prior/current user question into the composer (optional fork of later turns). */
+  onEditQuestion?(text: string, turnId?: string): void
   onStartSpeechRecognition(): void
   onStopSpeechRecognition(): void
   onSubmit(event: FormEvent<HTMLFormElement>): void
@@ -161,6 +163,7 @@ export function ChatWorkspacePanel({
   onRegenerateLastAnswer,
   onRetryLastQuestion,
   onStartNewSession,
+  onEditQuestion,
   onStartSpeechRecognition,
   onStopSpeechRecognition,
   onSubmit,
@@ -211,6 +214,11 @@ export function ChatWorkspacePanel({
               key={turn.id}
               appliedMemories={[]}
               drafts={{}}
+              onEditQuestion={
+                onEditQuestion === undefined
+                  ? undefined
+                  : (text) => onEditQuestion(text, turn.id)
+              }
               onOpenSource={onOpenSource}
               onRefineKnowledgeDraft={onRefineKnowledgeDraft}
               onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
@@ -827,6 +835,11 @@ function ResponsePanel({
       <ResponseContent
         appliedMemories={appliedMemories}
         drafts={drafts}
+        onEditQuestion={
+          onQuestionChange === undefined || state === 'loading'
+            ? undefined
+            : (text) => onQuestionChange(text)
+        }
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
         onRegenerateLastAnswer={
@@ -846,6 +859,7 @@ function ResponsePanel({
 function ResponseContent({
   appliedMemories,
   drafts,
+  onEditQuestion,
   onOpenSource,
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
@@ -858,6 +872,7 @@ function ResponseContent({
 }: {
   appliedMemories: UserMemory[]
   drafts: ChatKnowledgeDraftMap
+  onEditQuestion?(text: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
   onRegenerateLastAnswer?(): void
@@ -1036,7 +1051,18 @@ function ResponseContent({
 
   return (
     <div aria-label="Chat Response" className="grid gap-4 max-[680px]:gap-2" role="region">
-      <QuestionPrompt key={question ?? 'empty-question'} question={question} />
+      <QuestionPrompt
+        key={question ?? 'empty-question'}
+        onEdit={
+          onEditQuestion !== undefined &&
+          !isStreaming &&
+          question !== null &&
+          question.trim().length > 0
+            ? () => onEditQuestion(question)
+            : undefined
+        }
+        question={question}
+      />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
         <article
@@ -1241,7 +1267,13 @@ function ResponseContent({
   )
 }
 
-function QuestionPrompt({ question }: { question: string | null }) {
+function QuestionPrompt({
+  onEdit,
+  question,
+}: {
+  onEdit?(): void
+  question: string | null
+}) {
   const [expanded, setExpanded] = useState(false)
   const trimmedQuestion = question?.trim() ?? ''
   if (trimmedQuestion.length === 0) {
@@ -1259,13 +1291,28 @@ function QuestionPrompt({ question }: { question: string | null }) {
       className="sticky top-0 z-10 border-b border-border bg-background/95 pb-2 backdrop-blur-sm shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80"
       data-slot="chat-question-sticky"
     >
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-xs">
-        Your Question
-      </p>
+      <div className="mb-1 flex items-center gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-xs">
+          Your question
+        </p>
+        {onEdit !== undefined ? (
+          <Button
+            aria-label="Edit question"
+            className="ml-auto h-7 px-2 text-[11px]"
+            data-slot="chat-edit-question"
+            onClick={onEdit}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Edit
+          </Button>
+        ) : null}
+      </div>
       {shouldCollapse ? (
         <Button
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse Full Question' : 'Expand Full Question'}
+          aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
           className="max-w-full justify-start whitespace-normal text-left max-[680px]:min-h-11 max-[680px]:text-sm"
           onClick={() => setExpanded((current) => !current)}
           title={trimmedQuestion}

@@ -895,6 +895,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     void submitChatQuestion(lastQuestion, { replaceLast: true })
   }
 
+  function handleEditQuestion(text: string, turnId?: string) {
+    if (requestState === 'loading') {
+      return
+    }
+    setQuestion(text)
+    if (turnId !== undefined) {
+      // Fork-lite: drop this turn and everything after it from the local transcript.
+      setPriorTurns((current) => {
+        const index = current.findIndex((turn) => turn.id === turnId)
+        if (index < 0) {
+          return current
+        }
+        return current.slice(0, index)
+      })
+      setResponse(null)
+      setActiveResponseQuestion(null)
+      setRequestState('idle')
+      setRequestError(null)
+    }
+    window.setTimeout(() => {
+      document.getElementById('chat-question')?.focus()
+    }, 0)
+  }
+
   async function handleRefreshHistory(
     projectIdOverride?: string,
     statusFilterOverride: SessionNavigationFilter = historyStatusFilter,
@@ -2565,6 +2589,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onQuestionChange={setQuestion}
                 onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
+                onEditQuestion={handleEditQuestion}
                 onRegenerateLastAnswer={handleRegenerateLastAnswer}
                 onRetryLastQuestion={handleRetryLastQuestion}
                 onStartNewSession={handleStartNewSession}

@@ -394,6 +394,21 @@ describe('ChatWorkspacePanel', () => {
     expect(regenerate.textContent).toMatch(/Regenerate/)
     await userDriver.click(regenerate)
     expect(onRegenerateLastAnswer).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  test('edit question loads text into the composer via onQuestionChange', async () => {
+    const userDriver = userEvent.setup()
+    const onQuestionChange = vi.fn()
+    renderChatWorkspace({
+      activeResponseQuestion: 'What is Nimbus?',
+      onQuestionChange,
+      requestState: 'succeeded',
+      response,
+    })
+
+    await userDriver.click(screen.getByRole('button', { name: 'Edit question' }))
+    expect(onQuestionChange).toHaveBeenCalledWith('What is Nimbus?')
   })
 
   test('retry button appears on failed empty state with error detail', async () => {
