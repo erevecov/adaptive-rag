@@ -182,17 +182,19 @@ export function AppShell({
       <section
         aria-labelledby="workspace-title"
         className={cn(
-          [
-            'workspace min-w-0 self-start h-screen w-full overflow-auto p-7',
-            'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-0.5',
-          ],
+          'workspace h-screen w-full min-w-0',
           primaryView === 'chat'
             ? [
-                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden px-[18px] pb-2.5 pt-1.5',
+                // Chat: fixed viewport. overflow-hidden ONLY (never overflow-auto)
+                // so the transcript is the sole scroller and the composer stays pinned.
+                'workspace-chat grid max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden px-[18px] pb-2.5 pt-1.5',
                 'max-[900px]:px-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:px-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                'max-[680px]:gap-0 max-[680px]:overflow-hidden max-[680px]:px-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
-            : 'mx-auto max-w-[1240px]',
+            : [
+                'self-start overflow-auto p-7 mx-auto max-w-[1240px]',
+                'max-[900px]:p-[18px] max-[680px]:h-screen max-[680px]:overflow-hidden max-[680px]:p-0.5',
+              ],
         )}
         data-slot="workspace"
         id="main-content"

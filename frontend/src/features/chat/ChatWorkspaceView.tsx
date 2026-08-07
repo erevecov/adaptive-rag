@@ -227,6 +227,7 @@ export function ChatWorkspacePanel({
               onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
               providerUsage={[]}
               question={turn.question}
+              questionSticky={false}
               response={{
                 answer: turn.answer,
                 citations: turn.citations,
@@ -937,6 +938,7 @@ function ResponseContent({
   onSubmitKnowledgeDraft,
   providerUsage,
   question,
+  questionSticky = true,
   response,
   setDrafts,
   state,
@@ -953,6 +955,8 @@ function ResponseContent({
   ): Promise<KnowledgeProposal>
   providerUsage: ChatHistoryProviderUsage[]
   question: string | null
+  /** Prior turns render their question in normal flow (no sticky stacking). */
+  questionSticky?: boolean
   response: ChatResponseBody
   setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
@@ -1134,6 +1138,7 @@ function ResponseContent({
             : undefined
         }
         question={question}
+        sticky={questionSticky}
       />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
@@ -1342,9 +1347,12 @@ function ResponseContent({
 function QuestionPrompt({
   onEdit,
   question,
+  sticky = true,
 }: {
   onEdit?(): void
   question: string | null
+  /** Current turn sticks to the transcript top; prior turns flow normally. */
+  sticky?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const trimmedQuestion = question?.trim() ?? ''
@@ -1360,7 +1368,10 @@ function QuestionPrompt({
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-muted/90 pb-2 backdrop-blur-sm shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80"
+      className={cn(
+        'border-b border-border bg-chat-user-bubble pb-2 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:border-border max-[680px]:pb-1.5 max-[680px]:shadow-border/80',
+        sticky && 'sticky top-0 z-10 backdrop-blur-sm',
+      )}
       data-slot="chat-question-sticky"
     >
       <div className="mb-1 flex items-center gap-2">
@@ -1385,7 +1396,7 @@ function QuestionPrompt({
         <Button
           aria-expanded={expanded}
           aria-label={expanded ? 'Collapse full question' : 'Expand full question'}
-          className="max-w-full justify-start whitespace-normal text-left max-[680px]:min-h-11 max-[680px]:text-sm"
+          className="max-w-full justify-start whitespace-normal bg-chat-user-bubble text-left max-[680px]:min-h-11 max-[680px]:text-sm"
           onClick={() => setExpanded((current) => !current)}
           slotName="chat-question-surface"
           title={trimmedQuestion}
@@ -1396,7 +1407,7 @@ function QuestionPrompt({
         </Button>
       ) : (
         <p
-          className="rounded-md border border-border bg-muted/80 px-3 py-2 text-sm leading-relaxed text-foreground max-[680px]:rounded-md max-[680px]:border-border max-[680px]:px-2.5 max-[680px]:py-2 max-[680px]:text-sm max-[680px]:leading-relaxed max-[680px]:shadow-none"
+          className="rounded-md border border-border bg-chat-user-bubble px-3 py-2 text-sm leading-relaxed text-foreground max-[680px]:rounded-md max-[680px]:border-border max-[680px]:px-2.5 max-[680px]:py-2 max-[680px]:text-sm max-[680px]:leading-relaxed max-[680px]:shadow-none"
           data-slot="chat-question-surface"
         >
           {displayQuestion}

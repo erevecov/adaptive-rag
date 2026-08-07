@@ -2324,6 +2324,19 @@ describe('App chat workspace', () => {
     expect(shellSource).toContain('grid-rows-[minmax(0,1fr)]')
   })
 
+  test('chat workspace uses overflow-hidden only and stretches in the shell grid', () => {
+    render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
+
+    const workspace = document.querySelector('[data-slot="workspace"]')
+    expect(workspace).toBeTruthy()
+    // Never both on the same node: overflow-auto here would scroll the whole
+    // workspace and steal scroll from the transcript, losing the composer.
+    expect(workspace?.className).toMatch(/overflow-hidden/)
+    expect(workspace?.className).not.toMatch(/overflow-auto/)
+    expect(workspace?.className).toMatch(/self-stretch/)
+    expect(workspace?.className).not.toMatch(/self-start/)
+  })
+
   test('renders a keyboard skip link targeting the chat composer', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 

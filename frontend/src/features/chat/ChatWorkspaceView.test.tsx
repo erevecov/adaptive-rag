@@ -562,7 +562,7 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 
-  test('renders the user question on a plomo muted surface distinct from the answer', () => {
+  test('renders the user question on a plomo bubble surface distinct from the answer', () => {
     const { view } = renderChatWorkspace({
       activeResponseQuestion: 'What is Nimbus?',
       requestState: 'succeeded',
@@ -571,15 +571,51 @@ describe('ChatWorkspacePanel', () => {
 
     const sticky = view.container.querySelector('[data-slot="chat-question-sticky"]')
     expect(sticky).toBeTruthy()
-    expect(sticky?.className).toMatch(/bg-muted\/90/)
+    expect(sticky?.className).toMatch(/bg-chat-user-bubble/)
+    expect(sticky?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
     const surface = view.container.querySelector(
       '[data-slot="chat-question-surface"]',
     )
     expect(surface).toBeTruthy()
-    expect(surface?.className).toMatch(/bg-muted\/80/)
+    expect(surface?.className).toMatch(/bg-chat-user-bubble/)
+    expect(surface?.className).not.toMatch(/bg-muted\//)
     const answer = view.container.querySelector('[data-slot="chat-message"]')
     expect(answer?.className).toMatch(/bg-card/)
-    expect(answer?.className).not.toMatch(/bg-muted\/80/)
+    expect(answer?.className).not.toMatch(/bg-chat-user-bubble/)
+  })
+
+  test('prior turn questions flow normally while the current question stays sticky', () => {
+    const { view } = renderChatWorkspace({
+      continuingSessionId: 'session-1',
+      priorTurns: [
+        {
+          id: 't1',
+          question: 'Earlier question one',
+          answer: 'Earlier answer one',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+        {
+          id: 't2',
+          question: 'Earlier question two',
+          answer: 'Earlier answer two',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+      ],
+      requestState: 'succeeded',
+      response,
+    })
+
+    const strips = view.container.querySelectorAll(
+      '[data-slot="chat-question-sticky"]',
+    )
+    expect(strips.length).toBe(3)
+    expect(strips[0]?.className).not.toMatch(/(?:^|\s)sticky(?:\s|$)/)
+    expect(strips[1]?.className).not.toMatch(/(?:^|\s)sticky(?:\s|$)/)
+    expect(strips[2]?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
   })
 
   test('renders knowledge draft actions with editable text', () => {

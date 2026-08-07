@@ -22,6 +22,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chat-user-bubble: var(--chat-user-bubble);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -64,6 +65,8 @@
   --shadow-mobile-sidebar: 0 18px 46px color-mix(in srgb, var(--foreground) 22%, transparent);
   --shadow-inspector-overlay: 0 24px 80px color-mix(in srgb, var(--foreground) 35%, transparent);
   --overlay-backdrop: color-mix(in srgb, var(--foreground) 45%, transparent);
+  /* Plomo user-question surface: clearly above --card in every theme. */
+  --chat-user-bubble: #e8e8e8;
 }
 
 [data-theme='dark'] {
@@ -88,6 +91,8 @@
   --input: #262626;
   /* Lighter than borders so focus rings stay visible on near-black surfaces */
   --ring: #c4c4c4;
+  /* Clearly above --card #050505 so user questions read vs answers. */
+  --chat-user-bubble: #262626;
 }
 
 [data-theme='purple'] {
@@ -114,6 +119,8 @@
   --input: #382e61;
   /* Match primary so purple focus rings remain legible on deep violet bg */
   --ring: #b8aaff;
+  /* Above --card #100d1e, still in the violet family. */
+  --chat-user-bubble: #241f3d;
 }
 
 * {
@@ -142,7 +149,7 @@ body {
 .scrollbar-chat {
   scrollbar-width: thin;
   scrollbar-color:
-    color-mix(in srgb, var(--muted-foreground) 45%, var(--border)) transparent;
+    color-mix(in srgb, var(--muted-foreground) 70%, var(--border)) transparent;
 }
 
 .scrollbar-chat::-webkit-scrollbar {
@@ -155,12 +162,12 @@ body {
 }
 
 .scrollbar-chat::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--muted-foreground) 45%, var(--border));
+  background-color: color-mix(in srgb, var(--muted-foreground) 70%, var(--border));
   border-radius: 999px;
 }
 
 .scrollbar-chat::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--muted-foreground) 65%, var(--border));
+  background-color: color-mix(in srgb, var(--muted-foreground) 85%, var(--border));
 }
 
 /* Purple theme: thumb leans primary/border violet. */
