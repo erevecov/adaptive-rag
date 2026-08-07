@@ -76,6 +76,14 @@ const shellSource =
   ).process
     ?.getBuiltinModule?.('fs')
     .readFileSync('src/features/shell/AppShell.tsx', 'utf8') ?? ''
+const indexStyles =
+  (
+    globalThis as typeof globalThis & {
+      process?: NodeProcess
+    }
+  ).process
+    ?.getBuiltinModule?.('fs')
+    .readFileSync('src/index.css', 'utf8') ?? ''
 
 installPointerEventMocks()
 
@@ -2352,6 +2360,18 @@ describe('App chat workspace', () => {
     expect(
       document.querySelector('[data-slot="workspace-body"]')?.className,
     ).toMatch(/min-h-0/)
+  })
+
+  test('locks the document viewport so tall chat content can never scroll the page', () => {
+    // Backstop for the session-load regression: html/body/#root are pinned to
+    // 100% with overflow hidden, so only designated regions (transcript,
+    // session list) scroll regardless of transcript length.
+    expect(indexStyles).toMatch(
+      /html,\s*body,\s*#root\s*\{[^}]*height:\s*100%[^}]*\}/,
+    )
+    expect(indexStyles).toMatch(
+      /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden[^}]*\}/,
+    )
   })
 
   test('renders a keyboard skip link targeting the chat composer', () => {
