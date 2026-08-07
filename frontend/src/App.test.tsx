@@ -2231,13 +2231,13 @@ describe('App chat workspace', () => {
     expect(
       darkThemeButton.querySelector<HTMLElement>('[data-slot="theme-swatch"]')?.style
         .background,
-    ).toBe('rgb(0, 0, 0)')
+    ).toBe('rgb(20, 20, 20)')
     expect(
       darkThemeButton
         .querySelector<HTMLElement>('[data-slot="theme-swatch-accent"]')
         ?.style
         .background,
-    ).toBe('rgb(245, 245, 245)')
+    ).toBe('rgb(192, 132, 252)')
 
     await user.click(screen.getByRole('button', { name: /Light/ }))
 

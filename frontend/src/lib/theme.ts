@@ -22,10 +22,10 @@ export const THEMES: readonly ThemeDef[] = [
     swatch: { accent: '#23423e', bg: '#f4f6f8', fg: '#18201f', muted: '#63706d' },
   },
   {
-    description: 'Black palette for low-light sessions.',
+    description: 'GrokNight-style charcoal with magenta accent for low-light sessions.',
     id: 'dark',
     label: 'Dark',
-    swatch: { accent: '#f5f5f5', bg: '#000000', fg: '#f5f5f5', muted: '#a3a3a3' },
+    swatch: { accent: '#c084fc', bg: '#141414', fg: '#e8e8e8', muted: '#a3a3a3' },
   },
   {
     description: 'High-contrast purple workspace palette.',
