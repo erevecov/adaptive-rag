@@ -198,7 +198,7 @@ export function ChatWorkspacePanel({
   return (
     <Panel
       aria-label="Chat Workspace"
-      className="flex h-full max-h-full min-h-0 flex-col overflow-hidden border-0 bg-transparent shadow-none"
+      className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden border-0 bg-transparent shadow-none"
       role="region"
     >
       {/* flex-1 + min-h-0: only the transcript scrolls; composer stays pinned. */}

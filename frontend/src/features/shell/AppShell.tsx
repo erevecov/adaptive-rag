@@ -139,7 +139,7 @@ export function AppShell({
         // session transcripts expand the main column past 100vh and scroll the
         // whole page (composer mid-screen + empty void). Flex + min-h-0 pins it.
         [
-          'app-shell flex h-svh max-h-svh overflow-hidden bg-background p-0 text-foreground',
+          'app-shell flex h-full max-h-full min-h-0 overflow-hidden bg-background p-0 text-foreground',
           'motion-safe:transition-[padding] motion-safe:duration-200 motion-safe:ease-out',
           'max-[680px]:flex-col',
         ],
@@ -433,10 +433,10 @@ export function AppSidebar({
       aria-label="Primary Sidebar"
       className={cn(
         [
-          'relative z-40 grid h-screen min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
+          'relative z-40 grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
           // Solid card (not /90) keeps the rail opaque on purple/dark backgrounds.
           'border-r border-border bg-card shadow-[1px_0_0_0] shadow-primary/15 motion-safe:transition-[background,border-color,box-shadow,opacity,width] motion-safe:duration-200',
-          'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-screen',
+          'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-svh',
         ],
         isOpen
           ? 'w-[280px] max-[680px]:w-[min(86vw,200px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'

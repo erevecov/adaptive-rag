@@ -2321,9 +2321,9 @@ describe('App chat workspace', () => {
     expect(host?.className).toMatch(/min-h-0/)
     expect(host?.className).toMatch(/overflow-hidden/)
     // Shell is flex-based so long session content cannot grow past the viewport.
-    expect(shellSource).toContain('h-svh')
     expect(shellSource).toContain('min-h-0')
     expect(shellSource).toContain('data-slot="workspace-body"')
+    expect(shellSource).toMatch(/h-full|max-h-full/)
   })
 
   test('chat workspace uses overflow-hidden only and stretches in the shell grid', () => {
@@ -2333,9 +2333,10 @@ describe('App chat workspace', () => {
     const workspace = document.querySelector('[data-slot="workspace"]')
     expect(shell).toBeTruthy()
     expect(workspace).toBeTruthy()
-    // Flex shell pins the viewport; long sessions must not grow past 100svh.
+    // Flex shell pins the viewport; long sessions must not grow the document.
     expect(shell?.className).toMatch(/(?:^|\s)flex(?:\s|$)/)
-    expect(shell?.className).toMatch(/h-svh|max-h-svh/)
+    expect(shell?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(shell?.className).toMatch(/max-h-full|min-h-0/)
     expect(shell?.className).toMatch(/overflow-hidden/)
     // Never both on the same node: overflow-auto here would scroll the whole
     // workspace and steal scroll from the transcript, losing the composer.
