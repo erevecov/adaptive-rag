@@ -533,8 +533,10 @@ describe('ChatWorkspacePanel', () => {
     const { view } = renderChatWorkspace({
       drafts: {
         'draft-1': {
+          approvedSourceId: null,
           draftId: 'draft-1',
           error: null,
+          ingestStatus: null,
           proposalId: null,
           reviewAction: 'approve',
           scope: 'project',
@@ -560,8 +562,10 @@ describe('ChatWorkspacePanel', () => {
       renderChatWorkspace({
         drafts: {
           [status]: {
+            approvedSourceId: null,
             draftId: status,
             error: null,
+            ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
             scope: 'project',
@@ -688,8 +692,10 @@ describe('ChatWorkspacePanel', () => {
       renderChatWorkspace({
         drafts: {
           [status]: {
+            approvedSourceId: null,
             draftId: status,
             error: null,
+            ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
             scope: 'project',

@@ -297,6 +297,7 @@ export function AppSidebar({
   observabilitySubmodule,
   onArchiveSession,
   onAccountModuleChange,
+  onDeleteSession,
   onLoadMoreSessions,
   onPrimaryViewChange,
   onProjectIdChange,
@@ -327,6 +328,7 @@ export function AppSidebar({
   observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
   onAccountModuleChange(module: AccountModule): void
+  onDeleteSession(sessionId: string): void
   onLoadMoreSessions(): void
   onPrimaryViewChange(view: PrimaryView): void
   onProjectIdChange(projectId: string): void
@@ -517,6 +519,7 @@ export function AppSidebar({
             canLoadMore={canLoadMoreSessions}
             error={error}
             onArchiveSession={onArchiveSession}
+            onDeleteSession={onDeleteSession}
             onLoadMore={onLoadMoreSessions}
             onRenameSession={onRenameSession}
             onSelectSession={onSelectSession}

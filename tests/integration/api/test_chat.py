@@ -1576,6 +1576,23 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
         str(chat_session.id)
     ]
 
+    deleted = client.delete(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}"
+    )
+    after_delete = client.get(f"/projects/{project.id}/chat/sessions")
+    missing = client.get(
+        f"/projects/{project.id}/chat/sessions/{chat_session.id}"
+    )
+
+    assert deleted.status_code == 204
+    assert after_delete.json()["items"] == []
+    assert missing.status_code == 404
+    fresh_session = session_factory()
+    assert (
+        fresh_session.query(ChatSession).filter_by(id=chat_session.id).count()
+        == 0
+    )
+
 
 def test_chat_sessions_endpoint_scopes_history_to_current_user(
     tmp_path: Path,

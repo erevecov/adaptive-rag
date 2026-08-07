@@ -859,6 +859,7 @@ export type ApiClient = {
   ): Promise<{ session_id: string; title: string; title_is_custom: boolean }>
   archiveChatSession(projectId: string, sessionId: string): Promise<void>
   unarchiveChatSession(projectId: string, sessionId: string): Promise<void>
+  deleteChatSession(projectId: string, sessionId: string): Promise<void>
   getChatObservabilitySummary(
     projectId: string,
     params?: ChatObservabilitySummaryParams,
@@ -1225,6 +1226,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/projects/${encodePathSegment(
           projectId,
         )}/chat/sessions/${encodePathSegment(sessionId)}/unarchive`,
+      })
+    },
+    deleteChatSession(projectId, sessionId) {
+      return requestVoid(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/projects/${encodePathSegment(
+          projectId,
+        )}/chat/sessions/${encodePathSegment(sessionId)}`,
       })
     },
     getChatObservabilitySummary(projectId, params = {}) {

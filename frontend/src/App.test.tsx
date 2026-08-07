@@ -167,6 +167,7 @@ function createClientStub(options: {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
   archiveChatSession?: ApiClient['archiveChatSession']
+  deleteChatSession?: ApiClient['deleteChatSession']
   checkProviderConnection?: ApiClient['checkProviderConnection']
   createProject?: ApiClient['createProject']
   createProviderConnection?: ApiClient['createProviderConnection']
@@ -233,6 +234,7 @@ function createClientStub(options: {
     askChatStream: options.askChatStream ?? vi.fn(),
     searchRetrieval: options.searchRetrieval ?? vi.fn(),
     archiveChatSession: options.archiveChatSession ?? vi.fn(),
+    deleteChatSession: options.deleteChatSession ?? vi.fn(),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createProject: options.createProject ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
@@ -2757,7 +2759,7 @@ describe('App chat workspace', () => {
 
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
     const prompt = within(transcript).getByRole('button', {
-      name: 'Expand Full Question',
+      name: 'Expand full question',
     })
     expect(prompt.textContent).toContain('...')
     expect(prompt.textContent).not.toBe(longQuestion)
@@ -2766,7 +2768,7 @@ describe('App chat workspace', () => {
     await user.click(prompt)
 
     expect(prompt.textContent).toBe(longQuestion)
-    expect(prompt.getAttribute('aria-label')).toBe('Collapse Full Question')
+    expect(prompt.getAttribute('aria-label')).toBe('Collapse full question')
   })
 
   test('consolidates response sources and tool calls under a compact details panel', async () => {

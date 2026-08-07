@@ -82,6 +82,7 @@ export function SessionNavigationPanel({
   statusFilter,
   error,
   onArchiveSession,
+  onDeleteSession,
   onLoadMore,
   onRenameSession,
   onSelectSession,
@@ -96,6 +97,7 @@ export function SessionNavigationPanel({
   statusFilter: SessionNavigationFilter
   error: string | null
   onArchiveSession(sessionId: string): void
+  onDeleteSession(sessionId: string): void
   onLoadMore(): void
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
@@ -425,6 +427,21 @@ export function SessionNavigationPanel({
                             }}
                           >
                             {isArchived ? 'Desarchivar' : 'Archivar'}
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="px-3 py-1.5 text-left text-destructive max-[680px]:px-1 max-[680px]:py-0.5"
+                            data-testid={`delete-${session.session_id}`}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  '¿Eliminar esta sesión de forma permanente? No se puede deshacer.',
+                                )
+                              ) {
+                                onDeleteSession(session.session_id)
+                              }
+                            }}
+                          >
+                            Eliminar
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>

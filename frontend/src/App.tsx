@@ -13,6 +13,8 @@ import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
 import {
   ChatWorkspacePanel,
+  type ChatKnowledgeDraft,
+  type ChatKnowledgeDraftMap,
   type ChatTranscriptTurn,
 } from '@/features/chat/ChatWorkspaceView'
 import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
@@ -101,23 +103,6 @@ const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   settings: '/settings/authoring',
 }
 type InspectorTab = 'context' | 'minimap'
-type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
-type ChatKnowledgeDraftStatus =
-  | 'draft'
-  | 'pending'
-  | 'approved'
-  | 'cancelled'
-  | string
-type ChatKnowledgeDraft = {
-  draftId: string
-  error: string | null
-  proposalId: string | null
-  reviewAction: ChatKnowledgeDraftAction
-  scope: string
-  status: ChatKnowledgeDraftStatus
-  text: string
-}
-type ChatKnowledgeDraftMap = Record<string, ChatKnowledgeDraft>
 type SourceViewerState = {
   citationSnippet: string | null
   error: string | null
@@ -857,6 +842,43 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setKnowledgeProposals((current) =>
       upsertKnowledgeProposal(current, proposal),
     )
+    // Best-effort: surface latest ingestion job status for the approved source.
+    if (proposal.approved_source_id !== null && proposal.status === 'approved') {
+      const sourceId = proposal.approved_source_id
+      void (async () => {
+        try {
+          const jobs = await client.listIngestionJobs(trimmedProjectId, {
+            source_id: sourceId,
+          })
+          const latest = jobs.items[0]
+          if (latest === undefined) {
+            return
+          }
+          setKnowledgeDrafts((current) => {
+            const match = Object.entries(current).find(
+              ([, draft]) =>
+                draft.proposalId === proposal.id ||
+                draft.draftId === proposal.id ||
+                draft.approvedSourceId === sourceId,
+            )
+            if (match === undefined) {
+              return current
+            }
+            const [key, draft] = match
+            return {
+              ...current,
+              [key]: {
+                ...draft,
+                approvedSourceId: sourceId,
+                ingestStatus: latest.status,
+              },
+            }
+          })
+        } catch {
+          // Non-blocking: card still shows "indexing may still be pending".
+        }
+      })()
+    }
     return proposal
   }
 
@@ -1007,6 +1029,28 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setHistoryState('loading')
     try {
       await client.unarchiveChatSession(trimmedProjectId, sessionId)
+      await handleRefreshHistory(trimmedProjectId)
+    } catch (error) {
+      setHistoryError(getErrorMessage(error))
+      setHistoryState('failed')
+    }
+  }
+
+  async function handleDeleteSession(sessionId: string) {
+    const trimmedProjectId = projectId.trim()
+    if (trimmedProjectId.length === 0) {
+      setHistoryState('failed')
+      setHistoryError('Project ID is required to delete a session.')
+      return
+    }
+
+    setHistoryError(null)
+    setHistoryState('loading')
+    try {
+      await client.deleteChatSession(trimmedProjectId, sessionId)
+      if (selectedSessionId === sessionId) {
+        handleStartNewSession()
+      }
       await handleRefreshHistory(trimmedProjectId)
     } catch (error) {
       setHistoryError(getErrorMessage(error))
@@ -2507,6 +2551,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           observabilitySubmodule={observabilitySubmodule}
           onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
           onAccountModuleChange={setAccountModule}
+          onDeleteSession={(sessionId) => void handleDeleteSession(sessionId)}
           onLoadMoreSessions={handleLoadMoreSessions}
           onPrimaryViewChange={handlePrimaryViewChange}
           onProjectIdChange={handleChangeProjectId}

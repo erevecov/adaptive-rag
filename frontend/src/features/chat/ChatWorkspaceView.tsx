@@ -58,8 +58,11 @@ export type ChatKnowledgeDraftStatus =
   | 'cancelled'
   | string
 export type ChatKnowledgeDraft = {
+  approvedSourceId: string | null
   draftId: string
   error: string | null
+  /** Latest known ingestion job status for the approved source, if any. */
+  ingestStatus: string | null
   proposalId: string | null
   reviewAction: ChatKnowledgeDraftAction
   scope: string
@@ -977,6 +980,7 @@ function ResponseContent({
           ...current,
           [draft.draftId]: {
             ...current[draft.draftId],
+            approvedSourceId: proposal.approved_source_id,
             error: null,
             proposalId: proposal.id,
             status: proposal.status,
@@ -1600,6 +1604,17 @@ function KnowledgeDraftCard({
           Proposal {draft.proposalId}
         </p>
       )}
+      {draft.approvedSourceId !== null ? (
+        <p
+          className="text-sm text-muted-foreground max-[680px]:text-sm max-[680px]:leading-snug"
+          data-slot="chat-knowledge-ingest-status"
+        >
+          Source {shortSessionId(draft.approvedSourceId)}
+          {draft.ingestStatus !== null
+            ? ` · ingest ${draft.ingestStatus}`
+            : ' · saved (indexing may still be pending)'}
+        </p>
+      ) : null}
       {draft.error === null ? null : (
         <InlineFeedback tone="danger">{operatorSafeMessage(draft.error)}</InlineFeedback>
       )}
@@ -1699,8 +1714,10 @@ function extractKnowledgeDraft(call: ChatToolCall): ChatKnowledgeDraft | null {
     return null
   }
   return {
+    approvedSourceId: getJsonString(call.result_summary, 'approved_source_id'),
     draftId,
     error: null,
+    ingestStatus: null,
     proposalId: getJsonString(call.result_summary, 'proposal_id'),
     reviewAction:
       getJsonString(call.result_summary, 'review_action') ?? 'request_approval',
