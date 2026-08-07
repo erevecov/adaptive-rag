@@ -39,7 +39,9 @@ describe('Popover', () => {
     expect(trigger.className).toContain('max-[680px]:rounded-sm')
     expect(trigger.className).toContain('max-[680px]:tracking-tighter')
     expect(trigger.className).toContain('hover:bg-primary/15')
+    expect(trigger.className).toContain('max-[680px]:hover:bg-primary/80')
     expect(trigger.className).toContain('active:bg-primary/20')
+    expect(trigger.className).toContain('max-[680px]:active:bg-primary/95')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
@@ -52,6 +54,7 @@ describe('Popover', () => {
     expect(listbox.className).toContain('max-[680px]:p-0.5')
     expect(listbox.className).toContain('max-[680px]:rounded-sm')
     expect(listbox.className).toContain('max-[680px]:tracking-tighter')
+    expect(listbox.className).toContain('max-[680px]:shadow-primary/95')
     expect(trigger.parentElement?.contains(listbox)).toBe(false)
   })
 

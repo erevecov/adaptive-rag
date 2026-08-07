@@ -281,7 +281,7 @@ export function SessionNavigationPanel({
               >
                 {/* CSS grid so title shrinks; age/⋮ stay reserved. Title uses
                     beflow-style mask fade on hover / open menu. */}
-                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_2.75rem] max-[680px]:gap-0.5">
+                <div className="grid min-h-8 min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto_1.75rem] items-center gap-1 px-1 py-0.5 max-[680px]:min-h-11 max-[680px]:grid-cols-[1rem_minmax(0,1fr)_auto_1.25rem] max-[680px]:gap-0.5">
                   <span
                     aria-hidden={!hasTraining}
                     className="flex w-4 items-center justify-start text-muted-foreground"
@@ -410,7 +410,7 @@ export function SessionNavigationPanel({
                           sideOffset={4}
                         >
                           <DropdownMenu.Item
-                            className="justify-between gap-3 px-3 py-1.5 text-left max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5"
+                            className="justify-between gap-3 px-3 py-1.5 text-left max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:py-0.5"
                             data-testid={`copy-id-${session.session_id}`}
                             onClick={() => {
                               void handleCopySessionId(session.session_id)
@@ -419,7 +419,7 @@ export function SessionNavigationPanel({
                             <span>Copiar ID de sesión</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left max-[680px]:px-1 max-[680px]:py-0.5"
+                            className="px-3 py-1.5 text-left max-[680px]:px-0.5 max-[680px]:py-0.5"
                             data-testid={`rename-${session.session_id}`}
                             onClick={() => {
                               setRenamingSessionId(session.session_id)
@@ -429,7 +429,7 @@ export function SessionNavigationPanel({
                             Renombrar
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-1.5 text-left max-[680px]:px-1 max-[680px]:py-0.5"
+                            className="px-3 py-1.5 text-left max-[680px]:px-0.5 max-[680px]:py-0.5"
                             data-testid={`${isArchived ? 'unarchive' : 'archive'}-${session.session_id}`}
                             onClick={() => {
                               if (isArchived) {
@@ -855,12 +855,12 @@ function SessionContextPanel({
               value={formatSessionCost(detail.provider_usage)}
             />
             <MetricCard
-              detail="Known usage only"
+              detail="Known Usage Only"
               label="Tokens"
               value={formatSessionTokens(detail.provider_usage)}
             />
             <MetricCard
-              detail="Average known latency"
+              detail="Average Known Latency"
               label="Latency"
               value={formatSessionLatency(detail.provider_usage)}
             />
@@ -881,7 +881,7 @@ function MetricCard({
   value: string
 }) {
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/70 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65">
+    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
       <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </span>
@@ -917,7 +917,7 @@ function InternalActionStepper({
             slot="action-stepper-loading"
           />
         ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState>No Stored Internal Actions for This Session.</EmptyState>
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Stored Internal Actions For This Session.</EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -1077,7 +1077,7 @@ function SessionDetailPanel({
           </h4>
           <DataList aria-label="Session Messages">
             {detail.messages.length === 0 ? (
-              <EmptyState>No Messages in This Session.</EmptyState>
+              <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Messages In This Session.</EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>
@@ -1270,7 +1270,7 @@ function RetrievedChunkDetail({
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug" role="status">
-            No Openable Source (Deleted or Uncited)
+            No Openable Source (Deleted Or Uncited)
           </span>
         )}
       </div>
@@ -1299,7 +1299,7 @@ function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/70 max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65">
+    <div className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
         {label}
       </dt>

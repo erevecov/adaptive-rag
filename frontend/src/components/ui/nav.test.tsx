@@ -19,7 +19,7 @@ describe('NavSection', () => {
     expect(title.className).toContain('uppercase')
     expect(title.className).toContain('tracking-wide')
     expect(title.className).toContain('font-semibold')
-    expect(title.className).toContain('max-[680px]:px-1')
+    expect(title.className).toContain('max-[680px]:px-0.5')
     expect(title.className).toContain('max-[680px]:tracking-tighter')
     expect(title.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(
@@ -42,8 +42,11 @@ describe('SidebarItem', () => {
     expect(item.getAttribute('aria-current')).toBe('page')
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/15')
+    expect(item.className).toContain('max-[680px]:data-[active]:bg-primary/45')
     expect(item.className).toContain('hover:bg-primary/15')
+    expect(item.className).toContain('max-[680px]:hover:bg-primary/80')
     expect(item.className).toContain('active:bg-primary/20')
+    expect(item.className).toContain('max-[680px]:active:bg-primary/95')
     expect(item.className).toContain('data-[active]:text-foreground')
     expect(item.className).toContain('max-[680px]:min-h-11')
     expect(item.className).toContain('max-[680px]:gap-0.5')
@@ -56,6 +59,7 @@ describe('SidebarItem', () => {
 
     const item = screen.getByRole('button', { name: 'Projects' })
     expect(item.className).toContain('hover:bg-primary/15')
+    expect(item.className).toContain('max-[680px]:hover:bg-primary/80')
     expect(item.hasAttribute('aria-current')).toBe(false)
   })
 

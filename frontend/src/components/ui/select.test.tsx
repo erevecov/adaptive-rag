@@ -40,7 +40,11 @@ describe('Select', () => {
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     expect(trigger.className).toContain('hover:border-primary/40')
+    expect(trigger.className).toContain('max-[680px]:hover:border-primary/95')
     expect(trigger.className).toContain('active:border-primary/50')
+    expect(trigger.className).toContain('max-[680px]:active:border-primary/95')
+    expect(trigger.className).toContain('data-[state=open]:border-primary/95')
+    expect(trigger.className).toContain('data-[state=open]:bg-primary/95')
     expect(trigger.className).toContain('aria-invalid:border-destructive')
     expect(trigger.className).toContain('disabled:hover:border-input')
     expect(trigger.className).toContain('max-[680px]:min-h-11')
@@ -64,7 +68,9 @@ describe('Select', () => {
     expect(option.className).toContain('focus-visible:ring-inset')
     expect(option.className).toContain('focus-visible:ring-ring')
     expect(option.className).toContain('data-[highlighted]:bg-primary/15')
+    expect(option.className).toContain('max-[680px]:data-[highlighted]:bg-primary/95')
     expect(option.className).toContain('active:bg-primary/20')
+    expect(option.className).toContain('max-[680px]:active:bg-primary/95')
     expect(option.className).toContain('max-[680px]:min-h-11')
     expect(option.className).toContain('max-[680px]:text-[0.5625rem]')
     expect(option.className).toContain('max-[680px]:tracking-tighter')
@@ -79,6 +85,9 @@ describe('Select', () => {
     )
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'max-[680px]:tracking-tighter',
+    )
+    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
+      'max-[680px]:shadow-primary/95',
     )
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(option.closest('[data-slot="select-content"]')).toBeTruthy()

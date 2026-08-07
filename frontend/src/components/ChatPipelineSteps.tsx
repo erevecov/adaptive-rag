@@ -46,27 +46,25 @@ export function ChatPipelineSteps({
       return (
         <section
           aria-label="Chat Pipeline Steps"
-          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
+          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
           data-slot="chat-pipeline-steps"
         >
           <Button
             aria-expanded={false}
             aria-label={`Expand Chat Steps, ${current.label}, ${statusLabel}, ${current.elapsed}`}
-            className="h-auto w-full min-w-0 justify-start gap-2 px-2 py-2 text-left max-[680px]:min-h-11"
+            className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
             onClick={() => handleToggle(true)}
             type="button"
             variant="secondary"
           >
             <StatusDot status={current.status} />
-            <strong className="min-w-0 flex-1 truncate text-sm">
-              {current.label}
-            </strong>
-            <small className="min-w-[4.5ch] text-right text-xs text-muted-foreground tabular-nums">
+            <strong className="min-w-0 flex-1 truncate">{current.label}</strong>
+            <small className="min-w-[4.5ch] text-right text-muted-foreground tabular-nums">
               {current.elapsed}
             </small>
             <ChevronRight
               aria-hidden="true"
-              className="size-4 shrink-0 text-muted-foreground"
+              className="ml-auto size-4 text-muted-foreground"
             />
           </Button>
         </section>
@@ -76,24 +74,23 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
+        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={true}
           aria-label={`Collapse Chat Steps, ${summary}`}
-          className="h-auto min-w-0 justify-start gap-2 text-left max-[680px]:min-h-11"
+          className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(false)}
           type="button"
           variant="secondary"
         >
-          <StatusDot status={current.status} />
-          <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
-          <span className="min-w-0 truncate text-sm">{summary}</span>
+          <ChevronDown aria-hidden="true" className="size-4" />
+          <span>{summary}</span>
         </Button>
         <StepList steps={steps} />
         {children ? (
-          <div className="grid gap-3 max-[680px]:gap-2" data-slot="chat-pipeline-extra-detail">
+          <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
             {children}
           </div>
         ) : null}
@@ -110,19 +107,19 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
+        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={false}
           aria-label={`Expand Chat Steps, ${label}`}
-          className="h-auto min-w-0 justify-start gap-2 text-left max-[680px]:min-h-11"
+          className="h-auto min-w-0 justify-start text-left"
           onClick={() => handleToggle(true)}
           type="button"
           variant="secondary"
         >
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
-          <span className="min-w-0 truncate text-sm">{summary}</span>
+          <ChevronRight aria-hidden="true" className="size-4" />
+          <span>{summary}</span>
         </Button>
       </section>
     )
@@ -131,23 +128,23 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat Pipeline Steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
+      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
       data-slot="chat-pipeline-steps"
     >
       <Button
         aria-expanded={true}
         aria-label={`Collapse Chat Steps, ${label}`}
-        className="h-auto min-w-0 justify-start gap-2 text-left max-[680px]:min-h-11"
+        className="h-auto min-w-0 justify-start text-left"
         onClick={() => handleToggle(false)}
         type="button"
         variant="secondary"
       >
-        <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
-        <span className="min-w-0 truncate text-sm">{summary}</span>
+        <ChevronDown aria-hidden="true" className="size-4" />
+        <span>{summary}</span>
       </Button>
       <StepList steps={steps} />
       {children ? (
-        <div className="grid gap-3 max-[680px]:gap-2" data-slot="chat-pipeline-extra-detail">
+        <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
           {children}
         </div>
       ) : null}
@@ -159,7 +156,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
   if (steps.length === 0) {
     return (
       <p
-        className="rounded-md border border-dashed border-border bg-card p-2.5 text-xs text-muted-foreground max-[680px]:border-border max-[680px]:p-2 max-[680px]:text-xs max-[680px]:leading-snug"
+        className="rounded-md border border-dashed border-border bg-card p-2 text-xs text-muted-foreground max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
         role="status"
       >
@@ -168,7 +165,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
     )
   }
   return (
-    <ol className="grid gap-2 max-[680px]:gap-1.5" data-slot="chat-pipeline-step-list">
+    <ol className="grid gap-2 max-[680px]:gap-0.5" data-slot="chat-pipeline-step-list">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
           <StepRow step={step} />
@@ -192,13 +189,11 @@ function StepRow({ step }: { step: ChatStep }) {
         <span aria-hidden="true" className="size-3.5 shrink-0" />
       )}
       <StatusDot status={step.status} />
-      <span className="grid min-w-0 flex-1 gap-1 max-[680px]:gap-1">
-        <strong className="text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-          {stepLabel(step.id)}
-        </strong>
+      <span className="grid min-w-0 flex-1 gap-1 max-[680px]:gap-0.5">
+        <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{stepLabel(step.id)}</strong>
         <InlineDetailChips step={step} />
       </span>
-      <small className="text-xs text-muted-foreground tabular-nums max-[680px]:text-xs">
+      <small className="text-xs text-muted-foreground tabular-nums max-[680px]:text-[0.5625rem]">
         {formatStepDuration(step.elapsed_ms)}
       </small>
     </>
@@ -207,7 +202,7 @@ function StepRow({ step }: { step: ChatStep }) {
   if (!hasDetail) {
     return (
       <div
-        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2.5 max-[680px]:shadow-none"
+        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
         data-slot="chat-pipeline-step-row"
       >
         {content}
@@ -220,7 +215,7 @@ function StepRow({ step }: { step: ChatStep }) {
       className="group rounded-md border border-border bg-card"
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-2 max-[680px]:p-2.5">
+      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:p-0.5">
         {content}
       </summary>
       <StepDetail step={step} />
@@ -248,10 +243,10 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
     return null
   }
   return (
-    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-1">
+    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5">
       {chips.slice(0, 3).map((chip) => (
         <span
-          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:px-1.5 max-[680px]:text-xs"
+          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
           data-slot="chat-pipeline-detail-chip"
           key={chip}
         >
@@ -268,7 +263,7 @@ function StepDetail({ step }: { step: ChatStep }) {
   if (detailEntries.length === 0 && usage === undefined) {
     return (
       <p
-        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-2.5 max-[680px]:pb-2 max-[680px]:text-sm max-[680px]:leading-snug"
+        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-0.5 max-[680px]:pb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
         data-slot="chat-pipeline-empty"
       >
         No Step Detail Recorded.
@@ -277,53 +272,46 @@ function StepDetail({ step }: { step: ChatStep }) {
   }
   return (
     <dl
-      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-1.5 max-[680px]:p-2.5"
+      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5"
       data-slot="chat-pipeline-step-detail"
     >
       {detailEntries.map(([key, value]) => (
-        <div
-          className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-2 max-[680px]:shadow-none"
-          key={key}
-        >
-          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
+        <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95" key={key}>
+          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
             {formatDetailKey(key)}
           </dt>
-          <dd className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
+          <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
             {formatDetailValue(value)}
           </dd>
         </div>
       ))}
       {usage !== undefined ? (
         <>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-2 max-[680px]:shadow-none">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Model
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-              {usage.model}
-            </dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-2 max-[680px]:shadow-none">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Provider
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-              {usage.provider}
-            </dd>
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.provider}</dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-2 max-[680px]:shadow-none">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Tokens
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {formatTokens(usage.total_tokens)}
             </dd>
           </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-1 max-[680px]:rounded-md max-[680px]:p-2 max-[680px]:shadow-none">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
+          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
+            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
               Cost
             </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
+            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
               {formatCost(usage.estimated_cost_usd)}
             </dd>
           </div>

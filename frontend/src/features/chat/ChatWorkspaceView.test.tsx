@@ -547,7 +547,7 @@ describe('ChatWorkspacePanel', () => {
     ).toMatch(/max-\[680px\]:sticky/)
     expect(
       view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
-    ).toMatch(/max-\[680px\]:shadow-primary\/65/)
+    ).toMatch(/max-\[680px\]:shadow-primary\/95/)
     // Height chain: flex column — transcript flex-1 scrolls, composer pins bottom.
     expect(workspace.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
     expect(workspace.className).toMatch(/flex-col/)
@@ -672,7 +672,7 @@ describe('ChatWorkspacePanel', () => {
       response: draftResponse,
     })
 
-    const draft = screen.getByRole('region', { name: 'Knowledge draft draft-1' })
+    const draft = screen.getByRole('region', { name: 'Knowledge Draft draft-1' })
     expect(within(draft).getByLabelText('Knowledge Draft Text')).toBeTruthy()
     const approve = within(draft).getByRole('button', { name: 'Approve Knowledge' })
     expect(approve).toBeTruthy()
@@ -701,7 +701,7 @@ describe('ChatWorkspacePanel', () => {
         response,
       })
 
-      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      const card = screen.getByRole('region', { name: `Knowledge Draft ${status}` })
       expect(
         (
           within(card).getByRole('button', {
@@ -775,8 +775,8 @@ describe('ChatWorkspacePanel', () => {
       failed.view.container.querySelector(
         '[data-slot="chat-terminal-banner"][data-slot-state="failed"]',
       )?.textContent,
-    ).toMatch(/Request failed/)
-    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/)
+    ).toMatch(/Request failed/i)
+    expect(screen.getByRole('alert').textContent).toMatch(/incomplete/i)
     failed.view.unmount()
   })
 
@@ -831,12 +831,13 @@ describe('ChatWorkspacePanel', () => {
         response,
       })
 
-      const card = screen.getByRole('region', { name: `Knowledge draft ${status}` })
+      const card = screen.getByRole('region', { name: `Knowledge Draft ${status}` })
       expect(within(card).getByText(label).getAttribute('data-tone')).toBe(tone)
     }
   })
 
   test('uses lucide icons instead of inline SVG icon functions', () => {
+    expect(chatWorkspaceSource).toContain('max-[680px]:px-1')
     expect(chatWorkspaceSource).toContain('lucide-react')
     expect(chatWorkspaceSource).not.toContain('<svg')
     expect(chatWorkspaceSource).not.toContain('function ContextRingIcon')
@@ -845,4 +846,10 @@ describe('ChatWorkspacePanel', () => {
     expect(chatWorkspaceSource).not.toContain('function SendIcon')
     expect(chatWorkspaceSource).not.toContain('ui-icon')
   })
+  test('≤680 composer tool and citation chips use denser hover/active wash', () => {
+    expect(chatWorkspaceSource).toContain('max-[680px]:hover:bg-primary/65')
+    expect(chatWorkspaceSource).toContain('max-[680px]:active:bg-primary/95')
+  })
+
+
 })

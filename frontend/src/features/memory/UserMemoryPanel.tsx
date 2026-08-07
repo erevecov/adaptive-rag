@@ -3,6 +3,7 @@ import {
   type KeyboardEvent,
   useEffect,
   useId,
+  useRef,
   useState,
 } from 'react'
 
@@ -15,6 +16,7 @@ import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/fiel
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import {
   ApiClientError,
+  USER_MEMORY_INJECTION_MAX_ITEMS,
   USER_MEMORY_MAX_CHARS,
   USER_MEMORY_SOFT_HINT_CHARS,
   type ApiClient,
@@ -72,6 +74,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [focusProposeAgainId, setFocusProposeAgainId] = useState<string | null>(
     null,
   )
+  // Monotonic id shared by load()/refreshList(): only the newest request may
+  // commit list state, so out-of-order or stale responses never win.
+  const listRequestIdRef = useRef(0)
 
   const trimmedProjectId = projectId.trim()
   const draftLength = draft.length
@@ -104,6 +109,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     return () => window.clearTimeout(timer)
   }, [filterSwitchNotice])
 
+  function dismissUndoBanner(memoryId: string) {
+    setUndoRemoveId(null)
+    setFilterSwitchNotice(null)
+    requestAnimationFrame(() => {
+      focusAfterUndoBannerClear(memoryId, draftFieldId)
+    })
+  }
+
   useEffect(() => {
     if (undoRemoveId === null) {
       return
@@ -120,8 +133,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         return
       }
       event.preventDefault()
-      setUndoRemoveId(null)
-      setFilterSwitchNotice(null)
+      dismissUndoBanner(undoRemoveId)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -154,7 +166,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   }, [confirmRemoveId])
 
   useEffect(() => {
-    let cancelled = false
+    const requestId = ++listRequestIdRef.current
 
     async function load() {
       setListState('loading')
@@ -174,14 +186,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                 project_id: projectScope,
                 status: statusFilter,
               })
-        if (cancelled) {
+        if (requestId !== listRequestIdRef.current) {
           return
         }
         const tally = tallyResponse.items
         setItems(sortMemoriesForFilter(listResponse.items, statusFilter))
-        setInjectableCount(
-          tally.filter((item) => item.status === 'approved').length,
-        )
+        {
+          const approvedTotal = tally.filter(
+            (item) => item.status === 'approved',
+          ).length
+          setInjectableCount(
+            Math.min(approvedTotal, USER_MEMORY_INJECTION_MAX_ITEMS),
+          )
+        }
         setStatusCounts({
           all: tally.length,
           approved: tally.filter((item) => item.status === 'approved').length,
@@ -190,7 +207,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         })
         setListState('succeeded')
       } catch (error) {
-        if (cancelled) {
+        if (requestId !== listRequestIdRef.current) {
           return
         }
         setItems([])
@@ -201,12 +218,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
     void load()
     return () => {
-      cancelled = true
+      // Invalidate in-flight fetches on unmount or filter/project change so
+      // their responses can never commit over the newer request's state.
+      listRequestIdRef.current += 1
     }
   }, [apiClient, statusFilter, trimmedProjectId])
 
 
   async function refreshList() {
+    const requestId = ++listRequestIdRef.current
     setListState('loading')
     setListError(null)
     try {
@@ -223,11 +243,19 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               project_id: projectScope,
               status: statusFilter,
             })
+      if (requestId !== listRequestIdRef.current) {
+        return
+      }
       const tally = tallyResponse.items
       setItems(sortMemoriesForFilter(response.items, statusFilter))
-      setInjectableCount(
-        tally.filter((item) => item.status === 'approved').length,
-      )
+      {
+        const approvedTotal = tally.filter(
+          (item) => item.status === 'approved',
+        ).length
+        setInjectableCount(
+          Math.min(approvedTotal, USER_MEMORY_INJECTION_MAX_ITEMS),
+        )
+      }
       setStatusCounts({
         all: tally.length,
         approved: tally.filter((item) => item.status === 'approved').length,
@@ -236,6 +264,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       })
       setListState('succeeded')
     } catch (error) {
+      if (requestId !== listRequestIdRef.current) {
+        return
+      }
       setItems([])
       setListError(getErrorMessage(error, 'Could not load memories.'))
       setListState('failed')
@@ -263,10 +294,15 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setProposeState('succeeded')
       setProposeSuccess('Proposed. Approve it below before chat can use it.')
       if (statusFilter !== 'proposed') {
+        setFilterSwitchNotice(null)
+        setUndoRemoveId(null)
         setStatusFilter('proposed')
       } else {
         await refreshList()
       }
+      requestAnimationFrame(() => {
+        document.getElementById(draftFieldId)?.focus()
+      })
     } catch (error) {
       setProposeState('failed')
       setProposeError(getErrorMessage(error, 'Could not propose memory.'))
@@ -436,7 +472,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       role="region"
     >
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="grid gap-1">
+        <div className="grid gap-1 max-[680px]:gap-0.5">
           <p className="text-xs font-bold uppercase leading-none text-muted-foreground">
             My account
           </p>
@@ -597,7 +633,10 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
               variant={active ? 'primary' : 'secondary'}
             >
               {filter.label}
-              <span aria-hidden className="tabular-nums text-[10px] opacity-80">
+              <span
+                aria-hidden
+                className="tabular-nums text-[10px] opacity-80 max-[680px]:text-[0.5625rem]"
+              >
                 {statusCounts[filter.id]}
               </span>
             </Button>
@@ -621,7 +660,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
         </p>
       ) : null}
 
-      <div aria-live="polite" className="grid gap-1.5">
+      <div aria-live="polite" className="grid gap-1.5 max-[680px]:gap-0.5">
         {listError ? (
           <div className="flex flex-wrap items-center gap-2">
             <InlineFeedback role="alert" tone="danger">
@@ -666,8 +705,9 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
             <Button
               aria-label="Dismiss undo remove"
               onClick={() => {
-                setUndoRemoveId(null)
-                setFilterSwitchNotice(null)
+                if (undoRemoveId !== null) {
+                  dismissUndoBanner(undoRemoveId)
+                }
               }}
               size="sm"
               type="button"
@@ -688,10 +728,14 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           filter={statusFilter}
           onPropose={() => {
             setConfirmRemoveId(null)
+            setFilterSwitchNotice(null)
+            setUndoRemoveId(null)
             document.getElementById(draftFieldId)?.focus()
           }}
           onViewProposed={() => {
             setConfirmRemoveId(null)
+            setFilterSwitchNotice(null)
+            setUndoRemoveId(null)
             setStatusFilter('proposed')
           }}
         />
@@ -768,7 +812,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                   </div>
 
                   {isEditing ? (
-                    <div className="grid gap-1">
+                    <div className="grid gap-1 max-[680px]:gap-0.5">
                       <Textarea
                         aria-describedby={`edit-memory-help-${memory.id}`}
                         aria-label="Edit Memory Content"
@@ -812,7 +856,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       </p>
                     </div>
                   ) : (
-                    <div className="grid gap-1">
+                    <div className="grid gap-1 max-[680px]:gap-0.5">
                       <p
                         className={cn(
                           'whitespace-pre-wrap text-sm leading-snug text-foreground',
@@ -1172,6 +1216,18 @@ function MemoryListLoadingSkeleton() {
       <div aria-hidden="true" className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
     </div>
   )
+}
+
+function focusAfterUndoBannerClear(
+  memoryId: string,
+  draftFieldId: string,
+): void {
+  const proposeAgain = document.getElementById(`propose-again-${memoryId}`)
+  if (proposeAgain instanceof HTMLElement) {
+    proposeAgain.focus()
+    return
+  }
+  document.getElementById(draftFieldId)?.focus()
 }
 
 function focusAfterReview(memoryId: string, rowIndex: number): void {

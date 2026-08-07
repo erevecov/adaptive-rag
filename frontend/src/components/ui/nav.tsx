@@ -21,7 +21,7 @@ export const NavSection = forwardRef<HTMLElement, NavSectionProps>(
     >
       {title ? (
         <h2
-          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+          className="px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
           data-slot="nav-section-title"
         >
           {title}
@@ -44,12 +44,12 @@ export const SidebarItem = forwardRef<HTMLButtonElement, SidebarItemProps>(
     <button
       className={cn(
         [
-          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-          'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 hover:text-foreground active:bg-primary/20',
+          'inline-flex h-9 w-full items-center justify-start gap-2 rounded-md px-3 text-sm font-medium tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+          'text-muted-foreground motion-safe:transition-colors hover:bg-primary/15 max-[680px]:hover:bg-primary/80 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
           // Primary tint reads clearer than accent wash on purple/dark sidebars.
-          'data-[active]:bg-primary/15 data-[active]:font-semibold data-[active]:text-foreground',
+          'data-[active]:bg-primary/15 data-[active]:font-semibold data-[active]:text-foreground max-[680px]:data-[active]:bg-primary/45',
         ],
         className,
       )}

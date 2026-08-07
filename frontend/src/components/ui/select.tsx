@@ -53,8 +53,9 @@ export function Select({
         aria-labelledby={ariaLabelledBy}
         className={cn(
           [
-            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/75 max-[680px]:px-2 max-[680px]:text-base max-[680px]:leading-snug',
-            'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 active:border-primary/50',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm tracking-tight text-foreground max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-base max-[680px]:leading-snug',
+            'group motion-safe:transition-colors placeholder:text-muted-foreground hover:border-primary/40 max-[680px]:hover:border-primary/95 active:border-primary/50 max-[680px]:active:border-primary/95',
+            'data-[state=open]:border-primary/95 data-[state=open]:bg-primary/95',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input',
             'data-[placeholder]:text-muted-foreground',
@@ -78,7 +79,7 @@ export function Select({
         <SelectPrimitive.Content
           className={cn(
             [
-              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/75 max-[680px]:p-0.5 max-[680px]:tracking-tighter',
+              'z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)] motion-safe:transition-colors max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:tracking-tighter max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95',
               'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             ],
             contentClassName,
@@ -92,11 +93,11 @@ export function Select({
               <SelectPrimitive.Item
                 className={cn(
                   [
-                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-1 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
-                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20',
+                    'relative flex min-h-8 max-[680px]:min-h-11 cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm tracking-tight outline-none max-[680px]:px-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter',
+                    'text-popover-foreground motion-safe:transition-colors active:bg-primary/20 max-[680px]:active:bg-primary/95',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                     // Primary tint reads clearer than accent wash on purple menus.
-                    'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground',
+                    'data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground max-[680px]:data-[highlighted]:bg-primary/95',
                     'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                   ],
                 )}

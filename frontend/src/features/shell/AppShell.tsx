@@ -130,7 +130,7 @@ export function AppShell({
 }) {
   const skipHref = primaryView === 'chat' ? '#chat-composer' : '#main-content'
   const skipLabel =
-    primaryView === 'chat' ? 'Skip to chat composer' : 'Skip to main content'
+    primaryView === 'chat' ? 'Skip To Chat Composer' : 'Skip To Main Content'
 
   return (
     <main
@@ -162,8 +162,8 @@ export function AppShell({
       <a
         className={cn(
           'sr-only focus-visible:not-sr-only',
-          'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100]',
-          'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2',
+          'focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[100] max-[680px]:focus-visible:left-1.5 max-[680px]:focus-visible:top-1.5',
+          'focus-visible:rounded-md focus-visible:bg-primary focus-visible:px-3 focus-visible:py-2 max-[680px]:focus-visible:px-1 max-[680px]:focus-visible:py-0.5 max-[680px]:focus-visible:text-[0.5625rem]',
           'focus-visible:text-sm focus-visible:font-semibold focus-visible:text-primary-foreground',
           // Match primary Button: ring against primary fill (critical on purple).
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background',
@@ -302,7 +302,7 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/70 max-[680px]:px-1 max-[680px]:text-[0.5625rem]"
+        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
         data-slot="workspace-project-chip"
         title={projectName}
       >
@@ -439,7 +439,7 @@ export function AppSidebar({
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-svh',
         ],
         isOpen
-          ? 'w-[280px] max-[680px]:w-[min(86vw,200px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
+          ? 'w-[280px] max-[680px]:w-[min(86vw,2px)] max-[680px]:shadow-[var(--shadow-mobile-sidebar)]'
           : 'w-0 overflow-visible border-r-transparent bg-transparent pointer-events-none max-[680px]:shadow-none',
       )}
       data-slot="app-sidebar"
@@ -465,7 +465,7 @@ export function AppSidebar({
         : null}
       <div
         className={cn(
-'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-1 max-[680px]:py-0.5',
+'grid min-h-14 grid-cols-[36px_minmax(0,1fr)] items-center gap-2.5 border-b border-border px-3 py-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:px-0.5 max-[680px]:py-0.5',
           !isOpen && 'min-h-0 border-b-transparent p-0 shadow-none',
         )}
         data-slot="app-sidebar-chrome"
@@ -473,10 +473,10 @@ export function AppSidebar({
         <IconButton
           aria-expanded={isOpen}
           className={cn(
-            'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 hover:text-foreground',
+            'border-border bg-card text-foreground hover:border-primary hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
             !isOpen &&
               // z-50 stays under inspector backdrop (z-60) so Menu cannot pierce the modal scrim.
-              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-1.5 max-[680px]:top-1.5 max-[680px]:border max-[680px]:border-primary/70',
+              'pointer-events-auto fixed left-3.5 top-3.5 z-50 bg-card shadow-[var(--shadow-sidebar-toggle)] max-[680px]:left-0.5 max-[680px]:top-0.5 max-[680px]:border max-[680px]:border-primary/95',
           )}
           label={isOpen ? 'Collapse Left Sidebar' : 'Open Left Sidebar'}
           onClick={onToggle}
@@ -521,7 +521,7 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/65 max-[680px]:gap-0.5 max-[680px]:pb-1"
+          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:gap-0.5 max-[680px]:pb-0.5"
           data-slot="sidebar-primary-navigation"
         >
           <SidebarNavButton
@@ -596,9 +596,9 @@ function SidebarNavButton({
       active={active}
       className={cn(
         // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
-        'hover:bg-primary/15 hover:text-foreground',
-        active && 'bg-primary/15 font-semibold text-foreground',
+        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
+        'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
+        active && 'bg-primary/15 max-[680px]:bg-primary/45 font-semibold text-foreground',
         className,
       )}
       onClick={onClick}
@@ -623,12 +623,12 @@ function AccountNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         My Account
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         {ACCOUNT_MODULES.map((module) => {
           const active = module.id === activeModule
           return (
@@ -693,12 +693,12 @@ function SettingsNavigationPanel({
       data-slot="sidebar-contextual-navigation"
     >
       <h2
-        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter"
+        className="text-sm font-semibold leading-tight tracking-tight text-foreground uppercase max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider"
         data-slot="sidebar-contextual-title"
       >
         Settings
       </h2>
-      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1.5 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
+      <div className="mt-2.5 grid gap-1 max-[680px]:mt-1 max-[680px]:gap-0.5" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === AUTHORING_NAVIGATION.id}
           onClick={() => onModuleChange(AUTHORING_NAVIGATION.id)}
@@ -783,11 +783,11 @@ function SidebarContextualButton({
         ],
         subitem
           ? [
-              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
+              'relative ml-3 min-h-[30px] max-[680px]:min-h-11 w-[calc(100%-0.75rem)] rounded-md px-[18px] text-xs tracking-tight max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
               'before:absolute before:bottom-[-4px] before:left-[-5px] before:top-[-4px] before:w-px before:rounded-full before:bg-border',
               active && 'before:hidden',
             ]
-          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-2 max-[680px]:text-[0.5625rem]',
+          : 'min-h-9 max-[680px]:min-h-11 rounded-md px-2.5 text-sm tracking-tight max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
         active && 'border-primary/40 bg-primary/15 text-foreground',
       )}
       data-active={active ? '' : undefined}
@@ -833,7 +833,7 @@ function SidebarProjectSelector({
   const selectedProject = projects.find((project) => project.id === trimmedProjectId)
   const selectedLabel =
     selectedProject?.name ??
-    (trimmedProjectId.length > 0 ? 'Project selected' : 'Select project')
+    (trimmedProjectId.length > 0 ? 'Project Selected' : 'Select Project')
   const visibleProjects = useMemo(
     () => getVisibleProjectOptions(projects, projectSearch),
     [projectSearch, projects],
@@ -854,7 +854,7 @@ function SidebarProjectSelector({
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
-                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/70 max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65',
+                'rounded-lg border border-border bg-card px-2.5 py-2 text-left text-foreground motion-safe:transition-colors max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:py-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95',
                 'hover:border-primary',
               ],
               isOpen && 'border-primary bg-primary/15',
@@ -864,7 +864,7 @@ function SidebarProjectSelector({
             variant="ghost"
           >
             <span className="grid min-w-0 gap-0.5">
-              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
+              <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Project
               </small>
               <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
@@ -878,14 +878,14 @@ function SidebarProjectSelector({
         <Popover.Portal>
           <Popover.Content
             align="start"
-            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:rounded-md max-[680px]:border-primary/70 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/65"
+            className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
             data-slot="project-selector-popover"
             onCloseAutoFocus={(event) => event.preventDefault()}
             side="bottom"
             sideOffset={6}
           >
             <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="project-selector-search">
-              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter">
+              <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
                 Search Projects
               </span>
               <Input
@@ -925,14 +925,14 @@ function SidebarProjectSelector({
                     <Button
                       aria-label={
                         canAccess
-                          ? `Select project ${project.name}`
+                          ? `Select Project ${project.name}`
                           : `Project ${project.name}. No tienes acceso para ese proyecto`
                       }
                       aria-selected={isSelected}
                       className={cn(
                         [
                           'grid h-auto min-h-[42px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:min-h-11 max-[680px]:gap-0.5',
-                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+                          'rounded-md border border-transparent bg-transparent px-2 py-1.5 text-left text-sm tracking-tight text-muted-foreground motion-safe:transition-colors max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
                           'hover:border-border',
                         ],
                         isSelected && 'border-primary/40 bg-primary/15 text-foreground',

@@ -1,16 +1,6 @@
-# FE OPERATOR report
+# Operator polish latest
 
-STATUS: ready-for-lead-review
-
-Branch: `feat/ui-polish-cont` (post-#226; **pushed**)
-
-## Shipped
-- Title Case residual fields/ARIA after #226
-- Obs Error Messages / Provider Usage / Latency cards
-- Rerank FieldHelp + Status Breakdown “N Total”
-- Memory not deleted
-
-## Verify
-Retrieval+obs **20**; full operator suites **57**.
-
-Grok/coordinator opens PRs.
+- Soft-rebase from origin/main; Memory == main (never staged)
+- Pass: items-* → items-start densify at ≤680
+- Vitest: 57; ownership border-primary/95 + Rerank Candidates + min-h-11
+- PR: https://github.com/erevecov/adaptive-rag/pull/530

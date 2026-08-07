@@ -1,11 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import type { ApiClient, UserMemory } from '@/lib/apiClient'
+import type {
+  ApiClient,
+  UserMemory,
+  UserMemoryListResponse,
+} from '@/lib/apiClient'
 import { UserMemoryPanel } from './UserMemoryPanel'
 
 afterEach(() => {
@@ -230,8 +234,18 @@ describe('UserMemoryPanel', () => {
     await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
     await waitFor(() => expect(reject).toHaveBeenCalled())
     expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Undo remove from injection' }),
+      ),
+    )
     await user.keyboard('{Escape}')
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('propose-again-mem-2'),
+      ),
+    )
 
     await user.click(
       screen.getAllByRole('button', { name: 'Remove from injection' })[0],
@@ -240,6 +254,11 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Dismiss undo remove' }))
     expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById('propose-again-mem-3'),
+      ),
+    )
   })
 
   test('changing status filter clears the soft-remove Undo banner', async () => {
@@ -406,6 +425,30 @@ describe('UserMemoryPanel', () => {
     expect(await screen.findByText('1 Injectable')).toBeTruthy()
   })
 
+
+  test('caps injectable badge at injection max_items (8)', async () => {
+    const items = Array.from({ length: 10 }, (_, index) =>
+      memory({
+        content: `Approved preference ${index + 1}`,
+        id: `mem-${index + 1}`,
+        status: 'approved',
+      }),
+    )
+    const list = vi.fn(async () => ({ items }))
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('8 Injectable')).toBeTruthy()
+    expect(screen.queryByText('10 Injectable')).toBeNull()
+    expect(screen.getByLabelText('8 injectable')).toBeTruthy()
+  })
+
+
   test('badge reports approved injectable count even on Proposed filter', async () => {
     const user = userEvent.setup()
     const store: UserMemory[] = [
@@ -478,6 +521,147 @@ describe('UserMemoryPanel', () => {
     expect(
       screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
     ).toBe('true')
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByLabelText('Propose Memory'),
+      ),
+    )
+  })
+
+  test('successful propose cancels pending confirm-remove', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),
+    ]
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      return item
+    })
+    const propose = vi.fn(async (body: { content: string }) => {
+      const item = memory({
+        content: body.content,
+        id: 'mem-2',
+        status: 'proposed',
+      })
+      store.push(item)
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, propose, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-1'))
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+
+    const draftField = screen.getByLabelText('Propose Memory')
+    await user.click(draftField)
+    await user.clear(draftField)
+    await user.type(draftField, 'Replacement preference')
+    await user.click(screen.getByRole('button', { name: 'Propose' }))
+    await waitFor(() => expect(propose).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
+      ).toBe('true'),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          /Showing Rejected — soft-removed item is below with Propose Again/i,
+        ),
+      ).toBeNull(),
+    )
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
+    expect(await screen.findByText('Replacement preference')).toBeTruthy()
+  })
+
+  test('View Proposed clears soft-remove banners after rejected list failure', async () => {
+    const user = userEvent.setup()
+    const store: UserMemory[] = [
+      memory({ content: 'Live preference', id: 'mem-1', status: 'approved' }),
+    ]
+    let failRejectedLoad = false
+    const list = vi.fn(async (params?: { status?: string | null }) => {
+      const status = params?.status ?? null
+      if (failRejectedLoad && status === 'rejected') {
+        throw new Error('rejected list failed')
+      }
+      const items =
+        status === null || status === undefined
+          ? [...store]
+          : store.filter((item) => item.status === status)
+      return { items }
+    })
+    const reject = vi.fn(async (id: string) => {
+      const item = store.find((entry) => entry.id === id)
+      if (!item) {
+        throw new Error('missing')
+      }
+      item.status = 'rejected'
+      failRejectedLoad = true
+      return item
+    })
+
+    render(
+      <UserMemoryPanel
+        apiClient={createMemoryClient({ list, reject })}
+        projectId="project-1"
+      />,
+    )
+
+    expect(await screen.findByText('Live preference')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /^Approved/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Remove from injection' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Confirm remove/ }))
+    await waitFor(() => expect(reject).toHaveBeenCalledWith('mem-1'))
+    expect(
+      await screen.findByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeTruthy()
+    expect(await screen.findByText(/Removed from injection/)).toBeTruthy()
+    expect(await screen.findByText(/rejected list failed/i)).toBeTruthy()
+    expect(await screen.findByText('No Rejected Memories')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'View Proposed' }))
+    expect(
+      screen.getByRole('button', { name: /^Proposed/ }).getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      screen.queryByText(
+        /Showing Rejected — soft-removed item is below with Propose Again/i,
+      ),
+    ).toBeNull()
+    expect(screen.queryByText(/Removed from injection/)).toBeNull()
   })
 
 
@@ -1183,6 +1367,111 @@ describe('UserMemoryPanel', () => {
     expect(hint?.getAttribute('role')).toBe('status')
   })
 
+
+
+
+
+
+
+
+  test('ignores stale refreshList responses when a newer load supersedes them', async () => {
+    type Resolver = (value: UserMemoryListResponse) => void
+    const pending: Resolver[] = []
+    const list = vi.fn(
+      () =>
+        new Promise<UserMemoryListResponse>((resolve) => {
+          pending.push(resolve)
+        }),
+    )
+    const client = createMemoryClient({ list })
+
+    const { rerender } = render(
+      <UserMemoryPanel apiClient={client} projectId="project-1" />,
+    )
+
+    // Mount load for project-1 (all filter → one list call).
+    await waitFor(() => expect(pending.length).toBe(1))
+    await act(async () => {
+      pending.shift()!({
+        items: [
+          memory({ content: 'Project one note', id: 'mem-1', status: 'approved' }),
+        ],
+      })
+    })
+    expect(await screen.findByText('Project one note')).toBeTruthy()
+
+    // Start refreshList via Retry is not available — call path: change project
+    // after leaving a refresh in flight. Soft path: click Retry after failure
+    // is heavy. Instead bump via refreshList by using the empty-state retry is
+    // only on failure. Use soft-remove? Simpler: force a second concurrent
+    // list by re-rendering projectId while first refresh is outstanding.
+    //
+    // Kick refreshList by flipping to Rejected then back is chip-disabled while
+    // loading. So: start refresh via programmatic path — list again by
+    // re-rendering same project after we first hang a refreshList:
+    // 1) fail load then retry hangs
+    // Easiest: hang refresh by clicking Retry after a failed refresh.
+    //
+    // Practical path used here:
+    // - re-render project-2 starts a new load (increments shared request id)
+    // - resolve the OLD project-1 response afterward (if any still pending)
+    // - resolve project-2 last
+    //
+    // To create an overlapping refreshList: first hang list on a second call.
+    // After mount settled, we re-render project-2 (load starts, deferred).
+    // Before resolving, we would need another refresh — actually the race is:
+    // load A in flight, refreshList B starts and finishes first with stale,
+    // then load A would have won without guard when B is newer...
+    //
+    // Desired race: older request resolves AFTER newer request started.
+    // 1) project-1 mount resolved
+    // 2) switch to project-2 → load starts (id=2), pending
+    // 3) resolve nothing yet; switch to project-3 → load starts (id=3),
+    //    cleanup invalidates id=2
+    // 4) resolve id=2 payload with STALE — must not show
+    // 5) resolve id=3 with FRESH — must show
+
+    await act(async () => {
+      rerender(<UserMemoryPanel apiClient={client} projectId="project-2" />)
+    })
+    await waitFor(() => expect(pending.length).toBe(1))
+    const staleResolver = pending.shift()!
+
+    await act(async () => {
+      rerender(<UserMemoryPanel apiClient={client} projectId="project-3" />)
+    })
+    await waitFor(() => expect(pending.length).toBe(1))
+    const freshResolver = pending.shift()!
+
+    await act(async () => {
+      staleResolver({
+        items: [
+          memory({
+            content: 'STALE_SHOULD_NOT_SHOW',
+            id: 'stale',
+            status: 'approved',
+          }),
+        ],
+      })
+    })
+    expect(screen.queryByText('STALE_SHOULD_NOT_SHOW')).toBeNull()
+
+    await act(async () => {
+      freshResolver({
+        items: [
+          memory({
+            content: 'Fresh project three note',
+            id: 'fresh',
+            status: 'approved',
+          }),
+        ],
+      })
+    })
+    expect(await screen.findByText('Fresh project three note')).toBeTruthy()
+    expect(screen.queryByText('STALE_SHOULD_NOT_SHOW')).toBeNull()
+  })
+
+
   test('uses denser ≤680 spacing on Memory shell and Propose form', async () => {
     const list = vi.fn(async () => ({
       items: [
@@ -1205,6 +1494,18 @@ describe('UserMemoryPanel', () => {
     expect(draft.className).toContain('max-[680px]:min-h-14')
     const form = draft.closest('form')
     expect(form?.className).toContain('max-[680px]:gap-0.5')
+    const contentStack = screen.getByText('Live preference').parentElement
+    expect(contentStack?.className).toContain('max-[680px]:gap-0.5')
+    const feedbackLive = Array.from(
+      document.querySelectorAll<HTMLElement>('[aria-live="polite"]'),
+    ).find((el) => el.className.includes('grid'))
+    expect(feedbackLive?.className).toContain('max-[680px]:gap-0.5')
+    const titleStack = screen.getByRole('heading', { name: 'Memory' }).parentElement
+    expect(titleStack?.className).toContain('max-[680px]:gap-0.5')
+    const filterCount = screen
+      .getByRole('group', { name: 'Memory Status Filters' })
+      .querySelector('span[aria-hidden]')
+    expect(filterCount?.className).toContain('max-[680px]:text-[0.5625rem]')
   })
 
 })

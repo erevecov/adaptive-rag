@@ -751,6 +751,8 @@ export type UserMemoryUpdateBody = {
 /** Backend hard limit; FE shows a soft hint earlier. */
 export const USER_MEMORY_MAX_CHARS = 4000
 export const USER_MEMORY_SOFT_HINT_CHARS = 500
+/** Matches server assemble_user_memory_block max_items default. */
+export const USER_MEMORY_INJECTION_MAX_ITEMS = 8
 
 export class ApiClientError extends Error {
   readonly code: string | null

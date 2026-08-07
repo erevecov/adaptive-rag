@@ -15,21 +15,21 @@ export const buttonVariants = cva(
       size: {
         // ≤680: 44px min touch targets (composer/operator chrome parity).
         icon: 'size-9 p-0 max-[680px]:size-11',
-        md: 'h-9 px-4 py-2 max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
-        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11 max-[680px]:px-1 max-[680px]:text-[0.5625rem]',
+        md: 'h-9 px-4 py-2 max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
+        sm: 'h-8 px-3 text-xs max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
       },
       variant: {
         danger:
           // Solid ring against destructive fill (parity with primary; purple/dark).
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive-foreground',
         ghost:
-          'bg-transparent text-foreground hover:bg-primary/15 hover:text-foreground active:bg-primary/20',
+          'bg-transparent text-foreground hover:bg-primary/15 max-[680px]:hover:bg-primary/80 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
         // Contrast ring against primary fill (dark near-white / purple violet)
         primary:
           'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary-foreground',
         secondary:
           // Primary-tint hover reads clearer than accent wash on purple chrome.
-          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 hover:text-foreground active:bg-primary/20 max-[680px]:border-primary/75',
+          'border border-border bg-secondary text-secondary-foreground hover:border-primary/40 hover:bg-primary/15 max-[680px]:hover:bg-primary/80 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 max-[680px]:border-primary/95',
       },
     },
   },

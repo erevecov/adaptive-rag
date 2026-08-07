@@ -44,10 +44,10 @@ import { cn } from '@/lib/utils'
 
 /** Compact circular tool control — beflow-style dock chrome. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
+  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-4'
+  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -266,16 +266,16 @@ export function ChatWorkspacePanel({
           'relative shrink-0 bg-background pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1',
           // Keep Ask docked above the fold on narrow shells / soft keyboards.
           'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
-          'max-[680px]:border-t max-[680px]:border-primary/70',
+          'max-[680px]:border-t max-[680px]:border-primary/95',
           // Purple hairline above sticky Ask dock (mirrors question sticky).
-          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/65',
+          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/95',
           'max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]',
         )}
         data-slot="chat-composer-shell"
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-5 max-[680px]:h-5"
+          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-1 max-[680px]:h-1 max-[680px]:via-card/80 max-[680px]:to-card"
           data-slot="chat-composer-gradient"
         />
         <form
@@ -583,7 +583,7 @@ function SpeechInputControl({
       ? 'Listening…'
       : isSupported
         ? null
-        : 'Speech recognition is not supported in this browser.')
+        : 'Speech Recognition Is Not Supported In This Browser.')
 
   return (
     <section
@@ -1215,7 +1215,7 @@ function ResponseContent({
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-pulse"
                 />
-                Drafting answer…
+                Drafting Answer…
               </span>
             </p>
           )}
@@ -1528,11 +1528,11 @@ function ResponseDetailsPanel({
         variant="secondary"
       >
         {expanded ? (
-          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground max-[680px]:size-3.5" />
         ) : (
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground max-[680px]:size-3.5" />
         )}
-        <span className="min-w-0 truncate">
+        <span className="min-w-0 truncate max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
           Details · {summaryParts.join(' · ')}
         </span>
       </Button>
@@ -1719,14 +1719,14 @@ function KnowledgeDraftCard({
 
   return (
     <article
-      aria-label={`Knowledge draft ${draft.draftId}`}
+      aria-label={`Knowledge Draft ${draft.draftId}`}
       className="grid gap-3 rounded-md border border-border bg-card p-4 text-card-foreground max-[680px]:gap-2 max-[680px]:rounded-md max-[680px]:border-border max-[680px]:p-3 max-[680px]:shadow-none"
       role="region"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 max-[680px]:gap-1.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-1">
           <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-xs max-[680px]:tracking-wide">
-            Knowledge draft
+            Knowledge Draft
           </span>
           <strong className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
             {draft.scope}
@@ -1738,7 +1738,7 @@ function KnowledgeDraftCard({
       </div>
       <Field>
         <FieldLabel htmlFor={`knowledge-draft-${draft.draftId}`}>
-          Knowledge draft text
+          Knowledge Draft Text
         </FieldLabel>
         <FieldControl>
           <Textarea
@@ -2054,7 +2054,7 @@ function getJsonObject(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? operatorSafeMessage(error.message)
-    : 'Request failed.'
+    : 'Request Failed.'
 }
 
 function formatScore(score: number): string {

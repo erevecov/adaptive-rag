@@ -65,8 +65,10 @@ describe('Button', () => {
 
     const tokens = classTokens(screen.getByRole('button', { name: 'Cancel' }))
     expect(tokens).toContain('hover:bg-primary/15')
+    expect(tokens).toContain('max-[680px]:hover:bg-primary/80')
     expect(tokens).toContain('hover:border-primary/40')
     expect(tokens).toContain('active:bg-primary/20')
+    expect(tokens).toContain('max-[680px]:active:bg-primary/95')
   })
 
   test('ghost variant uses primary-tint hover for purple chrome', () => {
@@ -74,7 +76,9 @@ describe('Button', () => {
 
     const tokens = classTokens(screen.getByRole('button', { name: 'More' }))
     expect(tokens).toContain('hover:bg-primary/15')
+    expect(tokens).toContain('max-[680px]:hover:bg-primary/80')
     expect(tokens).toContain('active:bg-primary/20')
+    expect(tokens).toContain('max-[680px]:active:bg-primary/95')
   })
 
   test('sizes grow to 44px touch targets at ≤680px', () => {
@@ -92,7 +96,7 @@ describe('Button', () => {
       'max-[680px]:min-h-11',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
-      'max-[680px]:px-1',
+      'max-[680px]:px-0.5',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Save' }))).toContain(
       'max-[680px]:gap-0.5',
@@ -113,7 +117,7 @@ describe('Button', () => {
       'max-[680px]:min-h-11',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
-      'max-[680px]:px-1',
+      'max-[680px]:px-0.5',
     )
     expect(classTokens(screen.getByRole('button', { name: 'Edit' }))).toContain(
       'max-[680px]:text-[0.5625rem]',
