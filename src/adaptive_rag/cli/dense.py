@@ -45,7 +45,10 @@ def reindex(
         )
         pipeline = DenseEmbeddingPipeline(
             session,
-            provider=get_cli_dense_embedding_provider(),
+            provider=get_cli_dense_embedding_provider(
+                project_id=project_id,
+                session=session,
+            ),
         )
         embedded_count = 0
         reused_count = 0
