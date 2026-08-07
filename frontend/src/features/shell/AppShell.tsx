@@ -135,10 +135,13 @@ export function AppShell({
   return (
     <main
       className={cn(
+        // Flex shell (not CSS grid): grid min-height:auto on items let long
+        // session transcripts expand the main column past 100vh and scroll the
+        // whole page (composer mid-screen + empty void). Flex + min-h-0 pins it.
         [
-          'app-shell grid h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground',
-            'grid-cols-[var(--left-sidebar-width)_minmax(0,1fr)] motion-safe:transition-[grid-template-columns] motion-safe:duration-200 motion-safe:ease-out',
-          'max-[680px]:grid-cols-1',
+          'app-shell flex h-svh max-h-svh overflow-hidden bg-background p-0 text-foreground',
+          'motion-safe:transition-[padding] motion-safe:duration-200 motion-safe:ease-out',
+          'max-[680px]:flex-col',
         ],
         isLeftSidebarOpen
           ? 'app-shell-sidebar-open'
@@ -173,6 +176,12 @@ export function AppShell({
       </a>
 
       <div
+        className={cn(
+          'h-full min-h-0 shrink-0 overflow-hidden',
+          'w-[var(--left-sidebar-width)] motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out',
+          // Mobile: sidebar is fixed overlay; host takes no flow width.
+          'max-[680px]:w-0',
+        )}
         data-slot="app-shell-sidebar-host"
         {...(isBackgroundInert ? { inert: true } : {})}
       >
@@ -182,22 +191,19 @@ export function AppShell({
       <section
         aria-labelledby="workspace-title"
         className={cn(
-          // min-h-0 is required: as a grid item of app-shell, default min-height:auto
-          // would expand this section to full chat content height (infinite scroll
-          // when loading multi-turn sessions) instead of staying viewport-bound.
-          'workspace h-full min-h-0 w-full min-w-0',
+          'workspace flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
           primaryView === 'chat'
             ? [
                 // Chat: fixed viewport. overflow-hidden ONLY (never overflow-auto)
                 // so the transcript is the sole scroller and the composer stays pinned.
                 // pr-0: scrollbar sits on the right edge; content pads itself.
-                'workspace-chat grid max-h-full grid-rows-[auto_minmax(0,1fr)] gap-1 self-stretch overflow-hidden pl-[18px] pr-0 pb-2.5 pt-1.5',
+                'workspace-chat gap-1 pl-[18px] pr-0 pb-2.5 pt-1.5',
                 'max-[900px]:pl-3.5 max-[900px]:py-3',
-                'max-[680px]:gap-0 max-[680px]:overflow-hidden max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
+                'max-[680px]:gap-0 max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : [
-                'self-start overflow-auto p-7 mx-auto max-w-[1240px]',
-                'max-[900px]:p-[18px] max-[680px]:h-full max-[680px]:overflow-hidden max-[680px]:p-0.5',
+                'overflow-auto p-7 mx-auto max-w-[1240px]',
+                'max-[900px]:p-[18px] max-[680px]:p-0.5',
               ],
         )}
         data-slot="workspace"
@@ -211,7 +217,13 @@ export function AppShell({
         >
           {topline}
         </div>
-        <div className="min-h-0 min-w-0 overflow-hidden">
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+            primaryView !== 'chat' && 'overflow-auto',
+          )}
+          data-slot="workspace-body"
+        >
           {children}
         </div>
       </section>
@@ -230,13 +242,12 @@ export function ChatWorkspaceGrid({
     <div
       className={cn(
         [
-          // min-h-0: prevent min-content (long session transcripts) from growing
-          // past the shell viewport — that was the infinite-scroll-in-session bug.
-          'workspace-grid chat-workspace-grid grid h-full max-h-full min-h-0 items-stretch gap-[18px] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden',
+          // Flex fill of workspace-body — never size from transcript content.
+          'workspace-grid chat-workspace-grid flex h-full min-h-0 min-w-0 flex-1 gap-[18px] overflow-hidden',
           'max-[680px]:min-h-0',
         ],
         isRightDockInline &&
-          'chat-workspace-grid-docked grid-cols-[minmax(0,1fr)_minmax(330px,390px)] max-[900px]:grid-cols-1',
+          'chat-workspace-grid-docked max-[900px]:flex-col',
       )}
       data-slot="chat-workspace-grid"
     >

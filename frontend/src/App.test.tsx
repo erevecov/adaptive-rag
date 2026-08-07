@@ -2320,25 +2320,37 @@ describe('App chat workspace', () => {
     expect(host?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
     expect(host?.className).toMatch(/min-h-0/)
     expect(host?.className).toMatch(/overflow-hidden/)
-    // ChatWorkspaceGrid row is explicit so the column cannot grow past the shell.
-    expect(shellSource).toContain('grid-rows-[minmax(0,1fr)]')
+    // Shell is flex-based so long session content cannot grow past the viewport.
+    expect(shellSource).toContain('h-svh')
+    expect(shellSource).toContain('min-h-0')
+    expect(shellSource).toContain('data-slot="workspace-body"')
   })
 
   test('chat workspace uses overflow-hidden only and stretches in the shell grid', () => {
     render(<App apiClient={createClientStub({})} initialProjectId={projectId} />)
 
+    const shell = document.querySelector('[data-slot="app-shell"]')
     const workspace = document.querySelector('[data-slot="workspace"]')
+    expect(shell).toBeTruthy()
     expect(workspace).toBeTruthy()
+    // Flex shell pins the viewport; long sessions must not grow past 100svh.
+    expect(shell?.className).toMatch(/(?:^|\s)flex(?:\s|$)/)
+    expect(shell?.className).toMatch(/h-svh|max-h-svh/)
+    expect(shell?.className).toMatch(/overflow-hidden/)
     // Never both on the same node: overflow-auto here would scroll the whole
     // workspace and steal scroll from the transcript, losing the composer.
     expect(workspace?.className).toMatch(/overflow-hidden/)
     expect(workspace?.className).not.toMatch(/overflow-auto/)
-    expect(workspace?.className).toMatch(/self-stretch/)
-    expect(workspace?.className).not.toMatch(/self-start/)
-    // Critical: min-h-0 overrides grid item min-height:auto so long sessions
-    // cannot expand the shell past the viewport (composer stays pinned).
+    expect(workspace?.className).toMatch(/flex-1/)
+    expect(workspace?.className).toMatch(/flex-col/)
     expect(workspace?.className).toMatch(/min-h-0/)
     expect(workspace?.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
+    expect(
+      document.querySelector('[data-slot="workspace-body"]')?.className,
+    ).toMatch(/flex-1/)
+    expect(
+      document.querySelector('[data-slot="workspace-body"]')?.className,
+    ).toMatch(/min-h-0/)
   })
 
   test('renders a keyboard skip link targeting the chat composer', () => {

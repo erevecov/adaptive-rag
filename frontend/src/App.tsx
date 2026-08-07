@@ -2618,7 +2618,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ) : null}
 
             <div
-              className="h-full max-h-full min-h-0 min-w-0 overflow-hidden"
+              className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               data-slot="chat-workspace-inert-host"
               {...(isRightDockOverlay ? { inert: true } : {})}
             >
