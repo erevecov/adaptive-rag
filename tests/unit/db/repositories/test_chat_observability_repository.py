@@ -192,6 +192,7 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
         "running": 1,
         "succeeded": 1,
         "failed": 1,
+        "canceled": 0,
     }
     assert summary.provider_usage.total_records == 4
     assert summary.provider_usage.total_estimated_cost_usd == pytest.approx(0.17)
@@ -309,6 +310,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
         "running": 0,
         "succeeded": 0,
         "failed": 1,
+        "canceled": 0,
     }
     assert summary.provider_usage.total_records == 1
     assert summary.provider_usage.total_estimated_cost_usd == pytest.approx(0.20)

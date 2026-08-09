@@ -7,7 +7,11 @@ from adaptive_rag.chat.audit import (
     SqlAlchemyChatAuditWriter,
 )
 from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
-from adaptive_rag.chat.errors import ChatErrorPayload, ChatServiceError, classify_chat_error
+from adaptive_rag.chat.errors import (
+    ChatErrorPayload,
+    ChatServiceError,
+    classify_chat_error,
+)
 from adaptive_rag.chat.history import (
     DEFAULT_HISTORY_LOAD_LIMIT,
     PreparedChatHistory,

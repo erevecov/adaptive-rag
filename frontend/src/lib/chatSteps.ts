@@ -93,6 +93,56 @@ export function stepLabel(id: string): string {
   return id.replace(/\./g, ' - ')
 }
 
+/** Summarize multi-turn context packing from a `context` chat step. */
+export function summarizeContextWindow(
+  steps: ChatStep[] | null | undefined,
+): {
+  keptRecent: number | null
+  label: string
+  summaryPreview: string | null
+  summarizedMessages: number
+  totalMessages: number | null
+} | null {
+  const contextStep = (steps ?? []).find((step) => step.id === 'context')
+  const detail = contextStep?.detail
+  if (detail === null || detail === undefined) {
+    return null
+  }
+  const summarizedMessages =
+    typeof detail.summarized_messages === 'number' &&
+    Number.isFinite(detail.summarized_messages)
+      ? detail.summarized_messages
+      : 0
+  const keptRecent =
+    typeof detail.kept_recent === 'number' && Number.isFinite(detail.kept_recent)
+      ? detail.kept_recent
+      : null
+  const totalMessages =
+    typeof detail.total_messages === 'number' &&
+    Number.isFinite(detail.total_messages)
+      ? detail.total_messages
+      : null
+  if (summarizedMessages <= 0 && keptRecent === null && totalMessages === null) {
+    return null
+  }
+  const label =
+    summarizedMessages > 0
+      ? `${keptRecent ?? 'recent'} recent + ${summarizedMessages} summarized`
+      : `${totalMessages ?? 0} messages`
+  const summaryPreview =
+    typeof detail.summary_preview === 'string' &&
+    detail.summary_preview.trim().length > 0
+      ? detail.summary_preview
+      : null
+  return {
+    keptRecent,
+    label,
+    summaryPreview,
+    summarizedMessages,
+    totalMessages,
+  }
+}
+
 function findLastMatchingStart(steps: ChatStep[], id: string): number {
   for (let index = steps.length - 1; index >= 0; index -= 1) {
     if (steps[index].id === id && steps[index].status === 'start') {

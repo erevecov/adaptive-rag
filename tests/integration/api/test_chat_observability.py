@@ -203,7 +203,12 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
     }
     assert data["sessions"] == {
         "total": 1,
-        "by_status": {"running": 0, "succeeded": 0, "failed": 1},
+        "by_status": {
+            "running": 0,
+            "succeeded": 0,
+            "failed": 1,
+            "canceled": 0,
+        },
     }
     assert data["provider_usage"]["total_records"] == 2
     assert data["provider_usage"]["total_estimated_cost_usd"] == pytest.approx(0.05)

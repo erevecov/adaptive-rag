@@ -1,0 +1,95 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+
+import type { RetrievalResult } from '@/lib/apiClient'
+
+import { MarkdownAnswer } from './MarkdownAnswer'
+
+afterEach(() => {
+  cleanup()
+})
+
+const citation = (chunkId: string, sourceId = 'source-1'): RetrievalResult => ({
+  chunk_id: chunkId,
+  distance: 0.1,
+  score: 0.9,
+  citation: {
+    char_end: 10,
+    char_start: 0,
+    chunk_id: chunkId,
+    document_id: 'document-1',
+    document_stable_id: 'stable',
+    document_version_id: 'version-1',
+    document_version_number: 1,
+    section_metadata: null,
+    snippet: 'snippet',
+    source_external_id: 'notes.md',
+    source_extra_metadata: null,
+    source_id: sourceId,
+    source_tags: [],
+    source_type: 'markdown',
+  },
+  embedding_metadata: null,
+})
+
+describe('MarkdownAnswer', () => {
+  test('renders [doc-N] and [N] as beflow-style doc-N chips', async () => {
+    const user = userEvent.setup()
+    const onCitationClick = vi.fn()
+    render(
+      <MarkdownAnswer onCitationClick={onCitationClick}>
+        {'Claim A [doc-1] and claim B [2].'}
+      </MarkdownAnswer>,
+    )
+    const doc1 = screen.getByRole('button', { name: 'doc-1' })
+    const doc2 = screen.getByRole('button', { name: 'doc-2' })
+    expect(doc1.textContent).toBe('doc-1')
+    expect(doc2.textContent).toBe('doc-2')
+    expect(doc1.className).toMatch(/border-border/)
+    expect(doc1.className).toMatch(/rounded-sm/)
+    expect(doc1.className).not.toMatch(/rounded-full/)
+    await user.click(doc1)
+    await user.click(doc2)
+    expect(onCitationClick).toHaveBeenNthCalledWith(1, 1)
+    expect(onCitationClick).toHaveBeenNthCalledWith(2, 2)
+  })
+
+  test('maps bracketed chunk UUIDs to doc-N chips via citations', async () => {
+    const user = userEvent.setup()
+    const onCitationClick = vi.fn()
+    const idA = 'b102a894-5215-4a35-ae80-647b5872b172'
+    const idB = 'bac1c5ad-e13a-400b-b1ab-63819cf6d5c5'
+    render(
+      <MarkdownAnswer
+        citations={[citation(idA), citation(idB)]}
+        onCitationClick={onCitationClick}
+      >
+        {`Orion Chat Lab [${idA}][${idB}].`}
+      </MarkdownAnswer>,
+    )
+    expect(screen.queryByText(new RegExp(idA, 'i'))).toBeNull()
+    expect(screen.getByRole('button', { name: 'doc-1' }).textContent).toBe(
+      'doc-1',
+    )
+    expect(screen.getByRole('button', { name: 'doc-2' }).textContent).toBe(
+      'doc-2',
+    )
+    await user.click(screen.getByRole('button', { name: 'doc-1' }))
+    expect(onCitationClick).toHaveBeenCalledWith(1)
+  })
+
+  test('drops unknown bracketed UUIDs instead of showing them raw', () => {
+    render(
+      <MarkdownAnswer citations={[citation('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')]}>
+        {'Hello [bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb] world.'}
+      </MarkdownAnswer>,
+    )
+    expect(screen.queryByText(/bbbbbbbb/i)).toBeNull()
+    expect(screen.getByText(/Hello/)).toBeTruthy()
+    expect(screen.getByText(/world/)).toBeTruthy()
+  })
+})

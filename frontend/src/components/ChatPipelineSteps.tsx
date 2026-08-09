@@ -1,40 +1,102 @@
-import { type ReactNode, useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  type ComponentType,
+  createElement,
+  type ReactNode,
+  type SVGProps,
+  useId,
+  useSyncExternalStore,
+} from 'react'
+import {
+  ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  Database,
+  Layers,
+  LoaderCircle,
+  MessageSquare,
+  Search,
+} from 'lucide-react'
 
 import {
   formatStepDuration,
   stepLabel,
   summarizeCurrentStep,
   type ChatStep,
+  type ChatStepUsage,
 } from '../lib/chatSteps'
 import {
-  readStepperExpandedPreference,
-  writeStepperExpandedPreference,
-} from '../lib/stepperPreference'
+  getOpenDetailsInstanceId,
+  setOpenDetailsInstanceId,
+  subscribeOpenDetailsInstance,
+} from '../lib/detailsAccordion'
 import { Button } from './ui/button'
+import { cn } from '../lib/utils'
+
+type IconType = ComponentType<SVGProps<SVGSVGElement>>
 
 type ChatPipelineStepsProps = {
   children?: ReactNode
+  /**
+   * Stable id for exclusive expand (accordion). When omitted, a React useId
+   * is used so multiple steppers still collapse each other when one opens.
+   */
+  instanceId?: string
   isStreaming: boolean
   sourceCount: number
   steps: ChatStep[]
 }
 
+/** Subtle clickable summary — text link feel, no chrome. */
+const PIPELINE_SUMMARY_TEXT_CLASS =
+  'h-auto min-h-0 w-auto min-w-0 justify-start gap-1.5 rounded-none border-0 bg-transparent px-0 py-0.5 text-left text-xs font-normal text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground active:bg-transparent max-[680px]:min-h-11 max-[680px]:text-xs'
+
+const STEP_ICONS: Record<string, IconType> = {
+  retrieval: Search,
+  rerank: ArrowUpDown,
+  answer: MessageSquare,
+  context: Layers,
+  embedding: Search,
+}
+
+function iconForStep(id: string): IconType {
+  if (STEP_ICONS[id] !== undefined) {
+    return STEP_ICONS[id]
+  }
+  const root = id.includes('.') ? id.split('.')[0]! : id
+  return STEP_ICONS[root] ?? Database
+}
+
 export function ChatPipelineSteps({
   children,
+  instanceId: instanceIdProp,
   isStreaming,
   sourceCount,
   steps,
 }: ChatPipelineStepsProps) {
-  const [expanded, setExpanded] = useState(readStepperExpandedPreference)
+  const reactId = useId()
+  const instanceId = instanceIdProp ?? reactId
+  const openId = useSyncExternalStore(
+    subscribeOpenDetailsInstance,
+    getOpenDetailsInstanceId,
+    () => null,
+  )
+  // Closed by default; only the matching instance stays open (accordion).
+  const expanded = openId === instanceId
 
   if (!isStreaming && steps.length === 0) {
     return null
   }
 
   const handleToggle = (nextExpanded: boolean) => {
-    setExpanded(nextExpanded)
-    writeStepperExpandedPreference(nextExpanded)
+    if (nextExpanded) {
+      setOpenDetailsInstanceId(instanceId)
+      return
+    }
+    if (getOpenDetailsInstanceId() === instanceId) {
+      setOpenDetailsInstanceId(null)
+    }
   }
 
   if (isStreaming) {
@@ -46,25 +108,27 @@ export function ChatPipelineSteps({
       return (
         <section
           aria-label="Chat Pipeline Steps"
-          className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+          className="min-w-0"
           data-slot="chat-pipeline-steps"
         >
           <Button
             aria-expanded={false}
             aria-label={`Expand Chat Steps, ${current.label}, ${statusLabel}, ${current.elapsed}`}
-            className="h-auto w-full min-w-0 justify-start px-2 py-2 text-left"
+            className={PIPELINE_SUMMARY_TEXT_CLASS}
             onClick={() => handleToggle(true)}
             type="button"
-            variant="secondary"
+            variant="ghost"
           >
-            <StatusDot status={current.status} />
-            <strong className="min-w-0 flex-1 truncate">{current.label}</strong>
-            <small className="min-w-[4.5ch] text-right text-muted-foreground tabular-nums">
+            <StatusIcon status={current.status} />
+            <strong className="min-w-0 flex-1 truncate font-medium">
+              {current.label}
+            </strong>
+            <small className="min-w-[4.5ch] text-right tabular-nums">
               {current.elapsed}
             </small>
             <ChevronRight
               aria-hidden="true"
-              className="ml-auto size-4 text-muted-foreground"
+              className="ml-auto size-3.5 opacity-70"
             />
           </Button>
         </section>
@@ -74,23 +138,26 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+        className="grid min-w-0 gap-1.5 max-[680px]:gap-1"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={true}
           aria-label={`Collapse Chat Steps, ${summary}`}
-          className="h-auto min-w-0 justify-start text-left"
+          className={PIPELINE_SUMMARY_TEXT_CLASS}
           onClick={() => handleToggle(false)}
           type="button"
-          variant="secondary"
+          variant="ghost"
         >
-          <ChevronDown aria-hidden="true" className="size-4" />
+          <ChevronDown aria-hidden="true" className="size-3.5 opacity-70" />
           <span>{summary}</span>
         </Button>
         <StepList steps={steps} />
         {children ? (
-          <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
+          <div
+            className="grid gap-1.5 max-[680px]:gap-1"
+            data-slot="chat-pipeline-extra-detail"
+          >
             {children}
           </div>
         ) : null}
@@ -107,18 +174,18 @@ export function ChatPipelineSteps({
     return (
       <section
         aria-label="Chat Pipeline Steps"
-        className="rounded-md border border-border bg-muted/15 p-3 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+        className="min-w-0"
         data-slot="chat-pipeline-steps"
       >
         <Button
           aria-expanded={false}
           aria-label={`Expand Chat Steps, ${label}`}
-          className="h-auto min-w-0 justify-start text-left"
+          className={PIPELINE_SUMMARY_TEXT_CLASS}
           onClick={() => handleToggle(true)}
           type="button"
-          variant="secondary"
+          variant="ghost"
         >
-          <ChevronRight aria-hidden="true" className="size-4" />
+          <ChevronRight aria-hidden="true" className="size-3.5 opacity-70" />
           <span>{summary}</span>
         </Button>
       </section>
@@ -128,23 +195,26 @@ export function ChatPipelineSteps({
   return (
     <section
       aria-label="Chat Pipeline Steps"
-      className="grid gap-3 rounded-md border border-border bg-muted/15 p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+      className="grid min-w-0 gap-1.5 max-[680px]:gap-1"
       data-slot="chat-pipeline-steps"
     >
       <Button
         aria-expanded={true}
         aria-label={`Collapse Chat Steps, ${label}`}
-        className="h-auto min-w-0 justify-start text-left"
+        className={PIPELINE_SUMMARY_TEXT_CLASS}
         onClick={() => handleToggle(false)}
         type="button"
-        variant="secondary"
+        variant="ghost"
       >
-        <ChevronDown aria-hidden="true" className="size-4" />
+        <ChevronDown aria-hidden="true" className="size-3.5 opacity-70" />
         <span>{summary}</span>
       </Button>
       <StepList steps={steps} />
       {children ? (
-        <div className="grid gap-3 max-[680px]:gap-0.5" data-slot="chat-pipeline-extra-detail">
+        <div
+          className="grid gap-1.5 max-[680px]:gap-1"
+          data-slot="chat-pipeline-extra-detail"
+        >
           {children}
         </div>
       ) : null}
@@ -156,7 +226,7 @@ function StepList({ steps }: { steps: ChatStep[] }) {
   if (steps.length === 0) {
     return (
       <p
-        className="rounded-md border border-dashed border-border bg-card p-2 text-xs text-muted-foreground max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
+        className="px-0 py-0.5 text-xs text-muted-foreground max-[680px]:text-xs"
         data-slot="chat-pipeline-empty"
         role="status"
       >
@@ -165,7 +235,10 @@ function StepList({ steps }: { steps: ChatStep[] }) {
     )
   }
   return (
-    <ol className="grid gap-2 max-[680px]:gap-0.5" data-slot="chat-pipeline-step-list">
+    <ol
+      className="grid gap-0.5 text-xs max-[680px]:gap-0.5"
+      data-slot="chat-pipeline-step-list"
+    >
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`}>
           <StepRow step={step} />
@@ -176,49 +249,75 @@ function StepList({ steps }: { steps: ChatStep[] }) {
 }
 
 function StepRow({ step }: { step: ChatStep }) {
-  const hasDetail =
-    Object.keys(step.detail ?? {}).length > 0 || step.usage !== undefined
-  const content = (
+  const indented = step.id.includes('.')
+  const Icon = iconForStep(step.id)
+  const label = stepLabel(step.id)
+  const hasUsage = step.usage !== undefined
+  const rowClass = cn(
+    'flex min-w-0 items-center gap-1.5 py-0.5',
+    indented && 'ml-3 border-l-2 border-primary/30 pl-2',
+  )
+
+  const main = (
     <>
-      {hasDetail ? (
-        <ChevronRight
-          aria-hidden="true"
-          className="size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform group-open:rotate-90"
-        />
-      ) : (
-        <span aria-hidden="true" className="size-3.5 shrink-0" />
-      )}
-      <StatusDot status={step.status} />
-      <span className="grid min-w-0 flex-1 gap-1 max-[680px]:gap-0.5">
-        <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{stepLabel(step.id)}</strong>
-        <InlineDetailChips step={step} />
+      <StatusIcon status={step.status} />
+      {createElement(Icon, {
+        'aria-hidden': true,
+        className: 'size-3.5 shrink-0 text-muted-foreground',
+      })}
+      <span
+        className={cn(
+          'shrink-0 text-foreground',
+          hasUsage &&
+            'underline decoration-dotted decoration-muted-foreground/50 underline-offset-2',
+        )}
+      >
+        {label}
       </span>
-      <small className="text-xs text-muted-foreground tabular-nums max-[680px]:text-[0.5625rem]">
-        {formatStepDuration(step.elapsed_ms)}
-      </small>
+      <InlineDetailChips step={step} />
+      {step.elapsed_ms !== undefined ? (
+        <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">
+          {formatStepDuration(step.elapsed_ms)}
+        </span>
+      ) : (
+        <span className="ml-auto" />
+      )}
     </>
   )
 
-  if (!hasDetail) {
+  if (!hasUsage) {
     return (
       <div
-        className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card p-3 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
+        aria-busy={step.status === 'start' || undefined}
+        className={rowClass}
         data-slot="chat-pipeline-step-row"
       >
-        {content}
+        {main}
       </div>
     )
   }
 
   return (
     <details
-      className="group rounded-md border border-border bg-card"
+      className={cn(indented && 'ml-3 border-l-2 border-primary/30 pl-2')}
       data-slot="chat-pipeline-step-row"
     >
-      <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-md p-3 marker:content-none hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        {content}
+      <summary
+        className={cn(
+          'flex min-w-0 cursor-pointer list-none items-center gap-1.5 py-0.5 marker:content-none',
+          '[&::-webkit-details-marker]:hidden',
+        )}
+      >
+        {main}
       </summary>
-      <StepDetail step={step} />
+      <div
+        className="ml-6 flex flex-wrap items-center gap-1 border-l-2 border-primary/25 py-0.5 pl-2 text-[11px] leading-snug text-muted-foreground"
+        data-slot="chat-pipeline-step-detail"
+      >
+        {usageDetailParts(step.usage!).map((part) => (
+          <span key={part}>{part}</span>
+        ))}
+      </div>
     </details>
   )
 }
@@ -226,27 +325,52 @@ function StepRow({ step }: { step: ChatStep }) {
 function InlineDetailChips({ step }: { step: ChatStep }) {
   const chips: string[] = []
   const detail = step.detail ?? {}
-  for (const key of ['result_count', 'limit', 'strategy', 'tool_calls']) {
+  // Prefer operator-facing scalars first, then any other short primitives.
+  const preferred = [
+    'result_count',
+    'limit',
+    'strategy',
+    'tool_calls',
+    'sources',
+    'query',
+  ]
+  for (const key of preferred) {
     const value = detail[key]
     if (
       typeof value === 'string' ||
       typeof value === 'number' ||
       typeof value === 'boolean'
     ) {
-      chips.push(`${formatDetailKey(key)} ${String(value)}`)
+      chips.push(String(value))
     }
   }
-  if (step.usage !== undefined) {
+  for (const [key, value] of Object.entries(detail)) {
+    if (preferred.includes(key)) {
+      continue
+    }
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      const text = String(value)
+      if (text.length > 0 && text.length <= 48 && !chips.includes(text)) {
+        chips.push(text)
+      }
+    }
+  }
+  // Show model as a compact chip on the row when usage exists (beflow-style).
+  if (step.usage?.model && !chips.includes(step.usage.model)) {
     chips.push(step.usage.model)
   }
   if (chips.length === 0) {
     return null
   }
   return (
-    <span className="flex flex-wrap gap-1.5 max-[680px]:gap-0.5">
-      {chips.slice(0, 3).map((chip) => (
+    <span className="flex min-w-0 flex-wrap items-center gap-1">
+      {chips.slice(0, 4).map((chip) => (
         <span
-          className="inline-flex w-fit rounded-md border border-border bg-muted/15 px-2 py-0.5 text-xs font-medium text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
+          className="inline-flex max-w-[12rem] truncate rounded-sm bg-muted px-1 py-px text-[10px] font-medium text-muted-foreground"
           data-slot="chat-pipeline-detail-chip"
           key={chip}
         >
@@ -257,87 +381,64 @@ function InlineDetailChips({ step }: { step: ChatStep }) {
   )
 }
 
-function StepDetail({ step }: { step: ChatStep }) {
-  const detailEntries = Object.entries(step.detail ?? {})
-  const usage = step.usage
-  if (detailEntries.length === 0 && usage === undefined) {
+function StatusIcon({ status }: { status: ChatStep['status'] }) {
+  if (status === 'error') {
     return (
-      <p
-        className="px-3 pb-3 text-sm text-muted-foreground max-[680px]:px-0.5 max-[680px]:pb-1 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
-        data-slot="chat-pipeline-empty"
-      >
-        No Step Detail Recorded.
-      </p>
+      <span className="inline-flex shrink-0" data-slot="chat-pipeline-status">
+        <CircleAlert
+          aria-hidden="true"
+          className="size-3.5 text-destructive"
+          data-status={status}
+        />
+        <span className="sr-only">{statusAccessibleName(status)}</span>
+      </span>
+    )
+  }
+  if (status === 'done') {
+    return (
+      <span className="inline-flex shrink-0" data-slot="chat-pipeline-status">
+        <CircleCheck
+          aria-hidden="true"
+          className="size-3.5 text-emerald-500"
+          data-status={status}
+        />
+        <span className="sr-only">{statusAccessibleName(status)}</span>
+      </span>
     )
   }
   return (
-    <dl
-      className="grid gap-2 border-t border-border p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5"
-      data-slot="chat-pipeline-step-detail"
-    >
-      {detailEntries.map(([key, value]) => (
-        <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95" key={key}>
-          <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            {formatDetailKey(key)}
-          </dt>
-          <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            {formatDetailValue(value)}
-          </dd>
-        </div>
-      ))}
-      {usage !== undefined ? (
-        <>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-              Model
-            </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</dd>
-          </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-              Provider
-            </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.provider}</dd>
-          </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-              Tokens
-            </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              {formatTokens(usage.total_tokens)}
-            </dd>
-          </div>
-          <div className="grid gap-1 rounded-md bg-muted/15 p-2 max-[680px]:gap-0.5 max-[680px]:rounded-sm max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:p-0.5 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-            <dt className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-              Cost
-            </dt>
-            <dd className="break-words text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-              {formatCost(usage.estimated_cost_usd)}
-            </dd>
-          </div>
-        </>
-      ) : null}
-    </dl>
-  )
-}
-
-function StatusDot({ status }: { status: ChatStep['status'] }) {
-  const toneClassName =
-    status === 'error'
-      ? 'bg-destructive'
-      : status === 'done'
-        ? 'bg-emerald-500'
-        : 'bg-muted-foreground motion-safe:animate-pulse'
-  return (
-    <span className="inline-flex shrink-0 items-center" data-slot="chat-pipeline-status">
-      <span
+    <span className="inline-flex shrink-0" data-slot="chat-pipeline-status">
+      <LoaderCircle
         aria-hidden="true"
-        className={`size-2 rounded-full ${toneClassName}`}
+        className="size-3.5 animate-spin text-muted-foreground"
         data-status={status}
       />
       <span className="sr-only">{statusAccessibleName(status)}</span>
     </span>
   )
+}
+
+function usageDetailParts(usage: ChatStepUsage): string[] {
+  const parts: string[] = []
+  if (usage.model) {
+    parts.push(usage.model)
+  }
+  if (usage.provider) {
+    parts.push(usage.provider)
+  }
+  if (usage.input_tokens !== undefined) {
+    parts.push(`${usage.input_tokens.toLocaleString()} in`)
+  }
+  if (usage.output_tokens !== undefined) {
+    parts.push(`${usage.output_tokens.toLocaleString()} out`)
+  }
+  if (usage.total_tokens !== undefined) {
+    parts.push(formatTokens(usage.total_tokens))
+  }
+  if (usage.estimated_cost_usd !== undefined) {
+    parts.push(formatCost(usage.estimated_cost_usd))
+  }
+  return parts
 }
 
 function statusAccessibleName(status: ChatStep['status']): string {
@@ -365,23 +466,6 @@ function totalStepElapsedMs(steps: ChatStep[]): number | null {
 
 function formatSources(value: number): string {
   return value === 1 ? '1 Source' : `${value} Sources`
-}
-
-function formatDetailKey(value: string): string {
-  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatDetailValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return 'Unknown'
-  }
-  if (typeof value === 'string') {
-    return value
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-  return JSON.stringify(value)
 }
 
 function formatTokens(value: number | undefined): string {

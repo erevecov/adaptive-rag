@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { ChatPipelineSteps } from './ChatPipelineSteps'
 import chatPipelineStepsSource from './ChatPipelineSteps.tsx?raw'
-import { STEPPER_EXPANDED_STORAGE_KEY } from '../lib/stepperPreference'
+import { resetOpenDetailsInstanceIdForTests } from '../lib/detailsAccordion'
 
 function installLocalStorage() {
   const entries = new Map<string, string>()
@@ -45,17 +45,20 @@ function installLocalStorage() {
 describe('ChatPipelineSteps', () => {
   beforeEach(() => {
     installLocalStorage()
+    resetOpenDetailsInstanceIdForTests()
   })
 
   afterEach(() => {
     cleanup()
+    resetOpenDetailsInstanceIdForTests()
   })
 
-  test('defaults to collapsed streaming ticker and persists expansion', async () => {
+  test('defaults to collapsed streaming ticker and expands without global persistence', async () => {
     const user = userEvent.setup()
 
     render(
       <ChatPipelineSteps
+        instanceId="stream-a"
         isStreaming
         sourceCount={0}
         steps={[
@@ -78,13 +81,68 @@ describe('ChatPipelineSteps', () => {
       }),
     )
 
-    expect(localStorage.getItem(STEPPER_EXPANDED_STORAGE_KEY)).toBe('true')
     expect(within(stepper).getByText('alpha')).toBeTruthy()
     expect(
       within(stepper).getByRole('button', { name: /Collapse Chat Steps/ }).getAttribute(
         'aria-expanded',
       ),
     ).toBe('true')
+  })
+
+  test('only one Details panel is open at a time (accordion)', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <ChatPipelineSteps
+          instanceId="turn-1"
+          isStreaming={false}
+          sourceCount={1}
+          steps={[
+            {
+              detail: { sources: 1 },
+              elapsed_ms: 1000,
+              id: 'answer',
+              status: 'done',
+            },
+          ]}
+        />
+        <ChatPipelineSteps
+          instanceId="turn-2"
+          isStreaming={false}
+          sourceCount={2}
+          steps={[
+            {
+              detail: { sources: 2 },
+              elapsed_ms: 2000,
+              id: 'retrieval',
+              status: 'done',
+            },
+          ]}
+        />
+      </>,
+    )
+
+    const steppers = screen.getAllByRole('region', {
+      name: 'Chat Pipeline Steps',
+    })
+    expect(steppers).toHaveLength(2)
+
+    await user.click(
+      within(steppers[0]!).getByRole('button', {
+        name: 'Expand Chat Steps, 1.0 s, 1 Source',
+      }),
+    )
+    expect(within(steppers[0]!).getByText('answer')).toBeTruthy()
+    expect(within(steppers[1]!).queryByText('retrieval')).toBeNull()
+
+    await user.click(
+      within(steppers[1]!).getByRole('button', {
+        name: 'Expand Chat Steps, 2.0 s, 2 Sources',
+      }),
+    )
+    // First closed; second open.
+    expect(within(steppers[0]!).queryByText('answer')).toBeNull()
+    expect(within(steppers[1]!).getByText('retrieval')).toBeTruthy()
   })
 
   test('marks streaming toggle aria-expanded false when collapsed', () => {
@@ -195,9 +253,16 @@ describe('ChatPipelineSteps', () => {
     expect(chatPipelineStepsSource).toContain('./ui/button')
     expect(chatPipelineStepsSource).not.toContain('<button')
   })
-  test('≤680 pipeline summary uses denser hover/active wash', () => {
-    expect(chatPipelineStepsSource).toContain('max-[680px]:hover:bg-primary/65')
-    expect(chatPipelineStepsSource).toContain('max-[680px]:active:bg-primary/95')
+  test('pipeline summary is borderless subtle text, not a chrome button', () => {
+    expect(chatPipelineStepsSource).toContain('PIPELINE_SUMMARY_TEXT_CLASS')
+    expect(chatPipelineStepsSource).toContain('hover:bg-transparent')
+    expect(chatPipelineStepsSource).toContain('text-muted-foreground')
+    expect(chatPipelineStepsSource).toContain('variant="ghost"')
+    expect(chatPipelineStepsSource).not.toContain('variant="secondary"')
+    // Outer section no longer uses a bordered card chrome.
+    expect(chatPipelineStepsSource).not.toMatch(
+      /data-slot="chat-pipeline-steps"[\s\S]{0,120}border border-border/,
+    )
   })
 
 

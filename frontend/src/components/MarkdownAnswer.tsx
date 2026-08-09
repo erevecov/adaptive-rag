@@ -2,34 +2,45 @@ import { type ReactNode, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+import type { RetrievalResult } from '@/lib/apiClient'
 import { cn } from '@/lib/utils'
 
 type MarkdownAnswerProps = {
   children: string
   className?: string
-  /** Map [doc-N] / [N] markers to citation open handlers (1-based). */
+  /** Citations for the turn — used to map [doc-N], [N], and [chunk-uuid] markers. */
+  citations?: readonly RetrievalResult[]
+  /** Map 1-based citation ordinals to open handlers. */
   onCitationClick?: (ordinal: number) => void
 }
 
 /**
  * Renders chat answers as GitHub-flavored markdown.
- * Citation markers like [doc-1] or [1] become clickable chips when handlers exist.
+ * Citation markers become beflow-style `doc-N` chips when a click handler exists:
+ * - `[doc-1]` / `[1]`
+ * - `[uuid]` matching a cited chunk_id / citation.chunk_id / source_id
  */
 export function MarkdownAnswer({
   children,
   className,
+  citations = [],
   onCitationClick,
 }: MarkdownAnswerProps) {
+  const idToOrdinal = useMemo(
+    () => buildCitationIdIndex(citations),
+    [citations],
+  )
+
   const components = useMemo(
     () => ({
       p: ({ children: node }: { children?: ReactNode }) => (
         <p className="mb-2 last:mb-0 whitespace-pre-wrap leading-relaxed">
-          {renderInlineWithCitations(node, onCitationClick)}
+          {renderInlineWithCitations(node, onCitationClick, idToOrdinal)}
         </p>
       ),
       li: ({ children: node }: { children?: ReactNode }) => (
         <li className="leading-relaxed">
-          {renderInlineWithCitations(node, onCitationClick)}
+          {renderInlineWithCitations(node, onCitationClick, idToOrdinal)}
         </li>
       ),
       strong: ({ children: node }: { children?: ReactNode }) => (
@@ -104,7 +115,7 @@ export function MarkdownAnswer({
         </blockquote>
       ),
     }),
-    [onCitationClick],
+    [idToOrdinal, onCitationClick],
   )
 
   return (
@@ -122,16 +133,98 @@ export function MarkdownAnswer({
   )
 }
 
-const CITATION_MARK = /\[(?:doc-)?(\d+)\]/gi
+/** `[doc-1]`, `[1]`, or `[uuid]` (chunk/source id). */
+const CITATION_MARK =
+  /\[(?:doc-)?(\d+)\]|\[([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi
+
+function buildCitationIdIndex(
+  citations: readonly RetrievalResult[],
+): Map<string, number> {
+  const map = new Map<string, number>()
+  citations.forEach((citation, index) => {
+    const ordinal = index + 1
+    const ids = [
+      citation.chunk_id,
+      citation.citation.chunk_id,
+      citation.citation.source_id,
+      citation.citation.document_id,
+    ]
+    for (const id of ids) {
+      if (typeof id === 'string' && id.trim().length > 0) {
+        map.set(id.trim().toLowerCase(), ordinal)
+      }
+    }
+  })
+  return map
+}
+
+function resolveOrdinal(
+  match: RegExpExecArray,
+  idToOrdinal: Map<string, number>,
+): number | null {
+  const numeric = match[1]
+  if (numeric !== undefined) {
+    const n = Number(numeric)
+    return Number.isFinite(n) && n >= 1 ? n : null
+  }
+  const uuid = match[2]
+  if (uuid === undefined) {
+    return null
+  }
+  return idToOrdinal.get(uuid.toLowerCase()) ?? null
+}
+
+function CitationChip({
+  ordinal,
+  onCitationClick,
+}: {
+  ordinal: number
+  onCitationClick?: (ordinal: number) => void
+}) {
+  const label = `doc-${ordinal}`
+  if (onCitationClick === undefined) {
+    return (
+      <span
+        className={cn(
+          'mx-0.5 inline-flex items-center rounded-sm border border-border px-1.5 py-px',
+          'align-baseline text-[10px] font-medium leading-none tabular-nums',
+          'text-muted-foreground',
+        )}
+        data-slot="citation-chip"
+      >
+        {label}
+      </span>
+    )
+  }
+  return (
+    <button
+      aria-label={label}
+      className={cn(
+        'mx-0.5 inline-flex items-center rounded-sm border border-border px-1.5 py-px',
+        'align-baseline text-[10px] font-medium leading-none tabular-nums',
+        'text-muted-foreground transition-colors',
+        'hover:border-foreground/40 hover:text-foreground',
+      )}
+      data-slot="citation-chip"
+      onClick={() => onCitationClick(ordinal)}
+      type="button"
+    >
+      {label}
+    </button>
+  )
+}
 
 function renderInlineWithCitations(
   node: ReactNode,
-  onCitationClick?: (ordinal: number) => void,
+  onCitationClick: ((ordinal: number) => void) | undefined,
+  idToOrdinal: Map<string, number>,
 ): ReactNode {
-  if (typeof node !== 'string' || onCitationClick === undefined) {
+  if (typeof node !== 'string') {
     if (Array.isArray(node)) {
       return node.map((child, index) => (
-        <span key={index}>{renderInlineWithCitations(child, onCitationClick)}</span>
+        <span key={index}>
+          {renderInlineWithCitations(child, onCitationClick, idToOrdinal)}
+        </span>
       ))
     }
     return node
@@ -144,17 +237,22 @@ function renderInlineWithCitations(
     if (match.index > last) {
       parts.push(node.slice(last, match.index))
     }
-    const ordinal = Number(match[1])
-    parts.push(
-      <button
-        className="mx-0.5 inline-flex size-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold tabular-nums text-foreground hover:bg-primary/25"
-        key={`${match.index}-${ordinal}`}
-        onClick={() => onCitationClick(ordinal)}
-        type="button"
-      >
-        {ordinal}
-      </button>,
-    )
+    const ordinal = resolveOrdinal(match, idToOrdinal)
+    if (ordinal === null) {
+      // Unknown UUID / out-of-range — drop raw bracket junk (do not show UUID).
+      // Keep numeric markers that are out of range as literal text.
+      if (match[1] !== undefined) {
+        parts.push(match[0])
+      }
+    } else {
+      parts.push(
+        <CitationChip
+          key={`${match.index}-${ordinal}`}
+          onCitationClick={onCitationClick}
+          ordinal={ordinal}
+        />,
+      )
+    }
     last = match.index + match[0].length
   }
   if (last < node.length) {

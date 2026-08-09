@@ -185,7 +185,7 @@ class QwenHTTPChatClient:
             try:
                 client.close()
             except Exception:  # noqa: BLE001 — best-effort cancel
-                pass
+                pass  # nosec B110
 
     def create_chat_completion(
         self,
@@ -292,13 +292,15 @@ class QwenHTTPChatClient:
                         > self.max_retry_budget_seconds
                     ):
                         raise QwenChatRunnerError(
-                            f"qwen chat request failed with status {response.status_code}"
+                            "qwen chat request failed with status "
+                            f"{response.status_code}"
                         )
                     sleep(sleep_s)
                     continue
                 if response.status_code >= 400:
                     raise QwenChatRunnerError(
-                        f"qwen chat request failed with status {response.status_code}"
+                        "qwen chat request failed with status "
+                        f"{response.status_code}"
                     )
                 data = response.json()
                 if not isinstance(data, dict):
@@ -1078,7 +1080,7 @@ def _retry_backoff_seconds(
             except ValueError:
                 pass
     # attempt 0 → 0.5s, 1 → 1s, 2 → 2s (capped)
-    return min(0.5 * (2**attempt), 8.0)
+    return float(min(0.5 * (2**attempt), 8.0))
 
 
 def _elapsed_ms(started: float) -> int:

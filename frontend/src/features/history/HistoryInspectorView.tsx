@@ -32,6 +32,11 @@ import type {
   ChatSessionSummary,
   Source,
 } from '@/lib/apiClient'
+import {
+  parseChatStepsFromMetadata,
+  summarizeContextWindow,
+  type ChatStep,
+} from '@/lib/chatSteps'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
@@ -488,10 +493,12 @@ export function WorkspaceInspectorPanel({
   detailError,
   detailState,
   layout,
+  liveContextSteps = null,
   onActiveTabChange,
   onClose,
   onNavigateMessage,
   onOpenSource,
+  onStartNewSession,
   sourceViewer,
 }: {
   activeTab: InspectorTab
@@ -499,10 +506,13 @@ export function WorkspaceInspectorPanel({
   detailError: string | null
   detailState: RequestState
   layout: 'inline' | 'overlay'
+  /** Freshest context packing step from the in-flight / latest chat response. */
+  liveContextSteps?: ChatStep[] | null
   onActiveTabChange(tab: InspectorTab): void
   onClose(): void
   onNavigateMessage(messageId: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
+  onStartNewSession?(): void
   sourceViewer: SourceViewerState
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -601,7 +611,12 @@ export function WorkspaceInspectorPanel({
           role="tabpanel"
         >
           <SourceViewerPanel viewer={sourceViewer} />
-          <SessionContextPanel detail={detail} state={detailState} />
+          <SessionContextPanel
+            detail={detail}
+            liveContextSteps={liveContextSteps}
+            onStartNewSession={onStartNewSession}
+            state={detailState}
+          />
           <InternalActionStepper detail={detail} state={detailState} />
           <SessionDetailPanel
             detail={detail}
@@ -808,20 +823,32 @@ function ConversationMinimap({
 
 function SessionContextPanel({
   detail,
+  liveContextSteps = null,
+  onStartNewSession,
   state,
 }: {
   detail: ChatSessionDetailResponse | null
+  liveContextSteps?: ChatStep[] | null
+  onStartNewSession?(): void
   state: RequestState
 }) {
   const firstUsage = detail?.provider_usage[0] ?? null
+  const contextWindow = resolveContextWindowSummary(detail, liveContextSteps)
+  const messageCount = detail?.messages.length ?? 0
+  const isContinuingThread = detail !== null && messageCount > 0
 
   return (
     <Panel aria-label="Session Context" role="region">
       <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <PanelTitle>Session Context</PanelTitle>
-        <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
-          {sessionStatusLabel(detail?.session.status)}
-        </StatusBadge>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {isContinuingThread ? (
+            <StatusBadge tone="primary">Continuing thread</StatusBadge>
+          ) : null}
+          <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
+            {sessionStatusLabel(detail?.session.status)}
+          </StatusBadge>
+        </div>
       </PanelHeader>
       <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
         {state === 'loading' ? (
@@ -834,41 +861,98 @@ function SessionContextPanel({
             Select A Session To Inspect Model, Prompt And Usage Context.
           </EmptyState>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 max-[680px]:gap-0.5">
-            <MetricCard
-              detail={detail.session.session_id}
-              label="Prompt"
-              value={`Prompt ${detail.session.prompt_version ?? 'Unknown'}`}
-            />
-            <MetricCard
-              detail={
-                firstUsage === null
-                  ? 'Unknown Provider'
-                  : `${firstUsage.provider} ${firstUsage.operation} ${titleCaseToken(firstUsage.status)}`
-              }
-              label="Model"
-              value={firstUsage?.model ?? 'Unknown Model'}
-            />
-            <MetricCard
-              detail={`${detail.provider_usage.length} Provider Records`}
-              label="Cost"
-              value={formatSessionCost(detail.provider_usage)}
-            />
-            <MetricCard
-              detail="Known Usage Only"
-              label="Tokens"
-              value={formatSessionTokens(detail.provider_usage)}
-            />
-            <MetricCard
-              detail="Average Known Latency"
-              label="Latency"
-              value={formatSessionLatency(detail.provider_usage)}
-            />
+          <div className="grid gap-3 max-[680px]:gap-0.5">
+            {onStartNewSession !== undefined ? (
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <Button
+                  className="h-7 px-2 text-[11px]"
+                  data-slot="session-context-new-thread"
+                  onClick={onStartNewSession}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  New thread
+                </Button>
+              </div>
+            ) : null}
+            <div className="grid gap-3 sm:grid-cols-2 max-[680px]:gap-0.5">
+              <MetricCard
+                detail={detail.session.session_id}
+                label="Session"
+                value={shortSessionId(detail.session.session_id)}
+              />
+              <MetricCard
+                detail={
+                  contextWindow?.summaryPreview ??
+                  (messageCount > 0
+                    ? `${messageCount} messages in thread`
+                    : 'No packed context yet')
+                }
+                label="Context window"
+                value={contextWindow?.label ?? `${messageCount} messages`}
+              />
+              <MetricCard
+                detail={detail.session.session_id}
+                label="Prompt"
+                value={`Prompt ${detail.session.prompt_version ?? 'Unknown'}`}
+              />
+              <MetricCard
+                detail={
+                  firstUsage === null
+                    ? 'Unknown Provider'
+                    : `${firstUsage.provider} ${firstUsage.operation} ${titleCaseToken(firstUsage.status)}`
+                }
+                label="Model"
+                value={firstUsage?.model ?? 'Unknown Model'}
+              />
+              <MetricCard
+                detail={`${detail.provider_usage.length} Provider Records`}
+                label="Cost"
+                value={formatSessionCost(detail.provider_usage)}
+              />
+              <MetricCard
+                detail="Known Usage Only"
+                label="Tokens"
+                value={formatSessionTokens(detail.provider_usage)}
+              />
+              <MetricCard
+                detail="Average Known Latency"
+                label="Latency"
+                value={formatSessionLatency(detail.provider_usage)}
+              />
+            </div>
           </div>
         )}
       </PanelBody>
     </Panel>
   )
+}
+
+function resolveContextWindowSummary(
+  detail: ChatSessionDetailResponse | null,
+  liveContextSteps: ChatStep[] | null | undefined,
+) {
+  const live = summarizeContextWindow(liveContextSteps)
+  if (live !== null) {
+    return live
+  }
+  if (detail === null) {
+    return null
+  }
+  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
+    const message = detail.messages[index]
+    if (message?.role !== 'assistant') {
+      continue
+    }
+    const fromMetadata = summarizeContextWindow(
+      parseChatStepsFromMetadata(message.metadata ?? null),
+    )
+    if (fromMetadata !== null) {
+      return fromMetadata
+    }
+  }
+  return null
 }
 
 function MetricCard({

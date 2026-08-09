@@ -110,11 +110,12 @@ class SqlAlchemyKnowledgeProposalSubmitter:
         *,
         scope: str,
     ) -> KnowledgeProposalSubmissionResult:
-        proposed_text = getattr(proposal, "refined_text", None) or getattr(
-            proposal, "proposed_text"
-        )
+        # Duck-typed proposal: getattr keeps mypy happy for `object`.
+        refined = getattr(proposal, "refined_text", None)
+        proposed = getattr(proposal, "proposed_text", "")
+        proposed_text = refined or proposed
         return KnowledgeProposalSubmissionResult(
-            draft_id=str(getattr(proposal, "id")),
+            draft_id=str(getattr(proposal, "id", "")),
             proposed_text=str(proposed_text),
             review_action=(
                 "approve"
@@ -122,7 +123,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
                 else "request_approval"
             ),
             scope=scope,
-            status=str(getattr(proposal, "status")),
+            status=str(getattr(proposal, "status", "")),
         )
 
 

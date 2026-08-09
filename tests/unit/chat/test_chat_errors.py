@@ -49,7 +49,8 @@ def test_classify_maps_raw_client_disconnected_string() -> None:
     payload = classify_chat_error(RuntimeError("client_disconnected"))
     assert payload.code == "client_disconnected"
     assert payload.retryable is False
-    assert "canceled" in payload.message.lower() or "disconnect" in payload.message.lower()
+    message = payload.message.lower()
+    assert "canceled" in message or "disconnect" in message
 
 
 def test_classify_maps_archived_session() -> None:

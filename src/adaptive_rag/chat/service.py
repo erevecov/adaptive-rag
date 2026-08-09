@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from inspect import signature
 from time import monotonic
@@ -42,9 +42,6 @@ from adaptive_rag.chat.streaming import (
     chat_stream_tool_call_event,
     serialize_chat_step,
 )
-
-# Heartbeat interval while the runner is blocked on LLM/retrieval work.
-_STREAM_HEARTBEAT_SECONDS = 5.0
 from adaptive_rag.chat.tools import (
     ChatKnowledgeProposalTool,
     ChatRetrievalTool,
@@ -57,6 +54,9 @@ from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 logger = logging.getLogger(__name__)
+
+# Heartbeat interval while the runner is blocked on LLM/retrieval work.
+_STREAM_HEARTBEAT_SECONDS = 5.0
 
 # Bound single-turn user messages to limit request size and prompt cost.
 # 32k chars is well below typical context windows yet blocks accidental/abusive dumps.
@@ -249,6 +249,10 @@ class ChatService:
         History summarization, optional request enrichment (user memory), and
         tool construction run *after* the first SSE event so clients hit the
         first-status latency bar (see RAG-LATENCY-BAR).
+
+        Validation and session start run eagerly (before the generator is
+        returned) so empty messages / unknown session ids map to HTTP 422
+        instead of exploding mid-SSE.
         """
 
         message = _validate_request(request)
@@ -262,6 +266,21 @@ class ChatService:
         except ValueError as exc:
             raise _session_start_error(exc) from exc
 
+        return self._stream_after_session_start(
+            request=request,
+            message=message,
+            session_id=session_id,
+            enrich_request=enrich_request,
+        )
+
+    def _stream_after_session_start(
+        self,
+        *,
+        request: ChatRequest,
+        message: str,
+        session_id: UUID | None,
+        enrich_request: Callable[[ChatRequest], ChatRequest] | None,
+    ) -> Iterator[ChatStreamEvent]:
         provider_usage_recorded = False
         answer_start: float | None = None
         retrieval_steps_flushed = False
@@ -487,7 +506,7 @@ class ChatService:
         answer_start: float,
         streamed_answer_parts: list[str],
         live_steps_emitted: list[int],
-    ) -> Iterator[ChatStreamEvent]:
+    ) -> Generator[ChatStreamEvent, None, ChatRunnerOutput]:
         """Run the chat runner off the stream loop; emit heartbeats + deltas.
 
         Yields retrieval step / heartbeat / answer_delta events while work is
@@ -516,6 +535,7 @@ class ChatService:
         def _run() -> None:
             try:
                 run_kwargs: dict[str, Any] = {}
+                parameters: Mapping[str, Any]
                 try:
                     parameters = signature(self._runner.run).parameters
                 except (TypeError, ValueError):
@@ -557,12 +577,14 @@ class ChatService:
                 try:
                     item = delta_queue.get(timeout=0.1)
                 except queue.Empty:
-                    item = object()
-                if item is None:
-                    break
-                if isinstance(item, str):
-                    streamed_answer_parts.append(item)
-                    yield chat_stream_answer_delta_event(item)
+                    item = None
+                    # Timeout tick — emit heartbeat below if due.
+                else:
+                    if item is None:
+                        break
+                    if isinstance(item, str):
+                        streamed_answer_parts.append(item)
+                        yield chat_stream_answer_delta_event(item)
                 now = monotonic()
                 if now - last_heartbeat >= _STREAM_HEARTBEAT_SECONDS:
                     yield chat_stream_heartbeat_event(
@@ -609,7 +631,8 @@ class ChatService:
         try:
             future.result(timeout=0.1)
         except Exception:
-            pass
+            # Worker already finished or was cancelled; output is in holder.
+            pass  # nosec B110
         output = holder.get("output")
         if not isinstance(output, ChatRunnerOutput):
             raise ChatServiceError("chat runner returned no output")

@@ -19,14 +19,15 @@ afterEach(() => {
 })
 
 const response: ChatResponseBody = {
-  answer: 'Use the indexed architecture notes.',
+  answer:
+    'Use the indexed architecture notes. [b102a894-5215-4a35-ae80-647b5872b172]',
   citations: [
     {
-      chunk_id: 'chunk-1',
+      chunk_id: 'b102a894-5215-4a35-ae80-647b5872b172',
       citation: {
         char_end: 48,
         char_start: 0,
-        chunk_id: 'chunk-1',
+        chunk_id: 'b102a894-5215-4a35-ae80-647b5872b172',
         document_id: 'doc-1',
         document_stable_id: 'architecture',
         document_version_id: 'version-1',
@@ -140,12 +141,15 @@ function expectNoLegacyChatClasses(container: HTMLElement) {
 }
 
 describe('ChatWorkspacePanel', () => {
-  test('cancel request button uses a destructive secondary tone while asking', () => {
+  test('cancel request is an icon-only destructive control while asking', () => {
     renderChatWorkspace({ isAsking: true, question: 'Stop me' })
 
     const cancel = screen.getByRole('button', { name: 'Cancel Request' })
-    expect(cancel.className).toMatch(/border-destructive\/30/)
     expect(cancel.className).toMatch(/text-destructive/)
+    expect(cancel.className).toMatch(/border-0/)
+    expect(cancel.className).toMatch(/bg-transparent/)
+    expect(cancel.textContent).not.toMatch(/Cancel Request/)
+    expect(cancel.querySelector('svg')).toBeTruthy()
     expect(cancel.getAttribute('data-slot')).toBe('button')
   })
 
@@ -217,7 +221,7 @@ describe('ChatWorkspacePanel', () => {
     expectNoLegacyChatClasses(view.container)
   })
 
-  test('renders citation chips under the answer card', async () => {
+  test('renders beflow-style inline doc chips and no under-answer sources strip', async () => {
     const user = userEvent.setup()
     const onOpenSource = vi.fn()
     const { view } = renderChatWorkspace({
@@ -225,17 +229,19 @@ describe('ChatWorkspacePanel', () => {
       requestState: 'succeeded',
       response,
     })
-    const chip = screen.getByRole('button', { name: 'Open Source architecture.md' })
+    // No footer Sources strip under the answer — only Details → Sources Detail.
     expect(
       view.container.querySelector('[data-slot="chat-answer-citations"]'),
-    ).toBeTruthy()
-    expect(chip.textContent).toMatch(/1/)
-    expect(chip.textContent).toContain('architecture.md')
-    expect(chip.getAttribute('title')).toContain(
-      'Architecture notes mention adaptive retrieval.',
-    )
-    expect(chip.className).toMatch(/hover:bg-primary\/15/)
-    expect(chip.className).toMatch(/max-\[680px\]:min-h-11/)
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Open Source architecture.md' }),
+    ).toBeNull()
+    const chip = screen.getByRole('button', { name: 'doc-1' })
+    expect(chip.getAttribute('data-slot')).toBe('citation-chip')
+    expect(chip.textContent).toBe('doc-1')
+    expect(chip.className).toMatch(/border-border/)
+    expect(chip.className).toMatch(/rounded-sm/)
+    expect(chip.className).not.toMatch(/rounded-full/)
     // Assistant column: open beflow-style turn (no twin card border).
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
@@ -244,13 +250,10 @@ describe('ChatWorkspacePanel', () => {
       view.container.querySelector('[data-slot="chat-message"]')?.className,
     ).not.toMatch(/bg-card/)
     expect(
-      view.container.querySelector('[data-slot="chat-answer-citations"]')?.className,
-    ).toMatch(/(?:^|\s)border-border(?:\s|$)/)
-    expect(
       view.container.querySelector(
         '[data-slot="chat-role-marker"][data-tone="assistant"]',
       ),
-    ).toBeTruthy()
+    ).toBeNull()
     expect(screen.getByLabelText('Answer')).toBeTruthy()
     await user.click(chip)
     expect(onOpenSource).toHaveBeenCalledWith(
@@ -259,19 +262,20 @@ describe('ChatWorkspacePanel', () => {
     )
   })
 
-  test('shows thread continuity and composer keyboard shortcuts', () => {
+  test('keeps continuity chrome out of the composer and shows keyboard shortcuts', () => {
     const { view } = renderChatWorkspace({
       continuingSessionId: 'session-abcdef12-3456',
       response: null,
       requestState: 'idle',
     })
 
-    const continuity = view.container.querySelector(
-      '[data-slot="chat-session-continuity"]',
-    )
-    expect(continuity).toBeTruthy()
-    expect(continuity?.textContent).toContain('Continuing thread')
-    expect(continuity?.textContent).toContain('session-')
+    expect(
+      view.container.querySelector('[data-slot="chat-session-continuity"]'),
+    ).toBeNull()
+    expect(view.container.textContent).not.toMatch(/Continuing thread/)
+    expect(
+      view.container.querySelector('[data-slot="chat-start-new-thread"]'),
+    ).toBeNull()
 
     const shortcuts = view.container.querySelector(
       '[data-slot="chat-composer-shortcuts"]',
@@ -411,7 +415,7 @@ describe('ChatWorkspacePanel', () => {
     expect(onEditQuestion).toHaveBeenCalledWith('What is Nimbus?')
   })
 
-  test('context window chip shows summarized counts from context step', () => {
+  test('does not show context window packing in the composer chrome', () => {
     const responseWithContext = {
       ...response,
       steps: [
@@ -443,10 +447,10 @@ describe('ChatWorkspacePanel', () => {
       response: responseWithContext,
       requestState: 'succeeded',
     })
-    const chip = view.container.querySelector('[data-slot="chat-context-window"]')
-    expect(chip).toBeTruthy()
-    expect(chip?.textContent).toMatch(/8 recent/)
-    expect(chip?.textContent).toMatch(/12 summarized/)
+    expect(
+      view.container.querySelector('[data-slot="chat-context-window"]'),
+    ).toBeNull()
+    expect(view.container.textContent).not.toMatch(/8 recent \+ 12 summarized/)
   })
 
   test('retry button appears on failed empty state with error detail', async () => {
@@ -512,26 +516,36 @@ describe('ChatWorkspacePanel', () => {
     const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
     expect(composer?.className).toMatch(/max-w-3xl/)
     expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
-    expect(screen.getByRole('button', { name: 'Ask' }).textContent).toMatch(/Ask/)
-    expect(screen.getByRole('button', { name: 'Ask' }).className).toMatch(
-      /max-\[680px\]:min-h-11/,
+    const askButton = screen.getByRole('button', { name: 'Ask' })
+    expect(askButton.textContent).not.toMatch(/Ask/)
+    expect(askButton.querySelector('svg')).toBeTruthy()
+    expect(askButton.className).toMatch(/max-\[680px\]:size-11/)
+    expect(askButton.className).toMatch(/border-0/)
+    expect(askButton.className).toMatch(/bg-transparent/)
+    const inputShell = empty.view.container.querySelector(
+      '[data-slot="chat-composer-input-shell"]',
     )
-    expect(screen.getByRole('button', { name: 'Ask' }).className).toMatch(
-      /max-\[680px\]:w-full/,
-    )
-    expect(screen.getByLabelText('Question').className).toMatch(/border-border/)
+    expect(inputShell).toBeTruthy()
+    expect(inputShell?.className).toMatch(/border-border/)
+    expect(inputShell?.className).toMatch(/rounded-2xl/)
+    expect(inputShell?.className).not.toMatch(/focus-within:ring/)
+    expect(inputShell?.className).not.toMatch(/focus-within:border-primary/)
     expect(screen.getByLabelText('Question').className).not.toMatch(
-      /border-border\/50/,
+      /(?:^|\s)border-border(?:\s|$)/,
     )
+    const textarea = empty.view.container.querySelector('#chat-question')
+    expect(inputShell?.contains(textarea)).toBe(true)
     expect(
-      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
-    ).toMatch(/max-\[680px\]:min-h-11/)
-    expect(
-      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
-    ).toMatch(/hover:bg-primary\/15/)
-    expect(
-      screen.getByRole('button', { name: 'Open Context Sidebar' }).className,
-    ).not.toMatch(/hover:bg-muted/)
+      inputShell?.querySelector('[data-slot="chat-composer-actions"]'),
+    ).toBeTruthy()
+    const contextTool = screen.getByRole('button', {
+      name: 'Open Context Sidebar',
+    })
+    expect(contextTool.className).toMatch(/max-\[680px\]:size-11/)
+    expect(contextTool.className).toMatch(/border-0/)
+    expect(contextTool.className).toMatch(/bg-transparent/)
+    expect(contextTool.className).toMatch(/hover:bg-transparent/)
+    expect(contextTool.querySelector('svg')).toBeTruthy()
     empty.view.unmount()
 
     const { view } = renderChatWorkspace()
@@ -567,6 +581,34 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 
+  test('docks tools and Ask inside the composer input shell', () => {
+    const { view } = renderChatWorkspace({
+      requestState: 'idle',
+      response: null,
+    })
+    const composer = view.container.querySelector('#chat-composer')
+    const shell = view.container.querySelector(
+      '[data-slot="chat-composer-input-shell"]',
+    )
+    expect(composer?.contains(shell)).toBe(true)
+    expect(shell).toBeTruthy()
+    expect(shell?.className).not.toMatch(/focus-within:ring/)
+    expect(shell?.contains(view.container.querySelector('#chat-question'))).toBe(
+      true,
+    )
+    expect(
+      shell?.querySelector('[data-slot="chat-composer-actions"]'),
+    ).toBeTruthy()
+    expect(shell?.contains(screen.getByRole('button', { name: 'Ask' }))).toBe(
+      true,
+    )
+    expect(
+      shell?.contains(
+        screen.getByRole('button', { name: 'Open Context Sidebar' }),
+      ),
+    ).toBe(true)
+  })
+
   test('renders beflow-style user bubble vs open assistant column', () => {
     const { view } = renderChatWorkspace({
       activeResponseQuestion: 'What is Nimbus?',
@@ -581,27 +623,30 @@ describe('ChatWorkspacePanel', () => {
       '[data-slot="chat-question-surface"]',
     )
     expect(surface).toBeTruthy()
-    // UserTurn card: plomo fill + rounded shell (beflow strategy, Grok tokens).
+    // UserTurn: › chevron + question text side by side (neutral, not purple).
     expect(surface?.className).toMatch(/bg-chat-user-bubble/)
-    expect(surface?.className).toMatch(/rounded-xl/)
-    expect(surface?.className).toMatch(/border-border\/80/)
+    expect(surface?.className).toMatch(/rounded-lg/)
+    expect(surface?.className).toMatch(/(?:^|\s)border-0(?:\s|$)/)
+    expect(surface?.className).not.toMatch(/border-border/)
+    expect(surface?.className).toMatch(/(?:^|\s)px-3(?:\s|$)/)
+    expect(surface?.className).toMatch(/(?:^|\s)py-2(?:\s|$)/)
     expect(surface?.textContent).not.toMatch(/\bYou\b/)
-    expect(
-      view.container.querySelector(
-        '[data-slot="chat-role-marker"][data-tone="user"]',
-      )?.textContent,
-    ).toBe('›')
+    expect(surface?.textContent).toContain('What is Nimbus?')
+    const userMarker = view.container.querySelector(
+      '[data-slot="chat-role-marker"][data-tone="user"]',
+    )
+    expect(userMarker?.textContent).toBe('›')
+    expect(userMarker?.className).toMatch(/text-muted-foreground/)
+    expect(userMarker?.className).not.toMatch(/--ring/)
+    // Marker and text share one horizontal flex row.
+    expect(surface?.className).toMatch(/(?:^|\s)flex(?:\s|$)/)
+    expect(surface?.className).toMatch(/items-start/)
     const answer = view.container.querySelector('[data-slot="chat-message"]')
     // AssistantTurn: no twin card — open column with hover wash only.
     expect(answer?.className).not.toMatch(/bg-card/)
     expect(answer?.className).not.toMatch(/bg-chat-user-bubble/)
     expect(answer?.className).toMatch(/group\/assistant-turn/)
     expect(answer?.textContent).not.toMatch(/\bAnswer\b/)
-    expect(
-      view.container.querySelector(
-        '[data-slot="chat-role-marker"][data-tone="assistant"]',
-      )?.textContent,
-    ).toBe('›')
   })
 
   test('prior turn questions flow normally while the current question stays sticky', () => {
@@ -846,9 +891,11 @@ describe('ChatWorkspacePanel', () => {
     expect(chatWorkspaceSource).not.toContain('function SendIcon')
     expect(chatWorkspaceSource).not.toContain('ui-icon')
   })
-  test('≤680 composer tool and citation chips use denser hover/active wash', () => {
-    expect(chatWorkspaceSource).toContain('max-[680px]:hover:bg-primary/65')
-    expect(chatWorkspaceSource).toContain('max-[680px]:active:bg-primary/95')
+  test('composer tools are borderless icon-only controls', () => {
+    expect(chatWorkspaceSource).toContain('CornerDownLeft')
+    expect(chatWorkspaceSource).toContain('hover:bg-transparent')
+    expect(chatWorkspaceSource).toContain('border-0 bg-transparent')
+    expect(chatWorkspaceSource).toContain('COMPOSER_TOOL_ACTIVE_CLASS')
   })
 
 

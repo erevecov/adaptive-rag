@@ -168,6 +168,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={onSelectSession}
@@ -351,6 +352,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={onRenameSession}
         onSelectSession={vi.fn()}
@@ -556,6 +558,7 @@ describe('WorkspaceInspectorPanel', () => {
   test('renders context details and source viewer with tokenized sections', async () => {
     const user = userEvent.setup()
     const onOpenSource = vi.fn()
+    const onStartNewSession = vi.fn()
     const { container } = render(
       <WorkspaceInspectorPanel
         activeTab="context"
@@ -563,10 +566,24 @@ describe('WorkspaceInspectorPanel', () => {
         detailError={null}
         detailState="succeeded"
         layout="inline"
+        liveContextSteps={[
+          {
+            id: 'context',
+            status: 'done',
+            detail: {
+              total_messages: 22,
+              kept_recent: 8,
+              summarized_messages: 14,
+              used_summary: true,
+              summary_preview: 'Pinned user-stated facts…',
+            },
+          },
+        ]}
         onActiveTabChange={vi.fn()}
         onClose={vi.fn()}
         onNavigateMessage={vi.fn()}
         onOpenSource={onOpenSource}
+        onStartNewSession={onStartNewSession}
         sourceViewer={{
           citationSnippet: 'The retrieval flow changed.',
           error: null,
@@ -581,13 +598,23 @@ describe('WorkspaceInspectorPanel', () => {
     expect(screen.getByRole('tab', { name: 'Context' }).getAttribute('aria-selected')).toBe(
       'true',
     )
-    expect(screen.getByRole('region', { name: 'Session Context' })).toBeTruthy()
+    const sessionContext = screen.getByRole('region', { name: 'Session Context' })
+    expect(sessionContext).toBeTruthy()
+    expect(within(sessionContext).getByText('Continuing thread')).toBeTruthy()
+    expect(within(sessionContext).getByText('Session')).toBeTruthy()
+    expect(within(sessionContext).getAllByText('session-1').length).toBeGreaterThan(0)
+    expect(within(sessionContext).getByText('Context window')).toBeTruthy()
+    expect(within(sessionContext).getByText('8 recent + 14 summarized')).toBeTruthy()
+    expect(within(sessionContext).getByText('Pinned user-stated facts…')).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Selected Session Detail' })).toBeTruthy()
     expect(screen.getByLabelText('assistant message').getAttribute('tabindex')).toBe('-1')
     expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(
       screen.getByLabelText('assistant message').querySelector('strong')?.className,
     ).toMatch(/capitalize/)
+
+    await user.click(screen.getByRole('button', { name: 'New thread' }))
+    expect(onStartNewSession).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'View Source architecture.md' }))
     expect(onOpenSource).toHaveBeenCalledWith(
