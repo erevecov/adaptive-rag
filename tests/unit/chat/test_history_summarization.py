@@ -6,9 +6,13 @@ from uuid import uuid4
 
 from adaptive_rag.chat.audit import InMemoryChatAuditWriter
 from adaptive_rag.chat.history import prepare_chat_history
-from adaptive_rag.chat.models import ChatHistoryTurn, ChatRequest
+from adaptive_rag.chat.models import (
+    ChatHistoryTurn,
+    ChatRequest,
+    ChatRunnerOutput,
+    ChatRunnerRequest,
+)
 from adaptive_rag.chat.service import ChatService
-from adaptive_rag.chat.models import ChatRunnerOutput, ChatRunnerRequest
 from adaptive_rag.chat.tools import ChatTools
 
 
@@ -122,6 +126,8 @@ def test_chat_service_stream_emits_context_step_and_summarizes() -> None:
     # Either short (no summary) or condensed bridge present when > keep_recent.
     if detail.get("used_summary"):
         assert any(
-            "condensed" in turn.content.lower() for turn in history if turn.role == "user"
+            "condensed" in turn.content.lower()
+            for turn in history
+            if turn.role == "user"
         )
     assert isinstance(history[0], ChatHistoryTurn) if history else True

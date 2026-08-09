@@ -102,7 +102,9 @@ def chat_smoke(
             json.dumps(
                 {
                     "provider": getattr(runner, "provider_name", "fake"),
-                    "model": getattr(runner, "model_name", "retrieval-grounded-local-v1"),
+                    "model": getattr(
+                        runner, "model_name", "retrieval-grounded-local-v1"
+                    ),
                     "answer": response.answer,
                     "citation_count": len(response.citations),
                     "tool_call_count": len(response.tool_calls),

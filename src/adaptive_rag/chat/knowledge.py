@@ -110,11 +110,11 @@ class SqlAlchemyKnowledgeProposalSubmitter:
         *,
         scope: str,
     ) -> KnowledgeProposalSubmissionResult:
-        proposed_text = getattr(proposal, "refined_text", None) or getattr(
-            proposal, "proposed_text"
+        proposed_text = (
+            getattr(proposal, "refined_text", None) or proposal.proposed_text
         )
         return KnowledgeProposalSubmissionResult(
-            draft_id=str(getattr(proposal, "id")),
+            draft_id=str(proposal.id),
             proposed_text=str(proposed_text),
             review_action=(
                 "approve"
@@ -122,7 +122,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
                 else "request_approval"
             ),
             scope=scope,
-            status=str(getattr(proposal, "status")),
+            status=str(proposal.status),
         )
 
 

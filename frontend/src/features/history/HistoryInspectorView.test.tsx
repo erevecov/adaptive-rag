@@ -168,6 +168,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={onSelectSession}
@@ -351,6 +352,7 @@ describe('SessionNavigationPanel', () => {
         canLoadMore={false}
         error={null}
         onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
         onLoadMore={vi.fn()}
         onRenameSession={onRenameSession}
         onSelectSession={vi.fn()}

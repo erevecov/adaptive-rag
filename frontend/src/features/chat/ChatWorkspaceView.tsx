@@ -826,7 +826,7 @@ function ResponsePanel({
         appliedMemories={appliedMemories}
         drafts={drafts}
         onEditQuestion={
-          state === 'loading' || onEditQuestion === undefined
+          onEditQuestion === undefined
             ? undefined
             : (text) => onEditQuestion(text)
         }

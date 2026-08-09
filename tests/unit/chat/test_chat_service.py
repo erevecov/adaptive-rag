@@ -614,8 +614,9 @@ def _retrieval_result(
     )
 
 def test_chat_service_stream_emits_heartbeats_while_runner_blocks() -> None:
-    import adaptive_rag.chat.service as service_module
     from time import sleep
+
+    import adaptive_rag.chat.service as service_module
 
     class SlowRunner:
         def run(self, request, tools, **kwargs):  # noqa: ANN001

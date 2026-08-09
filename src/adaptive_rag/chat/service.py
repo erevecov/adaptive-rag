@@ -42,9 +42,6 @@ from adaptive_rag.chat.streaming import (
     chat_stream_tool_call_event,
     serialize_chat_step,
 )
-
-# Heartbeat interval while the runner is blocked on LLM/retrieval work.
-_STREAM_HEARTBEAT_SECONDS = 5.0
 from adaptive_rag.chat.tools import (
     ChatKnowledgeProposalTool,
     ChatRetrievalTool,
@@ -57,6 +54,9 @@ from adaptive_rag.provider_usage import ProviderCallRecord
 from adaptive_rag.retrieval.payloads import RetrievalResultPayload
 
 logger = logging.getLogger(__name__)
+
+# Heartbeat interval while the runner is blocked on LLM/retrieval work.
+_STREAM_HEARTBEAT_SECONDS = 5.0
 
 # Bound single-turn user messages to limit request size and prompt cost.
 # 32k chars is well below typical context windows yet blocks accidental/abusive dumps.

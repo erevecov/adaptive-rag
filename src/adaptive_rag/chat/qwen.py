@@ -292,13 +292,15 @@ class QwenHTTPChatClient:
                         > self.max_retry_budget_seconds
                     ):
                         raise QwenChatRunnerError(
-                            f"qwen chat request failed with status {response.status_code}"
+                            "qwen chat request failed with status "
+                            f"{response.status_code}"
                         )
                     sleep(sleep_s)
                     continue
                 if response.status_code >= 400:
                     raise QwenChatRunnerError(
-                        f"qwen chat request failed with status {response.status_code}"
+                        "qwen chat request failed with status "
+                        f"{response.status_code}"
                     )
                 data = response.json()
                 if not isinstance(data, dict):
