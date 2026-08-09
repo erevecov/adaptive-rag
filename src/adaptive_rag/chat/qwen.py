@@ -185,7 +185,7 @@ class QwenHTTPChatClient:
             try:
                 client.close()
             except Exception:  # noqa: BLE001 — best-effort cancel
-                pass
+                pass  # nosec B110
 
     def create_chat_completion(
         self,

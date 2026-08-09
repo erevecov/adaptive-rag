@@ -1,5 +1,6 @@
 import {
   type ComponentType,
+  createElement,
   type ReactNode,
   type SVGProps,
   useId,
@@ -260,10 +261,10 @@ function StepRow({ step }: { step: ChatStep }) {
   const main = (
     <>
       <StatusIcon status={step.status} />
-      <Icon
-        aria-hidden="true"
-        className="size-3.5 shrink-0 text-muted-foreground"
-      />
+      {createElement(Icon, {
+        'aria-hidden': true,
+        className: 'size-3.5 shrink-0 text-muted-foreground',
+      })}
       <span
         className={cn(
           'shrink-0 text-foreground',

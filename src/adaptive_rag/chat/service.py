@@ -249,6 +249,10 @@ class ChatService:
         History summarization, optional request enrichment (user memory), and
         tool construction run *after* the first SSE event so clients hit the
         first-status latency bar (see RAG-LATENCY-BAR).
+
+        Validation and session start run eagerly (before the generator is
+        returned) so empty messages / unknown session ids map to HTTP 422
+        instead of exploding mid-SSE.
         """
 
         message = _validate_request(request)
@@ -262,6 +266,21 @@ class ChatService:
         except ValueError as exc:
             raise _session_start_error(exc) from exc
 
+        return self._stream_after_session_start(
+            request=request,
+            message=message,
+            session_id=session_id,
+            enrich_request=enrich_request,
+        )
+
+    def _stream_after_session_start(
+        self,
+        *,
+        request: ChatRequest,
+        message: str,
+        session_id: UUID | None,
+        enrich_request: Callable[[ChatRequest], ChatRequest] | None,
+    ) -> Iterator[ChatStreamEvent]:
         provider_usage_recorded = False
         answer_start: float | None = None
         retrieval_steps_flushed = False
@@ -612,7 +631,8 @@ class ChatService:
         try:
             future.result(timeout=0.1)
         except Exception:
-            pass
+            # Worker already finished or was cancelled; output is in holder.
+            pass  # nosec B110
         output = holder.get("output")
         if not isinstance(output, ChatRunnerOutput):
             raise ChatServiceError("chat runner returned no output")

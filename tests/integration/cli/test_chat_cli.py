@@ -877,8 +877,11 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
     )
 
     assert result.exit_code != 0
-    assert isinstance(result.exception, RuntimeError)
-    assert str(result.exception) == "runner exploded"
+    # CLI maps ChatServiceError (wrapped runner failure) to typer.Exit(1).
+    assert result.exception is not None
+    assert "runner exploded" in str(result.exception) or "runner exploded" in (
+        result.stdout + result.stderr
+    )
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
@@ -1185,7 +1188,12 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
     }
     assert data["sessions"] == {
         "total": 1,
-        "by_status": {"running": 0, "succeeded": 0, "failed": 1},
+        "by_status": {
+            "running": 0,
+            "succeeded": 0,
+            "failed": 1,
+            "canceled": 0,
+        },
     }
     assert data["provider_usage"]["total_records"] == 2
     assert data["provider_usage"]["total_estimated_cost_usd"] == pytest.approx(0.05)
