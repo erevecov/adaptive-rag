@@ -16,6 +16,7 @@ import {
   ChevronRight,
   CircleDot,
   Copy,
+  CornerDownLeft,
   Map as MapIcon,
   Mic,
   RefreshCw,
@@ -42,12 +43,14 @@ import type { ChatStep } from '@/lib/chatSteps'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
-/** Compact circular tool control — beflow-style dock chrome. */
+/** Icon-only tool control — no chrome/border; label via aria-label. */
 const COMPOSER_TOOL_BUTTON_CLASS =
-  'size-auto shrink-0 rounded-full border border-border bg-card p-1.5 text-muted-foreground shadow-sm hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:min-h-11 max-[680px]:min-w-11 max-[680px]:p-0.5'
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-none border-0 bg-transparent p-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40 max-[680px]:size-11'
 
 const COMPOSER_PRIMARY_ACTION_CLASS =
-  'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold sm:px-4 max-[680px]:min-h-11 max-[680px]:w-full max-[680px]:px-1 max-[680px]:py-0.5 max-[680px]:text-[0.5625rem] max-[680px]:tracking-tighter'
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-none border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-transparent hover:text-primary active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40 max-[680px]:size-11'
+
+const COMPOSER_TOOL_ACTIVE_CLASS = 'text-primary'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
 export type ChatKnowledgeDraftAction = 'approve' | 'request_approval' | string
@@ -199,6 +202,7 @@ export function ChatWorkspacePanel({
     <Panel
       aria-label="Chat Workspace"
       className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden border-0 bg-transparent shadow-none"
+      data-chat-radius="square"
       role="region"
     >
       {/* flex-1 + min-h-0: only the transcript scrolls; composer stays pinned. */}
@@ -211,11 +215,13 @@ export function ChatWorkspacePanel({
         ref={transcriptRef}
         role="region"
       >
-        <div className="mx-auto grid w-full max-w-3xl gap-3 px-0.5 pr-[18px] max-[900px]:pr-3.5 max-[680px]:gap-2 max-[680px]:pr-1">
+        {/* pb clears the composer fade (h-8) so Details / last turn stay readable. */}
+        <div className="mx-auto grid w-full max-w-3xl gap-3 px-0.5 pb-12 pr-[18px] max-[900px]:pr-3.5 max-[680px]:gap-2 max-[680px]:pb-10 max-[680px]:pr-1">
           {priorTurns.map((turn) => (
             <ResponseContent
               key={turn.id}
               appliedMemories={[]}
+              detailsInstanceId={`turn-${turn.id}`}
               drafts={{}}
               onEditQuestion={
                 onEditQuestion === undefined
@@ -279,183 +285,155 @@ export function ChatWorkspacePanel({
           data-slot="chat-composer-gradient"
         />
         <form
-          className="relative mx-auto w-full max-w-3xl px-1 pb-3 pt-1 sm:px-2 sm:pb-4 max-[680px]:px-1 max-[680px]:pb-1.5 max-[680px]:pt-1"
+          className="relative mx-auto w-full max-w-3xl px-1 pb-0 pt-1 sm:px-2 max-[680px]:px-1 max-[680px]:pt-1"
           data-slot="chat-composer"
           id="chat-composer"
           onSubmit={onSubmit}
           tabIndex={-1}
         >
-          {continuingSessionId ? (
-            <div
-              aria-label="Continuing thread"
-              className="mb-1.5 flex min-w-0 items-center gap-2 max-[680px]:mb-1 max-[680px]:gap-1.5"
-              data-slot="chat-session-continuity"
-              role="status"
-            >
-              <StatusBadge className="shrink-0" tone="primary">
-                Continuing thread
-              </StatusBadge>
-              <span
-                className="min-w-0 truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-xs"
-                title={continuingSessionId}
-              >
-                {shortSessionId(continuingSessionId)}
-              </span>
-              <ContextWindowChip
-                priorTurnCount={priorTurns.length}
-                steps={response?.steps ?? []}
-              />
-              {onStartNewSession !== undefined ? (
-                <Button
-                  className="ml-auto h-7 px-2 text-[11px]"
-                  data-slot="chat-start-new-thread"
-                  onClick={onStartNewSession}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  New thread
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
-          <Field className="gap-0">
-            <FieldLabel className="sr-only" htmlFor="chat-question">
-              Question
-            </FieldLabel>
-            <FieldControl className="gap-0">
-              <Textarea
-                className={cn(
-                  'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-border bg-muted/15 px-4 py-2.5 text-sm leading-relaxed max-[680px]:min-h-11 max-[680px]:text-base',
-                  'placeholder:text-muted-foreground',
-                  'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                )}
-                id="chat-question"
-                name="question"
-                onChange={(event) => {
-                  const el = event.currentTarget
-                  onQuestionChange(el.value)
-                  el.style.height = 'auto'
-                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
-                }}
-                onInput={(event) => {
-                  const el = event.currentTarget
-                  el.style.height = 'auto'
-                  el.style.height = `${Math.min(el.scrollHeight, 192)}px`
-                }}
-                onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-                  if (event.key === 'Escape' && isAsking) {
-                    event.preventDefault()
-                    onCancelRequest()
-                    return
-                  }
-                  if (
-                    event.key === 'Enter' &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing
-                  ) {
-                    event.preventDefault()
-                    if (isAsking || question.trim().length === 0) {
+          <div
+            className="rounded-2xl border border-border bg-muted/15 p-1.5 shadow-sm"
+            data-slot="chat-composer-input-shell"
+          >
+            <Field className="gap-0">
+              <FieldLabel className="sr-only" htmlFor="chat-question">
+                Question
+              </FieldLabel>
+              <FieldControl className="gap-0">
+                <Textarea
+                  className={cn(
+                    'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-0 bg-transparent px-4 py-2.5 text-sm leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-[680px]:min-h-11 max-[680px]:text-base',
+                    'placeholder:text-muted-foreground',
+                  )}
+                  id="chat-question"
+                  name="question"
+                  onChange={(event) => {
+                    const el = event.currentTarget
+                    onQuestionChange(el.value)
+                    el.style.height = 'auto'
+                    el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                  }}
+                  onInput={(event) => {
+                    const el = event.currentTarget
+                    el.style.height = 'auto'
+                    el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                  }}
+                  onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+                    if (event.key === 'Escape' && isAsking) {
+                      event.preventDefault()
+                      onCancelRequest()
                       return
                     }
-                    event.currentTarget.form?.requestSubmit()
-                  }
-                }}
-                placeholder="Ask a question about indexed sources"
-                ref={questionInputRef}
-                rows={2}
-                title="Enter to send · Shift+Enter for a new line · Escape to cancel"
-                value={question}
-              />
-            </FieldControl>
-          </Field>
-
-          <div
-            className="mt-2 flex flex-wrap items-center justify-between gap-2 max-[680px]:mt-1.5 max-[680px]:gap-1.5"
-            data-slot="chat-composer-actions"
-          >
-            <p
-              className="order-last w-full text-[11px] leading-snug text-muted-foreground sm:order-none sm:w-auto max-[680px]:text-xs"
-              data-slot="chat-composer-shortcuts"
-            >
-              <ComposerShortcutHint keys="Enter" label="Send" />
-              <span aria-hidden="true" className="mx-1.5 text-border">
-                ·
-              </span>
-              <ComposerShortcutHint keys="⇧Enter" label="New line" />
-              {isAsking ? (
-                <>
-                  <span aria-hidden="true" className="mx-1.5 text-border">
-                    ·
-                  </span>
-                  <ComposerShortcutHint keys="Esc" label="Cancel" />
-                </>
-              ) : null}
-            </p>
-            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
-                <Button
-                  aria-label="Open Context Sidebar"
-                  aria-pressed={isContextInspectorActive}
-                  className={cn(
-                    COMPOSER_TOOL_BUTTON_CLASS,
-                    isContextInspectorActive &&
-                      'border-primary bg-primary/25 text-foreground',
-                  )}
-                  onClick={onOpenContextInspector}
-                  type="button"
-                  variant="ghost"
-                >
-                  <CircleDot aria-hidden="true" className="size-4" />
-                </Button>
-                <Button
-                  aria-label="Open Minimap Sidebar"
-                  aria-pressed={isMinimapInspectorActive}
-                  className={cn(
-                    COMPOSER_TOOL_BUTTON_CLASS,
-                    isMinimapInspectorActive &&
-                      'border-primary bg-primary/25 text-foreground',
-                  )}
-                  onClick={onOpenMinimapInspector}
-                  type="button"
-                  variant="ghost"
-                >
-                  <MapIcon aria-hidden="true" className="size-4" />
-                </Button>
-                <SpeechInputControl
-                  feedback={speechFeedback}
-                  isSupported={isSpeechSupported}
-                  onStart={onStartSpeechRecognition}
-                  onStop={onStopSpeechRecognition}
-                  state={speechState}
+                    if (
+                      event.key === 'Enter' &&
+                      !event.shiftKey &&
+                      !event.nativeEvent.isComposing
+                    ) {
+                      event.preventDefault()
+                      if (isAsking || question.trim().length === 0) {
+                        return
+                      }
+                      event.currentTarget.form?.requestSubmit()
+                    }
+                  }}
+                  placeholder="Ask a question about indexed sources"
+                  ref={questionInputRef}
+                  rows={2}
+                  title="Enter to send · Shift+Enter for a new line · Escape to cancel"
+                  value={question}
                 />
-              </div>
+              </FieldControl>
+            </Field>
 
-              {isAsking ? (
-                <Button
-                  className={cn(
-                    COMPOSER_PRIMARY_ACTION_CLASS,
-                    'border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive',
-                  )}
-                  onClick={onCancelRequest}
-                  size="sm"
-                  type="button"
-                  variant="secondary"
-                >
-                  Cancel Request
-                </Button>
-              ) : (
-                <Button
-                  aria-label="Ask"
-                  className={COMPOSER_PRIMARY_ACTION_CLASS}
-                  disabled={question.trim().length === 0}
-                  size="sm"
-                  title="Enter to send"
-                  type="submit"
-                >
-                  Ask
-                </Button>
-              )}
+            <div
+              className="mt-1 flex flex-wrap items-center justify-between gap-2 max-[680px]:mt-1.5 max-[680px]:gap-1.5"
+              data-slot="chat-composer-actions"
+            >
+              <p
+                className="order-last w-full text-[11px] leading-snug text-muted-foreground sm:order-none sm:w-auto max-[680px]:text-xs"
+                data-slot="chat-composer-shortcuts"
+              >
+                <ComposerShortcutHint keys="Enter" label="Send" />
+                <span aria-hidden="true" className="mx-1.5 text-border">
+                  ·
+                </span>
+                <ComposerShortcutHint keys="⇧Enter" label="New line" />
+                {isAsking ? (
+                  <>
+                    <span aria-hidden="true" className="mx-1.5 text-border">
+                      ·
+                    </span>
+                    <ComposerShortcutHint keys="Esc" label="Cancel" />
+                  </>
+                ) : null}
+              </p>
+              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
+                  <Button
+                    aria-label="Open Context Sidebar"
+                    aria-pressed={isContextInspectorActive}
+                    className={cn(
+                      COMPOSER_TOOL_BUTTON_CLASS,
+                      isContextInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
+                    )}
+                    onClick={onOpenContextInspector}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <CircleDot aria-hidden="true" className="size-4" />
+                  </Button>
+                  <Button
+                    aria-label="Open Minimap Sidebar"
+                    aria-pressed={isMinimapInspectorActive}
+                    className={cn(
+                      COMPOSER_TOOL_BUTTON_CLASS,
+                      isMinimapInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
+                    )}
+                    onClick={onOpenMinimapInspector}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <MapIcon aria-hidden="true" className="size-4" />
+                  </Button>
+                  <SpeechInputControl
+                    feedback={speechFeedback}
+                    isSupported={isSpeechSupported}
+                    onStart={onStartSpeechRecognition}
+                    onStop={onStopSpeechRecognition}
+                    state={speechState}
+                  />
+                </div>
+
+                {isAsking ? (
+                  <Button
+                    aria-label="Cancel Request"
+                    className={cn(
+                      COMPOSER_TOOL_BUTTON_CLASS,
+                      'text-destructive hover:text-destructive',
+                    )}
+                    onClick={onCancelRequest}
+                    size="icon"
+                    title="Cancel Request"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Square aria-hidden="true" className="size-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    aria-label="Ask"
+                    className={COMPOSER_PRIMARY_ACTION_CLASS}
+                    disabled={question.trim().length === 0}
+                    size="icon"
+                    title="Enter to send"
+                    type="submit"
+                  >
+                    <CornerDownLeft aria-hidden="true" className="size-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -464,67 +442,6 @@ export function ChatWorkspacePanel({
         </form>
       </div>
     </Panel>
-  )
-}
-
-function ContextWindowChip({
-  priorTurnCount,
-  steps,
-}: {
-  priorTurnCount: number
-  steps: ChatResponseBody['steps']
-}) {
-  const contextStep = (steps ?? []).find((step) => step.id === 'context')
-  const detail = contextStep?.detail
-  const summarized =
-    detail !== null &&
-    detail !== undefined &&
-    typeof detail === 'object' &&
-    'summarized_messages' in detail &&
-    typeof (detail as { summarized_messages: unknown }).summarized_messages ===
-      'number'
-      ? (detail as { summarized_messages: number }).summarized_messages
-      : 0
-  const kept =
-    detail !== null &&
-    detail !== undefined &&
-    typeof detail === 'object' &&
-    'kept_recent' in detail &&
-    typeof (detail as { kept_recent: unknown }).kept_recent === 'number'
-      ? (detail as { kept_recent: number }).kept_recent
-      : null
-  const total =
-    detail !== null &&
-    detail !== undefined &&
-    typeof detail === 'object' &&
-    'total_messages' in detail &&
-    typeof (detail as { total_messages: unknown }).total_messages === 'number'
-      ? (detail as { total_messages: number }).total_messages
-      : priorTurnCount * 2
-  if (total <= 0 && priorTurnCount <= 0) {
-    return null
-  }
-  const label =
-    summarized > 0
-      ? `Context: ${kept ?? 'recent'} recent + ${summarized} summarized`
-      : `Context: ${total > 0 ? total : priorTurnCount * 2} messages`
-  return (
-    <span
-      className="truncate text-[11px] text-muted-foreground max-[680px]:text-xs"
-      data-slot="chat-context-window"
-      title={
-        detail !== null &&
-        detail !== undefined &&
-        typeof detail === 'object' &&
-        'summary_preview' in detail &&
-        typeof (detail as { summary_preview: unknown }).summary_preview ===
-          'string'
-          ? (detail as { summary_preview: string }).summary_preview
-          : label
-      }
-    >
-      {label}
-    </span>
   )
 }
 
@@ -595,10 +512,11 @@ function SpeechInputControl({
         aria-label={buttonLabel}
         className={cn(
           COMPOSER_TOOL_BUTTON_CLASS,
-          isListening && 'border-primary bg-primary/25 text-foreground',
+          isListening && COMPOSER_TOOL_ACTIVE_CLASS,
         )}
         disabled={!isSupported}
         onClick={isListening ? onStop : onStart}
+        size="icon"
         title={buttonLabel}
         type="button"
         variant="ghost"
@@ -930,6 +848,7 @@ function ResponsePanel({
 
 function ResponseContent({
   appliedMemories,
+  detailsInstanceId,
   drafts,
   onEditQuestion,
   onOpenSource,
@@ -944,6 +863,8 @@ function ResponseContent({
   state,
 }: {
   appliedMemories: UserMemory[]
+  /** Exclusive Details accordion id (only one open across the transcript). */
+  detailsInstanceId?: string
   drafts: ChatKnowledgeDraftMap
   onEditQuestion?(text: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
@@ -1151,14 +1072,13 @@ function ResponseContent({
           aria-label="Answer"
           className={cn(
             /* beflow AssistantTurn: no card chrome; soft hover wash only */
-            'group/assistant-turn relative flex gap-2 rounded-lg px-1 py-2 text-foreground tracking-tight',
+            'group/assistant-turn relative rounded-lg px-1 py-2 text-foreground tracking-tight',
             'transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.025]',
-            'sm:gap-2.5 sm:px-2 max-[680px]:gap-1.5 max-[680px]:px-0.5 max-[680px]:py-1.5',
+            'sm:px-2 max-[680px]:px-0.5 max-[680px]:py-1.5',
           )}
           data-slot="chat-message"
         >
-          <ChatRoleMarker tone="assistant" />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
           <div className="mb-1.5 flex min-h-5 flex-wrap items-center gap-2 max-[680px]:mb-1">
             {isStreaming ? (
               <StatusBadge className="w-fit" tone="primary">
@@ -1195,6 +1115,7 @@ function ResponseContent({
           </div>
           {response.answer.trim().length > 0 ? (
             <MarkdownAnswer
+              citations={response.citations}
               onCitationClick={(ordinal) => {
                 const citation = response.citations[ordinal - 1]
                 if (citation === undefined) {
@@ -1232,63 +1153,18 @@ function ResponseContent({
               returned nothing useful — verify before trusting project claims.
             </Callout>
           ) : null}
-          {response.citations.length > 0 ? (
-            <div
-              aria-label="Answer Citations"
-              className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-2.5 max-[680px]:mt-2.5 max-[680px]:gap-1.5 max-[680px]:pt-2"
-              data-slot="chat-answer-citations"
-              role="group"
-            >
-              {response.citations.map((citation, index) => {
-                const ordinal = index + 1
-                const label =
-                  citation.citation.source_external_id ||
-                  citation.citation.source_id ||
-                  `Source ${ordinal}`
-                const snippet = citation.citation.snippet?.trim() ?? ''
-                const chipKey = [
-                  citation.chunk_id ?? 'no-chunk',
-                  citation.citation.source_id ?? 'no-source',
-                  index,
-                ].join('-')
-                return (
-                  <Button
-                    aria-label={`Open Source ${label}`}
-                    className={cn(
-                      'h-auto max-w-full gap-1.5 truncate rounded-full px-2.5 py-1 text-[11px] font-medium',
-                      'hover:border-primary/50 hover:bg-primary/15',
-                      'max-[680px]:min-h-11 max-[680px]:rounded-md max-[680px]:px-2.5 max-[680px]:py-1 max-[680px]:text-xs',
-                    )}
-                    key={chipKey}
-                    onClick={() =>
-                      onOpenSource(
-                        citation.citation.source_id,
-                        citation.citation.snippet,
-                      )
-                    }
-                    size="sm"
-                    title={snippet.length > 0 ? `${label} — ${snippet}` : label}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold tabular-nums text-foreground"
-                    >
-                      {ordinal}
-                    </span>
-                    <span className="min-w-0 truncate">{label}</span>
-                  </Button>
-                )
-              })}
-            </div>
-          ) : null}
+          {/* Citation chips live inline in MarkdownAnswer (doc-N). Full
+              source list is under Details → Sources Detail only. */}
           </div>
         </article>
       ) : null}
 
       {hasStepDetails ? (
         <ChatPipelineSteps
+          instanceId={
+            detailsInstanceId ??
+            `live-${response.session_id ?? 'current'}-${question ?? 'q'}`
+          }
           isStreaming={isStreaming}
           sourceCount={response.citations.length}
           steps={steps}
@@ -1360,20 +1236,18 @@ function ResponseContent({
   )
 }
 
-/** Compact role glyph (›) — user uses ring accent; assistant is muted. */
-function ChatRoleMarker({ tone }: { tone: 'user' | 'assistant' }) {
+/** Compact role glyph (›) — same row as question text (neutral, not purple). */
+function ChatRoleMarker() {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'mt-0.5 inline-flex size-5 shrink-0 select-none items-center justify-center',
-        'font-mono text-[15px] font-semibold leading-none tracking-tight',
-        tone === 'user'
-          ? 'text-[color:var(--ring)]'
-          : 'text-muted-foreground/80',
+        'inline-flex h-[1.25rem] w-4 shrink-0 select-none items-center justify-center',
+        'font-mono text-[13px] font-medium leading-none tracking-tight',
+        'text-muted-foreground/70',
       )}
       data-slot="chat-role-marker"
-      data-tone={tone}
+      data-tone="user"
     >
       ›
     </span>
@@ -1403,10 +1277,10 @@ function QuestionPrompt({
       : trimmedQuestion
 
   return (
-    /* beflow UserTurn: full-width plomo card, role label, soft inset ring */
+    /* Grok Build–style: › + text on one row; Edit floats so it never pushes text down. */
     <div
       className={cn(
-        'group/user-turn w-full pb-1',
+        'group/user-turn w-full pb-1.5',
         sticky && 'sticky top-0 z-10',
       )}
       aria-label="Your question"
@@ -1414,74 +1288,52 @@ function QuestionPrompt({
     >
       <div
         className={cn(
-          'flex w-full gap-2 rounded-xl border border-border/80 bg-chat-user-bubble px-3 py-2.5 shadow-sm sm:gap-2.5 sm:px-4',
-          'backdrop-blur-md supports-[backdrop-filter]:bg-chat-user-bubble/90',
-          'ring-1 ring-inset ring-white/5',
-          'max-[680px]:gap-1.5 max-[680px]:px-2.5 max-[680px]:py-2',
+          'relative flex w-full items-start gap-2 rounded-lg border-0 bg-chat-user-bubble px-3 py-2',
+          'max-[680px]:gap-1.5 max-[680px]:px-2.5 max-[680px]:py-1.5',
+          onEdit !== undefined && 'pr-12',
         )}
         data-slot="chat-question-surface"
       >
-        <ChatRoleMarker tone="user" />
-        <div className="min-w-0 flex-1">
-          {onEdit !== undefined ? (
-            <div className="mb-1 flex justify-end">
-              <Button
-                aria-label="Edit question"
-                className={cn(
-                  'h-7 px-2 text-[11px] opacity-0 transition-opacity',
-                  'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
-                )}
-                data-slot="chat-edit-question"
-                onClick={onEdit}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                Edit
-              </Button>
-            </div>
-          ) : null}
-          {shouldCollapse ? (
-            <button
-              aria-expanded={expanded}
-              aria-label={
-                expanded ? 'Collapse full question' : 'Expand full question'
-              }
-              className={cn(
-                'flex min-w-0 w-full gap-1 text-left text-sm leading-5 text-foreground',
-                expanded ? 'items-start' : 'items-center',
-              )}
-              onClick={() => setExpanded((current) => !current)}
-              title={trimmedQuestion}
-              type="button"
-            >
-              <span
-                aria-hidden="true"
-                className="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground"
-              >
-                {expanded ? (
-                  <ChevronDown className="size-3.5" />
-                ) : (
-                  <ChevronRight className="size-3.5" />
-                )}
-              </span>
-              <span
-                className={cn(
-                  'min-w-0 flex-1',
-                  expanded
-                    ? 'whitespace-pre-wrap break-words'
-                    : 'truncate whitespace-nowrap',
-                )}
-              >
-                {displayQuestion}
-              </span>
-            </button>
-          ) : (
-            <p className="min-w-0 text-sm leading-5 text-foreground whitespace-pre-wrap break-words">
-              {displayQuestion}
-            </p>
-          )}
-        </div>
+        <ChatRoleMarker />
+        {shouldCollapse ? (
+          <button
+            aria-expanded={expanded}
+            aria-label={
+              expanded ? 'Collapse full question' : 'Expand full question'
+            }
+            className={cn(
+              'min-w-0 flex-1 text-left text-[13px] leading-snug text-foreground',
+              expanded
+                ? 'whitespace-pre-wrap break-words'
+                : 'truncate whitespace-nowrap',
+            )}
+            onClick={() => setExpanded((current) => !current)}
+            title={trimmedQuestion}
+            type="button"
+          >
+            {displayQuestion}
+          </button>
+        ) : (
+          <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[13px] leading-snug text-foreground">
+            {displayQuestion}
+          </p>
+        )}
+        {onEdit !== undefined ? (
+          <Button
+            aria-label="Edit question"
+            className={cn(
+              'absolute right-1.5 top-1.5 h-6 px-1.5 text-[10px] opacity-0 transition-opacity',
+              'group-hover/user-turn:opacity-100 group-focus-within/user-turn:opacity-100',
+            )}
+            data-slot="chat-edit-question"
+            onClick={onEdit}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Edit
+          </Button>
+        ) : null}
       </div>
     </div>
   )

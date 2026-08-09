@@ -2678,12 +2678,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 detailError={detailError}
                 detailState={detailState}
                 layout={isRightDockInline ? 'inline' : 'overlay'}
+                liveContextSteps={
+                  response !== null &&
+                  (selectedSessionId === null ||
+                    response.session_id === selectedSessionId)
+                    ? (response.steps ?? null)
+                    : null
+                }
                 onClose={() => setIsRightDockOpen(false)}
                 onNavigateMessage={handleNavigateToMessage}
                 onActiveTabChange={handleOpenInspectorTab}
                 onOpenSource={(sourceId, citationSnippet) =>
                   void handleOpenSource(sourceId, citationSnippet)
                 }
+                onStartNewSession={handleStartNewSession}
                 sourceViewer={sourceViewer}
               />
             ) : null}

@@ -249,6 +249,7 @@ export function ChatWorkspaceGrid({
         isRightDockInline &&
           'chat-workspace-grid-docked max-[900px]:flex-col',
       )}
+      data-chat-radius="square"
       data-slot="chat-workspace-grid"
     >
       {children}
