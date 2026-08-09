@@ -1080,7 +1080,7 @@ def _retry_backoff_seconds(
             except ValueError:
                 pass
     # attempt 0 → 0.5s, 1 → 1s, 2 → 2s (capped)
-    return min(0.5 * (2**attempt), 8.0)
+    return float(min(0.5 * (2**attempt), 8.0))
 
 
 def _elapsed_ms(started: float) -> int:

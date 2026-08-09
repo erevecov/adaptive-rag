@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from inspect import signature
 from time import monotonic
@@ -487,7 +487,7 @@ class ChatService:
         answer_start: float,
         streamed_answer_parts: list[str],
         live_steps_emitted: list[int],
-    ) -> Iterator[ChatStreamEvent]:
+    ) -> Generator[ChatStreamEvent, None, ChatRunnerOutput]:
         """Run the chat runner off the stream loop; emit heartbeats + deltas.
 
         Yields retrieval step / heartbeat / answer_delta events while work is
@@ -516,6 +516,7 @@ class ChatService:
         def _run() -> None:
             try:
                 run_kwargs: dict[str, Any] = {}
+                parameters: Mapping[str, Any]
                 try:
                     parameters = signature(self._runner.run).parameters
                 except (TypeError, ValueError):
@@ -557,12 +558,14 @@ class ChatService:
                 try:
                     item = delta_queue.get(timeout=0.1)
                 except queue.Empty:
-                    item = object()
-                if item is None:
-                    break
-                if isinstance(item, str):
-                    streamed_answer_parts.append(item)
-                    yield chat_stream_answer_delta_event(item)
+                    item = None
+                    # Timeout tick — emit heartbeat below if due.
+                else:
+                    if item is None:
+                        break
+                    if isinstance(item, str):
+                        streamed_answer_parts.append(item)
+                        yield chat_stream_answer_delta_event(item)
                 now = monotonic()
                 if now - last_heartbeat >= _STREAM_HEARTBEAT_SECONDS:
                     yield chat_stream_heartbeat_event(
