@@ -1039,9 +1039,18 @@ export function RuntimeModelCatalogPanel({
   providerModels: ProviderModel[]
   state: RequestState
 }) {
+  const selectedConnectionId = modelSyncConnectionId.trim()
   const selectedConnection = connections.find(
-    (connection) => connection.connection_id === modelSyncConnectionId.trim(),
+    (connection) => connection.connection_id === selectedConnectionId,
   )
+  // Catalog is scoped to the selected connection only — never mix rows from
+  // other connections (e.g. Token Plan chat models on a DashScope card).
+  const catalogModels =
+    selectedConnectionId.length === 0
+      ? []
+      : providerModels.filter(
+          (model) => model.connection_id === selectedConnectionId,
+        )
 
   return (
     <RuntimePanel
@@ -1113,7 +1122,7 @@ export function RuntimeModelCatalogPanel({
       <ProviderModelCatalogView
         connections={connections}
         isLoading={state === 'loading'}
-        providerModels={providerModels}
+        providerModels={catalogModels}
       />
     </RuntimePanel>
   )
