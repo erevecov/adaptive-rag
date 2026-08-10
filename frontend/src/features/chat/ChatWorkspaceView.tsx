@@ -30,6 +30,7 @@ import {
 
 import {
   AttachmentLightbox,
+  type AttachmentLightboxGallery,
   type AttachmentLightboxItem,
 } from '@/features/chat/AttachmentLightbox'
 import {
@@ -238,9 +239,23 @@ export function ChatWorkspacePanel({
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const [isComposerDragActive, setIsComposerDragActive] = useState(false)
   const composerDragDepthRef = useRef(0)
-  const [lightboxItem, setLightboxItem] = useState<AttachmentLightboxItem | null>(
+  const [lightbox, setLightbox] = useState<AttachmentLightboxGallery | null>(
     null,
   )
+
+  function openLightboxGallery(
+    items: AttachmentLightboxItem[],
+    activeId: string,
+  ) {
+    if (items.length === 0) {
+      return
+    }
+    const index = Math.max(
+      0,
+      items.findIndex((entry) => entry.id === activeId),
+    )
+    setLightbox({ items, index })
+  }
 
   useEffect(() => {
     if (question.length > 0) {
@@ -340,14 +355,15 @@ export function ChatWorkspacePanel({
                   ? undefined
                   : (text) => onEditQuestion(text, turn.id)
               }
-              onOpenAttachment={(attachment) =>
-                setLightboxItem({
-                  id: attachment.id,
-                  filename: attachment.filename,
-                  kind: attachment.kind,
-                  mime: attachment.mime,
-                })
-              }
+              onOpenAttachment={(attachment) => {
+                const gallery = (turn.attachments ?? []).map((entry) => ({
+                  id: entry.id,
+                  filename: entry.filename,
+                  kind: entry.kind,
+                  mime: entry.mime,
+                }))
+                openLightboxGallery(gallery, attachment.id)
+              }}
               onOpenSource={onOpenSource}
               onRefineKnowledgeDraft={onRefineKnowledgeDraft}
               onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
@@ -374,14 +390,15 @@ export function ChatWorkspacePanel({
             errorDetail={requestError}
             heartbeatElapsedMs={heartbeatElapsedMs}
             onEditQuestion={onEditQuestion}
-            onOpenAttachment={(attachment) =>
-              setLightboxItem({
-                id: attachment.id,
-                filename: attachment.filename,
-                kind: attachment.kind,
-                mime: attachment.mime,
-              })
-            }
+            onOpenAttachment={(attachment) => {
+              const gallery = activeResponseAttachments.map((entry) => ({
+                id: entry.id,
+                filename: entry.filename,
+                kind: entry.kind,
+                mime: entry.mime,
+              }))
+              openLightboxGallery(gallery, attachment.id)
+            }}
             onOpenSource={onOpenSource}
             onQuestionChange={onQuestionChange}
             onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -449,15 +466,21 @@ export function ChatWorkspacePanel({
                     status: item.status,
                     error: item.error,
                   }))}
-                  onOpen={(item) =>
-                    setLightboxItem({
-                      id: item.attachmentId ?? item.localId,
-                      filename: item.filename,
-                      kind: item.kind ?? 'document',
-                      mime: item.mime ?? 'application/octet-stream',
-                      previewUrl: item.previewUrl,
-                    })
-                  }
+                  onOpen={(item) => {
+                    const gallery = attachments.map((entry) => ({
+                      id: entry.attachmentId ?? entry.localId,
+                      filename: entry.file.name,
+                      kind: entry.kind ?? 'document',
+                      mime:
+                        entry.mime ??
+                        (entry.file.type || 'application/octet-stream'),
+                      previewUrl: entry.previewUrl,
+                    }))
+                    openLightboxGallery(
+                      gallery,
+                      item.attachmentId ?? item.localId,
+                    )
+                  }}
                   onRemove={onRemoveAttachment}
                 />
               </div>
@@ -648,15 +671,12 @@ export function ChatWorkspacePanel({
               (see ResponsePanel). Avoid a second under-composer callout. */}
         </form>
       </div>
-      {lightboxItem !== null ? (
+      {lightbox !== null && lightbox.items.length > 0 ? (
         <AttachmentLightbox
-          item={lightboxItem}
-          loadContent={
-            lightboxItem.previewUrl
-              ? undefined
-              : onLoadAttachmentContent
-          }
-          onClose={() => setLightboxItem(null)}
+          initialIndex={lightbox.index}
+          items={lightbox.items}
+          loadContent={onLoadAttachmentContent}
+          onClose={() => setLightbox(null)}
         />
       ) : null}
     </Panel>
