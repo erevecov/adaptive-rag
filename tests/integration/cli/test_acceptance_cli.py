@@ -115,6 +115,16 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
     assert runtime["resolved_runtime"]["sparse_embedding"]["model_id"] == (
         "fake-sparse-embedding-v1"
     )
+    # The vision slot is surfaced like its sibling slots (fake VL path).
+    assert "vision" in runtime["global_connection"]["capabilities"]
+    assert runtime["global_slots"]["vision"]["model_id"] == (
+        "retrieval-grounded-local-v1"
+    )
+    assert runtime["effective_workspace_settings"]["vision"]["source"] == "inherited"
+    assert runtime["resolved_runtime"]["vision"]["provider"] == "fake"
+    assert runtime["resolved_runtime"]["vision"]["model_id"] == (
+        "retrieval-grounded-local-v1"
+    )
     assert "hosted_qwen" in payload["opt_in_systems"]
     assert "sk-runtime-acceptance-secret" not in result.stdout
 

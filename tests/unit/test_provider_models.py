@@ -234,6 +234,25 @@ def test_fake_provider_returns_deterministic_catalog_without_http() -> None:
     assert catalog["fake-embedding-v1"].metadata == {"source": "fake"}
 
 
+def test_fake_provider_syncs_vision_capability_into_grounded_model() -> None:
+    lister = HTTPProviderModelLister(timeout_seconds=1.0)
+    connection = ProviderConnection(
+        connection_id="fake-vision",
+        provider="fake",
+        connection_type="fake",
+        base_url=None,
+        capabilities_json=["chat", "vision"],
+    )
+
+    models = lister.list_models(connection, api_key=None)
+
+    catalog = {model.model_id: model for model in models}
+    # Vision folds into the grounded local model, mirroring hosted VL entries.
+    assert set(catalog) == {"retrieval-grounded-local-v1"}
+    assert catalog["retrieval-grounded-local-v1"].capabilities == ("chat", "vision")
+    assert catalog["retrieval-grounded-local-v1"].metadata == {"source": "fake"}
+
+
 def test_list_models_rejects_unsupported_provider() -> None:
     lister = HTTPProviderModelLister(timeout_seconds=1.0)
     connection = ProviderConnection(

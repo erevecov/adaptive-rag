@@ -3562,6 +3562,89 @@ describe('App chat workspace', () => {
     expect(screen.getByText('first turn query')).toBeTruthy()
   })
 
+  test('renders attachment chips from user message metadata in the transcript', async () => {
+    const user = userEvent.setup()
+    const detailWithAttachments: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      messages: [
+        {
+          content: 'First question with files',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'message-user-1',
+          metadata: {
+            attachments: [
+              {
+                id: 'att-1',
+                filename: 'architecture-diagram.png',
+                kind: 'image',
+                mime: 'image/png',
+              },
+            ],
+          },
+          role: 'user',
+        },
+        {
+          content: 'First answer',
+          created_at: '2026-06-21T00:00:02Z',
+          message_id: 'message-assistant-1',
+          metadata: null,
+          role: 'assistant',
+        },
+        {
+          content: 'Second question with a doc',
+          created_at: '2026-06-21T00:01:00Z',
+          message_id: 'message-user-2',
+          metadata: {
+            attachments: [
+              {
+                id: 'att-2',
+                filename: 'release-notes.md',
+                kind: 'document',
+                mime: 'text/markdown',
+              },
+              {
+                id: '',
+                filename: 'broken.png',
+                kind: 'image',
+                mime: 'image/png',
+              },
+            ],
+          },
+          role: 'user',
+        },
+        {
+          content: 'Second answer',
+          created_at: '2026-06-21T00:01:02Z',
+          message_id: 'message-assistant-2',
+          metadata: null,
+          role: 'assistant',
+        },
+      ],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => detailWithAttachments),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
+    // Prior turn chip from the first user message metadata...
+    expect(
+      await within(transcript).findByText('architecture-diagram.png'),
+    ).toBeTruthy()
+    // ...and live-turn chip from the latest user message metadata.
+    expect(within(transcript).getByText('release-notes.md')).toBeTruthy()
+    // Malformed entries are dropped by the parser.
+    expect(within(transcript).queryByText('broken.png')).toBeNull()
+  })
+
   test('regenerate resends the last question without archiving priorTurns', async () => {
     const user = userEvent.setup()
     const askChatStream = vi

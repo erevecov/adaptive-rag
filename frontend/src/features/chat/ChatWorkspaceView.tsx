@@ -17,6 +17,8 @@ import {
   CircleDot,
   Copy,
   CornerDownLeft,
+  FileText,
+  ImageIcon,
   Map as MapIcon,
   Mic,
   MoreVertical,
@@ -47,7 +49,7 @@ import type {
   KnowledgeProposal,
   UserMemory,
 } from '@/lib/apiClient'
-import type { ChatStep } from '@/lib/chatSteps'
+import type { ChatMessageAttachmentRef, ChatStep } from '@/lib/chatSteps'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
@@ -94,6 +96,8 @@ type ChatKnowledgeLifecycleEvent = {
 export type ChatTranscriptTurn = {
   answer: string
   assistantMessageId?: string | null
+  /** Attachment refs echoed from the user message metadata (read-only chips). */
+  attachments?: ChatMessageAttachmentRef[]
   citations: ChatResponseBody['citations']
   id: string
   question: string
@@ -111,6 +115,8 @@ export type ViewTurnDetailsPayload = {
 
 export type ChatWorkspacePanelProps = {
   activeResponseQuestion: string | null
+  /** Attachment refs of the live/just-sent turn (chips under its bubble). */
+  activeResponseAttachments?: ChatMessageAttachmentRef[]
   appliedMemories?: UserMemory[]
   /** Local composer attachments (upload chips). */
   attachments?: LocalAttachment[]
@@ -178,6 +184,7 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 
 export function ChatWorkspacePanel({
   activeResponseQuestion,
+  activeResponseAttachments = [],
   appliedMemories = [],
   attachments = [],
   attachmentAccept,
@@ -258,6 +265,7 @@ export function ChatWorkspacePanel({
             <ResponseContent
               key={turn.id}
               appliedMemories={[]}
+              attachments={turn.attachments}
               detailsInstanceId={`turn-${turn.id}`}
               drafts={{}}
               onEditQuestion={
@@ -286,6 +294,7 @@ export function ChatWorkspacePanel({
           ))}
           <ResponsePanel
             appliedMemories={appliedMemories}
+            attachments={activeResponseAttachments}
             drafts={drafts}
             errorDetail={requestError}
             heartbeatElapsedMs={heartbeatElapsedMs}
@@ -650,6 +659,7 @@ const SAMPLE_QUESTIONS = [
 
 function ResponsePanel({
   appliedMemories,
+  attachments = [],
   drafts,
   errorDetail = null,
   heartbeatElapsedMs = null,
@@ -669,6 +679,7 @@ function ResponsePanel({
   state,
 }: {
   appliedMemories: UserMemory[]
+  attachments?: ChatMessageAttachmentRef[]
   drafts: ChatKnowledgeDraftMap
   errorDetail?: string | null
   heartbeatElapsedMs?: number | null
@@ -695,6 +706,7 @@ function ResponsePanel({
       return (
         <ResponseContent
           appliedMemories={appliedMemories}
+          attachments={attachments}
           drafts={drafts}
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -922,6 +934,7 @@ function ResponsePanel({
       {terminalBanner}
       <ResponseContent
         appliedMemories={appliedMemories}
+        attachments={attachments}
         drafts={drafts}
         onEditQuestion={
           onEditQuestion === undefined
@@ -947,6 +960,7 @@ function ResponsePanel({
 
 function ResponseContent({
   appliedMemories,
+  attachments,
   detailsInstanceId,
   drafts,
   onEditQuestion,
@@ -964,6 +978,8 @@ function ResponseContent({
   turnId,
 }: {
   appliedMemories: UserMemory[]
+  /** Attachment refs shown as read-only chips under the user bubble. */
+  attachments?: ChatMessageAttachmentRef[]
   /** Exclusive Details accordion id (only one open across the transcript). */
   detailsInstanceId?: string
   drafts: ChatKnowledgeDraftMap
@@ -1169,6 +1185,7 @@ function ResponseContent({
     >
       <QuestionPrompt
         key={question ?? 'empty-question'}
+        attachments={attachments}
         onEdit={
           onEditQuestion !== undefined &&
           !isStreaming &&
@@ -1405,10 +1422,13 @@ function ChatRoleMarker() {
 }
 
 function QuestionPrompt({
+  attachments,
   onEdit,
   question,
   sticky = true,
 }: {
+  /** Read-only attachment refs echoed from the user message metadata. */
+  attachments?: ChatMessageAttachmentRef[]
   onEdit?(): void
   question: string | null
   /** Current turn sticks to the transcript top; prior turns flow normally. */
@@ -1445,29 +1465,54 @@ function QuestionPrompt({
         data-slot="chat-question-surface"
       >
         <ChatRoleMarker />
-        {shouldCollapse ? (
-          <button
-            aria-expanded={expanded}
-            aria-label={
-              expanded ? 'Collapse full question' : 'Expand full question'
-            }
-            className={cn(
-              'min-w-0 flex-1 text-left text-[13px] leading-snug text-foreground',
-              expanded
-                ? 'whitespace-pre-wrap break-words'
-                : 'truncate whitespace-nowrap',
-            )}
-            onClick={() => setExpanded((current) => !current)}
-            title={trimmedQuestion}
-            type="button"
-          >
-            {displayQuestion}
-          </button>
-        ) : (
-          <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[13px] leading-snug text-foreground">
-            {displayQuestion}
-          </p>
-        )}
+        <div className="min-w-0 flex-1">
+          {shouldCollapse ? (
+            <button
+              aria-expanded={expanded}
+              aria-label={
+                expanded ? 'Collapse full question' : 'Expand full question'
+              }
+              className={cn(
+                'w-full text-left text-[13px] leading-snug text-foreground',
+                expanded
+                  ? 'whitespace-pre-wrap break-words'
+                  : 'truncate whitespace-nowrap',
+              )}
+              onClick={() => setExpanded((current) => !current)}
+              title={trimmedQuestion}
+              type="button"
+            >
+              {displayQuestion}
+            </button>
+          ) : (
+            <p className="whitespace-pre-wrap break-words text-[13px] leading-snug text-foreground">
+              {displayQuestion}
+            </p>
+          )}
+          {attachments !== undefined && attachments.length > 0 ? (
+            <ul
+              aria-label="Message attachments"
+              className="mt-1.5 flex flex-wrap gap-1.5"
+              data-slot="chat-turn-attachments"
+            >
+              {attachments.map((attachment) => (
+                <li
+                  className="flex max-w-[12rem] items-center gap-1.5 rounded-md border border-border/80 bg-background px-1.5 py-1 text-[11px] tracking-tight"
+                  key={attachment.id}
+                >
+                  {attachment.kind === 'image' ? (
+                    <ImageIcon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <FileText aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="min-w-0 truncate text-foreground">
+                    {attachment.filename}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
         {onEdit !== undefined ? (
           <Button
             aria-label="Edit question"

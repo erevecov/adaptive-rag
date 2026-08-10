@@ -722,6 +722,69 @@ describe('ChatWorkspacePanel', () => {
     expect(strips[2]?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
   })
 
+  test('shows read-only attachment chips under questions that carried files', () => {
+    const { view } = renderChatWorkspace({
+      activeResponseAttachments: [
+        {
+          id: 'att-live',
+          filename: 'live-photo.png',
+          kind: 'image',
+          mime: 'image/png',
+        },
+      ],
+      continuingSessionId: 'session-1',
+      priorTurns: [
+        {
+          id: 't1',
+          question: 'Earlier question with files',
+          answer: 'Earlier answer one',
+          attachments: [
+            {
+              id: 'att-1',
+              filename: 'architecture-diagram.png',
+              kind: 'image',
+              mime: 'image/png',
+            },
+            {
+              id: 'att-2',
+              filename: 'release-notes.md',
+              kind: 'document',
+              mime: 'text/markdown',
+            },
+          ],
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+        {
+          id: 't2',
+          question: 'Earlier question without files',
+          answer: 'Earlier answer two',
+          citations: [],
+          steps: [],
+          tool_calls: [],
+        },
+      ],
+      requestState: 'succeeded',
+      response,
+    })
+
+    const chipsRows = view.container.querySelectorAll(
+      '[data-slot="chat-turn-attachments"]',
+    )
+    // One row under the prior turn with files, one under the live bubble;
+    // the turn without files renders no row.
+    expect(chipsRows.length).toBe(2)
+    expect(chipsRows[0]?.textContent).toContain('architecture-diagram.png')
+    expect(chipsRows[0]?.textContent).toContain('release-notes.md')
+    expect(chipsRows[0]?.querySelectorAll('svg').length).toBe(2)
+    expect(chipsRows[1]?.textContent).toContain('live-photo.png')
+    // Read-only echo: no remove/status controls from the composer chips.
+    expect(
+      screen.queryByRole('button', { name: /Remove attachment/ }),
+    ).toBeNull()
+  })
+
   test('renders knowledge draft actions with editable text', () => {
     const draftResponse: ChatResponseBody = {
       ...response,

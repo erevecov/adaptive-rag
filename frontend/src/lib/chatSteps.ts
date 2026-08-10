@@ -21,6 +21,14 @@ export type ChatStep = {
 
 export type ChatStepEvent = ChatStep
 
+/** Attachment ref persisted on user message metadata (transcript re-render). */
+export type ChatMessageAttachmentRef = {
+  id: string
+  filename: string
+  kind: string
+  mime: string
+}
+
 export function applyChatStepEvent(
   steps: ChatStep[],
   event: ChatStepEvent,
@@ -50,6 +58,17 @@ export function parseChatStepsFromMetadata(
   return metadata.steps
     .map(parseChatStep)
     .filter((step): step is ChatStep => step !== null)
+}
+
+export function parseChatAttachmentsFromMetadata(
+  metadata: Record<string, unknown> | null,
+): ChatMessageAttachmentRef[] {
+  if (metadata === null || !Array.isArray(metadata.attachments)) {
+    return []
+  }
+  return metadata.attachments
+    .map(parseChatAttachmentRef)
+    .filter((ref): ref is ChatMessageAttachmentRef => ref !== null)
 }
 
 export function summarizeCurrentStep(steps: ChatStep[]): {
@@ -157,6 +176,20 @@ function findLastMatchingStart(steps: ChatStep[], id: string): number {
     }
   }
   return -1
+}
+
+function parseChatAttachmentRef(value: unknown): ChatMessageAttachmentRef | null {
+  if (!isRecord(value)) {
+    return null
+  }
+  const id = readRequiredString(value, 'id')
+  const filename = readRequiredString(value, 'filename')
+  const kind = readRequiredString(value, 'kind')
+  const mime = readRequiredString(value, 'mime')
+  if (id === null || filename === null || kind === null || mime === null) {
+    return null
+  }
+  return { id, filename, kind, mime }
 }
 
 function parseChatStep(value: unknown): ChatStep | null {

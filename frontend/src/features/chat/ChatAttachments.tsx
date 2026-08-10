@@ -27,6 +27,8 @@ export type LocalAttachment = {
   status: 'uploading' | 'ready' | 'failed'
   attachmentId?: string
   kind?: 'image' | 'document'
+  /** MIME resolved by the backend on upload (may differ from `file.type`). */
+  mime?: string
   error?: string
 }
 
@@ -214,6 +216,7 @@ export function useChatAttachments({
                         status: 'ready',
                         attachmentId: response.id,
                         kind: response.kind,
+                        mime: response.mime,
                       }
                     : item,
                 ),
