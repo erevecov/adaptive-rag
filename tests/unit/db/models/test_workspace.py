@@ -1,4 +1,4 @@
-"""Tests para el modelo Project.
+"""Tests para el modelo Workspace.
 
 Estos tests definen el contrato del schema de proyectos antes de que el
 modelo exista. Los defaults y constraints se validan funcionalmente sobre
@@ -10,62 +10,62 @@ from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
 def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine, tables=[Project.__table__])
+    Base.metadata.create_all(engine, tables=[Workspace.__table__])
     return create_session_factory(engine)()
 
 
-def test_project_embedding_mode_defaults_to_dense_sparse():
+def test_workspace_embedding_mode_defaults_to_dense_sparse():
     session = _make_session()
-    project = Project(name="demo")
-    session.add(project)
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
 
-    assert project.embedding_mode == "dense_sparse"
+    assert workspace.embedding_mode == "dense_sparse"
 
 
-def test_project_contextualization_enabled_defaults_to_true():
+def test_workspace_contextualization_enabled_defaults_to_true():
     session = _make_session()
-    project = Project(name="demo")
-    session.add(project)
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
 
-    assert project.retrieval_contextualization_enabled is True
+    assert workspace.retrieval_contextualization_enabled is True
 
 
-def test_project_budget_config_persists_json():
+def test_workspace_budget_config_persists_json():
     session = _make_session()
     config = {"max_tokens": 4096, "top_k": 8}
-    project = Project(name="demo", budget_config_json=config)
-    session.add(project)
+    workspace = Workspace(name="demo", budget_config_json=config)
+    session.add(workspace)
     session.commit()
     session.expunge_all()
 
     fetched = session.execute(
-        select(Project).where(Project.name == "demo")
+        select(Workspace).where(Workspace.name == "demo")
     ).scalar_one()
 
     assert fetched.budget_config_json == config
 
 
-def test_project_budget_config_column_matches_spec_name():
-    columns = {c.name for c in inspect(Project).columns}
+def test_workspace_budget_config_column_matches_spec_name():
+    columns = {c.name for c in inspect(Workspace).columns}
 
     assert "budget_config_json" in columns
     assert "budget_config" not in columns
 
 
-def test_project_embedding_mode_check_rejects_invalid_value():
+def test_workspace_embedding_mode_check_rejects_invalid_value():
     session = _make_session()
-    project = Project(name="demo", embedding_mode="invalid")
+    workspace = Workspace(name="demo", embedding_mode="invalid")
 
     try:
-        session.add(project)
+        session.add(workspace)
         session.commit()
     except IntegrityError:
         return
@@ -75,14 +75,14 @@ def test_project_embedding_mode_check_rejects_invalid_value():
     raise AssertionError("Expected IntegrityError for invalid embedding_mode")
 
 
-def test_project_has_uuid_primary_key():
-    columns = {c.name: c for c in inspect(Project).columns}
+def test_workspace_has_uuid_primary_key():
+    columns = {c.name: c for c in inspect(Workspace).columns}
 
     assert "id" in columns
     assert columns["id"].primary_key
 
 
-def test_project_name_column_is_required():
-    columns = {c.name: c for c in inspect(Project).columns}
+def test_workspace_name_column_is_required():
+    columns = {c.name: c for c in inspect(Workspace).columns}
 
     assert columns["name"].nullable is False

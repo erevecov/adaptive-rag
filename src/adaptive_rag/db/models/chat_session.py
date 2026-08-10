@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 CHAT_SESSION_STATUS_VALUES = ("running", "succeeded", "failed", "canceled")
 
@@ -25,17 +25,17 @@ class ChatSession(Base):
             "status IN ('running', 'succeeded', 'failed', 'canceled')",
             name="chat_sessions_status_check",
         ),
-        Index("ix_chat_sessions_project_created_at", "project_id", "created_at"),
+        Index("ix_chat_sessions_workspace_created_at", "workspace_id", "created_at"),
         Index(
-            "ix_chat_sessions_project_user_created_at",
-            "project_id",
+            "ix_chat_sessions_workspace_user_created_at",
+            "workspace_id",
             "user_id",
             "created_at",
         ),
-        Index("ix_chat_sessions_project_status", "project_id", "status"),
+        Index("ix_chat_sessions_workspace_status", "workspace_id", "status"),
         Index(
-            "ix_chat_sessions_project_user_archived_created_at",
-            "project_id",
+            "ix_chat_sessions_workspace_user_archived_created_at",
+            "workspace_id",
             "user_id",
             "archived_at",
             "created_at",
@@ -43,8 +43,8 @@ class ChatSession(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True

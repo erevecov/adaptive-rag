@@ -85,9 +85,9 @@ class RetrievalSearchRequestBody(BaseModel):
                 "rerank candidate_limit must be greater than or equal to limit"
             )
 
-    def to_service_request(self, project_id: UUID) -> ServiceSearchRequest:
+    def to_service_request(self, workspace_id: UUID) -> ServiceSearchRequest:
         return ServiceSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query=self.query,
             limit=self.limit,
             metadata_filter=(

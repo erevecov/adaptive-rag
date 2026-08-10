@@ -14,8 +14,8 @@ from adaptive_rag.evals.candidate_limit_matrix import (
 )
 from adaptive_rag.evals.errors import EvalConfigurationError
 from adaptive_rag.evals.fixtures import (
-    EvalRetrievalFixtureProject,
-    build_retrieval_fixture_project,
+    EvalRetrievalFixtureWorkspace,
+    build_retrieval_fixture_workspace,
 )
 from adaptive_rag.evals.hosted import (
     summarize_provider_usage,
@@ -109,7 +109,7 @@ def run_candidate_limit_ab_retrieval_eval_suite(
         suite,
         candidate_limits=candidate_limits,
     )
-    fixture_project = build_retrieval_fixture_project(
+    fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=provider,
@@ -118,7 +118,7 @@ def run_candidate_limit_ab_retrieval_eval_suite(
         session,
         suite,
         provider=provider,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     rows = tuple(
         _run_candidate_limit_row(
@@ -128,7 +128,7 @@ def run_candidate_limit_ab_retrieval_eval_suite(
             provider=provider,
             reranker=reranker,
             candidate_limit=row.candidate_limit,
-            fixture_project=fixture_project,
+            fixture_workspace=fixture_workspace,
             usage_tracker=usage_tracker if active_options.is_hosted() else None,
         )
         for row in matrix.rows
@@ -174,7 +174,7 @@ def _run_candidate_limit_row(
     provider: DenseEmbeddingProvider,
     reranker: RerankProvider,
     candidate_limit: int,
-    fixture_project: EvalRetrievalFixtureProject,
+    fixture_workspace: EvalRetrievalFixtureWorkspace,
     usage_tracker: InMemoryProviderUsageTracker | None,
 ) -> CandidateLimitABRunRow:
     usage_start = len(usage_tracker.records) if usage_tracker is not None else 0
@@ -184,7 +184,7 @@ def _run_candidate_limit_row(
         provider=provider,
         reranker=reranker,
         rerank_options=RetrievalRerankOptions(candidate_limit=candidate_limit),
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     comparison_cases = build_rerank_case_comparisons(
         suite=suite,

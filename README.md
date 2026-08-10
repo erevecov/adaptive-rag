@@ -1,14 +1,14 @@
 # Adaptive RAG
 
-Sistema RAG personal, aislado por proyecto, pensado para aprendizaje y
+Sistema RAG personal, aislado por workspace, pensado para aprendizaje y
 portafolio.
 
 ## Estado pre-v1 y criterio v1
 
 El repositorio ya tiene un flujo local-first demostrable: authoring de
-projects/sources, ingestion jobs visibles, indexing local, dense retrieval con
+workspaces/sources, ingestion jobs visibles, indexing local, dense retrieval con
 pgvector, chat con citations, rerank opt-in, evals offline, observability local
-y un paquete Docker Compose para API, worker project-scoped y Postgres/pgvector.
+y un paquete Docker Compose para API, worker workspace-scoped y Postgres/pgvector.
 
 La definicion de v1 cambio: v1 significa producto local-first single-user
 terminado, no solo release de portafolio del core. Antes de cortar v1.0 queda
@@ -49,7 +49,7 @@ uv run alembic upgrade head
 uv run adaptive-rag first-run smoke
 ```
 
-El comando imprime evidencia JSON con project/source/job ids, chunk count,
+El comando imprime evidencia JSON con workspace/source/job ids, chunk count,
 embedding count, answer y `citation_count`.
 
 ## Gate final v1
@@ -88,16 +88,26 @@ docker compose run --rm api alembic upgrade head
 curl http://localhost:8000/health
 ```
 
-El worker procesa jobs `ingest_source` por proyecto:
+El worker procesa jobs `ingest_source` por workspace:
 
 ```bash
-uv run adaptive-rag jobs run-worker --project-id <project-id> --once
+uv run adaptive-rag jobs run-worker --workspace-id <workspace-id> --once
 ```
 
-En Docker Compose el worker usa profile porque requiere `project_id`:
+En Docker Compose el worker usa profile porque requiere `workspace_id`:
 
 ```bash
-ADAPTIVE_RAG_WORKER_PROJECT_ID=<project-id> docker compose --profile worker up worker
+ADAPTIVE_RAG_WORKER_WORKSPACE_ID=<workspace-id> docker compose --profile worker up worker
+```
+
+El servicio `scheduler` (siempre en el stack, sin profile) corre maintenance
+global in-app — hoy el sync diario de `pricing_json` del model catalog Qwen:
+
+```bash
+docker compose up scheduler
+# smoke once:
+uv run adaptive-rag system run-scheduler --once --force
+uv run adaptive-rag providers sync-pricing
 ```
 
 Detalles y runbook del core M21: `docs/architecture/v1-release-package.md`.
@@ -124,14 +134,14 @@ partir de datos creados por las superficies publicas del producto.
 ## Retrieval strategies
 
 `dense_sparse` es el default de producto. Fusiona dense + sparse con
-Reciprocal Rank Fusion cuando el proyecto ya tiene sparse embeddings; para
-proyectos sin filas sparse, primero ejecuta el backfill:
+Reciprocal Rank Fusion cuando el workspace ya tiene sparse embeddings; para
+workspaces sin filas sparse, primero ejecuta el backfill:
 
 ```bash
-uv run adaptive-rag sparse backfill --project-id <project-id>
+uv run adaptive-rag sparse backfill --workspace-id <workspace-id>
 
 uv run adaptive-rag retrieval search \
-  --project-id <project-id> \
+  --workspace-id <workspace-id> \
   --query "SKU-42 installation" \
   --strategy dense_sparse
 ```
@@ -141,17 +151,17 @@ API/CLI:
 
 ```bash
 uv run adaptive-rag retrieval search \
-  --project-id <project-id> \
+  --workspace-id <workspace-id> \
   --query "SKU-42 installation" \
   --strategy dense
 
 uv run adaptive-rag retrieval search \
-  --project-id <project-id> \
+  --workspace-id <workspace-id> \
   --query "SKU-42 installation" \
   --strategy lexical
 
 uv run adaptive-rag retrieval search \
-  --project-id <project-id> \
+  --workspace-id <workspace-id> \
   --query "SKU-42 installation" \
   --strategy hybrid_rrf
 ```
@@ -195,11 +205,11 @@ code; no imprime host completo ni password.
 ## Backfill/reindex Neo4j opt-in
 
 Con `graph_store=neo4j` configurado, la proyeccion graph derivada se reconstruye
-por proyecto:
+por workspace:
 
 ```bash
-uv run adaptive-rag graph backfill <project-id> --source-watermark chunks:v1
-uv run adaptive-rag graph reindex <project-id> --source-watermark chunks:v2
+uv run adaptive-rag graph backfill <workspace-id> --source-watermark chunks:v1
+uv run adaptive-rag graph reindex <workspace-id> --source-watermark chunks:v2
 ```
 
 Los comandos imprimen un reporte JSON con status, duracion, conteos y error
@@ -210,7 +220,7 @@ code. Salen con codigo `0` solo cuando la proyeccion termina en `ready`.
 Con una proyeccion `ready`, se puede validar la ruta live de lectura graph:
 
 ```bash
-uv run adaptive-rag graph retrieval-smoke <project-id> --query "alpha question" --limit 5
+uv run adaptive-rag graph retrieval-smoke <workspace-id> --query "alpha question" --limit 5
 ```
 
 El comando imprime status, latencia, conteos, `fallback_reason`, chunk ids y

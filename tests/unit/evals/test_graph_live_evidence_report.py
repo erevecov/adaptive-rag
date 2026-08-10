@@ -13,9 +13,9 @@ from adaptive_rag.graph import GraphBackfillOperationReport, GraphRetrievalSmoke
 
 
 def test_graph_live_evidence_report_summarizes_operational_metrics() -> None:
-    project_id = UUID("00000000-0000-0000-0000-000000000123")
+    workspace_id = UUID("00000000-0000-0000-0000-000000000123")
     backfill = GraphBackfillOperationReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         operation="backfill",
         previous_status="disabled",
@@ -27,7 +27,7 @@ def test_graph_live_evidence_report_summarizes_operational_metrics() -> None:
         error_code=None,
     )
     reindex_failure = GraphBackfillOperationReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         operation="reindex",
         previous_status="stale",
@@ -39,7 +39,7 @@ def test_graph_live_evidence_report_summarizes_operational_metrics() -> None:
         error_code="graph_store_unavailable",
     )
     ready_smoke = GraphRetrievalSmokeReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         status="ready",
         requested_strategy="graph",
@@ -53,7 +53,7 @@ def test_graph_live_evidence_report_summarizes_operational_metrics() -> None:
         source_external_ids=("alpha.md",),
     )
     fallback_smoke = GraphRetrievalSmokeReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         status="fallback",
         requested_strategy="graph",

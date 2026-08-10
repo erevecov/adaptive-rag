@@ -23,6 +23,9 @@ from adaptive_rag.api.schemas.provider_connections import (
     ProviderModelSyncResponse,
     ProviderSecretStatusResponse,
     ProviderSecretUpsertRequestBody,
+    SystemTaskListResponse,
+    SystemTaskRunResponse,
+    SystemTaskStatusResponse,
 )
 from adaptive_rag.db.models import ProviderConnection, ProviderSecret
 from adaptive_rag.db.repositories import (
@@ -30,12 +33,22 @@ from adaptive_rag.db.repositories import (
     ProviderModelCatalogRepository,
 )
 from adaptive_rag.provider_models import ProviderModelInfo, ProviderModelLister
+from adaptive_rag.provider_pricing import QWEN_PROVIDER, sync_provider_model_pricing
 from adaptive_rag.provider_secrets import (
     ProviderSecretDecryptError,
     ProviderSecretKeyError,
     ProviderSecretStore,
 )
-from adaptive_rag.runtime.qwen_defaults import materialize_qwen_runtime_defaults
+from adaptive_rag.runtime.qwen_defaults import (
+    ensure_qwen_declared_capability_models,
+    materialize_qwen_runtime_defaults,
+)
+from adaptive_rag.system_scheduler import (
+    default_worker_id,
+    ensure_registered_tasks,
+    run_provider_pricing_system_task,
+    system_task_status_payload,
+)
 
 router = APIRouter(
     prefix="/runtime-settings",
@@ -129,6 +142,53 @@ def delete_provider_connection(
     return {"deleted": deleted}
 
 
+@router.get("/system-tasks", response_model=SystemTaskListResponse)
+def list_system_tasks(
+    session: Annotated[Session, Depends(get_session)],
+) -> SystemTaskListResponse:
+    """List global in-app system tasks (last run / lease). Superadmin only."""
+
+    rows = ensure_registered_tasks(session)
+    session.commit()
+    return SystemTaskListResponse(
+        items=[
+            SystemTaskStatusResponse.model_validate(system_task_status_payload(row))
+            for row in rows
+        ]
+    )
+
+
+@router.post(
+    "/system-tasks/provider-model-pricing/run",
+    response_model=SystemTaskRunResponse,
+)
+def run_provider_model_pricing_task(
+    session: Annotated[Session, Depends(get_session)],
+    force: bool = True,
+) -> SystemTaskRunResponse:
+    """Manually run daily Alibaba/Qwen catalog pricing sync. Superadmin only.
+
+    The Compose/prod ``scheduler`` service runs this on the daily interval;
+    this endpoint is for smoke and admin re-sync.
+    """
+
+    result = run_provider_pricing_system_task(
+        session,
+        worker_id=default_worker_id(prefix="api-pricing"),
+        force=force,
+        dry_run=False,
+    )
+    session.commit()
+    return SystemTaskRunResponse(
+        task_id=result.task_id,
+        status=result.status,
+        worker_id=result.worker_id,
+        force=result.force,
+        report=result.report,
+        error=result.error,
+    )
+
+
 @router.get("/models", response_model=ProviderModelListResponse)
 def list_provider_models(
     session: Annotated[Session, Depends(get_session)],
@@ -160,21 +220,41 @@ def sync_provider_models(
     connection = session.get(ProviderConnection, connection_id)
     if connection is None:
         raise _http_error(ValueError("connection not found"))
+    catalog = ProviderModelCatalogRepository(session)
+    discovered: list[ProviderModelInfo] = []
     try:
         api_key = _api_key_for_sync(connection, session, secret_store)
-        discovered = lister.list_models(connection, api_key=api_key)
-        models = [
-            ProviderModelCatalogRepository(session).upsert_model(
+        try:
+            discovered = lister.list_models(connection, api_key=api_key)
+        except ValueError as list_error:
+            # Native DashScope service base URLs (rerank/embeddings) often have
+            # no OpenAI-compatible /models listing. For Qwen we still seed
+            # declared capability models (qwen3-rerank, text-embedding-v4).
+            if connection.provider != QWEN_PROVIDER:
+                raise
+            list_message = str(list_error)
+            if not (
+                list_message.startswith("provider model")
+                or "missing data" in list_message
+            ):
+                raise
+        for model in discovered:
+            catalog.upsert_model(
                 connection_id=connection.connection_id,
                 model_id=model.model_id,
                 capabilities=_catalog_capabilities(connection, model),
                 metadata=model.metadata,
                 pricing=model.pricing,
             )
-            for model in discovered
-        ]
-        if connection.provider == "qwen":
+        if connection.provider == QWEN_PROVIDER:
+            # Seed qwen3-rerank / text-embedding-v4 when declared on the
+            # connection but missing from OpenAI-compatible /models listings.
+            ensure_qwen_declared_capability_models(session, connection)
             materialize_qwen_runtime_defaults(session)
+            # Provider /models rarely returns list prices; fill pricing_json from
+            # the published Alibaba catalog so Model Catalog UI is not empty.
+            sync_provider_model_pricing(session, provider=QWEN_PROVIDER, dry_run=False)
+        models = catalog.list_models(connection_id=connection.connection_id)
     except (ProviderSecretDecryptError, ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
@@ -295,14 +375,24 @@ def _catalog_capabilities(
     connection: ProviderConnection,
     model: ProviderModelInfo,
 ) -> list[str]:
-    if not model.capabilities:
-        if connection.provider == "qwen":
-            return []
-        return list(connection.capabilities_json)
+    """Intersect model capabilities with the connection's declared slots.
+
+    When the provider listing omits capabilities (common for OpenAI-compatible
+    ``/models``), infer them for Qwen/Model Studio ids so Global Defaults can
+    offer chat/embedding/rerank options after sync.
+    """
+
+    capabilities = list(model.capabilities)
+    if not capabilities and connection.provider == "qwen":
+        from adaptive_rag.runtime.qwen_defaults import infer_qwen_model_capabilities
+
+        capabilities = list(infer_qwen_model_capabilities(model.model_id))
+    if not capabilities:
+        return []
     connection_capabilities = set(connection.capabilities_json)
     return [
         capability
-        for capability in model.capabilities
+        for capability in capabilities
         if capability in connection_capabilities
     ]
 

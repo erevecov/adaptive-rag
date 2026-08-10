@@ -28,6 +28,9 @@ from adaptive_rag.runtime.factories import (
 from adaptive_rag.runtime.factories import (
     get_sparse_embedding_provider as _get_sparse_embedding_provider,
 )
+from adaptive_rag.runtime.factories import (
+    get_vision_chat_runner as _get_vision_chat_runner,
+)
 from adaptive_rag.runtime.resolution import (
     ProviderConfigurationError,
     ResolvedRuntimeSlot,
@@ -41,20 +44,21 @@ __all__ = [
     "get_dense_embedding_provider",
     "get_rerank_provider",
     "get_sparse_embedding_provider",
+    "get_vision_chat_runner",
 ]
 
 
 def get_dense_embedding_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
     return _get_dense_embedding_provider(
         settings or get_settings(),
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
         usage_tracker=usage_tracker,
@@ -64,14 +68,14 @@ def get_dense_embedding_provider(
 def get_sparse_embedding_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> SparseEmbeddingProvider:
     return _get_sparse_embedding_provider(
         settings or get_settings(),
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
         usage_tracker=usage_tracker,
@@ -81,14 +85,31 @@ def get_sparse_embedding_provider(
 def get_chat_runner(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> ChatRunner:
     return _get_chat_runner(
         settings or get_settings(),
-        project_id=project_id,
+        workspace_id=workspace_id,
+        secret_store=secret_store,
+        session=session,
+        usage_tracker=usage_tracker,
+    )
+
+
+def get_vision_chat_runner(
+    settings: Settings | None = None,
+    *,
+    workspace_id: UUID | None = None,
+    secret_store: ProviderSecretStore | None = None,
+    session: Session | None = None,
+    usage_tracker: ProviderUsageTracker | None = None,
+) -> ChatRunner | None:
+    return _get_vision_chat_runner(
+        settings or get_settings(),
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
         usage_tracker=usage_tracker,
@@ -98,14 +119,14 @@ def get_chat_runner(
 def get_rerank_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> RerankProvider:
     return _get_rerank_provider(
         settings or get_settings(),
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
         usage_tracker=usage_tracker,
@@ -115,13 +136,13 @@ def get_rerank_provider(
 def get_contextualizer(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
 ) -> Contextualizer:
     return _get_contextualizer(
         settings or get_settings(),
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )

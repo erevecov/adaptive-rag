@@ -18,7 +18,7 @@ router = APIRouter(tags=["user-memory"])
 
 class MemoryProposeBody(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
-    project_id: UUID | None = None
+    workspace_id: UUID | None = None
 
 
 class MemoryUpdateBody(BaseModel):
@@ -38,7 +38,7 @@ def propose_my_memory(
             session,
             user_id=current.user_id,
             content=body.content,
-            project_id=body.project_id,
+            workspace_id=body.workspace_id,
             is_superadmin=current.is_superadmin,
         )
     except user_memory.UserMemoryError as exc:
@@ -51,7 +51,7 @@ def propose_my_memory(
 def list_my_memories(
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     status: str | None = None,
 ) -> dict[str, Any]:
     if current.user_id is None:
@@ -60,7 +60,7 @@ def list_my_memories(
         items = user_memory.list_memories(
             session,
             user_id=current.user_id,
-            project_id=project_id,
+            workspace_id=workspace_id,
             status=status,
         )
     except user_memory.UserMemoryError as exc:

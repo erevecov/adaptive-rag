@@ -61,10 +61,10 @@ describe('control primitives', () => {
   })
 
   test('Input grows to 44px touch height at ≤680px', () => {
-    render(<Input aria-label="Project id" />)
+    render(<Input aria-label="Workspace id" />)
 
     expect(
-      classTokens(screen.getByRole('textbox', { name: 'Project id' })),
+      classTokens(screen.getByRole('textbox', { name: 'Workspace id' })),
     ).toContain('max-[680px]:min-h-11')
   })
 

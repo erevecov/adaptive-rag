@@ -25,7 +25,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("backfill")
 def backfill(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     document_version_id: Annotated[
         UUID | None,
         typer.Option("--document-version-id"),
@@ -35,12 +35,14 @@ def backfill(
         version_ids = (
             [document_version_id]
             if document_version_id is not None
-            else _list_project_document_version_ids(session, project_id=project_id)
+            else _list_workspace_document_version_ids(
+                session, workspace_id=workspace_id
+            )
         )
         pipeline = SparseEmbeddingPipeline(
             session,
             provider=_get_sparse_embedding_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
             ),
         )
@@ -49,7 +51,7 @@ def backfill(
         try:
             for version_id in version_ids:
                 result = pipeline.embed_document_version(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     document_version_id=version_id,
                 )
                 embedded_count += result.embedded_chunk_count
@@ -61,7 +63,7 @@ def backfill(
     typer.echo(
         json.dumps(
             {
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_version_count": len(version_ids),
                 "embedded_chunk_count": embedded_count,
                 "reused_chunk_count": reused_count,
@@ -70,15 +72,15 @@ def backfill(
     )
 
 
-def _list_project_document_version_ids(
+def _list_workspace_document_version_ids(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> list[UUID]:
     statement = (
         select(DocumentVersion.id)
         .join(Document, DocumentVersion.document_id == Document.id)
-        .where(Document.project_id == project_id)
+        .where(Document.workspace_id == workspace_id)
         .order_by(
             Document.created_at,
             DocumentVersion.version_number,
@@ -90,13 +92,13 @@ def _list_project_document_version_ids(
 
 def _get_sparse_embedding_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
 ) -> SparseEmbeddingProvider:
     parameters = signature(get_cli_sparse_embedding_provider).parameters
     kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
+    if "workspace_id" in parameters:
+        kwargs["workspace_id"] = workspace_id
     if "session" in parameters:
         kwargs["session"] = session
     return cast(

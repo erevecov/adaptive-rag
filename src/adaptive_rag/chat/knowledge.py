@@ -14,14 +14,14 @@ from adaptive_rag.db.repositories import KnowledgeProposalRepository
 class SqlAlchemyKnowledgeProposalSubmitter:
     """Create and lifecycle durable chat-sourced knowledge proposals."""
 
-    def __init__(self, *, session: Session, project_role: str) -> None:
+    def __init__(self, *, session: Session, workspace_role: str) -> None:
         self._session = session
-        self._project_role = project_role
+        self._workspace_role = workspace_role
 
     def commit(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         submitted_by_user_id: UUID,
         knowledge_text: str,
         scope: str,
@@ -38,14 +38,14 @@ class SqlAlchemyKnowledgeProposalSubmitter:
             except ValueError:
                 existing_id = None
             if existing_id is not None:
-                existing = repo.get(project_id=project_id, proposal_id=existing_id)
+                existing = repo.get(workspace_id=workspace_id, proposal_id=existing_id)
                 if existing is not None and existing.status == "pending":
                     return self._to_result(existing, scope=scope)
 
         # Soft idempotency: same session + same text → reuse pending row.
         if origin_session_id is not None:
-            for proposal in repo.list_by_project(
-                project_id=project_id, status="pending"
+            for proposal in repo.list_by_workspace(
+                workspace_id=workspace_id, status="pending"
             ):
                 if (
                     proposal.origin_session_id == origin_session_id
@@ -55,7 +55,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
                     return self._to_result(proposal, scope=scope)
 
         proposal = repo.create(
-            project_id=project_id,
+            workspace_id=workspace_id,
             submitted_by_user_id=submitted_by_user_id,
             proposed_text=text,
             origin_session_id=origin_session_id,
@@ -66,7 +66,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
     def refine(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         draft_id: str,
         knowledge_text: str,
         scope: str,
@@ -74,7 +74,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
         repo = KnowledgeProposalRepository(self._session)
         proposal_id = _parse_uuid(draft_id, label="draft_id")
         proposal = repo.refine(
-            project_id=project_id,
+            workspace_id=workspace_id,
             proposal_id=proposal_id,
             refined_text=knowledge_text.strip(),
         )
@@ -83,7 +83,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
     def cancel(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         draft_id: str,
         reviewed_by_user_id: UUID,
         scope: str = "message",
@@ -91,7 +91,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
         repo = KnowledgeProposalRepository(self._session)
         proposal_id = _parse_uuid(draft_id, label="draft_id")
         proposal = repo.reject(
-            project_id=project_id,
+            workspace_id=workspace_id,
             proposal_id=proposal_id,
             reviewed_by_user_id=reviewed_by_user_id,
             reason="Canceled from chat",
@@ -119,7 +119,7 @@ class SqlAlchemyKnowledgeProposalSubmitter:
             proposed_text=str(proposed_text),
             review_action=(
                 "approve"
-                if role_meets(self._project_role, "contributor")
+                if role_meets(self._workspace_role, "contributor")
                 else "request_approval"
             ),
             scope=scope,

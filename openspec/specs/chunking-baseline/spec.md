@@ -13,7 +13,7 @@ El sistema MUST convertir `document_versions.normalized_text` en filas
 
 #### Scenario: Document version Markdown crea chunks persistidos
 
-- **WHEN** se chunkea una `document_version` de un proyecto
+- **WHEN** se chunkea una `document_version` de un workspace
 - **THEN** cada chunk guarda `char_start` y `char_end` relativos a
   `document_versions.normalized_text`
 - **AND** los chunks tienen `ordinal` consecutivo desde cero
@@ -58,16 +58,16 @@ la configuracion lo active.
 
 ### Requirement: Chunking baseline mantiene aislamiento e idempotency
 
-El sistema MUST exigir `project_id` al persistir chunks y MUST reutilizar chunks
+El sistema MUST exigir `workspace_id` al persistir chunks y MUST reutilizar chunks
 existentes cuando una document version ya fue chunkeada con la misma
 configuracion.
 
-#### Scenario: Document version de otro proyecto se rechaza
+#### Scenario: Document version de otro workspace se rechaza
 
-- **WHEN** se solicita chunking con un `project_id` que no contiene la
+- **WHEN** se solicita chunking con un `workspace_id` que no contiene la
   `document_version`
 - **THEN** el sistema no crea chunks
-- **AND** devuelve un error estable de pertenencia de proyecto
+- **AND** devuelve un error estable de pertenencia de workspace
 
 #### Scenario: Segunda corrida con misma configuracion reutiliza chunks
 

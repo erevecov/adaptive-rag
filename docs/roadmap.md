@@ -36,7 +36,7 @@
 - Post-M35 Runtime settings UX/error-state hardening: completo.
 - Post-M35 Final release gate/audit closeout: completo.
 - M36 Functional chat workspace: completo.
-- M37 Project RBAC/chat knowledge: completo.
+- M37 Workspace RBAC/chat knowledge: completo.
 - M38 Chat retrieval/rerank settings: completo.
 - Post-M38 Runtime navigation clarity: completo.
 - M39 Chat stepper live events: completo.
@@ -83,8 +83,8 @@ Estado: completo.
 
 Secuencia recomendada:
 
-1. `m2-domain-schema`: completo. Modelos SQLAlchemy y migracion Alembic para schema de proyectos, documentos y chunks.
-2. `m2-repositories`: completo. Capa de repositories con aislamiento por proyecto y filtros de metadata.
+1. `m2-domain-schema`: completo. Modelos SQLAlchemy y migracion Alembic para schema de workspaces, documentos y chunks.
+2. `m2-repositories`: completo. Capa de repositories con aislamiento por workspace y filtros de metadata.
 3. `m2-job-queue`: completo. Jobs, job events, retries, estados blocked/dead-letter y leasing de workers.
 4. `m2-url-fetch-policy`: completo. Proteccion contra SSRF, DNS rebinding, redirects, content type y tamano de respuesta.
 5. `m2-quality-gate`: completo. Validacion del milestone, reconciliacion de docs y handoff hacia M3.
@@ -127,7 +127,7 @@ Secuencia entregada:
    embedding con provider inyectado/fake, valida filtros y llama a
    `DenseRetriever`.
 3. `m4-retrieval-api-endpoint`: completo en branch de implementacion. Agrega
-   `POST /projects/{project_id}/retrieval/search` con request/response JSON,
+   `POST /workspaces/{workspace_id}/retrieval/search` con request/response JSON,
    metadata filters, dependency overrides en tests y payloads reutilizables por
    la CLI.
 4. `m4-retrieval-cli-command`: completo en branch de implementacion. Agrega
@@ -160,7 +160,7 @@ Secuencia entregada:
 2. `m5-chat-service-contract`: completo. Implementa `adaptive_rag.chat` con
    servicio compartido, runner/modelo inyectado, tool de retrieval tipada,
    payloads reutilizables y fakes deterministas.
-3. `m5-chat-api-endpoint`: completo. Agrega `POST /projects/{project_id}/chat`
+3. `m5-chat-api-endpoint`: completo. Agrega `POST /workspaces/{workspace_id}/chat`
    como adaptador delgado sobre el servicio conversacional, con schemas HTTP,
    dependency overrides y tests deterministas.
 4. `m5-chat-cli-command`: completo. Agrega `adaptive-rag chat ask` como
@@ -489,7 +489,7 @@ Secuencia recomendada:
    Alembic y modelos SQLAlchemy para sesiones, mensajes, tool calls, retrieval
    runs, retrieved chunks y provider usage.
 3. `m13-audit-repositories`: completo en branch de implementacion. Agrega
-   repositories con aislamiento por proyecto, transiciones de status y
+   repositories con aislamiento por workspace, transiciones de status y
    saneamiento de metadata sin secretos.
 4. `m13-chat-service-audit-wiring`: completo en branch de implementacion.
    Integra la escritura del audit trail en `ChatService`, preservando
@@ -514,7 +514,7 @@ productivo ni agrega algoritmos nuevos.
 Continuacion: M13 deja audit trail durable pero todavia no expone una
 superficie publica para consultar sesiones o historial. La siguiente opcion
 recomendada es abrir un change M14 para lectura/historial de chat aislado por
-proyecto, antes de streaming SSE o dashboards, porque reduce el riesgo de esas
+workspace, antes de streaming SSE o dashboards, porque reduce el riesgo de esas
 superficies al fijar primero el contrato de consulta.
 
 ## M14 Chat history/read surface
@@ -536,16 +536,16 @@ Secuencia recomendada:
    detalle de sesiones de chat sobre el audit trail durable de M13.
 2. `m14-chat-history-repository-read-models`: completo. Agrega read models y
    queries compartidas para resumen/detalle de sesiones, con aislamiento por
-   proyecto, filtros de status, limite acotado y orden deterministico.
+   workspace, filtros de status, limite acotado y orden deterministico.
 3. `m14-chat-history-api`: completo. Agrega
-   `GET /projects/{project_id}/chat/sessions` y
-   `GET /projects/{project_id}/chat/sessions/{session_id}` con schemas HTTP
+   `GET /workspaces/{workspace_id}/chat/sessions` y
+   `GET /workspaces/{workspace_id}/chat/sessions/{session_id}` con schemas HTTP
    estables, validacion de opciones invalidas y respuesta 404 para sesiones
-   inexistentes o cross-project.
+   inexistentes o cross-workspace.
 4. `m14-chat-history-cli`: completo. Agrega
    `adaptive-rag chat sessions list` y `adaptive-rag chat sessions show` con
    salida JSON estable equivalente a la API, con filtros/cursor de listado,
-   detalle auditable y error estable para sesiones inexistentes o cross-project.
+   detalle auditable y error estable para sesiones inexistentes o cross-workspace.
 5. `m14-quality-gate`: completo. Valida tests, lint, types, specs y smokes CLI
    relevantes; archiva M14 y publica la spec canonica `chat-history`.
 
@@ -586,7 +586,7 @@ Secuencia recomendada:
    para enviar preguntas, mostrar answer, `session_id`, citations y tool calls
    minimas, y refrescar sesiones recientes despues de respuestas exitosas.
 5. `m15-chat-history-ui`: completo. Agrega refresh manual de sesiones por
-   proyecto, seleccion de sesion y detalle read-only de mensajes, tool calls,
+   workspace, seleccion de sesion y detalle read-only de mensajes, tool calls,
    retrieval runs, citations y provider usage.
 6. `m15-quality-gate`: completo. Valida frontend, Python y OpenSpec; archiva
    el change M15 y publica la spec canonica `chat-frontend`.
@@ -626,7 +626,7 @@ Secuencia recomendada:
    compartiendo validacion, audit trail, retrieval tool, citations y provider
    usage con el flujo no streaming.
 4. `m16-chat-streaming-api`: completo. Agrega
-   `POST /projects/{project_id}/chat/stream` con `text/event-stream`,
+   `POST /workspaces/{workspace_id}/chat/stream` con `text/event-stream`,
    validacion 422 antes de abrir stream, eventos SSE serializados y cierre
    estable con `final` o `error`.
 5. `m16-chat-streaming-frontend-client`: completo. Agrega cliente `fetch`
@@ -669,10 +669,10 @@ Secuencia recomendada:
    existente, con API/CLI read-only y sin dashboard avanzado.
 2. `m17-observability-read-models`: completo. Agrega read models y repository
    methods para resumir sesiones, provider usage, latencias y errores por
-   proyecto, con filtros de status/fecha y calculos portables.
+   workspace, con filtros de status/fecha y calculos portables.
 3. `m17-observability-api`: completo. Agrega
-   `GET /projects/{project_id}/chat/observability/summary` con JSON estable,
-   validacion de filtros e aislamiento por proyecto.
+   `GET /workspaces/{workspace_id}/chat/observability/summary` con JSON estable,
+   validacion de filtros e aislamiento por workspace.
 4. `m17-observability-cli`: completo. Agrega
    `adaptive-rag chat observability summary` con salida JSON equivalente a la
    API y filtros equivalentes.
@@ -713,7 +713,7 @@ Condiciones del milestone:
   Neo4j Desktop, y una ruta managed/externa equivalente, como Neo4j Aura.
 - El grafo debe tratarse como indice derivado y reconstruible desde Postgres,
   no como unica fuente de verdad.
-- La primera version debe preservar aislamiento por proyecto, filtros de
+- La primera version debe preservar aislamiento por workspace, filtros de
   metadata, citations y auditoria de retrieval.
 - La integracion no debe depender de providers hosted: debe funcionar con el
   runtime Qwen/local ya definido o con fakes deterministas en tests.
@@ -728,18 +728,18 @@ Secuencia recomendada:
    backend live opt-in; mantiene Memgraph y FalkorDB en `hold`, Kuzu en
    `no-go` para el backend routeable de M18 y no-op como fallback de evals.
    Tambien fija que Postgres conserve la fuente canonica y readiness/backfill
-   por proyecto para reconstruir Neo4j si estuvo disabled.
+   por workspace para reconstruir Neo4j si estuvo disabled.
 3. `m18-graph-store-contract`: completo. Define `graph_store=disabled|neo4j`,
    contrato `GraphStore`, health check, errores estables, fakes offline y
-   `graph_projections` en Postgres para readiness/backfill por proyecto, sin
+   `graph_projections` en Postgres para readiness/backfill por workspace, sin
    adapter live ni cambios de retrieval.
 4. `m18-neo4j-adapter-and-health`: completo. Agrega dependencia `neo4j>=6.0`,
    adapter `Neo4jGraphStore`, factory `get_graph_store(...)`, validacion de
    URI/auth y health check con `verify_connectivity()` y errores estables sin
    exponer secretos.
 5. `m18-neo4j-indexer`: completo. Materializa nodos/relaciones derivados
-   desde proyectos, sources, documents, document versions, chunks y metadata con
-   backfill idempotente por `project_id`.
+   desde workspaces, sources, documents, document versions, chunks y metadata con
+   backfill idempotente por `workspace_id`.
 6. `m18-graph-retrieval-route`: completo. Agrega `strategy=dense|graph` en
    retrieval API/CLI, consulta graph DB solo con proyeccion `ready`, rehidrata
    citations desde Postgres y vuelve a dense con `fallback_reason` estable
@@ -772,7 +772,7 @@ Condiciones del milestone:
 - La ruta local debe ser verificable con Docker o Neo4j Desktop.
 - La ruta managed debe aceptar URI cifrada `neo4j+s://...` y secretos por
   settings/env, sin imprimir credenciales.
-- Backfill/reindex debe ser idempotente, acotado por `project_id` y gobernado
+- Backfill/reindex debe ser idempotente, acotado por `workspace_id` y gobernado
   por estados de readiness en Postgres.
 - Retrieval graph live solo puede correr con proyeccion `ready` y debe conservar
   fallback dense con razon estable.
@@ -790,7 +790,7 @@ Secuencia recomendada:
    agrega `adaptive-rag graph neo4j-smoke` como smoke opt-in de
    settings/connectivity con errores estables y salida JSON sin secretos.
 3. `m19-graph-backfill-reindex-ops`: completo. Agrega comandos operativos para
-   backfill/reindex por proyecto, con transiciones `pending_backfill`,
+   backfill/reindex por workspace, con transiciones `pending_backfill`,
    `indexing`, `ready` y `failed`, reporte JSON de duracion/error code y
    conteos del payload materializado.
 4. `m19-graph-live-retrieval-smoke`: completo. Agrega
@@ -811,7 +811,7 @@ Neo4j live configurado para demostrar latencia/costo operacional concluyente.
 `dense` sigue como default; Neo4j live sigue opt-in.
 
 Continuacion: graph rollout queda pausado hasta contar con Neo4j live y un
-proyecto/dataset controlado para producir evidencia real. Sin ese entorno, el
+workspace/dataset controlado para producir evidencia real. Sin ese entorno, el
 siguiente bloque seleccionado es M20 Chat observability dashboard sobre la
 superficie M17 ya estable.
 
@@ -832,8 +832,8 @@ Objetivo:
 Condiciones del milestone:
 
 - El dashboard debe empezar consumiendo
-  `GET /projects/{project_id}/chat/observability/summary`.
-- Puede reutilizar `GET /projects/{project_id}/chat/sessions` para sesiones
+  `GET /workspaces/{workspace_id}/chat/observability/summary`.
+- Puede reutilizar `GET /workspaces/{workspace_id}/chat/sessions` para sesiones
   recientes.
 - Las tarjetas y tablas deben etiquetar metricas segun la derivacion real del
   contrato; no se debe inventar p95 global desde p95 por grupos.
@@ -900,7 +900,7 @@ Resultado:
 1. `m21-v1-scope-reconciliation`: completo. `v1-design.md` separa `in_v1` y
    `defer_post_v1`, con OpenSpec como autoridad.
 2. `m21-release-package-local-stack`: completo. `Dockerfile`, `compose.yaml`,
-   `.env.example` y runbook local cubren API, worker project-scoped y
+   `.env.example` y runbook local cubren API, worker workspace-scoped y
    Postgres/pgvector.
 3. `m21-portfolio-demo-and-report`: completo. README y runbook documentan demo
    offline reproducible con fixtures de evals y providers `fake`.
@@ -938,7 +938,7 @@ Condiciones del milestone:
   v1.0.
 - El porcentaje de v1 debe recalcularse contra backlog de producto terminado,
   no contra la checklist de release package M21.
-- El producto v1 debe permitir crear proyecto, agregar sources, ejecutar
+- El producto v1 debe permitir crear workspace, agregar sources, ejecutar
   ingestion, ver estado de jobs, consultar con citations y operar errores desde
   superficies publicas documentadas.
 - La demo final debe usar datos propios o sample inputs creados por las
@@ -952,7 +952,7 @@ Secuencia recomendada:
 
 1. `m22-v1-product-scope-reset`: completo. Corrige docs y OpenSpec para
    bloquear una release v1 prematura.
-2. `m23-product-authoring-surface`: completo. Crear/listar/ver projects y
+2. `m23-product-authoring-surface`: completo. Crear/listar/ver workspaces y
    sources desde API, CLI y frontend.
 3. `m24-ingestion-ops-surface`: completo. Ejecutar ingestion end-to-end y
    exponer job state, failure reasons y retry/dead-letter.
@@ -980,13 +980,13 @@ Spec canonica:
 
 Objetivo:
 
-- Permitir que un usuario local cree/lista/vea projects y sources desde
+- Permitir que un usuario local cree/lista/vea workspaces y sources desde
   superficies publicas, sin SQL manual ni fixtures internas.
 
 Condiciones del milestone:
 
-- La surface publica debe cubrir API, CLI y frontend para projects y sources.
-- Crear project usa `embedding_mode = dense_sparse` como default publico;
+- La surface publica debe cubrir API, CLI y frontend para workspaces y sources.
+- Crear workspace usa `embedding_mode = dense_sparse` como default publico;
   `dense` sigue disponible explicitamente para baseline.
 - Crear source soporta `markdown`, `text`, `txt` y `url`, que son los tipos que
   el pipeline de ingestion ya entiende.
@@ -1001,10 +1001,10 @@ Secuencia recomendada:
 1. `m23-product-authoring-surface`: completo. Crea el plan OpenSpec y documenta
    los contratos.
 2. `m23-authoring-api-contract`: completo. Agrega schemas/routes API y ajustes
-   minimos de repositories para crear/listar/ver projects y sources.
-3. `m23-authoring-cli`: completo. Agrega comandos JSON de projects/sources.
+   minimos de repositories para crear/listar/ver workspaces y sources.
+3. `m23-authoring-cli`: completo. Agrega comandos JSON de workspaces/sources.
 4. `m23-authoring-frontend`: completo. Agrega cliente y UI compacta de
-   projects/sources.
+   workspaces/sources.
 5. `m23-quality-gate`: completo. Valida frontend/backend/OpenSpec y archiva
    M23.
 
@@ -1081,7 +1081,7 @@ Objetivo:
 Condiciones del milestone:
 
 - El runbook debe cubrir dependencias, Postgres, migraciones y smoke default.
-- El comando `adaptive-rag first-run smoke` debe crear project/source, ejecutar
+- El comando `adaptive-rag first-run smoke` debe crear workspace/source, ejecutar
   ingestion, chunking, embeddings fake y chat con citations.
 - La salida debe ser JSON machine-readable con ids, job status, conteos,
   answer, `citation_count` y siguientes comandos.
@@ -1124,7 +1124,7 @@ Objetivo:
 Condiciones del milestone:
 
 - El comando `adaptive-rag v1 quality-gate` debe ejecutar el flujo publico de
-  project/source, ingestion, chunking, embeddings fake y chat con citations.
+  workspace/source, ingestion, chunking, embeddings fake y chat con citations.
 - La salida debe incluir `release_decision`, criterios de release, evidencia
   `first_run`, job state, conteos de indexing, citation count, deferrals y
   nota de accion manual.
@@ -1203,7 +1203,7 @@ Objetivo:
 Condiciones del milestone:
 
 - El contextualizer default debe ser local y determinista.
-- La pipeline debe ser project-scoped e idempotente.
+- La pipeline debe ser workspace-scoped e idempotente.
 - `first-run` debe reportar `contextualized_chunk_count` y
   `reused_contextualized_chunk_count`.
 - Citations deben seguir saliendo del texto normalizado original, no del
@@ -1347,7 +1347,7 @@ Change archivado:
 Objetivo:
 
 - Pulir el frontend existente como producto terminado usando las superficies
-  backend ya estables: project authoring, ingestion ops, first-run onboarding,
+  backend ya estables: workspace authoring, ingestion ops, first-run onboarding,
   retrieval dense, chat, streaming, historial y observability basica.
 
 Condiciones del milestone:
@@ -1366,7 +1366,7 @@ Secuencia recomendada:
    flujos, estados vacios/carga/error, politica de retrieval default y
    criterios de QA visual.
 2. `m32-product-shell-and-authoring`: completo en branch de implementacion.
-   Agrega contexto de proyecto compartido, mantiene el default visible de
+   Agrega contexto de workspace compartido, mantiene el default visible de
    retrieval, explicita source -> ingestion y muestra metadata operativa de
    jobs/run-next.
 3. `m32-chat-retrieval-experience`: completo en branch de implementacion.
@@ -1394,13 +1394,13 @@ Objetivo:
 - Convertir la configuracion de providers de un contrato principalmente
   `.env`-driven a runtime settings operables: provider connections globales,
   secrets cifrados, slots fijos, pool de chat con un default y overrides por
-  proyecto.
+  workspace.
 
 Condiciones del milestone:
 
 - Provider connections y secrets son globales del workspace local, no por
-  proyecto.
-- Proyectos pueden overridear slots o pool/default de chat, pero no guardan
+  workspace.
+- Workspaces pueden overridear slots o pool/default de chat, pero no guardan
   secrets.
 - Hosted providers, local endpoints y fakes pueden coexistir y usarse en slots
   distintos al mismo tiempo.
@@ -1420,13 +1420,13 @@ Secuencia recomendada:
    globales y secrets cifrados.
 3. `m33-global-slot-defaults`: completo. Agrega enum de slots, defaults
    globales, pool de chat y APIs globales.
-4. `m33-project-runtime-overrides`: completo. Agrega overrides por proyecto y
-   resolucion inherited/overridden sin secrets project-scoped.
+4. `m33-workspace-runtime-overrides`: completo. Agrega overrides por workspace y
+   resolucion inherited/overridden sin secrets workspace-scoped.
 5. `m33-runtime-resolution-wiring`: completo. Conecta factories efectivas para
    chat, dense embedding, sparse embedding, rerank y contextualization a
    runtime settings persistidos, con `.env` como fallback.
 6. `m33-runtime-settings-ui`: completo. Agrega UI global Runtime settings y
-   controles de overrides por proyecto sin exponer secrets.
+   controles de overrides por workspace sin exponer secrets.
 7. `m33-quality-gate`: completo. Valida backend/frontend/OpenSpec y archiva
    M33.
 
@@ -1451,7 +1451,7 @@ Condiciones del milestone:
 
 - Crear provider connections desde la API/UI genera IDs estables en backend.
 - El frontend nunca requiere memorizar connection IDs ni model IDs para
-  configurar slots globales, pool/default de chat u overrides por proyecto.
+  configurar slots globales, pool/default de chat u overrides por workspace.
 - Qwen/DashScope y endpoints locales compatibles pueden sincronizar modelos
   desde `/models`; fake mantiene catalogo determinista local.
 - El catalogo guarda `model_id`, capabilities, metadata y pricing solo si el
@@ -1480,7 +1480,7 @@ Change archivado:
 Objetivo:
 
 - Validar que runtime settings persistidos, model catalog, slots globales y
-  overrides por proyecto funcionan dentro del flujo local completo de authoring,
+  overrides por workspace funcionan dentro del flujo local completo de authoring,
   ingestion, indexing y chat citado.
 
 Condiciones del milestone:
@@ -1488,7 +1488,7 @@ Condiciones del milestone:
 - El gate default debe usar providers `fake` y no depender de Qwen live,
   endpoints locales ni secrets.
 - El smoke debe configurar provider connections y model catalog desde la DB.
-- El smoke debe resolver embeddings/chat desde settings efectivas por proyecto.
+- El smoke debe resolver embeddings/chat desde settings efectivas por workspace.
 - El reporte debe ser JSON machine-readable y no exponer secrets.
 - Qwen/local live, rerank hosted y graph siguen opt-in fuera del gate default.
 
@@ -1514,12 +1514,12 @@ PR:
 Objetivo:
 
 - Evitar que Runtime settings guarde global slots, chat default u overrides por
-  proyecto cuando la provider connection elegida todavia no tiene modelos
+  workspace cuando la provider connection elegida todavia no tiene modelos
   compatibles sincronizados.
 
 Entregado:
 
-- Guard de UI para global slots, chat default y project overrides sin modelo
+- Guard de UI para global slots, chat default y workspace overrides sin modelo
   compatible sincronizado.
 - Hint explicito de sync de modelos antes de guardar, en vez de caer en una
   validacion generica de missing model.
@@ -1605,53 +1605,53 @@ Secuencia entregada:
 Continuacion: M37 completo el cambio de arquitectura multi-user y conocimiento
 desde chat sobre el workspace funcional de M36.
 
-## M37 Project RBAC/chat knowledge
+## M37 Workspace RBAC/chat knowledge
 
 Estado: completo.
 
 Change archivado:
 
-- `openspec/changes/archive/2026-06-28-m37-project-rbac-chat-knowledge/`
+- `openspec/changes/archive/2026-06-28-m37-workspace-rbac-chat-knowledge/`
 
 Objetivo:
 
-- Convertir proyectos en espacios compartidos con usuarios, membresias por
-  proyecto, sesiones de chat privadas por usuario y flujo de conocimiento
+- Convertir workspaces en espacios compartidos con usuarios, membresias por
+  workspace, sesiones de chat privadas por usuario y flujo de conocimiento
   propuesto desde chat. Todos los usuarios autenticados pueden ver nombres de
-  proyectos, pero solo `superadmin` o miembros asignados pueden acceder.
+  workspaces, pero solo `superadmin` o miembros asignados pueden acceder.
 
 Condiciones del milestone:
 
 - Auth M37 es local first-party: `users`, tokens locales y un adapter de
   `current_user` reemplazable por JWT externo en un milestone posterior.
-- `superadmin` es rol de sistema, no membresia de proyecto.
-- `admin`, `contributor` y `viewer` son roles por proyecto.
+- `superadmin` es rol de sistema, no membresia de workspace.
+- `admin`, `contributor` y `viewer` son roles por workspace.
 - `chat_sessions` debe guardar `user_id`; list/detail de sesiones debe filtrar
-  por `project_id + current_user`.
+  por `workspace_id + current_user`.
 - `viewer` puede chatear y proponer conocimiento; sus propuestas quedan
   `pending`.
 - `contributor+` puede crear conocimiento aprobado directo y
   aceptar/rechazar/refinar propuestas pendientes de cualquier usuario del
-  proyecto.
-- `admin` puede gestionar miembros del proyecto, pero no archivar ni eliminar
-  proyectos.
+  workspace.
+- `admin` puede gestionar miembros del workspace, pero no archivar ni eliminar
+  workspaces.
 - El conocimiento aprobado alimenta el pipeline existente de sources,
   ingestion, chunks y embeddings; propuestas pending no son retrievables.
 
 Secuencia entregada:
 
-1. `m37-project-rbac-chat-knowledge`: OpenSpec de planificacion y validacion,
+1. `m37-workspace-rbac-chat-knowledge`: OpenSpec de planificacion y validacion,
    implementacion completa y archive.
 2. `m37-auth-schema-repositories`: users, tokens, memberships,
    `chat_sessions.user_id`, `knowledge_proposals` y repositories.
 3. `m37-auth-dependencies-api-guards`: resolver `current_user` y proteger rutas
    existentes por rol.
 4. `m37-private-chat-sessions`: chat create/list/detail aislado por usuario.
-5. `m37-project-admin-users`: APIs de usuarios y membresias de proyecto.
+5. `m37-workspace-admin-users`: APIs de usuarios y membresias de workspace.
 6. `m37-knowledge-proposals`: cola pending, approve/reject/refine e ingestion
    bridge.
-7. `m37-frontend-project-rbac`: selector buscable de proyectos, estados
-   locked, project members y knowledge review queue.
+7. `m37-frontend-workspace-rbac`: selector buscable de workspaces, estados
+   locked, workspace members y knowledge review queue.
 8. `m37-quality-gate`: backend/frontend/OpenSpec/browser QA y archive.
 
 Continuacion: M38 completo settings efectivos de retrieval/rerank para chat y
@@ -1668,21 +1668,21 @@ Change archivado:
 Objetivo:
 
 - Hacer configurable el uso de reranker y los limites de retrieval de chat con
-  defaults globales y overrides por proyecto, dejando la apariencia como
-  preferencia de usuario fuera de settings globales/proyecto.
+  defaults globales y overrides por workspace, dejando la apariencia como
+  preferencia de usuario fuera de settings globales/workspace.
 
 Condiciones del milestone:
 
 - Los defaults globales iniciales son `retrieval_limit=5`,
   `rerank_enabled=true` y `rerank_candidate_limit=10`.
-- Los proyectos heredan defaults globales al crearse y pueden pisarlos despues.
+- Los workspaces heredan defaults globales al crearse y pueden pisarlos despues.
 - `retrieval_limit` y `rerank_candidate_limit` son configurables entre `1` y
   `50`.
 - Si rerank esta activo, `rerank_candidate_limit` debe ser mayor o igual que
   `retrieval_limit`.
 - El chat API/CLI resuelve settings efectivos antes de llamar retrieval y
   audita la configuracion sin secretos.
-- La UI expone defaults globales y overrides de proyecto en Runtime settings.
+- La UI expone defaults globales y overrides de workspace en Runtime settings.
 - Appearance vive en `My account` como configuracion de usuario.
 
 Secuencia entregada:
@@ -1714,9 +1714,9 @@ Entregado:
 - Sidebar contextual por area primaria: `Chat` conserva sesiones, `My account`
   muestra modulos de cuenta con Appearance y Memory deferred, y `Settings`
   separa Authoring, Observability y Runtime.
-- Settings quedo organizado por submodulos: Authoring con Projects, Users,
+- Settings quedo organizado por submodulos: Authoring con Workspaces, Users,
   Knowledge y Sources; Observability con Summary, Costs, Errors y Latency; y
-  Runtime con Connections, Model catalog, Global defaults y Project overrides.
+  Runtime con Connections, Model catalog, Global defaults y Workspace overrides.
 - Runtime ya no depende del boton generico `Refresh runtime`; cada submodulo
   usa acciones especificas para su propio alcance.
 
@@ -1918,7 +1918,7 @@ Estado: completo (2026-08-05).
 
 Estado: completo (2026-08-05).
 
-- FastMCP stdio: list_projects, list_sources, search, ask, ingest_text.
+- FastMCP stdio: list_workspaces, list_sources, search, ask, ingest_text.
 - CLI `adaptive-rag mcp serve`; docs/mcp.md.
 - Auth proceso local (mismo DB/env que CLI); sin OAuth/hosted.
 
@@ -1926,7 +1926,7 @@ Estado: completo (2026-08-05).
 
 Estado: completo (2026-08-05).
 
-- CLI `dense reindex` por proyecto con force, watermark y report JSON.
+- CLI `dense reindex` por workspace con force, watermark y report JSON.
 - CLI `contextualize reindex` / `ab-compare` con slot `llm_opt_in` vs deterministico.
 
 ### Bloque C — Experimental / por decision
@@ -1963,7 +1963,7 @@ No portar / no priorizar en el horizonte M40–M50:
 ### Ventajas de adaptive-rag a preservar
 
 - Strategy gate evidence-first (`promote` / `hold` / `no_go`).
-- Runtime settings por proyecto (slots + secrets Fernet).
+- Runtime settings por workspace (slots + secrets Fernet).
 - CLI operativa exhaustiva y fakes deterministas + testcontainers.
 - Graph como proyeccion derivada reconstruible con fallback.
 - Job queue en Postgres sin Redis.

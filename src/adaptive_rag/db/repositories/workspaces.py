@@ -10,11 +10,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import Project, ProjectMembership
+from adaptive_rag.db.models import Workspace, WorkspaceMembership
 
 
-class ProjectRepository:
-    """Acceso persistente a `Project` con transacciones controladas por caller."""
+class WorkspaceRepository:
+    """Acceso persistente a `Workspace` con transacciones controladas por caller."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -26,8 +26,8 @@ class ProjectRepository:
         embedding_mode: str = "dense_sparse",
         retrieval_contextualization_enabled: bool = True,
         budget_config_json: Mapping[str, Any] | None = None,
-    ) -> Project:
-        project = Project(
+    ) -> Workspace:
+        workspace = Workspace(
             name=name,
             embedding_mode=embedding_mode,
             retrieval_contextualization_enabled=retrieval_contextualization_enabled,
@@ -35,66 +35,66 @@ class ProjectRepository:
                 dict(budget_config_json) if budget_config_json is not None else None
             ),
         )
-        self._session.add(project)
+        self._session.add(workspace)
         self._session.flush()
-        return project
+        return workspace
 
-    def get(self, project_id: UUID) -> Project | None:
-        project = self._session.get(Project, project_id)
-        if project is None or project.deleted_at is not None:
+    def get(self, workspace_id: UUID) -> Workspace | None:
+        workspace = self._session.get(Workspace, workspace_id)
+        if workspace is None or workspace.deleted_at is not None:
             return None
-        return project
+        return workspace
 
     def list(
         self,
         *,
         include_deleted: bool = False,
         member_user_id: UUID | None = None,
-    ) -> list[Project]:
-        statement = select(Project)
+    ) -> list[Workspace]:
+        statement = select(Workspace)
         if not include_deleted:
-            statement = statement.where(Project.deleted_at.is_(None))
+            statement = statement.where(Workspace.deleted_at.is_(None))
         if member_user_id is not None:
             statement = statement.join(
-                ProjectMembership,
-                ProjectMembership.project_id == Project.id,
-            ).where(ProjectMembership.user_id == member_user_id)
+                WorkspaceMembership,
+                WorkspaceMembership.workspace_id == Workspace.id,
+            ).where(WorkspaceMembership.user_id == member_user_id)
         statement = statement.order_by(
-            Project.created_at,
-            Project.name,
-            Project.id,
+            Workspace.created_at,
+            Workspace.name,
+            Workspace.id,
         )
         return list(self._session.scalars(statement))
 
     def update(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         *,
         name: str | None = None,
         embedding_mode: str | None = None,
         retrieval_contextualization_enabled: bool | None = None,
         budget_config_json: Mapping[str, Any] | None = None,
-    ) -> Project | None:
-        project = self.get(project_id)
-        if project is None:
+    ) -> Workspace | None:
+        workspace = self.get(workspace_id)
+        if workspace is None:
             return None
         if name is not None:
-            project.name = name
+            workspace.name = name
         if embedding_mode is not None:
-            project.embedding_mode = embedding_mode
+            workspace.embedding_mode = embedding_mode
         if retrieval_contextualization_enabled is not None:
-            project.retrieval_contextualization_enabled = (
+            workspace.retrieval_contextualization_enabled = (
                 retrieval_contextualization_enabled
             )
         if budget_config_json is not None:
-            project.budget_config_json = dict(budget_config_json)
+            workspace.budget_config_json = dict(budget_config_json)
         self._session.flush()
-        return project
+        return workspace
 
-    def soft_delete(self, project_id: UUID) -> Project | None:
-        project = self.get(project_id)
-        if project is None:
+    def soft_delete(self, workspace_id: UUID) -> Workspace | None:
+        workspace = self.get(workspace_id)
+        if workspace is None:
             return None
-        project.deleted_at = datetime.now(UTC)
+        workspace.deleted_at = datetime.now(UTC)
         self._session.flush()
-        return project
+        return workspace

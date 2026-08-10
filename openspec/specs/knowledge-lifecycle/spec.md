@@ -29,7 +29,7 @@ for an existing source id.
 
 ### Requirement: Dedup report groups shared content hashes
 
-The system MUST provide a project-scoped report of document versions that share
+The system MUST provide a workspace-scoped report of document versions that share
 the same content hash without automatically deleting data.
 
 #### Scenario: Two sources with identical content appear in one group

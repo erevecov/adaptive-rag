@@ -77,7 +77,7 @@ CLI `dense reindex` con force/watermark/JSON; CLI `contextualize reindex` /
 
 M49 MCP stdio minimo cerrado el 2026-08-05.
 
-FastMCP stdio: list_projects, list_sources, search, ask, ingest_text;
+FastMCP stdio: list_workspaces, list_sources, search, ask, ingest_text;
 CLI `adaptive-rag mcp serve`; docs/mcp.md. OpenSpec `2026-08-05-m49-mcp-stdio`.
 **No se creo tag v1.0.**
 
@@ -125,7 +125,7 @@ GitHub Actions CI, compose frontend service, deferred_defaults sin
 
 M43 Authoring lifecycle + RBAC closeout cerrado el 2026-08-05.
 
-PATCH/DELETE soft projects/sources (cascade index), DELETE membership,
+PATCH/DELETE soft workspaces/sources (cascade index), DELETE membership,
 deactivate user, revoke token, role matrix tests. OpenSpec
 `2026-08-05-m43-authoring-lifecycle-rbac`.
 
@@ -177,12 +177,12 @@ expandido/colapsado en `localStorage`.
 Post-M38 Runtime navigation clarity: la navegacion lateral quedo contextual por
 area primaria. `Chat` muestra sesiones; `My account` muestra modulos de cuenta
 con Appearance y Memory diferido; `Settings` muestra Authoring, Observability y
-Runtime con submodulos. Authoring expone Projects, Users, Knowledge y Sources.
+Runtime con submodulos. Authoring expone Workspaces, Users, Knowledge y Sources.
 Observability expone Summary, Costs, Errors y Latency. Runtime expone
-Connections, Model catalog, Global defaults y Project overrides. El generic
+Connections, Model catalog, Global defaults y Workspace overrides. El generic
 `Refresh runtime` fue reemplazado por acciones especificas de cada submodulo.
 
-M38 Chat retrieval/rerank settings: settings efectivos globales y por proyecto
+M38 Chat retrieval/rerank settings: settings efectivos globales y por workspace
 para `retrieval_limit`, `rerank_enabled` y `rerank_candidate_limit` quedaron
 persistidos, expuestos por API/frontend y conectados al flujo de chat API/CLI.
 Los defaults iniciales son `retrieval_limit=5`, `rerank_enabled=true` y
@@ -190,8 +190,8 @@ Los defaults iniciales son `retrieval_limit=5`, `rerank_enabled=true` y
 limit no puede ser menor que el retrieval limit cuando rerank esta activo. El
 chat audita la configuracion efectiva sin secretos y construye reranker lazy
 solo cuando corresponde. En frontend, Runtime settings maneja defaults globales
-y overrides por proyecto; Appearance se movio a `My account` como preferencia
-de usuario y ya no vive en settings globales/proyecto. El gate valido backend,
+y overrides por workspace; Appearance se movio a `My account` como preferencia
+de usuario y ya no vive en settings globales/workspace. El gate valido backend,
 frontend, lint/typecheck, OpenSpec strict, `git diff --check` y QA browser.
 
 M36 Functional chat workspace fue archivado como housekeeping el 2026-06-28.
@@ -199,8 +199,8 @@ El archive movio el change a
 `openspec/changes/archive/2026-06-28-m36-chat-functional-workspace/` y aplico
 sus deltas finales a `openspec/specs/chat-frontend/spec.md`.
 
-M37 Project RBAC/chat knowledge: proyectos compartidos con usuarios,
-membresias por proyecto, sesiones privadas por usuario, propuestas de
+M37 Workspace RBAC/chat knowledge: workspaces compartidos con usuarios,
+membresias por workspace, sesiones privadas por usuario, propuestas de
 conocimiento desde chat y revision contributor+ quedaron implementados en
 backend/frontend. El gate de cierre valido `uv run pytest -q`, `uv run ruff
 check src tests`, `uv run mypy src\adaptive_rag`, tests/lint/typecheck/build de
@@ -300,7 +300,7 @@ Proximo opcional: retrieval playground UI o UI polish PR separado.
 - `openspec/specs/chat-streaming/spec.md`
 - `openspec/specs/chat-observability/spec.md`
 - `openspec/specs/graph-store/spec.md`
-- `openspec/specs/project-rbac/spec.md`
+- `openspec/specs/workspace-rbac/spec.md`
 - `openspec/specs/v1-release-readiness/spec.md`
 - `openspec/specs/v1-product-completion/spec.md`
 - `openspec/specs/user-memory/spec.md`

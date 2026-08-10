@@ -68,7 +68,7 @@ def neo4j_smoke() -> None:
 
 @app.command("backfill")
 def backfill(
-    project_id: Annotated[UUID, typer.Argument(help="Project UUID to backfill.")],
+    workspace_id: Annotated[UUID, typer.Argument(help="Workspace UUID to backfill.")],
     source_watermark: Annotated[
         str,
         typer.Option(
@@ -80,7 +80,7 @@ def backfill(
     """Reconstruye la proyeccion graph de un proyecto."""
 
     _run_backfill_command(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_watermark=source_watermark,
         operation="backfill",
     )
@@ -88,7 +88,7 @@ def backfill(
 
 @app.command("reindex")
 def reindex(
-    project_id: Annotated[UUID, typer.Argument(help="Project UUID to reindex.")],
+    workspace_id: Annotated[UUID, typer.Argument(help="Workspace UUID to reindex.")],
     source_watermark: Annotated[
         str,
         typer.Option(
@@ -100,7 +100,7 @@ def reindex(
     """Reindexa una proyeccion graph existente para un proyecto."""
 
     _run_backfill_command(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_watermark=source_watermark,
         operation="reindex",
     )
@@ -108,7 +108,7 @@ def reindex(
 
 @app.command("retrieval-smoke")
 def retrieval_smoke(
-    project_id: Annotated[UUID, typer.Argument(help="Project UUID to smoke.")],
+    workspace_id: Annotated[UUID, typer.Argument(help="Workspace UUID to smoke.")],
     query: Annotated[str, typer.Option("--query")],
     limit: Annotated[int, typer.Option("--limit")] = 5,
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
@@ -145,7 +145,7 @@ def retrieval_smoke(
         document_created_at_to=document_created_at_to,
     )
     _run_retrieval_smoke_command(
-        project_id=project_id,
+        workspace_id=workspace_id,
         query=query,
         limit=limit,
         metadata_filter=metadata_filter,
@@ -154,7 +154,7 @@ def retrieval_smoke(
 
 def _run_backfill_command(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     source_watermark: str,
     operation: GraphBackfillOperationName,
 ) -> None:
@@ -165,7 +165,7 @@ def _run_backfill_command(
             report = run_graph_backfill_operation(
                 session=session,
                 graph_store=store,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_watermark=source_watermark,
                 operation=operation,
             )
@@ -182,7 +182,7 @@ def _run_backfill_command(
 
 def _run_retrieval_smoke_command(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     query: str,
     limit: int,
     metadata_filter: RetrievalMetadataFilter,
@@ -190,7 +190,7 @@ def _run_retrieval_smoke_command(
     store: Any | None = None
     try:
         store = get_cli_graph_store()
-        if store.backend != "neo4j" or not hasattr(store, "expand_project_chunks"):
+        if store.backend != "neo4j" or not hasattr(store, "expand_workspace_chunks"):
             raise GraphStoreConfigurationError(
                 "ADAPTIVE_RAG_GRAPH_STORE=neo4j is required for retrieval smoke"
             )
@@ -199,7 +199,7 @@ def _run_retrieval_smoke_command(
                 session=session,
                 provider=get_cli_dense_embedding_provider(),
                 graph_retriever=cast(GraphRetriever, store),
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 metadata_filter=metadata_filter,
@@ -219,7 +219,7 @@ def _operation_report_payload(
     report: GraphBackfillOperationReport,
 ) -> dict[str, object]:
     return {
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "backend": report.backend,
         "operation": report.operation,
         "previous_status": report.previous_status,
@@ -236,7 +236,7 @@ def _retrieval_smoke_report_payload(
     report: GraphRetrievalSmokeReport,
 ) -> dict[str, object]:
     return {
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "backend": report.backend,
         "status": report.status,
         "requested_strategy": report.requested_strategy,

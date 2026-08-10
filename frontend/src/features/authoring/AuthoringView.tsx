@@ -18,15 +18,15 @@ import type {
   IngestionJob,
   IngestionRunResponse,
   KnowledgeProposal,
-  Project,
-  ProjectMembership,
+  Workspace,
+  WorkspaceMembership,
   Source,
   User,
 } from '@/lib/apiClient'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-export type AuthoringSubmodule = 'projects' | 'users' | 'knowledge' | 'sources'
+export type AuthoringSubmodule = 'workspaces' | 'users' | 'knowledge' | 'sources'
 
 export type AuthoringPanelProps = {
   activeSubmodule: AuthoringSubmodule
@@ -41,20 +41,20 @@ export type AuthoringPanelProps = {
   knowledgeReviewState: RequestState
   memberRole: string
   memberUserId: string
-  memberships: ProjectMembership[]
-  onCreateProject(event: FormEvent<HTMLFormElement>): void
+  memberships: WorkspaceMembership[]
+  onCreateWorkspace(event: FormEvent<HTMLFormElement>): void
   onCreateSource(event: FormEvent<HTMLFormElement>): void
   onCreateUser(event: FormEvent<HTMLFormElement>): void
   onDeactivateUser(user: User): void
-  onDeleteMembership(membership: ProjectMembership): void
-  onDeleteProject(project: Project): void
+  onDeleteMembership(membership: WorkspaceMembership): void
+  onDeleteWorkspace(workspace: Workspace): void
   onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
   onApproveKnowledgeProposal(proposal: KnowledgeProposal): void
   onMemberRoleChange(value: string): void
   onMemberUserIdChange(value: string): void
-  onProjectIdChange(value: string): void
-  onProjectNameChange(value: string): void
+  onWorkspaceIdChange(value: string): void
+  onWorkspaceNameChange(value: string): void
   onProposalDraftChange(proposalId: string, value: string): void
   onProposalRejectReasonChange(proposalId: string, value: string): void
   onRefreshAccess(): void
@@ -66,8 +66,8 @@ export type AuthoringPanelProps = {
   onRetryIngestionJob(job: IngestionJob): void
   onRevokeAccessToken(): void
   onRunNextIngestion(): void
-  onSaveProjectMembership(event: FormEvent<HTMLFormElement>): void
-  onSelectProject(project: Project): void
+  onSaveWorkspaceMembership(event: FormEvent<HTMLFormElement>): void
+  onSelectWorkspace(workspace: Workspace): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
   onSourceFileChange(file: File | null): void
@@ -77,11 +77,11 @@ export type AuthoringPanelProps = {
   onUserDisplayNameChange(value: string): void
   onUserLoginChange(value: string): void
   onUserSystemRoleChange(value: string): void
-  projectError: string | null
-  projectId: string
-  projectName: string
-  projectState: RequestState
-  projects: Project[]
+  workspaceError: string | null
+  workspaceId: string
+  workspaceName: string
+  workspaceState: RequestState
+  workspaces: Workspace[]
   proposalDrafts: Record<string, string>
   proposalRejectReasons: Record<string, string>
   sourceContent: string
@@ -113,19 +113,19 @@ export function AuthoringPanel({
   memberRole,
   memberUserId,
   memberships,
-  onCreateProject,
+  onCreateWorkspace,
   onCreateSource,
   onCreateUser,
   onDeactivateUser,
   onDeleteMembership,
-  onDeleteProject,
+  onDeleteWorkspace,
   onDeleteSource,
   onEnqueueIngestion,
   onApproveKnowledgeProposal,
   onMemberRoleChange,
   onMemberUserIdChange,
-  onProjectIdChange,
-  onProjectNameChange,
+  onWorkspaceIdChange,
+  onWorkspaceNameChange,
   onProposalDraftChange,
   onProposalRejectReasonChange,
   onRefreshAccess,
@@ -137,8 +137,8 @@ export function AuthoringPanel({
   onRetryIngestionJob,
   onRevokeAccessToken,
   onRunNextIngestion,
-  onSaveProjectMembership,
-  onSelectProject,
+  onSaveWorkspaceMembership,
+  onSelectWorkspace,
   onSourceContentChange,
   onSourceExternalIdChange,
   onSourceFileChange,
@@ -148,11 +148,11 @@ export function AuthoringPanel({
   onUserDisplayNameChange,
   onUserLoginChange,
   onUserSystemRoleChange,
-  projectError,
-  projectId,
-  projectName,
-  projectState,
-  projects,
+  workspaceError,
+  workspaceId,
+  workspaceName,
+  workspaceState,
+  workspaces,
   proposalDrafts,
   proposalRejectReasons,
   sourceContent,
@@ -169,7 +169,7 @@ export function AuthoringPanel({
   userSystemRole,
   users,
 }: AuthoringPanelProps) {
-  const isProjectBusy = projectState === 'loading'
+  const isWorkspaceBusy = workspaceState === 'loading'
   const isSourceBusy = sourceState === 'loading'
   const isIngestionBusy = ingestionState === 'loading'
   const isAccessBusy = accessState === 'loading'
@@ -177,23 +177,23 @@ export function AuthoringPanel({
 
   return (
     <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0">
-      {activeSubmodule === 'projects' ? (
-        <ProjectsPanel
-          error={projectError}
-          isBusy={isProjectBusy}
-          onCreateProject={onCreateProject}
-          onDeleteProject={onDeleteProject}
-          onProjectNameChange={onProjectNameChange}
-          onSelectProject={onSelectProject}
-          projectId={projectId}
-          projectName={projectName}
-          projects={projects}
-          state={projectState}
+      {activeSubmodule === 'workspaces' ? (
+        <WorkspacesPanel
+          error={workspaceError}
+          isBusy={isWorkspaceBusy}
+          onCreateWorkspace={onCreateWorkspace}
+          onDeleteWorkspace={onDeleteWorkspace}
+          onWorkspaceNameChange={onWorkspaceNameChange}
+          onSelectWorkspace={onSelectWorkspace}
+          workspaceId={workspaceId}
+          workspaceName={workspaceName}
+          workspaces={workspaces}
+          state={workspaceState}
         />
       ) : null}
 
       {activeSubmodule === 'users' ? (
-        <ProjectAccessPanel
+        <WorkspaceAccessPanel
           error={accessError}
           isBusy={isAccessBusy}
           memberRole={memberRole}
@@ -206,7 +206,7 @@ export function AuthoringPanel({
           onMemberUserIdChange={onMemberUserIdChange}
           onRefresh={onRefreshAccess}
           onRevokeAccessToken={onRevokeAccessToken}
-          onSaveMembership={onSaveProjectMembership}
+          onSaveMembership={onSaveWorkspaceMembership}
           onUserAccessTokenChange={onUserAccessTokenChange}
           onUserDisplayNameChange={onUserDisplayNameChange}
           onUserLoginChange={onUserLoginChange}
@@ -228,14 +228,14 @@ export function AuthoringPanel({
             onCreateSource={onCreateSource}
             onDeleteSource={onDeleteSource}
             onEnqueueIngestion={onEnqueueIngestion}
-            onProjectIdChange={onProjectIdChange}
+            onWorkspaceIdChange={onWorkspaceIdChange}
             onRefreshSources={onRefreshSources}
             onSourceContentChange={onSourceContentChange}
             onSourceExternalIdChange={onSourceExternalIdChange}
             onSourceFileChange={onSourceFileChange}
             onSourceTagsChange={onSourceTagsChange}
             onSourceTypeChange={onSourceTypeChange}
-            projectId={projectId}
+            workspaceId={workspaceId}
             sourceContent={sourceContent}
             sourceExternalId={sourceExternalId}
             sourceFileName={sourceFileName}
@@ -408,50 +408,50 @@ function AuthoringField({
   )
 }
 
-function ProjectsPanel({
+function WorkspacesPanel({
   error,
   isBusy,
-  onCreateProject,
-  onDeleteProject,
-  onProjectNameChange,
-  onSelectProject,
-  projectId,
-  projectName,
-  projects,
+  onCreateWorkspace,
+  onDeleteWorkspace,
+  onWorkspaceNameChange,
+  onSelectWorkspace,
+  workspaceId,
+  workspaceName,
+  workspaces,
   state,
 }: {
   error: string | null
   isBusy: boolean
-  onCreateProject(event: FormEvent<HTMLFormElement>): void
-  onDeleteProject(project: Project): void
-  onProjectNameChange(value: string): void
-  onSelectProject(project: Project): void
-  projectId: string
-  projectName: string
-  projects: Project[]
+  onCreateWorkspace(event: FormEvent<HTMLFormElement>): void
+  onDeleteWorkspace(workspace: Workspace): void
+  onWorkspaceNameChange(value: string): void
+  onSelectWorkspace(workspace: Workspace): void
+  workspaceId: string
+  workspaceName: string
+  workspaces: Workspace[]
   state: RequestState
 }) {
   return (
     <AuthoringSectionPanel
       ariaBusy={isBusy}
-      ariaLabel="Authoring Projects"
-      description="Create and Select the Project Used by Sources and Ingestion."
-      eyebrow="Projects"
-      id="projects-title"
+      ariaLabel="Authoring Workspaces"
+      description="Create and Select the Workspace Used by Sources and Ingestion."
+      eyebrow="Workspaces"
+      id="workspaces-title"
       status={<RequestStatus state={state} />}
-      title="Projects"
+      title="Workspaces"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateProject}>
-        <AuthoringField id="authoring-project-name" label="Project Name">
+      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateWorkspace}>
+        <AuthoringField id="authoring-workspace-name" label="Workspace Name">
           {(fieldId) => (
             <Input
               className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
               autoComplete="off"
               id={fieldId}
-              name="project-name"
-              onChange={(event) => onProjectNameChange(event.currentTarget.value)}
+              name="workspace-name"
+              onChange={(event) => onWorkspaceNameChange(event.currentTarget.value)}
               placeholder="Demo"
-              value={projectName}
+              value={workspaceName}
             />
           )}
         </AuthoringField>
@@ -460,7 +460,7 @@ function ProjectsPanel({
             <ButtonLabel
               busy={isBusy}
               busyLabel="Creating…"
-              idleLabel="Create Project"
+              idleLabel="Create Workspace"
             />
           </Button>
         </div>
@@ -468,72 +468,72 @@ function ProjectsPanel({
 
       {error ? <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
-      <ProjectList
-        activeProjectId={projectId}
+      <WorkspaceList
+        activeWorkspaceId={workspaceId}
         isBusy={isBusy}
-        onDeleteProject={onDeleteProject}
-        onSelectProject={onSelectProject}
-        projects={projects}
+        onDeleteWorkspace={onDeleteWorkspace}
+        onSelectWorkspace={onSelectWorkspace}
+        workspaces={workspaces}
       />
     </AuthoringSectionPanel>
   )
 }
 
-function ProjectList({
-  activeProjectId,
+function WorkspaceList({
+  activeWorkspaceId,
   isBusy,
-  onDeleteProject,
-  onSelectProject,
-  projects,
+  onDeleteWorkspace,
+  onSelectWorkspace,
+  workspaces,
 }: {
-  activeProjectId: string
+  activeWorkspaceId: string
   isBusy: boolean
-  onDeleteProject(project: Project): void
-  onSelectProject(project: Project): void
-  projects: Project[]
+  onDeleteWorkspace(workspace: Workspace): void
+  onSelectWorkspace(workspace: Workspace): void
+  workspaces: Workspace[]
 }) {
-  if (isBusy && projects.length === 0) {
-    return <LoadingListState label="Loading Projects…" />
+  if (isBusy && workspaces.length === 0) {
+    return <LoadingListState label="Loading Workspaces…" />
   }
 
-  if (projects.length === 0) {
+  if (workspaces.length === 0) {
     return (
       <EmptyState
         className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
         data-slot-state="empty"
         role="status"
       >
-        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Projects Yet.</p>
+        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Workspaces Yet.</p>
         <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-          Create a project above to start indexing sources.
+          Create a workspace above to start indexing sources.
         </p>
       </EmptyState>
     )
   }
 
   return (
-    <DataList aria-label="Projects" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
-      {projects.map((project) => {
-        const canAccess = project.can_access !== false
-        const isDeleted = Boolean(project.deleted_at)
+    <DataList aria-label="Workspaces" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+      {workspaces.map((workspace) => {
+        const canAccess = workspace.can_access !== false
+        const isDeleted = Boolean(workspace.deleted_at)
         const roleLabel = isDeleted
           ? 'Deleted'
           : canAccess
-            ? titleCaseStatus(project.access_role ?? project.embedding_mode)
+            ? titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
             : 'No Access'
         return (
           <DataListItem
             className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0"
             data-deleted={isDeleted ? '' : undefined}
-            key={project.id}
+            key={workspace.id}
           >
             <div className="flex items-stretch gap-1 p-1 max-[680px]:gap-0 max-[680px]:p-0">
             <Button
-              aria-label={`Select ${project.name}`}
-              aria-pressed={project.id === activeProjectId}
+              aria-label={`Select ${workspace.name}`}
+              aria-pressed={workspace.id === activeWorkspaceId}
               className="max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:basis-full max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0 whitespace-normal p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
-              onClick={() => onSelectProject(project)}
+              onClick={() => onSelectWorkspace(workspace)}
               variant="ghost"
             >
               <span className="max-[680px]:text-left max-[680px]:max-w-full max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0">
@@ -544,15 +544,15 @@ function ProjectList({
                       : 'break-words text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
                   }
                 >
-                  {project.name}
+                  {workspace.name}
                 </strong>
                 <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {project.id}
+                  {workspace.id}
                 </small>
                 {isDeleted ? (
                   <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                     Deleted{' '}
-                    {formatOperatorTimestamp(project.deleted_at ?? null)}
+                    {formatOperatorTimestamp(workspace.deleted_at ?? null)}
                   </small>
                 ) : null}
               </span>
@@ -564,10 +564,10 @@ function ProjectList({
               </StatusBadge>
             </Button>
             <Button
-              aria-label={`Delete project ${project.name}`}
+              aria-label={`Delete workspace ${workspace.name}`}
               className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate shrink-0 self-center max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
               disabled={isBusy || !canAccess || isDeleted}
-              onClick={() => onDeleteProject(project)}
+              onClick={() => onDeleteWorkspace(workspace)}
               type="button"
               variant="danger"
             >
@@ -581,7 +581,7 @@ function ProjectList({
   )
 }
 
-function ProjectAccessPanel({
+function WorkspaceAccessPanel({
   error,
   isBusy,
   memberRole,
@@ -610,10 +610,10 @@ function ProjectAccessPanel({
   isBusy: boolean
   memberRole: string
   memberUserId: string
-  memberships: ProjectMembership[]
+  memberships: WorkspaceMembership[]
   onCreateUser(event: FormEvent<HTMLFormElement>): void
   onDeactivateUser(user: User): void
-  onDeleteMembership(membership: ProjectMembership): void
+  onDeleteMembership(membership: WorkspaceMembership): void
   onMemberRoleChange(value: string): void
   onMemberUserIdChange(value: string): void
   onRefresh(): void
@@ -634,9 +634,9 @@ function ProjectAccessPanel({
     <AuthoringSectionPanel
       ariaBusy={isBusy}
       ariaLabel="Authoring Users"
-      description="Create Users and Assign Project Membership."
+      description="Create Users and Assign Workspace Membership."
       eyebrow="Users"
-      id="project-access-title"
+      id="workspace-access-title"
       status={<RequestStatus state={state} />}
       title="Users"
     >
@@ -756,7 +756,7 @@ function ProjectAccessPanel({
               />
             )}
           </AuthoringField>
-          <AuthoringField id="authoring-member-role" label="Project Role">
+          <AuthoringField id="authoring-member-role" label="Workspace Role">
             {(fieldId) => (
               <Select
                 className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
@@ -805,9 +805,9 @@ function UserAccessLists({
   users,
 }: {
   isBusy: boolean
-  memberships: ProjectMembership[]
+  memberships: WorkspaceMembership[]
   onDeactivateUser(user: User): void
-  onDeleteMembership(membership: ProjectMembership): void
+  onDeleteMembership(membership: WorkspaceMembership): void
   users: User[]
 }) {
   if (isBusy && users.length === 0 && memberships.length === 0) {
@@ -888,10 +888,10 @@ function UserAccessLists({
           data-slot-state="empty"
           role="status"
         >
-          No Project Memberships Yet.
+          No Workspace Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Project Memberships" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Workspace Memberships" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
           {memberships.map((membership) => (
             <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
               <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
@@ -899,7 +899,7 @@ function UserAccessLists({
                   {membership.user_id}
                 </strong>
                 <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {membership.project_id}
+                  {membership.workspace_id}
                 </small>
               </div>
               <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
@@ -1027,14 +1027,14 @@ function SourcesPanel({
   onCreateSource,
   onDeleteSource,
   onEnqueueIngestion,
-  onProjectIdChange,
+  onWorkspaceIdChange,
   onRefreshSources,
   onSourceContentChange,
   onSourceExternalIdChange,
   onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
-  projectId,
+  workspaceId,
   sourceContent,
   sourceExternalId,
   sourceFileName,
@@ -1048,14 +1048,14 @@ function SourcesPanel({
   onCreateSource(event: FormEvent<HTMLFormElement>): void
   onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
-  onProjectIdChange(value: string): void
+  onWorkspaceIdChange(value: string): void
   onRefreshSources(): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
   onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
-  projectId: string
+  workspaceId: string
   sourceContent: string
   sourceExternalId: string
   sourceFileName: string
@@ -1077,16 +1077,16 @@ function SourcesPanel({
       title="Content Registry"
     >
       <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateSource}>
-        <AuthoringField id="authoring-source-project-id" label="Project ID">
+        <AuthoringField id="authoring-source-workspace-id" label="Workspace ID">
           {(fieldId) => (
             <Input
               className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
               autoComplete="off"
               id={fieldId}
-              name="authoring-project-id"
-              onChange={(event) => onProjectIdChange(event.currentTarget.value)}
-              placeholder="Project UUID"
-              value={projectId}
+              name="authoring-workspace-id"
+              onChange={(event) => onWorkspaceIdChange(event.currentTarget.value)}
+              placeholder="Workspace UUID"
+              value={workspaceId}
             />
           )}
         </AuthoringField>
@@ -1382,7 +1382,7 @@ function KnowledgeReviewPanel({
         >
           <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Pending Proposals.</p>
           <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-            Refresh After Chat Surfaces a Knowledge Draft for This Project.
+            Refresh After Chat Surfaces a Knowledge Draft for This Workspace.
           </p>
         </EmptyState>
       ) : (

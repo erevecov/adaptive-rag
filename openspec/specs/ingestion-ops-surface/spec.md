@@ -5,12 +5,12 @@ TBD - created by archiving change m24-ingestion-ops-surface. Update Purpose afte
 ## Requirements
 ### Requirement: Sources can be queued for ingestion publicly
 
-The system MUST let a local user enqueue document ingestion for a project source
+The system MUST let a local user enqueue document ingestion for a workspace source
 through public API, CLI and frontend surfaces.
 
 #### Scenario: User enqueues a source ingestion job
 
-- **WHEN** a user requests ingestion for a source in the selected project
+- **WHEN** a user requests ingestion for a source in the selected workspace
 - **THEN** the system creates a job with `job_type = ingest_source`
 - **AND** the payload stores the requested `source_id`
 - **AND** the job starts with `status = queued`
@@ -20,23 +20,23 @@ through public API, CLI and frontend surfaces.
 #### Scenario: Missing source is explicit
 
 - **WHEN** a user requests ingestion for a source id that does not belong to the
-  project
+  workspace
 - **THEN** API returns 404
 - **AND** CLI exits non-zero with `source not found`
 - **AND** frontend preserves valid form state and shows the error
 
 ### Requirement: Ingestion jobs are inspectable
 
-The system MUST expose job state and job events for project-scoped ingestion
+The system MUST expose job state and job events for workspace-scoped ingestion
 operations.
 
 #### Scenario: User lists ingestion jobs
 
-- **WHEN** a user lists ingestion jobs for a project
+- **WHEN** a user lists ingestion jobs for a workspace
 - **THEN** jobs are returned in deterministic order
 - **AND** each job includes status, attempts, max attempts, run time, lock state
   and last error
-- **AND** jobs from other projects are not returned
+- **AND** jobs from other workspaces are not returned
 
 #### Scenario: User inspects job detail
 
@@ -66,7 +66,7 @@ direct SQL.
 
 #### Scenario: Run next is idle when no job is ready
 
-- **WHEN** no queued ingestion-family job is ready for the project
+- **WHEN** no queued ingestion-family job is ready for the workspace
 - **THEN** the run response is `idle`
 
 ### Requirement: Failed ingestion can be retried explicitly
@@ -93,7 +93,7 @@ and actionable using the existing public job contracts.
 
 #### Scenario: Job list communicates operational status
 
-- **WHEN** a user views ingestion jobs for the selected project
+- **WHEN** a user views ingestion jobs for the selected workspace
 - **THEN** each job exposes its status, attempts, timing/lock state when
   available and last error when present
 - **AND** queued, running, succeeded, blocked and dead-letter states are visually
@@ -117,11 +117,11 @@ and actionable using the existing public job contracts.
 ### Requirement: Run-next processes ingestion and indexing jobs
 
 The public local `run-next` / worker operation MUST process the next ready job
-among `ingest_source` and `index_document_version` for the project.
+among `ingest_source` and `index_document_version` for the workspace.
 
 #### Scenario: Run-next indexes after ingest
 
-- **WHEN** a project has a succeeded ingest that enqueued `index_document_version`
+- **WHEN** a workspace has a succeeded ingest that enqueued `index_document_version`
 - **AND** a user runs `run-next` again (or the worker continues)
 - **THEN** the indexing job is leased and processed
 - **AND** the run response identifies the processed indexing job and document
@@ -136,13 +136,13 @@ among `ingest_source` and `index_document_version` for the project.
 ### Requirement: Indexing job state is inspectable like ingestion
 
 The system MUST expose `index_document_version` jobs through the same list/detail
-ingestion-ops surfaces as other project jobs.
+ingestion-ops surfaces as other workspace jobs.
 
 #### Scenario: User lists indexing jobs
 
 - **WHEN** a user lists ingestion jobs filtered by
   `job_type = index_document_version`
-- **THEN** only indexing jobs for that project are returned
+- **THEN** only indexing jobs for that workspace are returned
 - **AND** each includes status, attempts, lock state and last error
 
 ### Requirement: Failure and recovery events are inspectable

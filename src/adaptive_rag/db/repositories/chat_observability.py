@@ -69,7 +69,7 @@ class ChatObservabilityProviderUsageGroup:
 
 @dataclass(frozen=True)
 class ChatObservabilityProviderUsageSummary:
-    """Provider usage aggregate for the filtered project."""
+    """Provider usage aggregate for the filtered workspace."""
 
     total_records: int
     total_estimated_cost_usd: float
@@ -96,9 +96,9 @@ class ChatObservabilityErrorSummary:
 
 @dataclass(frozen=True)
 class ChatObservabilitySummary:
-    """Read-only chat observability summary for one project."""
+    """Read-only chat observability summary for one workspace."""
 
-    project_id: UUID
+    workspace_id: UUID
     filters: ChatObservabilityFilters
     sessions: ChatObservabilitySessionSummary
     provider_usage: ChatObservabilityProviderUsageSummary
@@ -114,7 +114,7 @@ class ChatObservabilityRepository:
     def get_summary(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         created_at_from: datetime | None = None,
         created_at_to: datetime | None = None,
         status: str | None = None,
@@ -130,19 +130,19 @@ class ChatObservabilityRepository:
             status=status,
         )
         sessions = self._list_sessions(
-            project_id=project_id,
+            workspace_id=workspace_id,
             created_at_from=created_at_from,
             created_at_to=created_at_to,
             status=status,
         )
         provider_usage = self._list_provider_usage(
-            project_id=project_id,
+            workspace_id=workspace_id,
             created_at_from=created_at_from,
             created_at_to=created_at_to,
             status=status,
         )
         return ChatObservabilitySummary(
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
             sessions=_summarize_sessions(sessions),
             provider_usage=_summarize_provider_usage(provider_usage),
@@ -157,12 +157,12 @@ class ChatObservabilityRepository:
     def _list_sessions(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         created_at_from: datetime | None,
         created_at_to: datetime | None,
         status: str | None,
     ) -> tuple[ChatSession, ...]:
-        statement = select(ChatSession).where(ChatSession.project_id == project_id)
+        statement = select(ChatSession).where(ChatSession.workspace_id == workspace_id)
         if created_at_from is not None:
             statement = statement.where(ChatSession.created_at >= created_at_from)
         if created_at_to is not None:
@@ -175,18 +175,20 @@ class ChatObservabilityRepository:
     def _list_provider_usage(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         created_at_from: datetime | None,
         created_at_to: datetime | None,
         status: str | None,
     ) -> tuple[ProviderUsage, ...]:
-        statement = select(ProviderUsage).where(ProviderUsage.project_id == project_id)
+        statement = select(ProviderUsage).where(
+            ProviderUsage.workspace_id == workspace_id
+        )
         if status is not None:
             statement = statement.join(
                 ChatSession,
                 ProviderUsage.session_id == ChatSession.id,
             ).where(
-                ChatSession.project_id == project_id,
+                ChatSession.workspace_id == workspace_id,
                 ChatSession.status == status,
             )
         if created_at_from is not None:

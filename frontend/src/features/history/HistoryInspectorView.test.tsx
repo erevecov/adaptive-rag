@@ -11,6 +11,7 @@ import type {
   Source,
 } from '@/lib/apiClient'
 import {
+  filterSessionDetailToTurn,
   SessionNavigationPanel,
   WorkspaceInspectorPanel,
 } from './HistoryInspectorView'
@@ -47,7 +48,7 @@ const source: Source = {
   external_id: 'architecture.md',
   extra_metadata: { owner: 'docs' },
   id: 'source-1',
-  project_id: 'project-1',
+  workspace_id: 'workspace-1',
   source_type: 'markdown',
   tags: ['architecture'],
   updated_at: '2026-06-21T00:00:00Z',
@@ -498,11 +499,11 @@ describe('SessionNavigationPanel', () => {
 })
 
 describe('WorkspaceInspectorPanel', () => {
-  test('shows EmptyState when selected session has no messages', () => {
+  test('full session Context omits the Messages / turn dump', () => {
     render(
       <WorkspaceInspectorPanel
         activeTab="context"
-        detail={{ ...detail, messages: [] }}
+        detail={detail}
         detailError={null}
         detailState="succeeded"
         layout="inline"
@@ -520,11 +521,10 @@ describe('WorkspaceInspectorPanel', () => {
       />,
     )
 
-    expect(
-      within(screen.getByRole('region', { name: 'Selected Session Detail' })).getByText(
-        'No Messages In This Session.',
-      ),
-    ).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Session Context' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Selected Session Detail' })).toBeNull()
+    expect(screen.queryByLabelText('Session Messages')).toBeNull()
+    expect(screen.queryByText('No Messages In This Session.')).toBeNull()
   })
 
   test('shows loading skeletons instead of empty copy while detail loads', () => {
@@ -550,9 +550,259 @@ describe('WorkspaceInspectorPanel', () => {
     )
     expect(screen.getByLabelText('Loading Session Context')).toBeTruthy()
     expect(screen.getByLabelText('Loading Action Stepper')).toBeTruthy()
-    expect(screen.getByLabelText('Loading Session Detail')).toBeTruthy()
+    // Messages panel only mounts in turn-focused mode (Ver detalles).
+    expect(screen.queryByLabelText('Loading Session Detail')).toBeNull()
     expect(screen.queryByText('Select A Session To Inspect Model, Prompt And Usage Context.')).toBeNull()
     expect(screen.queryByText('No Stored Internal Actions For This Session.')).toBeNull()
+  })
+
+  test('filters session detail to a single turn window', () => {
+    const multiTurn: ChatSessionDetailResponse = {
+      ...detail,
+      messages: [
+        {
+          content: 'First question?',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'user-1',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'First answer.',
+          created_at: '2026-06-21T00:00:01Z',
+          message_id: 'assistant-1',
+          metadata: null,
+          role: 'assistant',
+        },
+        {
+          content: 'Second question?',
+          created_at: '2026-06-21T00:01:00Z',
+          message_id: 'user-2',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'Second answer.',
+          created_at: '2026-06-21T00:01:01Z',
+          message_id: 'assistant-2',
+          metadata: null,
+          role: 'assistant',
+        },
+      ],
+      tool_calls: [
+        {
+          arguments: { query: 'first' },
+          created_at: '2026-06-21T00:00:00.500Z',
+          error_message: null,
+          latency_ms: 10,
+          result_summary: null,
+          status: 'succeeded',
+          tool_call_id: 'tool-first',
+          tool_name: 'retrieve_first_turn',
+          updated_at: '2026-06-21T00:00:00.600Z',
+        },
+        {
+          arguments: { query: 'second' },
+          created_at: '2026-06-21T00:01:00.500Z',
+          error_message: null,
+          latency_ms: 10,
+          result_summary: null,
+          status: 'succeeded',
+          tool_call_id: 'tool-second',
+          tool_name: 'retrieve_second_turn',
+          updated_at: '2026-06-21T00:01:00.600Z',
+        },
+      ],
+      retrieval_runs: [
+        {
+          created_at: '2026-06-21T00:00:00.500Z',
+          error_message: null,
+          filters: null,
+          latency_ms: 5,
+          query: 'first',
+          retrieval_run_id: 'run-1',
+          retrieved_chunks: [],
+          strategy: 'dense',
+          tool_call_id: 'tool-first',
+          top_k: 3,
+          used_rerank: false,
+        },
+        {
+          created_at: '2026-06-21T00:01:00.500Z',
+          error_message: null,
+          filters: null,
+          latency_ms: 5,
+          query: 'second',
+          retrieval_run_id: 'run-2',
+          retrieved_chunks: [],
+          strategy: 'dense',
+          tool_call_id: 'tool-second',
+          top_k: 3,
+          used_rerank: false,
+        },
+      ],
+      provider_usage: [
+        {
+          ...detail.provider_usage[0],
+          created_at: '2026-06-21T00:00:02Z',
+          provider_usage_id: 'usage-1',
+        },
+        {
+          ...detail.provider_usage[0],
+          created_at: '2026-06-21T00:01:02Z',
+          provider_usage_id: 'usage-2',
+        },
+      ],
+    }
+
+    const scoped = filterSessionDetailToTurn(multiTurn, 'assistant-1')
+    expect(scoped).not.toBeNull()
+    expect(scoped?.messages.map((message) => message.message_id)).toEqual([
+      'user-1',
+      'assistant-1',
+    ])
+    expect(scoped?.tool_calls.map((call) => call.tool_name)).toEqual([
+      'retrieve_first_turn',
+    ])
+    expect(scoped?.retrieval_runs.map((run) => run.retrieval_run_id)).toEqual([
+      'run-1',
+    ])
+    expect(
+      scoped?.provider_usage.map((usage) => usage.provider_usage_id),
+    ).toEqual(['usage-1'])
+  })
+
+  test('turn-focused Context shows only that turn and Ver sesión completa clears focus', async () => {
+    const user = userEvent.setup()
+    const onClearFocusedTurn = vi.fn()
+    const multiTurn: ChatSessionDetailResponse = {
+      ...detail,
+      messages: [
+        {
+          content: 'First question?',
+          created_at: '2026-06-21T00:00:00Z',
+          message_id: 'user-1',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'First answer with unique tool.',
+          created_at: '2026-06-21T00:00:01Z',
+          message_id: 'assistant-1',
+          metadata: null,
+          role: 'assistant',
+        },
+        {
+          content: 'Second question?',
+          created_at: '2026-06-21T00:01:00Z',
+          message_id: 'user-2',
+          metadata: null,
+          role: 'user',
+        },
+        {
+          content: 'Second answer later.',
+          created_at: '2026-06-21T00:01:01Z',
+          message_id: 'assistant-2',
+          metadata: null,
+          role: 'assistant',
+        },
+      ],
+      tool_calls: [
+        {
+          arguments: { query: 'first' },
+          created_at: '2026-06-21T00:00:00.500Z',
+          error_message: null,
+          latency_ms: 10,
+          result_summary: null,
+          status: 'succeeded',
+          tool_call_id: 'tool-first',
+          tool_name: 'retrieve_first_turn_only',
+          updated_at: '2026-06-21T00:00:00.600Z',
+        },
+        {
+          arguments: { query: 'second' },
+          created_at: '2026-06-21T00:01:00.500Z',
+          error_message: null,
+          latency_ms: 10,
+          result_summary: null,
+          status: 'succeeded',
+          tool_call_id: 'tool-second',
+          tool_name: 'retrieve_second_turn_only',
+          updated_at: '2026-06-21T00:01:00.600Z',
+        },
+      ],
+      retrieval_runs: [],
+      provider_usage: detail.provider_usage,
+    }
+
+    const { rerender } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={multiTurn}
+        detailError={null}
+        detailState="succeeded"
+        focusedTurn={{ turnId: 'assistant-1', question: 'First question?' }}
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClearFocusedTurn={onClearFocusedTurn}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const turnHeader = screen.getByRole('region', { name: 'Detalles del turno' })
+    expect(turnHeader).toBeTruthy()
+    expect(within(turnHeader).getByText('First question?')).toBeTruthy()
+    expect(screen.queryByText('This thread')).toBeNull()
+    // Tool appears in pipeline + detail tool list when focused (both turn-scoped).
+    expect(screen.getAllByText('retrieve_first_turn_only').length).toBeGreaterThan(0)
+    expect(screen.queryByText('retrieve_second_turn_only')).toBeNull()
+    expect(screen.getByText('First answer with unique tool.')).toBeTruthy()
+    expect(screen.queryByText('Second answer later.')).toBeNull()
+    expect(
+      screen.getByRole('region', { name: 'Selected Session Detail' }).textContent,
+    ).toMatch(/Turn messages/)
+
+    await user.click(screen.getByRole('button', { name: 'Ver sesión completa' }))
+    expect(onClearFocusedTurn).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={multiTurn}
+        detailError={null}
+        detailState="succeeded"
+        focusedTurn={null}
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClearFocusedTurn={onClearFocusedTurn}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(screen.getByText('This thread')).toBeTruthy()
+    expect(screen.getAllByText('retrieve_first_turn_only').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('retrieve_second_turn_only').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('region', { name: 'Detalles del turno' })).toBeNull()
+    // Full session overview must not remount the Messages / turn dump.
+    expect(screen.queryByRole('region', { name: 'Selected Session Detail' })).toBeNull()
   })
 
   test('renders context details and source viewer with tokenized sections', async () => {
@@ -575,6 +825,8 @@ describe('WorkspaceInspectorPanel', () => {
               kept_recent: 8,
               summarized_messages: 14,
               used_summary: true,
+              summary:
+                'Pinned user-stated facts (authoritative for this thread): - USER_FACT: Remember that my favorite color is cerulean-periwinkle-42. Please acknowledge. Exchange log - User: Remember that my favorite color is cerulean-periwinkle-42. Assistant: Got it.',
               summary_preview: 'Pinned user-stated facts…',
             },
           },
@@ -600,28 +852,146 @@ describe('WorkspaceInspectorPanel', () => {
     )
     const sessionContext = screen.getByRole('region', { name: 'Session Context' })
     expect(sessionContext).toBeTruthy()
-    expect(within(sessionContext).getByText('Continuing thread')).toBeTruthy()
-    expect(within(sessionContext).getByText('Session')).toBeTruthy()
-    expect(within(sessionContext).getAllByText('session-1').length).toBeGreaterThan(0)
+    // Ordered hierarchy: identity → model → usage → context packing
+    expect(within(sessionContext).getByText('This thread')).toBeTruthy()
+    expect(within(sessionContext).getByText('Continuing')).toBeTruthy()
+    expect(
+      sessionContext.querySelector('[data-slot="session-context-identity"]'),
+    ).toBeTruthy()
+    expect(
+      sessionContext.querySelector('[data-slot="session-context-model"]'),
+    ).toBeTruthy()
+    expect(
+      sessionContext.querySelector('[data-slot="session-context-usage"]'),
+    ).toBeTruthy()
+    expect(
+      sessionContext.querySelector('[data-slot="session-context-window"]'),
+    ).toBeTruthy()
+    expect(within(sessionContext).getByText('Architecture review')).toBeTruthy()
+    expect(
+      sessionContext.querySelector('[title="session-1"]')?.textContent,
+    ).toMatch(/session-1/)
     expect(within(sessionContext).getByText('Context window')).toBeTruthy()
     expect(within(sessionContext).getByText('8 recent + 14 summarized')).toBeTruthy()
-    expect(within(sessionContext).getByText('Pinned user-stated facts…')).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Selected Session Detail' })).toBeTruthy()
-    expect(screen.getByLabelText('assistant message').getAttribute('tabindex')).toBe('-1')
-    expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
     expect(
-      screen.getByLabelText('assistant message').querySelector('strong')?.className,
-    ).toMatch(/capitalize/)
+      within(sessionContext).getByText(/cerulean-periwinkle-42/),
+    ).toBeTruthy()
+    const contextWindowCard = sessionContext.querySelector(
+      '[data-slot="context-window-card"]',
+    )
+    expect(contextWindowCard?.getAttribute('data-expanded')).toBe('false')
+    // Pipeline activity is collapsed by default (progressive disclosure)
+    expect(
+      container.querySelector('[data-slot="context-action-stepper-details"]'),
+    ).toBeTruthy()
+    expect(
+      container.querySelector('[data-slot="context-action-stepper-details"]')?.hasAttribute(
+        'open',
+      ),
+    ).toBe(false)
+    // Full overview: no message dump (turn list lives under Ver detalles only).
+    expect(screen.queryByRole('region', { name: 'Selected Session Detail' })).toBeNull()
+    expect(screen.queryByLabelText('assistant message')).toBeNull()
+    expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'New thread' }))
     expect(onStartNewSession).toHaveBeenCalledTimes(1)
 
-    await user.click(screen.getByRole('button', { name: 'View Source architecture.md' }))
-    expect(onOpenSource).toHaveBeenCalledWith(
-      'source-1',
-      'The retrieval flow changed.',
-    )
+    // Source Viewer is already open via citation path (not via Messages dump).
+    const sourceViewer = screen.getByRole('region', { name: 'Source Viewer' })
+    expect(within(sourceViewer).getByText('architecture.md')).toBeTruthy()
+    expect(within(sourceViewer).getByText('The retrieval flow changed.')).toBeTruthy()
+    // View Source buttons live under turn-scoped Messages (Ver detalles), not overview.
+    expect(
+      screen.queryByRole('button', { name: 'View Source architecture.md' }),
+    ).toBeNull()
+    expect(onOpenSource).not.toHaveBeenCalled()
     expectNoLegacyHistoryClasses(container)
+  })
+
+  test('context window expands and collapses the condensed summary', async () => {
+    const user = userEvent.setup()
+    const longSummary = [
+      'Pinned user-stated facts (authoritative for this thread):',
+      '- USER_FACT: Remember that my favorite color is cerulean-periwinkle-42.',
+      'Exchange log:',
+      '- User: Remember that my favorite color is cerulean-periwinkle-42. Please acknowledge.',
+      '- Assistant: Got it, I will remember that.',
+      '- User: Filler question about unrelated topics that still needs room.',
+    ].join('\n')
+
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        liveContextSteps={[
+          {
+            id: 'context',
+            status: 'done',
+            detail: {
+              total_messages: 22,
+              kept_recent: 8,
+              summarized_messages: 14,
+              used_summary: true,
+              summary: longSummary,
+              summary_preview: `${longSummary.slice(0, 237)}...`,
+            },
+          },
+        ]}
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const expand = screen.getByRole('button', { name: 'Expandir' })
+    expect(expand.getAttribute('aria-expanded')).toBe('false')
+    expect(
+      container.querySelector('[data-slot="context-window-card"]')?.getAttribute(
+        'data-expanded',
+      ),
+    ).toBe('false')
+    expect(
+      container
+        .querySelector('[data-slot="context-window-summary"]')
+        ?.className,
+    ).toMatch(/line-clamp-3/)
+
+    await user.click(expand)
+
+    expect(screen.getByRole('button', { name: 'Contraer' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    )
+    expect(
+      container.querySelector('[data-slot="context-window-card"]')?.getAttribute(
+        'data-expanded',
+      ),
+    ).toBe('true')
+    expect(
+      container
+        .querySelector('[data-slot="context-window-summary"]')
+        ?.className,
+    ).toMatch(/whitespace-pre-wrap/)
+    expect(screen.getByText(/Filler question about unrelated topics/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Contraer' }))
+    expect(screen.getByRole('button', { name: 'Expandir' })).toBeTruthy()
+    expect(
+      container.querySelector('[data-slot="context-window-card"]')?.getAttribute(
+        'data-expanded',
+      ),
+    ).toBe('false')
   })
 
 

@@ -1,4 +1,4 @@
-"""Schemas HTTP para authoring publico de projects y sources."""
+"""Schemas HTTP para authoring publico de workspaces y sources."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from adaptive_rag.db.models import Project, Source
+from adaptive_rag.db.models import Source, Workspace
 
 
-class ProjectCreateRequestBody(BaseModel):
+class WorkspaceCreateRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
@@ -20,7 +20,7 @@ class ProjectCreateRequestBody(BaseModel):
     budget_config_json: dict[str, Any] | None = None
 
 
-class ProjectUpdateRequestBody(BaseModel):
+class WorkspaceUpdateRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str | None = None
@@ -29,7 +29,7 @@ class ProjectUpdateRequestBody(BaseModel):
     budget_config_json: dict[str, Any] | None = None
 
 
-class ProjectResponse(BaseModel):
+class WorkspaceResponse(BaseModel):
     id: UUID
     name: str
     embedding_mode: str
@@ -42,36 +42,38 @@ class ProjectResponse(BaseModel):
     deleted_at: datetime | None = None
 
     @classmethod
-    def from_project(
+    def from_workspace(
         cls,
-        project: Project,
+        workspace: Workspace,
         *,
         access_role: str | None = None,
         can_access: bool = True,
-    ) -> ProjectResponse:
+    ) -> WorkspaceResponse:
         return cls(
-            id=project.id,
-            name=project.name,
-            embedding_mode=project.embedding_mode,
+            id=workspace.id,
+            name=workspace.name,
+            embedding_mode=workspace.embedding_mode,
             retrieval_contextualization_enabled=(
-                project.retrieval_contextualization_enabled
+                workspace.retrieval_contextualization_enabled
             ),
-            budget_config_json=project.budget_config_json,
+            budget_config_json=workspace.budget_config_json,
             access_role=access_role,
             can_access=can_access,
-            created_at=project.created_at,
-            updated_at=project.updated_at,
-            deleted_at=project.deleted_at,
+            created_at=workspace.created_at,
+            updated_at=workspace.updated_at,
+            deleted_at=workspace.deleted_at,
         )
 
 
-class ProjectListResponse(BaseModel):
-    items: list[ProjectResponse]
+class WorkspaceListResponse(BaseModel):
+    items: list[WorkspaceResponse]
 
     @classmethod
-    def from_projects(cls, projects: list[Project]) -> ProjectListResponse:
+    def from_workspaces(cls, workspaces: list[Workspace]) -> WorkspaceListResponse:
         return cls(
-            items=[ProjectResponse.from_project(project) for project in projects]
+            items=[
+                WorkspaceResponse.from_workspace(workspace) for workspace in workspaces
+            ]
         )
 
 
@@ -94,7 +96,7 @@ class SourceUpdateRequestBody(BaseModel):
 
 class SourceResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    workspace_id: UUID
     source_type: str
     external_id: str
     tags: list[str] | None
@@ -107,7 +109,7 @@ class SourceResponse(BaseModel):
     def from_source(cls, source: Source) -> SourceResponse:
         return cls(
             id=source.id,
-            project_id=source.project_id,
+            workspace_id=source.workspace_id,
             source_type=source.source_type,
             external_id=source.external_id,
             tags=source.tags,

@@ -9,12 +9,12 @@ from __future__ import annotations
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -42,7 +42,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -52,21 +52,23 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVersion]:
-    project = ProjectRepository(session).create(name="demo")
+def _create_document_version(
+    session, *, text: str
+) -> tuple[Workspace, DocumentVersion]:
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="guide.md",
         extra_metadata={"content": text},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -74,15 +76,15 @@ def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVe
         index_fingerprint="ingestion-fp",
     )
     session.commit()
-    return project, version
+    return workspace, version
 
 
-def _create_chunks(session, *, project: Project, version: DocumentVersion) -> None:
+def _create_chunks(session, *, workspace: Workspace, version: DocumentVersion) -> None:
     repo = ChunkRepository(session)
     first_end = version.normalized_text.index("\n\n")
     second_start = first_end + 2
     repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -93,7 +95,7 @@ def _create_chunks(session, *, project: Project, version: DocumentVersion) -> No
         contextual_summary="Intro section explains the pipeline.",
     )
     repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=1,
         char_start=second_start,
@@ -105,9 +107,9 @@ def _create_chunks(session, *, project: Project, version: DocumentVersion) -> No
     session.commit()
 
 
-def _chunks(session, *, project: Project, version: DocumentVersion) -> list[Chunk]:
+def _chunks(session, *, workspace: Workspace, version: DocumentVersion) -> list[Chunk]:
     return ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -115,17 +117,17 @@ def _chunks(session, *, project: Project, version: DocumentVersion) -> list[Chun
 def test_embed_document_version_persists_dense_embeddings_and_metadata() -> None:
     text = "Alpha beta gamma\n\nDelta epsilon zeta eta"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    _create_chunks(session, workspace=workspace, version=version)
     provider = FakeDenseEmbeddingProvider()
 
     result = DenseEmbeddingPipeline(session, provider=provider).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
-    chunks = _chunks(session, project=project, version=version)
+    chunks = _chunks(session, workspace=workspace, version=version)
 
     assert result.embedded_chunk_count == 2
     assert result.reused_chunk_count == 0
@@ -148,8 +150,10 @@ def test_embed_document_version_persists_dense_embeddings_and_metadata() -> None
         "lexical_input_hash": chunks[0].embedding_metadata["lexical_input_hash"],
     }
     assert chunks[0].embedding_metadata["embedding_input_hash"].startswith("sha256:")
-    assert chunks[0].embedding_metadata["embedding_index_fingerprint"].startswith(
-        "sha256:"
+    assert (
+        chunks[0]
+        .embedding_metadata["embedding_index_fingerprint"]
+        .startswith("sha256:")
     )
     assert chunks[1].embedding_metadata["embedding_input_kind"] == "chunk_text"
 
@@ -157,17 +161,17 @@ def test_embed_document_version_persists_dense_embeddings_and_metadata() -> None
 def test_embed_document_version_is_idempotent_for_same_provider_and_input() -> None:
     text = "Alpha beta gamma\n\nDelta epsilon zeta eta"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    _create_chunks(session, workspace=workspace, version=version)
     provider = FakeDenseEmbeddingProvider()
     pipeline = DenseEmbeddingPipeline(session, provider=provider)
 
     first = pipeline.embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     second = pipeline.embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
@@ -183,8 +187,8 @@ def test_embed_document_version_rejects_wrong_dimension_without_partial_persist(
 ):
     text = "Alpha beta gamma\n\nDelta epsilon zeta eta"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    _create_chunks(session, workspace=workspace, version=version)
     provider = WrongDimensionProvider()
 
     with pytest.raises(
@@ -195,34 +199,34 @@ def test_embed_document_version_rejects_wrong_dimension_without_partial_persist(
             session,
             provider=provider,
         ).embed_document_version(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=version.id,
         )
 
-    chunks = _chunks(session, project=project, version=version)
+    chunks = _chunks(session, workspace=workspace, version=version)
 
     assert all(chunk.embedding is None for chunk in chunks)
     assert all(chunk.embedding_metadata is None for chunk in chunks)
     assert provider.inputs == []
 
 
-def test_embed_document_version_rejects_cross_project_version() -> None:
+def test_embed_document_version_rejects_cross_workspace_version() -> None:
     text = "Alpha beta gamma\n\nDelta epsilon zeta eta"
     session = _make_session()
-    _project, version = _create_document_version(session, text=text)
-    other_project = ProjectRepository(session).create(name="other")
+    _workspace, version = _create_document_version(session, text=text)
+    other_workspace = WorkspaceRepository(session).create(name="other")
     provider = FakeDenseEmbeddingProvider()
     session.commit()
 
     with pytest.raises(
         DenseEmbeddingPipelineError,
-        match="document version does not belong to project",
+        match="document version does not belong to workspace",
     ):
         DenseEmbeddingPipeline(
             session,
             provider=provider,
         ).embed_document_version(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             document_version_id=version.id,
         )
 

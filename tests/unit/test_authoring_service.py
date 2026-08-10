@@ -10,18 +10,18 @@ import pytest
 from adaptive_rag.authoring import (
     MAX_TEXT_SOURCE_CONTENT_CHARS,
     AuthoringError,
-    create_project,
     create_source,
-    get_project,
+    create_workspace,
     get_source,
-    list_projects,
+    get_workspace,
     list_sources,
-    project_payload,
+    list_workspaces,
     source_payload,
     validate_source_create,
+    workspace_payload,
 )
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, Source
+from adaptive_rag.db.models import Source, Workspace
 from adaptive_rag.db.repositories import SourceFilters
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -30,27 +30,27 @@ def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
         engine,
-        tables=[Project.__table__, Source.__table__],
+        tables=[Workspace.__table__, Source.__table__],
     )
     return create_session_factory(engine)()
 
 
-def _project() -> Project:
-    project = Project(
+def _workspace() -> Workspace:
+    workspace = Workspace(
         name="Docs",
         embedding_mode="dense_sparse",
         retrieval_contextualization_enabled=True,
         budget_config_json={"monthly_usd": 5},
     )
-    project.id = uuid4()
-    project.created_at = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
-    project.updated_at = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
-    return project
+    workspace.id = uuid4()
+    workspace.created_at = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    workspace.updated_at = datetime(2024, 1, 2, 12, 0, tzinfo=UTC)
+    return workspace
 
 
-def _source(project_id: object | None = None) -> Source:
+def _source(workspace_id: object | None = None) -> Source:
     source = Source(
-        project_id=project_id or uuid4(),
+        workspace_id=workspace_id or uuid4(),
         source_type="markdown",
         external_id="doc-1",
         tags=["a", "b"],
@@ -70,10 +70,10 @@ def test_authoring_error_carries_detail_and_status() -> None:
     assert str(error) == "boom"
 
 
-def test_create_project_rejects_unknown_embedding_mode() -> None:
+def test_create_workspace_rejects_unknown_embedding_mode() -> None:
     # Invalid mode fails before any repository/session access.
     with pytest.raises(AuthoringError) as excinfo:
-        create_project(
+        create_workspace(
             object(),  # type: ignore[arg-type]
             name="Docs",
             embedding_mode="sparse_only",
@@ -150,13 +150,13 @@ def test_validate_source_create_accepts_text_content_at_max_size() -> None:
     )
 
 
-def test_project_payload_serializes_all_fields() -> None:
-    project = _project()
+def test_workspace_payload_serializes_all_fields() -> None:
+    workspace = _workspace()
 
-    payload = project_payload(project)
+    payload = workspace_payload(workspace)
 
     assert payload == {
-        "id": str(project.id),
+        "id": str(workspace.id),
         "name": "Docs",
         "embedding_mode": "dense_sparse",
         "retrieval_contextualization_enabled": True,
@@ -167,14 +167,14 @@ def test_project_payload_serializes_all_fields() -> None:
 
 
 def test_source_payload_serializes_all_fields() -> None:
-    project_id = uuid4()
-    source = _source(project_id=project_id)
+    workspace_id = uuid4()
+    source = _source(workspace_id=workspace_id)
 
     payload = source_payload(source)
 
     assert payload == {
         "id": str(source.id),
-        "project_id": str(project_id),
+        "workspace_id": str(workspace_id),
         "source_type": "markdown",
         "external_id": "doc-1",
         "tags": ["a", "b"],
@@ -184,33 +184,33 @@ def test_source_payload_serializes_all_fields() -> None:
     }
 
 
-def test_create_and_list_projects_round_trips_through_repository() -> None:
+def test_create_and_list_workspaces_round_trips_through_repository() -> None:
     session = _make_session()
 
-    project = create_project(session, name="Docs", embedding_mode="dense")
+    workspace = create_workspace(session, name="Docs", embedding_mode="dense")
 
-    assert project.embedding_mode == "dense"
-    assert get_project(session, project.id).id == project.id
-    assert [p.id for p in list_projects(session)] == [project.id]
+    assert workspace.embedding_mode == "dense"
+    assert get_workspace(session, workspace.id).id == workspace.id
+    assert [p.id for p in list_workspaces(session)] == [workspace.id]
 
 
-def test_get_project_raises_not_found_for_unknown_id() -> None:
+def test_get_workspace_raises_not_found_for_unknown_id() -> None:
     session = _make_session()
 
     with pytest.raises(AuthoringError) as excinfo:
-        get_project(session, uuid4())
+        get_workspace(session, uuid4())
 
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "project not found"
+    assert excinfo.value.detail == "workspace not found"
 
 
 def test_create_source_persists_and_is_listable_and_gettable() -> None:
     session = _make_session()
-    project = create_project(session, name="Docs")
+    workspace = create_workspace(session, name="Docs")
 
     source = create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="doc-1",
         tags=["guide"],
@@ -218,11 +218,12 @@ def test_create_source_persists_and_is_listable_and_gettable() -> None:
     )
 
     assert (
-        get_source(session, project_id=project.id, source_id=source.id).id == source.id
+        get_source(session, workspace_id=workspace.id, source_id=source.id).id
+        == source.id
     )
     listed = list_sources(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         filters=SourceFilters(source_type="markdown"),
     )
     assert [s.id for s in listed] == [source.id]
@@ -230,10 +231,10 @@ def test_create_source_persists_and_is_listable_and_gettable() -> None:
 
 def test_create_source_rejects_duplicate_identity() -> None:
     session = _make_session()
-    project = create_project(session, name="Docs")
+    workspace = create_workspace(session, name="Docs")
     create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.test",
     )
@@ -241,7 +242,7 @@ def test_create_source_rejects_duplicate_identity() -> None:
     with pytest.raises(AuthoringError) as excinfo:
         create_source(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_type="url",
             external_id="https://example.test",
         )
@@ -252,10 +253,10 @@ def test_create_source_rejects_duplicate_identity() -> None:
 
 def test_get_source_raises_not_found_for_unknown_source() -> None:
     session = _make_session()
-    project = create_project(session, name="Docs")
+    workspace = create_workspace(session, name="Docs")
 
     with pytest.raises(AuthoringError) as excinfo:
-        get_source(session, project_id=project.id, source_id=uuid4())
+        get_source(session, workspace_id=workspace.id, source_id=uuid4())
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "source not found"

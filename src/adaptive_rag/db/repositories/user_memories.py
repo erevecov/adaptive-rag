@@ -20,12 +20,12 @@ class UserMemoryRepository:
         *,
         user_id: UUID,
         content: str,
-        project_id: UUID | None = None,
+        workspace_id: UUID | None = None,
         status: str = "proposed",
     ) -> UserMemory:
         memory = UserMemory(
             user_id=user_id,
-            project_id=project_id,
+            workspace_id=workspace_id,
             content=content,
             status=status,
         )
@@ -43,19 +43,19 @@ class UserMemoryRepository:
         self,
         *,
         user_id: UUID,
-        project_id: UUID | None = None,
+        workspace_id: UUID | None = None,
         status: str | None = None,
         include_global: bool = True,
     ) -> list[UserMemory]:
         statement = select(UserMemory).where(UserMemory.user_id == user_id)
-        if project_id is not None:
+        if workspace_id is not None:
             if include_global:
                 statement = statement.where(
-                    (UserMemory.project_id == project_id)
-                    | (UserMemory.project_id.is_(None))
+                    (UserMemory.workspace_id == workspace_id)
+                    | (UserMemory.workspace_id.is_(None))
                 )
             else:
-                statement = statement.where(UserMemory.project_id == project_id)
+                statement = statement.where(UserMemory.workspace_id == workspace_id)
         if status is not None:
             statement = statement.where(UserMemory.status == status)
         statement = statement.order_by(UserMemory.created_at.desc(), UserMemory.id)

@@ -18,18 +18,18 @@ from adaptive_rag.db.models import (
     RUNTIME_SLOT_VALUES,
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    Project,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
     RuntimeSlotDefault,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceRuntimeSlotOverride,
 )
 
 
 @dataclass(frozen=True)
 class EffectiveRuntimeSlot:
-    """Effective project runtime slot value with inheritance metadata."""
+    """Effective workspace runtime slot value with inheritance metadata."""
 
     slot: str
     source: str
@@ -40,7 +40,7 @@ class EffectiveRuntimeSlot:
 
 @dataclass(frozen=True)
 class EffectiveChatModel:
-    """Effective project chat model pool entry with inheritance metadata."""
+    """Effective workspace chat model pool entry with inheritance metadata."""
 
     connection_id: str
     model_id: str
@@ -50,10 +50,10 @@ class EffectiveChatModel:
 
 
 @dataclass(frozen=True)
-class ProjectRuntimeSettings:
-    """Effective runtime settings for one project."""
+class WorkspaceRuntimeSettings:
+    """Effective runtime settings for one workspace."""
 
-    project_id: UUID
+    workspace_id: UUID
     slots: list[EffectiveRuntimeSlot]
     chat_models: list[EffectiveChatModel]
     chat_retrieval: EffectiveChatRetrievalSettings
@@ -71,7 +71,7 @@ class EffectiveChatRetrievalSettings:
 
 
 class ChatRetrievalSettingsRepository:
-    """Persistence for chat retrieval defaults and project overrides."""
+    """Persistence for chat retrieval defaults and workspace overrides."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -110,21 +110,21 @@ class ChatRetrievalSettingsRepository:
         self._session.flush()
         return settings
 
-    def get_project_settings(
+    def get_workspace_settings(
         self,
-        project_id: UUID,
-    ) -> ProjectChatRetrievalSettings | None:
-        return self._session.get(ProjectChatRetrievalSettings, project_id)
+        workspace_id: UUID,
+    ) -> WorkspaceChatRetrievalSettings | None:
+        return self._session.get(WorkspaceChatRetrievalSettings, workspace_id)
 
-    def get_effective_project_settings(
+    def get_effective_workspace_settings(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
     ) -> EffectiveChatRetrievalSettings:
-        project = self._require_project(project_id)
-        override = self.get_project_settings(project.id)
+        workspace = self._require_workspace(workspace_id)
+        override = self.get_workspace_settings(workspace.id)
         if override is not None:
             return EffectiveChatRetrievalSettings(
-                source="project",
+                source="workspace",
                 retrieval_limit=override.retrieval_limit,
                 rerank_enabled=override.rerank_enabled,
                 rerank_candidate_limit=override.rerank_candidate_limit,
@@ -138,24 +138,24 @@ class ChatRetrievalSettingsRepository:
             max_limit=global_settings.max_limit,
         )
 
-    def upsert_project_settings(
+    def upsert_workspace_settings(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         retrieval_limit: int,
         rerank_enabled: bool,
         rerank_candidate_limit: int,
-    ) -> ProjectChatRetrievalSettings:
-        project = self._require_project(project_id)
+    ) -> WorkspaceChatRetrievalSettings:
+        workspace = self._require_workspace(workspace_id)
         _validate_chat_retrieval_settings(
             retrieval_limit=retrieval_limit,
             rerank_enabled=rerank_enabled,
             rerank_candidate_limit=rerank_candidate_limit,
         )
-        settings = self.get_project_settings(project.id)
+        settings = self.get_workspace_settings(workspace.id)
         if settings is None:
-            settings = ProjectChatRetrievalSettings(
-                project_id=project.id,
+            settings = WorkspaceChatRetrievalSettings(
+                workspace_id=workspace.id,
                 retrieval_limit=retrieval_limit,
                 rerank_enabled=rerank_enabled,
                 rerank_candidate_limit=rerank_candidate_limit,
@@ -168,20 +168,20 @@ class ChatRetrievalSettingsRepository:
         self._session.flush()
         return settings
 
-    def delete_project_settings(self, *, project_id: UUID) -> bool:
-        project = self._require_project(project_id)
-        settings = self.get_project_settings(project.id)
+    def delete_workspace_settings(self, *, workspace_id: UUID) -> bool:
+        workspace = self._require_workspace(workspace_id)
+        settings = self.get_workspace_settings(workspace.id)
         if settings is None:
             return False
         self._session.delete(settings)
         self._session.flush()
         return True
 
-    def _require_project(self, project_id: UUID) -> Project:
-        project = self._session.get(Project, project_id)
-        if project is None or project.deleted_at is not None:
-            raise ValueError("project_not_found")
-        return project
+    def _require_workspace(self, workspace_id: UUID) -> Workspace:
+        workspace = self._session.get(Workspace, workspace_id)
+        if workspace is None or workspace.deleted_at is not None:
+            raise ValueError("workspace_not_found")
+        return workspace
 
 
 class RuntimeSettingsRepository:
@@ -369,17 +369,19 @@ class RuntimeSettingsRepository:
         return default
 
 
-class ProjectRuntimeSettingsRepository:
-    """Persistence and effective reads for project runtime overrides."""
+class WorkspaceRuntimeSettingsRepository:
+    """Persistence and effective reads for workspace runtime overrides."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_project_runtime_settings(self, project_id: UUID) -> ProjectRuntimeSettings:
-        project = self._require_project(project_id)
+    def get_workspace_runtime_settings(
+        self, workspace_id: UUID
+    ) -> WorkspaceRuntimeSettings:
+        workspace = self._require_workspace(workspace_id)
         slot_overrides = {
             override.slot: override
-            for override in self._list_slot_overrides(project.id)
+            for override in self._list_slot_overrides(workspace.id)
         }
         global_defaults = {
             default.slot: default
@@ -412,31 +414,31 @@ class ProjectRuntimeSettingsRepository:
                     )
                 )
 
-        return ProjectRuntimeSettings(
-            project_id=project.id,
+        return WorkspaceRuntimeSettings(
+            workspace_id=workspace.id,
             slots=slots,
-            chat_models=self._effective_chat_models(project.id),
+            chat_models=self._effective_chat_models(workspace.id),
             chat_retrieval=ChatRetrievalSettingsRepository(
                 self._session
-            ).get_effective_project_settings(project.id),
+            ).get_effective_workspace_settings(workspace.id),
         )
 
     def upsert_slot_override(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         slot: str,
         connection_id: str,
         model_id: str,
         parameters: Mapping[str, Any] | None = None,
-    ) -> ProjectRuntimeSlotOverride:
-        project = self._require_project(project_id)
+    ) -> WorkspaceRuntimeSlotOverride:
+        workspace = self._require_workspace(workspace_id)
         slot = _normalize_slot(slot)
         model_id = _normalize_model_id(model_id)
         connection = self._require_connection(connection_id)
         _require_capability(connection, slot)
         override = self._upsert_slot_override_row(
-            project_id=project.id,
+            workspace_id=workspace.id,
             slot=slot,
             connection_id=connection.connection_id,
             model_id=model_id,
@@ -445,7 +447,7 @@ class ProjectRuntimeSettingsRepository:
 
         if slot == "chat":
             self.upsert_chat_model(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 connection_id=connection.connection_id,
                 model_id=model_id,
                 make_default=True,
@@ -456,10 +458,10 @@ class ProjectRuntimeSettingsRepository:
         self._session.flush()
         return override
 
-    def delete_slot_override(self, *, project_id: UUID, slot: str) -> bool:
-        project = self._require_project(project_id)
+    def delete_slot_override(self, *, workspace_id: UUID, slot: str) -> bool:
+        workspace = self._require_workspace(workspace_id)
         slot = _normalize_slot(slot)
-        override = self._session.get(ProjectRuntimeSlotOverride, (project.id, slot))
+        override = self._session.get(WorkspaceRuntimeSlotOverride, (workspace.id, slot))
         if override is None:
             return False
         self._session.delete(override)
@@ -469,32 +471,32 @@ class ProjectRuntimeSettingsRepository:
     def upsert_chat_model(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         connection_id: str,
         model_id: str,
         make_default: bool = False,
         parameters: Mapping[str, Any] | None = None,
         sync_slot_override: bool = True,
-    ) -> ProjectChatModel:
-        project = self._require_project(project_id)
+    ) -> WorkspaceChatModel:
+        workspace = self._require_workspace(workspace_id)
         model_id = _normalize_model_id(model_id)
         connection = self._require_connection(connection_id)
         _require_capability(connection, "chat")
-        project_models = self._list_project_chat_models(project.id)
-        should_be_default = make_default or len(project_models) == 0
+        workspace_models = self._list_workspace_chat_models(workspace.id)
+        should_be_default = make_default or len(workspace_models) == 0
         parameters_json = dict(parameters) if parameters is not None else None
 
         if should_be_default:
-            self._clear_project_chat_defaults(project.id)
+            self._clear_workspace_chat_defaults(workspace.id)
 
-        model = self._get_project_chat_model(
-            project_id=project.id,
+        model = self._get_workspace_chat_model(
+            workspace_id=workspace.id,
             connection_id=connection.connection_id,
             model_id=model_id,
         )
         if model is None:
-            model = ProjectChatModel(
-                project_id=project.id,
+            model = WorkspaceChatModel(
+                workspace_id=workspace.id,
                 connection_id=connection.connection_id,
                 model_id=model_id,
                 is_default=should_be_default,
@@ -508,7 +510,7 @@ class ProjectRuntimeSettingsRepository:
 
         if model.is_default and sync_slot_override:
             self._upsert_slot_override_row(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 slot="chat",
                 connection_id=model.connection_id,
                 model_id=model.model_id,
@@ -521,22 +523,22 @@ class ProjectRuntimeSettingsRepository:
     def set_default_chat_model(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         connection_id: str,
         model_id: str,
-    ) -> ProjectChatModel:
-        project = self._require_project(project_id)
-        model = self._get_project_chat_model(
-            project_id=project.id,
+    ) -> WorkspaceChatModel:
+        workspace = self._require_workspace(workspace_id)
+        model = self._get_workspace_chat_model(
+            workspace_id=workspace.id,
             connection_id=connection_id,
             model_id=_normalize_model_id(model_id),
         )
         if model is None:
             raise ValueError("chat_model_not_found")
-        self._clear_project_chat_defaults(project.id)
+        self._clear_workspace_chat_defaults(workspace.id)
         model.is_default = True
         self._upsert_slot_override_row(
-            project_id=project.id,
+            workspace_id=workspace.id,
             slot="chat",
             connection_id=model.connection_id,
             model_id=model.model_id,
@@ -548,19 +550,19 @@ class ProjectRuntimeSettingsRepository:
     def delete_chat_model(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         connection_id: str,
         model_id: str,
     ) -> bool:
-        project = self._require_project(project_id)
-        model = self._get_project_chat_model(
-            project_id=project.id,
+        workspace = self._require_workspace(workspace_id)
+        model = self._get_workspace_chat_model(
+            workspace_id=workspace.id,
             connection_id=connection_id,
             model_id=_normalize_model_id(model_id),
         )
         if model is None:
             return False
-        models = self._list_project_chat_models(project.id)
+        models = self._list_workspace_chat_models(workspace.id)
         if len(models) == 1:
             raise ValueError("cannot_delete_last_chat_model")
         if model.is_default:
@@ -569,9 +571,9 @@ class ProjectRuntimeSettingsRepository:
         self._session.flush()
         return True
 
-    def _effective_chat_models(self, project_id: UUID) -> list[EffectiveChatModel]:
-        project_models = self._list_project_chat_models(project_id)
-        if project_models:
+    def _effective_chat_models(self, workspace_id: UUID) -> list[EffectiveChatModel]:
+        workspace_models = self._list_workspace_chat_models(workspace_id)
+        if workspace_models:
             return [
                 EffectiveChatModel(
                     connection_id=model.connection_id,
@@ -580,7 +582,7 @@ class ProjectRuntimeSettingsRepository:
                     source="overridden",
                     parameters_json=model.parameters_json,
                 )
-                for model in project_models
+                for model in workspace_models
             ]
         return [
             EffectiveChatModel(
@@ -595,48 +597,50 @@ class ProjectRuntimeSettingsRepository:
 
     def _list_slot_overrides(
         self,
-        project_id: UUID,
-    ) -> list[ProjectRuntimeSlotOverride]:
+        workspace_id: UUID,
+    ) -> list[WorkspaceRuntimeSlotOverride]:
         statement = (
-            select(ProjectRuntimeSlotOverride)
-            .where(ProjectRuntimeSlotOverride.project_id == project_id)
-            .order_by(ProjectRuntimeSlotOverride.slot)
+            select(WorkspaceRuntimeSlotOverride)
+            .where(WorkspaceRuntimeSlotOverride.workspace_id == workspace_id)
+            .order_by(WorkspaceRuntimeSlotOverride.slot)
         )
         return list(self._session.scalars(statement))
 
-    def _list_project_chat_models(self, project_id: UUID) -> list[ProjectChatModel]:
+    def _list_workspace_chat_models(
+        self, workspace_id: UUID
+    ) -> list[WorkspaceChatModel]:
         statement = (
-            select(ProjectChatModel)
-            .where(ProjectChatModel.project_id == project_id)
+            select(WorkspaceChatModel)
+            .where(WorkspaceChatModel.workspace_id == workspace_id)
             .order_by(
-                ProjectChatModel.is_default.desc(),
-                ProjectChatModel.connection_id,
-                ProjectChatModel.model_id,
+                WorkspaceChatModel.is_default.desc(),
+                WorkspaceChatModel.connection_id,
+                WorkspaceChatModel.model_id,
             )
         )
         return list(self._session.scalars(statement))
 
-    def _get_project_chat_model(
+    def _get_workspace_chat_model(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         connection_id: str,
         model_id: str,
-    ) -> ProjectChatModel | None:
+    ) -> WorkspaceChatModel | None:
         return self._session.get(
-            ProjectChatModel,
-            (project_id, connection_id, model_id),
+            WorkspaceChatModel,
+            (workspace_id, connection_id, model_id),
         )
 
-    def _clear_project_chat_defaults(self, project_id: UUID) -> None:
-        for model in self._list_project_chat_models(project_id):
+    def _clear_workspace_chat_defaults(self, workspace_id: UUID) -> None:
+        for model in self._list_workspace_chat_models(workspace_id):
             model.is_default = False
 
-    def _require_project(self, project_id: UUID) -> Project:
-        project = self._session.get(Project, project_id)
-        if project is None or project.deleted_at is not None:
-            raise ValueError("project_not_found")
-        return project
+    def _require_workspace(self, workspace_id: UUID) -> Workspace:
+        workspace = self._session.get(Workspace, workspace_id)
+        if workspace is None or workspace.deleted_at is not None:
+            raise ValueError("workspace_not_found")
+        return workspace
 
     def _require_connection(self, connection_id: str) -> ProviderConnection:
         connection = self._session.get(ProviderConnection, connection_id)
@@ -647,17 +651,17 @@ class ProjectRuntimeSettingsRepository:
     def _upsert_slot_override_row(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         slot: str,
         connection_id: str,
         model_id: str,
         parameters: Mapping[str, Any] | None,
-    ) -> ProjectRuntimeSlotOverride:
-        override = self._session.get(ProjectRuntimeSlotOverride, (project_id, slot))
+    ) -> WorkspaceRuntimeSlotOverride:
+        override = self._session.get(WorkspaceRuntimeSlotOverride, (workspace_id, slot))
         parameters_json = dict(parameters) if parameters is not None else None
         if override is None:
-            override = ProjectRuntimeSlotOverride(
-                project_id=project_id,
+            override = WorkspaceRuntimeSlotOverride(
+                workspace_id=workspace_id,
                 slot=slot,
                 connection_id=connection_id,
                 model_id=model_id,

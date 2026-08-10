@@ -113,12 +113,16 @@ class ProviderModelResponse(BaseModel):
 
     @classmethod
     def from_model(cls, model: ProviderModelCatalog) -> ProviderModelResponse:
+        # Treat empty / JSON-null rows as missing so the UI shows "No pricing".
+        pricing = model.pricing_json
+        if not isinstance(pricing, dict) or len(pricing) == 0:
+            pricing = None
         return cls(
             connection_id=model.connection_id,
             model_id=model.model_id,
             capabilities=list(model.capabilities_json),
             metadata=model.metadata_json,
-            pricing=model.pricing_json,
+            pricing=pricing,
             last_seen_at=model.last_seen_at,
             created_at=model.created_at,
             updated_at=model.updated_at,
@@ -133,3 +137,29 @@ class ProviderModelSyncResponse(BaseModel):
     connection_id: str
     synced_count: int
     items: list[ProviderModelResponse]
+
+
+class SystemTaskStatusResponse(BaseModel):
+    task_id: str
+    interval_seconds: int
+    last_started_at: str | None
+    last_succeeded_at: str | None
+    last_status: str | None
+    last_error: str | None
+    last_report: dict[str, Any] | None
+    locked_by: str | None
+    locked_until: str | None
+    updated_at: str | None
+
+
+class SystemTaskListResponse(BaseModel):
+    items: list[SystemTaskStatusResponse]
+
+
+class SystemTaskRunResponse(BaseModel):
+    task_id: str
+    status: str
+    worker_id: str
+    force: bool
+    report: dict[str, Any] | None = None
+    error: str | None = None

@@ -30,11 +30,11 @@ class UserMemory(Base):
             name="user_memories_status_check",
         ),
         Index("ix_user_memories_user_id", "user_id"),
-        Index("ix_user_memories_project_id", "project_id"),
+        Index("ix_user_memories_workspace_id", "workspace_id"),
         Index(
-            "ix_user_memories_user_project_status",
+            "ix_user_memories_user_workspace_status",
             "user_id",
-            "project_id",
+            "workspace_id",
             "status",
         ),
     )
@@ -43,8 +43,8 @@ class UserMemory(Base):
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    project_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
+    workspace_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(

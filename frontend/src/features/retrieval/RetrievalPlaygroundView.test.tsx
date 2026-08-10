@@ -63,7 +63,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -82,7 +82,7 @@ describe('RetrievalPlaygroundPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => {
-      expect(search).toHaveBeenCalledWith('project-1', {
+      expect(search).toHaveBeenCalledWith('workspace-1', {
         query: 'What is the refund policy?',
         limit: 10,
         strategy: 'dense_sparse',
@@ -107,15 +107,15 @@ describe('RetrievalPlaygroundPanel', () => {
     expect(screen.getByText('Text')).toBeTruthy()
   })
 
-  test('requires project and non-empty query', async () => {
+  test('requires workspace and non-empty query', async () => {
     const user = userEvent.setup()
     const search = vi.fn()
     const { rerender } = render(
-      <RetrievalPlaygroundPanel client={createClient(search)} projectId="" />,
+      <RetrievalPlaygroundPanel client={createClient(search)} workspaceId="" />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Search' }))
-    expect(screen.getByText(/Select a Project Before Searching/i)).toBeTruthy()
+    expect(screen.getByText(/Select a Workspace Before Searching/i)).toBeTruthy()
     expect(search).not.toHaveBeenCalled()
     const failedBadge = screen.getByText('Failed')
     expect(failedBadge.getAttribute('data-slot')).toBe('badge')
@@ -124,7 +124,7 @@ describe('RetrievalPlaygroundPanel', () => {
     rerender(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
     await user.click(screen.getByRole('button', { name: 'Search' }))
@@ -140,7 +140,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
     await user.type(screen.getByLabelText('Query'), 'graph query')
@@ -164,7 +164,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -192,7 +192,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -224,7 +224,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
     await user.type(screen.getByLabelText('Query'), 'graph query')
@@ -250,7 +250,7 @@ describe('RetrievalPlaygroundPanel', () => {
     render(
       <RetrievalPlaygroundPanel
         client={createClient(search)}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
     await user.type(screen.getByLabelText('Query'), 'secret leak')

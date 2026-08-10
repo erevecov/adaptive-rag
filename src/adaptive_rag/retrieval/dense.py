@@ -94,7 +94,7 @@ class DenseRetriever:
     def search(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query_embedding: Sequence[float],
         limit: int = 10,
         filters: DenseRetrievalFilters | None = None,
@@ -106,14 +106,14 @@ class DenseRetriever:
         active_filters = filters or DenseRetrievalFilters()
         if self._dialect_name() == "postgresql":
             candidates = self._search_postgres(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query_vector=query_vector,
                 limit=limit,
                 filters=active_filters,
             )
         else:
             candidates = self._search_in_memory(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query_vector=query_vector,
                 limit=limit,
                 filters=active_filters,
@@ -123,11 +123,11 @@ class DenseRetriever:
     def get_by_chunk_ids(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_ids: Sequence[UUID],
         filters: DenseRetrievalFilters | None = None,
     ) -> dict[UUID, DenseRetrievalResult]:
-        """Load citations for known chunks while preserving project isolation."""
+        """Load citations for known chunks while preserving workspace isolation."""
 
         if not chunk_ids:
             return {}
@@ -141,7 +141,7 @@ class DenseRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=active_filters,
             apply_tags_in_sql=False,
             require_embedding=False,
@@ -168,7 +168,7 @@ class DenseRetriever:
     def _search_postgres(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query_vector: list[float],
         limit: int,
         filters: DenseRetrievalFilters,
@@ -182,7 +182,7 @@ class DenseRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
             apply_tags_in_sql=True,
         )
@@ -203,7 +203,7 @@ class DenseRetriever:
     def _search_in_memory(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query_vector: list[float],
         limit: int,
         filters: DenseRetrievalFilters,
@@ -216,7 +216,7 @@ class DenseRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
             apply_tags_in_sql=False,
         )
@@ -251,14 +251,14 @@ class DenseRetriever:
         self,
         statement: Any,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DenseRetrievalFilters,
         apply_tags_in_sql: bool,
         require_embedding: bool = True,
     ) -> Any:
         statement = statement.where(
-            Document.project_id == project_id,
-            Source.project_id == project_id,
+            Document.workspace_id == workspace_id,
+            Source.workspace_id == workspace_id,
             latest_document_version_clause(),
         )
         if require_embedding:

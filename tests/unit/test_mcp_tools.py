@@ -19,8 +19,8 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -32,8 +32,8 @@ from adaptive_rag.mcp_server.server import (
     _providers,
     ask,
     ingest_text,
-    list_projects,
     list_sources,
+    list_workspaces,
     search,
     tool_names,
 )
@@ -49,7 +49,7 @@ def _install_memory_session(monkeypatch: Any) -> None:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -141,37 +141,37 @@ def test_search_and_ask_return_structured_error_when_live_misconfigured(
             chat_model="qwen-plus",
         ),
     )
-    project_id = "00000000-0000-0000-0000-000000000001"
-    search_payload = json.loads(search(project_id, "hello", limit=1))
-    ask_payload = json.loads(ask(project_id, "hello?"))
+    workspace_id = "00000000-0000-0000-0000-000000000001"
+    search_payload = json.loads(search(workspace_id, "hello", limit=1))
+    ask_payload = json.loads(ask(workspace_id, "hello?"))
     assert search_payload["error"] == "provider_configuration_error"
     assert "ADAPTIVE_RAG_QWEN_API_KEY" in search_payload["message"]
     assert ask_payload["error"] == "provider_configuration_error"
     assert "ADAPTIVE_RAG_QWEN_API_KEY" in ask_payload["message"]
 
 
-def test_list_projects_and_ingest_text_public_path(monkeypatch: Any) -> None:
+def test_list_workspaces_and_ingest_text_public_path(monkeypatch: Any) -> None:
     _install_memory_session(monkeypatch)
     monkeypatch.setattr(
         provider_runtime,
         "get_settings",
         lambda: _settings(provider_runtime_mode="fake"),
     )
-    assert json.loads(list_projects())["items"] == []
+    assert json.loads(list_workspaces())["items"] == []
 
     from adaptive_rag.mcp_server import server as server_mod
 
     with server_mod.session_scope() as session:
-        project = authoring.create_project(session, name="MCP Demo")
+        workspace = authoring.create_workspace(session, name="MCP Demo")
         session.commit()
-        project_id = str(project.id)
+        workspace_id = str(workspace.id)
 
-    items = json.loads(list_projects())["items"]
-    assert any(item["id"] == project_id for item in items)
+    items = json.loads(list_workspaces())["items"]
+    assert any(item["id"] == workspace_id for item in items)
 
     ingest = json.loads(
         ingest_text(
-            project_id=project_id,
+            workspace_id=workspace_id,
             external_id="mcp-notes.md",
             content="# MCP\n\nHello from MCP ingest_text.",
         )
@@ -180,12 +180,12 @@ def test_list_projects_and_ingest_text_public_path(monkeypatch: Any) -> None:
     assert UUID(ingest["job_id"])
     assert ingest["source"]["external_id"] == "mcp-notes.md"
 
-    sources = json.loads(list_sources(project_id))["items"]
+    sources = json.loads(list_sources(workspace_id))["items"]
     assert len(sources) == 1
 
-    search_payload = json.loads(search(project_id, "Hello", limit=3))
+    search_payload = json.loads(search(workspace_id, "Hello", limit=3))
     assert "results" in search_payload
-    ask_payload = json.loads(ask(project_id, "What is MCP?"))
+    ask_payload = json.loads(ask(workspace_id, "What is MCP?"))
     assert "answer" in ask_payload
     assert "citation_count" in ask_payload
 

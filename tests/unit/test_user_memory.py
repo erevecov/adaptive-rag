@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from adaptive_rag import user_memory
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, ProjectMembership, User, UserMemory
+from adaptive_rag.db.models import User, UserMemory, Workspace, WorkspaceMembership
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -18,9 +18,9 @@ def _session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
             UserMemory.__table__,
         ],
     )
@@ -29,14 +29,14 @@ def _session():
 
 def test_propose_approve_and_injection_text() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="MemProj")
+    workspace = WorkspaceRepository(session).create(name="MemProj")
     user = UserRepository(session).create_user(
         login="mem-user",
         display_name="Mem User",
         system_role="user",
     )
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="contributor",
     )
@@ -45,7 +45,7 @@ def test_propose_approve_and_injection_text() -> None:
     proposed = user_memory.propose_memory(
         session,
         user_id=user.id,
-        project_id=project.id,
+        workspace_id=workspace.id,
         content="  Prefers Spanish answers  ",
     )
     assert proposed.status == "proposed"
@@ -54,7 +54,7 @@ def test_propose_approve_and_injection_text() -> None:
     # Not injected until approved
     assert (
         user_memory.approved_injection_text(
-            session, user_id=user.id, project_id=project.id
+            session, user_id=user.id, workspace_id=workspace.id
         )
         == ""
     )
@@ -67,7 +67,7 @@ def test_propose_approve_and_injection_text() -> None:
     )
     assert approved.status == "approved"
     injection = user_memory.approved_injection_text(
-        session, user_id=user.id, project_id=project.id
+        session, user_id=user.id, workspace_id=workspace.id
     )
     assert "User memory (approved):" in injection
     assert "Prefers Spanish answers" in injection
@@ -153,25 +153,25 @@ def test_cross_user_cannot_approve_foreign_memory() -> None:
     assert user_memory.approved_injection_text(session, user_id=other.id) == ""
 
 
-def test_global_and_project_scope_injection() -> None:
+def test_global_and_workspace_scope_injection() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="Scoped")
+    workspace = WorkspaceRepository(session).create(name="Scoped")
     user = UserRepository(session).create_user(login="scoped", display_name="Scoped")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="viewer",
     )
     global_mem = user_memory.propose_memory(
         session, user_id=user.id, content="Global preference"
     )
-    project_mem = user_memory.propose_memory(
+    workspace_mem = user_memory.propose_memory(
         session,
         user_id=user.id,
-        project_id=project.id,
-        content="Project preference",
+        workspace_id=workspace.id,
+        content="Workspace preference",
     )
-    for mem in (global_mem, project_mem):
+    for mem in (global_mem, workspace_mem):
         user_memory.approve_memory(
             session,
             memory_id=mem.id,
@@ -180,21 +180,21 @@ def test_global_and_project_scope_injection() -> None:
         )
 
     text = user_memory.approved_injection_text(
-        session, user_id=user.id, project_id=project.id
+        session, user_id=user.id, workspace_id=workspace.id
     )
     assert "Global preference" in text
-    assert "Project preference" in text
+    assert "Workspace preference" in text
 
     global_only = user_memory.approved_injection_text(session, user_id=user.id)
     assert "Global preference" in global_only
-    # Without project filter, project-scoped rows are still listed
-    # when project_id is None (list_for_user only filters by project
-    # when project_id is provided).
+    # Without workspace filter, workspace-scoped rows are still listed
+    # when workspace_id is None (list_for_user only filters by workspace
+    # when workspace_id is provided).
 
 
-def test_propose_project_scoped_requires_membership() -> None:
+def test_propose_workspace_scoped_requires_membership() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="Foreign")
+    workspace = WorkspaceRepository(session).create(name="Foreign")
     user = UserRepository(session).create_user(
         login="outsider",
         display_name="Outsider",
@@ -204,37 +204,37 @@ def test_propose_project_scoped_requires_membership() -> None:
         user_memory.propose_memory(
             session,
             user_id=user.id,
-            project_id=project.id,
-            content="Should not land on foreign project",
+            workspace_id=workspace.id,
+            content="Should not land on foreign workspace",
         )
-        raise AssertionError("expected project access denied")
+        raise AssertionError("expected workspace access denied")
     except user_memory.UserMemoryError as exc:
         assert exc.status_code == 403
-        assert exc.detail == "project access required"
+        assert exc.detail == "workspace access required"
 
 
-def test_approve_project_scoped_requires_membership() -> None:
+def test_approve_workspace_scoped_requires_membership() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="Was Member")
+    workspace = WorkspaceRepository(session).create(name="Was Member")
     user = UserRepository(session).create_user(
         login="ex-member",
         display_name="Ex Member",
         system_role="user",
     )
-    memberships = ProjectMembershipRepository(session)
+    memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=user.id,
         role="contributor",
     )
     proposed = user_memory.propose_memory(
         session,
         user_id=user.id,
-        project_id=project.id,
-        content="Project fact",
+        workspace_id=workspace.id,
+        content="Workspace fact",
     )
     # Membership revoked before self-approve (would inject into system prompt).
-    assert memberships.remove_membership(project_id=project.id, user_id=user.id)
+    assert memberships.remove_membership(workspace_id=workspace.id, user_id=user.id)
     session.flush()
 
     try:
@@ -244,14 +244,14 @@ def test_approve_project_scoped_requires_membership() -> None:
             reviewer_user_id=user.id,
             owner_user_id=user.id,
         )
-        raise AssertionError("expected project access denied on approve")
+        raise AssertionError("expected workspace access denied on approve")
     except user_memory.UserMemoryError as exc:
         assert exc.status_code == 403
-        assert exc.detail == "project access required"
+        assert exc.detail == "workspace access required"
 
     assert (
         user_memory.approved_injection_text(
-            session, user_id=user.id, project_id=project.id
+            session, user_id=user.id, workspace_id=workspace.id
         )
         == ""
     )
@@ -259,7 +259,7 @@ def test_approve_project_scoped_requires_membership() -> None:
 
 def test_superadmin_can_propose_and_approve_without_membership() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="Admin Scope")
+    workspace = WorkspaceRepository(session).create(name="Admin Scope")
     admin = UserRepository(session).create_user(
         login="super",
         display_name="Super",
@@ -268,7 +268,7 @@ def test_superadmin_can_propose_and_approve_without_membership() -> None:
     proposed = user_memory.propose_memory(
         session,
         user_id=admin.id,
-        project_id=project.id,
+        workspace_id=workspace.id,
         content="Superadmin note",
         is_superadmin=True,
     )

@@ -1,4 +1,4 @@
-"""Tests for project runtime settings inheritance and overrides."""
+"""Tests for workspace runtime settings inheritance and overrides."""
 
 from __future__ import annotations
 
@@ -10,19 +10,19 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    Project,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
     RuntimeSlotDefault,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceRuntimeSlotOverride,
 )
 from adaptive_rag.db.repositories import (
     ChatRetrievalSettingsRepository,
-    ProjectRepository,
-    ProjectRuntimeSettingsRepository,
     ProviderConnectionRepository,
     RuntimeSettingsRepository,
+    WorkspaceRepository,
+    WorkspaceRuntimeSettingsRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -32,14 +32,14 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             ProviderConnection.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
-            ProjectRuntimeSlotOverride.__table__,
-            ProjectChatModel.__table__,
+            WorkspaceRuntimeSlotOverride.__table__,
+            WorkspaceChatModel.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -63,9 +63,9 @@ def _add_connection(
     )
 
 
-def test_project_slot_override_shadows_global_and_reset_inherits_again() -> None:
+def test_workspace_slot_override_shadows_global_and_reset_inherits_again() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _add_connection(session, connection_id="qwen-hosted", capabilities=["rerank"])
     _add_connection(
         session,
@@ -80,10 +80,10 @@ def test_project_slot_override_shadows_global_and_reset_inherits_again() -> None
         connection_id="qwen-hosted",
         model_id="qwen3-rerank",
     )
-    project_repo = ProjectRuntimeSettingsRepository(session)
+    workspace_repo = WorkspaceRuntimeSettingsRepository(session)
 
-    override = project_repo.upsert_slot_override(
-        project_id=project.id,
+    override = workspace_repo.upsert_slot_override(
+        workspace_id=workspace.id,
         slot="rerank",
         connection_id="local-rerank",
         model_id="local-reranker",
@@ -91,31 +91,35 @@ def test_project_slot_override_shadows_global_and_reset_inherits_again() -> None
     )
     session.commit()
 
-    effective = project_repo.get_project_runtime_settings(project.id)
+    effective = workspace_repo.get_workspace_runtime_settings(workspace.id)
 
     assert override.parameters_json == {"top_n": 4}
     assert effective.slots[0].slot == "rerank"
     assert effective.slots[0].source == "overridden"
     assert effective.slots[0].connection_id == "local-rerank"
 
-    deleted = project_repo.delete_slot_override(project_id=project.id, slot="rerank")
+    deleted = workspace_repo.delete_slot_override(
+        workspace_id=workspace.id, slot="rerank"
+    )
     session.commit()
-    inherited = project_repo.get_project_runtime_settings(project.id)
+    inherited = workspace_repo.get_workspace_runtime_settings(workspace.id)
 
     assert deleted is True
     assert inherited.slots[0].source == "inherited"
     assert inherited.slots[0].connection_id == "qwen-hosted"
 
 
-def test_project_runtime_settings_reject_missing_project_and_bad_connection() -> None:
+def test_workspace_runtime_settings_reject_missing_workspace_and_bad_connection() -> (
+    None
+):
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _add_connection(session, connection_id="chat-only", capabilities=["chat"])
-    repository = ProjectRuntimeSettingsRepository(session)
+    repository = WorkspaceRuntimeSettingsRepository(session)
 
-    with pytest.raises(ValueError, match="project_not_found"):
+    with pytest.raises(ValueError, match="workspace_not_found"):
         repository.upsert_slot_override(
-            project_id=uuid4(),
+            workspace_id=uuid4(),
             slot="rerank",
             connection_id="chat-only",
             model_id="qwen3-rerank",
@@ -123,16 +127,16 @@ def test_project_runtime_settings_reject_missing_project_and_bad_connection() ->
 
     with pytest.raises(ValueError, match="connection_unavailable"):
         repository.upsert_slot_override(
-            project_id=project.id,
+            workspace_id=workspace.id,
             slot="rerank",
             connection_id="chat-only",
             model_id="qwen3-rerank",
         )
 
 
-def test_project_chat_pool_overrides_global_without_mutating_global_pool() -> None:
+def test_workspace_chat_pool_overrides_global_without_mutating_global_pool() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _add_connection(session, connection_id="qwen-hosted", capabilities=["chat"])
     _add_connection(
         session,
@@ -143,28 +147,28 @@ def test_project_chat_pool_overrides_global_without_mutating_global_pool() -> No
     )
     global_repo = RuntimeSettingsRepository(session)
     global_repo.upsert_chat_model(connection_id="qwen-hosted", model_id="qwen-plus")
-    project_repo = ProjectRuntimeSettingsRepository(session)
+    workspace_repo = WorkspaceRuntimeSettingsRepository(session)
 
-    inherited = project_repo.get_project_runtime_settings(project.id)
+    inherited = workspace_repo.get_workspace_runtime_settings(workspace.id)
 
     assert [(model.model_id, model.source) for model in inherited.chat_models] == [
         ("qwen-plus", "inherited")
     ]
 
-    project_repo.upsert_chat_model(
-        project_id=project.id,
+    workspace_repo.upsert_chat_model(
+        workspace_id=workspace.id,
         connection_id="local-chat",
         model_id="llama3.1:8b",
     )
-    project_repo.upsert_chat_model(
-        project_id=project.id,
+    workspace_repo.upsert_chat_model(
+        workspace_id=workspace.id,
         connection_id="qwen-hosted",
         model_id="qwen-plus",
         make_default=True,
     )
     session.commit()
 
-    overridden = project_repo.get_project_runtime_settings(project.id)
+    overridden = workspace_repo.get_workspace_runtime_settings(workspace.id)
     global_models = global_repo.list_chat_models()
 
     assert [
@@ -182,9 +186,9 @@ def test_project_chat_pool_overrides_global_without_mutating_global_pool() -> No
     assert global_model_states == [("qwen-hosted", "qwen-plus", True)]
 
 
-def test_project_chat_pool_rejects_deleting_last_or_default_model() -> None:
+def test_workspace_chat_pool_rejects_deleting_last_or_default_model() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _add_connection(session, connection_id="qwen-hosted", capabilities=["chat"])
     _add_connection(
         session,
@@ -193,37 +197,37 @@ def test_project_chat_pool_rejects_deleting_last_or_default_model() -> None:
         connection_type="local",
         capabilities=["chat"],
     )
-    repository = ProjectRuntimeSettingsRepository(session)
+    repository = WorkspaceRuntimeSettingsRepository(session)
     repository.upsert_chat_model(
-        project_id=project.id,
+        workspace_id=workspace.id,
         connection_id="qwen-hosted",
         model_id="qwen-plus",
     )
 
     with pytest.raises(ValueError, match="cannot_delete_last_chat_model"):
         repository.delete_chat_model(
-            project_id=project.id,
+            workspace_id=workspace.id,
             connection_id="qwen-hosted",
             model_id="qwen-plus",
         )
 
     repository.upsert_chat_model(
-        project_id=project.id,
+        workspace_id=workspace.id,
         connection_id="local-chat",
         model_id="llama3.1:8b",
     )
 
     with pytest.raises(ValueError, match="cannot_delete_default_chat_model"):
         repository.delete_chat_model(
-            project_id=project.id,
+            workspace_id=workspace.id,
             connection_id="qwen-hosted",
             model_id="qwen-plus",
         )
 
 
-def test_project_chat_retrieval_settings_inherit_override_and_reset() -> None:
+def test_workspace_chat_retrieval_settings_inherit_override_and_reset() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     repository = ChatRetrievalSettingsRepository(session)
     repository.upsert_global_settings(
         retrieval_limit=6,
@@ -231,32 +235,32 @@ def test_project_chat_retrieval_settings_inherit_override_and_reset() -> None:
         rerank_candidate_limit=10,
     )
 
-    inherited = repository.get_effective_project_settings(project.id)
+    inherited = repository.get_effective_workspace_settings(workspace.id)
 
     assert inherited.source == "global"
     assert inherited.retrieval_limit == 6
     assert inherited.rerank_enabled is True
     assert inherited.rerank_candidate_limit == 10
 
-    override = repository.upsert_project_settings(
-        project_id=project.id,
+    override = repository.upsert_workspace_settings(
+        workspace_id=workspace.id,
         retrieval_limit=8,
         rerank_enabled=False,
         rerank_candidate_limit=12,
     )
     session.commit()
 
-    effective = repository.get_effective_project_settings(project.id)
+    effective = repository.get_effective_workspace_settings(workspace.id)
 
     assert override.retrieval_limit == 8
-    assert effective.source == "project"
+    assert effective.source == "workspace"
     assert effective.retrieval_limit == 8
     assert effective.rerank_enabled is False
     assert effective.rerank_candidate_limit == 12
 
-    assert repository.delete_project_settings(project_id=project.id) is True
+    assert repository.delete_workspace_settings(workspace_id=workspace.id) is True
     session.commit()
-    reset = repository.get_effective_project_settings(project.id)
+    reset = repository.get_effective_workspace_settings(workspace.id)
 
     assert reset.source == "global"
     assert reset.retrieval_limit == 6

@@ -9,6 +9,7 @@ export const RUNTIME_SLOTS = [
   'sparse_embedding',
   'rerank',
   'contextualization',
+  'vision',
 ] as const
 export const PROVIDER_CONNECTION_CAPABILITIES: readonly string[] = RUNTIME_SLOTS
 
@@ -22,7 +23,7 @@ export type RuntimeSubmodule =
   | 'connections'
   | 'model_catalog'
   | 'global_defaults'
-  | 'project_overrides'
+  | 'workspace_overrides'
 export type ProviderModelOption = {
   connection_id: string
   model_id: string
@@ -78,7 +79,11 @@ export function missingSyncedModelMessage({
   if (trimmedConnectionId.length === 0 || modelOptions.length > 0) {
     return null
   }
-  return `Sync models for ${trimmedConnectionId} before saving ${slotLabel(target)}.`
+  const slot = slotLabel(target)
+  return (
+    `No ${slot} models in the catalog for this connection. ` +
+    `Open Model Catalog to sync, or pick a connection that exposes ${slot} models.`
+  )
 }
 
 export function providerModelOptions({
@@ -188,6 +193,9 @@ export function slotLabel(slot: string): string {
   if (slot === 'contextualization') {
     return 'Contextualization'
   }
+  if (slot === 'vision') {
+    return 'Vision'
+  }
   return titleCaseToken(slot)
 }
 
@@ -202,4 +210,97 @@ export function metadataLabel(
   return typeof label === 'string' && label.trim().length > 0
     ? label.trim()
     : null
+}
+
+/**
+ * Compact summary of provider_model_catalog.pricing_json for Model Catalog rows.
+ *
+ * Backend shape (Alibaba list sync) uses one of:
+ * - Token models: input/output/thinking *_per_million_tokens_usd
+ * - Image models: usd_per_image
+ * - TTS: input_per_10k_characters_usd
+ * Missing or empty → No pricing.
+ */
+export type ProviderModelPricingSummary = {
+  hasPricing: boolean
+  /** e.g. "In $0.40 · Out $1.20 /1M" or "$0.03 /image" */
+  summary: string | null
+  badgeLabel: 'Priced' | 'No pricing'
+}
+
+export function formatProviderModelPricing(
+  pricing: Record<string, unknown> | null | undefined,
+): ProviderModelPricingSummary {
+  if (pricing == null || typeof pricing !== 'object') {
+    return { hasPricing: false, summary: null, badgeLabel: 'No pricing' }
+  }
+
+  const perImage = readNonNegativeNumber(pricing.usd_per_image)
+  if (perImage !== null) {
+    return {
+      hasPricing: true,
+      summary: `${formatUsdAmount(perImage)} /image`,
+      badgeLabel: 'Priced',
+    }
+  }
+
+  const per10kChars = readNonNegativeNumber(
+    pricing.input_per_10k_characters_usd,
+  )
+  if (per10kChars !== null) {
+    return {
+      hasPricing: true,
+      summary: `${formatUsdAmount(per10kChars)} /10k chars`,
+      badgeLabel: 'Priced',
+    }
+  }
+
+  const input = readNonNegativeNumber(pricing.input_per_million_tokens_usd)
+  const output = readNonNegativeNumber(pricing.output_per_million_tokens_usd)
+  const thinking = readNonNegativeNumber(
+    pricing.output_thinking_per_million_tokens_usd,
+  )
+
+  if (input === null && output === null && thinking === null) {
+    return { hasPricing: false, summary: null, badgeLabel: 'No pricing' }
+  }
+
+  const parts: string[] = []
+  if (input !== null) {
+    parts.push(`In ${formatUsdAmount(input)}`)
+  }
+  if (output !== null) {
+    parts.push(`Out ${formatUsdAmount(output)}`)
+  }
+  if (thinking !== null) {
+    parts.push(`Think ${formatUsdAmount(thinking)}`)
+  }
+
+  return {
+    hasPricing: true,
+    summary: `${parts.join(' · ')} /1M`,
+    badgeLabel: 'Priced',
+  }
+}
+
+function readNonNegativeNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed
+    }
+  }
+  return null
+}
+
+function formatUsdAmount(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value)
 }

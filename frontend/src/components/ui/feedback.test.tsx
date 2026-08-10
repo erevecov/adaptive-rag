@@ -14,7 +14,7 @@ describe('EmptyState', () => {
   test('uses stacked density with gap for multi-line operator copy', () => {
     render(
       <EmptyState>
-        <p>No projects yet.</p>
+        <p>No workspaces yet.</p>
         <p>Create one above.</p>
       </EmptyState>,
     )

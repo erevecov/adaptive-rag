@@ -63,11 +63,31 @@ services:
       - sh
       - -c
       - |
-        if [ -z "$$ADAPTIVE_RAG_WORKER_PROJECT_ID" ]; then
-          echo "Set ADAPTIVE_RAG_WORKER_PROJECT_ID before starting the worker profile." >&2
+        if [ -z "$$ADAPTIVE_RAG_WORKER_WORKSPACE_ID" ]; then
+          echo "Set ADAPTIVE_RAG_WORKER_WORKSPACE_ID before starting the worker profile." >&2
           exit 2
         fi
-        adaptive-rag jobs run-worker --project-id "$$ADAPTIVE_RAG_WORKER_PROJECT_ID"
+        adaptive-rag jobs run-worker --workspace-id "$$ADAPTIVE_RAG_WORKER_WORKSPACE_ID"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Global in-app scheduler (provider model pricing daily, etc.).
+  # Not host crontab: runs inside the product stack with DB-backed leases.
+  scheduler:
+    build: .
+    env_file:
+      - .env.example
+    environment:
+      ADAPTIVE_RAG_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
+    command:
+      - adaptive-rag
+      - system
+      - run-scheduler
+      - --poll-interval-seconds
+      - "60"
+      - --lease-seconds
+      - "300"
     depends_on:
       postgres:
         condition: service_healthy

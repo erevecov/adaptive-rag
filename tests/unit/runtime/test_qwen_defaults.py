@@ -16,6 +16,7 @@ from adaptive_rag.db.models import (
 from adaptive_rag.db.repositories import RuntimeSettingsRepository
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.runtime.qwen_defaults import (
+    ensure_qwen_declared_capability_models,
     infer_qwen_model_capabilities,
     materialize_qwen_runtime_defaults,
 )
@@ -81,6 +82,38 @@ def _add_model(
     session.flush()
 
 
+def test_seeds_rerank_and_embedding_when_declared_but_missing_from_provider_list() -> (
+    None
+):
+    session = _session()
+    _add_connection(
+        session,
+        connection_id="bailian",
+        capabilities=["chat", "dense_embedding", "sparse_embedding", "rerank"],
+    )
+    # Provider /models only returned a chat model.
+    _add_model(
+        session,
+        connection_id="bailian",
+        model_id="qwen3.7-plus",
+        capabilities=["chat"],
+    )
+
+    connection = session.get(ProviderConnection, "bailian")
+    assert connection is not None
+    seeded = ensure_qwen_declared_capability_models(session, connection)
+    session.commit()
+
+    assert "qwen3-rerank" in seeded
+    assert "text-embedding-v4" in seeded
+    rerank = session.get(ProviderModelCatalog, ("bailian", "qwen3-rerank"))
+    embed = session.get(ProviderModelCatalog, ("bailian", "text-embedding-v4"))
+    assert rerank is not None
+    assert rerank.capabilities_json == ["rerank"]
+    assert embed is not None
+    assert set(embed.capabilities_json) == {"dense_embedding", "sparse_embedding"}
+
+
 def test_infers_known_qwen_model_capabilities() -> None:
     assert infer_qwen_model_capabilities("qwen-plus") == ("chat",)
     assert infer_qwen_model_capabilities("text-embedding-v4") == (
@@ -88,7 +121,40 @@ def test_infers_known_qwen_model_capabilities() -> None:
         "sparse_embedding",
     )
     assert infer_qwen_model_capabilities("qwen3-rerank") == ("rerank",)
-    assert infer_qwen_model_capabilities("qwen-unknown-experimental") == ()
+    # Modern dotted ids from Bailian Token Plan.
+    assert infer_qwen_model_capabilities("qwen3.7-plus") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen3.8-max") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen3.6-flash") == ("chat",)
+    assert infer_qwen_model_capabilities("deepseek-v4-pro") == ("chat",)
+    assert infer_qwen_model_capabilities("glm-5.2") == ("chat",)
+    assert infer_qwen_model_capabilities("wan2.7-image") == ()
+    assert infer_qwen_model_capabilities("qwen-audio-3.0-tts-plus") == ()
+
+
+def test_infers_vision_capabilities_for_qwen_vl_models() -> None:
+    assert infer_qwen_model_capabilities("qwen-vl-max") == ("chat", "vision")
+    assert infer_qwen_model_capabilities("qwen2-vl-7b") == ("chat", "vision")
+    assert infer_qwen_model_capabilities("qwen2.5-vl-72b") == ("chat", "vision")
+    assert infer_qwen_model_capabilities("qwen3-vl-plus") == ("chat", "vision")
+    assert infer_qwen_model_capabilities("Qwen2.5-VL-72B-Instruct") == (
+        "chat",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen3-vision-plus") == ("chat", "vision")
+
+
+def test_does_not_mark_non_vision_qwen_models_as_vision() -> None:
+    assert infer_qwen_model_capabilities("qwen-plus") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen3-max") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen3-embedding-8b") == (
+        "dense_embedding",
+        "sparse_embedding",
+    )
+    assert infer_qwen_model_capabilities("qwen3-rerank") == ("rerank",)
+    assert infer_qwen_model_capabilities("text-embedding-v4") == (
+        "dense_embedding",
+        "sparse_embedding",
+    )
 
 
 def test_materializes_qwen_defaults_from_connected_catalog_idempotently() -> None:

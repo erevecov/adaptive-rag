@@ -44,7 +44,7 @@ def _tools() -> ChatTools:
     return ChatTools(
         retrieval=ChatRetrievalTool(
             retrieval_service=object(),  # type: ignore[arg-type]
-            project_id=uuid4(),
+            workspace_id=uuid4(),
             default_limit=3,
             default_metadata_filter=None,
         )
@@ -53,7 +53,7 @@ def _tools() -> ChatTools:
 
 def _request() -> ChatRunnerRequest:
     return ChatRunnerRequest(
-        project_id=uuid4(),
+        workspace_id=uuid4(),
         message="hello",
         retrieval_limit=3,
         metadata_filter=None,

@@ -14,8 +14,8 @@ from adaptive_rag.embeddings import (
     SparseEmbeddingProvider,
 )
 from adaptive_rag.evals.fixtures import (
-    EvalRetrievalFixtureProject,
-    build_retrieval_fixture_project,
+    EvalRetrievalFixtureWorkspace,
+    build_retrieval_fixture_workspace,
 )
 from adaptive_rag.evals.metrics import passes_threshold, ratio
 from adaptive_rag.evals.models import (
@@ -48,12 +48,12 @@ def run_retrieval_eval_suite(
     rerank_options: RetrievalRerankOptions | None = None,
     strategy: RetrievalStrategy = "dense",
     graph_retriever: GraphRetriever | None = None,
-    fixture_project: EvalRetrievalFixtureProject | None = None,
+    fixture_workspace: EvalRetrievalFixtureWorkspace | None = None,
 ) -> EvalRunReport:
     """Ejecuta los casos de retrieval de una suite sin llamar providers hosted."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
-    active_fixture_project = fixture_project or build_retrieval_fixture_project(
+    active_fixture_workspace = fixture_workspace or build_retrieval_fixture_workspace(
         session,
         suite,
         provider=active_provider,
@@ -64,9 +64,9 @@ def run_retrieval_eval_suite(
             session,
             provider=active_sparse_provider,
         )
-        for document_version_id in active_fixture_project.document_version_ids:
+        for document_version_id in active_fixture_workspace.document_version_ids:
             sparse_pipeline.embed_document_version(
-                project_id=active_fixture_project.project_id,
+                workspace_id=active_fixture_workspace.workspace_id,
                 document_version_id=document_version_id,
             )
     service = RetrievalService(
@@ -83,7 +83,7 @@ def run_retrieval_eval_suite(
     cases = tuple(
         _run_retrieval_case(
             service,
-            fixture_project=active_fixture_project,
+            fixture_workspace=active_fixture_workspace,
             retrieval_case=retrieval_case,
             rerank_options=rerank_options,
             strategy=strategy,
@@ -118,7 +118,7 @@ def run_retrieval_eval_suite(
 def _run_retrieval_case(
     service: RetrievalService,
     *,
-    fixture_project: EvalRetrievalFixtureProject,
+    fixture_workspace: EvalRetrievalFixtureWorkspace,
     retrieval_case: RetrievalEvalCase,
     rerank_options: RetrievalRerankOptions | None,
     strategy: RetrievalStrategy,
@@ -126,7 +126,7 @@ def _run_retrieval_case(
     try:
         results = service.search(
             RetrievalSearchRequest(
-                project_id=fixture_project.project_id,
+                workspace_id=fixture_workspace.workspace_id,
                 query=retrieval_case.query,
                 limit=retrieval_case.limit,
                 metadata_filter=retrieval_case.metadata_filter,
@@ -154,7 +154,7 @@ def _run_retrieval_case(
         )
 
     observed_evidence_ids = tuple(
-        fixture_project.evidence_id_by_chunk_id[result.chunk_id] for result in results
+        fixture_workspace.evidence_id_by_chunk_id[result.chunk_id] for result in results
     )
     observed_citations = tuple(
         _observed_citation(

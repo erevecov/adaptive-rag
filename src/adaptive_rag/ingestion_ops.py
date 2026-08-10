@@ -47,7 +47,7 @@ class IngestionJobDetail:
 @dataclass(frozen=True, slots=True)
 class IngestionRunReport:
     status: str
-    project_id: UUID
+    workspace_id: UUID
     worker_id: str
     job_id: UUID | None = None
     job_type: str | None = None
@@ -68,21 +68,21 @@ class IngestionRunReport:
 def enqueue_source_ingestion(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     priority: int = 0,
     max_attempts: int = 3,
     run_after: datetime | None = None,
 ) -> Job:
-    _ensure_project_exists(session=session, project_id=project_id)
+    _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     try:
-        authoring.get_source(session, project_id=project_id, source_id=source_id)
+        authoring.get_source(session, workspace_id=workspace_id, source_id=source_id)
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
 
     job_repo = JobRepository(session)
     existing = job_repo.find_open_ingest_source(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_id=source_id,
     )
     if existing is not None:
@@ -90,7 +90,7 @@ def enqueue_source_ingestion(
         return existing
 
     return job_repo.create(
-        project_id=project_id,
+        workspace_id=workspace_id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         payload_json={"source_id": str(source_id)},
         priority=priority,
@@ -102,14 +102,14 @@ def enqueue_source_ingestion(
 def list_ingestion_jobs(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID | None = None,
     status: str | None = None,
     job_type: str | None = None,
 ) -> list[Job]:
-    _ensure_project_exists(session=session, project_id=project_id)
+    _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     jobs = JobRepository(session).list(
-        project_id=project_id,
+        workspace_id=workspace_id,
         status=status,
         job_type=job_type,
     )
@@ -121,35 +121,35 @@ def list_ingestion_jobs(
 def get_ingestion_job_detail(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     job_id: UUID,
 ) -> IngestionJobDetail:
-    _ensure_project_exists(session=session, project_id=project_id)
+    _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     job_repository = JobRepository(session)
-    job = job_repository.get(project_id=project_id, job_id=job_id)
+    job = job_repository.get(workspace_id=workspace_id, job_id=job_id)
     if job is None:
         raise IngestionOpsError("job not found", status_code=404)
     return IngestionJobDetail(
         job=job,
-        events=job_repository.list_events(project_id=project_id, job_id=job_id),
+        events=job_repository.list_events(workspace_id=workspace_id, job_id=job_id),
     )
 
 
 def retry_ingestion_job(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     job_id: UUID,
     run_after: datetime | None = None,
     reset_attempts: bool = True,
 ) -> Job:
-    _ensure_project_exists(session=session, project_id=project_id)
+    _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     job_repository = JobRepository(session)
-    if job_repository.get(project_id=project_id, job_id=job_id) is None:
+    if job_repository.get(workspace_id=workspace_id, job_id=job_id) is None:
         raise IngestionOpsError("job not found", status_code=404)
     try:
         return job_repository.requeue(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job_id,
             run_after=run_after,
             reset_attempts=reset_attempts,
@@ -163,7 +163,7 @@ def retry_ingestion_job(
 def run_next_ingestion_job(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     worker_id: str,
     lease_seconds: int = 300,
     now: datetime | None = None,
@@ -171,14 +171,14 @@ def run_next_ingestion_job(
     sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     contextualizer: Contextualizer | None = None,
 ) -> IngestionRunReport:
-    _ensure_project_exists(session=session, project_id=project_id)
+    _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     active_now = now or datetime.now(UTC)
     lease_until = active_now + timedelta(seconds=lease_seconds)
     job_repo = JobRepository(session)
     # Recover kill-mid-job / crashed workers before selecting new work.
-    job_repo.release_expired_leases(project_id=project_id, now=active_now)
+    job_repo.release_expired_leases(workspace_id=workspace_id, now=active_now)
     job = job_repo.lease_next(
-        project_id=project_id,
+        workspace_id=workspace_id,
         worker_id=worker_id,
         now=active_now,
         lease_until=lease_until,
@@ -187,7 +187,7 @@ def run_next_ingestion_job(
     if job is None:
         return IngestionRunReport(
             status="idle",
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
         )
 
@@ -199,11 +199,11 @@ def run_next_ingestion_job(
     try:
         if job.job_type == INGEST_SOURCE_JOB_TYPE:
             ingest_result = IngestionPipeline(session).process_leased_job(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job=job,
             )
             return _report_from_ingest_result(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 worker_id=worker_id,
                 result=ingest_result,
             )
@@ -215,11 +215,11 @@ def run_next_ingestion_job(
                 sparse_embedding_provider=sparse_embedding_provider,
                 contextualizer=contextualizer,
             ).process_leased_job(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job=job,
             )
             return _report_from_index_result(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 worker_id=worker_id,
                 result=index_result,
             )
@@ -228,7 +228,7 @@ def run_next_ingestion_job(
         error_message = str(exc) or exc.__class__.__name__
         try:
             failed = job_repo.fail(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
                 error_message=error_message,
                 retry_after=active_now + timedelta(seconds=backoff),
@@ -240,7 +240,7 @@ def run_next_ingestion_job(
             # requeued/dead-lettered instead of leaking past the handler.
             session.rollback()
             failed = job_repo.fail(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
                 error_message=error_message,
                 retry_after=active_now + timedelta(seconds=backoff),
@@ -248,7 +248,7 @@ def run_next_ingestion_job(
             )
         return IngestionRunReport(
             status="failed" if failed.status == "queued" else "dead_letter",
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             job_id=failed.id,
             job_type=failed.job_type,
@@ -258,14 +258,14 @@ def run_next_ingestion_job(
         )
 
     blocked = job_repo.block(
-        project_id=project_id,
+        workspace_id=workspace_id,
         job_id=job.id,
         reason=f"unsupported ingestion-family job_type: {job.job_type}",
         worker_id=worker_id,
     )
     return IngestionRunReport(
         status="blocked",
-        project_id=project_id,
+        workspace_id=workspace_id,
         worker_id=worker_id,
         job_id=blocked.id,
         job_type=blocked.job_type,
@@ -284,7 +284,7 @@ def _retry_backoff_seconds(attempts: int) -> int:
 def run_ingestion_family_until_idle(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     worker_id: str,
     lease_seconds: int = 300,
     max_jobs: int = 32,
@@ -298,7 +298,7 @@ def run_ingestion_family_until_idle(
     for _ in range(max_jobs):
         report = run_next_ingestion_job(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             lease_seconds=lease_seconds,
             dense_embedding_provider=dense_embedding_provider,
@@ -316,7 +316,7 @@ def run_ingestion_family_until_idle(
 def job_payload(job: Job) -> dict[str, object]:
     return {
         "id": str(job.id),
-        "project_id": str(job.project_id),
+        "workspace_id": str(job.workspace_id),
         "job_type": job.job_type,
         "status": job.status,
         "priority": job.priority,
@@ -337,7 +337,7 @@ def job_payload(job: Job) -> dict[str, object]:
 def job_event_payload(event: JobEvent) -> dict[str, object]:
     return {
         "id": str(event.id),
-        "project_id": str(event.project_id),
+        "workspace_id": str(event.workspace_id),
         "job_id": str(event.job_id),
         "event_type": event.event_type,
         "message": event.message,
@@ -348,14 +348,14 @@ def job_event_payload(event: JobEvent) -> dict[str, object]:
 
 def _report_from_ingest_result(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     worker_id: str,
     result: IngestionRunResult | IngestionBlockedResult,
 ) -> IngestionRunReport:
     if isinstance(result, IngestionBlockedResult):
         return IngestionRunReport(
             status="blocked",
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             job_id=result.job.id,
             job_type=result.job.job_type,
@@ -364,7 +364,7 @@ def _report_from_ingest_result(
         )
     return IngestionRunReport(
         status="processed",
-        project_id=project_id,
+        workspace_id=workspace_id,
         worker_id=worker_id,
         job_id=result.job.id,
         job_type=result.job.job_type,
@@ -377,14 +377,14 @@ def _report_from_ingest_result(
 
 def _report_from_index_result(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     worker_id: str,
     result: IndexingRunResult | IndexingBlockedResult,
 ) -> IngestionRunReport:
     if isinstance(result, IndexingBlockedResult):
         return IngestionRunReport(
             status="blocked",
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             job_id=result.job.id,
             job_type=result.job.job_type,
@@ -394,7 +394,7 @@ def _report_from_index_result(
         )
     return IngestionRunReport(
         status="processed",
-        project_id=project_id,
+        workspace_id=workspace_id,
         worker_id=worker_id,
         job_id=result.job.id,
         job_type=result.job.job_type,
@@ -410,9 +410,9 @@ def _report_from_index_result(
     )
 
 
-def _ensure_project_exists(*, session: Session, project_id: UUID) -> None:
+def _ensure_workspace_exists(*, session: Session, workspace_id: UUID) -> None:
     try:
-        authoring.get_project(session, project_id)
+        authoring.get_workspace(session, workspace_id)
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
 

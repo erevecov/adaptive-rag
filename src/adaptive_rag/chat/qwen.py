@@ -24,6 +24,7 @@ from adaptive_rag.provider_usage import (
     build_success_record,
     record_with_budget,
 )
+from adaptive_rag.runtime.qwen_defaults import infer_qwen_model_capabilities
 
 ChatMessage = dict[str, Any]
 ChatToolDefinition = dict[str, Any]
@@ -64,8 +65,18 @@ class QwenChatRunner:
     provider_name: str = "qwen"
     # Optional second model tried once after primary 429/5xx exhaustion.
     fallback_model_name: str | None = None
+    model_capabilities: tuple[str, ...] = field(default_factory=tuple)
+    fallback_model_capabilities: tuple[str, ...] = field(default_factory=tuple)
     last_used_model: str | None = field(default=None, init=False, repr=False)
     used_fallback: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.model_capabilities:
+            self.model_capabilities = infer_qwen_model_capabilities(self.model_name)
+        if self.fallback_model_name and not self.fallback_model_capabilities:
+            self.fallback_model_capabilities = infer_qwen_model_capabilities(
+                self.fallback_model_name
+            )
 
     def run(
         self,
@@ -75,20 +86,34 @@ class QwenChatRunner:
         on_answer_delta: Callable[[str], None] | None = None,
     ) -> ChatRunnerOutput:
         self.used_fallback = False
+        primary = self.model_name
+        has_images = any(
+            attachment.kind == "image" and attachment.image_data_url
+            for attachment in request.attachments
+        )
+        # Silent auto-route to vision-capable fallback when primary lacks vision.
+        if (
+            has_images
+            and "vision" not in self.model_capabilities
+            and "vision" in self.fallback_model_capabilities
+            and self.fallback_model_name
+        ):
+            primary = self.fallback_model_name
+            self.used_fallback = True
         try:
             output = self._run_with_model(
-                self.model_name,
+                primary,
                 request,
                 tools,
                 on_answer_delta=on_answer_delta,
             )
-            self.last_used_model = self.model_name
+            self.last_used_model = primary
             return output
         except QwenChatRunnerError as exc:
-            if not _should_use_fallback(exc, self.fallback_model_name, self.model_name):
+            if not _should_use_fallback(exc, self.fallback_model_name, primary):
                 raise
             output = self._run_with_model(
-                self.fallback_model_name or self.model_name,
+                self.fallback_model_name or primary,
                 request,
                 tools,
                 on_answer_delta=on_answer_delta,
@@ -539,7 +564,7 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
     system_content = (
         "You are Adaptive RAG's retrieval-grounded chat runner. "
         "You MUST call retrieval_search before answering factual or "
-        "project-knowledge questions. If retrieval returns no useful "
+        "workspace-knowledge questions. If retrieval returns no useful "
         "evidence, say you could not find sources and keep "
         "cited_chunk_ids empty. Never invent chunk ids or unsupported "
         "facts. "
@@ -549,7 +574,7 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
         "Answer those from history without inventing chunk ids. "
         "Prefer the retrieval query when provided in the latest "
         "user turn metadata. When the user explicitly asks to save, learn, "
-        "remember, or capture project knowledge, call commit_knowledge. "
+        "remember, or capture workspace knowledge, call commit_knowledge. "
         "Choose scope=message when the knowledge is only in the latest "
         "user message, or scope=session when it summarizes this chat "
         "session. If the user asks to change an existing knowledge "
@@ -572,12 +597,25 @@ def _initial_messages(request: ChatRunnerRequest) -> list[ChatMessage]:
     for turn in request.history:
         if turn.role in {"user", "assistant"} and turn.content.strip():
             messages.append({"role": turn.role, "content": turn.content})
-    user_content = request.message
+    user_text = request.message
     if request.retrieval_query and request.retrieval_query != request.message:
-        user_content = (
+        user_text = (
             f"{request.message}\n\n[retrieval_query] {request.retrieval_query}"
         )
-    messages.append({"role": "user", "content": user_content})
+    image_urls = [
+        attachment.image_data_url
+        for attachment in request.attachments
+        if attachment.kind == "image" and attachment.image_data_url
+    ]
+    if image_urls:
+        content: list[dict[str, Any]] = [{"type": "text", "text": user_text}]
+        for url in image_urls:
+            content.append(
+                {"type": "image_url", "image_url": {"url": url}},
+            )
+        messages.append({"role": "user", "content": content})
+    else:
+        messages.append({"role": "user", "content": user_text})
     return messages
 
 
@@ -601,7 +639,7 @@ def _retrieval_tool_schema() -> ChatToolDefinition:
         "function": {
             "name": _RETRIEVAL_TOOL_NAME,
             "description": (
-                "Search indexed project evidence. Returns candidate chunks "
+                "Search indexed workspace evidence. Returns candidate chunks "
                 "with citation metadata and chunk_id values that may be cited."
             ),
             "parameters": {
@@ -609,7 +647,7 @@ def _retrieval_tool_schema() -> ChatToolDefinition:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query for project evidence.",
+                        "description": "Search query for workspace evidence.",
                     },
                     "limit": {
                         "type": "integer",
@@ -633,7 +671,7 @@ def _knowledge_proposal_tool_schema() -> ChatToolDefinition:
         "function": {
             "name": _KNOWLEDGE_PROPOSAL_TOOL_NAME,
             "description": (
-                "Create or refine an auditable project knowledge draft card "
+                "Create or refine an auditable workspace knowledge draft card "
                 "when the user explicitly asks to save, learn, remember, or "
                 "capture knowledge from the chat."
             ),
@@ -643,7 +681,7 @@ def _knowledge_proposal_tool_schema() -> ChatToolDefinition:
                     "knowledge_text": {
                         "type": "string",
                         "description": (
-                            "The exact project knowledge text that should be "
+                            "The exact workspace knowledge text that should be "
                             "shown in the review card."
                         ),
                     },
@@ -676,7 +714,7 @@ def _knowledge_refinement_tool_schema() -> ChatToolDefinition:
         "function": {
             "name": _KNOWLEDGE_REFINEMENT_TOOL_NAME,
             "description": (
-                "Update an existing project knowledge draft card when the user "
+                "Update an existing workspace knowledge draft card when the user "
                 "asks to modify, correct, shorten, expand, or refine it. Keep "
                 "the same draft_id and provide the revised knowledge text."
             ),
@@ -690,7 +728,7 @@ def _knowledge_refinement_tool_schema() -> ChatToolDefinition:
                     "knowledge_text": {
                         "type": "string",
                         "description": (
-                            "The revised project knowledge text to show in the "
+                            "The revised workspace knowledge text to show in the "
                             "same review card."
                         ),
                     },

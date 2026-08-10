@@ -14,7 +14,7 @@ API/CLI workers.
 
 - **WHEN** a user runs `adaptive-rag first-run smoke` against an initialized
   local database
-- **THEN** the command creates a project and Markdown source through public
+- **THEN** the command creates a workspace and Markdown source through public
   authoring services
 - **AND** enqueues and processes an `ingest_source` job through the public
   worker path
@@ -91,7 +91,7 @@ data that can produce cited chat answers.
 
 #### Scenario: Empty workspace points to a local setup path
 
-- **WHEN** the frontend has no selected project or no usable source data
+- **WHEN** the frontend has no selected workspace or no usable source data
 - **THEN** it points the user toward the documented local setup path or public
   authoring and ingestion controls
 - **AND** it does not require hosted provider credentials for the default path
@@ -99,7 +99,7 @@ data that can produce cited chat answers.
 #### Scenario: First-run report can seed the workspace
 
 - **WHEN** a user runs `adaptive-rag first-run smoke`
-- **THEN** the resulting project id can be reused in the frontend workspace
+- **THEN** the resulting workspace id can be reused in the frontend workspace
 - **AND** the frontend can proceed to chat/history using public API contracts
   rather than fixtures or direct database access
 

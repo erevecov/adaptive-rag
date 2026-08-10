@@ -59,7 +59,7 @@ app.add_typer(observability_app, name="observability")
 
 @app.command("ask")
 def ask(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     message: Annotated[str, typer.Option("--message")],
     retrieval_limit: Annotated[int | None, typer.Option("--retrieval-limit")] = None,
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
@@ -97,9 +97,9 @@ def ask(
         usage_tracker = InMemoryProviderUsageTracker()
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
-        ).get_effective_project_settings(project_id)
+        ).get_effective_workspace_settings(workspace_id)
         request = ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message=message,
             retrieval_limit=(
                 retrieval_limit
@@ -118,24 +118,24 @@ def ask(
         retrieval_service = _LazyCliChatRetrievalSearcher(
             session=session,
             provider=_get_chat_dense_embedding_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
                 usage_tracker=usage_tracker,
             ),
             sparse_provider=_get_chat_sparse_embedding_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
                 usage_tracker=usage_tracker,
             ),
             rerank_provider_factory=lambda: _get_chat_rerank_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
                 usage_tracker=usage_tracker,
             ),
         )
         service = ChatService(
             runner=_get_chat_runner(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
                 usage_tracker=usage_tracker,
             ),
@@ -159,7 +159,7 @@ def ask(
 
 @sessions_app.command("list")
 def list_sessions(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     status: Annotated[str | None, typer.Option("--status")] = None,
     limit: Annotated[int, typer.Option("--limit")] = 20,
     cursor: Annotated[str | None, typer.Option("--cursor")] = None,
@@ -167,7 +167,7 @@ def list_sessions(
     with session_scope() as session:
         try:
             page = ChatAuditRepository(session).list_session_summaries(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 status=status,
                 limit=limit,
                 cursor=cursor,
@@ -182,12 +182,12 @@ def list_sessions(
 
 @sessions_app.command("show")
 def show_session(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     session_id: Annotated[UUID, typer.Option("--session-id")],
 ) -> None:
     with session_scope() as session:
         detail = ChatAuditRepository(session).get_session_detail(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
         )
         if detail is None:
@@ -200,7 +200,7 @@ def show_session(
 
 @observability_app.command("summary")
 def observability_summary(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     created_at_from: Annotated[
         str | None,
         typer.Option("--created-at-from"),
@@ -214,7 +214,7 @@ def observability_summary(
     with session_scope() as session:
         try:
             summary = ChatObservabilityRepository(session).get_summary(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 created_at_from=parse_cli_datetime(
                     created_at_from,
                     field_name="created_at_from",
@@ -247,13 +247,13 @@ def _commit_or_rollback_chat_error(session: Session) -> None:
 
 def _get_chat_dense_embedding_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> DenseEmbeddingProvider:
     kwargs = _runtime_factory_kwargs(
         get_cli_dense_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -265,13 +265,13 @@ def _get_chat_dense_embedding_provider(
 
 def _get_chat_sparse_embedding_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> SparseEmbeddingProvider:
     kwargs = _runtime_factory_kwargs(
         get_cli_sparse_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -283,13 +283,13 @@ def _get_chat_sparse_embedding_provider(
 
 def _get_chat_rerank_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> RerankProvider:
     kwargs = _runtime_factory_kwargs(
         get_cli_rerank_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -298,13 +298,13 @@ def _get_chat_rerank_provider(
 
 def _get_chat_runner(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> ChatRunner:
     kwargs = _runtime_factory_kwargs(
         get_cli_chat_runner,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -314,14 +314,14 @@ def _get_chat_runner(
 def _runtime_factory_kwargs(
     factory: Callable[..., object],
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
 ) -> dict[str, object]:
     parameters = signature(factory).parameters
     kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
+    if "workspace_id" in parameters:
+        kwargs["workspace_id"] = workspace_id
     if "session" in parameters:
         kwargs["session"] = session
     if "usage_tracker" in parameters:

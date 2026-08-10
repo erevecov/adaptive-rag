@@ -20,16 +20,16 @@ from adaptive_rag.db.models import (
     Job,
     JobEvent,
     KnowledgeProposal,
-    Project,
-    ProjectMembership,
     Source,
     User,
     UserAccessToken,
+    Workspace,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
@@ -43,10 +43,10 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
             Source.__table__,
             Job.__table__,
             JobEvent.__table__,
@@ -79,9 +79,9 @@ def _create_user(session: Session, *, login: str, token: str) -> User:
     return user
 
 
-def _grant(session: Session, *, project: Project, user: User, role: str) -> None:
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+def _grant(session: Session, *, workspace: Workspace, user: User, role: str) -> None:
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role=role,
     )
@@ -93,14 +93,14 @@ def _bearer(token: str) -> dict[str, str]:
 
 def test_viewer_submit_creates_pending_knowledge_proposal() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    _grant(session, project=project, user=viewer, role="viewer")
+    _grant(session, workspace=workspace, user=viewer, role="viewer")
     session.commit()
     client = _client(session=session)
 
     response = client.post(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("viewer-token"),
         json={"proposed_text": "Viewer proposed knowledge"},
     )
@@ -117,18 +117,18 @@ def test_viewer_submit_creates_pending_knowledge_proposal() -> None:
 
 def test_contributor_submit_enters_knowledge_directly_as_approved_source() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     contributor = _create_user(
         session,
         login="contributor@example.com",
         token="contributor-token",
     )
-    _grant(session, project=project, user=contributor, role="contributor")
+    _grant(session, workspace=workspace, user=contributor, role="contributor")
     session.commit()
     client = _client(session=session)
 
     response = client.post(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("contributor-token"),
         json={"proposed_text": "Contributor knowledge"},
     )
@@ -143,41 +143,41 @@ def test_contributor_submit_enters_knowledge_directly_as_approved_source() -> No
     assert source.extra_metadata == {"content": "Contributor knowledge"}
     job = session.query(Job).one()
     assert job.job_type == "ingest_source"
-    assert job.project_id == project.id
+    assert job.workspace_id == workspace.id
     assert job.payload_json == {"source_id": str(source.id)}
 
 
 def test_contributor_can_list_refine_and_approve_pending_proposal() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
         login="contributor@example.com",
         token="contributor-token",
     )
-    _grant(session, project=project, user=viewer, role="viewer")
-    _grant(session, project=project, user=contributor, role="contributor")
+    _grant(session, workspace=workspace, user=viewer, role="viewer")
+    _grant(session, workspace=workspace, user=contributor, role="contributor")
     session.commit()
     client = _client(session=session)
     created = client.post(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("viewer-token"),
         json={"proposed_text": "Draft knowledge"},
     ).json()
 
     pending = client.get(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("contributor-token"),
         params={"status": "pending"},
     )
     refined = client.post(
-        f"/projects/{project.id}/knowledge-proposals/{created['id']}/refine",
+        f"/workspaces/{workspace.id}/knowledge-proposals/{created['id']}/refine",
         headers=_bearer("contributor-token"),
         json={"refined_text": "Refined knowledge"},
     )
     approved = client.post(
-        f"/projects/{project.id}/knowledge-proposals/{created['id']}/approve",
+        f"/workspaces/{workspace.id}/knowledge-proposals/{created['id']}/approve",
         headers=_bearer("contributor-token"),
         json={"review_note": "accepted"},
     )
@@ -200,30 +200,30 @@ def test_contributor_can_list_refine_and_approve_pending_proposal() -> None:
 
 def test_contributor_can_reject_pending_proposal_with_reason() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
         login="contributor@example.com",
         token="contributor-token",
     )
-    _grant(session, project=project, user=viewer, role="viewer")
-    _grant(session, project=project, user=contributor, role="contributor")
+    _grant(session, workspace=workspace, user=viewer, role="viewer")
+    _grant(session, workspace=workspace, user=contributor, role="contributor")
     session.commit()
     client = _client(session=session)
     created = client.post(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("viewer-token"),
         json={"proposed_text": "Weak knowledge"},
     ).json()
 
     rejected = client.post(
-        f"/projects/{project.id}/knowledge-proposals/{created['id']}/reject",
+        f"/workspaces/{workspace.id}/knowledge-proposals/{created['id']}/reject",
         headers=_bearer("contributor-token"),
         json={"reason": "not supported"},
     )
     approve_after_reject = client.post(
-        f"/projects/{project.id}/knowledge-proposals/{created['id']}/approve",
+        f"/workspaces/{workspace.id}/knowledge-proposals/{created['id']}/approve",
         headers=_bearer("contributor-token"),
         json={},
     )
@@ -236,18 +236,18 @@ def test_contributor_can_reject_pending_proposal_with_reason() -> None:
     assert approve_after_reject.json()["detail"] == "knowledge_proposal_not_pending"
 
 
-def test_viewer_cannot_review_project_knowledge_proposals() -> None:
+def test_viewer_cannot_review_workspace_knowledge_proposals() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    _grant(session, project=project, user=viewer, role="viewer")
+    _grant(session, workspace=workspace, user=viewer, role="viewer")
     session.commit()
     client = _client(session=session)
 
     response = client.get(
-        f"/projects/{project.id}/knowledge-proposals",
+        f"/workspaces/{workspace.id}/knowledge-proposals",
         headers=_bearer("viewer-token"),
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "project contributor role required"
+    assert response.json()["detail"] == "workspace contributor role required"

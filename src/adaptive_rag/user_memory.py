@@ -13,9 +13,9 @@ from adaptive_rag.db.models.user_memory import (
     USER_MEMORY_STATUS_VALUES,
     UserMemory,
 )
-from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
-from adaptive_rag.db.repositories.users import ProjectMembershipRepository
+from adaptive_rag.db.repositories.users import WorkspaceMembershipRepository
+from adaptive_rag.db.repositories.workspaces import WorkspaceRepository
 
 
 class UserMemoryError(Exception):
@@ -29,7 +29,7 @@ class UserMemoryError(Exception):
 class UserMemoryView:
     id: UUID
     user_id: UUID
-    project_id: UUID | None
+    workspace_id: UUID | None
     content: str
     status: str
 
@@ -39,7 +39,7 @@ def propose_memory(
     *,
     user_id: UUID,
     content: str,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     is_superadmin: bool = False,
 ) -> UserMemory:
     text = content.strip()
@@ -47,15 +47,15 @@ def propose_memory(
         raise UserMemoryError("content must not be empty", status_code=422)
     if len(text) > 4000:
         raise UserMemoryError("content exceeds 4000 characters", status_code=422)
-    _require_project_scope_access(
+    _require_workspace_scope_access(
         session,
-        project_id=project_id,
+        workspace_id=workspace_id,
         user_id=user_id,
         is_superadmin=is_superadmin,
     )
     return UserMemoryRepository(session).create(
         user_id=user_id,
-        project_id=project_id,
+        workspace_id=workspace_id,
         content=text,
         status="proposed",
     )
@@ -80,7 +80,7 @@ def approve_memory(
         reviewer_user_id=reviewer_user_id,
         owner_user_id=owner_user_id,
         status="approved",
-        require_project_access=True,
+        require_workspace_access=True,
         is_superadmin=is_superadmin,
         allowed_from_statuses=("proposed", "rejected"),
     )
@@ -105,7 +105,7 @@ def reject_memory(
         reviewer_user_id=reviewer_user_id,
         owner_user_id=owner_user_id,
         status="rejected",
-        require_project_access=False,
+        require_workspace_access=False,
         is_superadmin=False,
         allowed_from_statuses=("proposed", "approved"),
     )
@@ -144,7 +144,7 @@ def list_memories(
     session: Session,
     *,
     user_id: UUID,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     status: str | None = None,
 ) -> list[UserMemory]:
     if status is not None and status not in USER_MEMORY_STATUS_VALUES:
@@ -154,7 +154,7 @@ def list_memories(
         )
     return UserMemoryRepository(session).list_for_user(
         user_id=user_id,
-        project_id=project_id,
+        workspace_id=workspace_id,
         status=status,
         include_global=True,
     )
@@ -164,14 +164,14 @@ def approved_injection_text(
     session: Session,
     *,
     user_id: UUID,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     max_items: int = 8,
 ) -> str:
     """Return approved memory text for optional chat context injection."""
 
     memories = UserMemoryRepository(session).list_for_user(
         user_id=user_id,
-        project_id=project_id,
+        workspace_id=workspace_id,
         status="approved",
         include_global=True,
     )
@@ -185,7 +185,7 @@ def memory_payload(memory: UserMemory) -> dict[str, Any]:
     return {
         "id": str(memory.id),
         "user_id": str(memory.user_id),
-        "project_id": str(memory.project_id) if memory.project_id else None,
+        "workspace_id": str(memory.workspace_id) if memory.workspace_id else None,
         "content": memory.content,
         "status": memory.status,
         "created_at": memory.created_at.isoformat() if memory.created_at else None,
@@ -200,28 +200,28 @@ def memories_payload(items: Sequence[UserMemory]) -> dict[str, Any]:
     return {"items": [memory_payload(item) for item in items]}
 
 
-def _require_project_scope_access(
+def _require_workspace_scope_access(
     session: Session,
     *,
-    project_id: UUID | None,
+    workspace_id: UUID | None,
     user_id: UUID,
     is_superadmin: bool,
 ) -> None:
-    """Require membership (or superadmin) for project-scoped memory."""
+    """Require membership (or superadmin) for workspace-scoped memory."""
 
-    if project_id is None:
+    if workspace_id is None:
         return
-    project = ProjectRepository(session).get(project_id)
-    if project is None:
-        raise UserMemoryError("project not found", status_code=404)
+    workspace = WorkspaceRepository(session).get(workspace_id)
+    if workspace is None:
+        raise UserMemoryError("workspace not found", status_code=404)
     if is_superadmin:
         return
-    membership = ProjectMembershipRepository(session).get_membership(
-        project_id=project_id,
+    membership = WorkspaceMembershipRepository(session).get_membership(
+        workspace_id=workspace_id,
         user_id=user_id,
     )
     if membership is None:
-        raise UserMemoryError("project access required", status_code=403)
+        raise UserMemoryError("workspace access required", status_code=403)
 
 
 def _review(
@@ -231,7 +231,7 @@ def _review(
     reviewer_user_id: UUID,
     owner_user_id: UUID | None,
     status: str,
-    require_project_access: bool,
+    require_workspace_access: bool,
     is_superadmin: bool,
     allowed_from_statuses: tuple[str, ...] = ("proposed",),
 ) -> UserMemory:
@@ -244,10 +244,10 @@ def _review(
             f"memory is already {memory.status}",
             status_code=409,
         )
-    if require_project_access:
-        _require_project_scope_access(
+    if require_workspace_access:
+        _require_workspace_scope_access(
             session,
-            project_id=memory.project_id,
+            workspace_id=memory.workspace_id,
             user_id=reviewer_user_id,
             is_superadmin=is_superadmin,
         )

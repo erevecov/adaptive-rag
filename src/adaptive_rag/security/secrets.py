@@ -22,7 +22,7 @@ _SECRET_PATTERNS: tuple[Pattern[str], ...] = (
     re.compile(r"\bghu_[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bghs_[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bghr_[A-Za-z0-9]{20,}\b"),
-    # OpenAI-style and similar sk- project keys (avoid matching short words).
+    # OpenAI-style and similar sk- workspace keys (avoid matching short words).
     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b"),
     re.compile(r"(?i)\bbearer\s+[A-Za-z0-9\-._~+/]+=*\b"),
 )

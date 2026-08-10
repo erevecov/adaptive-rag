@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 PROVIDER_CONNECTION_PROVIDER_VALUES = ("fake", "qwen", "local_openai_compatible")
 PROVIDER_CONNECTION_TYPE_VALUES = ("fake", "hosted", "local")
@@ -20,6 +20,7 @@ PROVIDER_CONNECTION_CAPABILITY_VALUES = (
     "sparse_embedding",
     "rerank",
     "contextualization",
+    "vision",
 )
 PROVIDER_SECRET_NAME_VALUES = ("api_key",)
 

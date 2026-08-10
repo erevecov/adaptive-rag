@@ -12,8 +12,8 @@ from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.evals.errors import EvalDatasetError
@@ -21,25 +21,25 @@ from adaptive_rag.evals.models import EvalEvidence, EvalSuite
 
 
 @dataclass(frozen=True, slots=True)
-class EvalRetrievalFixtureProject:
+class EvalRetrievalFixtureWorkspace:
     """Proyecto temporal construido desde una suite local."""
 
-    project_id: UUID
+    workspace_id: UUID
     evidence_id_by_chunk_id: dict[UUID, str]
     document_version_ids: tuple[UUID, ...]
 
 
-def build_retrieval_fixture_project(
+def build_retrieval_fixture_workspace(
     session: Session,
     suite: EvalSuite,
     *,
     provider: DenseEmbeddingProvider,
     use_contextual_summaries: bool = False,
-) -> EvalRetrievalFixtureProject:
+) -> EvalRetrievalFixtureWorkspace:
     """Persiste evidence como sources/documents/chunks para RetrievalService."""
 
     _validate_provider_dimensions(provider)
-    project = ProjectRepository(session).create(
+    workspace = WorkspaceRepository(session).create(
         name=f"eval:{suite.suite_id}",
         retrieval_contextualization_enabled=use_contextual_summaries,
     )
@@ -56,19 +56,19 @@ def build_retrieval_fixture_project(
 
     for index, evidence in enumerate(suite.evidence):
         source = source_repo.create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_type=evidence.source_type,
             external_id=evidence.source_external_id,
             tags=evidence.tags,
             extra_metadata=_source_metadata(evidence),
         )
         document = document_repo.create_document(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_id=source.id,
             stable_id=evidence.id,
         )
         version = document_repo.create_version(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_id=document.id,
             version_number=1,
             normalized_text=evidence.text,
@@ -78,7 +78,7 @@ def build_retrieval_fixture_project(
             extraction_metadata={"eval_evidence_id": evidence.id},
         )
         chunk = chunk_repo.create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=version.id,
             ordinal=0,
             char_start=0,
@@ -109,8 +109,8 @@ def build_retrieval_fixture_project(
         document_version_ids.append(version.id)
 
     session.flush()
-    return EvalRetrievalFixtureProject(
-        project_id=project.id,
+    return EvalRetrievalFixtureWorkspace(
+        workspace_id=workspace.id,
         evidence_id_by_chunk_id=evidence_id_by_chunk_id,
         document_version_ids=tuple(document_version_ids),
     )

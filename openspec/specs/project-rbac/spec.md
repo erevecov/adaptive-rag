@@ -1,21 +1,21 @@
-# project-rbac Specification
+# workspace-rbac Specification
 
 ## Purpose
-Define local first-party users, global superadmin authority, project-scoped
-memberships, and role gates for project discovery, chat, retrieval, authoring,
+Define local first-party users, global superadmin authority, workspace-scoped
+memberships, and role gates for workspace discovery, chat, retrieval, authoring,
 ingestion, runtime overrides, and knowledge proposal workflows.
 ## Requirements
 ### Requirement: Local users resolve the current actor
 
 The system MUST resolve every protected API request to an active local user
-before applying project permissions.
+before applying workspace permissions.
 
 #### Scenario: Request without actor is rejected
 
 - **WHEN** a protected endpoint is called without a valid local bearer token or
   equivalent current-user credential
 - **THEN** the request fails with a stable authentication error
-- **AND** no project, chat or knowledge data is returned
+- **AND** no workspace, chat or knowledge data is returned
 
 #### Scenario: Inactive user cannot act
 
@@ -32,115 +32,115 @@ before applying project permissions.
 ### Requirement: Superadmin is a system role
 
 The system MUST model `superadmin` as a global system role separate from
-project membership roles.
+workspace membership roles.
 
-#### Scenario: Superadmin can administer all projects
+#### Scenario: Superadmin can administer all workspaces
 
 - **GIVEN** a user has `system_role = "superadmin"`
-- **WHEN** they create, inspect or administer any project
-- **THEN** the operation is allowed without requiring a project membership row
+- **WHEN** they create, inspect or administer any workspace
+- **THEN** the operation is allowed without requiring a workspace membership row
 
-#### Scenario: Non-superadmin cannot create projects
+#### Scenario: Non-superadmin cannot create workspaces
 
 - **GIVEN** an active user without `system_role = "superadmin"`
-- **WHEN** they call project creation
+- **WHEN** they call workspace creation
 - **THEN** the request fails with a stable system-role authorization error
 
-#### Scenario: Project admin cannot create superadmin
+#### Scenario: Workspace admin cannot create superadmin
 
-- **GIVEN** a project `admin`
-- **WHEN** they create or update a user through project member management
+- **GIVEN** a workspace `admin`
+- **WHEN** they create or update a user through workspace member management
 - **THEN** they cannot set `system_role = "superadmin"`
 - **AND** the request fails without changing the target user's system role
 
-### Requirement: Project memberships define project roles
+### Requirement: Workspace memberships define workspace roles
 
-The system MUST use project memberships to grant `admin`, `contributor` or
-`viewer` access inside a project.
+The system MUST use workspace memberships to grant `admin`, `contributor` or
+`viewer` access inside a workspace.
 
-#### Scenario: Member has one effective project role
+#### Scenario: Member has one effective workspace role
 
-- **GIVEN** a user is assigned to a project
+- **GIVEN** a user is assigned to a workspace
 - **WHEN** their membership is read
 - **THEN** the role is exactly one of `admin`, `contributor` or `viewer`
-- **AND** duplicate active memberships for the same user/project are rejected
+- **AND** duplicate active memberships for the same user/workspace are rejected
 
-#### Scenario: Project admin manages members in their project
+#### Scenario: Workspace admin manages members in their workspace
 
-- **GIVEN** a user has project role `admin`
-- **WHEN** they add or update a member in that same project
+- **GIVEN** a user has workspace role `admin`
+- **WHEN** they add or update a member in that same workspace
 - **THEN** they may assign `viewer`, `contributor` or `admin`
-- **AND** they cannot modify memberships in other projects
+- **AND** they cannot modify memberships in other workspaces
 
 #### Scenario: Contributor cannot manage members
 
-- **GIVEN** a user has project role `contributor`
-- **WHEN** they call a project member management endpoint
-- **THEN** the request fails with a stable project-role authorization error
+- **GIVEN** a user has workspace role `contributor`
+- **WHEN** they call a workspace member management endpoint
+- **THEN** the request fails with a stable workspace-role authorization error
 
-### Requirement: Project discovery is broader than project access
+### Requirement: Workspace discovery is broader than workspace access
 
-The system MUST let authenticated users see project names while enforcing
-membership before project data or tools are accessible.
+The system MUST let authenticated users see workspace names while enforcing
+membership before workspace data or tools are accessible.
 
-#### Scenario: User lists all project names with access status
+#### Scenario: User lists all workspace names with access status
 
-- **GIVEN** projects `A` and `B` exist
-- **AND** the current user is a member only of project `A`
-- **WHEN** they list projects
+- **GIVEN** workspaces `A` and `B` exist
+- **AND** the current user is a member only of workspace `A`
+- **WHEN** they list workspaces
 - **THEN** the response includes the names of `A` and `B`
 - **AND** marks `A` as accessible
 - **AND** marks `B` as locked or not accessible
 
-#### Scenario: Locked project cannot be opened
+#### Scenario: Locked workspace cannot be opened
 
-- **GIVEN** a user is not a member of a project and is not superadmin
-- **WHEN** they call a project-scoped chat, retrieval, source, ingestion,
-  runtime override or observability route for that project
-- **THEN** the request fails with a stable project-access error
-- **AND** no project-private data is returned
+- **GIVEN** a user is not a member of a workspace and is not superadmin
+- **WHEN** they call a workspace-scoped chat, retrieval, source, ingestion,
+  runtime override or observability route for that workspace
+- **THEN** the request fails with a stable workspace-access error
+- **AND** no workspace-private data is returned
 
-### Requirement: Project roles gate tool surfaces
+### Requirement: Workspace roles gate tool surfaces
 
-The system MUST enforce a consistent minimum role for each project-scoped
+The system MUST enforce a consistent minimum role for each workspace-scoped
 surface.
 
 #### Scenario: Viewer can use chat and retrieval
 
-- **GIVEN** a user has project role `viewer`
-- **WHEN** they call chat or retrieval for that project
+- **GIVEN** a user has workspace role `viewer`
+- **WHEN** they call chat or retrieval for that workspace
 - **THEN** the request is allowed
 
 #### Scenario: Viewer cannot author shared knowledge directly
 
-- **GIVEN** a user has project role `viewer`
+- **GIVEN** a user has workspace role `viewer`
 - **WHEN** they create a source directly or enqueue ingestion
 - **THEN** the request fails
 - **AND** they must use the knowledge proposal flow instead
 
 #### Scenario: Contributor can manage knowledge
 
-- **GIVEN** a user has project role `contributor`
+- **GIVEN** a user has workspace role `contributor`
 - **WHEN** they create sources, enqueue ingestion or review knowledge
-  proposals in that project
+  proposals in that workspace
 - **THEN** the request is allowed
 
-#### Scenario: Project admin cannot delete or archive projects
+#### Scenario: Workspace admin cannot delete or archive workspaces
 
-- **GIVEN** a user has project role `admin`
-- **WHEN** they attempt to archive or delete the project
+- **GIVEN** a user has workspace role `admin`
+- **WHEN** they attempt to archive or delete the workspace
 - **THEN** the request fails unless they are also `superadmin`
 
 ### Requirement: Membership delete and user/token lifecycle
 
-The system MUST expose public operations to remove project memberships,
+The system MUST expose public operations to remove workspace memberships,
 deactivate users, and revoke access tokens for local RBAC closeout.
 
 #### Scenario: Admin removes membership
 
-- **WHEN** a project admin DELETEs a membership
+- **WHEN** a workspace admin DELETEs a membership
 - **THEN** the membership is removed
-- **AND** the user loses project access
+- **AND** the user loses workspace access
 
 #### Scenario: Superadmin deactivates user
 

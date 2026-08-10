@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 TOOL_CALL_STATUS_VALUES = ("running", "succeeded", "failed")
 
@@ -30,16 +30,16 @@ class ToolCall(Base):
             name="tool_calls_latency_ms_non_negative_check",
         ),
         Index(
-            "ix_tool_calls_project_session_created_at",
-            "project_id",
+            "ix_tool_calls_workspace_session_created_at",
+            "workspace_id",
             "session_id",
             "created_at",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     session_id: Mapped[UUID] = mapped_column(
         ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False

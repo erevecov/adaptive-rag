@@ -19,26 +19,26 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
-    ProjectMembership,
     Source,
     User,
+    Workspace,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     SourceRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
 
 def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
@@ -47,13 +47,13 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     client = _client(session=session)
 
     created = client.post(
-        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs",
         json={"priority": 3, "max_attempts": 2},
     )
 
     assert created.status_code == 200
     job = created.json()
-    assert job["project_id"] == str(project.id)
+    assert job["workspace_id"] == str(workspace.id)
     assert job["job_type"] == "ingest_source"
     assert job["status"] == "queued"
     assert job["priority"] == 3
@@ -61,10 +61,10 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
     assert job["payload_json"] == {"source_id": str(source.id)}
 
     listed = client.get(
-        f"/projects/{project.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/ingestion-jobs",
         params={"source_id": str(source.id), "job_type": "ingest_source"},
     )
-    shown = client.get(f"/projects/{project.id}/ingestion-jobs/{job['id']}")
+    shown = client.get(f"/workspaces/{workspace.id}/ingestion-jobs/{job['id']}")
 
     assert listed.status_code == 200
     assert [item["id"] for item in listed.json()["items"]] == [job["id"]]
@@ -75,9 +75,9 @@ def test_enqueue_ingestion_job_lists_and_shows_events() -> None:
 
 def test_double_enqueue_returns_existing_open_job() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
@@ -85,13 +85,15 @@ def test_double_enqueue_returns_existing_open_job() -> None:
     session.commit()
     client = _client(session=session)
 
-    first = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    first = client.post(
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs"
+    )
     second = client.post(
-        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs",
         json={"priority": 99},
     )
     listed = client.get(
-        f"/projects/{project.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/ingestion-jobs",
         params={"source_id": str(source.id), "job_type": "ingest_source"},
     )
 
@@ -105,9 +107,9 @@ def test_double_enqueue_returns_existing_open_job() -> None:
 
 def test_enqueue_ingestion_job_requires_contributor_role() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
@@ -118,10 +120,10 @@ def test_enqueue_ingestion_job_requires_contributor_role() -> None:
         login="contributor@example.com",
         token="contributor-token",
     )
-    _grant_project_role(session, project=project, user=viewer, role="viewer")
-    _grant_project_role(
+    _grant_workspace_role(session, workspace=workspace, user=viewer, role="viewer")
+    _grant_workspace_role(
         session,
-        project=project,
+        workspace=workspace,
         user=contributor,
         role="contributor",
     )
@@ -129,38 +131,42 @@ def test_enqueue_ingestion_job_requires_contributor_role() -> None:
     client = _client(session=session)
 
     denied = client.post(
-        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs",
         headers=_bearer("viewer-token"),
     )
     allowed = client.post(
-        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs",
         headers=_bearer("contributor-token"),
     )
 
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project contributor role required"
+    assert denied.json()["detail"] == "workspace contributor role required"
     assert allowed.status_code == 200
     assert allowed.json()["job_type"] == "ingest_source"
 
 
 def test_run_next_processes_text_source_and_updates_job_state() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "Evidence"},
     )
     session.commit()
     client = _client(session=session)
-    created = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    created = client.post(
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs"
+    )
 
     run = client.post(
-        f"/projects/{project.id}/ingestion-jobs/run-next",
+        f"/workspaces/{workspace.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test", "lease_seconds": 60},
     )
-    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
+    detail = client.get(
+        f"/workspaces/{workspace.id}/ingestion-jobs/{created.json()['id']}"
+    )
     version = session.scalars(select(DocumentVersion)).one()
 
     assert run.status_code == 200
@@ -176,9 +182,9 @@ def test_run_next_processes_text_source_and_updates_job_state() -> None:
 
 def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     session = _make_full_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="indexing.md",
         extra_metadata={
@@ -187,10 +193,10 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     )
     session.commit()
     client = _client(session=session)
-    client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    client.post(f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs")
 
     ingest_run = client.post(
-        f"/projects/{project.id}/ingestion-jobs/run-next",
+        f"/workspaces/{workspace.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test"},
     )
 
@@ -200,7 +206,7 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     assert session.scalar(select(func.count()).select_from(Chunk)) == 0
 
     index_run = client.post(
-        f"/projects/{project.id}/ingestion-jobs/run-next",
+        f"/workspaces/{workspace.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test"},
     )
 
@@ -213,7 +219,7 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     assert index_payload["sparse_embedded_chunk_count"] == index_payload["chunk_count"]
 
     idle_run = client.post(
-        f"/projects/{project.id}/ingestion-jobs/run-next",
+        f"/workspaces/{workspace.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test"},
     )
     assert idle_run.status_code == 200
@@ -227,7 +233,7 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
     assert len(sparse_rows) == len(chunks)
 
     listed = client.get(
-        f"/projects/{project.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/ingestion-jobs",
         params={"job_type": "index_document_version"},
     )
     assert listed.status_code == 200
@@ -237,24 +243,28 @@ def test_run_next_indexes_after_ingest_and_exposes_index_job() -> None:
 
 def test_run_next_reports_blocked_job_and_retry_requeues_it() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="missing.md",
     )
     session.commit()
     client = _client(session=session)
-    created = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    created = client.post(
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs"
+    )
 
     blocked = client.post(
-        f"/projects/{project.id}/ingestion-jobs/run-next",
+        f"/workspaces/{workspace.id}/ingestion-jobs/run-next",
         json={"worker_id": "api-test"},
     )
     retried = client.post(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}/retry"
+        f"/workspaces/{workspace.id}/ingestion-jobs/{created.json()['id']}/retry"
     )
-    detail = client.get(f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}")
+    detail = client.get(
+        f"/workspaces/{workspace.id}/ingestion-jobs/{created.json()['id']}"
+    )
 
     assert blocked.status_code == 200
     assert blocked.json()["status"] == "blocked"
@@ -276,23 +286,25 @@ def test_run_next_reports_blocked_job_and_retry_requeues_it() -> None:
 
 def test_ingestion_ops_return_stable_not_found_and_retry_errors() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "Evidence"},
     )
     session.commit()
     client = _client(session=session)
-    created = client.post(f"/projects/{project.id}/sources/{source.id}/ingestion-jobs")
+    created = client.post(
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs"
+    )
 
     missing_source = client.post(
-        f"/projects/{project.id}/sources/{uuid4()}/ingestion-jobs"
+        f"/workspaces/{workspace.id}/sources/{uuid4()}/ingestion-jobs"
     )
-    missing_job = client.get(f"/projects/{project.id}/ingestion-jobs/{uuid4()}")
+    missing_job = client.get(f"/workspaces/{workspace.id}/ingestion-jobs/{uuid4()}")
     non_retryable = client.post(
-        f"/projects/{project.id}/ingestion-jobs/{created.json()['id']}/retry"
+        f"/workspaces/{workspace.id}/ingestion-jobs/{created.json()['id']}/retry"
     )
 
     assert missing_source.status_code == 404
@@ -312,7 +324,7 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -321,7 +333,7 @@ def _make_session() -> Session:
             JobEvent.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -367,15 +379,15 @@ def _create_user(
     return user
 
 
-def _grant_project_role(
+def _grant_workspace_role(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     user: User,
     role: str,
 ) -> None:
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role=role,
     )

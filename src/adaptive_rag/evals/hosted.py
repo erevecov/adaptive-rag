@@ -12,7 +12,7 @@ from adaptive_rag.chat import ChatRunner
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.evals.chat_runner import run_chat_eval_suite
 from adaptive_rag.evals.errors import EvalConfigurationError
-from adaptive_rag.evals.fixtures import build_retrieval_fixture_project
+from adaptive_rag.evals.fixtures import build_retrieval_fixture_workspace
 from adaptive_rag.evals.models import (
     EvalProviderUsageOperationSummary,
     EvalProviderUsageSummary,
@@ -118,7 +118,7 @@ def run_hosted_retrieval_eval_suite(
         rerank_candidate_limit=rerank_candidate_limit,
     )
 
-    fixture_project = build_retrieval_fixture_project(
+    fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=provider,
@@ -127,7 +127,7 @@ def run_hosted_retrieval_eval_suite(
         session,
         suite,
         provider=provider,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     if rerank_candidate_limit is None:
         return replace(
@@ -144,7 +144,7 @@ def run_hosted_retrieval_eval_suite(
         rerank_options=RetrievalRerankOptions(
             candidate_limit=rerank_candidate_limit
         ),
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     comparison_cases = build_rerank_case_comparisons(
         suite=suite,

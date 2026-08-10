@@ -49,12 +49,12 @@ function sseResponse(chunks: string[], init?: ResponseInit): Response {
 
 function jobPayload({
   jobId = '33333333-3333-4333-8333-333333333333',
-  projectId = '11111111-1111-4111-8111-111111111111',
+  workspaceId = '11111111-1111-4111-8111-111111111111',
   sourceId = '22222222-2222-4222-8222-222222222222',
   status = 'queued',
 }: {
   jobId?: string
-  projectId?: string
+  workspaceId?: string
   sourceId?: string
   status?: string
 }) {
@@ -69,7 +69,7 @@ function jobPayload({
     max_attempts: 3,
     payload_json: { source_id: sourceId },
     priority: 0,
-    project_id: projectId,
+    workspace_id: workspaceId,
     run_after: '2026-06-23T00:00:00Z',
     status,
     updated_at: '2026-06-23T00:00:00Z',
@@ -83,7 +83,7 @@ describe('createApiClient', () => {
         display_name: 'Viewer',
         id: '11111111-1111-4111-8111-111111111111',
         is_bootstrap: false,
-        last_project_id: null,
+        last_workspace_id: null,
         login: 'viewer@example.com',
         system_role: 'user',
       }),
@@ -103,7 +103,7 @@ describe('createApiClient', () => {
   })
 
   test('manages users, memberships and knowledge proposals', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const userId = '22222222-2222-4222-8222-222222222222'
     const proposalId = '33333333-3333-4333-8333-333333333333'
     const createdAt = '2026-06-28T00:00:00Z'
@@ -112,7 +112,7 @@ describe('createApiClient', () => {
       display_name: 'Viewer',
       id: userId,
       is_active: true,
-      last_project_id: null,
+      last_workspace_id: null,
       login: 'viewer@example.com',
       system_role: 'user',
       updated_at: createdAt,
@@ -121,14 +121,14 @@ describe('createApiClient', () => {
       display_name: 'Viewer',
       id: userId,
       is_bootstrap: false,
-      last_project_id: projectId,
+      last_workspace_id: workspaceId,
       login: 'viewer@example.com',
       system_role: 'user',
     }
     const membership = {
       created_at: createdAt,
       id: '44444444-4444-4444-8444-444444444444',
-      project_id: projectId,
+      workspace_id: workspaceId,
       role: 'viewer',
       updated_at: createdAt,
       user_id: userId,
@@ -139,7 +139,7 @@ describe('createApiClient', () => {
       id: proposalId,
       origin_message_id: null,
       origin_session_id: null,
-      project_id: projectId,
+      workspace_id: workspaceId,
       proposed_text: 'New knowledge',
       refined_text: null,
       review_note: null,
@@ -180,20 +180,20 @@ describe('createApiClient', () => {
       login: 'viewer@example.com',
     })
     await client.listUsers()
-    await client.updateCurrentUserPreferences({ last_project_id: projectId })
-    await client.upsertProjectMembership(projectId, userId, { role: 'viewer' })
-    await client.listProjectMemberships(projectId)
-    await client.submitKnowledgeProposal(projectId, {
+    await client.updateCurrentUserPreferences({ last_workspace_id: workspaceId })
+    await client.upsertWorkspaceMembership(workspaceId, userId, { role: 'viewer' })
+    await client.listWorkspaceMemberships(workspaceId)
+    await client.submitKnowledgeProposal(workspaceId, {
       proposed_text: 'New knowledge',
     })
-    await client.listKnowledgeProposals(projectId, { status: 'pending' })
-    await client.refineKnowledgeProposal(projectId, proposalId, {
+    await client.listKnowledgeProposals(workspaceId, { status: 'pending' })
+    await client.refineKnowledgeProposal(workspaceId, proposalId, {
       refined_text: 'Refined knowledge',
     })
-    await client.approveKnowledgeProposal(projectId, proposalId, {
+    await client.approveKnowledgeProposal(workspaceId, proposalId, {
       review_note: 'accepted',
     })
-    await client.rejectKnowledgeProposal(projectId, proposalId, {
+    await client.rejectKnowledgeProposal(workspaceId, proposalId, {
       reason: 'not supported',
     })
 
@@ -206,37 +206,37 @@ describe('createApiClient', () => {
     expect(String(calls[2].input)).toBe('http://api.local/auth/me/preferences')
     expect(calls[2].init?.method).toBe('PATCH')
     expect(calls[2].init?.body).toBe(
-      JSON.stringify({ last_project_id: projectId }),
+      JSON.stringify({ last_workspace_id: workspaceId }),
     )
     expect(String(calls[3].input)).toBe(
-      `http://api.local/projects/${projectId}/memberships/${userId}`,
+      `http://api.local/workspaces/${workspaceId}/memberships/${userId}`,
     )
     expect(String(calls[5].input)).toBe(
-      `http://api.local/projects/${projectId}/knowledge-proposals`,
+      `http://api.local/workspaces/${workspaceId}/knowledge-proposals`,
     )
     expect(String(calls[6].input)).toBe(
-      `http://api.local/projects/${projectId}/knowledge-proposals?status=pending`,
+      `http://api.local/workspaces/${workspaceId}/knowledge-proposals?status=pending`,
     )
     expect(String(calls[7].input)).toBe(
-      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/refine`,
+      `http://api.local/workspaces/${workspaceId}/knowledge-proposals/${proposalId}/refine`,
     )
     expect(String(calls[8].input)).toBe(
-      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/approve`,
+      `http://api.local/workspaces/${workspaceId}/knowledge-proposals/${proposalId}/approve`,
     )
     expect(String(calls[9].input)).toBe(
-      `http://api.local/projects/${projectId}/knowledge-proposals/${proposalId}/reject`,
+      `http://api.local/workspaces/${workspaceId}/knowledge-proposals/${proposalId}/reject`,
     )
   })
 
-  test('creates and lists projects through the authoring API', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+  test('creates and lists workspaces through the authoring API', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const createdAt = '2026-06-22T00:00:00Z'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
         budget_config_json: null,
         created_at: createdAt,
         embedding_mode: 'dense',
-        id: projectId,
+        id: workspaceId,
         name: 'Demo',
         retrieval_contextualization_enabled: true,
         updated_at: createdAt,
@@ -247,11 +247,11 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.createProject({ name: 'Demo' })
+    const response = await client.createWorkspace({ name: 'Demo' })
 
-    expect(response.id).toBe(projectId)
+    expect(response.id).toBe(workspaceId)
     expect(calls).toHaveLength(1)
-    expect(String(calls[0].input)).toBe('http://api.local/projects')
+    expect(String(calls[0].input)).toBe('http://api.local/workspaces')
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.headers).toEqual({
       'content-type': 'application/json',
@@ -259,17 +259,17 @@ describe('createApiClient', () => {
     expect(calls[0].init?.body).toBe(JSON.stringify({ name: 'Demo' }))
   })
 
-  test('deletes project, source, membership and revokes token', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+  test('deletes workspace, source, membership and revokes token', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sourceId = '22222222-2222-4222-8222-222222222222'
     const userId = '33333333-3333-4333-8333-333333333333'
     const createdAt = '2026-06-22T00:00:00Z'
-    const project = {
+    const workspace = {
       budget_config_json: null,
       created_at: createdAt,
       deleted_at: createdAt,
       embedding_mode: 'dense_sparse',
-      id: projectId,
+      id: workspaceId,
       name: 'Demo',
       retrieval_contextualization_enabled: true,
       updated_at: createdAt,
@@ -280,7 +280,7 @@ describe('createApiClient', () => {
       external_id: 'notes.md',
       extra_metadata: null,
       id: sourceId,
-      project_id: projectId,
+      workspace_id: workspaceId,
       source_type: 'markdown',
       tags: null,
       updated_at: createdAt,
@@ -290,23 +290,23 @@ describe('createApiClient', () => {
       display_name: 'Temp',
       id: userId,
       is_active: false,
-      last_project_id: null,
+      last_workspace_id: null,
       login: 'temp',
       system_role: 'user',
       updated_at: createdAt,
     }
 
-    const { fetch: deleteProjectFetch, calls: deleteProjectCalls } =
-      createFetchStub(jsonResponse(project))
-    const deleteProjectClient = createApiClient({
+    const { fetch: deleteWorkspaceFetch, calls: deleteWorkspaceCalls } =
+      createFetchStub(jsonResponse(workspace))
+    const deleteWorkspaceClient = createApiClient({
       baseUrl: 'http://api.local/',
-      fetch: deleteProjectFetch,
+      fetch: deleteWorkspaceFetch,
     })
-    await deleteProjectClient.deleteProject(projectId)
-    expect(String(deleteProjectCalls[0].input)).toBe(
-      `http://api.local/projects/${projectId}`,
+    await deleteWorkspaceClient.deleteWorkspace(workspaceId)
+    expect(String(deleteWorkspaceCalls[0].input)).toBe(
+      `http://api.local/workspaces/${workspaceId}`,
     )
-    expect(deleteProjectCalls[0].init?.method).toBe('DELETE')
+    expect(deleteWorkspaceCalls[0].init?.method).toBe('DELETE')
 
     const { fetch: deleteSourceFetch, calls: deleteSourceCalls } =
       createFetchStub(jsonResponse(source))
@@ -314,9 +314,9 @@ describe('createApiClient', () => {
       baseUrl: 'http://api.local/',
       fetch: deleteSourceFetch,
     })
-    await deleteSourceClient.deleteSource(projectId, sourceId)
+    await deleteSourceClient.deleteSource(workspaceId, sourceId)
     expect(String(deleteSourceCalls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/sources/${sourceId}`,
+      `http://api.local/workspaces/${workspaceId}/sources/${sourceId}`,
     )
     expect(deleteSourceCalls[0].init?.method).toBe('DELETE')
 
@@ -327,9 +327,9 @@ describe('createApiClient', () => {
       baseUrl: 'http://api.local/',
       fetch: membershipFetch,
     })
-    await membershipClient.deleteProjectMembership(projectId, userId)
+    await membershipClient.deleteWorkspaceMembership(workspaceId, userId)
     expect(String(membershipCalls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/memberships/${userId}`,
+      `http://api.local/workspaces/${workspaceId}/memberships/${userId}`,
     )
     expect(membershipCalls[0].init?.method).toBe('DELETE')
 
@@ -362,14 +362,14 @@ describe('createApiClient', () => {
     )
   })
 
-  test('lists projects and loads a project by id', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+  test('lists workspaces and loads a workspace by id', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const createdAt = '2026-06-22T00:00:00Z'
-    const project = {
+    const workspace = {
       budget_config_json: null,
       created_at: createdAt,
       embedding_mode: 'dense',
-      id: projectId,
+      id: workspaceId,
       name: 'Demo',
       retrieval_contextualization_enabled: true,
       updated_at: createdAt,
@@ -377,28 +377,28 @@ describe('createApiClient', () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const fetchStub: typeof fetch = async (input, init) => {
       calls.push({ input, init })
-      return jsonResponse(String(input).endsWith('/projects') ? { items: [project] } : project)
+      return jsonResponse(String(input).endsWith('/workspaces') ? { items: [workspace] } : workspace)
     }
     const client = createApiClient({
       baseUrl: 'http://api.local',
       fetch: fetchStub,
     })
 
-    const listed = await client.listProjects()
-    const loaded = await client.getProject(projectId)
+    const listed = await client.listWorkspaces()
+    const loaded = await client.getWorkspace(workspaceId)
 
     expect(listed.items).toHaveLength(1)
     expect(loaded.name).toBe('Demo')
-    expect(String(calls[0].input)).toBe('http://api.local/projects')
+    expect(String(calls[0].input)).toBe('http://api.local/workspaces')
     expect(String(calls[1].input)).toBe(
-      `http://api.local/projects/${projectId}`,
+      `http://api.local/workspaces/${workspaceId}`,
     )
     expect(calls[0].init?.method).toBe('GET')
     expect(calls[1].init?.method).toBe('GET')
   })
 
   test('creates sources and lists sources with optional filters', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sourceId = '22222222-2222-4222-8222-222222222222'
     const createdAt = '2026-06-22T00:00:00Z'
     const source = {
@@ -406,7 +406,7 @@ describe('createApiClient', () => {
       external_id: 'notes.md',
       extra_metadata: { content: '# Notes' },
       id: sourceId,
-      project_id: projectId,
+      workspace_id: workspaceId,
       source_type: 'markdown',
       tags: ['docs'],
       updated_at: createdAt,
@@ -417,7 +417,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.createSource(projectId, {
+    const response = await client.createSource(workspaceId, {
       external_id: 'notes.md',
       extra_metadata: { content: '# Notes' },
       source_type: 'markdown',
@@ -426,7 +426,7 @@ describe('createApiClient', () => {
 
     expect(response.id).toBe(sourceId)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/sources`,
+      `http://api.local/workspaces/${workspaceId}/sources`,
     )
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.body).toBe(
@@ -444,19 +444,19 @@ describe('createApiClient', () => {
       fetch: listFetch.fetch,
     })
 
-    await listClient.listSources(projectId, {
+    await listClient.listSources(workspaceId, {
       external_id: 'notes.md',
       source_type: 'markdown',
       tag: 'docs',
     })
 
     expect(String(listFetch.calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/sources?source_type=markdown&external_id=notes.md&tag=docs`,
+      `http://api.local/workspaces/${workspaceId}/sources?source_type=markdown&external_id=notes.md&tag=docs`,
     )
   })
 
   test('loads a source by id', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sourceId = '22222222-2222-4222-8222-222222222222'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
@@ -464,7 +464,7 @@ describe('createApiClient', () => {
         external_id: 'https://example.com/doc',
         extra_metadata: null,
         id: sourceId,
-        project_id: projectId,
+        workspace_id: workspaceId,
         source_type: 'url',
         tags: null,
         updated_at: '2026-06-22T00:00:00Z',
@@ -475,35 +475,35 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.getSource(projectId, sourceId)
+    const response = await client.getSource(workspaceId, sourceId)
 
     expect(response.source_type).toBe('url')
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/sources/${sourceId}`,
+      `http://api.local/workspaces/${workspaceId}/sources/${sourceId}`,
     )
     expect(calls[0].init?.method).toBe('GET')
   })
 
   test('enqueues ingestion jobs for sources', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sourceId = '22222222-2222-4222-8222-222222222222'
     const jobId = '33333333-3333-4333-8333-333333333333'
     const { fetch, calls } = createFetchStub(
-      jsonResponse(jobPayload({ jobId, projectId, sourceId })),
+      jsonResponse(jobPayload({ jobId, workspaceId, sourceId })),
     )
     const client = createApiClient({
       baseUrl: 'http://api.local/',
       fetch,
     })
 
-    const response = await client.enqueueIngestionJob(projectId, sourceId, {
+    const response = await client.enqueueIngestionJob(workspaceId, sourceId, {
       max_attempts: 2,
       priority: 4,
     })
 
     expect(response.id).toBe(jobId)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/sources/${sourceId}/ingestion-jobs`,
+      `http://api.local/workspaces/${workspaceId}/sources/${sourceId}/ingestion-jobs`,
     )
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.body).toBe(
@@ -512,11 +512,11 @@ describe('createApiClient', () => {
   })
 
   test('lists ingestion jobs with optional filters', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sourceId = '22222222-2222-4222-8222-222222222222'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
-        items: [jobPayload({ projectId, sourceId })],
+        items: [jobPayload({ workspaceId, sourceId })],
       }),
     )
     const client = createApiClient({
@@ -524,27 +524,27 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    await client.listIngestionJobs(projectId, {
+    await client.listIngestionJobs(workspaceId, {
       job_type: 'ingest_source',
       source_id: sourceId,
       status: 'blocked',
     })
 
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/ingestion-jobs?source_id=${sourceId}&status=blocked&job_type=ingest_source`,
+      `http://api.local/workspaces/${workspaceId}/ingestion-jobs?source_id=${sourceId}&status=blocked&job_type=ingest_source`,
     )
     expect(calls[0].init?.method).toBe('GET')
   })
 
   test('loads and retries ingestion job detail', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const jobId = '33333333-3333-4333-8333-333333333333'
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = []
     const fetchStub: typeof fetch = async (input, init) => {
       calls.push({ input, init })
       return jsonResponse(
         String(input).endsWith('/retry')
-          ? jobPayload({ jobId, projectId, status: 'queued' })
+          ? jobPayload({ jobId, workspaceId, status: 'queued' })
           : {
               events: [
                 {
@@ -554,10 +554,10 @@ describe('createApiClient', () => {
                   id: '44444444-4444-4444-8444-444444444444',
                   job_id: jobId,
                   message: 'missing content',
-                  project_id: projectId,
+                  workspace_id: workspaceId,
                 },
               ],
-              job: jobPayload({ jobId, projectId, status: 'blocked' }),
+              job: jobPayload({ jobId, workspaceId, status: 'blocked' }),
             },
       )
     }
@@ -566,22 +566,22 @@ describe('createApiClient', () => {
       fetch: fetchStub,
     })
 
-    const detail = await client.getIngestionJob(projectId, jobId)
-    const retried = await client.retryIngestionJob(projectId, jobId)
+    const detail = await client.getIngestionJob(workspaceId, jobId)
+    const retried = await client.retryIngestionJob(workspaceId, jobId)
 
     expect(detail.events[0].event_type).toBe('blocked')
     expect(retried.status).toBe('queued')
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/ingestion-jobs/${jobId}`,
+      `http://api.local/workspaces/${workspaceId}/ingestion-jobs/${jobId}`,
     )
     expect(String(calls[1].input)).toBe(
-      `http://api.local/projects/${projectId}/ingestion-jobs/${jobId}/retry`,
+      `http://api.local/workspaces/${workspaceId}/ingestion-jobs/${jobId}/retry`,
     )
     expect(calls[1].init?.method).toBe('POST')
   })
 
   test('runs the next ingestion job', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const jobId = '33333333-3333-4333-8333-333333333333'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
@@ -590,7 +590,7 @@ describe('createApiClient', () => {
         document_version_id: '66666666-6666-4666-8666-666666666666',
         error_message: null,
         job_id: jobId,
-        project_id: projectId,
+        workspace_id: workspaceId,
         source_id: '22222222-2222-4222-8222-222222222222',
         status: 'processed',
         worker_id: 'frontend-test',
@@ -601,7 +601,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.runNextIngestionJob(projectId, {
+    const response = await client.runNextIngestionJob(workspaceId, {
       lease_seconds: 60,
       worker_id: 'frontend-test',
     })
@@ -609,7 +609,7 @@ describe('createApiClient', () => {
     expect(response.status).toBe('processed')
     expect(response.job_id).toBe(jobId)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/ingestion-jobs/run-next`,
+      `http://api.local/workspaces/${workspaceId}/ingestion-jobs/run-next`,
     )
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.body).toBe(
@@ -618,7 +618,7 @@ describe('createApiClient', () => {
   })
 
   test('posts chat requests with stable JSON payloads', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sessionId = '22222222-2222-4222-8222-222222222222'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
@@ -633,7 +633,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.askChat(projectId, {
+    const response = await client.askChat(workspaceId, {
       message: 'What changed?',
       retrieval_limit: 3,
       metadata_filter: {
@@ -644,7 +644,7 @@ describe('createApiClient', () => {
     expect(response.session_id).toBe(sessionId)
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat`,
+      `http://api.local/workspaces/${workspaceId}/chat`,
     )
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.headers).toEqual({
@@ -662,7 +662,7 @@ describe('createApiClient', () => {
   })
 
   test('lists sessions with encoded optional query params', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
         items: [],
@@ -674,7 +674,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.listChatSessions(projectId, {
+    const response = await client.listChatSessions(workspaceId, {
       archived: true,
       status: 'failed',
       limit: 10,
@@ -684,13 +684,13 @@ describe('createApiClient', () => {
     expect(response.next_cursor).toBe('next-page')
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/sessions?status=failed&archived=true&limit=10&cursor=2026-06-21T00%3A00%3A00Z%7Cabc`,
+      `http://api.local/workspaces/${workspaceId}/chat/sessions?status=failed&archived=true&limit=10&cursor=2026-06-21T00%3A00%3A00Z%7Cabc`,
     )
     expect(calls[0].init?.method).toBe('GET')
   })
 
   test('renames archives and unarchives chat sessions', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sessionId = '22222222-2222-4222-8222-222222222222'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
@@ -707,18 +707,18 @@ describe('createApiClient', () => {
     })
 
     const renamed = await client.updateChatSessionTitle(
-      projectId,
+      workspaceId,
       sessionId,
       'Renamed session',
     )
-    await client.archiveChatSession(projectId, sessionId)
-    await client.unarchiveChatSession(projectId, sessionId)
+    await client.archiveChatSession(workspaceId, sessionId)
+    await client.unarchiveChatSession(workspaceId, sessionId)
 
     expect(renamed.title).toBe('Renamed session')
     expect(calls.map((call) => String(call.input))).toEqual([
-      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/title`,
-      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/archive`,
-      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}/unarchive`,
+      `http://api.local/workspaces/${workspaceId}/chat/sessions/${sessionId}/title`,
+      `http://api.local/workspaces/${workspaceId}/chat/sessions/${sessionId}/archive`,
+      `http://api.local/workspaces/${workspaceId}/chat/sessions/${sessionId}/unarchive`,
     ])
     expect(calls.map((call) => call.init?.method)).toEqual([
       'PATCH',
@@ -729,7 +729,7 @@ describe('createApiClient', () => {
   })
 
   test('loads chat observability summaries with encoded optional query params', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
         errors: {
@@ -742,7 +742,7 @@ describe('createApiClient', () => {
           created_at_to: '2026-06-22T00:00:00Z',
           status: 'failed',
         },
-        project_id: projectId,
+        workspace_id: workspaceId,
         provider_usage: {
           groups: [
             {
@@ -784,7 +784,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.getChatObservabilitySummary(projectId, {
+    const response = await client.getChatObservabilitySummary(workspaceId, {
       created_at_from: '2026-06-21T00:00:00Z',
       created_at_to: '2026-06-22T00:00:00Z',
       status: 'failed',
@@ -794,13 +794,13 @@ describe('createApiClient', () => {
     expect(response.errors.top_messages[0].message).toBe('runner failed')
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/observability/summary?created_at_from=2026-06-21T00%3A00%3A00Z&created_at_to=2026-06-22T00%3A00%3A00Z&status=failed`,
+      `http://api.local/workspaces/${workspaceId}/chat/observability/summary?created_at_from=2026-06-21T00%3A00%3A00Z&created_at_to=2026-06-22T00%3A00%3A00Z&status=failed`,
     )
     expect(calls[0].init?.method).toBe('GET')
   })
 
   test('omits empty chat observability summary query params', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
         errors: {
@@ -813,7 +813,7 @@ describe('createApiClient', () => {
           created_at_to: null,
           status: null,
         },
-        project_id: projectId,
+        workspace_id: workspaceId,
         provider_usage: {
           groups: [],
           missing_cost_count: 0,
@@ -831,7 +831,7 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    await client.getChatObservabilitySummary(projectId, {
+    await client.getChatObservabilitySummary(workspaceId, {
       created_at_from: '',
       created_at_to: null,
       status: '',
@@ -839,12 +839,12 @@ describe('createApiClient', () => {
 
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/observability/summary`,
+      `http://api.local/workspaces/${workspaceId}/chat/observability/summary`,
     )
   })
 
   test('loads a session detail without mutating history', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const sessionId = '22222222-2222-4222-8222-222222222222'
     const { fetch, calls } = createFetchStub(
       jsonResponse({
@@ -868,12 +868,12 @@ describe('createApiClient', () => {
       fetch,
     })
 
-    const response = await client.getChatSession(projectId, sessionId)
+    const response = await client.getChatSession(workspaceId, sessionId)
 
     expect(response.session.session_id).toBe(sessionId)
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/sessions/${sessionId}`,
+      `http://api.local/workspaces/${workspaceId}/chat/sessions/${sessionId}`,
     )
     expect(calls[0].init?.method).toBe('GET')
   })
@@ -1051,8 +1051,8 @@ describe('createApiClient', () => {
     )
   })
 
-  test('manages global and project runtime settings', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+  test('manages global and workspace runtime settings', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const slot = {
       connection_id: 'qwen-hosted',
       model_id: 'text-embedding-v4',
@@ -1065,7 +1065,7 @@ describe('createApiClient', () => {
       rerank_enabled: true,
       retrieval_limit: 5,
     }
-    const projectSettings = {
+    const workspaceSettings = {
       chat_models: [
         {
           connection_id: 'local-chat',
@@ -1077,9 +1077,9 @@ describe('createApiClient', () => {
       ],
       chat_retrieval: {
         ...chatRetrieval,
-        source: 'project',
+        source: 'workspace',
       },
-      project_id: projectId,
+      workspace_id: workspaceId,
       slots: [
         {
           ...slot,
@@ -1102,7 +1102,7 @@ describe('createApiClient', () => {
         })
       }
       if (
-        value.includes('/projects/') &&
+        value.includes('/workspaces/') &&
         value.endsWith('/runtime-settings/chat/retrieval')
       ) {
         return init?.method === 'DELETE'
@@ -1110,7 +1110,7 @@ describe('createApiClient', () => {
           : jsonResponse({
               ...(JSON.parse(String(init?.body)) as object),
               max_limit: 50,
-              source: 'project',
+              source: 'workspace',
             })
       }
       if (value.endsWith('/runtime-settings/chat/retrieval')) {
@@ -1123,10 +1123,10 @@ describe('createApiClient', () => {
             : chatRetrieval,
         )
       }
-      if (value.includes('/projects/')) {
+      if (value.includes('/workspaces/')) {
         return init?.method === 'DELETE'
           ? jsonResponse({ deleted: true })
-          : jsonResponse(projectSettings)
+          : jsonResponse(workspaceSettings)
       }
       return init?.method === 'GET'
         ? jsonResponse({ items: [slot] })
@@ -1157,34 +1157,34 @@ describe('createApiClient', () => {
       rerank_enabled: true,
       rerank_candidate_limit: 12,
     })
-    const effective = await client.getProjectRuntimeSettings(projectId)
-    await client.upsertProjectRuntimeSlotOverride(projectId, 'chat', {
+    const effective = await client.getWorkspaceRuntimeSettings(workspaceId)
+    await client.upsertWorkspaceRuntimeSlotOverride(workspaceId, 'chat', {
       connection_id: 'local-chat',
       model_id: 'llama3.1:8b',
     })
-    const deleted = await client.deleteProjectRuntimeSlotOverride(
-      projectId,
+    const deleted = await client.deleteWorkspaceRuntimeSlotOverride(
+      workspaceId,
       'chat',
     )
-    const projectRetrieval = await client.upsertProjectChatRetrievalSettings(
-      projectId,
+    const workspaceRetrieval = await client.upsertWorkspaceChatRetrievalSettings(
+      workspaceId,
       {
         retrieval_limit: 4,
         rerank_enabled: false,
         rerank_candidate_limit: 8,
       },
     )
-    const deletedProjectRetrieval =
-      await client.deleteProjectChatRetrievalSettings(projectId)
+    const deletedWorkspaceRetrieval =
+      await client.deleteWorkspaceChatRetrievalSettings(workspaceId)
 
     expect(globalSlots.items[0].slot).toBe('dense_embedding')
     expect(globalRetrieval.rerank_candidate_limit).toBe(10)
     expect(effective.chat_models[0].source).toBe('overridden')
-    expect(effective.chat_retrieval.source).toBe('project')
+    expect(effective.chat_retrieval.source).toBe('workspace')
     expect(deleted.deleted).toBe(true)
-    expect(projectRetrieval.source).toBe('project')
-    expect(projectRetrieval.retrieval_limit).toBe(4)
-    expect(deletedProjectRetrieval.deleted).toBe(true)
+    expect(workspaceRetrieval.source).toBe('workspace')
+    expect(workspaceRetrieval.retrieval_limit).toBe(4)
+    expect(deletedWorkspaceRetrieval.deleted).toBe(true)
     expect(String(calls[1].input)).toBe(
       'http://api.local/runtime-settings/slots/dense_embedding',
     )
@@ -1202,22 +1202,22 @@ describe('createApiClient', () => {
     )
     expect(calls[4].init?.method).toBe('PUT')
     expect(String(calls[5].input)).toBe(
-      `http://api.local/projects/${projectId}/runtime-settings`,
+      `http://api.local/workspaces/${workspaceId}/runtime-settings`,
     )
     expect(String(calls[6].input)).toBe(
-      `http://api.local/projects/${projectId}/runtime-settings/slots/chat`,
+      `http://api.local/workspaces/${workspaceId}/runtime-settings/slots/chat`,
     )
     expect(calls[6].init?.method).toBe('PUT')
     expect(calls[7].init?.method).toBe('DELETE')
     expect(String(calls[8].input)).toBe(
-      `http://api.local/projects/${projectId}/runtime-settings/chat/retrieval`,
+      `http://api.local/workspaces/${workspaceId}/runtime-settings/chat/retrieval`,
     )
     expect(calls[8].init?.method).toBe('PUT')
     expect(calls[9].init?.method).toBe('DELETE')
   })
 
   test('raises structured errors for non-success responses', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch } = createFetchStub(
       jsonResponse(
         {
@@ -1232,7 +1232,7 @@ describe('createApiClient', () => {
     })
 
     await expect(
-      client.getChatSession(projectId, 'missing-session'),
+      client.getChatSession(workspaceId, 'missing-session'),
     ).rejects.toMatchObject({
       name: 'ApiClientError',
       status: 404,
@@ -1269,7 +1269,7 @@ describe('createApiClient', () => {
   })
 
   test('streams chat SSE events and resolves the final response', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch, calls } = createFetchStub(
       sseResponse([
         'event: session_started\ndata: {"session_id":"session-stream"}\n\n',
@@ -1292,7 +1292,7 @@ describe('createApiClient', () => {
     const sessions: string[] = []
 
     const response = await client.askChatStream(
-      projectId,
+      workspaceId,
       {
         message: 'What changed?',
         retrieval_limit: 3,
@@ -1319,7 +1319,7 @@ describe('createApiClient', () => {
     expect(sessions).toEqual(['session-stream'])
     expect(calls).toHaveLength(1)
     expect(String(calls[0].input)).toBe(
-      `http://api.local/projects/${projectId}/chat/stream`,
+      `http://api.local/workspaces/${workspaceId}/chat/stream`,
     )
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.headers).toEqual({
@@ -1329,7 +1329,7 @@ describe('createApiClient', () => {
   })
 
   test('raises structured errors for chat stream error events', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch } = createFetchStub(
       sseResponse([
         'event: error\ndata: {"code":"provider_rate_limited","detail":"runner failed","message":"runner failed","retryable":true}\n\n',
@@ -1341,7 +1341,7 @@ describe('createApiClient', () => {
     })
 
     await expect(
-      client.askChatStream(projectId, { message: 'What changed?' }, {}),
+      client.askChatStream(workspaceId, { message: 'What changed?' }, {}),
     ).rejects.toMatchObject({
       name: 'ApiClientError',
       status: 200,
@@ -1358,7 +1358,7 @@ describe('createApiClient', () => {
   })
 
   test('accepts legacy stream error events with detail only', async () => {
-    const projectId = '11111111-1111-4111-8111-111111111111'
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch } = createFetchStub(
       sseResponse(['event: error\ndata: {"detail":"legacy failure"}\n\n']),
     )
@@ -1368,7 +1368,7 @@ describe('createApiClient', () => {
     })
 
     await expect(
-      client.askChatStream(projectId, { message: 'What changed?' }, {}),
+      client.askChatStream(workspaceId, { message: 'What changed?' }, {}),
     ).rejects.toMatchObject({
       name: 'ApiClientError',
       message: 'legacy failure',
@@ -1382,7 +1382,7 @@ describe('createApiClient', () => {
       content: 'Prefer concise answers',
       created_at: '2026-08-05T00:00:00Z',
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      project_id: null,
+      workspace_id: null,
       reviewed_at: null,
       reviewed_by_user_id: null,
       status: 'proposed',

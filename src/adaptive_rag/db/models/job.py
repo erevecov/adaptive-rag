@@ -10,7 +10,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Te
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 JOB_STATUS_VALUES = ("queued", "running", "succeeded", "blocked", "dead_letter")
 
@@ -31,19 +31,19 @@ class Job(Base):
         CheckConstraint("attempts >= 0", name="jobs_attempts_non_negative_check"),
         CheckConstraint("max_attempts > 0", name="jobs_max_attempts_positive_check"),
         Index(
-            "ix_jobs_project_status_run_after_priority",
-            "project_id",
+            "ix_jobs_workspace_status_run_after_priority",
+            "workspace_id",
             "status",
             "run_after",
             "priority",
         ),
-        Index("ix_jobs_project_locked_until", "project_id", "locked_until"),
-        Index("ix_jobs_project_created_at", "project_id", "created_at"),
+        Index("ix_jobs_workspace_locked_until", "workspace_id", "locked_until"),
+        Index("ix_jobs_workspace_created_at", "workspace_id", "created_at"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     job_type: Mapped[str] = mapped_column(nullable=False)
     status: Mapped[str] = mapped_column(

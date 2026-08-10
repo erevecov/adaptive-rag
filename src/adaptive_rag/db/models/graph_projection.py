@@ -18,8 +18,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 
-GRAPH_PROJECTION_BACKEND_VALUES = ("neo4j",)
-GRAPH_PROJECTION_STATUS_VALUES = (
+GRAPH_projection_BACKEND_VALUES = ("neo4j",)
+GRAPH_projection_STATUS_VALUES = (
     "disabled",
     "pending_backfill",
     "indexing",
@@ -31,15 +31,15 @@ DEFAULT_GRAPH_SCHEMA_VERSION = "graph-store-v1"
 DEFAULT_GRAPH_EXTRACTOR_VERSION = "graph-extractor-v1"
 
 
-class GraphProjection(Base):
+class Graphprojection(Base):
     """Readiness de un indice graph derivado y reconstruible desde Postgres."""
 
     __tablename__ = "graph_projections"
     __table_args__ = (
         UniqueConstraint(
-            "project_id",
+            "workspace_id",
             "backend",
-            name="uq_graph_projections_project_backend",
+            name="uq_graph_projections_workspace_backend",
         ),
         CheckConstraint(
             "backend IN ('neo4j')",
@@ -47,16 +47,16 @@ class GraphProjection(Base):
         ),
         CheckConstraint(
             "status IN ("
-            + ", ".join(f"'{status}'" for status in GRAPH_PROJECTION_STATUS_VALUES)
+            + ", ".join(f"'{status}'" for status in GRAPH_projection_STATUS_VALUES)
             + ")",
             name="graph_projections_status_check",
         ),
-        Index("ix_graph_projections_project_status", "project_id", "status"),
+        Index("ix_graph_projections_workspace_status", "workspace_id", "status"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     backend: Mapped[str] = mapped_column(
         nullable=False, default="neo4j", server_default="neo4j"

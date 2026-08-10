@@ -10,7 +10,7 @@ from uuid import UUID
 import typer
 from sqlalchemy.orm import Session
 
-from adaptive_rag.cli.dense import list_project_document_version_ids
+from adaptive_rag.cli.dense import list_workspace_document_version_ids
 from adaptive_rag.contextualization import (
     ContextualizationPipeline,
     ContextualizationPipelineError,
@@ -26,7 +26,7 @@ ContextualizerKind = Literal["deterministic", "llm_opt_in"]
 
 @app.command("reindex")
 def reindex(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     document_version_id: Annotated[
         UUID | None,
         typer.Option("--document-version-id"),
@@ -46,7 +46,7 @@ def reindex(
         ),
     ] = False,
 ) -> None:
-    """Regenerate contextual summaries for a project or one document version."""
+    """Regenerate contextual summaries for a workspace or one document version."""
 
     started = datetime.now(UTC)
     contextualizer = _build_contextualizer(provider)
@@ -54,7 +54,7 @@ def reindex(
         version_ids = (
             [document_version_id]
             if document_version_id is not None
-            else list_project_document_version_ids(session, project_id=project_id)
+            else list_workspace_document_version_ids(session, workspace_id=workspace_id)
         )
         pipeline = ContextualizationPipeline(session, contextualizer=contextualizer)
         generated = 0
@@ -62,7 +62,7 @@ def reindex(
         try:
             for version_id in version_ids:
                 result = pipeline.contextualize_document_version(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     document_version_id=version_id,
                     force=force,
                 )
@@ -77,7 +77,7 @@ def reindex(
     typer.echo(
         json.dumps(
             {
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_version_count": len(version_ids),
                 "contextualized_chunk_count": generated,
                 "reused_contextualized_chunk_count": reused,
@@ -94,7 +94,7 @@ def reindex(
 
 @app.command("ab-compare")
 def ab_compare(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     document_version_id: Annotated[UUID, typer.Option("--document-version-id")],
 ) -> None:
     """Compare deterministic vs llm_opt_in summaries for one document version."""
@@ -103,7 +103,7 @@ def ab_compare(
         try:
             report = compare_contextualizers(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 document_version_id=document_version_id,
             )
         except (ContextualizationPipelineError, ValueError) as exc:
@@ -116,7 +116,7 @@ def ab_compare(
 def compare_contextualizers(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     document_version_id: UUID,
 ) -> dict[str, object]:
     """Run both contextualizers with force and report differing summaries."""
@@ -127,7 +127,7 @@ def compare_contextualizers(
     llm_pipeline = ContextualizationPipeline(session, contextualizer=llm)
 
     det_result = det_pipeline.contextualize_document_version(
-        project_id=project_id,
+        workspace_id=workspace_id,
         document_version_id=document_version_id,
         force=True,
     )
@@ -137,7 +137,7 @@ def compare_contextualizers(
     }
 
     llm_result = llm_pipeline.contextualize_document_version(
-        project_id=project_id,
+        workspace_id=workspace_id,
         document_version_id=document_version_id,
         force=True,
     )
@@ -152,7 +152,7 @@ def compare_contextualizers(
             differing += 1
 
     return {
-        "project_id": str(project_id),
+        "workspace_id": str(workspace_id),
         "document_version_id": str(document_version_id),
         "chunk_count": len(chunk_ids),
         "differing_summary_count": differing,

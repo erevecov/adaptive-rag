@@ -10,7 +10,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from adaptive_rag import ingestion_ops
-from adaptive_rag.api.dependencies import get_project_contributor_access, get_session
+from adaptive_rag.api.dependencies import get_session, get_workspace_contributor_access
 from adaptive_rag.api.schemas.ingestion_ops import (
     EnqueueIngestionJobRequestBody,
     IngestionRunResponse,
@@ -20,22 +20,22 @@ from adaptive_rag.api.schemas.ingestion_ops import (
     RetryIngestionJobRequestBody,
     RunNextIngestionJobRequestBody,
 )
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Workspace
 
 router = APIRouter(tags=["ingestion-ops"])
 
 
 @router.post(
-    "/projects/{project_id}/sources/{source_id}/ingestion-jobs",
+    "/workspaces/{workspace_id}/sources/{source_id}/ingestion-jobs",
     response_model=JobResponse,
 )
 def enqueue_source_ingestion(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     _access: Annotated[
-        tuple[Project, str],
-        Depends(get_project_contributor_access),
+        tuple[Workspace, str],
+        Depends(get_workspace_contributor_access),
     ],
     body: Annotated[EnqueueIngestionJobRequestBody | None, Body()] = None,
 ) -> JobResponse:
@@ -43,7 +43,7 @@ def enqueue_source_ingestion(
     try:
         job = ingestion_ops.enqueue_source_ingestion(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
             priority=active_body.priority,
             max_attempts=active_body.max_attempts,
@@ -54,13 +54,13 @@ def enqueue_source_ingestion(
     return JobResponse.from_job(job)
 
 
-@router.get("/projects/{project_id}/ingestion-jobs", response_model=JobListResponse)
+@router.get("/workspaces/{workspace_id}/ingestion-jobs", response_model=JobListResponse)
 def list_ingestion_jobs(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     _access: Annotated[
-        tuple[Project, str],
-        Depends(get_project_contributor_access),
+        tuple[Workspace, str],
+        Depends(get_workspace_contributor_access),
     ],
     source_id: Annotated[UUID | None, Query()] = None,
     status: Annotated[str | None, Query()] = None,
@@ -69,7 +69,7 @@ def list_ingestion_jobs(
     try:
         jobs = ingestion_ops.list_ingestion_jobs(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
             status=status,
             job_type=job_type,
@@ -80,15 +80,15 @@ def list_ingestion_jobs(
 
 
 @router.post(
-    "/projects/{project_id}/ingestion-jobs/run-next",
+    "/workspaces/{workspace_id}/ingestion-jobs/run-next",
     response_model=IngestionRunResponse,
 )
 def run_next_ingestion_job(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     _access: Annotated[
-        tuple[Project, str],
-        Depends(get_project_contributor_access),
+        tuple[Workspace, str],
+        Depends(get_workspace_contributor_access),
     ],
     body: Annotated[RunNextIngestionJobRequestBody | None, Body()] = None,
 ) -> IngestionRunResponse:
@@ -97,7 +97,7 @@ def run_next_ingestion_job(
     try:
         report = ingestion_ops.run_next_ingestion_job(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             lease_seconds=active_body.lease_seconds,
         )
@@ -108,22 +108,22 @@ def run_next_ingestion_job(
 
 
 @router.get(
-    "/projects/{project_id}/ingestion-jobs/{job_id}",
+    "/workspaces/{workspace_id}/ingestion-jobs/{job_id}",
     response_model=JobDetailResponse,
 )
 def get_ingestion_job(
-    project_id: UUID,
+    workspace_id: UUID,
     job_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     _access: Annotated[
-        tuple[Project, str],
-        Depends(get_project_contributor_access),
+        tuple[Workspace, str],
+        Depends(get_workspace_contributor_access),
     ],
 ) -> JobDetailResponse:
     try:
         detail = ingestion_ops.get_ingestion_job_detail(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job_id,
         )
     except ingestion_ops.IngestionOpsError as exc:
@@ -135,16 +135,16 @@ def get_ingestion_job(
 
 
 @router.post(
-    "/projects/{project_id}/ingestion-jobs/{job_id}/retry",
+    "/workspaces/{workspace_id}/ingestion-jobs/{job_id}/retry",
     response_model=JobResponse,
 )
 def retry_ingestion_job(
-    project_id: UUID,
+    workspace_id: UUID,
     job_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     _access: Annotated[
-        tuple[Project, str],
-        Depends(get_project_contributor_access),
+        tuple[Workspace, str],
+        Depends(get_workspace_contributor_access),
     ],
     body: Annotated[RetryIngestionJobRequestBody | None, Body()] = None,
 ) -> JobResponse:
@@ -152,7 +152,7 @@ def retry_ingestion_job(
     try:
         job = ingestion_ops.retry_ingestion_job(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job_id,
             reset_attempts=active_body.reset_attempts,
         )

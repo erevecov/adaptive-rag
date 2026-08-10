@@ -26,21 +26,21 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
-    ProjectMembership,
+    Graphprojection,
     Source,
     User,
+    Workspace,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectMembershipRepository,
-    ProjectRepository,
     SourceRepository,
     SparseEmbeddingRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -101,16 +101,16 @@ class RecordingGraphRetriever:
         self.results = results
         self.requests: list[dict[str, object]] = []
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id,
+        workspace_id,
         seed_chunk_ids,
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         self.requests.append(
             {
-                "project_id": project_id,
+                "workspace_id": workspace_id,
                 "seed_chunk_ids": tuple(seed_chunk_ids),
                 "limit": limit,
             }
@@ -127,16 +127,16 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -189,8 +189,8 @@ def _client(
     return TestClient(app)
 
 
-def _create_project(session: Session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _bearer(raw_token: str) -> dict[str, str]:
@@ -214,15 +214,15 @@ def _create_user(
     return user
 
 
-def _grant_project_role(
+def _grant_workspace_role(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     user: User,
     role: str,
 ) -> None:
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role=role,
     )
@@ -231,7 +231,7 @@ def _grant_project_role(
 def _create_embedded_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -242,19 +242,19 @@ def _create_embedded_chunk(
     contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -263,7 +263,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -281,14 +281,14 @@ def _create_embedded_chunk(
 def _create_sparse_embedding(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     chunk: Chunk,
     indices: tuple[int, ...],
     values: tuple[float, ...],
     fingerprint: str,
 ) -> None:
     SparseEmbeddingRepository(session).upsert_current(
-        project_id=project.id,
+        workspace_id=workspace.id,
         chunk_id=chunk.id,
         vector=SparseEmbeddingVector(indices=indices, values=values),
         input_hash=f"sha256:{fingerprint}",
@@ -297,43 +297,43 @@ def _create_sparse_embedding(
     )
 
 
-def test_retrieval_search_endpoint_requires_project_membership() -> None:
+def test_retrieval_search_endpoint_requires_workspace_membership() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
     outsider = _create_user(
         session,
         login="outsider@example.com",
         token="outsider-token",
     )
-    _grant_project_role(session, project=project, user=viewer, role="viewer")
+    _grant_workspace_role(session, workspace=workspace, user=viewer, role="viewer")
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     client = _client(session=session, provider=provider)
 
     denied = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         headers=_bearer("outsider-token"),
         json={"query": "alpha question", "limit": 1},
     )
     allowed = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         headers=_bearer("viewer-token"),
         json={"query": "alpha question", "limit": 1},
     )
 
     assert outsider.system_role == "user"
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project access required"
+    assert denied.json()["detail"] == "workspace access required"
     assert allowed.status_code == 200
 
 
 def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         tags=("docs", "v1"),
         stable_id="far-doc",
@@ -343,7 +343,7 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     )
     source, document, version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         tags=("docs", "v1"),
         stable_id="near-doc",
@@ -353,7 +353,7 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=near,
         indices=(1,),
         values=(1.0,),
@@ -361,7 +361,7 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=far,
         indices=(2,),
         values=(0.5,),
@@ -370,7 +370,7 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     _wrong_type_source, _wrong_type_document, _wrong_type_version, _wrong_type = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             source_type="text",
             external_id="wrong-type.txt",
             tags=("docs", "v1"),
@@ -392,7 +392,7 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "alpha question",
             "limit": 5,
@@ -442,10 +442,10 @@ def test_retrieval_search_endpoint_returns_results_with_citations() -> None:
 
 def test_retrieval_search_endpoint_reranks_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far-doc",
         text="Far original evidence",
@@ -454,7 +454,7 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
     )
     _mid_source, _mid_document, _mid_version, mid = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="mid.md",
         stable_id="mid-doc",
         text="Header\n\nBeta rerank evidence",
@@ -463,7 +463,7 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Header\n\nAlpha dense evidence",
@@ -490,7 +490,7 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "beta question",
             "limit": 1,
@@ -524,11 +524,11 @@ def test_retrieval_search_endpoint_reranks_when_requested() -> None:
 
 def test_retrieval_search_endpoint_uses_lexical_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -539,7 +539,7 @@ def test_retrieval_search_endpoint_uses_lexical_strategy_when_requested() -> Non
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -553,7 +553,7 @@ def test_retrieval_search_endpoint_uses_lexical_strategy_when_requested() -> Non
     client = _client(session=session, provider=provider)
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "SKU-42 installation",
             "limit": 2,
@@ -581,12 +581,12 @@ def test_retrieval_search_endpoint_uses_lexical_strategy_when_requested() -> Non
 
 def test_retrieval_search_endpoint_uses_bm25_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     filler = " ".join(f"filler{i}" for i in range(80))
     _long_source, _long_document, _long_version, long_match = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="long.md",
             stable_id="long-doc",
             text=f"SKU 42 manual {filler}",
@@ -597,7 +597,7 @@ def test_retrieval_search_endpoint_uses_bm25_strategy_when_requested() -> None:
     _short_source, _short_document, _short_version, short_match = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="short.md",
             stable_id="short-doc",
             text="Header\n\nSKU 42 manual",
@@ -617,7 +617,7 @@ def test_retrieval_search_endpoint_uses_bm25_strategy_when_requested() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "SKU 42 manual",
             "limit": 2,
@@ -642,11 +642,11 @@ def test_retrieval_search_endpoint_uses_bm25_strategy_when_requested() -> None:
 
 def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -657,7 +657,7 @@ def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> 
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -671,7 +671,7 @@ def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> 
     client = _client(session=session, provider=provider)
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "SKU-42 installation",
             "limit": 2,
@@ -698,11 +698,11 @@ def test_retrieval_search_endpoint_uses_hybrid_rrf_strategy_when_requested() -> 
 
 def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -713,7 +713,7 @@ def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -724,7 +724,7 @@ def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -742,7 +742,7 @@ def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "SKU-42 installation",
             "limit": 2,
@@ -771,11 +771,11 @@ def test_retrieval_search_endpoint_uses_dense_sparse_strategy_when_requested() -
 
 def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -786,7 +786,7 @@ def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -797,7 +797,7 @@ def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -815,7 +815,7 @@ def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "SKU-42 installation",
             "limit": 2,
@@ -839,10 +839,10 @@ def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None
 
 def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far-doc",
         text="Far graph-expanded evidence",
@@ -851,14 +851,14 @@ def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Header\n\nAlpha dense seed evidence",
         snippet="Alpha dense seed evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="ready"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(
@@ -871,7 +871,7 @@ def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={"query": "alpha question", "limit": 1, "strategy": "graph"},
     )
 
@@ -879,7 +879,7 @@ def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
     assert provider.inputs == ["alpha question"]
     assert graph_retriever.requests == [
         {
-            "project_id": project.id,
+            "workspace_id": workspace.id,
             "seed_chunk_ids": (near.id,),
             "limit": 1,
         }
@@ -892,10 +892,10 @@ def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:
 
 def test_retrieval_search_endpoint_reports_graph_fallback_reason() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far-doc",
         text="Far original evidence",
@@ -904,14 +904,14 @@ def test_retrieval_search_endpoint_reports_graph_fallback_reason() -> None:
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Header\n\nAlpha dense evidence",
         snippet="Alpha dense evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="pending_backfill"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="pending_backfill"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(())
@@ -922,7 +922,7 @@ def test_retrieval_search_endpoint_reports_graph_fallback_reason() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={"query": "alpha question", "limit": 2, "strategy": "graph"},
     )
 
@@ -944,7 +944,7 @@ def test_retrieval_search_endpoint_rejects_invalid_rerank_limit_before_provider(
     None
 ):
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     reranker = RecordingRerankProvider(scores=())
@@ -955,7 +955,7 @@ def test_retrieval_search_endpoint_rejects_invalid_rerank_limit_before_provider(
     )
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "alpha question",
             "limit": 2,
@@ -973,13 +973,13 @@ def test_retrieval_search_endpoint_rejects_invalid_rerank_limit_before_provider(
 
 def test_retrieval_search_endpoint_rejects_unknown_filter_fields() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     client = _client(session=session, provider=provider)
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={
             "query": "alpha question",
             "metadata_filter": {"unsupported": "value"},
@@ -992,13 +992,13 @@ def test_retrieval_search_endpoint_rejects_unknown_filter_fields() -> None:
 
 def test_retrieval_search_endpoint_maps_service_errors_to_422() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     client = _client(session=session, provider=provider)
 
     response = client.post(
-        f"/projects/{project.id}/retrieval/search",
+        f"/workspaces/{workspace.id}/retrieval/search",
         json={"query": " "},
     )
 

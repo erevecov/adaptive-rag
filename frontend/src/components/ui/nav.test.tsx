@@ -36,9 +36,9 @@ describe('NavSection', () => {
 
 describe('SidebarItem', () => {
   test('marks the active item as the current page', () => {
-    render(<SidebarItem active>Projects</SidebarItem>)
+    render(<SidebarItem active>Workspaces</SidebarItem>)
 
-    const item = screen.getByRole('button', { name: 'Projects' })
+    const item = screen.getByRole('button', { name: 'Workspaces' })
     expect(item.getAttribute('aria-current')).toBe('page')
     expect(item.getAttribute('data-active')).toBe('')
     expect(item.className).toContain('data-[active]:bg-primary/15')
@@ -55,26 +55,26 @@ describe('SidebarItem', () => {
   })
 
   test('uses primary-tint hover when inactive', () => {
-    render(<SidebarItem>Projects</SidebarItem>)
+    render(<SidebarItem>Workspaces</SidebarItem>)
 
-    const item = screen.getByRole('button', { name: 'Projects' })
+    const item = screen.getByRole('button', { name: 'Workspaces' })
     expect(item.className).toContain('hover:bg-primary/15')
     expect(item.className).toContain('max-[680px]:hover:bg-primary/80')
     expect(item.hasAttribute('aria-current')).toBe(false)
   })
 
   test('passes the disabled state to the button element', () => {
-    render(<SidebarItem disabled>Projects</SidebarItem>)
+    render(<SidebarItem disabled>Workspaces</SidebarItem>)
 
     expect(
-      (screen.getByRole('button', { name: 'Projects' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Workspaces' }) as HTMLButtonElement).disabled,
     ).toBe(true)
   })
 
   test('uses type button by default', () => {
-    render(<SidebarItem>Projects</SidebarItem>)
+    render(<SidebarItem>Workspaces</SidebarItem>)
 
-    expect(screen.getByRole('button', { name: 'Projects' }).getAttribute('type')).toBe(
+    expect(screen.getByRole('button', { name: 'Workspaces' }).getAttribute('type')).toBe(
       'button',
     )
   })

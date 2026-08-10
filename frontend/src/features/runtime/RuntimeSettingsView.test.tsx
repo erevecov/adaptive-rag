@@ -2,17 +2,20 @@
  * @vitest-environment jsdom
  */
 import { type FormEvent, useState } from 'react'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import appSource from '@/App.tsx?raw'
 import runtimeSource from './RuntimeSettingsView.tsx?raw'
-import { RuntimeSettingsPanel } from './RuntimeSettingsView'
+import {
+  ProviderModelCatalogView,
+  RuntimeSettingsPanel,
+} from './RuntimeSettingsView'
 import { installPointerEventMocks } from '@/test/pointerEvents'
 import type {
   ChatRetrievalSettings,
-  ProjectRuntimeSettings,
+  WorkspaceRuntimeSettings,
   ProviderConnection,
   ProviderConnectionCheckResponse,
   ProviderModel,
@@ -99,6 +102,48 @@ const providerModels: ProviderModel[] = [
   },
 ]
 
+const pricedProviderModels: ProviderModel[] = [
+  {
+    capabilities: ['chat'],
+    connection_id: 'qwen-hosted',
+    created_at: '2026-06-01T00:00:00Z',
+    last_seen_at: '2026-06-01T00:00:00Z',
+    metadata: null,
+    model_id: 'qwen-plus',
+    pricing: {
+      input_per_million_tokens_usd: 0.4,
+      output_per_million_tokens_usd: 1.2,
+      output_thinking_per_million_tokens_usd: 4,
+      currency: 'USD',
+      source: 'alibaba_model_studio_singapore_list',
+    },
+    updated_at: '2026-06-01T00:00:00Z',
+  },
+  {
+    capabilities: ['dense_embedding', 'sparse_embedding'],
+    connection_id: 'qwen-hosted',
+    created_at: '2026-06-01T00:00:00Z',
+    last_seen_at: '2026-06-01T00:00:00Z',
+    metadata: null,
+    model_id: 'text-embedding-v4',
+    pricing: {
+      input_per_million_tokens_usd: 0.07,
+      currency: 'USD',
+    },
+    updated_at: '2026-06-01T00:00:00Z',
+  },
+  {
+    capabilities: ['rerank'],
+    connection_id: 'qwen-hosted',
+    created_at: '2026-06-01T00:00:00Z',
+    last_seen_at: '2026-06-01T00:00:00Z',
+    metadata: null,
+    model_id: 'experimental-preview',
+    pricing: null,
+    updated_at: '2026-06-01T00:00:00Z',
+  },
+]
+
 const runtimeSlots: RuntimeSlotDefault[] = [
   {
     connection_id: 'qwen-hosted',
@@ -117,7 +162,7 @@ const chatRetrievalSettings: ChatRetrievalSettings = {
   retrieval_limit: 5,
 }
 
-const projectRuntimeSettings: ProjectRuntimeSettings = {
+const workspaceRuntimeSettings: WorkspaceRuntimeSettings = {
   chat_models: [
     {
       connection_id: 'qwen-hosted',
@@ -131,7 +176,7 @@ const projectRuntimeSettings: ProjectRuntimeSettings = {
     ...chatRetrievalSettings,
     source: 'global',
   },
-  project_id: '11111111-1111-4111-8111-111111111111',
+  workspace_id: '11111111-1111-4111-8111-111111111111',
   slots: [
     {
       connection_id: 'qwen-hosted',
@@ -177,6 +222,7 @@ function renderRuntimeSettingsPanel(
     deleteConnectionId: null,
     editingConnectionId: null,
     error: null,
+    isCreatingConnection: false,
     globalChatRerankCandidateLimit: 10,
     globalChatRerankEnabled: true,
     globalChatRetrievalLimit: 5,
@@ -203,34 +249,32 @@ function renderRuntimeSettingsPanel(
     onGlobalSlotConnectionIdChange: vi.fn(),
     onGlobalSlotModelIdChange: vi.fn(),
     onModelSyncConnectionIdChange: vi.fn(),
-    onProjectChatRerankCandidateLimitChange: vi.fn(),
-    onProjectChatRerankEnabledChange: vi.fn(),
-    onProjectChatRetrievalLimitChange: vi.fn(),
-    onProjectSlotChange: vi.fn(),
-    onProjectSlotConnectionIdChange: vi.fn(),
-    onProjectSlotModelIdChange: vi.fn(),
-    onRefreshGlobalDefaults: vi.fn(),
-    onRefreshModelCatalog: vi.fn(),
-    onRefreshProjectOverrides: vi.fn(),
+    onWorkspaceChatRerankCandidateLimitChange: vi.fn(),
+    onWorkspaceChatRerankEnabledChange: vi.fn(),
+    onWorkspaceChatRetrievalLimitChange: vi.fn(),
+    onWorkspaceSlotChange: vi.fn(),
+    onWorkspaceSlotConnectionIdChange: vi.fn(),
+    onWorkspaceSlotModelIdChange: vi.fn(),
+    onRefreshWorkspaceOverrides: vi.fn(),
+    onRequestCreateConnection: vi.fn(),
     onRequestDeleteConnection: vi.fn(),
     onRequestEditConnection: vi.fn(),
-    onResetProjectChatRetrieval: vi.fn(),
-    onResetProjectSlot: vi.fn(),
+    onResetWorkspaceChatRetrieval: vi.fn(),
+    onResetWorkspaceSlot: vi.fn(),
     onSaveConnection: vi.fn(preventDefault),
     onSaveGlobalChatModel: vi.fn(preventDefault),
     onSaveGlobalChatRetrieval: vi.fn(preventDefault),
     onSaveGlobalSlot: vi.fn(preventDefault),
-    onSaveProjectChatRetrieval: vi.fn(preventDefault),
-    onSaveProjectOverride: vi.fn(preventDefault),
-    onSyncProviderModels: vi.fn(preventDefault),
-    projectChatRerankCandidateLimit: 10,
-    projectChatRerankEnabled: true,
-    projectChatRetrievalLimit: 5,
-    projectId: '11111111-1111-4111-8111-111111111111',
-    projectRuntimeSettings,
-    projectSlot: 'chat',
-    projectSlotConnectionId: 'qwen-hosted',
-    projectSlotModelId: 'qwen-plus',
+    onSaveWorkspaceChatRetrieval: vi.fn(preventDefault),
+    onSaveWorkspaceOverride: vi.fn(preventDefault),
+    workspaceChatRerankCandidateLimit: 10,
+    workspaceChatRerankEnabled: true,
+    workspaceChatRetrievalLimit: 5,
+    workspaceId: '11111111-1111-4111-8111-111111111111',
+    workspaceRuntimeSettings,
+    workspaceSlot: 'chat',
+    workspaceSlotConnectionId: 'qwen-hosted',
+    workspaceSlotModelId: 'qwen-plus',
     providerModels,
     slots: runtimeSlots,
     state: 'idle',
@@ -277,6 +321,7 @@ function StatefulDeleteRuntimePanel({
       globalSlot="chat"
       globalSlotConnectionId="qwen-hosted"
       globalSlotModelId="qwen-plus"
+      isCreatingConnection={false}
       modelSyncConnectionId="qwen-hosted"
       onCancelDeleteConnection={() => setDeleteConnectionId(null)}
       onCancelEditConnection={vi.fn()}
@@ -297,43 +342,61 @@ function StatefulDeleteRuntimePanel({
       onGlobalSlotConnectionIdChange={vi.fn()}
       onGlobalSlotModelIdChange={vi.fn()}
       onModelSyncConnectionIdChange={vi.fn()}
-      onProjectChatRerankCandidateLimitChange={vi.fn()}
-      onProjectChatRerankEnabledChange={vi.fn()}
-      onProjectChatRetrievalLimitChange={vi.fn()}
-      onProjectSlotChange={vi.fn()}
-      onProjectSlotConnectionIdChange={vi.fn()}
-      onProjectSlotModelIdChange={vi.fn()}
-      onRefreshGlobalDefaults={vi.fn()}
-      onRefreshModelCatalog={vi.fn()}
-      onRefreshProjectOverrides={vi.fn()}
+      onWorkspaceChatRerankCandidateLimitChange={vi.fn()}
+      onWorkspaceChatRerankEnabledChange={vi.fn()}
+      onWorkspaceChatRetrievalLimitChange={vi.fn()}
+      onWorkspaceSlotChange={vi.fn()}
+      onWorkspaceSlotConnectionIdChange={vi.fn()}
+      onWorkspaceSlotModelIdChange={vi.fn()}
+      onRefreshWorkspaceOverrides={vi.fn()}
+      onRequestCreateConnection={vi.fn()}
       onRequestDeleteConnection={(connectionId) => {
         setDeleteConnectionConfirmation('')
         setDeleteConnectionId(connectionId)
       }}
       onRequestEditConnection={vi.fn()}
-      onResetProjectChatRetrieval={vi.fn()}
-      onResetProjectSlot={vi.fn()}
+      onResetWorkspaceChatRetrieval={vi.fn()}
+      onResetWorkspaceSlot={vi.fn()}
       onSaveConnection={vi.fn(preventDefault)}
       onSaveGlobalChatModel={vi.fn(preventDefault)}
       onSaveGlobalChatRetrieval={vi.fn(preventDefault)}
       onSaveGlobalSlot={vi.fn(preventDefault)}
-      onSaveProjectChatRetrieval={vi.fn(preventDefault)}
-      onSaveProjectOverride={vi.fn(preventDefault)}
-      onSyncProviderModels={vi.fn(preventDefault)}
-      projectChatRerankCandidateLimit={10}
-      projectChatRerankEnabled
-      projectChatRetrievalLimit={5}
-      projectId="11111111-1111-4111-8111-111111111111"
-      projectRuntimeSettings={projectRuntimeSettings}
-      projectSlot="chat"
-      projectSlotConnectionId="qwen-hosted"
-      projectSlotModelId="qwen-plus"
+      onSaveWorkspaceChatRetrieval={vi.fn(preventDefault)}
+      onSaveWorkspaceOverride={vi.fn(preventDefault)}
+      workspaceChatRerankCandidateLimit={10}
+      workspaceChatRerankEnabled
+      workspaceChatRetrievalLimit={5}
+      workspaceId="11111111-1111-4111-8111-111111111111"
+      workspaceRuntimeSettings={workspaceRuntimeSettings}
+      workspaceSlot="chat"
+      workspaceSlotConnectionId="qwen-hosted"
+      workspaceSlotModelId="qwen-plus"
       providerModels={providerModels}
       slots={runtimeSlots}
       state="idle"
     />
   )
 }
+
+describe('ProviderModelCatalogView pricing', () => {
+  test('shows compact USD pricing and No pricing empty state', () => {
+    render(<ProviderModelCatalogView providerModels={pricedProviderModels} />)
+
+    expect(screen.getByText('qwen-plus')).toBeTruthy()
+    expect(
+      screen.getByText('In $0.40 · Out $1.20 · Think $4.00 /1M'),
+    ).toBeTruthy()
+    expect(screen.getByText('In $0.07 /1M')).toBeTruthy()
+    expect(screen.getAllByText('Priced')).toHaveLength(2)
+    // Summary line + badge both say "No pricing" for unpriced models.
+    const missingLines = document.querySelectorAll(
+      '[data-pricing-state="missing"]',
+    )
+    expect(missingLines).toHaveLength(1)
+    expect(missingLines[0]?.textContent).toBe('No pricing')
+    expect(screen.getAllByText('No pricing').length).toBeGreaterThanOrEqual(2)
+  })
+})
 
 describe('RuntimeSettingsPanel', () => {
   test('does not make App import generic request state helpers from runtimeUi', () => {
@@ -355,7 +418,9 @@ describe('RuntimeSettingsPanel', () => {
     expect(
       screen.getByRole('heading', { name: 'Global Defaults' }),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Reload Global Defaults' })).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Reload Global Defaults' }),
+    ).toBeNull()
   })
 
   test('does not render runtime submodule segmented controls in the content panel', () => {
@@ -390,18 +455,18 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('wraps runtime panel headers with long status values', () => {
-    const longProjectId =
-      '11111111-1111-4111-8111-111111111111-project-with-long-runtime-id'
+    const longWorkspaceId =
+      '11111111-1111-4111-8111-111111111111-workspace-with-long-runtime-id'
     renderRuntimeSettingsPanel({
-      activeSubmodule: 'project_overrides',
-      projectId: longProjectId,
+      activeSubmodule: 'workspace_overrides',
+      workspaceId: longWorkspaceId,
     })
 
-    const statusBadge = screen.getByText(longProjectId)
+    const statusBadge = screen.getByText(longWorkspaceId)
     const header = statusBadge.closest('[data-slot="panel-header"]')
     const titleGroup = screen.getByRole('heading', {
       level: 2,
-      name: 'Project Overrides',
+      name: 'Workspace Overrides',
     }).parentElement
 
     expect(header?.className).toContain('flex-col')
@@ -411,8 +476,21 @@ describe('RuntimeSettingsPanel', () => {
     expect(statusBadge.className).toContain('break-all')
   })
 
+  test('hides the connection form until New Connection is requested', () => {
+    const onRequestCreateConnection = vi.fn()
+    renderRuntimeSettingsPanel({ onRequestCreateConnection })
+
+    expect(screen.getByRole('button', { name: 'New Connection' })).toBeTruthy()
+    expect(screen.queryByLabelText('Provider')).toBeNull()
+    expect(screen.queryByLabelText('API Key')).toBeNull()
+    expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Connection' }))
+    expect(onRequestCreateConnection).toHaveBeenCalledTimes(1)
+  })
+
   test('keeps connection form fields label-addressable without rendering secret connection controls', () => {
-    renderRuntimeSettingsPanel()
+    renderRuntimeSettingsPanel({ isCreatingConnection: true })
 
     expect(screen.getByLabelText('Provider')).toBeTruthy()
     expect(screen.getByLabelText('Connection Type')).toBeTruthy()
@@ -421,6 +499,19 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.getByLabelText('API Key')).toBeTruthy()
     expect(screen.queryByLabelText('Secret Connection')).toBeNull()
     expect(screen.getByText('Qwen / Hosted')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'New Connection' })).toBeNull()
+  })
+
+  test('places the connection form above the provider connections list', () => {
+    renderRuntimeSettingsPanel({ isCreatingConnection: true })
+
+    const form = screen.getByRole('form', { name: 'New Connection' })
+    const list = screen.getByRole('region', { name: 'Provider Connections' })
+    expect(
+      Boolean(
+        form.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true)
   })
 
   test('wires API key FieldHelp outside control when editing a connection', () => {
@@ -440,10 +531,12 @@ describe('RuntimeSettingsPanel', () => {
   test('renders runtime form selects with the Radix Select primitive', async () => {
     const user = userEvent.setup()
     const onConnectionProviderChange = vi.fn()
-    renderRuntimeSettingsPanel({ onConnectionProviderChange })
+    renderRuntimeSettingsPanel({
+      isCreatingConnection: true,
+      onConnectionProviderChange,
+    })
 
     const providerSelect = screen.getByRole('combobox', { name: 'Provider' })
-
     expect(providerSelect.getAttribute('data-slot')).toBe('select-trigger')
     expect(providerSelect.getAttribute('data-state')).toBe('closed')
 
@@ -469,7 +562,7 @@ describe('RuntimeSettingsPanel', () => {
 
   test('renders capability options through a Radix popover portal', async () => {
     const user = userEvent.setup()
-    renderRuntimeSettingsPanel()
+    renderRuntimeSettingsPanel({ isCreatingConnection: true })
 
     const trigger = screen.getByRole('combobox', { name: 'Capabilities' })
     const selector = trigger.closest('[data-slot="capability-selector"]')
@@ -596,7 +689,7 @@ describe('RuntimeSettingsPanel', () => {
 
   test('puts combobox ARIA on the capabilities filter input', async () => {
     const user = userEvent.setup()
-    renderRuntimeSettingsPanel()
+    renderRuntimeSettingsPanel({ isCreatingConnection: true })
 
     const filter = screen.getByRole('combobox', { name: 'Capabilities' })
     expect(filter.getAttribute('aria-expanded')).toBe('false')
@@ -632,17 +725,17 @@ describe('RuntimeSettingsPanel', () => {
     ).toBeTruthy()
   })
 
-  test('shows EmptyState when project chat pool is empty', () => {
+  test('shows EmptyState when workspace chat pool is empty', () => {
     renderRuntimeSettingsPanel({
-      activeSubmodule: 'project_overrides',
-      projectRuntimeSettings: {
-        ...projectRuntimeSettings,
+      activeSubmodule: 'workspace_overrides',
+      workspaceRuntimeSettings: {
+        ...workspaceRuntimeSettings,
         chat_models: [],
       },
     })
 
     expect(
-      screen.getByText(/No Chat Models in the Project Pool Yet/),
+      screen.getByText(/No Chat Models in the Workspace Pool Yet/),
     ).toBeTruthy()
   })
 
@@ -710,11 +803,11 @@ describe('RuntimeSettingsPanel', () => {
     expect(screen.queryByText('No Models Yet')).toBeNull()
   })
 
-  test('shows EmptyState when project effective slots are empty', () => {
+  test('shows EmptyState when workspace effective slots are empty', () => {
     renderRuntimeSettingsPanel({
-      activeSubmodule: 'project_overrides',
-      projectRuntimeSettings: {
-        ...projectRuntimeSettings,
+      activeSubmodule: 'workspace_overrides',
+      workspaceRuntimeSettings: {
+        ...workspaceRuntimeSettings,
         slots: [],
       },
     })

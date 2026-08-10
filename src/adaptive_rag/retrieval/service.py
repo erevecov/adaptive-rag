@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT, EMBEDDING_DIMENSIONS
-from adaptive_rag.db.repositories import GraphProjectionRepository
+from adaptive_rag.db.repositories import GraphprojectionRepository
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import (
     GraphRetrievalResult,
@@ -93,7 +93,7 @@ RRF_K = 60
 class RetrievalSearchRequest:
     """Solicitud interna de retrieval sobre query text."""
 
-    project_id: UUID
+    workspace_id: UUID
     query: str
     limit: int = 10
     metadata_filter: RetrievalMetadataFilter | None = None
@@ -133,7 +133,7 @@ class RetrievalService:
         sparse_provider: SparseEmbeddingProvider | None = None,
         reranker: RerankProvider | None = None,
         graph_retriever: GraphRetriever | None = None,
-        graph_projection_repository: GraphProjectionRepository | None = None,
+        graph_projection_repository: GraphprojectionRepository | None = None,
     ) -> None:
         self._provider = provider
         self._sparse_provider = sparse_provider
@@ -144,7 +144,7 @@ class RetrievalService:
         self._sparse_retriever = SparseRetriever(session)
         self._graph_retriever = graph_retriever
         self._graph_projection_repository = (
-            graph_projection_repository or GraphProjectionRepository(session)
+            graph_projection_repository or GraphprojectionRepository(session)
         )
 
     def search(self, request: RetrievalSearchRequest) -> list[RetrievalSearchResult]:
@@ -168,21 +168,21 @@ class RetrievalService:
 
         if strategy == "lexical":
             search_results = self._lexical_results(
-                project_id=request.project_id,
+                workspace_id=request.workspace_id,
                 query=query,
                 limit=candidate_limit,
                 filters=filters,
             )
         elif strategy == "bm25":
             search_results = self._bm25_results(
-                project_id=request.project_id,
+                workspace_id=request.workspace_id,
                 query=query,
                 limit=candidate_limit,
                 filters=filters,
             )
         elif strategy == "sparse":
             search_results = self._sparse_results(
-                project_id=request.project_id,
+                workspace_id=request.workspace_id,
                 query=query,
                 limit=candidate_limit,
                 filters=filters,
@@ -191,7 +191,7 @@ class RetrievalService:
             query_embedding = self._embed_query(query)
             try:
                 dense_results = self._retriever.search(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     query_embedding=query_embedding,
                     limit=candidate_limit,
                     filters=filters,
@@ -201,7 +201,7 @@ class RetrievalService:
 
             if strategy == "hybrid_rrf":
                 lexical_results = self._raw_lexical_results(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     query=query,
                     limit=candidate_limit,
                     filters=filters,
@@ -214,7 +214,7 @@ class RetrievalService:
                 )
             elif strategy == "dense_sparse":
                 sparse_results = self._raw_sparse_results(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     query=query,
                     limit=candidate_limit,
                     filters=filters,
@@ -229,7 +229,7 @@ class RetrievalService:
                 search_results = [_to_search_result(result) for result in dense_results]
                 if strategy == "graph":
                     graph_attempt = self._try_graph_results(
-                        project_id=request.project_id,
+                        workspace_id=request.workspace_id,
                         dense_results=dense_results,
                         limit=candidate_limit,
                         filters=filters,
@@ -256,7 +256,7 @@ class RetrievalService:
     def _lexical_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -264,7 +264,7 @@ class RetrievalService:
         return [
             _to_lexical_search_result(result)
             for result in self._raw_lexical_results(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 filters=filters,
@@ -274,14 +274,14 @@ class RetrievalService:
     def _raw_lexical_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
     ) -> list[LexicalRetrievalResult]:
         try:
             return self._lexical_retriever.search(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 filters=filters,
@@ -292,7 +292,7 @@ class RetrievalService:
     def _bm25_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -300,7 +300,7 @@ class RetrievalService:
         return [
             _to_bm25_search_result(result)
             for result in self._raw_bm25_results(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 filters=filters,
@@ -310,14 +310,14 @@ class RetrievalService:
     def _raw_bm25_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
     ) -> list[Bm25RetrievalResult]:
         try:
             return self._bm25_retriever.search(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 filters=filters,
@@ -328,7 +328,7 @@ class RetrievalService:
     def _raw_sparse_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -340,7 +340,7 @@ class RetrievalService:
         try:
             query_vector = self._sparse_provider.embed_query(query)
             return self._sparse_retriever.search(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query_vector=query_vector,
                 limit=limit,
                 filters=filters,
@@ -351,7 +351,7 @@ class RetrievalService:
     def _sparse_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -359,7 +359,7 @@ class RetrievalService:
         return [
             _to_sparse_search_result(result)
             for result in self._raw_sparse_results(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=query,
                 limit=limit,
                 filters=filters,
@@ -369,7 +369,7 @@ class RetrievalService:
     def _try_graph_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         dense_results: list[DenseRetrievalResult],
         limit: int,
         filters: DenseRetrievalFilters,
@@ -379,7 +379,7 @@ class RetrievalService:
                 results=None,
                 fallback_reason="graph_retriever_unavailable",
             )
-        projection = self._graph_projection_repository.get(project_id=project_id)
+        projection = self._graph_projection_repository.get(workspace_id=workspace_id)
         if projection is None:
             return _GraphRetrievalAttempt(
                 results=None,
@@ -395,8 +395,8 @@ class RetrievalService:
         if not seed_chunk_ids:
             return _GraphRetrievalAttempt(results=[])
         try:
-            graph_hits = self._graph_retriever.expand_project_chunks(
-                project_id=project_id,
+            graph_hits = self._graph_retriever.expand_workspace_chunks(
+                workspace_id=workspace_id,
                 seed_chunk_ids=seed_chunk_ids,
                 limit=limit,
             )
@@ -409,7 +409,7 @@ class RetrievalService:
             return _GraphRetrievalAttempt(results=[])
         return _GraphRetrievalAttempt(
             results=self._to_graph_search_results(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 graph_hits=graph_hits,
                 filters=filters,
             )
@@ -418,12 +418,12 @@ class RetrievalService:
     def _to_graph_search_results(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         graph_hits: Sequence[GraphRetrievalResult],
         filters: DenseRetrievalFilters,
     ) -> list[RetrievalSearchResult]:
         citations_by_chunk_id = self._retriever.get_by_chunk_ids(
-            project_id=project_id,
+            workspace_id=workspace_id,
             chunk_ids=[hit.chunk_id for hit in graph_hits],
             filters=filters,
         )

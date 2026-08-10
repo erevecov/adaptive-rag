@@ -60,7 +60,7 @@ class Bm25Retriever:
     def search(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int = 10,
         filters: DenseRetrievalFilters | None = None,
@@ -72,7 +72,7 @@ class Bm25Retriever:
             return []
         active_filters = filters or DenseRetrievalFilters()
         candidates = self._candidate_rows(
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=active_filters,
         )
         scored = _score_candidates(
@@ -87,7 +87,7 @@ class Bm25Retriever:
     def _candidate_rows(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DenseRetrievalFilters,
     ) -> list[_CandidateRow]:
         statement = (
@@ -98,7 +98,7 @@ class Bm25Retriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
         )
 
@@ -137,12 +137,12 @@ class Bm25Retriever:
         self,
         statement: Any,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DenseRetrievalFilters,
     ) -> Any:
         statement = statement.where(
-            Document.project_id == project_id,
-            Source.project_id == project_id,
+            Document.workspace_id == workspace_id,
+            Source.workspace_id == workspace_id,
             latest_document_version_clause(),
         )
         if filters.source_id is not None:

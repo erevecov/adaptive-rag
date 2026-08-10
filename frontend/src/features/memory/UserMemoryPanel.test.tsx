@@ -19,7 +19,7 @@ afterEach(() => {
 function memory(partial: Partial<UserMemory> & Pick<UserMemory, 'id' | 'content' | 'status'>): UserMemory {
   return {
     created_at: '2026-08-05T00:00:00Z',
-    project_id: null,
+    workspace_id: null,
     reviewed_at: null,
     reviewed_by_user_id: null,
     user_id: 'user-1',
@@ -79,7 +79,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list, propose })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -106,7 +106,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId=""
+        workspaceId=""
       />,
     )
     expect(await screen.findByRole('alert')).toBeTruthy()
@@ -140,7 +140,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject, update })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -185,7 +185,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -223,7 +223,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -280,7 +280,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -320,7 +320,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -388,7 +388,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -439,7 +439,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -467,7 +467,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -504,7 +504,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, propose })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -562,7 +562,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, propose, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -632,7 +632,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -680,7 +680,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -718,7 +718,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -749,7 +749,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -785,7 +785,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -815,7 +815,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -842,7 +842,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -869,7 +869,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, update })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -902,7 +902,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -938,7 +938,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -962,7 +962,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -987,7 +987,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1017,7 +1017,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1047,7 +1047,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1073,7 +1073,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1108,7 +1108,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1148,7 +1148,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ approve, list, reject })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1183,7 +1183,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1219,7 +1219,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1243,7 +1243,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1268,7 +1268,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1287,7 +1287,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1319,7 +1319,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1350,7 +1350,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 
@@ -1386,59 +1386,59 @@ describe('UserMemoryPanel', () => {
     const client = createMemoryClient({ list })
 
     const { rerender } = render(
-      <UserMemoryPanel apiClient={client} projectId="project-1" />,
+      <UserMemoryPanel apiClient={client} workspaceId="workspace-1" />,
     )
 
-    // Mount load for project-1 (all filter → one list call).
+    // Mount load for workspace-1 (all filter → one list call).
     await waitFor(() => expect(pending.length).toBe(1))
     await act(async () => {
       pending.shift()!({
         items: [
-          memory({ content: 'Project one note', id: 'mem-1', status: 'approved' }),
+          memory({ content: 'Workspace one note', id: 'mem-1', status: 'approved' }),
         ],
       })
     })
-    expect(await screen.findByText('Project one note')).toBeTruthy()
+    expect(await screen.findByText('Workspace one note')).toBeTruthy()
 
-    // Start refreshList via Retry is not available — call path: change project
+    // Start refreshList via Retry is not available — call path: change workspace
     // after leaving a refresh in flight. Soft path: click Retry after failure
     // is heavy. Instead bump via refreshList by using the empty-state retry is
     // only on failure. Use soft-remove? Simpler: force a second concurrent
-    // list by re-rendering projectId while first refresh is outstanding.
+    // list by re-rendering workspaceId while first refresh is outstanding.
     //
     // Kick refreshList by flipping to Rejected then back is chip-disabled while
     // loading. So: start refresh via programmatic path — list again by
-    // re-rendering same project after we first hang a refreshList:
+    // re-rendering same workspace after we first hang a refreshList:
     // 1) fail load then retry hangs
     // Easiest: hang refresh by clicking Retry after a failed refresh.
     //
     // Practical path used here:
-    // - re-render project-2 starts a new load (increments shared request id)
-    // - resolve the OLD project-1 response afterward (if any still pending)
-    // - resolve project-2 last
+    // - re-render workspace-2 starts a new load (increments shared request id)
+    // - resolve the OLD workspace-1 response afterward (if any still pending)
+    // - resolve workspace-2 last
     //
     // To create an overlapping refreshList: first hang list on a second call.
-    // After mount settled, we re-render project-2 (load starts, deferred).
+    // After mount settled, we re-render workspace-2 (load starts, deferred).
     // Before resolving, we would need another refresh — actually the race is:
     // load A in flight, refreshList B starts and finishes first with stale,
     // then load A would have won without guard when B is newer...
     //
     // Desired race: older request resolves AFTER newer request started.
-    // 1) project-1 mount resolved
-    // 2) switch to project-2 → load starts (id=2), pending
-    // 3) resolve nothing yet; switch to project-3 → load starts (id=3),
+    // 1) workspace-1 mount resolved
+    // 2) switch to workspace-2 → load starts (id=2), pending
+    // 3) resolve nothing yet; switch to workspace-3 → load starts (id=3),
     //    cleanup invalidates id=2
     // 4) resolve id=2 payload with STALE — must not show
     // 5) resolve id=3 with FRESH — must show
 
     await act(async () => {
-      rerender(<UserMemoryPanel apiClient={client} projectId="project-2" />)
+      rerender(<UserMemoryPanel apiClient={client} workspaceId="workspace-2" />)
     })
     await waitFor(() => expect(pending.length).toBe(1))
     const staleResolver = pending.shift()!
 
     await act(async () => {
-      rerender(<UserMemoryPanel apiClient={client} projectId="project-3" />)
+      rerender(<UserMemoryPanel apiClient={client} workspaceId="workspace-3" />)
     })
     await waitFor(() => expect(pending.length).toBe(1))
     const freshResolver = pending.shift()!
@@ -1460,14 +1460,14 @@ describe('UserMemoryPanel', () => {
       freshResolver({
         items: [
           memory({
-            content: 'Fresh project three note',
+            content: 'Fresh workspace three note',
             id: 'fresh',
             status: 'approved',
           }),
         ],
       })
     })
-    expect(await screen.findByText('Fresh project three note')).toBeTruthy()
+    expect(await screen.findByText('Fresh workspace three note')).toBeTruthy()
     expect(screen.queryByText('STALE_SHOULD_NOT_SHOW')).toBeNull()
   })
 
@@ -1482,7 +1482,7 @@ describe('UserMemoryPanel', () => {
     render(
       <UserMemoryPanel
         apiClient={createMemoryClient({ list })}
-        projectId="project-1"
+        workspaceId="workspace-1"
       />,
     )
 

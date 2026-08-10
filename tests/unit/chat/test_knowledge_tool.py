@@ -34,7 +34,7 @@ class RecordingSubmitter:
     def refine(
         self,
         *,
-        project_id,  # noqa: ANN001
+        workspace_id,  # noqa: ANN001
         draft_id,
         knowledge_text,
         scope,
@@ -51,7 +51,7 @@ class RecordingSubmitter:
     def cancel(
         self,
         *,
-        project_id,  # noqa: ANN001
+        workspace_id,  # noqa: ANN001
         draft_id,
         reviewed_by_user_id,  # noqa: ANN001
         scope="message",
@@ -70,7 +70,7 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
     submitter = RecordingSubmitter()
     tool = ChatKnowledgeProposalTool(
         submitter=submitter,
-        project_id=uuid4(),
+        workspace_id=uuid4(),
         submitted_by_user_id=uuid4(),
         origin_session_id=uuid4(),
         origin_message_id=uuid4(),
@@ -78,7 +78,7 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
 
     refined = tool.refine(
         draft_id="draft-123",
-        knowledge_text="Refined project knowledge.",
+        knowledge_text="Refined workspace knowledge.",
         scope="session",
     )
     cancelled = tool.cancel(draft_id="draft-123")
@@ -90,7 +90,7 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
             "action": "refine",
             "draft_id": "draft-123",
         },
-        "proposed_text": "Refined project knowledge.",
+        "proposed_text": "Refined workspace knowledge.",
         "review_action": "approve",
         "scope": "session",
         "status": "pending",
@@ -120,7 +120,7 @@ def test_chat_knowledge_tool_records_refine_cancel_and_approve_lifecycle() -> No
         "approve_knowledge",
     ]
     assert submitter.refines == [
-        ("draft-123", "Refined project knowledge.", "session")
+        ("draft-123", "Refined workspace knowledge.", "session")
     ]
     assert submitter.cancels == ["draft-123"]
     assert submitter.commits == []

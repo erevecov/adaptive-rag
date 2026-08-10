@@ -65,11 +65,11 @@ export type ObservabilityPanelProps = {
   error: string | null
   onCreatedAtFromChange(value: string): void
   onCreatedAtToChange(value: string): void
-  onProjectIdChange(value: string): void
+  onWorkspaceIdChange(value: string): void
   onRefresh(): void
   onStatusChange(value: string): void
   onSubmoduleChange(submodule: ObservabilitySubmodule): void
-  projectId: string
+  workspaceId: string
   state: RequestState
   status: string
   summary: ChatObservabilitySummary | null
@@ -82,11 +82,11 @@ export function ObservabilityPanel({
   error,
   onCreatedAtFromChange,
   onCreatedAtToChange,
-  onProjectIdChange,
+  onWorkspaceIdChange,
   onRefresh,
   onStatusChange,
   onSubmoduleChange,
-  projectId,
+  workspaceId,
   state,
   status,
   summary,
@@ -147,16 +147,16 @@ export function ObservabilityPanel({
         </SegmentedControl>
 
         <form className="grid gap-4 max-[680px]:gap-0 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(160px,1fr))_auto] xl:items-end" onSubmit={handleSubmit}>
-          <ObservabilityField id="observability-project-id" label="Project ID">
+          <ObservabilityField id="observability-workspace-id" label="Workspace ID">
             {(fieldId) => (
               <Input
                 className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                 autoComplete="off"
                 id={fieldId}
-                name="observability-project-id"
-                onChange={(event) => onProjectIdChange(event.currentTarget.value)}
-                placeholder="Project UUID"
-                value={projectId}
+                name="observability-workspace-id"
+                onChange={(event) => onWorkspaceIdChange(event.currentTarget.value)}
+                placeholder="Workspace UUID"
+                value={workspaceId}
               />
             )}
           </ObservabilityField>

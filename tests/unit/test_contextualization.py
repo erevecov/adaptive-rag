@@ -11,12 +11,12 @@ from adaptive_rag.contextualization import (
     DeterministicContextualizer,
 )
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import DenseEmbeddingPipeline, FakeDenseEmbeddingProvider
@@ -27,7 +27,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -37,21 +37,23 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVersion]:
-    project = ProjectRepository(session).create(name="demo")
+def _create_document_version(
+    session, *, text: str
+) -> tuple[Workspace, DocumentVersion]:
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="guide.md",
         extra_metadata={"content": text},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -59,13 +61,13 @@ def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVe
         index_fingerprint="ingestion-fp",
     )
     session.commit()
-    return project, version
+    return workspace, version
 
 
 def _create_chunks(
     session,
     *,
-    project: Project,
+    workspace: Workspace,
     version: DocumentVersion,
     first_summary: str | None = None,
 ) -> None:
@@ -75,7 +77,7 @@ def _create_chunks(
     second_start = text.index("Delta")
     repo = ChunkRepository(session)
     repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=first_start,
@@ -86,7 +88,7 @@ def _create_chunks(
         contextual_summary=first_summary,
     )
     repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=1,
         char_start=second_start,
@@ -98,9 +100,9 @@ def _create_chunks(
     session.commit()
 
 
-def _chunks(session, *, project: Project, version: DocumentVersion) -> list[Chunk]:
+def _chunks(session, *, workspace: Workspace, version: DocumentVersion) -> list[Chunk]:
     return ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -114,19 +116,19 @@ def test_contextualization_pipeline_generates_bounded_summaries() -> None:
         "Delta evidence covers cited answers."
     )
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    _create_chunks(session, workspace=workspace, version=version)
 
     result = ContextualizationPipeline(
         session,
         contextualizer=DeterministicContextualizer(max_summary_chars=180),
     ).contextualize_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
-    chunks = _chunks(session, project=project, version=version)
+    chunks = _chunks(session, workspace=workspace, version=version)
 
     assert result.contextualized_chunk_count == 2
     assert result.reused_contextualized_chunk_count == 0
@@ -152,25 +154,25 @@ def test_contextualization_pipeline_reuses_existing_summaries() -> None:
         "Delta evidence covers cited answers."
     )
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
+    workspace, version = _create_document_version(session, text=text)
     _create_chunks(
         session,
-        project=project,
+        workspace=workspace,
         version=version,
         first_summary="Existing generated context.",
     )
 
     first = ContextualizationPipeline(session).contextualize_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     second = ContextualizationPipeline(session).contextualize_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
-    chunks = _chunks(session, project=project, version=version)
+    chunks = _chunks(session, workspace=workspace, version=version)
 
     assert first.contextualized_chunk_count == 1
     assert first.reused_contextualized_chunk_count == 1
@@ -190,21 +192,21 @@ def test_generated_context_feeds_dense_embedding_inputs() -> None:
         "Delta evidence covers cited answers."
     )
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    _create_chunks(session, workspace=workspace, version=version)
     provider = FakeDenseEmbeddingProvider()
 
     ContextualizationPipeline(session).contextualize_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     result = DenseEmbeddingPipeline(session, provider=provider).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
-    chunks = _chunks(session, project=project, version=version)
+    chunks = _chunks(session, workspace=workspace, version=version)
     first_chunk_text = text[chunks[0].char_start : chunks[0].char_end]
 
     assert result.embedded_chunk_count == 2
@@ -216,7 +218,7 @@ def test_generated_context_feeds_dense_embedding_inputs() -> None:
     )
 
 
-def test_contextualization_pipeline_rejects_cross_project_version() -> None:
+def test_contextualization_pipeline_rejects_cross_workspace_version() -> None:
     text = (
         "# Product Guide\n\n"
         "## Intro\n\n"
@@ -225,16 +227,16 @@ def test_contextualization_pipeline_rejects_cross_project_version() -> None:
         "Delta evidence covers cited answers."
     )
     session = _make_session()
-    _project, version = _create_document_version(session, text=text)
-    other_project = ProjectRepository(session).create(name="other")
+    _workspace, version = _create_document_version(session, text=text)
+    other_workspace = WorkspaceRepository(session).create(name="other")
     session.commit()
 
     with pytest.raises(
         ContextualizationPipelineError,
-        match="document version does not belong to project",
+        match="document version does not belong to workspace",
     ):
         ContextualizationPipeline(session).contextualize_document_version(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             document_version_id=version.id,
         )
 

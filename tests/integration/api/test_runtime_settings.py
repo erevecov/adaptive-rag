@@ -175,6 +175,30 @@ def test_slot_defaults_api_upserts_lists_and_rejects_unknown_slots() -> None:
     assert unsupported.json()["detail"]["code"] == "unsupported_slot"
 
 
+def test_slot_defaults_api_accepts_vision_slot() -> None:
+    session = _make_session()
+    client = _client(session=session)
+    _put_connection(
+        client,
+        connection_id="qwen-hosted",
+        capabilities=["chat", "vision"],
+    )
+
+    response = client.put(
+        "/runtime-settings/slots/vision",
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-vl-plus"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["slot"] == "vision"
+    assert response.json()["model_id"] == "qwen3-vl-plus"
+
+    list_response = client.get("/runtime-settings/slots")
+
+    assert list_response.status_code == 200
+    assert [item["slot"] for item in list_response.json()["items"]] == ["vision"]
+
+
 def test_chat_retrieval_settings_api_returns_defaults_and_updates_limits() -> None:
     session = _make_session()
     client = _client(session=session)

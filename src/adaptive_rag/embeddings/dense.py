@@ -121,21 +121,21 @@ class DenseEmbeddingPipeline:
     def embed_document_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
         force: bool = False,
     ) -> DenseEmbeddingRunResult:
         document_version = self._document_repo.get_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if document_version is None:
             raise DenseEmbeddingPipelineError(
-                "document version does not belong to project"
+                "document version does not belong to workspace"
             )
 
         chunks = self._chunk_repo.list_by_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if not chunks:
@@ -166,7 +166,7 @@ class DenseEmbeddingPipeline:
 
         for embedding_input, embedding in zip(pending_inputs, embeddings, strict=True):
             self._chunk_repo.update_dense_embedding(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 chunk_id=embedding_input.chunk.id,
                 embedding=embedding,
                 embedding_metadata=self._embedding_metadata(embedding_input),

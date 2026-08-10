@@ -19,9 +19,9 @@ from sqlalchemy.orm import Session
 from adaptive_rag.api.dependencies import (
     get_chat_service,
     get_current_user,
-    get_project_access,
-    get_project_admin_access,
     get_session,
+    get_workspace_access,
+    get_workspace_admin_access,
 )
 from adaptive_rag.api.schemas.chat import (
     ChatObservabilitySummaryResponse,
@@ -35,7 +35,7 @@ from adaptive_rag.api.schemas.chat import (
 from adaptive_rag.auth import CurrentPrincipal
 from adaptive_rag.chat import ChatRequest, ChatService, ChatServiceError
 from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatObservabilityRepository,
@@ -45,23 +45,23 @@ from adaptive_rag.db.repositories import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/projects/{project_id}/chat",
+    prefix="/workspaces/{workspace_id}/chat",
     tags=["chat"],
 )
 
 
 @router.get("/observability/summary", response_model=ChatObservabilitySummaryResponse)
 def get_chat_observability_summary(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_admin_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_admin_access)],
     created_at_from: Annotated[datetime | None, Query()] = None,
     created_at_to: Annotated[datetime | None, Query()] = None,
     status: Annotated[str | None, Query()] = None,
 ) -> ChatObservabilitySummaryResponse:
     try:
         summary = ChatObservabilityRepository(session).get_summary(
-            project_id=project_id,
+            workspace_id=workspace_id,
             created_at_from=created_at_from,
             created_at_to=created_at_to,
             status=status,
@@ -73,10 +73,10 @@ def get_chat_observability_summary(
 
 @router.get("/sessions", response_model=ChatSessionListResponse)
 def list_chat_sessions(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
     status: Annotated[str | None, Query()] = None,
     archived: Annotated[bool, Query()] = False,
     limit: Annotated[int, Query()] = 20,
@@ -84,7 +84,7 @@ def list_chat_sessions(
 ) -> ChatSessionListResponse:
     try:
         page = ChatAuditRepository(session).list_session_summaries(
-            project_id=project_id,
+            workspace_id=workspace_id,
             user_id=_history_user_id(current),
             status=status,
             archived=archived,
@@ -98,14 +98,14 @@ def list_chat_sessions(
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionDetailResponse)
 def get_chat_session(
-    project_id: UUID,
+    workspace_id: UUID,
     session_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> ChatSessionDetailResponse:
     detail = ChatAuditRepository(session).get_session_detail(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=session_id,
         user_id=_history_user_id(current),
     )
@@ -119,16 +119,16 @@ def get_chat_session(
     response_model=ChatSessionTitleUpdateResponse,
 )
 def update_chat_session_title(
-    project_id: UUID,
+    workspace_id: UUID,
     session_id: UUID,
     body: ChatSessionTitleUpdateBody,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> ChatSessionTitleUpdateResponse:
     try:
         chat_session = ChatAuditRepository(session).update_session_title(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=_history_user_id(current),
             title=body.title,
@@ -144,15 +144,15 @@ def update_chat_session_title(
 
 @router.post("/sessions/{session_id}/archive", status_code=204)
 def archive_chat_session(
-    project_id: UUID,
+    workspace_id: UUID,
     session_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> Response:
     try:
         ChatAuditRepository(session).archive_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=_history_user_id(current),
         )
@@ -165,15 +165,15 @@ def archive_chat_session(
 
 @router.post("/sessions/{session_id}/unarchive", status_code=204)
 def unarchive_chat_session(
-    project_id: UUID,
+    workspace_id: UUID,
     session_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> Response:
     try:
         ChatAuditRepository(session).unarchive_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=_history_user_id(current),
         )
@@ -186,15 +186,15 @@ def unarchive_chat_session(
 
 @router.delete("/sessions/{session_id}", status_code=204)
 def delete_chat_session(
-    project_id: UUID,
+    workspace_id: UUID,
     session_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> Response:
     try:
         ChatAuditRepository(session).delete_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=_history_user_id(current),
         )
@@ -207,12 +207,12 @@ def delete_chat_session(
 
 @router.post("/stream")
 def stream_chat(
-    project_id: UUID,
+    workspace_id: UUID,
     body: ChatRequestBody,
     service: Annotated[ChatService, Depends(get_chat_service)],
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> StreamingResponse:
     """Start streaming ASAP; attach user memory inside the event generator.
 
@@ -220,7 +220,7 @@ def stream_chat(
     deferred so the first SSE byte is not blocked on that query (cold TTFS).
     """
 
-    rate_key = _chat_rate_key(project_id=project_id, user_id=current.user_id)
+    rate_key = _chat_rate_key(workspace_id=workspace_id, user_id=current.user_id)
     if not _try_acquire_chat_rate(rate_key):
         raise HTTPException(
             status_code=429,
@@ -236,12 +236,12 @@ def stream_chat(
             },
         )
     flight_key = _chat_flight_key(
-        project_id=project_id,
+        workspace_id=workspace_id,
         user_id=current.user_id,
         session_id=body.session_id,
     )
     user_flight_key = _chat_user_flight_key(
-        project_id=project_id, user_id=current.user_id
+        workspace_id=workspace_id, user_id=current.user_id
     )
     if not _try_acquire_chat_user_flight(user_flight_key):
         raise HTTPException(
@@ -279,9 +279,9 @@ def stream_chat(
     try:
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
-        ).get_effective_project_settings(project_id)
+        ).get_effective_workspace_settings(workspace_id)
         request = body.to_service_request(
-            project_id,
+            workspace_id,
             chat_retrieval_settings=chat_retrieval_settings,
             user_id=current.user_id,
         )
@@ -291,7 +291,7 @@ def stream_chat(
                 session,
                 request=active,
                 user_id=current.user_id,
-                project_id=project_id,
+                workspace_id=workspace_id,
             )
 
         events = service.stream(request, enrich_request=_enrich)
@@ -320,19 +320,19 @@ def stream_chat(
 
 @router.post("", response_model=ChatResponseBody, response_model_exclude_none=True)
 def chat(
-    project_id: UUID,
+    workspace_id: UUID,
     body: ChatRequestBody,
     service: Annotated[ChatService, Depends(get_chat_service)],
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> ChatResponseBody:
     try:
         chat_retrieval_settings = ChatRetrievalSettingsRepository(
             session
-        ).get_effective_project_settings(project_id)
+        ).get_effective_workspace_settings(workspace_id)
         request = body.to_service_request(
-            project_id,
+            workspace_id,
             chat_retrieval_settings=chat_retrieval_settings,
             user_id=current.user_id,
         )
@@ -340,7 +340,7 @@ def chat(
             session,
             request=request,
             user_id=current.user_id,
-            project_id=project_id,
+            workspace_id=workspace_id,
         )
         response = service.respond(request)
         session.commit()
@@ -398,15 +398,15 @@ _CHAT_FLIGHT_LOCK = threading.Lock()
 _CHAT_IN_FLIGHT: set[str] = set()
 _CHAT_USER_IN_FLIGHT: set[str] = set()
 _CHAT_RATE_WINDOWS: dict[str, deque[float]] = defaultdict(deque)
-# Max chat stream starts per user/project in a rolling 60s window.
+# Max chat stream starts per user/workspace in a rolling 60s window.
 _CHAT_RATE_LIMIT_PER_MINUTE = 20
-# Max concurrent streams per user/project (across sessions).
+# Max concurrent streams per user/workspace (across sessions).
 _CHAT_MAX_USER_IN_FLIGHT = 1
 
 
 def _chat_flight_key(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     user_id: UUID | None,
     session_id: UUID | None,
 ) -> str | None:
@@ -415,20 +415,20 @@ def _chat_flight_key(
     if session_id is None:
         return None
     owner = str(user_id) if user_id is not None else "anonymous"
-    return f"{project_id}:{owner}:{session_id}"
+    return f"{workspace_id}:{owner}:{session_id}"
 
 
 def _chat_user_flight_key(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     user_id: UUID | None,
 ) -> str:
     owner = str(user_id) if user_id is not None else "anonymous"
-    return f"{project_id}:{owner}"
+    return f"{workspace_id}:{owner}"
 
 
-def _chat_rate_key(*, project_id: UUID, user_id: UUID | None) -> str:
-    return _chat_user_flight_key(project_id=project_id, user_id=user_id)
+def _chat_rate_key(*, workspace_id: UUID, user_id: UUID | None) -> str:
+    return _chat_user_flight_key(workspace_id=workspace_id, user_id=user_id)
 
 
 def _try_acquire_chat_flight(flight_key: str | None) -> bool:
@@ -449,7 +449,7 @@ def _release_chat_flight(flight_key: str | None) -> None:
 
 
 def _try_acquire_chat_user_flight(user_flight_key: str) -> bool:
-    """At most one concurrent stream per (project, user)."""
+    """At most one concurrent stream per (workspace, user)."""
 
     with _CHAT_FLIGHT_LOCK:
         if user_flight_key in _CHAT_USER_IN_FLIGHT:
@@ -499,7 +499,7 @@ def _with_approved_user_memory(
     *,
     request: ChatRequest,
     user_id: UUID | None,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> ChatRequest:
     """Attach approved durable memories as runner system context (not audit text)."""
 
@@ -510,7 +510,7 @@ def _with_approved_user_memory(
     injection = approved_injection_text(
         session,
         user_id=user_id,
-        project_id=project_id,
+        workspace_id=workspace_id,
     )
     if not injection:
         return request

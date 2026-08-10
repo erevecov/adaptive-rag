@@ -12,6 +12,13 @@ from time import monotonic
 from typing import Any, Protocol
 from uuid import UUID
 
+from adaptive_rag.chat.attachments import (
+    ChatAttachmentContext,
+    ChatAttachmentError,
+    append_document_text_to_message,
+    attachment_metadata_refs,
+    has_image_attachments,
+)
 from adaptive_rag.chat.audit import ChatAuditWriter, NullChatAuditWriter, elapsed_ms
 from adaptive_rag.chat.condenser import DeterministicQueryCondenser, QueryCondenser
 from adaptive_rag.chat.errors import ChatServiceError, classify_chat_error
@@ -75,13 +82,13 @@ class ChatRunner(Protocol):
 
 
 class GraphReadinessChecker(Protocol):
-    """Reports whether graph retrieval is ready for a project."""
+    """Reports whether graph retrieval is ready for a workspace."""
 
-    def __call__(self, project_id: UUID) -> bool:
-        """Return True when graph strategy may be selected for the project."""
+    def __call__(self, workspace_id: UUID) -> bool:
+        """Return True when graph strategy may be selected for the workspace."""
 
 
-def _graph_never_ready(_project_id: UUID) -> bool:
+def _graph_never_ready(_workspace_id: UUID) -> bool:
     return False
 
 
@@ -104,6 +111,9 @@ class ChatService:
         history_message_limit: int = DEFAULT_CHAT_HISTORY_MESSAGES,
         history_load_limit: int = DEFAULT_HISTORY_LOAD_LIMIT,
         graph_readiness: GraphReadinessChecker | None = None,
+        attachment_loader: Callable[..., tuple[ChatAttachmentContext, ...]]
+        | None = None,
+        vision_runner_factory: Callable[[UUID], ChatRunner | None] | None = None,
     ) -> None:
         self._runner = runner
         self._retrieval_service = retrieval_service
@@ -125,62 +135,76 @@ class ChatService:
         self._history_message_limit = history_message_limit
         self._history_load_limit = max(history_load_limit, history_message_limit)
         self._graph_readiness = graph_readiness or _graph_never_ready
+        self._attachment_loader = attachment_loader
+        self._vision_runner_factory = vision_runner_factory
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         message = _validate_request(request)
+        try:
+            attachment_contexts = self._load_attachment_contexts(request)
+            active_runner = self._select_runner(
+                request.workspace_id, attachment_contexts
+            )
+        except ChatAttachmentError as exc:
+            raise _attachment_service_error(exc) from exc
 
         try:
             session_id = self._audit_writer.start_session(
                 request,
                 message,
-                model_config_json=_runner_model_config(self._runner),
-                prompt_version=_runner_prompt_version(self._runner),
+                model_config_json=_runner_model_config(active_runner),
+                prompt_version=_runner_prompt_version(active_runner),
             )
         except ValueError as exc:
             raise _session_start_error(exc) from exc
         provider_usage_recorded = False
-        prepared = self._prepare_history(request.project_id, session_id)
+        prepared = self._prepare_history(request.workspace_id, session_id)
         history = prepared.turns
         retrieval_query = self._query_condenser.condense(
             history=history,
             message=message,
         )
+        runner_message = append_document_text_to_message(
+            message, attachment_contexts
+        )
         runner_request = ChatRunnerRequest(
-            project_id=request.project_id,
-            message=message,
+            workspace_id=request.workspace_id,
+            message=runner_message,
             user_id=request.user_id,
             retrieval_limit=request.retrieval_limit,
             metadata_filter=request.metadata_filter,
             history=history,
             retrieval_query=retrieval_query,
             user_memory=request.user_memory,
+            attachments=attachment_contexts,
         )
         retrieval_tool = ChatRetrievalTool(
             retrieval_service=self._retrieval_service,
-            project_id=request.project_id,
+            workspace_id=request.workspace_id,
             default_limit=request.retrieval_limit,
             rerank_enabled=request.rerank_enabled,
             rerank_candidate_limit=request.rerank_candidate_limit,
             default_metadata_filter=request.metadata_filter,
             audit_writer=self._audit_writer,
             audit_session_id=session_id,
-            graph_ready=self._graph_readiness(request.project_id),
+            graph_ready=self._graph_readiness(request.workspace_id),
         )
         try:
             user_message_id = None
             if session_id is not None:
                 user_message_id = self._audit_writer.record_message(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     "user",
                     message,
+                    metadata_json=_user_attachment_metadata(attachment_contexts),
                 )
             knowledge_tool = self._build_knowledge_tool(
                 request=request,
                 session_id=session_id,
                 origin_message_id=user_message_id,
             )
-            output = self._runner.run(
+            output = active_runner.run(
                 runner_request,
                 ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool),
             )
@@ -203,28 +227,28 @@ class ChatService:
             )
             if session_id is not None:
                 self._audit_writer.record_message(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     "assistant",
                     response.answer,
                 )
                 provider_usage_recorded = self._record_provider_usage_once(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     session_id=session_id,
                     already_recorded=provider_usage_recorded,
                 )
-                self._audit_writer.succeed_session(request.project_id, session_id)
+                self._audit_writer.succeed_session(request.workspace_id, session_id)
             return response
         except Exception as exc:
             error = classify_chat_error(exc)
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     session_id=session_id,
                     already_recorded=provider_usage_recorded,
                 )
                 self._audit_writer.fail_session(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     error.message,
                 )
@@ -257,11 +281,18 @@ class ChatService:
 
         message = _validate_request(request)
         try:
+            attachment_contexts = self._load_attachment_contexts(request)
+            active_runner = self._select_runner(
+                request.workspace_id, attachment_contexts
+            )
+        except ChatAttachmentError as exc:
+            raise _attachment_service_error(exc) from exc
+        try:
             session_id = self._audit_writer.start_session(
                 request,
                 message,
-                model_config_json=_runner_model_config(self._runner),
-                prompt_version=_runner_prompt_version(self._runner),
+                model_config_json=_runner_model_config(active_runner),
+                prompt_version=_runner_prompt_version(active_runner),
             )
         except ValueError as exc:
             raise _session_start_error(exc) from exc
@@ -271,6 +302,8 @@ class ChatService:
             message=message,
             session_id=session_id,
             enrich_request=enrich_request,
+            attachment_contexts=attachment_contexts,
+            active_runner=active_runner,
         )
 
     def _stream_after_session_start(
@@ -280,7 +313,10 @@ class ChatService:
         message: str,
         session_id: UUID | None,
         enrich_request: Callable[[ChatRequest], ChatRequest] | None,
+        attachment_contexts: tuple[ChatAttachmentContext, ...] = (),
+        active_runner: ChatRunner | None = None,
     ) -> Iterator[ChatStreamEvent]:
+        runner = active_runner if active_runner is not None else self._runner
         provider_usage_recorded = False
         answer_start: float | None = None
         retrieval_steps_flushed = False
@@ -292,10 +328,11 @@ class ChatService:
             user_message_id = None
             if session_id is not None:
                 user_message_id = self._audit_writer.record_message(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     "user",
                     message,
+                    metadata_json=_user_attachment_metadata(attachment_contexts),
                 )
                 yield chat_stream_session_started_event(session_id)
 
@@ -305,7 +342,7 @@ class ChatService:
             # Exclude the user message we just recorded so the runner does not
             # see the active turn twice (history + latest user content).
             prepared_history = self._prepare_history(
-                request.project_id,
+                request.workspace_id,
                 session_id,
                 exclude_trailing_user_message=message,
             )
@@ -314,26 +351,30 @@ class ChatService:
                 history=history,
                 message=message,
             )
+            runner_message = append_document_text_to_message(
+                message, attachment_contexts
+            )
             runner_request = ChatRunnerRequest(
-                project_id=request.project_id,
-                message=message,
+                workspace_id=request.workspace_id,
+                message=runner_message,
                 user_id=request.user_id,
                 retrieval_limit=request.retrieval_limit,
                 metadata_filter=request.metadata_filter,
                 history=history,
                 retrieval_query=retrieval_query,
                 user_memory=request.user_memory,
+                attachments=attachment_contexts,
             )
             retrieval_tool = ChatRetrievalTool(
                 retrieval_service=self._retrieval_service,
-                project_id=request.project_id,
+                workspace_id=request.workspace_id,
                 default_limit=request.retrieval_limit,
                 rerank_enabled=request.rerank_enabled,
                 rerank_candidate_limit=request.rerank_candidate_limit,
                 default_metadata_filter=request.metadata_filter,
                 audit_writer=self._audit_writer,
                 audit_session_id=session_id,
-                graph_ready=self._graph_readiness(request.project_id),
+                graph_ready=self._graph_readiness(request.workspace_id),
             )
             knowledge_tool = self._build_knowledge_tool(
                 request=request,
@@ -353,6 +394,7 @@ class ChatService:
             streamed_answer_parts: list[str] = []
             live_steps_emitted = [0]
             output = yield from self._run_runner_with_heartbeats(
+                runner=runner,
                 runner_request=runner_request,
                 retrieval_tool=retrieval_tool,
                 knowledge_tool=knowledge_tool,
@@ -414,7 +456,7 @@ class ChatService:
                         )
                     )
                 self._audit_writer.record_message(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     "assistant",
                     response.answer,
@@ -431,23 +473,23 @@ class ChatService:
                     },
                 )
                 provider_usage_recorded = self._record_provider_usage_records_once(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     session_id=session_id,
                     already_recorded=provider_usage_recorded,
                     records=provider_usage_records,
                 )
-                self._audit_writer.succeed_session(request.project_id, session_id)
+                self._audit_writer.succeed_session(request.workspace_id, session_id)
             yield chat_stream_final_event(response)
         except GeneratorExit:
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     session_id=session_id,
                     already_recorded=provider_usage_recorded,
                 )
                 try:
                     self._audit_writer.cancel_session(
-                        request.project_id,
+                        request.workspace_id,
                         session_id,
                         "client_disconnected",
                     )
@@ -482,12 +524,12 @@ class ChatService:
             )
             if session_id is not None:
                 provider_usage_recorded = self._record_provider_usage_once(
-                    project_id=request.project_id,
+                    workspace_id=request.workspace_id,
                     session_id=session_id,
                     already_recorded=provider_usage_recorded,
                 )
                 self._audit_writer.fail_session(
-                    request.project_id,
+                    request.workspace_id,
                     session_id,
                     error.message,
                 )
@@ -497,9 +539,59 @@ class ChatService:
                 retryable=error.retryable,
             )
 
+    def _load_attachment_contexts(
+        self,
+        request: ChatRequest,
+    ) -> tuple[ChatAttachmentContext, ...]:
+        if not request.attachments:
+            return ()
+        if self._attachment_loader is None:
+            raise ChatAttachmentError(
+                "Attachments are not available in this runtime.",
+                code="invalid_attachment",
+            )
+        return self._attachment_loader(
+            workspace_id=request.workspace_id,
+            user_id=request.user_id,
+            attachment_ids=request.attachments,
+        )
+
+    def _select_runner(
+        self,
+        workspace_id: UUID,
+        attachments: tuple[ChatAttachmentContext, ...],
+    ) -> ChatRunner:
+        """Prefer chat model when vision-capable; else vision slot; else 422."""
+
+        if not has_image_attachments(attachments):
+            return self._runner
+        chat_caps = getattr(self._runner, "model_capabilities", None)
+        # Custom/eval runners without capability metadata: do not hard-gate.
+        if chat_caps is None:
+            return self._runner
+        if "vision" in chat_caps:
+            return self._runner
+        if self._vision_runner_factory is not None:
+            try:
+                vision_runner = self._vision_runner_factory(workspace_id)
+            except Exception:
+                vision_runner = None
+            if vision_runner is not None:
+                return vision_runner
+        fallback_caps = getattr(self._runner, "fallback_model_capabilities", None) or ()
+        if "vision" in fallback_caps:
+            # QwenChatRunner will auto-route to its vision-capable fallback.
+            return self._runner
+        raise ChatAttachmentError(
+            "The active chat model does not accept images. "
+            "Configure a vision-capable chat model or the vision runtime slot.",
+            code="vision_model_required",
+        )
+
     def _run_runner_with_heartbeats(
         self,
         *,
+        runner: ChatRunner | None = None,
         runner_request: ChatRunnerRequest,
         retrieval_tool: ChatRetrievalTool,
         knowledge_tool: ChatKnowledgeProposalTool | None,
@@ -514,12 +606,13 @@ class ChatService:
         captures the return).
         """
 
+        active_runner = runner if runner is not None else self._runner
         tools = ChatTools(retrieval=retrieval_tool, knowledge=knowledge_tool)
         holder: dict[str, Any] = {}
         delta_queue: queue.Queue[str | None] = queue.Queue()
         step_queue: queue.Queue[ChatStep] = queue.Queue()
         cancel_event = threading.Event()
-        client = getattr(self._runner, "client", None)
+        client = getattr(active_runner, "client", None)
         if client is not None and hasattr(client, "set_cancel_event"):
             client.set_cancel_event(cancel_event)
 
@@ -537,12 +630,12 @@ class ChatService:
                 run_kwargs: dict[str, Any] = {}
                 parameters: Mapping[str, Any]
                 try:
-                    parameters = signature(self._runner.run).parameters
+                    parameters = signature(active_runner.run).parameters
                 except (TypeError, ValueError):
                     parameters = {}
                 if "on_answer_delta" in parameters:
                     run_kwargs["on_answer_delta"] = _on_answer_delta
-                holder["output"] = self._runner.run(
+                holder["output"] = active_runner.run(
                     runner_request, tools, **run_kwargs
                 )
             except Exception as exc:  # noqa: BLE001 — re-raised on main thread
@@ -640,7 +733,7 @@ class ChatService:
 
     def _prepare_history(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         *,
         exclude_trailing_user_message: str | None = None,
@@ -655,7 +748,7 @@ class ChatService:
             )
         raw_turns = list(
             self._audit_writer.list_history_turns(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session_id=session_id,
                 limit=self._history_load_limit,
             )
@@ -674,10 +767,10 @@ class ChatService:
 
     def _load_history(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
     ) -> tuple[ChatHistoryTurn, ...]:
-        return self._prepare_history(project_id, session_id).turns
+        return self._prepare_history(workspace_id, session_id).turns
 
     def _build_knowledge_tool(
         self,
@@ -694,7 +787,7 @@ class ChatService:
             return None
         return ChatKnowledgeProposalTool(
             submitter=self._knowledge_proposal_submitter,
-            project_id=request.project_id,
+            workspace_id=request.workspace_id,
             submitted_by_user_id=request.user_id,
             origin_session_id=session_id,
             origin_message_id=origin_message_id,
@@ -704,7 +797,7 @@ class ChatService:
     def _record_provider_usage_once(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         already_recorded: bool,
     ) -> bool:
@@ -712,7 +805,7 @@ class ChatService:
             return True
         try:
             records = self._provider_usage_records()
-            self._audit_writer.record_provider_usage(project_id, session_id, records)
+            self._audit_writer.record_provider_usage(workspace_id, session_id, records)
         except Exception as exc:
             logger.warning(
                 "chat_provider_usage_audit_failed",
@@ -735,7 +828,7 @@ class ChatService:
     def _record_provider_usage_records_once(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         already_recorded: bool,
         records: tuple[ProviderCallRecord, ...],
@@ -743,7 +836,7 @@ class ChatService:
         if already_recorded:
             return True
         try:
-            self._audit_writer.record_provider_usage(project_id, session_id, records)
+            self._audit_writer.record_provider_usage(workspace_id, session_id, records)
         except Exception as exc:
             logger.warning(
                 "chat_provider_usage_audit_failed",
@@ -755,6 +848,23 @@ class ChatService:
 
 def _empty_provider_usage_records() -> tuple[ProviderCallRecord, ...]:
     return ()
+
+
+def _user_attachment_metadata(
+    attachments: tuple[ChatAttachmentContext, ...],
+) -> dict[str, object] | None:
+    if not attachments:
+        return None
+    return {"attachments": attachment_metadata_refs(attachments)}
+
+
+def _attachment_service_error(exc: ChatAttachmentError) -> ChatServiceError:
+    return ChatServiceError(
+        exc.message,
+        code=exc.code,
+        retryable=False,
+        status_code=422,
+    )
 
 
 def _session_start_error(exc: BaseException) -> ChatServiceError:

@@ -47,7 +47,7 @@ class KnowledgeProposalSubmitter(Protocol):
     def commit(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         submitted_by_user_id: UUID,
         knowledge_text: str,
         scope: str,
@@ -60,7 +60,7 @@ class KnowledgeProposalSubmitter(Protocol):
     def refine(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         draft_id: str,
         knowledge_text: str,
         scope: str,
@@ -70,7 +70,7 @@ class KnowledgeProposalSubmitter(Protocol):
     def cancel(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         draft_id: str,
         reviewed_by_user_id: UUID,
         scope: str = "message",
@@ -123,7 +123,7 @@ class ChatRetrievalTool:
         self,
         *,
         retrieval_service: RetrievalSearcher,
-        project_id: UUID,
+        workspace_id: UUID,
         default_limit: int,
         rerank_enabled: bool = False,
         rerank_candidate_limit: int | None = None,
@@ -135,7 +135,7 @@ class ChatRetrievalTool:
         on_step: Callable[[ChatStep], None] | None = None,
     ) -> None:
         self._retrieval_service = retrieval_service
-        self._project_id = project_id
+        self._workspace_id = workspace_id
         self._default_limit = default_limit
         self._rerank_enabled = rerank_enabled
         self._rerank_candidate_limit = rerank_candidate_limit
@@ -218,7 +218,7 @@ class ChatRetrievalTool:
 
         audit_tool_call_id = (
             self._audit_writer.start_retrieval_tool(
-                self._project_id,
+                self._workspace_id,
                 self._audit_session_id,
                 query,
                 active_limit,
@@ -230,7 +230,7 @@ class ChatRetrievalTool:
         try:
             results = self._retrieval_service.search(
                 RetrievalSearchRequest(
-                    project_id=self._project_id,
+                    workspace_id=self._workspace_id,
                     query=query,
                     limit=active_limit,
                     metadata_filter=active_filter,
@@ -254,7 +254,7 @@ class ChatRetrievalTool:
             )
             if self._audit_session_id is not None:
                 self._audit_writer.fail_retrieval_tool(
-                    self._project_id,
+                    self._workspace_id,
                     self._audit_session_id,
                     audit_tool_call_id,
                     str(exc),
@@ -277,7 +277,7 @@ class ChatRetrievalTool:
             )
             if self._audit_session_id is not None:
                 self._audit_writer.fail_retrieval_tool(
-                    self._project_id,
+                    self._workspace_id,
                     self._audit_session_id,
                     audit_tool_call_id,
                     str(exc),
@@ -313,7 +313,7 @@ class ChatRetrievalTool:
         )
         if self._audit_session_id is not None:
             self._audit_writer.complete_retrieval_tool(
-                self._project_id,
+                self._workspace_id,
                 self._audit_session_id,
                 audit_tool_call_id,
                 query,
@@ -352,14 +352,14 @@ class ChatKnowledgeProposalTool:
         self,
         *,
         submitter: KnowledgeProposalSubmitter,
-        project_id: UUID,
+        workspace_id: UUID,
         submitted_by_user_id: UUID | None,
         origin_session_id: UUID | None,
         origin_message_id: UUID | None,
         audit_writer: ChatAuditWriter | None = None,
     ) -> None:
         self._submitter = submitter
-        self._project_id = project_id
+        self._workspace_id = workspace_id
         self._submitted_by_user_id = submitted_by_user_id
         self._origin_session_id = origin_session_id
         self._origin_message_id = origin_message_id
@@ -399,7 +399,7 @@ class ChatKnowledgeProposalTool:
 
         def action() -> dict[str, Any]:
             result = self._submitter.commit(
-                project_id=self._project_id,
+                workspace_id=self._workspace_id,
                 submitted_by_user_id=submitted_by_user_id,
                 knowledge_text=text,
                 scope=normalized_scope,
@@ -440,7 +440,7 @@ class ChatKnowledgeProposalTool:
 
         def action() -> dict[str, Any]:
             result = self._submitter.refine(
-                project_id=self._project_id,
+                workspace_id=self._workspace_id,
                 draft_id=normalized_draft_id,
                 knowledge_text=text,
                 scope=normalized_scope,
@@ -469,7 +469,7 @@ class ChatKnowledgeProposalTool:
 
         def action() -> dict[str, Any]:
             result = self._submitter.cancel(
-                project_id=self._project_id,
+                workspace_id=self._workspace_id,
                 draft_id=normalized_draft_id,
                 reviewed_by_user_id=reviewed_by_user_id,
             )
@@ -518,7 +518,7 @@ class ChatKnowledgeProposalTool:
     ) -> dict[str, Any]:
         start = monotonic()
         audit_tool_call_id = self._audit_writer.start_tool_call(
-            self._project_id,
+            self._workspace_id,
             self._origin_session_id,
             tool_name,
             arguments,
@@ -527,7 +527,7 @@ class ChatKnowledgeProposalTool:
             summary = action()
         except ValueError as exc:
             self._audit_writer.fail_tool_call(
-                self._project_id,
+                self._workspace_id,
                 self._origin_session_id,
                 audit_tool_call_id,
                 str(exc),
@@ -536,7 +536,7 @@ class ChatKnowledgeProposalTool:
             raise ChatServiceError(str(exc)) from exc
         except Exception as exc:
             self._audit_writer.fail_tool_call(
-                self._project_id,
+                self._workspace_id,
                 self._origin_session_id,
                 audit_tool_call_id,
                 str(exc),
@@ -545,7 +545,7 @@ class ChatKnowledgeProposalTool:
             raise
 
         self._audit_writer.complete_tool_call(
-            self._project_id,
+            self._workspace_id,
             self._origin_session_id,
             audit_tool_call_id,
             summary,

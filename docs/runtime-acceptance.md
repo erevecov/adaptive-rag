@@ -2,7 +2,7 @@
 
 Este runbook valida el flujo end-to-end despues de Runtime settings. Complementa
 `docs/v1-quality-gate.md`: en vez de inyectar providers desde el CLI, configura
-provider connections, model catalog, slots globales y overrides por proyecto en
+provider connections, model catalog, slots globales y overrides por workspace en
 la base local, y despues ejecuta ingestion, indexing y chat citado con esa
 resolucion efectiva.
 
@@ -60,7 +60,7 @@ uv run adaptive-rag acceptance runtime-settings-smoke \
 
 El comando crea una provider connection fake global, sincroniza el model
 catalog fake, configura defaults globales para `chat`, `dense_embedding` y
-`contextualization`, crea un override de proyecto para `dense_embedding`, ingiere
+`contextualization`, crea un override de workspace para `dense_embedding`, ingiere
 contenido Markdown, indexa chunks y ejecuta chat con citations usando providers
 resueltos desde runtime settings persistidos.
 
@@ -72,7 +72,7 @@ La salida esperada tiene esta forma:
   "criteria": [
     {"id": "model_catalog_synced", "status": "passed"},
     {"id": "global_runtime_defaults", "status": "passed"},
-    {"id": "project_runtime_override", "status": "passed"},
+    {"id": "workspace_runtime_override", "status": "passed"},
     {"id": "effective_runtime_resolution", "status": "passed"},
     {"id": "cited_chat", "status": "passed"},
     {"id": "secret_values_not_exposed", "status": "passed"}
@@ -87,7 +87,7 @@ La salida esperada tiene esta forma:
         "deterministic-context-v1"
       ]
     },
-    "effective_project_settings": {
+    "effective_workspace_settings": {
       "chat": {"source": "inherited"},
       "dense_embedding": {"source": "overridden"}
     }
@@ -108,7 +108,7 @@ Puedes reemplazar el sample por contenido propio:
 
 ```bash
 uv run adaptive-rag acceptance runtime-settings-smoke \
-  --project-name "Runtime acceptance corpus" \
+  --workspace-name "Runtime acceptance corpus" \
   --source-external-id "notes.md" \
   --content "# Notes
 
@@ -145,6 +145,35 @@ environment. Para llamadas live, incluye el API key al guardar la provider
 connection en Runtime settings o deja disponible `ADAPTIVE_RAG_QWEN_API_KEY`
 en el runtime.
 
+## Model catalog pricing (daily, in-app)
+
+El listing de DashScope `/models` casi nunca trae precios. Adaptive RAG rellena
+`pricing_json` con list prices oficiales de Alibaba Cloud Model Studio
+(Singapore / International, pay-as-you-go) via un **scheduler del producto**,
+no con crontab del host del desarrollador.
+
+El servicio Compose `scheduler` corre `adaptive-rag system run-scheduler`,
+que evalúa tasks globales con lease en `system_task_state` y ejecuta
+`provider_model_pricing_sync` ~cada 24h:
+
+```bash
+docker compose up --build postgres api scheduler
+docker compose run --rm api alembic upgrade head
+```
+
+Manual / smoke:
+
+```bash
+uv run adaptive-rag providers sync-pricing --dry-run
+uv run adaptive-rag providers sync-pricing
+uv run adaptive-rag system run-scheduler --once --force
+# Superadmin: POST /runtime-settings/system-tasks/provider-model-pricing/run
+# Superadmin: GET  /runtime-settings/system-tasks
+```
+
+Solo connections `provider=qwen`; model ids sin precio publicado se saltan.
+Fuente: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+
 ## Troubleshooting
 
 - Si `uv run alembic upgrade head` falla, confirma que Postgres esta arriba y
@@ -156,5 +185,5 @@ en el runtime.
   provider connection configurada por el comando o vuelve a ejecutar sobre una
   base limpia.
 - Si el smoke falla con `runtime acceptance chat returned no citations`, usa
-  contenido mas explicito o confirma que el proyecto tenga chunks con
+  contenido mas explicito o confirma que el workspace tenga chunks con
   embeddings.

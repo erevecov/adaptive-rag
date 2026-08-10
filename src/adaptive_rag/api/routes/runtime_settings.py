@@ -20,42 +20,42 @@ from adaptive_rag.api.schemas.runtime_settings import (
     ChatRetrievalSettingsRequestBody,
     DeleteResponse,
     GlobalChatRetrievalSettingsResponse,
-    ProjectChatModelResponse,
-    ProjectChatRetrievalSettingsResponse,
-    ProjectRuntimeSettingsResponse,
-    ProjectRuntimeSlotResponse,
     RuntimeSlotDefaultListResponse,
     RuntimeSlotDefaultResponse,
     RuntimeSlotDefaultUpsertRequestBody,
+    WorkspaceChatModelResponse,
+    WorkspaceChatRetrievalSettingsResponse,
+    WorkspaceRuntimeSettingsResponse,
+    WorkspaceRuntimeSlotResponse,
 )
-from adaptive_rag.auth import CurrentPrincipal, get_project_role, role_meets
-from adaptive_rag.db.models import Project
+from adaptive_rag.auth import CurrentPrincipal, get_workspace_role, role_meets
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.repositories import (
     ChatRetrievalSettingsRepository,
-    ProjectRepository,
-    ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
+    WorkspaceRepository,
+    WorkspaceRuntimeSettingsRepository,
 )
 
 
-def _require_project_runtime_admin_access(
-    project_id: UUID,
+def _require_workspace_runtime_admin_access(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-) -> tuple[Project, str]:
-    # Soft-deleted projects are not found (same contract as get_project_access).
-    project = ProjectRepository(session).get(project_id)
-    if project is None:
+) -> tuple[Workspace, str]:
+    # Soft-deleted workspaces are not found (same contract as get_workspace_access).
+    workspace = WorkspaceRepository(session).get(workspace_id)
+    if workspace is None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "project_not_found", "message": "project_not_found"},
+            detail={"code": "workspace_not_found", "message": "workspace_not_found"},
         )
-    role = get_project_role(session, principal=current, project_id=project_id)
+    role = get_workspace_role(session, principal=current, workspace_id=workspace_id)
     if role is None:
-        raise HTTPException(status_code=403, detail="project access required")
+        raise HTTPException(status_code=403, detail="workspace access required")
     if not role_meets(role, "admin"):
-        raise HTTPException(status_code=403, detail="project admin role required")
-    return project, role
+        raise HTTPException(status_code=403, detail="workspace admin role required")
+    return workspace, role
 
 
 router = APIRouter(
@@ -63,9 +63,9 @@ router = APIRouter(
     tags=["runtime-settings"],
     dependencies=[Depends(get_superadmin_user)],
 )
-project_router = APIRouter(
+workspace_router = APIRouter(
     tags=["runtime-settings"],
-    dependencies=[Depends(_require_project_runtime_admin_access)],
+    dependencies=[Depends(_require_workspace_runtime_admin_access)],
 )
 
 
@@ -207,35 +207,35 @@ def update_chat_retrieval_settings(
     return GlobalChatRetrievalSettingsResponse.from_model(settings)
 
 
-@project_router.get(
-    "/projects/{project_id}/runtime-settings",
-    response_model=ProjectRuntimeSettingsResponse,
+@workspace_router.get(
+    "/workspaces/{workspace_id}/runtime-settings",
+    response_model=WorkspaceRuntimeSettingsResponse,
 )
-def get_project_runtime_settings(
-    project_id: UUID,
+def get_workspace_runtime_settings(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-) -> ProjectRuntimeSettingsResponse:
+) -> WorkspaceRuntimeSettingsResponse:
     try:
-        settings = ProjectRuntimeSettingsRepository(
+        settings = WorkspaceRuntimeSettingsRepository(
             session
-        ).get_project_runtime_settings(project_id)
+        ).get_workspace_runtime_settings(workspace_id)
     except ValueError as exc:
         raise _http_error(exc) from exc
-    return ProjectRuntimeSettingsResponse.from_settings(settings)
+    return WorkspaceRuntimeSettingsResponse.from_settings(settings)
 
 
-@project_router.put(
-    "/projects/{project_id}/runtime-settings/chat/retrieval",
-    response_model=ProjectChatRetrievalSettingsResponse,
+@workspace_router.put(
+    "/workspaces/{workspace_id}/runtime-settings/chat/retrieval",
+    response_model=WorkspaceChatRetrievalSettingsResponse,
 )
-def update_project_chat_retrieval_settings(
-    project_id: UUID,
+def update_workspace_chat_retrieval_settings(
+    workspace_id: UUID,
     body: ChatRetrievalSettingsRequestBody,
     session: Annotated[Session, Depends(get_session)],
-) -> ProjectChatRetrievalSettingsResponse:
+) -> WorkspaceChatRetrievalSettingsResponse:
     try:
-        settings = ChatRetrievalSettingsRepository(session).upsert_project_settings(
-            project_id=project_id,
+        settings = ChatRetrievalSettingsRepository(session).upsert_workspace_settings(
+            workspace_id=workspace_id,
             retrieval_limit=body.retrieval_limit,
             rerank_enabled=body.rerank_enabled,
             rerank_candidate_limit=body.rerank_candidate_limit,
@@ -243,20 +243,20 @@ def update_project_chat_retrieval_settings(
     except ValueError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectChatRetrievalSettingsResponse.from_model(settings)
+    return WorkspaceChatRetrievalSettingsResponse.from_model(settings)
 
 
-@project_router.delete(
-    "/projects/{project_id}/runtime-settings/chat/retrieval",
+@workspace_router.delete(
+    "/workspaces/{workspace_id}/runtime-settings/chat/retrieval",
     response_model=DeleteResponse,
 )
-def delete_project_chat_retrieval_settings(
-    project_id: UUID,
+def delete_workspace_chat_retrieval_settings(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
 ) -> DeleteResponse:
     try:
-        deleted = ChatRetrievalSettingsRepository(session).delete_project_settings(
-            project_id=project_id,
+        deleted = ChatRetrievalSettingsRepository(session).delete_workspace_settings(
+            workspace_id=workspace_id,
         )
     except ValueError as exc:
         raise _http_error(exc) from exc
@@ -264,19 +264,19 @@ def delete_project_chat_retrieval_settings(
     return DeleteResponse(deleted=deleted)
 
 
-@project_router.put(
-    "/projects/{project_id}/runtime-settings/slots/{slot}",
-    response_model=ProjectRuntimeSlotResponse,
+@workspace_router.put(
+    "/workspaces/{workspace_id}/runtime-settings/slots/{slot}",
+    response_model=WorkspaceRuntimeSlotResponse,
 )
-def upsert_project_runtime_slot_override(
-    project_id: UUID,
+def upsert_workspace_runtime_slot_override(
+    workspace_id: UUID,
     slot: str,
     body: RuntimeSlotDefaultUpsertRequestBody,
     session: Annotated[Session, Depends(get_session)],
-) -> ProjectRuntimeSlotResponse:
+) -> WorkspaceRuntimeSlotResponse:
     try:
-        override = ProjectRuntimeSettingsRepository(session).upsert_slot_override(
-            project_id=project_id,
+        override = WorkspaceRuntimeSettingsRepository(session).upsert_slot_override(
+            workspace_id=workspace_id,
             slot=slot,
             connection_id=body.connection_id,
             model_id=body.model_id,
@@ -285,21 +285,21 @@ def upsert_project_runtime_slot_override(
     except ValueError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectRuntimeSlotResponse.from_override(override)
+    return WorkspaceRuntimeSlotResponse.from_override(override)
 
 
-@project_router.delete(
-    "/projects/{project_id}/runtime-settings/slots/{slot}",
+@workspace_router.delete(
+    "/workspaces/{workspace_id}/runtime-settings/slots/{slot}",
     response_model=DeleteResponse,
 )
-def delete_project_runtime_slot_override(
-    project_id: UUID,
+def delete_workspace_runtime_slot_override(
+    workspace_id: UUID,
     slot: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> DeleteResponse:
     try:
-        deleted = ProjectRuntimeSettingsRepository(session).delete_slot_override(
-            project_id=project_id,
+        deleted = WorkspaceRuntimeSettingsRepository(session).delete_slot_override(
+            workspace_id=workspace_id,
             slot=slot,
         )
     except ValueError as exc:
@@ -308,18 +308,18 @@ def delete_project_runtime_slot_override(
     return DeleteResponse(deleted=deleted)
 
 
-@project_router.put(
-    "/projects/{project_id}/runtime-settings/chat/models",
-    response_model=ProjectChatModelResponse,
+@workspace_router.put(
+    "/workspaces/{workspace_id}/runtime-settings/chat/models",
+    response_model=WorkspaceChatModelResponse,
 )
-def upsert_project_chat_model(
-    project_id: UUID,
+def upsert_workspace_chat_model(
+    workspace_id: UUID,
     body: ChatModelUpsertRequestBody,
     session: Annotated[Session, Depends(get_session)],
-) -> ProjectChatModelResponse:
+) -> WorkspaceChatModelResponse:
     try:
-        model = ProjectRuntimeSettingsRepository(session).upsert_chat_model(
-            project_id=project_id,
+        model = WorkspaceRuntimeSettingsRepository(session).upsert_chat_model(
+            workspace_id=workspace_id,
             connection_id=body.connection_id,
             model_id=body.model_id,
             make_default=body.make_default,
@@ -328,45 +328,45 @@ def upsert_project_chat_model(
     except ValueError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectChatModelResponse.from_model(model)
+    return WorkspaceChatModelResponse.from_model(model)
 
 
-@project_router.put(
-    "/projects/{project_id}/runtime-settings/chat/models/{connection_id}/"
+@workspace_router.put(
+    "/workspaces/{workspace_id}/runtime-settings/chat/models/{connection_id}/"
     "{model_id}/default",
-    response_model=ProjectChatModelResponse,
+    response_model=WorkspaceChatModelResponse,
 )
-def set_default_project_chat_model(
-    project_id: UUID,
+def set_default_workspace_chat_model(
+    workspace_id: UUID,
     connection_id: str,
     model_id: str,
     session: Annotated[Session, Depends(get_session)],
-) -> ProjectChatModelResponse:
+) -> WorkspaceChatModelResponse:
     try:
-        model = ProjectRuntimeSettingsRepository(session).set_default_chat_model(
-            project_id=project_id,
+        model = WorkspaceRuntimeSettingsRepository(session).set_default_chat_model(
+            workspace_id=workspace_id,
             connection_id=connection_id,
             model_id=model_id,
         )
     except ValueError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectChatModelResponse.from_model(model)
+    return WorkspaceChatModelResponse.from_model(model)
 
 
-@project_router.delete(
-    "/projects/{project_id}/runtime-settings/chat/models/{connection_id}/{model_id}",
+@workspace_router.delete(
+    "/workspaces/{workspace_id}/runtime-settings/chat/models/{connection_id}/{model_id}",
     response_model=DeleteResponse,
 )
-def delete_project_chat_model(
-    project_id: UUID,
+def delete_workspace_chat_model(
+    workspace_id: UUID,
     connection_id: str,
     model_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> DeleteResponse:
     try:
-        deleted = ProjectRuntimeSettingsRepository(session).delete_chat_model(
-            project_id=project_id,
+        deleted = WorkspaceRuntimeSettingsRepository(session).delete_chat_model(
+            workspace_id=workspace_id,
             connection_id=connection_id,
             model_id=model_id,
         )
@@ -379,7 +379,7 @@ def delete_project_chat_model(
 def _http_error(error: ValueError) -> HTTPException:
     message = str(error)
     code = message.split(":", maxsplit=1)[0]
-    if code in {"connection_not_found", "chat_model_not_found", "project_not_found"}:
+    if code in {"connection_not_found", "chat_model_not_found", "workspace_not_found"}:
         return HTTPException(
             status_code=404,
             detail={"code": code, "message": message},

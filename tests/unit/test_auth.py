@@ -1,4 +1,4 @@
-"""Unit tests for local authentication and project RBAC helpers."""
+"""Unit tests for local authentication and workspace RBAC helpers."""
 
 from __future__ import annotations
 
@@ -8,16 +8,16 @@ from uuid import uuid4
 import pytest
 
 from adaptive_rag.auth import (
-    PROJECT_ROLE_RANK,
+    WORKSPACE_ROLE_RANK,
     CurrentPrincipal,
-    get_project_role,
+    get_workspace_role,
     hash_access_token,
     role_meets,
     users_exist,
 )
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, ProjectMembership, User
-from adaptive_rag.db.repositories import ProjectRepository
+from adaptive_rag.db.models import User, Workspace, WorkspaceMembership
+from adaptive_rag.db.repositories import WorkspaceRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -26,9 +26,9 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -91,14 +91,14 @@ def test_user_principal_superadmin_role_is_superadmin() -> None:
     assert principal.is_superadmin is True
 
 
-def test_get_project_role_returns_superadmin_without_touching_session() -> None:
+def test_get_workspace_role_returns_superadmin_without_touching_session() -> None:
     principal = CurrentPrincipal(user=None, is_bootstrap=True)
 
     # A non-Session sentinel proves the superadmin branch never queries.
-    role = get_project_role(
+    role = get_workspace_role(
         object(),  # type: ignore[arg-type]
         principal=principal,
-        project_id=uuid4(),
+        workspace_id=uuid4(),
     )
 
     assert role == "superadmin"
@@ -123,11 +123,11 @@ def test_role_meets_respects_rank_ordering(
     assert role_meets(role, minimum_role) is expected
 
 
-def test_project_role_rank_is_strictly_increasing() -> None:
+def test_workspace_role_rank_is_strictly_increasing() -> None:
     assert (
-        PROJECT_ROLE_RANK["viewer"]
-        < PROJECT_ROLE_RANK["contributor"]
-        < PROJECT_ROLE_RANK["admin"]
+        WORKSPACE_ROLE_RANK["viewer"]
+        < WORKSPACE_ROLE_RANK["contributor"]
+        < WORKSPACE_ROLE_RANK["admin"]
     )
 
 
@@ -143,15 +143,15 @@ def test_users_exist_reflects_persisted_rows() -> None:
     assert users_exist(session) is True
 
 
-def test_get_project_role_returns_membership_role_for_regular_user() -> None:
+def test_get_workspace_role_returns_membership_role_for_regular_user() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Docs")
+    workspace = WorkspaceRepository(session).create(name="Docs")
     user = _user(system_role="user")
     session.add(user)
     session.flush()
     session.add(
-        ProjectMembership(
-            project_id=project.id, user_id=user.id, role="contributor"
+        WorkspaceMembership(
+            workspace_id=workspace.id, user_id=user.id, role="contributor"
         )
     )
     session.commit()
@@ -159,14 +159,14 @@ def test_get_project_role_returns_membership_role_for_regular_user() -> None:
     principal = CurrentPrincipal(user=user)
 
     assert (
-        get_project_role(session, principal=principal, project_id=project.id)
+        get_workspace_role(session, principal=principal, workspace_id=workspace.id)
         == "contributor"
     )
 
 
-def test_get_project_role_returns_none_without_membership() -> None:
+def test_get_workspace_role_returns_none_without_membership() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Docs")
+    workspace = WorkspaceRepository(session).create(name="Docs")
     user = _user(system_role="user")
     session.add(user)
     session.commit()
@@ -174,7 +174,8 @@ def test_get_project_role_returns_none_without_membership() -> None:
     principal = CurrentPrincipal(user=user)
 
     assert (
-        get_project_role(session, principal=principal, project_id=project.id) is None
+        get_workspace_role(session, principal=principal, workspace_id=workspace.id)
+        is None
     )
 
 
@@ -218,4 +219,3 @@ def test_users_exist_fails_closed_on_operational_error(
     assert "refusing bootstrap fail-open" in records[0].getMessage()
     assert records[0].exc_info is not None
     assert records[0].exc_info[0] is OperationalError
-

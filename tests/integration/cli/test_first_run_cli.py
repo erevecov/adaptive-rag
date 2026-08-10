@@ -17,8 +17,8 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -46,7 +46,7 @@ def test_first_run_smoke_creates_indexed_cited_demo(
         [
             "first-run",
             "smoke",
-            "--project-name",
+            "--workspace-name",
             "First Run Demo",
             "--source-external-id",
             "first-run.md",
@@ -58,7 +58,7 @@ def test_first_run_smoke_creates_indexed_cited_demo(
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["status"] == "succeeded"
-    assert payload["project"]["name"] == "First Run Demo"
+    assert payload["workspace"]["name"] == "First Run Demo"
     assert payload["source"]["external_id"] == "first-run.md"
     assert payload["job"]["status"] == "succeeded"
     assert payload["document_version_id"] is not None
@@ -87,7 +87,7 @@ def test_first_run_smoke_uses_custom_content_and_question(
         [
             "first-run",
             "smoke",
-            "--project-name",
+            "--workspace-name",
             "Custom Demo",
             "--source-external-id",
             "custom.md",
@@ -113,7 +113,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,

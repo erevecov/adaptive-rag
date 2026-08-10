@@ -16,6 +16,7 @@ from adaptive_rag.cli.dependencies import (
     get_cli_rerank_provider,
 )
 from adaptive_rag.embeddings import QwenEmbeddingProviderError
+from adaptive_rag.provider_pricing import QWEN_PROVIDER
 from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import (
@@ -30,8 +31,46 @@ from adaptive_rag.retrieval import (
     RetrievalSearchRequest,
     RetrievalSearchResult,
 )
+from adaptive_rag.system_scheduler import (
+    default_worker_id,
+    run_provider_pricing_system_task,
+)
 
 app = typer.Typer(no_args_is_help=True)
+
+
+@app.command("sync-pricing")
+def sync_pricing(
+    provider: Annotated[str, typer.Option("--provider")] = QWEN_PROVIDER,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+) -> None:
+    """Force-update catalog pricing_json (manual smoke).
+
+    Daily schedule is the in-app system scheduler
+    (``adaptive-rag system run-scheduler`` / Compose service ``scheduler``),
+    not host crontab. Only ``qwen`` is supported. Does not log secrets.
+    """
+
+    if provider.strip().lower() != QWEN_PROVIDER:
+        typer.echo(
+            f"unsupported pricing provider: {provider!r} "
+            f"(only {QWEN_PROVIDER!r} is supported)",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    from adaptive_rag.db.session import session_scope
+
+    with session_scope() as session:
+        result = run_provider_pricing_system_task(
+            session,
+            worker_id=default_worker_id(prefix="cli-pricing"),
+            force=True,
+            dry_run=dry_run,
+        )
+        if not dry_run:
+            session.commit()
+        typer.echo(json.dumps(result.as_dict()))
 
 
 @app.command("embedding-smoke")
@@ -74,17 +113,17 @@ def chat_smoke(
 ) -> None:
     from adaptive_rag.db.session import session_scope
 
-    project_id = UUID("00000000-0000-0000-0000-000000000001")
+    workspace_id = UUID("00000000-0000-0000-0000-000000000001")
     with session_scope() as session:
         runner = get_cli_chat_runner(session=session)
         service = ChatService(
             runner=runner,
-            retrieval_service=_StaticSmokeRetrievalService(project_id=project_id),
+            retrieval_service=_StaticSmokeRetrievalService(workspace_id=workspace_id),
         )
         try:
             response = service.respond(
                 ChatRequest(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     message=message,
                     retrieval_limit=retrieval_limit,
                 )
@@ -176,8 +215,8 @@ def _serialize_rerank_score(score: RerankScore) -> dict[str, object]:
 
 
 class _StaticSmokeRetrievalService:
-    def __init__(self, *, project_id: UUID) -> None:
-        self._project_id = project_id
+    def __init__(self, *, workspace_id: UUID) -> None:
+        self._workspace_id = workspace_id
 
     def search(
         self,

@@ -15,8 +15,8 @@ providers).
 
 | Tool | Purpose |
 |------|---------|
-| `list_projects` | List projects |
-| `list_sources` | List sources for a project |
+| `list_workspaces` | List workspaces |
+| `list_sources` | List sources for a workspace |
 | `search` | Retrieval search (`dense_sparse`) |
 | `ask` | Grounded chat answer |
 | `ingest_text` | Create markdown source + enqueue `ingest_source` |

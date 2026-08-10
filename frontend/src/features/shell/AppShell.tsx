@@ -18,12 +18,12 @@ import { type RuntimeSubmodule } from '@/features/runtime/runtimeUi'
 import {
   type ChatSessionDetailResponse,
   type ChatSessionSummary,
-  type Project,
+  type Workspace,
 } from '@/lib/apiClient'
 import { useFocusTrap } from '@/lib/focusTrap'
 import { cn } from '@/lib/utils'
 
-const PROJECT_NAME_COLLATOR = new Intl.Collator(undefined, {
+const WORKSPACE_NAME_COLLATOR = new Intl.Collator(undefined, {
   sensitivity: 'base',
 })
 
@@ -54,7 +54,7 @@ const SETTINGS_NAVIGATION = [
     id: 'authoring',
     label: 'Authoring',
     submodules: [
-      { id: 'projects', label: 'Projects' },
+      { id: 'workspaces', label: 'Workspaces' },
       { id: 'users', label: 'Users' },
       { id: 'knowledge', label: 'Knowledge' },
       { id: 'sources', label: 'Sources' },
@@ -78,7 +78,7 @@ const SETTINGS_NAVIGATION = [
       { id: 'connections', label: 'Connections' },
       { id: 'model_catalog', label: 'Model Catalog' },
       { id: 'global_defaults', label: 'Global Defaults' },
-      { id: 'project_overrides', label: 'Project Overrides' },
+      { id: 'workspace_overrides', label: 'Workspace Overrides' },
     ],
   },
 ] as const
@@ -202,8 +202,12 @@ export function AppShell({
                 'max-[680px]:gap-0 max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
               ]
             : [
-                'overflow-auto p-7 mx-auto max-w-[1240px]',
-                'max-[900px]:p-[18px] max-[680px]:p-0.5',
+                // Full-width column + pr-0 so the body scrollbar is flush right
+                // (content inside workspace-body supplies horizontal padding).
+                // No reserved top chrome: workspace chip floats when sidebar is closed.
+                'overflow-hidden gap-0 pl-0 pr-0 pb-2.5 pt-0 w-full',
+                'max-[900px]:pb-3',
+                'max-[680px]:pb-0',
               ],
         )}
         data-slot="workspace"
@@ -211,7 +215,11 @@ export function AppShell({
         tabIndex={-1}
       >
         <div
-          className="min-h-0 shrink-0"
+          className={cn(
+            'min-h-0 shrink-0',
+            // Outside chat the topline must not reserve vertical space.
+            primaryView !== 'chat' && 'contents',
+          )}
           data-slot="workspace-topline-host"
           {...(isBackgroundInert ? { inert: true } : {})}
         >
@@ -220,11 +228,27 @@ export function AppShell({
         <div
           className={cn(
             'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
-            primaryView !== 'chat' && 'overflow-auto',
+            // pr-0: settings/account scrollbar hugs the main column edge.
+            primaryView !== 'chat' && 'overflow-y-auto overflow-x-hidden pr-0',
           )}
           data-slot="workspace-body"
         >
-          {children}
+          {primaryView === 'chat' ? (
+            children
+          ) : (
+            <div
+              className={cn(
+                'mx-auto w-full max-w-[1240px] pl-[18px] pr-[18px] pt-0',
+                'max-[900px]:pl-3.5 max-[900px]:pr-3.5',
+                'max-[680px]:px-1',
+                // Clear fixed hamburger when the left rail is collapsed.
+                !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-11',
+              )}
+              data-slot="workspace-body-content"
+            >
+              {children}
+            </div>
+          )}
         </div>
       </section>
     </main>
@@ -260,37 +284,70 @@ export function ChatWorkspaceGrid({
 export function WorkspaceTopline({
   isChatWorkspace = false,
   isLeftSidebarOpen = true,
-  projectId,
-  projects,
+  workspaceId,
+  workspaces,
   selectedSessionId,
   sessionDetail,
   sessions,
 }: {
   isChatWorkspace?: boolean
   isLeftSidebarOpen?: boolean
-  projectId: string
-  projects: Project[]
+  workspaceId: string
+  workspaces: Workspace[]
   selectedSessionId: string | null
   sessionDetail: ChatSessionDetailResponse | null
   sessions: ChatSessionSummary[]
 }) {
-  const projectName = getWorkspaceProjectName(projectId, projects)
+  const workspaceName = getWorkspaceName(workspaceId, workspaces)
   const sessionName = getWorkspaceSessionName({
     selectedSessionId,
     sessionDetail,
     sessions,
   })
 
+  // Outside chat: no session title and no layout strip. Workspace chip only when
+  // the left rail is collapsed (workspace selector is already in the open sidebar).
+  if (!isChatWorkspace) {
+    if (isLeftSidebarOpen) {
+      return (
+        <h1 className="sr-only" id="workspace-title">
+          Workspace
+        </h1>
+      )
+    }
+
+    return (
+      <>
+        <h1 className="sr-only" id="workspace-title">
+          Workspace
+        </h1>
+        <span
+          aria-label={`Workspace ${workspaceName}`}
+          className={cn(
+            // Float over content — zero flow height. Sit near the menu, slightly left of the far edge.
+            'workspace-topline workspace-chip pointer-events-auto fixed right-14 top-1.5 z-40',
+            'max-w-[min(34vw,12rem)] overflow-hidden text-ellipsis whitespace-nowrap',
+            'rounded-md border border-border bg-background px-1.5 py-0.5 text-[11px] font-bold leading-[1.2]',
+            'text-muted-foreground',
+            'max-[680px]:right-11 max-[680px]:top-0.5 max-[680px]:border-primary/95 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
+          )}
+          data-slot="workspace-chip"
+          title={workspaceName}
+        >
+          {workspaceName}
+        </span>
+      </>
+    )
+  }
+
   return (
     <header
-      aria-label={`Current session ${sessionName}, project ${projectName}`}
+      aria-label={`Current session ${sessionName}, workspace ${workspaceName}`}
       className={cn(
         [
-          'workspace-topline flex min-h-5 min-w-0 items-center gap-1.5 text-foreground tracking-tight max-[680px]:min-h-11 max-[680px]:gap-0.5',
+          'workspace-topline mb-0 flex min-h-5 min-w-0 items-center gap-1.5 pr-[18px] text-foreground tracking-tight',
+          'max-[900px]:pr-3.5 max-[680px]:min-h-11 max-[680px]:gap-0.5 max-[680px]:pr-1',
         ],
-        isChatWorkspace
-          ? 'mb-0 pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1'
-          : 'mb-[22px] max-[680px]:mb-0.5',
         !isLeftSidebarOpen && 'pl-12 max-[680px]:pl-14',
       )}
       data-slot="workspace-topline"
@@ -303,11 +360,11 @@ export function WorkspaceTopline({
         {sessionName}
       </h1>
       <span
-        className="workspace-project-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
-        data-slot="workspace-project-chip"
-        title={projectName}
+        className="workspace-chip min-w-0 max-w-[min(34vw,12rem)] shrink overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-border bg-muted/15 px-1.5 py-0.5 text-[11px] font-bold leading-[1.2] text-muted-foreground max-[680px]:border-primary/95 max-[680px]:bg-card max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]"
+        data-slot="workspace-chip"
+        title={workspaceName}
       >
-        {projectName}
+        {workspaceName}
       </span>
     </header>
   )
@@ -325,7 +382,7 @@ export function AppSidebar({
   onDeleteSession,
   onLoadMoreSessions,
   onPrimaryViewChange,
-  onProjectIdChange,
+  onWorkspaceIdChange,
   onRenameSession,
   onSelectSession,
   onSettingsModuleChange,
@@ -335,9 +392,9 @@ export function AppSidebar({
   onToggle,
   onUnarchiveSession,
   primaryView,
-  projectId,
-  projectState,
-  projects,
+  workspaceId,
+  workspaceState,
+  workspaces,
   runtimeSubmodule,
   selectedSessionId,
   sessions,
@@ -356,7 +413,7 @@ export function AppSidebar({
   onDeleteSession(sessionId: string): void
   onLoadMoreSessions(): void
   onPrimaryViewChange(view: PrimaryView): void
-  onProjectIdChange(projectId: string): void
+  onWorkspaceIdChange(workspaceId: string): void
   onRenameSession(sessionId: string, title: string): void
   onSelectSession(sessionId: string): void
   onSettingsModuleChange(module: SettingsModule): void
@@ -366,9 +423,9 @@ export function AppSidebar({
   onToggle(): void
   onUnarchiveSession(sessionId: string): void
   primaryView: PrimaryView
-  projectId: string
-  projectState: RequestState
-  projects: Project[]
+  workspaceId: string
+  workspaceState: RequestState
+  workspaces: Workspace[]
   runtimeSubmodule: RuntimeSubmodule
   selectedSessionId: string | null
   sessions: ChatSessionSummary[]
@@ -411,7 +468,7 @@ export function AppSidebar({
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
         return
       }
-      // Don't steal Escape from open menus/dialogs (e.g. project selector).
+      // Don't steal Escape from open menus/dialogs (e.g. workspace selector).
       const target = event.target
       if (
         target instanceof HTMLElement &&
@@ -504,7 +561,7 @@ export function AppSidebar({
       <div
         className={cn(
           // overflow-hidden: only the session list (or contextual nav) scrolls —
-          // not project selector / primary nav — so the thumb starts at row 1.
+          // not workspace selector / primary nav — so the thumb starts at row 1.
           // pr-0: session list scrollbar flush to the rail edge.
           'grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 overflow-hidden pl-2.5 pr-0 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:pl-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
@@ -513,11 +570,11 @@ export function AppSidebar({
         {...(!isOpen ? { inert: true } : {})}
       >
         <div className="grid shrink-0 gap-2.5 pr-2.5 max-[680px]:gap-0.5 max-[680px]:pr-1">
-        <SidebarProjectSelector
-          onProjectIdChange={onProjectIdChange}
-          projectId={projectId}
-          projects={projects}
-          state={projectState}
+        <SidebarWorkspaceSelector
+          onWorkspaceIdChange={onWorkspaceIdChange}
+          workspaceId={workspaceId}
+          workspaces={workspaces}
+          state={workspaceState}
         />
 
         <nav
@@ -817,41 +874,41 @@ function getActiveSettingsSubmodule(
   return activeRuntimeSubmodule
 }
 
-function SidebarProjectSelector({
-  onProjectIdChange,
-  projectId,
-  projects,
+function SidebarWorkspaceSelector({
+  onWorkspaceIdChange,
+  workspaceId,
+  workspaces,
   state,
 }: {
-  onProjectIdChange(projectId: string): void
-  projectId: string
-  projects: Project[]
+  onWorkspaceIdChange(workspaceId: string): void
+  workspaceId: string
+  workspaces: Workspace[]
   state: RequestState
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [projectSearch, setProjectSearch] = useState('')
-  const trimmedProjectId = projectId.trim()
-  const selectedProject = projects.find((project) => project.id === trimmedProjectId)
+  const [workspaceSearch, setWorkspaceSearch] = useState('')
+  const trimmedWorkspaceId = workspaceId.trim()
+  const selectedWorkspace = workspaces.find((workspace) => workspace.id === trimmedWorkspaceId)
   const selectedLabel =
-    selectedProject?.name ??
-    (trimmedProjectId.length > 0 ? 'Project Selected' : 'Select Project')
-  const visibleProjects = useMemo(
-    () => getVisibleProjectOptions(projects, projectSearch),
-    [projectSearch, projects],
+    selectedWorkspace?.name ??
+    (trimmedWorkspaceId.length > 0 ? 'Workspace Selected' : 'Select Workspace')
+  const visibleWorkspaces = useMemo(
+    () => getVisibleWorkspaceOptions(workspaces, workspaceSearch),
+    [workspaceSearch, workspaces],
   )
 
-  function handleSelectProject(nextProjectId: string) {
-    onProjectIdChange(nextProjectId)
+  function handleSelectWorkspace(nextWorkspaceId: string) {
+    onWorkspaceIdChange(nextWorkspaceId)
     setIsOpen(false)
-    setProjectSearch('')
+    setWorkspaceSearch('')
   }
 
   return (
     <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
-      <div className="relative z-[90] min-w-0" data-slot="project-selector">
+      <div className="relative z-[90] min-w-0" data-slot="workspace-selector">
         <Popover.Trigger asChild>
           <Button
-            aria-label={`Project selector: ${selectedLabel}`}
+            aria-label={`Workspace selector: ${selectedLabel}`}
             className={cn(
               [
                 'grid h-auto min-h-12 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center justify-stretch gap-2 max-[680px]:gap-0.5',
@@ -860,13 +917,13 @@ function SidebarProjectSelector({
               ],
               isOpen && 'border-primary bg-primary/15',
             )}
-            slotName="project-selector-trigger"
+            slotName="workspace-selector-trigger"
             type="button"
             variant="ghost"
           >
             <span className="grid min-w-0 gap-0.5">
               <small className="text-[10px] font-extrabold uppercase tracking-tight text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-                Project
+                Workspace
               </small>
               <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-extrabold text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
                 {selectedLabel}
@@ -880,54 +937,54 @@ function SidebarProjectSelector({
           <Popover.Content
             align="start"
             className="z-[120] grid w-[var(--radix-popover-trigger-width)] gap-2 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-popover)] max-[680px]:gap-0.5 max-[680px]:rounded-md max-[680px]:border-primary/95 max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95"
-            data-slot="project-selector-popover"
+            data-slot="workspace-selector-popover"
             onCloseAutoFocus={(event) => event.preventDefault()}
             side="bottom"
             sideOffset={6}
           >
-            <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="project-selector-search">
+            <label className="grid gap-1.5 max-[680px]:gap-0.5" data-slot="workspace-selector-search">
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-                Search Projects
+                Search Workspaces
               </span>
               <Input
-                aria-label="Search Projects"
+                aria-label="Search Workspaces"
                 autoComplete="off"
                 autoFocus
                 className="h-[34px] text-xs max-[680px]:min-h-11 max-[680px]:text-base max-[680px]:leading-snug"
-                name="project-search"
-                onChange={(event) => setProjectSearch(event.currentTarget.value)}
-                placeholder="Search Projects"
+                name="workspace-search"
+                onChange={(event) => setWorkspaceSearch(event.currentTarget.value)}
+                placeholder="Search Workspaces"
                 type="search"
-                value={projectSearch}
+                value={workspaceSearch}
               />
             </label>
 
             <div
               className="flex items-center justify-between gap-2 max-[680px]:gap-0.5"
-              data-slot="project-selector-popover-header"
+              data-slot="workspace-selector-popover-header"
             >
               <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                {state === 'loading' ? 'Loading Projects…' : 'All Projects'}
+                {state === 'loading' ? 'Loading Workspaces…' : 'All Workspaces'}
               </span>
             </div>
 
             <div
-              aria-label="Projects"
+              aria-label="Workspaces"
               className="grid max-h-72 gap-1 overflow-auto max-[680px]:gap-0.5"
-              data-slot="project-selector-list"
+              data-slot="workspace-selector-list"
               role="listbox"
             >
-              {visibleProjects.length > 0 ? (
-                visibleProjects.map((project) => {
-                  const canAccess = project.can_access !== false
-                  const isSelected = project.id === trimmedProjectId
+              {visibleWorkspaces.length > 0 ? (
+                visibleWorkspaces.map((workspace) => {
+                  const canAccess = workspace.can_access !== false
+                  const isSelected = workspace.id === trimmedWorkspaceId
 
                   return (
                     <Button
                       aria-label={
                         canAccess
-                          ? `Select Project ${project.name}`
-                          : `Project ${project.name}. No tienes acceso para ese proyecto`
+                          ? `Select Workspace ${workspace.name}`
+                          : `Workspace ${workspace.name}. No tienes acceso a ese workspace`
                       }
                       aria-selected={isSelected}
                       className={cn(
@@ -941,27 +998,27 @@ function SidebarProjectSelector({
                       )}
                       data-selected={isSelected ? '' : undefined}
                       disabled={!canAccess}
-                      key={project.id}
-                      onClick={() => handleSelectProject(project.id)}
+                      key={workspace.id}
+                      onClick={() => handleSelectWorkspace(workspace.id)}
                       role="option"
-                      slotName="project-selector-option"
+                      slotName="workspace-selector-option"
                       title={
-                        canAccess ? undefined : 'No tienes acceso para ese proyecto'
+                        canAccess ? undefined : 'No tienes acceso a ese workspace'
                       }
                       type="button"
                       variant="ghost"
                     >
                       <span className="grid min-w-0 gap-0.5 max-[680px]:gap-0">
                         <strong className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-extrabold tracking-tight text-foreground max-[680px]:text-[0.5625rem]">
-                          {project.name}
+                          {workspace.name}
                         </strong>
                       </span>
                       {!canAccess ? (
                         <span
-                          aria-label="No tienes acceso para ese proyecto"
+                          aria-label="No tienes acceso a ese workspace"
                           className="inline-flex justify-self-end text-muted-foreground"
-                          data-slot="project-selector-lock"
-                          title="No tienes acceso para ese proyecto"
+                          data-slot="workspace-selector-lock"
+                          title="No tienes acceso a ese workspace"
                         >
                           <LockKeyhole aria-hidden="true" className="size-3.5" />
                         </span>
@@ -972,9 +1029,9 @@ function SidebarProjectSelector({
               ) : (
                 <p
                   className="m-0 text-xs font-bold text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug"
-                  data-slot="project-selector-empty"
+                  data-slot="workspace-selector-empty"
                 >
-                  No Projects match.
+                  No Workspaces match.
                 </p>
               )}
             </div>
@@ -985,35 +1042,35 @@ function SidebarProjectSelector({
   )
 }
 
-function getVisibleProjectOptions(projects: Project[], search: string): Project[] {
+function getVisibleWorkspaceOptions(workspaces: Workspace[], search: string): Workspace[] {
   const normalizedSearch = search.trim().toLowerCase()
-  const filteredProjects =
+  const filteredWorkspaces =
     normalizedSearch.length === 0
-      ? projects
-      : projects.filter((project) =>
-          project.name.toLowerCase().includes(normalizedSearch),
+      ? workspaces
+      : workspaces.filter((workspace) =>
+          workspace.name.toLowerCase().includes(normalizedSearch),
         )
 
-  return [...filteredProjects].sort((left, right) => {
+  return [...filteredWorkspaces].sort((left, right) => {
     const leftCanAccess = left.can_access !== false
     const rightCanAccess = right.can_access !== false
     if (leftCanAccess !== rightCanAccess) {
       return leftCanAccess ? -1 : 1
     }
 
-    const nameComparison = PROJECT_NAME_COLLATOR.compare(left.name, right.name)
+    const nameComparison = WORKSPACE_NAME_COLLATOR.compare(left.name, right.name)
     return nameComparison === 0 ? left.id.localeCompare(right.id) : nameComparison
   })
 }
 
-function getWorkspaceProjectName(projectId: string, projects: Project[]): string {
-  const trimmedProjectId = projectId.trim()
-  const project = projects.find((item) => item.id === trimmedProjectId)
-  const name = project?.name.trim()
+function getWorkspaceName(workspaceId: string, workspaces: Workspace[]): string {
+  const trimmedWorkspaceId = workspaceId.trim()
+  const workspace = workspaces.find((item) => item.id === trimmedWorkspaceId)
+  const name = workspace?.name.trim()
   if (name !== undefined && name.length > 0) {
     return name
   }
-  return trimmedProjectId.length > 0 ? 'Proyecto seleccionado' : 'Sin proyecto'
+  return trimmedWorkspaceId.length > 0 ? 'Workspace seleccionado' : 'Sin workspace'
 }
 
 function getWorkspaceSessionName({

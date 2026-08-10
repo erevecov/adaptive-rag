@@ -76,7 +76,7 @@ without mandatory hosted services beyond optional provider smokes.
 
 - **WHEN** the demo or release report is executed
 - **THEN** it produces deterministic or clearly bounded artifacts for
-  user-created project/source ingestion, retrieval, chat, eval quality, cost
+  user-created workspace/source ingestion, retrieval, chat, eval quality, cost
   and latency
 - **AND** any hosted-provider step is opt-in, budgeted and safe to skip without
   invalidating the offline release gate

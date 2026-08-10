@@ -24,7 +24,7 @@ class JobRepository:
     def create(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_type: str,
         payload_json: Mapping[str, Any] | None = None,
         priority: int = 0,
@@ -32,7 +32,7 @@ class JobRepository:
         run_after: datetime | None = None,
     ) -> Job:
         job = Job(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_type=job_type,
             payload_json=dict(payload_json) if payload_json is not None else None,
             priority=priority,
@@ -41,25 +41,27 @@ class JobRepository:
         )
         self._session.add(job)
         self._session.flush()
-        self._add_event(project_id=project_id, job_id=job.id, event_type="created")
+        self._add_event(workspace_id=workspace_id, job_id=job.id, event_type="created")
         self._session.flush()
         return job
 
-    def get(self, *, project_id: UUID, job_id: UUID) -> Job | None:
-        statement = select(Job).where(Job.id == job_id, Job.project_id == project_id)
+    def get(self, *, workspace_id: UUID, job_id: UUID) -> Job | None:
+        statement = select(Job).where(
+            Job.id == job_id, Job.workspace_id == workspace_id
+        )
         return self._session.scalars(statement).one_or_none()
 
     def list(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         status: str | None = None,
         statuses: Sequence[str] | None = None,
         job_type: str | None = None,
     ) -> builtins.list[Job]:
         if status is not None and statuses is not None:
             raise ValueError("pass status or statuses, not both")
-        statement = select(Job).where(Job.project_id == project_id)
+        statement = select(Job).where(Job.workspace_id == workspace_id)
         if statuses is not None:
             statement = statement.where(Job.status.in_(tuple(statuses)))
         elif status is not None:
@@ -72,7 +74,7 @@ class JobRepository:
     def find_open_ingest_source(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_id: UUID,
     ) -> Job | None:
         """Return the oldest open ingest_source job for source_id, if any.
@@ -82,7 +84,7 @@ class JobRepository:
         """
         source_key = str(source_id)
         for job in self.list(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_type="ingest_source",
             statuses=("queued", "running"),
         ):
@@ -94,7 +96,7 @@ class JobRepository:
     def lease_next(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         worker_id: str,
         lease_until: datetime,
         now: datetime,
@@ -102,7 +104,7 @@ class JobRepository:
         job_types: Sequence[str] | None = None,
     ) -> Job | None:
         statement = select(Job).where(
-            Job.project_id == project_id,
+            Job.workspace_id == workspace_id,
             Job.status == "queued",
             Job.run_after <= now,
         )
@@ -125,7 +127,7 @@ class JobRepository:
         job.locked_until = lease_until
         job.attempts += 1
         self._add_event(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job.id,
             event_type="leased",
             message=worker_id,
@@ -136,30 +138,32 @@ class JobRepository:
     def complete(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
         worker_id: str | None = None,
     ) -> Job:
-        job = self._require_job(project_id=project_id, job_id=job_id)
+        job = self._require_job(workspace_id=workspace_id, job_id=job_id)
         self._assert_lease_owner(job, worker_id=worker_id)
         job.status = "succeeded"
         job.locked_by = None
         job.locked_until = None
         job.last_error = None
-        self._add_event(project_id=project_id, job_id=job.id, event_type="completed")
+        self._add_event(
+            workspace_id=workspace_id, job_id=job.id, event_type="completed"
+        )
         self._session.flush()
         return job
 
     def fail(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
         error_message: str,
         retry_after: datetime | None = None,
         worker_id: str | None = None,
     ) -> Job:
-        job = self._require_job(project_id=project_id, job_id=job_id)
+        job = self._require_job(workspace_id=workspace_id, job_id=job_id)
         self._assert_lease_owner(job, worker_id=worker_id)
         job.locked_by = None
         job.locked_until = None
@@ -174,7 +178,7 @@ class JobRepository:
             event_type = "failed_attempt"
 
         self._add_event(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job.id,
             event_type=event_type,
             message=error_message,
@@ -185,19 +189,19 @@ class JobRepository:
     def block(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
         reason: str,
         worker_id: str | None = None,
     ) -> Job:
-        job = self._require_job(project_id=project_id, job_id=job_id)
+        job = self._require_job(workspace_id=workspace_id, job_id=job_id)
         self._assert_lease_owner(job, worker_id=worker_id)
         job.status = "blocked"
         job.locked_by = None
         job.locked_until = None
         job.last_error = reason
         self._add_event(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job.id,
             event_type="blocked",
             message=reason,
@@ -208,12 +212,12 @@ class JobRepository:
     def requeue(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
         run_after: datetime | None = None,
         reset_attempts: bool = True,
     ) -> Job:
-        job = self._require_job(project_id=project_id, job_id=job_id)
+        job = self._require_job(workspace_id=workspace_id, job_id=job_id)
         if job.status not in {"blocked", "dead_letter"}:
             raise ValueError("job is not retryable")
 
@@ -224,13 +228,13 @@ class JobRepository:
         job.run_after = run_after or utc_now()
         if reset_attempts:
             job.attempts = 0
-        self._add_event(project_id=project_id, job_id=job.id, event_type="retried")
+        self._add_event(workspace_id=workspace_id, job_id=job.id, event_type="retried")
         self._session.flush()
         return job
 
-    def release_expired_leases(self, *, project_id: UUID, now: datetime) -> int:
+    def release_expired_leases(self, *, workspace_id: UUID, now: datetime) -> int:
         statement = select(Job).where(
-            Job.project_id == project_id,
+            Job.workspace_id == workspace_id,
             Job.status == "running",
             Job.locked_until <= now,
         )
@@ -245,12 +249,12 @@ class JobRepository:
                 if job.last_error is None:
                     job.last_error = "lease expired"
                 self._add_event(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     job_id=job.id,
                     event_type="released",
                 )
                 self._add_event(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     job_id=job.id,
                     event_type="dead_lettered",
                     message=job.last_error,
@@ -258,25 +262,27 @@ class JobRepository:
             else:
                 job.status = "queued"
                 self._add_event(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     job_id=job.id,
                     event_type="released",
                 )
         self._session.flush()
         return len(jobs)
 
-    def list_events(self, *, project_id: UUID, job_id: UUID) -> builtins.list[JobEvent]:
+    def list_events(
+        self, *, workspace_id: UUID, job_id: UUID
+    ) -> builtins.list[JobEvent]:
         statement = (
             select(JobEvent)
-            .where(JobEvent.project_id == project_id, JobEvent.job_id == job_id)
+            .where(JobEvent.workspace_id == workspace_id, JobEvent.job_id == job_id)
             .order_by(JobEvent.created_at, JobEvent.id)
         )
         return builtins.list(self._session.scalars(statement))
 
-    def _require_job(self, *, project_id: UUID, job_id: UUID) -> Job:
-        job = self.get(project_id=project_id, job_id=job_id)
+    def _require_job(self, *, workspace_id: UUID, job_id: UUID) -> Job:
+        job = self.get(workspace_id=workspace_id, job_id=job_id)
         if job is None:
-            raise ValueError("job does not belong to project")
+            raise ValueError("job does not belong to workspace")
         return job
 
     def _assert_lease_owner(self, job: Job, *, worker_id: str | None) -> None:
@@ -294,14 +300,14 @@ class JobRepository:
     def _add_event(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
         event_type: str,
         message: str | None = None,
         extra_metadata: Mapping[str, Any] | None = None,
     ) -> JobEvent:
         event = JobEvent(
-            project_id=project_id,
+            workspace_id=workspace_id,
             job_id=job_id,
             event_type=event_type,
             message=message,

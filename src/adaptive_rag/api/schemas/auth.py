@@ -1,4 +1,4 @@
-"""Schemas HTTP for local users and project memberships."""
+"""Schemas HTTP for local users and workspace memberships."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from adaptive_rag.auth import CurrentPrincipal
-from adaptive_rag.db.models import ProjectMembership, User
+from adaptive_rag.db.models import User, WorkspaceMembership
 
 
 class UserCreateRequestBody(BaseModel):
@@ -33,7 +33,7 @@ class UserResponse(BaseModel):
     display_name: str
     system_role: str
     is_active: bool
-    last_project_id: UUID | None
+    last_workspace_id: UUID | None
     created_at: datetime
     updated_at: datetime
 
@@ -45,7 +45,7 @@ class UserResponse(BaseModel):
             display_name=user.display_name,
             system_role=user.system_role,
             is_active=user.is_active,
-            last_project_id=user.last_project_id,
+            last_workspace_id=user.last_workspace_id,
             created_at=user.created_at,
             updated_at=user.updated_at,
         )
@@ -54,7 +54,7 @@ class UserResponse(BaseModel):
 class CurrentUserPreferencesRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    last_project_id: UUID | None = None
+    last_workspace_id: UUID | None = None
 
 
 class CurrentUserResponse(BaseModel):
@@ -63,7 +63,7 @@ class CurrentUserResponse(BaseModel):
     display_name: str
     system_role: str
     is_bootstrap: bool
-    last_project_id: UUID | None
+    last_workspace_id: UUID | None
 
     @classmethod
     def from_principal(cls, principal: CurrentPrincipal) -> CurrentUserResponse:
@@ -73,8 +73,8 @@ class CurrentUserResponse(BaseModel):
             display_name=principal.display_name,
             system_role=principal.system_role,
             is_bootstrap=principal.is_bootstrap,
-            last_project_id=(
-                None if principal.user is None else principal.user.last_project_id
+            last_workspace_id=(
+                None if principal.user is None else principal.user.last_workspace_id
             ),
         )
 
@@ -87,15 +87,15 @@ class UserListResponse(BaseModel):
         return cls(items=[UserResponse.from_user(user) for user in users])
 
 
-class ProjectMembershipUpsertRequestBody(BaseModel):
+class WorkspaceMembershipUpsertRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     role: str
 
 
-class ProjectMembershipResponse(BaseModel):
+class WorkspaceMembershipResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    workspace_id: UUID
     user_id: UUID
     role: str
     created_at: datetime
@@ -104,11 +104,11 @@ class ProjectMembershipResponse(BaseModel):
     @classmethod
     def from_membership(
         cls,
-        membership: ProjectMembership,
-    ) -> ProjectMembershipResponse:
+        membership: WorkspaceMembership,
+    ) -> WorkspaceMembershipResponse:
         return cls(
             id=membership.id,
-            project_id=membership.project_id,
+            workspace_id=membership.workspace_id,
             user_id=membership.user_id,
             role=membership.role,
             created_at=membership.created_at,
@@ -116,17 +116,17 @@ class ProjectMembershipResponse(BaseModel):
         )
 
 
-class ProjectMembershipListResponse(BaseModel):
-    items: list[ProjectMembershipResponse]
+class WorkspaceMembershipListResponse(BaseModel):
+    items: list[WorkspaceMembershipResponse]
 
     @classmethod
     def from_memberships(
         cls,
-        memberships: list[ProjectMembership],
-    ) -> ProjectMembershipListResponse:
+        memberships: list[WorkspaceMembership],
+    ) -> WorkspaceMembershipListResponse:
         return cls(
             items=[
-                ProjectMembershipResponse.from_membership(membership)
+                WorkspaceMembershipResponse.from_membership(membership)
                 for membership in memberships
             ]
         )

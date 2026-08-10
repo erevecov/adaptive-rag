@@ -3,8 +3,10 @@ import { describe, expect, test } from 'vitest'
 import type { ProviderConnection } from '@/lib/apiClient'
 
 import {
+  RUNTIME_SLOTS,
   connectionOptionLabel,
   connectionTypeLabel,
+  formatProviderModelPricing,
   missingSyncedModelMessage,
   providerLabel,
   slotLabel,
@@ -41,6 +43,8 @@ describe('runtimeUi labels', () => {
   test('maps known slot and provider tokens', () => {
     expect(slotLabel('dense_embedding')).toBe('Dense Embedding')
     expect(slotLabel('chat')).toBe('Chat')
+    expect(slotLabel('vision')).toBe('Vision')
+    expect(RUNTIME_SLOTS).toContain('vision')
     expect(providerLabel('fake')).toBe('Fake')
     expect(connectionTypeLabel('hosted')).toBe('Hosted')
     expect(
@@ -49,6 +53,96 @@ describe('runtimeUi labels', () => {
         modelOptions: [],
         target: 'dense_embedding',
       }),
-    ).toBe('Sync models for qwen-hosted before saving Dense Embedding.')
+    ).toBe(
+      'No Dense Embedding models in the catalog for this connection. ' +
+        'Open Model Catalog to sync, or pick a connection that exposes Dense Embedding models.',
+    )
+  })
+})
+
+describe('formatProviderModelPricing', () => {
+  test('formats chat list prices with optional thinking tier', () => {
+    expect(
+      formatProviderModelPricing({
+        input_per_million_tokens_usd: 0.4,
+        output_per_million_tokens_usd: 1.2,
+        output_thinking_per_million_tokens_usd: 4,
+        currency: 'USD',
+        source: 'alibaba_model_studio_singapore_list',
+      }),
+    ).toEqual({
+      hasPricing: true,
+      summary: 'In $0.40 · Out $1.20 · Think $4.00 /1M',
+      badgeLabel: 'Priced',
+    })
+  })
+
+  test('formats embedding/rerank input-only prices', () => {
+    expect(
+      formatProviderModelPricing({
+        input_per_million_tokens_usd: 0.07,
+        currency: 'USD',
+      }),
+    ).toEqual({
+      hasPricing: true,
+      summary: 'In $0.07 /1M',
+      badgeLabel: 'Priced',
+    })
+  })
+
+  test('returns No pricing for null empty or unknown shapes', () => {
+    expect(formatProviderModelPricing(null)).toEqual({
+      hasPricing: false,
+      summary: null,
+      badgeLabel: 'No pricing',
+    })
+    expect(formatProviderModelPricing({})).toEqual({
+      hasPricing: false,
+      summary: null,
+      badgeLabel: 'No pricing',
+    })
+    expect(
+      formatProviderModelPricing({ notes: 'Billed by input tokens' }),
+    ).toEqual({
+      hasPricing: false,
+      summary: null,
+      badgeLabel: 'No pricing',
+    })
+  })
+
+  test('accepts numeric strings without inventing values', () => {
+    expect(
+      formatProviderModelPricing({
+        input_per_million_tokens_usd: '0.1',
+        output_per_million_tokens_usd: '0.4',
+      }),
+    ).toEqual({
+      hasPricing: true,
+      summary: 'In $0.10 · Out $0.40 /1M',
+      badgeLabel: 'Priced',
+    })
+  })
+
+  test('formats image and character billing units', () => {
+    expect(
+      formatProviderModelPricing({
+        usd_per_image: 0.03,
+        currency: 'USD',
+      }),
+    ).toEqual({
+      hasPricing: true,
+      summary: '$0.03 /image',
+      badgeLabel: 'Priced',
+    })
+    expect(
+      formatProviderModelPricing({
+        input_per_10k_characters_usd: 0.2,
+        currency: 'USD',
+      }),
+    ).toEqual({
+      hasPricing: true,
+      summary: '$0.20 /10k chars',
+      badgeLabel: 'Priced',
+    })
   })
 })

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 RUNTIME_SLOT_VALUES = (
     "chat",
@@ -19,6 +19,7 @@ RUNTIME_SLOT_VALUES = (
     "sparse_embedding",
     "rerank",
     "contextualization",
+    "vision",
 )
 CHAT_RETRIEVAL_MAX_LIMIT = 50
 DEFAULT_CHAT_RETRIEVAL_LIMIT = 5
@@ -33,7 +34,7 @@ class RuntimeSlotDefault(Base):
     __table_args__ = (
         CheckConstraint(
             "slot IN ('chat', 'dense_embedding', 'sparse_embedding', "
-            "'rerank', 'contextualization')",
+            "'rerank', 'contextualization', 'vision')",
             name="runtime_slot_defaults_slot_check",
         ),
     )
@@ -98,20 +99,20 @@ class GlobalChatModel(Base):
     )
 
 
-class ProjectRuntimeSlotOverride(Base):
-    """Project-scoped runtime slot override without secret values."""
+class WorkspaceRuntimeSlotOverride(Base):
+    """Workspace-scoped runtime slot override without secret values."""
 
-    __tablename__ = "project_runtime_slot_overrides"
+    __tablename__ = "workspace_runtime_slot_overrides"
     __table_args__ = (
         CheckConstraint(
             "slot IN ('chat', 'dense_embedding', 'sparse_embedding', "
-            "'rerank', 'contextualization')",
-            name="project_runtime_slot_overrides_slot_check",
+            "'rerank', 'contextualization', 'vision')",
+            name="workspace_runtime_slot_overrides_slot_check",
         ),
     )
 
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"),
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         primary_key=True,
     )
     slot: Mapped[str] = mapped_column(primary_key=True)
@@ -139,16 +140,18 @@ class ProjectRuntimeSlotOverride(Base):
     )
 
 
-class ProjectChatModel(Base):
-    """Project-scoped chat model pool entry without secret values."""
+class WorkspaceChatModel(Base):
+    """Workspace-scoped chat model pool entry without secret values."""
 
-    __tablename__ = "project_chat_models"
+    __tablename__ = "workspace_chat_models"
     __table_args__ = (
-        Index("ix_project_chat_models_project_default", "project_id", "is_default"),
+        Index(
+            "ix_workspace_chat_models_workspace_default", "workspace_id", "is_default"
+        ),
     )
 
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"),
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         primary_key=True,
     )
     connection_id: Mapped[str] = mapped_column(
@@ -245,28 +248,28 @@ class GlobalChatRetrievalSettings(Base):
     )
 
 
-class ProjectChatRetrievalSettings(Base):
-    """Project-scoped override for chat retrieval behavior."""
+class WorkspaceChatRetrievalSettings(Base):
+    """Workspace-scoped override for chat retrieval behavior."""
 
-    __tablename__ = "project_chat_retrieval_settings"
+    __tablename__ = "workspace_chat_retrieval_settings"
     __table_args__ = (
         CheckConstraint(
             f"retrieval_limit >= 1 AND retrieval_limit <= {CHAT_RETRIEVAL_MAX_LIMIT}",
-            name="project_chat_retrieval_settings_retrieval_limit_check",
+            name="workspace_chat_retrieval_settings_retrieval_limit_check",
         ),
         CheckConstraint(
             "rerank_candidate_limit >= 1 AND "
             f"rerank_candidate_limit <= {CHAT_RETRIEVAL_MAX_LIMIT}",
-            name="project_chat_retrieval_settings_candidate_limit_check",
+            name="workspace_chat_retrieval_settings_candidate_limit_check",
         ),
         CheckConstraint(
             "NOT rerank_enabled OR rerank_candidate_limit >= retrieval_limit",
-            name="project_chat_retrieval_settings_rerank_window_check",
+            name="workspace_chat_retrieval_settings_rerank_window_check",
         ),
     )
 
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"),
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         primary_key=True,
     )
     retrieval_limit: Mapped[int] = mapped_column(nullable=False)

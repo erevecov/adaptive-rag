@@ -27,7 +27,7 @@ const summary: ChatObservabilitySummary = {
     created_at_to: '2026-06-22T00:00:00Z',
     status: 'failed',
   },
-  project_id: 'project-1',
+  workspace_id: 'workspace-1',
   provider_usage: {
     groups: [
       {
@@ -74,11 +74,11 @@ function renderObservabilityPanel(
     error: null,
     onCreatedAtFromChange: vi.fn(),
     onCreatedAtToChange: vi.fn(),
-    onProjectIdChange: vi.fn(),
+    onWorkspaceIdChange: vi.fn(),
     onRefresh: vi.fn(),
     onStatusChange: vi.fn(),
     onSubmoduleChange: vi.fn(),
-    projectId: 'project-1',
+    workspaceId: 'workspace-1',
     state: 'idle',
     status: '',
     summary,
@@ -106,7 +106,7 @@ describe('ObservabilityPanel', () => {
     const { props, view } = renderObservabilityPanel({ summary: null })
 
     expect(screen.getByRole('region', { name: 'Observability summary' })).toBeTruthy()
-    expect(screen.getByLabelText('Project ID').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Workspace ID').getAttribute('data-slot')).toBe(
       'input',
     )
     expect(screen.getByLabelText('Status').getAttribute('data-slot')).toBe(
@@ -251,11 +251,11 @@ describe('ObservabilityPanel', () => {
         error={null}
         onCreatedAtFromChange={vi.fn()}
         onCreatedAtToChange={vi.fn()}
-        onProjectIdChange={vi.fn()}
+        onWorkspaceIdChange={vi.fn()}
         onRefresh={vi.fn()}
         onStatusChange={vi.fn()}
         onSubmoduleChange={vi.fn()}
-        projectId="project-1"
+        workspaceId="workspace-1"
         state="idle"
         status=""
         summary={summary}

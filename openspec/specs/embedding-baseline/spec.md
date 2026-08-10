@@ -47,13 +47,13 @@ MUST permitir un fake determinista de 1024 dimensiones para tests obligatorios.
 
 ### Requirement: Embedding baseline mantiene aislamiento e idempotency
 
-El sistema MUST exigir `project_id` al persistir embeddings y MUST reutilizar
+El sistema MUST exigir `workspace_id` al persistir embeddings y MUST reutilizar
 embeddings existentes cuando provider, modelo, dimension e input hash no
 cambian.
 
-#### Scenario: Document version de otro proyecto se rechaza
+#### Scenario: Document version de otro workspace se rechaza
 
-- **WHEN** se solicita embedding con un `project_id` que no contiene la
+- **WHEN** se solicita embedding con un `workspace_id` que no contiene la
   `document_version`
 - **THEN** el sistema no llama al provider
 - **AND** no persiste embeddings
@@ -67,7 +67,7 @@ cambian.
 
 ### Requirement: Contextual summaries are generated before embedding
 
-The system MUST provide a project-scoped contextualization pipeline that fills
+The system MUST provide a workspace-scoped contextualization pipeline that fills
 `chunks.contextual_summary` before dense embeddings are generated.
 
 #### Scenario: Pipeline fills missing summaries
@@ -84,9 +84,9 @@ The system MUST provide a project-scoped contextualization pipeline that fills
 - **THEN** the contextualization pipeline reuses it
 - **AND** does not regenerate or overwrite the field
 
-#### Scenario: Cross-project versions are rejected
+#### Scenario: Cross-workspace versions are rejected
 
-- **WHEN** contextualization is requested with a `project_id` that does not own
+- **WHEN** contextualization is requested with a `workspace_id` that does not own
   the document version
 - **THEN** the system returns a stable error
 - **AND** no chunks are updated
@@ -97,15 +97,15 @@ The system MUST provide a project-scoped contextualization pipeline that fills
 - **THEN** generated summaries are included in the embedding and lexical inputs
 - **AND** embedding metadata records the contextualized input kind and hashes
 
-### Requirement: Dense reindex walks project document versions
+### Requirement: Dense reindex walks workspace document versions
 
 The system MUST provide a dense reindex operation that embeds all document
-versions for a project (or a single version) and emits a JSON report with
+versions for a workspace (or a single version) and emits a JSON report with
 counts and a watermark timestamp.
 
-#### Scenario: Project dense reindex reports watermark
+#### Scenario: Workspace dense reindex reports watermark
 
-- **WHEN** dense reindex runs for a project with chunked versions
+- **WHEN** dense reindex runs for a workspace with chunked versions
 - **THEN** it returns embedded and reused counts
 - **AND** includes started_at, finished_at and watermark fields
 

@@ -44,13 +44,13 @@ class CliHostedEvalRuntime:
 
 def get_cli_dense_embedding_provider(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
     kwargs = _runtime_factory_kwargs(
         get_default_dense_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -62,13 +62,13 @@ def get_cli_dense_embedding_provider(
 
 def get_cli_sparse_embedding_provider(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> SparseEmbeddingProvider:
     kwargs = _runtime_factory_kwargs(
         get_default_sparse_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -80,12 +80,12 @@ def get_cli_sparse_embedding_provider(
 
 def get_cli_chat_runner(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> ChatRunner:
     return get_chat_runner(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -93,12 +93,12 @@ def get_cli_chat_runner(
 
 def get_cli_rerank_provider(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: InMemoryProviderUsageTracker | None = None,
 ) -> RerankProvider:
     return get_rerank_provider(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -107,14 +107,14 @@ def get_cli_rerank_provider(
 def _runtime_factory_kwargs(
     factory: Callable[..., object],
     *,
-    project_id: UUID | None,
+    workspace_id: UUID | None,
     session: Session | None,
     usage_tracker: InMemoryProviderUsageTracker | None,
 ) -> dict[str, object]:
     parameters = signature(factory).parameters
     kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
+    if "workspace_id" in parameters:
+        kwargs["workspace_id"] = workspace_id
     if "session" in parameters:
         kwargs["session"] = session
     if "usage_tracker" in parameters:
@@ -128,7 +128,7 @@ def get_cli_graph_store() -> GraphStore:
 
 def get_cli_graph_retriever() -> GraphRetriever | None:
     graph_store = get_cli_graph_store()
-    if hasattr(graph_store, "expand_project_chunks"):
+    if hasattr(graph_store, "expand_workspace_chunks"):
         return cast(GraphRetriever, graph_store)
     return None
 

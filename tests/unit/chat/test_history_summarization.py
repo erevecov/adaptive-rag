@@ -63,6 +63,9 @@ def test_prepare_summarizes_older_turns() -> None:
     detail = prepared.as_step_detail()
     assert detail["used_summary"] is True
     assert detail["summarized_messages"] == 16
+    assert detail.get("summary") == prepared.summary
+    assert isinstance(detail.get("summary_preview"), str)
+    assert len(str(detail["summary_preview"])) <= 240
 
 
 def test_prepare_pins_user_stated_facts_across_truncation() -> None:
@@ -105,12 +108,14 @@ def test_chat_service_stream_emits_context_step_and_summarizes() -> None:
         history_message_limit=4,
         history_load_limit=40,
     )
-    project_id = uuid4()
-    # Re-bind project_id on messages is not needed for InMemory; it stores messages
+    workspace_id = uuid4()
+    # Re-bind workspace_id on messages is not needed for InMemory; it stores messages
     # by session only. list_history_turns returns from messages list.
     events = list(
         service.stream(
-            ChatRequest(project_id=project_id, message="Follow-up about all of that?")
+            ChatRequest(
+                workspace_id=workspace_id, message="Follow-up about all of that?"
+            )
         )
     )
     context_steps = [

@@ -1,10 +1,10 @@
 """Contrato provider-neutral para graph store routeable."""
 
 from adaptive_rag.graph.indexer import (
-    Neo4jProjectGraph,
-    ProjectGraphLoader,
-    load_project_graph,
-    load_project_graph_from_database,
+    Neo4jWorkspaceGraph,
+    WorkspaceGraphLoader,
+    load_workspace_graph,
+    load_workspace_graph_from_database,
 )
 from adaptive_rag.graph.neo4j import (
     Neo4jDriver,
@@ -22,11 +22,11 @@ from adaptive_rag.graph.operations import (
 )
 from adaptive_rag.graph.runtime import get_graph_store
 from adaptive_rag.graph.store import (
-    GRAPH_PROJECTION_STATUS_VALUES,
     DisabledGraphStore,
     FakeGraphStore,
+    GRAPH_projection_STATUS_VALUES,
     GraphBackfillResult,
-    GraphProjectionStatus,
+    GraphprojectionStatus,
     GraphRetrievalResult,
     GraphRetriever,
     GraphStore,
@@ -39,13 +39,13 @@ from adaptive_rag.graph.store import (
 )
 
 __all__ = [
-    "GRAPH_PROJECTION_STATUS_VALUES",
+    "GRAPH_projection_STATUS_VALUES",
     "DisabledGraphStore",
     "FakeGraphStore",
     "GraphBackfillResult",
     "GraphBackfillOperationName",
     "GraphBackfillOperationReport",
-    "GraphProjectionStatus",
+    "GraphprojectionStatus",
     "GraphRetrievalSmokeReport",
     "GraphRetrievalSmokeStatus",
     "GraphRetriever",
@@ -56,15 +56,15 @@ __all__ = [
     "GraphStoreHealth",
     "GraphStoreQueryError",
     "GraphStoreUnavailableError",
-    "Neo4jProjectGraph",
+    "Neo4jWorkspaceGraph",
     "Neo4jDriver",
     "Neo4jDriverFactory",
     "Neo4jGraphStore",
-    "ProjectGraphLoader",
+    "WorkspaceGraphLoader",
     "default_neo4j_driver_factory",
     "get_graph_store",
-    "load_project_graph",
-    "load_project_graph_from_database",
+    "load_workspace_graph",
+    "load_workspace_graph_from_database",
     "run_graph_backfill_operation",
     "run_graph_retrieval_smoke",
     "should_use_dense_fallback",

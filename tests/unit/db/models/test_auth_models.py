@@ -1,4 +1,4 @@
-"""Tests for M37 local auth and project membership models."""
+"""Tests for M37 local auth and workspace membership models."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, ProjectMembership, User, UserAccessToken
+from adaptive_rag.db.models import User, UserAccessToken, Workspace, WorkspaceMembership
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -17,10 +17,10 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -44,12 +44,12 @@ def test_user_defaults_to_active_regular_user() -> None:
 
     assert user.system_role == "user"
     assert user.is_active is True
-    assert user.last_project_id is None
+    assert user.last_workspace_id is None
     assert user.created_at is not None
     assert user.updated_at is not None
 
     columns = {column.name: column for column in inspect(User).columns}
-    assert columns["last_project_id"].nullable is True
+    assert columns["last_workspace_id"].nullable is True
 
 
 def test_user_rejects_unsupported_system_role() -> None:
@@ -101,14 +101,14 @@ def test_user_access_token_stores_hash_not_plaintext() -> None:
     assert "plaintext_token" not in columns
 
 
-def test_project_membership_persists_single_role_per_project_user() -> None:
+def test_workspace_membership_persists_single_role_per_workspace_user() -> None:
     session = _make_session()
-    project = Project(name="demo")
+    workspace = Workspace(name="demo")
     user = User(login="admin@example.com", display_name="Admin")
-    session.add_all([project, user])
+    session.add_all([workspace, user])
     session.flush()
-    membership = ProjectMembership(
-        project_id=project.id,
+    membership = WorkspaceMembership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="admin",
     )
@@ -120,8 +120,8 @@ def test_project_membership_persists_single_role_per_project_user() -> None:
     assert membership.role == "admin"
 
     session.add(
-        ProjectMembership(
-            project_id=project.id,
+        WorkspaceMembership(
+            workspace_id=workspace.id,
             user_id=user.id,
             role="viewer",
         )
@@ -129,15 +129,15 @@ def test_project_membership_persists_single_role_per_project_user() -> None:
     _assert_integrity_error(session)
 
 
-def test_project_membership_rejects_unsupported_role() -> None:
+def test_workspace_membership_rejects_unsupported_role() -> None:
     session = _make_session()
-    project = Project(name="demo")
+    workspace = Workspace(name="demo")
     user = User(login="bad-role@example.com", display_name="Bad Role")
-    session.add_all([project, user])
+    session.add_all([workspace, user])
     session.flush()
     session.add(
-        ProjectMembership(
-            project_id=project.id,
+        WorkspaceMembership(
+            workspace_id=workspace.id,
             user_id=user.id,
             role="superadmin",
         )

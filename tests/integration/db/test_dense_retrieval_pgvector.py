@@ -12,8 +12,8 @@ from adaptive_rag.db.models import EMBEDDING_DIMENSIONS
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.retrieval import DenseRetriever
@@ -52,19 +52,19 @@ def test_dense_retriever_orders_by_pgvector_l2_distance(
     run_alembic_upgrade(pg_url)
     session = create_session_factory(pg_engine)()
     try:
-        project = ProjectRepository(session).create(name="pgvector-retrieval")
+        workspace = WorkspaceRepository(session).create(name="pgvector-retrieval")
         source = SourceRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_type="markdown",
             external_id="guide.md",
         )
         document = DocumentRepository(session).create_document(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_id=source.id,
             stable_id="guide.md",
         )
         version = DocumentRepository(session).create_version(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_id=document.id,
             version_number=1,
             normalized_text="Near evidence\n\nFar evidence",
@@ -72,7 +72,7 @@ def test_dense_retriever_orders_by_pgvector_l2_distance(
             index_fingerprint="fp:pgvector",
         )
         far = ChunkRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=version.id,
             ordinal=1,
             char_start=15,
@@ -80,7 +80,7 @@ def test_dense_retriever_orders_by_pgvector_l2_distance(
             embedding=_vector(0.9),
         )
         near = ChunkRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=version.id,
             ordinal=0,
             char_start=0,
@@ -90,7 +90,7 @@ def test_dense_retriever_orders_by_pgvector_l2_distance(
         session.commit()
 
         results = DenseRetriever(session).search(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query_embedding=_vector(0.0),
             limit=2,
         )
@@ -111,31 +111,31 @@ def test_dense_retriever_filters_tags_with_postgres_jsonb(
     run_alembic_upgrade(pg_url)
     session = create_session_factory(pg_engine)()
     try:
-        project = ProjectRepository(session).create(name="pgvector-tags")
+        workspace = WorkspaceRepository(session).create(name="pgvector-tags")
         matching_source = SourceRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_type="markdown",
             external_id="matching.md",
             tags=["docs", "v1"],
         )
         other_source = SourceRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_type="markdown",
             external_id="other.md",
             tags=["blog"],
         )
         matching_document = DocumentRepository(session).create_document(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_id=matching_source.id,
             stable_id="matching.md",
         )
         other_document = DocumentRepository(session).create_document(
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_id=other_source.id,
             stable_id="other.md",
         )
         matching_version = DocumentRepository(session).create_version(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_id=matching_document.id,
             version_number=1,
             normalized_text="Matching evidence",
@@ -143,7 +143,7 @@ def test_dense_retriever_filters_tags_with_postgres_jsonb(
             index_fingerprint="fp:matching",
         )
         other_version = DocumentRepository(session).create_version(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_id=other_document.id,
             version_number=1,
             normalized_text="Other evidence",
@@ -151,7 +151,7 @@ def test_dense_retriever_filters_tags_with_postgres_jsonb(
             index_fingerprint="fp:other",
         )
         matching_chunk = ChunkRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=matching_version.id,
             ordinal=0,
             char_start=0,
@@ -159,7 +159,7 @@ def test_dense_retriever_filters_tags_with_postgres_jsonb(
             embedding=_vector(0.1),
         )
         ChunkRepository(session).create(
-            project_id=project.id,
+            workspace_id=workspace.id,
             document_version_id=other_version.id,
             ordinal=0,
             char_start=0,
@@ -169,7 +169,7 @@ def test_dense_retriever_filters_tags_with_postgres_jsonb(
         session.commit()
 
         results = DenseRetriever(session).search(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query_embedding=_vector(0.0),
             limit=2,
             filters=DenseRetrievalFilters(tags=("docs", "v1")),

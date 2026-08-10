@@ -7,7 +7,7 @@ import type {
 
 type JsonObject = Record<string, unknown>
 
-export type Project = {
+export type Workspace = {
   id: string
   name: string
   embedding_mode: string
@@ -20,22 +20,22 @@ export type Project = {
   deleted_at?: string | null
 }
 
-export type ProjectCreateBody = {
+export type WorkspaceCreateBody = {
   name: string
   embedding_mode?: string
   retrieval_contextualization_enabled?: boolean
   budget_config_json?: JsonObject | null
 }
 
-export type ProjectUpdateBody = {
+export type WorkspaceUpdateBody = {
   name?: string
   embedding_mode?: string
   retrieval_contextualization_enabled?: boolean
   budget_config_json?: JsonObject | null
 }
 
-export type ProjectListResponse = {
-  items: Project[]
+export type WorkspaceListResponse = {
+  items: Workspace[]
 }
 
 export type CurrentUser = {
@@ -44,11 +44,11 @@ export type CurrentUser = {
   display_name: string
   system_role: string
   is_bootstrap: boolean
-  last_project_id: string | null
+  last_workspace_id: string | null
 }
 
 export type CurrentUserPreferencesBody = {
-  last_project_id: string | null
+  last_workspace_id: string | null
 }
 
 export type User = {
@@ -57,7 +57,7 @@ export type User = {
   display_name: string
   system_role: string
   is_active: boolean
-  last_project_id: string | null
+  last_workspace_id: string | null
   created_at: string
   updated_at: string
 }
@@ -74,26 +74,26 @@ export type UserListResponse = {
   items: User[]
 }
 
-export type ProjectMembership = {
+export type WorkspaceMembership = {
   id: string
-  project_id: string
+  workspace_id: string
   user_id: string
   role: string
   created_at: string
   updated_at: string
 }
 
-export type ProjectMembershipUpsertBody = {
+export type WorkspaceMembershipUpsertBody = {
   role: string
 }
 
-export type ProjectMembershipListResponse = {
-  items: ProjectMembership[]
+export type WorkspaceMembershipListResponse = {
+  items: WorkspaceMembership[]
 }
 
 export type Source = {
   id: string
-  project_id: string
+  workspace_id: string
   source_type: string
   external_id: string
   tags: string[] | null
@@ -132,7 +132,7 @@ export type SourceListResponse = {
 
 export type IngestionJob = {
   id: string
-  project_id: string
+  workspace_id: string
   job_type: string
   status: string
   priority: number
@@ -149,7 +149,7 @@ export type IngestionJob = {
 
 export type IngestionJobEvent = {
   id: string
-  project_id: string
+  workspace_id: string
   job_id: string
   event_type: string
   message: string | null
@@ -188,7 +188,7 @@ export type RunNextIngestionJobBody = {
 
 export type IngestionRunResponse = {
   status: string
-  project_id: string
+  workspace_id: string
   worker_id: string
   job_id: string | null
   source_id: string | null
@@ -261,6 +261,15 @@ export type ChatRequestBody = {
   session_id?: string | null
   retrieval_limit?: number
   metadata_filter?: RetrievalMetadataFilter | null
+  attachment_ids?: string[]
+}
+
+export type ChatAttachmentUploadResponse = {
+  id: string
+  kind: 'image' | 'document'
+  filename: string
+  mime: string
+  size_bytes: number
 }
 
 export type ChatToolCall = {
@@ -424,7 +433,7 @@ export type ChatObservabilityErrorSummary = {
 }
 
 export type ChatObservabilitySummary = {
-  project_id: string
+  workspace_id: string
   filters: ChatObservabilityFilters
   sessions: ChatObservabilitySessionSummary
   provider_usage: ChatObservabilityProviderUsageSummary
@@ -520,7 +529,7 @@ export type ChatSessionDetailResponse = {
 
 export type KnowledgeProposal = {
   id: string
-  project_id: string
+  workspace_id: string
   submitted_by_user_id: string | null
   origin_session_id: string | null
   origin_message_id: string | null
@@ -689,7 +698,7 @@ export type DeleteResponse = {
   deleted: boolean
 }
 
-export type ProjectRuntimeSlot = {
+export type WorkspaceRuntimeSlot = {
   slot: string
   source: string
   connection_id: string
@@ -697,7 +706,7 @@ export type ProjectRuntimeSlot = {
   parameters: JsonObject | null
 }
 
-export type ProjectChatModel = {
+export type WorkspaceChatModel = {
   connection_id: string
   model_id: string
   is_default: boolean
@@ -705,15 +714,15 @@ export type ProjectChatModel = {
   parameters: JsonObject | null
 }
 
-export type ProjectChatRetrievalSettings = ChatRetrievalSettings & {
+export type WorkspaceChatRetrievalSettings = ChatRetrievalSettings & {
   source: string
 }
 
-export type ProjectRuntimeSettings = {
-  project_id: string
-  slots: ProjectRuntimeSlot[]
-  chat_models: ProjectChatModel[]
-  chat_retrieval: ProjectChatRetrievalSettings
+export type WorkspaceRuntimeSettings = {
+  workspace_id: string
+  slots: WorkspaceRuntimeSlot[]
+  chat_models: WorkspaceChatModel[]
+  chat_retrieval: WorkspaceChatRetrievalSettings
 }
 
 
@@ -722,7 +731,7 @@ export type UserMemoryStatus = 'proposed' | 'approved' | 'rejected'
 export type UserMemory = {
   id: string
   user_id: string
-  project_id: string | null
+  workspace_id: string | null
   content: string
   status: UserMemoryStatus
   created_at: string | null
@@ -735,13 +744,13 @@ export type UserMemoryListResponse = {
 }
 
 export type UserMemoryListParams = {
-  project_id?: string | null
+  workspace_id?: string | null
   status?: UserMemoryStatus | null
 }
 
 export type UserMemoryProposeBody = {
   content: string
-  project_id?: string | null
+  workspace_id?: string | null
 }
 
 export type UserMemoryUpdateBody = {
@@ -785,107 +794,116 @@ export type ApiClient = {
   ): Promise<CurrentUser>
   createUser(body: UserCreateBody): Promise<User>
   listUsers(): Promise<UserListResponse>
-  listProjectMemberships(
-    projectId: string,
-  ): Promise<ProjectMembershipListResponse>
-  upsertProjectMembership(
-    projectId: string,
+  listWorkspaceMemberships(
+    workspaceId: string,
+  ): Promise<WorkspaceMembershipListResponse>
+  upsertWorkspaceMembership(
+    workspaceId: string,
     userId: string,
-    body: ProjectMembershipUpsertBody,
-  ): Promise<ProjectMembership>
-  deleteProjectMembership(projectId: string, userId: string): Promise<void>
+    body: WorkspaceMembershipUpsertBody,
+  ): Promise<WorkspaceMembership>
+  deleteWorkspaceMembership(workspaceId: string, userId: string): Promise<void>
   deactivateUser(userId: string): Promise<User>
   revokeAccessToken(body: AccessTokenRevokeBody): Promise<{ revoked: boolean }>
-  createProject(body: ProjectCreateBody): Promise<Project>
-  listProjects(): Promise<ProjectListResponse>
-  getProject(projectId: string): Promise<Project>
-  updateProject(projectId: string, body: ProjectUpdateBody): Promise<Project>
-  deleteProject(projectId: string): Promise<Project>
-  createSource(projectId: string, body: SourceCreateBody): Promise<Source>
+  createWorkspace(body: WorkspaceCreateBody): Promise<Workspace>
+  listWorkspaces(): Promise<WorkspaceListResponse>
+  getWorkspace(workspaceId: string): Promise<Workspace>
+  updateWorkspace(workspaceId: string, body: WorkspaceUpdateBody): Promise<Workspace>
+  deleteWorkspace(workspaceId: string): Promise<Workspace>
+  createSource(workspaceId: string, body: SourceCreateBody): Promise<Source>
   listSources(
-    projectId: string,
+    workspaceId: string,
     params?: SourceListParams,
   ): Promise<SourceListResponse>
-  getSource(projectId: string, sourceId: string): Promise<Source>
+  getSource(workspaceId: string, sourceId: string): Promise<Source>
   updateSource(
-    projectId: string,
+    workspaceId: string,
     sourceId: string,
     body: SourceUpdateBody,
   ): Promise<Source>
-  deleteSource(projectId: string, sourceId: string): Promise<Source>
+  deleteSource(workspaceId: string, sourceId: string): Promise<Source>
   enqueueIngestionJob(
-    projectId: string,
+    workspaceId: string,
     sourceId: string,
     body?: EnqueueIngestionJobBody,
   ): Promise<IngestionJob>
   listIngestionJobs(
-    projectId: string,
+    workspaceId: string,
     params?: IngestionJobListParams,
   ): Promise<IngestionJobListResponse>
   getIngestionJob(
-    projectId: string,
+    workspaceId: string,
     jobId: string,
   ): Promise<IngestionJobDetailResponse>
   retryIngestionJob(
-    projectId: string,
+    workspaceId: string,
     jobId: string,
     body?: RetryIngestionJobBody,
   ): Promise<IngestionJob>
   runNextIngestionJob(
-    projectId: string,
+    workspaceId: string,
     body?: RunNextIngestionJobBody,
   ): Promise<IngestionRunResponse>
-  askChat(projectId: string, body: ChatRequestBody): Promise<ChatResponseBody>
+  askChat(workspaceId: string, body: ChatRequestBody): Promise<ChatResponseBody>
   askChatStream(
-    projectId: string,
+    workspaceId: string,
     body: ChatRequestBody,
     handlers?: ChatStreamHandlers,
     options?: ChatStreamOptions,
   ): Promise<ChatResponseBody>
+  uploadChatAttachment(
+    workspaceId: string,
+    file: File,
+    sessionId?: string | null,
+  ): Promise<ChatAttachmentUploadResponse>
+  deleteChatAttachment(
+    workspaceId: string,
+    attachmentId: string,
+  ): Promise<void>
   searchRetrieval(
-    projectId: string,
+    workspaceId: string,
     body: RetrievalSearchRequestBody,
   ): Promise<RetrievalSearchResponse>
   listChatSessions(
-    projectId: string,
+    workspaceId: string,
     params?: ChatSessionListParams,
   ): Promise<ChatSessionListResponse>
   getChatSession(
-    projectId: string,
+    workspaceId: string,
     sessionId: string,
   ): Promise<ChatSessionDetailResponse>
   updateChatSessionTitle(
-    projectId: string,
+    workspaceId: string,
     sessionId: string,
     title: string,
   ): Promise<{ session_id: string; title: string; title_is_custom: boolean }>
-  archiveChatSession(projectId: string, sessionId: string): Promise<void>
-  unarchiveChatSession(projectId: string, sessionId: string): Promise<void>
-  deleteChatSession(projectId: string, sessionId: string): Promise<void>
+  archiveChatSession(workspaceId: string, sessionId: string): Promise<void>
+  unarchiveChatSession(workspaceId: string, sessionId: string): Promise<void>
+  deleteChatSession(workspaceId: string, sessionId: string): Promise<void>
   getChatObservabilitySummary(
-    projectId: string,
+    workspaceId: string,
     params?: ChatObservabilitySummaryParams,
   ): Promise<ChatObservabilitySummary>
   submitKnowledgeProposal(
-    projectId: string,
+    workspaceId: string,
     body: KnowledgeProposalSubmitBody,
   ): Promise<KnowledgeProposal>
   listKnowledgeProposals(
-    projectId: string,
+    workspaceId: string,
     params?: KnowledgeProposalListParams,
   ): Promise<KnowledgeProposalListResponse>
   refineKnowledgeProposal(
-    projectId: string,
+    workspaceId: string,
     proposalId: string,
     body: KnowledgeProposalRefineBody,
   ): Promise<KnowledgeProposal>
   approveKnowledgeProposal(
-    projectId: string,
+    workspaceId: string,
     proposalId: string,
     body: KnowledgeProposalApproveBody,
   ): Promise<KnowledgeProposal>
   rejectKnowledgeProposal(
-    projectId: string,
+    workspaceId: string,
     proposalId: string,
     body: KnowledgeProposalRejectBody,
   ): Promise<KnowledgeProposal>
@@ -928,35 +946,35 @@ export type ApiClient = {
   updateChatRetrievalSettings(
     body: ChatRetrievalSettingsUpsertBody,
   ): Promise<ChatRetrievalSettings>
-  getProjectRuntimeSettings(projectId: string): Promise<ProjectRuntimeSettings>
-  upsertProjectRuntimeSlotOverride(
-    projectId: string,
+  getWorkspaceRuntimeSettings(workspaceId: string): Promise<WorkspaceRuntimeSettings>
+  upsertWorkspaceRuntimeSlotOverride(
+    workspaceId: string,
     slot: string,
     body: RuntimeSlotDefaultUpsertBody,
-  ): Promise<ProjectRuntimeSlot>
-  deleteProjectRuntimeSlotOverride(
-    projectId: string,
+  ): Promise<WorkspaceRuntimeSlot>
+  deleteWorkspaceRuntimeSlotOverride(
+    workspaceId: string,
     slot: string,
   ): Promise<DeleteResponse>
-  upsertProjectChatModel(
-    projectId: string,
+  upsertWorkspaceChatModel(
+    workspaceId: string,
     body: ChatModelUpsertBody,
-  ): Promise<ProjectChatModel>
-  setDefaultProjectChatModel(
-    projectId: string,
+  ): Promise<WorkspaceChatModel>
+  setDefaultWorkspaceChatModel(
+    workspaceId: string,
     connectionId: string,
     modelId: string,
-  ): Promise<ProjectChatModel>
-  deleteProjectChatModel(
-    projectId: string,
+  ): Promise<WorkspaceChatModel>
+  deleteWorkspaceChatModel(
+    workspaceId: string,
     connectionId: string,
     modelId: string,
   ): Promise<DeleteResponse>
-  upsertProjectChatRetrievalSettings(
-    projectId: string,
+  upsertWorkspaceChatRetrievalSettings(
+    workspaceId: string,
     body: ChatRetrievalSettingsUpsertBody,
-  ): Promise<ProjectChatRetrievalSettings>
-  deleteProjectChatRetrievalSettings(projectId: string): Promise<DeleteResponse>
+  ): Promise<WorkspaceChatRetrievalSettings>
+  deleteWorkspaceChatRetrievalSettings(workspaceId: string): Promise<DeleteResponse>
   listUserMemories(
     params?: UserMemoryListParams,
   ): Promise<UserMemoryListResponse>
@@ -1009,26 +1027,26 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/admin/users`,
       })
     },
-    listProjectMemberships(projectId) {
-      return requestJson<ProjectMembershipListResponse>(fetchImpl, {
+    listWorkspaceMemberships(workspaceId) {
+      return requestJson<WorkspaceMembershipListResponse>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/memberships`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/memberships`,
       })
     },
-    upsertProjectMembership(projectId, userId, body) {
-      return requestJson<ProjectMembership>(fetchImpl, {
+    upsertWorkspaceMembership(workspaceId, userId, body) {
+      return requestJson<WorkspaceMembership>(fetchImpl, {
         body,
         method: 'PUT',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/memberships/${encodePathSegment(userId)}`,
       })
     },
-    deleteProjectMembership(projectId, userId) {
+    deleteWorkspaceMembership(workspaceId, userId) {
       return requestVoid(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/memberships/${encodePathSegment(userId)}`,
       })
     },
@@ -1045,48 +1063,48 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/admin/access-tokens/revoke`,
       })
     },
-    createProject(body) {
-      return requestJson<Project>(fetchImpl, {
+    createWorkspace(body) {
+      return requestJson<Workspace>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects`,
+        url: `${baseUrl}/workspaces`,
       })
     },
-    listProjects() {
-      return requestJson<ProjectListResponse>(fetchImpl, {
+    listWorkspaces() {
+      return requestJson<WorkspaceListResponse>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects`,
+        url: `${baseUrl}/workspaces`,
       })
     },
-    getProject(projectId) {
-      return requestJson<Project>(fetchImpl, {
+    getWorkspace(workspaceId) {
+      return requestJson<Workspace>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}`,
       })
     },
-    updateProject(projectId, body) {
-      return requestJson<Project>(fetchImpl, {
+    updateWorkspace(workspaceId, body) {
+      return requestJson<Workspace>(fetchImpl, {
         body,
         method: 'PATCH',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}`,
       })
     },
-    deleteProject(projectId) {
-      return requestJson<Project>(fetchImpl, {
+    deleteWorkspace(workspaceId) {
+      return requestJson<Workspace>(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}`,
       })
     },
-    createSource(projectId, body) {
+    createSource(workspaceId, body) {
       return requestJson<Source>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/sources`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/sources`,
       })
     },
-    listSources(projectId, params = {}) {
+    listSources(workspaceId, params = {}) {
       const url = new URL(
-        `${baseUrl}/projects/${encodePathSegment(projectId)}/sources`,
+        `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/sources`,
       )
       appendSearchParam(url, 'source_type', params.source_type)
       appendSearchParam(url, 'external_id', params.external_id)
@@ -1097,43 +1115,43 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
-    getSource(projectId, sourceId) {
+    getSource(workspaceId, sourceId) {
       return requestJson<Source>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/sources/${encodePathSegment(sourceId)}`,
       })
     },
-    updateSource(projectId, sourceId, body) {
+    updateSource(workspaceId, sourceId, body) {
       return requestJson<Source>(fetchImpl, {
         body,
         method: 'PATCH',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/sources/${encodePathSegment(sourceId)}`,
       })
     },
-    deleteSource(projectId, sourceId) {
+    deleteSource(workspaceId, sourceId) {
       return requestJson<Source>(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/sources/${encodePathSegment(sourceId)}`,
       })
     },
-    enqueueIngestionJob(projectId, sourceId, body = {}) {
+    enqueueIngestionJob(workspaceId, sourceId, body = {}) {
       return requestJson<IngestionJob>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/sources/${encodePathSegment(sourceId)}/ingestion-jobs`,
       })
     },
-    listIngestionJobs(projectId, params = {}) {
+    listIngestionJobs(workspaceId, params = {}) {
       const url = new URL(
-        `${baseUrl}/projects/${encodePathSegment(projectId)}/ingestion-jobs`,
+        `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/ingestion-jobs`,
       )
       appendSearchParam(url, 'source_id', params.source_id)
       appendSearchParam(url, 'status', params.status)
@@ -1144,104 +1162,126 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
-    getIngestionJob(projectId, jobId) {
+    getIngestionJob(workspaceId, jobId) {
       return requestJson<IngestionJobDetailResponse>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/ingestion-jobs/${encodePathSegment(jobId)}`,
       })
     },
-    retryIngestionJob(projectId, jobId, body = {}) {
+    retryIngestionJob(workspaceId, jobId, body = {}) {
       return requestJson<IngestionJob>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/ingestion-jobs/${encodePathSegment(jobId)}/retry`,
       })
     },
-    runNextIngestionJob(projectId, body = {}) {
+    runNextIngestionJob(workspaceId, body = {}) {
       return requestJson<IngestionRunResponse>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/ingestion-jobs/run-next`,
       })
     },
-    askChat(projectId, body) {
+    askChat(workspaceId, body) {
       return requestJson<ChatResponseBody>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/chat`,
       })
     },
-    searchRetrieval(projectId, body) {
+    searchRetrieval(workspaceId, body) {
       return requestJson<RetrievalSearchResponse>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/retrieval/search`,
       })
     },
-    askChatStream(projectId, body, handlers = {}, requestOptions = {}) {
+    askChatStream(workspaceId, body, handlers = {}, requestOptions = {}) {
       return requestChatStream(fetchImpl, {
         body,
         handlers,
         signal: requestOptions.signal,
-        url: `${baseUrl}/projects/${encodePathSegment(projectId)}/chat/stream`,
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/chat/stream`,
       })
     },
-    getChatSession(projectId, sessionId) {
+    uploadChatAttachment(workspaceId, file, sessionId = null) {
+      const form = new FormData()
+      form.append('file', file, file.name)
+      if (sessionId !== null && sessionId !== undefined && sessionId.length > 0) {
+        form.append('session_id', sessionId)
+      }
+      return requestForm<ChatAttachmentUploadResponse>(fetchImpl, {
+        body: form,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/chat/attachments`,
+      })
+    },
+    deleteChatAttachment(workspaceId, attachmentId) {
+      return requestVoid(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/chat/attachments/${encodePathSegment(attachmentId)}`,
+      })
+    },
+    getChatSession(workspaceId, sessionId) {
       return requestJson<ChatSessionDetailResponse>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/chat/sessions/${encodePathSegment(sessionId)}`,
       })
     },
-    updateChatSessionTitle(projectId, sessionId, title) {
+    updateChatSessionTitle(workspaceId, sessionId, title) {
       return requestJson<{ session_id: string; title: string; title_is_custom: boolean }>(
         fetchImpl,
         {
           body: { title },
           method: 'PATCH',
-          url: `${baseUrl}/projects/${encodePathSegment(
-            projectId,
+          url: `${baseUrl}/workspaces/${encodePathSegment(
+            workspaceId,
           )}/chat/sessions/${encodePathSegment(sessionId)}/title`,
         },
       )
     },
-    archiveChatSession(projectId, sessionId) {
+    archiveChatSession(workspaceId, sessionId) {
       return requestVoid(fetchImpl, {
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/chat/sessions/${encodePathSegment(sessionId)}/archive`,
       })
     },
-    unarchiveChatSession(projectId, sessionId) {
+    unarchiveChatSession(workspaceId, sessionId) {
       return requestVoid(fetchImpl, {
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/chat/sessions/${encodePathSegment(sessionId)}/unarchive`,
       })
     },
-    deleteChatSession(projectId, sessionId) {
+    deleteChatSession(workspaceId, sessionId) {
       return requestVoid(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/chat/sessions/${encodePathSegment(sessionId)}`,
       })
     },
-    getChatObservabilitySummary(projectId, params = {}) {
+    getChatObservabilitySummary(workspaceId, params = {}) {
       const url = new URL(
-        `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/chat/observability/summary`,
       )
       appendSearchParam(url, 'created_at_from', params.created_at_from)
@@ -1253,9 +1293,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
-    listChatSessions(projectId, params = {}) {
+    listChatSessions(workspaceId, params = {}) {
       const url = new URL(
-        `${baseUrl}/projects/${encodePathSegment(projectId)}/chat/sessions`,
+        `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/chat/sessions`,
       )
       appendSearchParam(url, 'status', params.status)
       appendSearchParam(url, 'archived', params.archived)
@@ -1267,18 +1307,18 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
-    submitKnowledgeProposal(projectId, body) {
+    submitKnowledgeProposal(workspaceId, body) {
       return requestJson<KnowledgeProposal>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/knowledge-proposals`,
       })
     },
-    listKnowledgeProposals(projectId, params = {}) {
+    listKnowledgeProposals(workspaceId, params = {}) {
       const url = new URL(
-        `${baseUrl}/projects/${encodePathSegment(projectId)}/knowledge-proposals`,
+        `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/knowledge-proposals`,
       )
       appendSearchParam(url, 'status', params.status)
 
@@ -1287,30 +1327,30 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: url.toString(),
       })
     },
-    refineKnowledgeProposal(projectId, proposalId, body) {
+    refineKnowledgeProposal(workspaceId, proposalId, body) {
       return requestJson<KnowledgeProposal>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/knowledge-proposals/${encodePathSegment(proposalId)}/refine`,
       })
     },
-    approveKnowledgeProposal(projectId, proposalId, body) {
+    approveKnowledgeProposal(workspaceId, proposalId, body) {
       return requestJson<KnowledgeProposal>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/knowledge-proposals/${encodePathSegment(proposalId)}/approve`,
       })
     },
-    rejectKnowledgeProposal(projectId, proposalId, body) {
+    rejectKnowledgeProposal(workspaceId, proposalId, body) {
       return requestJson<KnowledgeProposal>(fetchImpl, {
         body,
         method: 'POST',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/knowledge-proposals/${encodePathSegment(proposalId)}/reject`,
       })
     },
@@ -1448,80 +1488,80 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/runtime-settings/chat/retrieval`,
       })
     },
-    getProjectRuntimeSettings(projectId) {
-      return requestJson<ProjectRuntimeSettings>(fetchImpl, {
+    getWorkspaceRuntimeSettings(workspaceId) {
+      return requestJson<WorkspaceRuntimeSettings>(fetchImpl, {
         method: 'GET',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings`,
       })
     },
-    upsertProjectRuntimeSlotOverride(projectId, slot, body) {
-      return requestJson<ProjectRuntimeSlot>(fetchImpl, {
+    upsertWorkspaceRuntimeSlotOverride(workspaceId, slot, body) {
+      return requestJson<WorkspaceRuntimeSlot>(fetchImpl, {
         body,
         method: 'PUT',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/slots/${encodePathSegment(slot)}`,
       })
     },
-    deleteProjectRuntimeSlotOverride(projectId, slot) {
+    deleteWorkspaceRuntimeSlotOverride(workspaceId, slot) {
       return requestJson<DeleteResponse>(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/slots/${encodePathSegment(slot)}`,
       })
     },
-    upsertProjectChatModel(projectId, body) {
-      return requestJson<ProjectChatModel>(fetchImpl, {
+    upsertWorkspaceChatModel(workspaceId, body) {
+      return requestJson<WorkspaceChatModel>(fetchImpl, {
         body,
         method: 'PUT',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/chat/models`,
       })
     },
-    setDefaultProjectChatModel(projectId, connectionId, modelId) {
-      return requestJson<ProjectChatModel>(fetchImpl, {
+    setDefaultWorkspaceChatModel(workspaceId, connectionId, modelId) {
+      return requestJson<WorkspaceChatModel>(fetchImpl, {
         method: 'PUT',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/chat/models/${encodePathSegment(
           connectionId,
         )}/${encodePathSegment(modelId)}/default`,
       })
     },
-    deleteProjectChatModel(projectId, connectionId, modelId) {
+    deleteWorkspaceChatModel(workspaceId, connectionId, modelId) {
       return requestJson<DeleteResponse>(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/chat/models/${encodePathSegment(
           connectionId,
         )}/${encodePathSegment(modelId)}`,
       })
     },
-    upsertProjectChatRetrievalSettings(projectId, body) {
-      return requestJson<ProjectChatRetrievalSettings>(fetchImpl, {
+    upsertWorkspaceChatRetrievalSettings(workspaceId, body) {
+      return requestJson<WorkspaceChatRetrievalSettings>(fetchImpl, {
         body,
         method: 'PUT',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/chat/retrieval`,
       })
     },
-    deleteProjectChatRetrievalSettings(projectId) {
+    deleteWorkspaceChatRetrievalSettings(workspaceId) {
       return requestJson<DeleteResponse>(fetchImpl, {
         method: 'DELETE',
-        url: `${baseUrl}/projects/${encodePathSegment(
-          projectId,
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
         )}/runtime-settings/chat/retrieval`,
       })
     },
     listUserMemories(params = {}) {
       const url = new URL(`${baseUrl}/users/me/memories`)
-      appendSearchParam(url, 'project_id', params.project_id)
+      appendSearchParam(url, 'workspace_id', params.workspace_id)
       appendSearchParam(url, 'status', params.status)
 
       return requestJson<UserMemoryListResponse>(fetchImpl, {
@@ -1616,6 +1656,35 @@ async function requestJson<T>(
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     headers:
       options.body === undefined ? undefined : { 'content-type': 'application/json' },
+    method: options.method,
+  })
+  const payload = await readJson(response)
+
+  if (!response.ok) {
+    const detail = getErrorDetail(payload)
+    throw new ApiClientError(
+      getApiErrorMessage(detail, response.status),
+      {
+        detail,
+        status: response.status,
+      },
+    )
+  }
+
+  return payload as T
+}
+
+/** Multipart FormData; do not set content-type (browser sets boundary). */
+async function requestForm<T>(
+  fetchImpl: typeof fetch,
+  options: {
+    body: FormData
+    method: 'POST' | 'PUT' | 'PATCH'
+    url: string
+  },
+): Promise<T> {
+  const response = await fetchImpl(options.url, {
+    body: options.body,
     method: options.method,
   })
   const payload = await readJson(response)

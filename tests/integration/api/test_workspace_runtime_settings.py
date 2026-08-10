@@ -1,4 +1,4 @@
-"""Tests for project-scoped runtime settings HTTP APIs."""
+"""Tests for workspace-scoped runtime settings HTTP APIs."""
 
 from __future__ import annotations
 
@@ -17,21 +17,21 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    Project,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectMembership,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderSecret,
     RuntimeSlotDefault,
     User,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceMembership,
+    WorkspaceRuntimeSlotOverride,
 )
 from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
@@ -45,18 +45,18 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             ProviderConnection.__table__,
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectRuntimeSlotOverride.__table__,
-            ProjectChatModel.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceRuntimeSlotOverride.__table__,
+            WorkspaceChatModel.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -111,23 +111,23 @@ def _create_user(
     return user
 
 
-def _grant_project_role(
+def _grant_workspace_role(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     user: User,
     role: str,
 ) -> None:
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role=role,
     )
 
 
-def test_project_runtime_settings_override_requires_project_admin() -> None:
+def test_workspace_runtime_settings_override_requires_workspace_admin() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.add(
         ProviderConnection(
             connection_id="qwen-hosted",
@@ -140,30 +140,30 @@ def test_project_runtime_settings_override_requires_project_admin() -> None:
     )
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
     admin = _create_user(session, login="admin@example.com", token="admin-token")
-    _grant_project_role(session, project=project, user=viewer, role="viewer")
-    _grant_project_role(session, project=project, user=admin, role="admin")
+    _grant_workspace_role(session, workspace=workspace, user=viewer, role="viewer")
+    _grant_workspace_role(session, workspace=workspace, user=admin, role="admin")
     session.commit()
     client = _client(session=session)
 
     denied = client.put(
-        f"/projects/{project.id}/runtime-settings/slots/rerank",
+        f"/workspaces/{workspace.id}/runtime-settings/slots/rerank",
         headers=_bearer("viewer-token"),
         json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
     )
     allowed = client.put(
-        f"/projects/{project.id}/runtime-settings/slots/rerank",
+        f"/workspaces/{workspace.id}/runtime-settings/slots/rerank",
         headers=_bearer("admin-token"),
         json={"connection_id": "qwen-hosted", "model_id": "qwen3-rerank"},
     )
 
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project admin role required"
+    assert denied.json()["detail"] == "workspace admin role required"
     assert allowed.status_code == 200
 
 
-def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
+def test_workspace_runtime_settings_api_overrides_and_resets_slot() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     client = _client(session=session)
     _put_connection(client, connection_id="qwen-hosted", capabilities=["rerank"])
@@ -180,7 +180,7 @@ def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
     )
 
     override = client.put(
-        f"/projects/{project.id}/runtime-settings/slots/rerank",
+        f"/workspaces/{workspace.id}/runtime-settings/slots/rerank",
         json={
             "connection_id": "local-rerank",
             "model_id": "local-reranker",
@@ -191,7 +191,7 @@ def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
     assert override.status_code == 200
     assert override.json()["source"] == "overridden"
 
-    effective = client.get(f"/projects/{project.id}/runtime-settings")
+    effective = client.get(f"/workspaces/{workspace.id}/runtime-settings")
 
     assert effective.status_code == 200
     assert effective.json()["slots"] == [
@@ -204,8 +204,8 @@ def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
         }
     ]
 
-    reset = client.delete(f"/projects/{project.id}/runtime-settings/slots/rerank")
-    inherited = client.get(f"/projects/{project.id}/runtime-settings")
+    reset = client.delete(f"/workspaces/{workspace.id}/runtime-settings/slots/rerank")
+    inherited = client.get(f"/workspaces/{workspace.id}/runtime-settings")
 
     assert reset.status_code == 200
     assert reset.json() == {"deleted": True}
@@ -213,9 +213,31 @@ def test_project_runtime_settings_api_overrides_and_resets_slot() -> None:
     assert inherited.json()["slots"][0]["connection_id"] == "qwen-hosted"
 
 
-def test_project_chat_retrieval_settings_api_overrides_and_resets() -> None:
+def test_workspace_runtime_settings_api_accepts_vision_slot_override() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
+    session.commit()
+    client = _client(session=session)
+    _put_connection(
+        client,
+        connection_id="qwen-hosted",
+        capabilities=["chat", "vision"],
+    )
+
+    override = client.put(
+        f"/workspaces/{workspace.id}/runtime-settings/slots/vision",
+        json={"connection_id": "qwen-hosted", "model_id": "qwen3-vl-plus"},
+    )
+
+    assert override.status_code == 200
+    assert override.json()["source"] == "overridden"
+    assert override.json()["slot"] == "vision"
+    assert override.json()["model_id"] == "qwen3-vl-plus"
+
+
+def test_workspace_chat_retrieval_settings_api_overrides_and_resets() -> None:
+    session = _make_session()
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     client = _client(session=session)
     client.put(
@@ -227,18 +249,18 @@ def test_project_chat_retrieval_settings_api_overrides_and_resets() -> None:
         },
     )
 
-    inherited = client.get(f"/projects/{project.id}/runtime-settings")
+    inherited = client.get(f"/workspaces/{workspace.id}/runtime-settings")
     override = client.put(
-        f"/projects/{project.id}/runtime-settings/chat/retrieval",
+        f"/workspaces/{workspace.id}/runtime-settings/chat/retrieval",
         json={
             "retrieval_limit": 4,
             "rerank_enabled": False,
             "rerank_candidate_limit": 8,
         },
     )
-    effective = client.get(f"/projects/{project.id}/runtime-settings")
-    reset = client.delete(f"/projects/{project.id}/runtime-settings/chat/retrieval")
-    inherited_again = client.get(f"/projects/{project.id}/runtime-settings")
+    effective = client.get(f"/workspaces/{workspace.id}/runtime-settings")
+    reset = client.delete(f"/workspaces/{workspace.id}/runtime-settings/chat/retrieval")
+    inherited_again = client.get(f"/workspaces/{workspace.id}/runtime-settings")
 
     assert inherited.status_code == 200
     assert inherited.json()["chat_retrieval"] == {
@@ -250,13 +272,13 @@ def test_project_chat_retrieval_settings_api_overrides_and_resets() -> None:
     }
     assert override.status_code == 200
     assert override.json() == {
-        "source": "project",
+        "source": "workspace",
         "retrieval_limit": 4,
         "rerank_enabled": False,
         "rerank_candidate_limit": 8,
         "max_limit": 50,
     }
-    assert effective.json()["chat_retrieval"]["source"] == "project"
+    assert effective.json()["chat_retrieval"]["source"] == "workspace"
     assert effective.json()["chat_retrieval"]["retrieval_limit"] == 4
     assert reset.status_code == 200
     assert reset.json() == {"deleted": True}
@@ -264,9 +286,9 @@ def test_project_chat_retrieval_settings_api_overrides_and_resets() -> None:
     assert inherited_again.json()["chat_retrieval"]["retrieval_limit"] == 6
 
 
-def test_project_chat_model_api_overrides_pool_and_rejects_default_delete() -> None:
+def test_workspace_chat_model_api_overrides_pool_and_rejects_default_delete() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     client = _client(session=session)
     _put_connection(client, connection_id="qwen-hosted", capabilities=["chat"])
@@ -282,12 +304,12 @@ def test_project_chat_model_api_overrides_pool_and_rejects_default_delete() -> N
         json={"connection_id": "qwen-hosted", "model_id": "qwen-plus"},
     )
 
-    inherited = client.get(f"/projects/{project.id}/runtime-settings")
+    inherited = client.get(f"/workspaces/{workspace.id}/runtime-settings")
 
     assert inherited.json()["chat_models"][0]["source"] == "inherited"
 
     first = client.put(
-        f"/projects/{project.id}/runtime-settings/chat/models",
+        f"/workspaces/{workspace.id}/runtime-settings/chat/models",
         json={"connection_id": "local-chat", "model_id": "llama3.1:8b"},
     )
 
@@ -296,17 +318,17 @@ def test_project_chat_model_api_overrides_pool_and_rejects_default_delete() -> N
     assert first.json()["source"] == "overridden"
 
     delete_default = client.delete(
-        f"/projects/{project.id}/runtime-settings/chat/models/local-chat/llama3.1:8b"
+        f"/workspaces/{workspace.id}/runtime-settings/chat/models/local-chat/llama3.1:8b"
     )
 
     assert delete_default.status_code == 409
     assert delete_default.json()["detail"]["code"] == "cannot_delete_last_chat_model"
 
 
-def test_project_runtime_settings_api_returns_404_for_missing_project() -> None:
+def test_workspace_runtime_settings_api_returns_404_for_missing_workspace() -> None:
     client = _client(session=_make_session())
 
-    response = client.get(f"/projects/{uuid4()}/runtime-settings")
+    response = client.get(f"/workspaces/{uuid4()}/runtime-settings")
 
     assert response.status_code == 404
-    assert response.json()["detail"]["code"] == "project_not_found"
+    assert response.json()["detail"]["code"] == "workspace_not_found"

@@ -38,12 +38,12 @@ const RERANK_OPTIONS = [
 
 export type RetrievalPlaygroundPanelProps = {
   client: ApiClient
-  projectId: string
+  workspaceId: string
 }
 
 export function RetrievalPlaygroundPanel({
   client,
-  projectId,
+  workspaceId,
 }: RetrievalPlaygroundPanelProps) {
   const [query, setQuery] = useState('')
   const [strategy, setStrategy] = useState<RetrievalStrategy>('dense_sparse')
@@ -56,8 +56,8 @@ export function RetrievalPlaygroundPanel({
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!projectId.trim()) {
-      setError('Select a Project Before Searching.')
+    if (!workspaceId.trim()) {
+      setError('Select a Workspace Before Searching.')
       setState('failed')
       setResults([])
       return
@@ -94,7 +94,7 @@ export function RetrievalPlaygroundPanel({
     setError(null)
     setResults([])
     try {
-      const response = await client.searchRetrieval(projectId, {
+      const response = await client.searchRetrieval(workspaceId, {
         query: trimmed,
         limit: parsedLimit,
         strategy,
@@ -120,8 +120,8 @@ export function RetrievalPlaygroundPanel({
           Retrieval Playground
         </PanelTitle>
         <PanelDescription className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-          Run Project Retrieval Without Chat. Inspect Ranked Chunks, Scores, and
-          Strategy for the Selected Project.
+          Run Workspace Retrieval Without Chat. Inspect Ranked Chunks, Scores, and
+          Strategy for the Selected Workspace.
         </PanelDescription>
       </PanelHeader>
       <PanelBody className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:pt-0">
@@ -222,9 +222,9 @@ export function RetrievalPlaygroundPanel({
             >
               {requestStateLabel(state)}
             </StatusBadge>
-            {!projectId.trim() ? (
+            {!workspaceId.trim() ? (
               <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-sm text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                Select a Project in the Sidebar First.
+                Select a Workspace in the Sidebar First.
               </span>
             ) : null}
           </div>
@@ -293,7 +293,7 @@ export function RetrievalPlaygroundPanel({
               </p>
               <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground max-[680px]:space-y-0 max-[680px]:pl-1 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
                 <li>Try Strategy Dense or Sparse</li>
-                <li>Confirm Sources Are Ingested for This Project</li>
+                <li>Confirm Sources Are Ingested for This Workspace</li>
                 <li>Raise Limit or Adjust the Query</li>
               </ul>
             </EmptyState>

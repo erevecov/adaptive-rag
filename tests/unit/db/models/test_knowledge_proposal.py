@@ -10,11 +10,11 @@ from adaptive_rag.db.models import (
     ChatMessage,
     ChatSession,
     KnowledgeProposal,
-    Project,
     Source,
     User,
+    Workspace,
 )
-from adaptive_rag.db.repositories import ProjectRepository
+from adaptive_rag.db.repositories import WorkspaceRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -23,7 +23,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             Source.__table__,
             ChatSession.__table__,
@@ -36,22 +36,22 @@ def _make_session():
 
 def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     user = User(login="viewer@example.com", display_name="Viewer")
     reviewer = User(login="reviewer@example.com", display_name="Reviewer")
     session.add_all([user, reviewer])
     session.flush()
-    chat_session = ChatSession(project_id=project.id, user_id=user.id)
+    chat_session = ChatSession(workspace_id=workspace.id, user_id=user.id)
     session.add(chat_session)
     session.flush()
     message = ChatMessage(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="Add this as knowledge",
     )
     source = Source(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="chat_proposal",
         external_id="proposal-source",
     )
@@ -59,7 +59,7 @@ def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> No
     session.flush()
 
     proposal = KnowledgeProposal(
-        project_id=project.id,
+        workspace_id=workspace.id,
         submitted_by_user_id=user.id,
         origin_session_id=chat_session.id,
         origin_message_id=message.id,
@@ -74,7 +74,7 @@ def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> No
     fetched = session.get(KnowledgeProposal, proposal.id)
 
     assert fetched is not None
-    assert fetched.project_id == project.id
+    assert fetched.workspace_id == workspace.id
     assert fetched.submitted_by_user_id == user.id
     assert fetched.origin_session_id == chat_session.id
     assert fetched.origin_message_id == message.id
@@ -88,13 +88,13 @@ def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> No
 
 def test_knowledge_proposal_rejects_unsupported_status() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     user = User(login="viewer@example.com", display_name="Viewer")
     session.add(user)
     session.flush()
     session.add(
         KnowledgeProposal(
-            project_id=project.id,
+            workspace_id=workspace.id,
             submitted_by_user_id=user.id,
             proposed_text="Knowledge",
             status="needs-work",
@@ -105,12 +105,12 @@ def test_knowledge_proposal_rejects_unsupported_status() -> None:
         session.commit()
 
 
-def test_knowledge_proposal_has_project_status_indexes() -> None:
+def test_knowledge_proposal_has_workspace_status_indexes() -> None:
     indexes = {
         tuple(column.name for column in index.columns)
         for index in KnowledgeProposal.__table__.indexes
     }
 
-    assert ("project_id", "status", "created_at") in indexes
-    assert ("project_id", "submitted_by_user_id", "created_at") in indexes
-    assert ("project_id", "origin_session_id") in indexes
+    assert ("workspace_id", "status", "created_at") in indexes
+    assert ("workspace_id", "submitted_by_user_id", "created_at") in indexes
+    assert ("workspace_id", "origin_session_id") in indexes

@@ -1,4 +1,4 @@
-# Documentacion del proyecto
+# Documentacion del workspace
 
 Este repo mantiene pocas fuentes de verdad para evitar duplicar estado entre
 planes, specs, PRs y bitacoras.

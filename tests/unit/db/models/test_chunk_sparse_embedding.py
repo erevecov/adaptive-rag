@@ -14,8 +14,8 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -25,7 +25,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -37,16 +37,16 @@ def _make_session():
 
 
 def _make_chunk(session):
-    project = Project(name="demo")
-    session.add(project)
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
     source = Source(
-        project_id=project.id, source_type="web", external_id="id-1"
+        workspace_id=workspace.id, source_type="web", external_id="id-1"
     )
     session.add(source)
     session.commit()
     document = Document(
-        project_id=project.id, source_id=source.id, stable_id="doc-1"
+        workspace_id=workspace.id, source_id=source.id, stable_id="doc-1"
     )
     session.add(document)
     session.commit()

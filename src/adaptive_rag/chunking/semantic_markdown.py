@@ -361,18 +361,18 @@ class ChunkingPipeline:
     def chunk_document_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
     ) -> ChunkingRunResult:
         document_version = self._document_repo.get_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if document_version is None:
-            raise ChunkingPipelineError("document version does not belong to project")
+            raise ChunkingPipelineError("document version does not belong to workspace")
 
         existing_chunks = self._chunk_repo.list_by_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if existing_chunks:
@@ -386,7 +386,7 @@ class ChunkingPipeline:
         plans = self._chunker.chunk(document_version.normalized_text)
         chunks = [
             self._chunk_repo.create(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 document_version_id=document_version_id,
                 ordinal=plan.ordinal,
                 char_start=plan.char_start,

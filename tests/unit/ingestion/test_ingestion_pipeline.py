@@ -18,14 +18,14 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     DocumentRepository,
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.ingestion import FetchResult
@@ -61,7 +61,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -77,20 +77,20 @@ def _run_time() -> datetime:
     return datetime(2026, 6, 18, 22, 0, tzinfo=UTC)
 
 
-def _enqueue_ingest_job(session, *, project: Project, source: Source) -> Job:
+def _enqueue_ingest_job(session, *, workspace: Workspace, source: Source) -> Job:
     return JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type="ingest_source",
         payload_json={"source_id": str(source.id)},
         run_after=_run_time(),
     )
 
 
-def _event_types(session, *, project: Project, job: Job) -> list[str]:
+def _event_types(session, *, workspace: Workspace, job: Job) -> list[str]:
     return [
         event.event_type
         for event in JobRepository(session).list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
     ]
@@ -102,18 +102,18 @@ def _chunk_count(session) -> int:
 
 def test_run_next_ingests_markdown_source_into_document_version() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Title\r\n\r\nBody"},
     )
-    job = _enqueue_ingest_job(session, project=project, source=source)
+    job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     session.commit()
 
     result = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -134,10 +134,10 @@ def test_run_next_ingests_markdown_source_into_document_version() -> None:
         "source_external_id": "notes.md",
         "source_type": "markdown",
     }
-    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
-        "succeeded"
-    )
-    assert _event_types(session, project=project, job=job) == [
+    assert JobRepository(session).get(
+        workspace_id=workspace.id, job_id=job.id
+    ).status == ("succeeded")
+    assert _event_types(session, workspace=workspace, job=job) == [
         "created",
         "leased",
         "completed",
@@ -147,61 +147,71 @@ def test_run_next_ingests_markdown_source_into_document_version() -> None:
 
 def test_run_next_is_idempotent_for_same_content_and_fingerprint() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "same content"},
     )
-    first_job = _enqueue_ingest_job(session, project=project, source=source)
+    first_job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     session.commit()
 
     first = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
     )
-    second_job = _enqueue_ingest_job(session, project=project, source=source)
+    second_job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     session.commit()
     second = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-2",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
     )
 
     versions = DocumentRepository(session).list_versions(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=first.document.id,
     )
 
     assert [version.id for version in versions] == [first.document_version.id]
     assert second.document_version.id == first.document_version.id
     assert second.created_document_version is False
-    assert JobRepository(session).get(
-        project_id=project.id,
-        job_id=first_job.id,
-    ).status == "succeeded"
-    assert JobRepository(session).get(
-        project_id=project.id,
-        job_id=second_job.id,
-    ).status == "succeeded"
+    assert (
+        JobRepository(session)
+        .get(
+            workspace_id=workspace.id,
+            job_id=first_job.id,
+        )
+        .status
+        == "succeeded"
+    )
+    assert (
+        JobRepository(session)
+        .get(
+            workspace_id=workspace.id,
+            job_id=second_job.id,
+        )
+        .status
+        == "succeeded"
+    )
 
 
-def test_run_next_blocks_job_when_source_belongs_to_another_project() -> None:
+def test_run_next_blocks_job_when_source_belongs_to_another_workspace() -> None:
     session = _make_session()
-    project_a = ProjectRepository(session).create(name="a")
-    project_b = ProjectRepository(session).create(name="b")
+    workspace_a = WorkspaceRepository(session).create(name="a")
+    workspace_b = WorkspaceRepository(session).create(name="b")
     source_a = SourceRepository(session).create(
-        project_id=project_a.id,
+        workspace_id=workspace_a.id,
         source_type="txt",
         external_id="a.txt",
         extra_metadata={"content": "private"},
     )
     job = JobRepository(session).create(
-        project_id=project_b.id,
+        workspace_id=workspace_b.id,
         job_type="ingest_source",
         payload_json={"source_id": str(source_a.id)},
         run_after=_run_time(),
@@ -209,22 +219,22 @@ def test_run_next_blocks_job_when_source_belongs_to_another_project() -> None:
     session.commit()
 
     result = IngestionPipeline(session).run_next(
-        project_id=project_b.id,
+        workspace_id=workspace_b.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
     )
 
-    documents = DocumentRepository(session).list(project_id=project_b.id)
+    documents = DocumentRepository(session).list(workspace_id=workspace_b.id)
 
     assert isinstance(result, IngestionBlockedResult)
     assert result.job.id == job.id
-    assert result.error_message == "source does not belong to project"
+    assert result.error_message == "source does not belong to workspace"
     assert documents == []
-    blocked_job = JobRepository(session).get(project_id=project_b.id, job_id=job.id)
+    blocked_job = JobRepository(session).get(workspace_id=workspace_b.id, job_id=job.id)
 
     assert blocked_job.status == "blocked"
-    assert _event_types(session, project=project_b, job=job) == [
+    assert _event_types(session, workspace=workspace_b, job=job) == [
         "created",
         "leased",
         "blocked",
@@ -233,13 +243,13 @@ def test_run_next_blocks_job_when_source_belongs_to_another_project() -> None:
 
 def test_run_next_fetches_url_and_uses_html_extractor() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/article",
     )
-    _enqueue_ingest_job(session, project=project, source=source)
+    _enqueue_ingest_job(session, workspace=workspace, source=source)
     fetcher = FakeURLFetcher(
         FetchResult(
             final_url="https://example.com/article",
@@ -265,7 +275,7 @@ def test_run_next_fetches_url_and_uses_html_extractor() -> None:
         url_fetcher=fetcher,
         html_extractor=extractor,
     ).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -291,13 +301,13 @@ def test_run_next_blocks_url_source_when_content_type_has_no_parser() -> None:
     """Allowlisted types without a registered parser still block (e.g. text/plain)."""
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/notes.txt",
     )
-    job = _enqueue_ingest_job(session, project=project, source=source)
+    job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     fetcher = FakeURLFetcher(
         FetchResult(
             final_url="https://example.com/notes.txt",
@@ -320,7 +330,7 @@ def test_run_next_blocks_url_source_when_content_type_has_no_parser() -> None:
         url_fetcher=fetcher,
         html_extractor=extractor,
     ).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -334,11 +344,11 @@ def test_run_next_blocks_url_source_when_content_type_has_no_parser() -> None:
     )
     assert fetcher.requested_urls == ["https://example.com/notes.txt"]
     assert extractor.calls == []
-    assert DocumentRepository(session).list(project_id=project.id) == []
-    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
-        "blocked"
-    )
-    assert _event_types(session, project=project, job=job) == [
+    assert DocumentRepository(session).list(workspace_id=workspace.id) == []
+    assert JobRepository(session).get(
+        workspace_id=workspace.id, job_id=job.id
+    ).status == ("blocked")
+    assert _event_types(session, workspace=workspace, job=job) == [
         "created",
         "leased",
         "blocked",
@@ -347,13 +357,13 @@ def test_run_next_blocks_url_source_when_content_type_has_no_parser() -> None:
 
 def test_run_next_ingests_url_pdf_with_embedded_text() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/file.pdf",
     )
-    job = _enqueue_ingest_job(session, project=project, source=source)
+    job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     pdf_bytes = (
         Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "sample.pdf"
     ).read_bytes()
@@ -379,7 +389,7 @@ def test_run_next_ingests_url_pdf_with_embedded_text() -> None:
         url_fetcher=fetcher,
         html_extractor=extractor,
     ).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -390,22 +400,22 @@ def test_run_next_ingests_url_pdf_with_embedded_text() -> None:
     assert "ALPHA-PDF-442" in result.document_version.normalized_text
     assert result.document_version.parser_metadata["parser"] == "pdf_embedded"
     assert extractor.calls == []
-    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
-        "succeeded"
-    )
+    assert JobRepository(session).get(
+        workspace_id=workspace.id, job_id=job.id
+    ).status == ("succeeded")
 
 
 def test_run_next_ingests_url_docx_with_body_text() -> None:
     from adaptive_rag.ingestion.parsers.registry import DOCX_CONTENT_TYPE
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/file.docx",
     )
-    job = _enqueue_ingest_job(session, project=project, source=source)
+    job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     docx_bytes = (
         Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "sample.docx"
     ).read_bytes()
@@ -431,7 +441,7 @@ def test_run_next_ingests_url_docx_with_body_text() -> None:
         url_fetcher=fetcher,
         html_extractor=extractor,
     ).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -442,19 +452,19 @@ def test_run_next_ingests_url_docx_with_body_text() -> None:
     assert "ALPHA-DOCX-991" in result.document_version.normalized_text
     assert result.document_version.parser_metadata["parser"] == "docx_text"
     assert extractor.calls == []
-    assert JobRepository(session).get(project_id=project.id, job_id=job.id).status == (
-        "succeeded"
-    )
+    assert JobRepository(session).get(
+        workspace_id=workspace.id, job_id=job.id
+    ).status == ("succeeded")
 
 
 def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
     import base64
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     fixtures = Path(__file__).resolve().parents[2] / "fixtures" / "m45"
     pdf_source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="pdf",
         external_id="local.pdf",
         extra_metadata={
@@ -464,7 +474,7 @@ def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
         },
     )
     docx_source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="docx",
         external_id="local.docx",
         extra_metadata={
@@ -473,19 +483,19 @@ def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
             ).decode("ascii")
         },
     )
-    pdf_job = _enqueue_ingest_job(session, project=project, source=pdf_source)
-    docx_job = _enqueue_ingest_job(session, project=project, source=docx_source)
+    pdf_job = _enqueue_ingest_job(session, workspace=workspace, source=pdf_source)
+    docx_job = _enqueue_ingest_job(session, workspace=workspace, source=docx_source)
     session.commit()
 
     pipeline = IngestionPipeline(session)
     pdf_result = pipeline.run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
     )
     docx_result = pipeline.run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -498,11 +508,11 @@ def test_run_next_ingests_typed_pdf_and_docx_from_content_base64() -> None:
     assert "ALPHA-PDF-442" in pdf_result.document_version.normalized_text
     assert "ALPHA-DOCX-991" in docx_result.document_version.normalized_text
     assert (
-        JobRepository(session).get(project_id=project.id, job_id=pdf_job.id).status
+        JobRepository(session).get(workspace_id=workspace.id, job_id=pdf_job.id).status
         == "succeeded"
     )
     assert (
-        JobRepository(session).get(project_id=project.id, job_id=docx_job.id).status
+        JobRepository(session).get(workspace_id=workspace.id, job_id=docx_job.id).status
         == "succeeded"
     )
 
@@ -511,23 +521,21 @@ def test_run_next_blocks_empty_pdf_without_ocr() -> None:
     import base64
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     empty_pdf = (
         Path(__file__).resolve().parents[2] / "fixtures" / "m45" / "empty_text.pdf"
     ).read_bytes()
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="pdf",
         external_id="empty.pdf",
-        extra_metadata={
-            "content_base64": base64.b64encode(empty_pdf).decode("ascii")
-        },
+        extra_metadata={"content_base64": base64.b64encode(empty_pdf).decode("ascii")},
     )
-    job = _enqueue_ingest_job(session, project=project, source=source)
+    job = _enqueue_ingest_job(session, workspace=workspace, source=source)
     session.commit()
 
     result = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=10),
@@ -536,10 +544,10 @@ def test_run_next_blocks_empty_pdf_without_ocr() -> None:
     assert isinstance(result, IngestionBlockedResult)
     assert result.job.id == job.id
     assert result.error_message == "PDF extraction produced no text"
-    assert DocumentRepository(session).list(project_id=project.id) == []
+    assert DocumentRepository(session).list(workspace_id=workspace.id) == []
     index_jobs = [
         item
-        for item in JobRepository(session).list(project_id=project.id)
+        for item in JobRepository(session).list(workspace_id=workspace.id)
         if item.job_type == "index_document_version"
     ]
     assert index_jobs == []

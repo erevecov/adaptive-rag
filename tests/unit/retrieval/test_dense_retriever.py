@@ -12,14 +12,14 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.retrieval import (
@@ -34,7 +34,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -51,14 +51,14 @@ def _vector(first: float, second: float = 0.0) -> list[float]:
     return values
 
 
-def _create_project(session, name: str) -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session, name: str) -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_embedded_chunk(
     session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -71,19 +71,19 @@ def _create_embedded_chunk(
     contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -92,7 +92,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -113,10 +113,10 @@ def _create_embedded_chunk(
 
 def test_dense_retriever_ranks_by_l2_and_returns_original_citation() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _source_far, _document_far, _version_far, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         tags=("docs",),
         stable_id="far",
@@ -126,7 +126,7 @@ def test_dense_retriever_ranks_by_l2_and_returns_original_citation() -> None:
     )
     source_near, document_near, version_near, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         tags=("docs", "v1"),
         stable_id="near",
@@ -138,7 +138,7 @@ def test_dense_retriever_ranks_by_l2_and_returns_original_citation() -> None:
     session.commit()
 
     results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
         limit=2,
     )
@@ -159,47 +159,47 @@ def test_dense_retriever_ranks_by_l2_and_returns_original_citation() -> None:
     }
 
 
-def test_dense_retriever_filters_project_before_ranking() -> None:
+def test_dense_retriever_filters_workspace_before_ranking() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
-    _source_a, _document_a, _version_a, project_chunk = _create_embedded_chunk(
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
+    _source_a, _document_a, _version_a, workspace_chunk = _create_embedded_chunk(
         session,
-        project=project,
-        external_id="project.md",
-        stable_id="project-doc",
-        text="Project evidence",
-        snippet="Project evidence",
+        workspace=workspace,
+        external_id="workspace.md",
+        stable_id="workspace-doc",
+        text="Workspace evidence",
+        snippet="Workspace evidence",
         embedding=_vector(0.8),
     )
     _create_embedded_chunk(
         session,
-        project=other_project,
+        workspace=other_workspace,
         external_id="other.md",
         stable_id="other-doc",
-        text="Other project evidence",
-        snippet="Other project evidence",
+        text="Other workspace evidence",
+        snippet="Other workspace evidence",
         embedding=_vector(0.0),
     )
     session.commit()
 
     results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
         limit=5,
     )
 
-    assert [result.chunk_id for result in results] == [project_chunk.id]
+    assert [result.chunk_id for result in results] == [workspace_chunk.id]
 
 
 def test_dense_retriever_applies_filters_before_ranking() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     feb_1 = datetime(2026, 2, 1, tzinfo=UTC)
     feb_2 = datetime(2026, 2, 2, tzinfo=UTC)
     wanted_source, wanted_document, _version, wanted_chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="wanted.md",
         tags=("docs", "v1"),
         stable_id="wanted-doc",
@@ -211,7 +211,7 @@ def test_dense_retriever_applies_filters_before_ranking() -> None:
     )
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="same-source-other-doc.md",
         tags=("docs", "v1"),
         stable_id="same-source-other-doc",
@@ -223,7 +223,7 @@ def test_dense_retriever_applies_filters_before_ranking() -> None:
     )
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="wrong-tag.md",
         tags=("blog",),
         stable_id="wrong-tag-doc",
@@ -235,7 +235,7 @@ def test_dense_retriever_applies_filters_before_ranking() -> None:
     )
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="text",
         external_id="wrong-type.txt",
         tags=("docs", "v1"),
@@ -249,13 +249,13 @@ def test_dense_retriever_applies_filters_before_ranking() -> None:
     session.commit()
 
     tag_and_type_results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
         limit=5,
         filters=DenseRetrievalFilters(source_type="markdown", tags=("docs", "v1")),
     )
     document_results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
         limit=5,
         filters=DenseRetrievalFilters(
@@ -277,10 +277,10 @@ def test_dense_retriever_applies_filters_before_ranking() -> None:
 
 def test_dense_retriever_ignores_chunks_without_embeddings() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="missing.md",
         stable_id="missing-doc",
         text="Missing embedding evidence",
@@ -290,7 +290,7 @@ def test_dense_retriever_ignores_chunks_without_embeddings() -> None:
     session.commit()
 
     results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
     )
 
@@ -299,15 +299,15 @@ def test_dense_retriever_ignores_chunks_without_embeddings() -> None:
 
 def test_dense_retriever_rejects_invalid_inputs() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     session.commit()
 
     with pytest.raises(DenseRetrievalError, match="query embedding dimension mismatch"):
-        DenseRetriever(session).search(project_id=project.id, query_embedding=[0.0])
+        DenseRetriever(session).search(workspace_id=workspace.id, query_embedding=[0.0])
 
     with pytest.raises(DenseRetrievalError, match="limit must be positive"):
         DenseRetriever(session).search(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query_embedding=_vector(0.0),
             limit=0,
         )
@@ -315,21 +315,21 @@ def test_dense_retriever_rejects_invalid_inputs() -> None:
 
 def test_dense_retriever_only_returns_latest_document_version() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="policy.md",
         tags=("docs",),
         extra_metadata={"title": "policy"},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="policy",
     )
     old_version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Old policy alpha evidence",
@@ -337,7 +337,7 @@ def test_dense_retriever_only_returns_latest_document_version() -> None:
         index_fingerprint="fp:policy-v1",
     )
     new_version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=2,
         normalized_text="New policy beta evidence",
@@ -346,7 +346,7 @@ def test_dense_retriever_only_returns_latest_document_version() -> None:
     )
     # Old version chunk is a perfect vector match; latest is farther.
     old_chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=old_version.id,
         ordinal=0,
         char_start=0,
@@ -355,7 +355,7 @@ def test_dense_retriever_only_returns_latest_document_version() -> None:
         embedding=_vector(0.0),
     )
     new_chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=new_version.id,
         ordinal=0,
         char_start=0,
@@ -366,7 +366,7 @@ def test_dense_retriever_only_returns_latest_document_version() -> None:
     session.commit()
 
     results = DenseRetriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query_embedding=_vector(0.0),
         limit=5,
     )

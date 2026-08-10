@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 JOB_EVENT_TYPE_VALUES = (
     "created",
@@ -38,17 +38,17 @@ class JobEvent(Base):
             name="job_events_event_type_check",
         ),
         Index(
-            "ix_job_events_project_job_created_at",
-            "project_id",
+            "ix_job_events_workspace_job_created_at",
+            "workspace_id",
             "job_id",
             "created_at",
         ),
-        Index("ix_job_events_project_event_type", "project_id", "event_type"),
+        Index("ix_job_events_workspace_event_type", "workspace_id", "event_type"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     job_id: Mapped[UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True

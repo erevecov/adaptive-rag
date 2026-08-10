@@ -49,7 +49,7 @@ mkdir -p artifacts
 uv run adaptive-rag v1 quality-gate --output artifacts/v1-quality-gate.json
 ```
 
-El comando crea un project/source, procesa ingestion, chunks, contextualization
+El comando crea un workspace/source, procesa ingestion, chunks, contextualization
 y embeddings, ejecuta chat con citations y evalua criterios de release sobre
 ese reporte. La salida esperada tiene esta forma:
 
@@ -97,7 +97,7 @@ Puedes reemplazar el sample por contenido propio:
 
 ```bash
 uv run adaptive-rag v1 quality-gate \
-  --project-name "My v1 corpus" \
+  --workspace-name "My v1 corpus" \
   --source-external-id "notes.md" \
   --content "# Notes
 
@@ -120,4 +120,4 @@ My release evidence lives here." \
 - Si el gate falla con `first-run ingestion did not process`, inspecciona el
   job con `adaptive-rag jobs show`.
 - Si el gate falla con `first-run chat returned no citations`, usa contenido
-  mas explicito o confirma que el proyecto tenga chunks con embeddings.
+  mas explicito o confirma que el workspace tenga chunks con embeddings.

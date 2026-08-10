@@ -1,4 +1,4 @@
-"""CLI dense reindex by project with JSON report (M50)."""
+"""CLI dense reindex by workspace with JSON report (M50)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("reindex")
 def reindex(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     document_version_id: Annotated[
         UUID | None,
         typer.Option("--document-version-id"),
@@ -34,19 +34,19 @@ def reindex(
         ),
     ] = False,
 ) -> None:
-    """Recompute dense embeddings for a project (or one document version)."""
+    """Recompute dense embeddings for a workspace (or one document version)."""
 
     started = datetime.now(UTC)
     with session_scope() as session:
         version_ids = (
             [document_version_id]
             if document_version_id is not None
-            else list_project_document_version_ids(session, project_id=project_id)
+            else list_workspace_document_version_ids(session, workspace_id=workspace_id)
         )
         pipeline = DenseEmbeddingPipeline(
             session,
             provider=get_cli_dense_embedding_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
             ),
         )
@@ -55,7 +55,7 @@ def reindex(
         try:
             for version_id in version_ids:
                 result = pipeline.embed_document_version(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     document_version_id=version_id,
                     force=force,
                 )
@@ -70,7 +70,7 @@ def reindex(
     typer.echo(
         json.dumps(
             {
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_version_count": len(version_ids),
                 "embedded_chunk_count": embedded_count,
                 "reused_chunk_count": reused_count,
@@ -83,15 +83,15 @@ def reindex(
     )
 
 
-def list_project_document_version_ids(
+def list_workspace_document_version_ids(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> list[UUID]:
     statement = (
         select(DocumentVersion.id)
         .join(Document, DocumentVersion.document_id == Document.id)
-        .where(Document.project_id == project_id)
+        .where(Document.workspace_id == workspace_id)
         .order_by(
             Document.created_at,
             DocumentVersion.version_number,
@@ -102,4 +102,4 @@ def list_project_document_version_ids(
 
 
 # Back-compat alias used by unit tests / callers.
-_list_project_document_version_ids = list_project_document_version_ids
+_list_workspace_document_version_ids = list_workspace_document_version_ids

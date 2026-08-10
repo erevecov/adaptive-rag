@@ -1,4 +1,4 @@
-"""Modelo Project: registro de proyecto que define aislamiento y retrieval."""
+"""Modelo Workspace: registro de workspace que define aislamiento y retrieval."""
 
 from __future__ import annotations
 
@@ -30,14 +30,14 @@ class JSONWithJSONB(TypeDecorator[Any]):
         return dialect.type_descriptor(JSON(none_as_null=self.none_as_null))
 
 
-class Project(Base):
-    """Registro de proyecto que aísla todos los datos RAG."""
+class Workspace(Base):
+    """Registro de workspace que aisla todos los datos RAG."""
 
-    __tablename__ = "projects"
+    __tablename__ = "workspaces"
     __table_args__ = (
         CheckConstraint(
             "embedding_mode IN ('dense', 'dense_sparse')",
-            name="projects_embedding_mode_check",
+            name="workspaces_embedding_mode_check",
         ),
     )
 

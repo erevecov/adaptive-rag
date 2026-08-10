@@ -11,10 +11,10 @@ from adaptive_rag.chat import ChatRunner
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.first_run import (
     DEFAULT_CONTENT,
-    DEFAULT_PROJECT_NAME,
     DEFAULT_QUESTION,
     DEFAULT_SOURCE_EXTERNAL_ID,
     DEFAULT_WORKER_ID,
+    DEFAULT_WORKSPACE_NAME,
     FirstRunReport,
     first_run_report_payload,
     run_first_run_smoke,
@@ -64,7 +64,7 @@ def run_v1_quality_gate(
     dense_embedding_provider: DenseEmbeddingProvider,
     sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     chat_runner: ChatRunner,
-    project_name: str = DEFAULT_PROJECT_NAME,
+    workspace_name: str = DEFAULT_WORKSPACE_NAME,
     source_external_id: str = DEFAULT_SOURCE_EXTERNAL_ID,
     content: str = DEFAULT_CONTENT,
     question: str = DEFAULT_QUESTION,
@@ -75,7 +75,7 @@ def run_v1_quality_gate(
         dense_embedding_provider=dense_embedding_provider,
         sparse_embedding_provider=sparse_embedding_provider,
         chat_runner=chat_runner,
-        project_name=project_name,
+        workspace_name=workspace_name,
         source_external_id=source_external_id,
         content=content,
         question=question,
@@ -128,9 +128,9 @@ def _build_criteria(report: FirstRunReport) -> tuple[V1QualityGateCriterion, ...
         _criterion(
             "public_product_flow",
             report.status == "succeeded"
-            and report.project.id is not None
+            and report.workspace.id is not None
             and report.source.id is not None,
-            "Project and source were created through the public product flow.",
+            "Workspace and source were created through the public product flow.",
         ),
         _criterion(
             "ingestion_job_state",

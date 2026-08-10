@@ -25,22 +25,22 @@ def test_disabled_graph_store_reports_disabled_health_without_network() -> None:
     assert health.error_code is None
 
 
-def test_fake_graph_store_records_backfill_and_delete_by_project() -> None:
-    project_id = uuid4()
+def test_fake_graph_store_records_backfill_and_delete_by_workspace() -> None:
+    workspace_id = uuid4()
     store = FakeGraphStore(backend="neo4j")
 
-    backfill = store.backfill_project_graph(
-        project_id=project_id,
+    backfill = store.backfill_workspace_graph(
+        workspace_id=workspace_id,
         source_watermark="chunks:v1",
     )
-    store.delete_project_graph(project_id=project_id)
+    store.delete_workspace_graph(workspace_id=workspace_id)
 
-    assert backfill.project_id == project_id
+    assert backfill.workspace_id == workspace_id
     assert backfill.backend == "neo4j"
     assert backfill.status == "ready"
     assert backfill.source_watermark == "chunks:v1"
-    assert store.backfill_requests == ((project_id, "chunks:v1"),)
-    assert store.delete_requests == (project_id,)
+    assert store.backfill_requests == ((workspace_id, "chunks:v1"),)
+    assert store.delete_requests == (workspace_id,)
 
 
 def test_graph_store_errors_have_stable_codes() -> None:

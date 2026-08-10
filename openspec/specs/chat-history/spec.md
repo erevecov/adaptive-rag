@@ -2,18 +2,18 @@
 
 ## Purpose
 Define la superficie read-only para listar sesiones de chat persistidas y
-consultar su detalle auditable por proyecto desde API y CLI, reutilizando el
+consultar su detalle auditable por workspace desde API y CLI, reutilizando el
 audit trail durable sin re-ejecutar chat, retrieval ni providers.
 ## Requirements
-### Requirement: API lista sesiones de chat por proyecto
+### Requirement: API lista sesiones de chat por workspace
 
 El sistema MUST exponer una superficie HTTP read-only para listar sesiones de
-chat persistidas por proyecto, con orden deterministico y limite acotado.
+chat persistidas por workspace, con orden deterministico y limite acotado.
 
 #### Scenario: Listado devuelve sesiones recientes
 
-- **WHEN** `GET /projects/{project_id}/chat/sessions` se invoca sin filtros
-- **THEN** la respuesta contiene sesiones del proyecto ordenadas por
+- **WHEN** `GET /workspaces/{workspace_id}/chat/sessions` se invoca sin filtros
+- **THEN** la respuesta contiene sesiones del workspace ordenadas por
   `created_at` descendente y `session_id` como desempate estable
 - **AND** cada item incluye `session_id`, `status`, timestamps, metadata de
   modelo/prompt cuando exista y conteos resumidos de mensajes, tool calls,
@@ -23,7 +23,7 @@ chat persistidas por proyecto, con orden deterministico y limite acotado.
 #### Scenario: Listado filtra por status
 
 - **WHEN** el cliente envia `status=failed`
-- **THEN** la respuesta contiene solo sesiones `failed` del proyecto
+- **THEN** la respuesta contiene solo sesiones `failed` del workspace
 - **AND** sesiones `running` o `succeeded` no aparecen
 
 #### Scenario: Listado acota resultados
@@ -37,12 +37,12 @@ chat persistidas por proyecto, con orden deterministico y limite acotado.
 ### Requirement: API muestra detalle auditable de una sesion
 
 El sistema MUST exponer una superficie HTTP read-only para consultar el detalle
-auditable de una sesion de chat, aislada por proyecto.
+auditable de una sesion de chat, aislada por workspace.
 
 #### Scenario: Detalle devuelve stepper metadata del assistant
 
 - **WHEN** una sesion contiene un mensaje assistant con `metadata_json.steps`
-- **THEN** `GET /projects/{project_id}/chat/sessions/{session_id}` devuelve el
+- **THEN** `GET /workspaces/{workspace_id}/chat/sessions/{session_id}` devuelve el
   campo `metadata.steps` dentro del mensaje correspondiente
 - **AND** esos steps preservan `id`, `status`, `elapsed_ms`, `detail` y `usage`
   cuando existan
@@ -55,14 +55,14 @@ para inspeccionar sesiones persistidas.
 
 #### Scenario: CLI lista sesiones
 
-- **WHEN** `adaptive-rag chat sessions list --project-id <uuid>` se ejecuta
+- **WHEN** `adaptive-rag chat sessions list --workspace-id <uuid>` se ejecuta
 - **THEN** el comando escribe JSON estable con los mismos campos resumidos que
   el listado HTTP
 - **AND** acepta filtros de status y limite equivalentes
 
 #### Scenario: CLI muestra sesion
 
-- **WHEN** `adaptive-rag chat sessions show --project-id <uuid> --session-id <uuid>`
+- **WHEN** `adaptive-rag chat sessions show --workspace-id <uuid> --session-id <uuid>`
   se ejecuta
 - **THEN** el comando escribe JSON estable con el detalle auditable de la sesion
 - **AND** no re-ejecuta chat, retrieval ni providers
@@ -88,49 +88,49 @@ streaming, dashboard, replay ni cambios de ranking.
 
 ### Requirement: Chat history is private to the current user
 
-The system MUST keep chat sessions private per user within a shared project.
+The system MUST keep chat sessions private per user within a shared workspace.
 
 #### Scenario: User lists only own sessions
 
-- **GIVEN** users `A` and `B` both have access to project `P`
+- **GIVEN** users `A` and `B` both have access to workspace `P`
 - **AND** both users have chat sessions in `P`
-- **WHEN** user `A` calls `GET /projects/P/chat/sessions`
+- **WHEN** user `A` calls `GET /workspaces/P/chat/sessions`
 - **THEN** the response contains only sessions whose owner is user `A`
 - **AND** sessions owned by user `B` are not counted or returned
 
 #### Scenario: User cannot inspect another user's session
 
-- **GIVEN** user `B` owns a chat session in project `P`
-- **AND** user `A` also has access to project `P`
-- **WHEN** user `A` calls `GET /projects/P/chat/sessions/{session_id}` for
+- **GIVEN** user `B` owns a chat session in workspace `P`
+- **AND** user `A` also has access to workspace `P`
+- **WHEN** user `A` calls `GET /workspaces/P/chat/sessions/{session_id}` for
   user `B`'s session
 - **THEN** the response is not found or an equivalent privacy-preserving error
 - **AND** no messages, tool calls, retrieval runs, citations or provider usage
   from user `B` are returned
 
-#### Scenario: Project switch resets selected session
+#### Scenario: Workspace switch resets selected session
 
-- **WHEN** the frontend switches from project `A` to project `B`
-- **THEN** any selected chat session from project `A` is cleared
-- **AND** history reloads under the current user and project `B`
+- **WHEN** the frontend switches from workspace `A` to workspace `B`
+- **THEN** any selected chat session from workspace `A` is cleared
+- **AND** history reloads under the current user and workspace `B`
 
-### Requirement: Chat observability respects project role
+### Requirement: Chat observability respects workspace role
 
-The system MUST restrict project chat observability to project admins or
+The system MUST restrict workspace chat observability to workspace admins or
 superadmins.
 
-#### Scenario: Project admin can inspect aggregate observability
+#### Scenario: Workspace admin can inspect aggregate observability
 
-- **GIVEN** the current user has project role `admin`
-- **WHEN** they call project chat observability endpoints
-- **THEN** aggregate project observability is returned
+- **GIVEN** the current user has workspace role `admin`
+- **WHEN** they call workspace chat observability endpoints
+- **THEN** aggregate workspace observability is returned
 - **AND** private message bodies from other users are not included
 
-#### Scenario: Viewer cannot inspect project observability
+#### Scenario: Viewer cannot inspect workspace observability
 
-- **GIVEN** the current user has project role `viewer`
-- **WHEN** they call project chat observability endpoints
-- **THEN** the request fails with a stable project-role authorization error
+- **GIVEN** the current user has workspace role `viewer`
+- **WHEN** they call workspace chat observability endpoints
+- **THEN** the request fails with a stable workspace-role authorization error
 
 ### Requirement: Multi-turn history remains consistent on read-back
 

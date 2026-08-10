@@ -14,7 +14,7 @@ retriever baseline.
 
 #### Scenario: Query text ejecuta dense retrieval
 
-- **WHEN** una solicitud de retrieval incluye `project_id`, `query` y `limit`
+- **WHEN** una solicitud de retrieval incluye `workspace_id`, `query` y `limit`
 - **THEN** el servicio genera un query embedding con el provider configurado
 - **AND** llama a `DenseRetriever` con ese embedding
 - **AND** retorna resultados con score y citation payload
@@ -50,7 +50,7 @@ mismo servicio de retrieval.
 
 #### Scenario: API retorna results con citations
 
-- **WHEN** `POST /projects/{project_id}/retrieval/search` recibe una solicitud
+- **WHEN** `POST /workspaces/{workspace_id}/retrieval/search` recibe una solicitud
   valida
 - **THEN** retorna results serializables con `chunk_id`, score y citation
 - **AND** no implementa chat/tool calling
@@ -78,7 +78,7 @@ explicit retrieval strategies without changing the dense_sparse default.
 
 - **WHEN** retrieval is requested with `strategy=hybrid_rrf`
 - **THEN** the system runs dense and lexical candidate lists after applying
-  project and metadata filters
+  workspace and metadata filters
 - **AND** fuses candidate ranks with reciprocal rank fusion
 - **AND** emits at most one result per chunk with stable ordering
 
@@ -113,7 +113,7 @@ default.
 
 - **WHEN** retrieval is requested with `strategy=bm25`
 - **THEN** no dense or sparse embedding provider is required or called
-- **AND** project and metadata filters are applied before scoring
+- **AND** workspace and metadata filters are applied before scoring
 
 ### Requirement: Retrieval surface exposes sparse and dense_sparse strategies
 
@@ -125,7 +125,7 @@ strategy.
 
 - **WHEN** retrieval is requested with `strategy=sparse`
 - **THEN** the service embeds the query with the configured sparse provider
-- **AND** ranks stored sparse embeddings after applying project and metadata
+- **AND** ranks stored sparse embeddings after applying workspace and metadata
   filters
 - **AND** returns result payloads with `strategy` equal to `sparse`
 - **AND** records sparse rank and score in result metadata
@@ -134,7 +134,7 @@ strategy.
 
 - **WHEN** retrieval is requested with `strategy=dense_sparse`
 - **THEN** the service runs dense retrieval and sparse retrieval over the same
-  query, project and filters
+  query, workspace and filters
 - **AND** deduplicates candidates by chunk id
 - **AND** applies reciprocal rank fusion
 - **AND** records dense rank, sparse rank and RRF score in result metadata
@@ -154,6 +154,6 @@ strategy.
 
 #### Scenario: Sparse backfill is explicit
 
-- **WHEN** a user wants sparse retrieval coverage for a project
-- **THEN** they run an explicit sparse backfill command for that project
+- **WHEN** a user wants sparse retrieval coverage for a workspace
+- **THEN** they run an explicit sparse backfill command for that workspace
 - **AND** the command reports embedded, reused and total chunk counts

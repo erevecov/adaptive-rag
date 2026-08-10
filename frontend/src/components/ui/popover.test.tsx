@@ -20,9 +20,9 @@ describe('Popover', () => {
 
     render(
       <Popover.Root>
-        <Popover.Trigger>Open projects</Popover.Trigger>
+        <Popover.Trigger>Open workspaces</Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content aria-label="Projects" role="listbox">
+          <Popover.Content aria-label="Workspaces" role="listbox">
             <button role="option" type="button">
               Demo
             </button>
@@ -31,7 +31,7 @@ describe('Popover', () => {
       </Popover.Root>,
     )
 
-    const trigger = screen.getByRole('button', { name: 'Open projects' })
+    const trigger = screen.getByRole('button', { name: 'Open workspaces' })
 
     expect(trigger.getAttribute('data-state')).toBe('closed')
     expect(trigger.className).toContain('focus-visible:ring-ring')
@@ -45,7 +45,7 @@ describe('Popover', () => {
     expect(trigger.className).toContain('motion-safe:transition-colors')
     await user.click(trigger)
 
-    const listbox = await screen.findByRole('listbox', { name: 'Projects' })
+    const listbox = await screen.findByRole('listbox', { name: 'Workspaces' })
 
     expect(trigger.getAttribute('data-state')).toBe('open')
     expect(listbox.getAttribute('data-slot')).toBe('popover-content')

@@ -15,8 +15,8 @@ from sqlalchemy.pool import StaticPool
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ChatSession, Job, Project, ProviderUsage, User
-from adaptive_rag.db.repositories import ProjectRepository
+from adaptive_rag.db.models import ChatSession, Job, ProviderUsage, User, Workspace
+from adaptive_rag.db.repositories import WorkspaceRepository
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -29,7 +29,7 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Job.__table__,
             ChatSession.__table__,
             ProviderUsage.__table__,
@@ -50,20 +50,20 @@ def _client(*, session: Session) -> TestClient:
     return TestClient(app)
 
 
-def _create_project(session: Session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _add_chat_session(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     status: str,
     created_at: datetime,
     error_message: str | None = None,
 ) -> ChatSession:
     chat_session = ChatSession(
-        project_id=project_id,
+        workspace_id=workspace_id,
         status=status,
         error_message=error_message,
         created_at=created_at,
@@ -77,7 +77,7 @@ def _add_chat_session(
 def _add_provider_usage(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     created_at: datetime,
     session_id: UUID | None = None,
     operation: str = "chat",
@@ -94,7 +94,7 @@ def _add_provider_usage(
     error_message: str | None = None,
 ) -> ProviderUsage:
     usage = ProviderUsage(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=session_id,
         operation=operation,
         provider=provider,
@@ -116,28 +116,30 @@ def _add_provider_usage(
     return usage
 
 
-def test_chat_observability_summary_endpoint_returns_filtered_project_summary() -> None:
+def test_chat_observability_summary_endpoint_returns_filtered_workspace_summary() -> (
+    None
+):
     session = _make_session()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     base = datetime(2026, 1, 1, tzinfo=UTC)
 
     failed = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="failed",
         created_at=base + timedelta(hours=1),
         error_message="runner failed",
     )
     succeeded = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="succeeded",
         created_at=base + timedelta(hours=2),
     )
     _add_chat_session(
         session,
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         status="failed",
         created_at=base + timedelta(hours=1),
         error_message="other failure",
@@ -145,7 +147,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
 
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed.id,
         created_at=base + timedelta(hours=1, seconds=1),
         status="failed",
@@ -156,7 +158,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed.id,
         created_at=base + timedelta(hours=1, seconds=2),
         input_tokens=10,
@@ -168,7 +170,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=succeeded.id,
         created_at=base + timedelta(hours=2, seconds=1),
         estimated_cost_usd=0.40,
@@ -176,7 +178,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
     )
     _add_provider_usage(
         session,
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         created_at=base + timedelta(hours=1),
         estimated_cost_usd=9.99,
         latency_ms=999,
@@ -185,7 +187,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
     client = _client(session=session)
 
     response = client.get(
-        f"/projects/{project.id}/chat/observability/summary",
+        f"/workspaces/{workspace.id}/chat/observability/summary",
         params={
             "created_at_from": base.isoformat(),
             "created_at_to": (base + timedelta(hours=2)).isoformat(),
@@ -195,7 +197,7 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
 
     assert response.status_code == 200
     data = response.json()
-    assert data["project_id"] == str(project.id)
+    assert data["workspace_id"] == str(workspace.id)
     assert data["filters"] == {
         "created_at_from": "2026-01-01T00:00:00Z",
         "created_at_to": "2026-01-01T02:00:00Z",
@@ -243,12 +245,12 @@ def test_chat_observability_summary_endpoint_returns_filtered_project_summary() 
 
 def test_chat_observability_summary_endpoint_maps_invalid_filters_to_422() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     client = _client(session=session)
 
     response = client.get(
-        f"/projects/{project.id}/chat/observability/summary",
+        f"/workspaces/{workspace.id}/chat/observability/summary",
         params={"status": "done"},
     )
 

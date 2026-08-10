@@ -149,9 +149,29 @@ def test_provider_model_sync_persists_catalog_without_returning_secret(
     assert [
         item["model_id"] for item in list_response.json()["items"]
     ] == ["text-embedding-v4"]
-    assert list_response.json()["items"][0]["pricing"] == {
-        "input_per_million_tokens_usd": 0.07
-    }
+    # Model listing rarely returns list prices; post-sync fill applies Alibaba catalog.
+    embedding_pricing = list_response.json()["items"][0]["pricing"]
+    assert embedding_pricing is not None
+    assert embedding_pricing["input_per_million_tokens_usd"] == 0.07
+    assert embedding_pricing.get("source") == "alibaba_model_studio_singapore_list"
+    synced_ids = {item["model_id"] for item in sync_response.json()["items"]}
+    # Provider /models often omits service models; seed declared-capability defaults.
+    assert "qwen3-rerank" in synced_ids
+    assert "text-embedding-v4" in synced_ids
+    chat_row = next(
+        item
+        for item in sync_response.json()["items"]
+        if item["model_id"] == "qwen-plus"
+    )
+    assert chat_row["pricing"] is not None
+    assert chat_row["pricing"]["input_per_million_tokens_usd"] == 0.4
+    assert chat_row["pricing"]["output_per_million_tokens_usd"] == 1.2
+    rerank_row = next(
+        item
+        for item in sync_response.json()["items"]
+        if item["model_id"] == "qwen3-rerank"
+    )
+    assert rerank_row["capabilities"] == ["rerank"]
     chat_model = session.get(GlobalChatModel, ("qwen-hosted", "qwen-plus"))
     chat_default = session.get(RuntimeSlotDefault, "chat")
     dense_default = session.get(RuntimeSlotDefault, "dense_embedding")
@@ -202,8 +222,10 @@ def test_provider_model_sync_persists_unclassified_models_without_slot_capabilit
         item["model_id"]: item["capabilities"] for item in payload["items"]
     } == {
         "qwen-plus": ["chat"],
-        "qwen-experimental-preview": [],
+        # Modern inference treats unknown Qwen text ids as chat (Model Studio).
+        "qwen-experimental-preview": ["chat"],
     }
     assert [item["model_id"] for item in chat_models_response.json()["items"]] == [
-        "qwen-plus"
+        "qwen-experimental-preview",
+        "qwen-plus",
     ]

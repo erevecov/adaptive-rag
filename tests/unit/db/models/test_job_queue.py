@@ -8,29 +8,29 @@ from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Job, JobEvent, Project
+from adaptive_rag.db.models import Job, JobEvent, Workspace
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
 def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
-        engine, tables=[Project.__table__, Job.__table__, JobEvent.__table__]
+        engine, tables=[Workspace.__table__, Job.__table__, JobEvent.__table__]
     )
     return create_session_factory(engine)()
 
 
-def _make_project(session) -> Project:
-    project = Project(name="demo")
-    session.add(project)
+def _make_workspace(session) -> Workspace:
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
-    return project
+    return workspace
 
 
 def test_job_defaults_to_queued_with_retry_budget():
     session = _make_session()
-    project = _make_project(session)
-    job = Job(project_id=project.id, job_type="ingest_url")
+    workspace = _make_workspace(session)
+    job = Job(workspace_id=workspace.id, job_type="ingest_url")
 
     session.add(job)
     session.commit()
@@ -44,10 +44,10 @@ def test_job_defaults_to_queued_with_retry_budget():
 
 def test_job_payload_and_lock_fields_persist():
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     locked_until = datetime(2026, 6, 18, 20, 0, tzinfo=UTC)
     job = Job(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type="ingest_url",
         payload_json={"url": "https://example.com"},
         status="running",
@@ -68,8 +68,8 @@ def test_job_payload_and_lock_fields_persist():
 
 def test_job_rejects_invalid_status():
     session = _make_session()
-    project = _make_project(session)
-    job = Job(project_id=project.id, job_type="ingest_url", status="bogus")
+    workspace = _make_workspace(session)
+    job = Job(workspace_id=workspace.id, job_type="ingest_url", status="bogus")
 
     session.add(job)
 
@@ -93,24 +93,24 @@ def test_job_attempts_and_max_attempts_have_constraints():
     assert "jobs_max_attempts_positive_check" in constraints
 
 
-def test_job_project_status_and_lease_columns_are_indexed():
+def test_job_workspace_status_and_lease_columns_are_indexed():
     table = inspect(Job).local_table
     indexed_columns: set[tuple[str, ...]] = {
         tuple(col.name for col in index.columns) for index in table.indexes
     }
 
-    assert ("project_id", "status", "run_after", "priority") in indexed_columns
-    assert ("project_id", "locked_until") in indexed_columns
+    assert ("workspace_id", "status", "run_after", "priority") in indexed_columns
+    assert ("workspace_id", "locked_until") in indexed_columns
 
 
 def test_job_event_persists_event_audit_data():
     session = _make_session()
-    project = _make_project(session)
-    job = Job(project_id=project.id, job_type="ingest_url")
+    workspace = _make_workspace(session)
+    job = Job(workspace_id=workspace.id, job_type="ingest_url")
     session.add(job)
     session.flush()
     event = JobEvent(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=job.id,
         event_type="created",
         message="created job",
@@ -125,7 +125,7 @@ def test_job_event_persists_event_audit_data():
         select(JobEvent).where(JobEvent.job_id == job.id)
     ).scalar_one()
 
-    assert fetched.project_id == project.id
+    assert fetched.workspace_id == workspace.id
     assert fetched.event_type == "created"
     assert fetched.message == "created job"
     assert fetched.extra_metadata == {"source": "test"}
@@ -133,11 +133,11 @@ def test_job_event_persists_event_audit_data():
 
 def test_job_event_rejects_invalid_event_type():
     session = _make_session()
-    project = _make_project(session)
-    job = Job(project_id=project.id, job_type="ingest_url")
+    workspace = _make_workspace(session)
+    job = Job(workspace_id=workspace.id, job_type="ingest_url")
     session.add(job)
     session.flush()
-    event = JobEvent(project_id=project.id, job_id=job.id, event_type="bogus")
+    event = JobEvent(workspace_id=workspace.id, job_id=job.id, event_type="bogus")
     session.add(event)
 
     try:

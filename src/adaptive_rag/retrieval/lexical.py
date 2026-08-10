@@ -57,7 +57,7 @@ class LexicalRetriever:
     def search(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int = 10,
         filters: DenseRetrievalFilters | None = None,
@@ -68,14 +68,14 @@ class LexicalRetriever:
         active_filters = filters or DenseRetrievalFilters()
         if self._dialect_name() == "postgresql":
             candidates = self._search_postgres(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=active_query,
                 limit=limit,
                 filters=active_filters,
             )
         else:
             candidates = self._search_in_memory(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 query=active_query,
                 limit=limit,
                 filters=active_filters,
@@ -88,7 +88,7 @@ class LexicalRetriever:
     def _search_postgres(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -106,7 +106,7 @@ class LexicalRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
             apply_tags_in_sql=True,
         )
@@ -125,7 +125,7 @@ class LexicalRetriever:
     def _search_in_memory(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query: str,
         limit: int,
         filters: DenseRetrievalFilters,
@@ -141,7 +141,7 @@ class LexicalRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
             apply_tags_in_sql=False,
         )
@@ -185,13 +185,13 @@ class LexicalRetriever:
         self,
         statement: Any,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DenseRetrievalFilters,
         apply_tags_in_sql: bool,
     ) -> Any:
         statement = statement.where(
-            Document.project_id == project_id,
-            Source.project_id == project_id,
+            Document.workspace_id == workspace_id,
+            Source.workspace_id == workspace_id,
             latest_document_version_clause(),
         )
         if filters.source_id is not None:

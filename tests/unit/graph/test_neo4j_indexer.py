@@ -7,16 +7,16 @@ import pytest
 from neo4j.exceptions import ServiceUnavailable
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.graph import GraphStoreUnavailableError, Neo4jGraphStore
-from adaptive_rag.graph.indexer import Neo4jProjectGraph, load_project_graph
+from adaptive_rag.graph.indexer import Neo4jWorkspaceGraph, load_workspace_graph
 
 
 class RecordingNeo4jDriver:
@@ -50,7 +50,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -60,16 +60,16 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
+def _sample_graph(workspace_id: UUID) -> Neo4jWorkspaceGraph:
     source_id = uuid4()
     document_id = uuid4()
     version_id = uuid4()
     first_chunk_id = uuid4()
     second_chunk_id = uuid4()
-    return Neo4jProjectGraph(
-        project={
-            "id": str(project_id),
-            "project_id": str(project_id),
+    return Neo4jWorkspaceGraph(
+        workspace={
+            "id": str(workspace_id),
+            "workspace_id": str(workspace_id),
             "name": "Demo",
             "embedding_mode": "dense_sparse",
             "retrieval_contextualization_enabled": True,
@@ -78,7 +78,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
         sources=(
             {
                 "id": str(source_id),
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "source_type": "markdown",
                 "external_id": "alpha.md",
                 "tags": ["docs"],
@@ -88,7 +88,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
         documents=(
             {
                 "id": str(document_id),
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "source_id": str(source_id),
                 "stable_id": "alpha",
             },
@@ -96,7 +96,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
         document_versions=(
             {
                 "id": str(version_id),
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_id": str(document_id),
                 "version_number": 1,
                 "content_hash": "sha256:content",
@@ -108,7 +108,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
         chunks=(
             {
                 "id": str(first_chunk_id),
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_version_id": str(version_id),
                 "ordinal": 0,
                 "char_start": 0,
@@ -121,7 +121,7 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
             },
             {
                 "id": str(second_chunk_id),
-                "project_id": str(project_id),
+                "workspace_id": str(workspace_id),
                 "document_version_id": str(version_id),
                 "ordinal": 1,
                 "char_start": 13,
@@ -142,32 +142,32 @@ def _sample_graph(project_id: UUID) -> Neo4jProjectGraph:
     )
 
 
-def test_load_project_graph_serializes_project_graph() -> None:
+def test_load_workspace_graph_serializes_workspace_graph() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(
+    workspace = WorkspaceRepository(session).create(
         name="Demo",
         budget_config_json={"tier": "test"},
     )
-    other_project = ProjectRepository(session).create(name="Other")
+    other_workspace = WorkspaceRepository(session).create(name="Other")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="alpha.md",
         tags=["docs"],
         extra_metadata={"title": "Alpha"},
     )
     SourceRepository(session).create(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         source_type="markdown",
         external_id="other.md",
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="alpha",
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Alpha text with two chunks.",
@@ -178,7 +178,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
     )
     chunk_repo = ChunkRepository(session)
     first_chunk = chunk_repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -189,7 +189,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
         contextual_summary="Intro context",
     )
     second_chunk = chunk_repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=1,
         char_start=11,
@@ -201,18 +201,18 @@ def test_load_project_graph_serializes_project_graph() -> None:
     first_chunk.next_chunk_id = second_chunk.id
     second_chunk.prev_chunk_id = first_chunk.id
     chunk_repo.update_dense_embedding(
-        project_id=project.id,
+        workspace_id=workspace.id,
         chunk_id=second_chunk.id,
         embedding=[0.1, 0.2],
         embedding_metadata={"provider": "fake"},
     )
     session.flush()
 
-    graph = load_project_graph(session, project.id)
+    graph = load_workspace_graph(session, workspace.id)
 
-    assert graph.project == {
-        "id": str(project.id),
-        "project_id": str(project.id),
+    assert graph.workspace == {
+        "id": str(workspace.id),
+        "workspace_id": str(workspace.id),
         "name": "Demo",
         "embedding_mode": "dense_sparse",
         "retrieval_contextualization_enabled": True,
@@ -221,7 +221,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
     assert graph.sources == (
         {
             "id": str(source.id),
-            "project_id": str(project.id),
+            "workspace_id": str(workspace.id),
             "source_type": "markdown",
             "external_id": "alpha.md",
             "tags": ["docs"],
@@ -231,7 +231,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
     assert graph.documents == (
         {
             "id": str(document.id),
-            "project_id": str(project.id),
+            "workspace_id": str(workspace.id),
             "source_id": str(source.id),
             "stable_id": "alpha",
         },
@@ -239,7 +239,7 @@ def test_load_project_graph_serializes_project_graph() -> None:
     assert graph.document_versions == (
         {
             "id": str(version.id),
-            "project_id": str(project.id),
+            "workspace_id": str(workspace.id),
             "document_id": str(document.id),
             "version_number": 1,
             "content_hash": "sha256:content",
@@ -259,32 +259,32 @@ def test_load_project_graph_serializes_project_graph() -> None:
     )
 
 
-def test_neo4j_backfill_replaces_project_scope_then_upserts_graph_payload() -> None:
-    project_id = uuid4()
-    loaded_projects: list[UUID] = []
+def test_neo4j_backfill_replaces_workspace_scope_then_upserts_graph_payload() -> None:
+    workspace_id = uuid4()
+    loaded_workspaces: list[UUID] = []
     driver = RecordingNeo4jDriver()
 
-    def loader(active_project_id: UUID) -> Neo4jProjectGraph:
-        loaded_projects.append(active_project_id)
-        return _sample_graph(active_project_id)
+    def loader(active_workspace_id: UUID) -> Neo4jWorkspaceGraph:
+        loaded_workspaces.append(active_workspace_id)
+        return _sample_graph(active_workspace_id)
 
-    store = Neo4jGraphStore(driver=driver, project_graph_loader=loader)
+    store = Neo4jGraphStore(driver=driver, workspace_graph_loader=loader)
 
-    result = store.backfill_project_graph(
-        project_id=project_id,
+    result = store.backfill_workspace_graph(
+        workspace_id=workspace_id,
         source_watermark="chunks:v2",
     )
 
-    assert result.project_id == project_id
+    assert result.workspace_id == workspace_id
     assert result.backend == "neo4j"
     assert result.status == "ready"
     assert result.source_watermark == "chunks:v2"
     assert result.node_count == 6
     assert result.relationship_count == 6
-    assert loaded_projects == [project_id]
+    assert loaded_workspaces == [workspace_id]
     assert [set(parameters) for _, parameters in driver.queries] == [
-        {"project_id"},
-        {"project", "source_watermark"},
+        {"workspace_id"},
+        {"workspace", "source_watermark"},
         {"sources"},
         {"documents"},
         {"document_versions"},
@@ -292,34 +292,37 @@ def test_neo4j_backfill_replaces_project_scope_then_upserts_graph_payload() -> N
         {"chunk_links"},
     ]
     assert "DETACH DELETE" in driver.queries[0][0]
-    assert driver.queries[0][1] == {"project_id": str(project_id)}
-    assert driver.queries[1][1]["project"]["id"] == str(project_id)
+    assert driver.queries[0][1] == {"workspace_id": str(workspace_id)}
+    assert driver.queries[1][1]["workspace"]["id"] == str(workspace_id)
     assert driver.queries[1][1]["source_watermark"] == "chunks:v2"
     assert driver.queries[2][1]["sources"][0]["extra_metadata_json"] == (
         '{"title":"Alpha"}'
     )
-    assert driver.queries[6][1]["chunk_links"][0]["from_chunk_id"] != (
-        driver.queries[6][1]["chunk_links"][0]["to_chunk_id"]
+    assert (
+        driver.queries[6][1]["chunk_links"][0]["from_chunk_id"]
+        != (driver.queries[6][1]["chunk_links"][0]["to_chunk_id"])
     )
 
 
-def test_neo4j_delete_project_graph_removes_only_project_scoped_graph_nodes() -> None:
-    project_id = uuid4()
+def test_neo4j_delete_workspace_graph_removes_only_workspace_scoped_graph_nodes() -> (
+    None
+):
+    workspace_id = uuid4()
     driver = RecordingNeo4jDriver()
     store = Neo4jGraphStore(
         driver=driver,
-        project_graph_loader=lambda active_project_id: _sample_graph(
-            active_project_id
+        workspace_graph_loader=lambda active_workspace_id: _sample_graph(
+            active_workspace_id
         ),
     )
 
-    store.delete_project_graph(project_id=project_id)
+    store.delete_workspace_graph(workspace_id=workspace_id)
 
     assert len(driver.queries) == 1
     query, parameters = driver.queries[0]
-    assert "MATCH (n:AdaptiveRagGraph {project_id: $project_id})" in query
+    assert "MATCH (n:AdaptiveRagGraph {workspace_id: $workspace_id})" in query
     assert "DETACH DELETE" in query
-    assert parameters == {"project_id": str(project_id)}
+    assert parameters == {"workspace_id": str(workspace_id)}
 
 
 def test_neo4j_backfill_maps_driver_unavailable_to_stable_error() -> None:
@@ -329,14 +332,14 @@ def test_neo4j_backfill_maps_driver_unavailable_to_stable_error() -> None:
     )
     store = Neo4jGraphStore(
         driver=driver,
-        project_graph_loader=lambda active_project_id: _sample_graph(
-            active_project_id
+        workspace_graph_loader=lambda active_workspace_id: _sample_graph(
+            active_workspace_id
         ),
     )
 
     with pytest.raises(GraphStoreUnavailableError) as exc_info:
-        store.backfill_project_graph(
-            project_id=uuid4(),
+        store.backfill_workspace_graph(
+            workspace_id=uuid4(),
             source_watermark="chunks:v2",
         )
 

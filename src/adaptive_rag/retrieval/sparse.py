@@ -60,7 +60,7 @@ class SparseRetriever:
     def search(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query_vector: SparseEmbeddingVector,
         limit: int = 10,
         filters: DenseRetrievalFilters | None = None,
@@ -71,7 +71,7 @@ class SparseRetriever:
         if query_vector.sparse_size == 0:
             return []
         candidates = self._search_in_memory(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query_vector=query_vector,
             filters=active_filters,
         )
@@ -86,7 +86,7 @@ class SparseRetriever:
     def _search_in_memory(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         query_vector: SparseEmbeddingVector,
         filters: DenseRetrievalFilters,
     ) -> list[_CandidateRow]:
@@ -99,7 +99,7 @@ class SparseRetriever:
         )
         statement = self._apply_filters(
             statement,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=filters,
         )
 
@@ -146,12 +146,12 @@ class SparseRetriever:
         self,
         statement: Any,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DenseRetrievalFilters,
     ) -> Any:
         statement = statement.where(
-            Document.project_id == project_id,
-            Source.project_id == project_id,
+            Document.workspace_id == workspace_id,
+            Source.workspace_id == workspace_id,
             latest_document_version_clause(),
         )
         if filters.source_id is not None:

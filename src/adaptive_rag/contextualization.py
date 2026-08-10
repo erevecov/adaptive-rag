@@ -19,7 +19,7 @@ class ContextualizationPipelineError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class ContextualizationRequest:
-    project_id: UUID
+    workspace_id: UUID
     document_version_id: UUID
     chunk_id: UUID
     ordinal: int
@@ -174,21 +174,21 @@ class ContextualizationPipeline:
     def contextualize_document_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
         force: bool = False,
     ) -> ContextualizationRunResult:
         document_version = self._document_repo.get_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if document_version is None:
             raise ContextualizationPipelineError(
-                "document version does not belong to project"
+                "document version does not belong to workspace"
             )
 
         chunks = self._chunk_repo.list_by_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if not chunks:
@@ -202,7 +202,7 @@ class ContextualizationPipeline:
                 continue
 
             request = self._request_for_chunk(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 document_version=document_version,
                 chunk=chunk,
             )
@@ -213,7 +213,7 @@ class ContextualizationPipeline:
                     "contextualizer returned empty summary"
                 )
             self._chunk_repo.update_contextual_summary(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 chunk_id=chunk.id,
                 contextual_summary=summary,
             )
@@ -236,7 +236,7 @@ class ContextualizationPipeline:
     def _request_for_chunk(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version: DocumentVersion,
         chunk: Chunk,
     ) -> ContextualizationRequest:
@@ -249,7 +249,7 @@ class ContextualizationPipeline:
             raise ContextualizationPipelineError("chunk offsets are empty")
 
         return ContextualizationRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version.id,
             chunk_id=chunk.id,
             ordinal=chunk.ordinal,

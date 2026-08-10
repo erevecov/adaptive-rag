@@ -35,7 +35,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("search")
 def search(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     query: Annotated[str, typer.Option("--query")],
     limit: Annotated[int, typer.Option("--limit")] = 10,
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
@@ -87,7 +87,7 @@ def search(
         document_created_at_to=document_created_at_to,
     )
     request = RetrievalSearchRequest(
-        project_id=project_id,
+        workspace_id=workspace_id,
         query=query,
         limit=limit,
         metadata_filter=metadata_filter,
@@ -99,19 +99,19 @@ def search(
         service = RetrievalService(
             session,
             provider=_get_dense_embedding_provider(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=session,
             ),
             sparse_provider=(
                 _get_sparse_embedding_provider(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     session=session,
                 )
                 if strategy in ("sparse", "dense_sparse")
                 else None
             ),
             reranker=(
-                _get_rerank_provider(project_id=project_id, session=session)
+                _get_rerank_provider(workspace_id=workspace_id, session=session)
                 if rerank_options is not None
                 else None
             ),
@@ -144,12 +144,12 @@ def _build_rerank_options(
 
 def _get_dense_embedding_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
 ) -> DenseEmbeddingProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = _workspace_runtime_kwargs(
         get_cli_dense_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     return cast(
@@ -160,12 +160,12 @@ def _get_dense_embedding_provider(
 
 def _get_sparse_embedding_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
 ) -> SparseEmbeddingProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = _workspace_runtime_kwargs(
         get_cli_sparse_embedding_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     return cast(
@@ -176,27 +176,27 @@ def _get_sparse_embedding_provider(
 
 def _get_rerank_provider(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
 ) -> RerankProvider:
-    kwargs = _project_runtime_kwargs(
+    kwargs = _workspace_runtime_kwargs(
         get_cli_rerank_provider,
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
 
 
-def _project_runtime_kwargs(
+def _workspace_runtime_kwargs(
     factory: Callable[..., object],
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     session: Session,
 ) -> dict[str, object]:
     parameters = signature(factory).parameters
     kwargs: dict[str, object] = {}
-    if "project_id" in parameters:
-        kwargs["project_id"] = project_id
+    if "workspace_id" in parameters:
+        kwargs["workspace_id"] = workspace_id
     if "session" in parameters:
         kwargs["session"] = session
     return kwargs

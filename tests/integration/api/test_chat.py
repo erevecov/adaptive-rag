@@ -36,9 +36,6 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     GlobalChatRetrievalSettings,
     KnowledgeProposal,
-    Project,
-    ProjectChatRetrievalSettings,
-    ProjectMembership,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
@@ -47,17 +44,20 @@ from adaptive_rag.db.models import (
     User,
     UserAccessToken,
     UserMemory,
+    Workspace,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChunkRepository,
     DocumentRepository,
-    ProjectMembershipRepository,
-    ProjectRepository,
     ProviderUsageRepository,
     SourceRepository,
     SparseEmbeddingRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -302,17 +302,17 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
             KnowledgeProposal.__table__,
@@ -388,8 +388,8 @@ def _sparse_vector(value: float) -> SparseEmbeddingVector:
     return SparseEmbeddingVector(indices=(0,), values=(value,), tokens=("alpha",))
 
 
-def _create_project(session: Session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_user(
@@ -420,7 +420,7 @@ def _bearer(raw_token: str) -> dict[str, str]:
 def _create_embedded_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -430,19 +430,19 @@ def _create_embedded_chunk(
     embedding: list[float] | None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -451,7 +451,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -464,7 +464,7 @@ def _create_embedded_chunk(
     session.flush()
     if embedding is not None:
         SparseEmbeddingRepository(session).upsert_current(
-            project_id=project.id,
+            workspace_id=workspace.id,
             chunk_id=chunk.id,
             vector=_sparse_vector(max(0.01, 1.0 - embedding[0])),
             input_hash=f"sparse:{stable_id}",
@@ -506,10 +506,10 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         tags=("docs", "v1"),
         stable_id="far-doc",
@@ -519,7 +519,7 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     )
     source, document, version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         tags=("docs", "v1"),
         stable_id="near-doc",
@@ -533,7 +533,7 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={
             "message": "What supports alpha?",
             "retrieval_limit": 2,
@@ -588,7 +588,7 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     fresh_session = session_factory()
     chat_session = fresh_session.get(ChatSession, session_id)
     assert chat_session is not None
-    assert chat_session.project_id == project.id
+    assert chat_session.workspace_id == workspace.id
     assert chat_session.status == "succeeded"
     messages = fresh_session.query(ChatMessage).filter_by(session_id=session_id).all()
     assert [message.role for message in messages] == ["user", "assistant"]
@@ -608,15 +608,15 @@ def test_chat_endpoint_returns_answer_with_retrieval_citations(
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
-def test_chat_endpoint_uses_project_retrieval_settings_for_rerank_window(
+def test_chat_endpoint_uses_workspace_retrieval_settings_for_rerank_window(
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _source, _document, _version, first = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="first.md",
         stable_id="first-doc",
         text="Header\n\nAlpha first evidence",
@@ -625,7 +625,7 @@ def test_chat_endpoint_uses_project_retrieval_settings_for_rerank_window(
     )
     _source, _document, _version, second = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="second.md",
         stable_id="second-doc",
         text="Header\n\nAlpha second evidence",
@@ -634,8 +634,8 @@ def test_chat_endpoint_uses_project_retrieval_settings_for_rerank_window(
     )
     from adaptive_rag.db.repositories import ChatRetrievalSettingsRepository
 
-    ChatRetrievalSettingsRepository(session).upsert_project_settings(
-        project_id=project.id,
+    ChatRetrievalSettingsRepository(session).upsert_workspace_settings(
+        workspace_id=workspace.id,
         retrieval_limit=1,
         rerank_enabled=True,
         rerank_candidate_limit=2,
@@ -652,7 +652,7 @@ def test_chat_endpoint_uses_project_retrieval_settings_for_rerank_window(
     )
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "What supports alpha?"},
     )
 
@@ -681,10 +681,10 @@ def test_chat_endpoint_persists_current_user_as_session_owner(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = _create_user(session, login="viewer@example.com", token="viewer-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="viewer",
     )
@@ -694,7 +694,7 @@ def test_chat_endpoint_persists_current_user_as_session_owner(
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("viewer-token"),
         json={"message": "No retrieval needed."},
     )
@@ -712,10 +712,10 @@ def test_chat_endpoint_commit_knowledge_tool_persists_pending_proposal(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = _create_user(session, login="viewer@example.com", token="viewer-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="viewer",
     )
@@ -726,7 +726,7 @@ def test_chat_endpoint_commit_knowledge_tool_persists_pending_proposal(
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("viewer-token"),
         json={"message": f"Propose this as knowledge: {proposed_text}"},
     )
@@ -780,14 +780,14 @@ def test_chat_stream_endpoint_returns_sse_events_and_persists_session(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat/stream",
+        f"/workspaces/{workspace.id}/chat/stream",
         json={"message": "No retrieval needed."},
     )
 
@@ -802,7 +802,7 @@ def test_chat_stream_endpoint_returns_sse_events_and_persists_session(
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
-    assert chat_session.project_id == project.id
+    assert chat_session.workspace_id == workspace.id
     assert chat_session.status == "succeeded"
 
 
@@ -811,14 +811,14 @@ def test_chat_stream_endpoint_rejects_invalid_requests_before_stream_start(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat/stream",
+        f"/workspaces/{workspace.id}/chat/stream",
         json={"message": " "},
     )
 
@@ -841,14 +841,14 @@ def test_chat_stream_endpoint_yields_error_event_after_session_failure(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = ExplodingChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat/stream",
+        f"/workspaces/{workspace.id}/chat/stream",
         json={"message": "Please answer."},
     )
 
@@ -866,14 +866,14 @@ def test_chat_stream_endpoint_yields_error_event_after_session_failure(
 def test_chat_endpoint_rejects_unknown_filter_fields(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={
             "message": "What supports alpha?",
             "metadata_filter": {"unsupported": "value"},
@@ -888,14 +888,14 @@ def test_chat_endpoint_rejects_unknown_filter_fields(tmp_path: Path) -> None:
 def test_chat_endpoint_maps_service_errors_to_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": " "},
     )
 
@@ -917,7 +917,7 @@ def test_chat_endpoint_provider_usage_failure_does_not_block_success(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
@@ -942,7 +942,7 @@ def test_chat_endpoint_provider_usage_failure_does_not_block_success(
     )
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "No retrieval needed."},
     )
 
@@ -964,7 +964,7 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runners: list[ProviderUsageRecordingChatRunner] = []
@@ -1003,7 +1003,7 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
     client = TestClient(app)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "Record live usage."},
     )
 
@@ -1015,7 +1015,7 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
     assert len(runners[0].requests) == 1
     fresh_session = session_factory()
     usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
-    assert usage.project_id == project.id
+    assert usage.workspace_id == workspace.id
     assert usage.provider == "qwen"
     assert usage.model == "qwen-plus"
     assert usage.operation == "chat"
@@ -1033,10 +1033,10 @@ def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _source, _document, _version, _chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Alpha original evidence",
@@ -1085,7 +1085,7 @@ def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
     client = TestClient(app)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "What supports alpha?", "retrieval_limit": 1},
     )
 
@@ -1096,7 +1096,7 @@ def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
     assert providers[0].inputs == ["alpha evidence"]
     fresh_session = session_factory()
     usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
-    assert usage.project_id == project.id
+    assert usage.workspace_id == workspace.id
     assert usage.operation == "embedding"
     assert usage.provider == "fake"
     assert usage.model == "usage-recording-embedding-v1"
@@ -1109,14 +1109,14 @@ def test_chat_endpoint_persists_failed_retrieval_tool_call_without_run(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = FailingQueryEmbeddingProvider(_vector(0.0))
     runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "What supports alpha?", "retrieval_limit": 3},
     )
 
@@ -1162,14 +1162,14 @@ def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = UnexpectedFailingQueryEmbeddingProvider(_vector(0.0))
     runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "What supports alpha?", "retrieval_limit": 4},
     )
 
@@ -1209,14 +1209,14 @@ def test_chat_endpoint_fails_retrieval_tool_for_unexpected_provider_error(
 def test_chat_endpoint_persists_runner_model_metadata(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = MetadataChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "No retrieval needed."},
     )
 
@@ -1234,14 +1234,14 @@ def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = ExplodingChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "Please answer."},
     )
 
@@ -1257,7 +1257,7 @@ def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
-    assert chat_session.project_id == project.id
+    assert chat_session.workspace_id == workspace.id
     assert chat_session.status == "failed"
     assert chat_session.error_message == "runner exploded"
     messages = fresh_session.query(ChatMessage).filter_by(session_id=chat_session.id)
@@ -1266,16 +1266,16 @@ def test_chat_endpoint_persists_failed_audit_for_unexpected_runner_error(
     ]
 
 
-def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_cursor(
+def test_chat_sessions_endpoint_lists_workspace_sessions_with_counts_filters_and_cursor(
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     _source, _document, _version, chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="history.md",
         stable_id="history-doc",
         text="Middle original evidence",
@@ -1285,7 +1285,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     _other_source, _other_document, _other_version, other_chunk = (
         _create_embedded_chunk(
             session,
-            project=other_project,
+            workspace=other_workspace,
             external_id="other.md",
             stable_id="other-doc",
             text="Other original evidence",
@@ -1298,21 +1298,21 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     base_time = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
 
     older = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "older"},
         prompt_version="history-v1",
     )
     _set_session_timestamp(older, base_time)
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=older.id,
         role="user",
         content="older question",
     )
-    repo.succeed_session(project_id=project.id, session_id=older.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=older.id)
 
     middle = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "middle"},
         prompt_version="history-v1",
     )
@@ -1320,13 +1320,13 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     middle.title_is_custom = True
     _set_session_timestamp(middle, base_time + timedelta(minutes=1))
     middle_tool = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_name="retrieval.search",
         arguments_json={"query": "middle"},
     )
     middle_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_call_id=middle_tool.id,
         query="middle",
@@ -1335,27 +1335,27 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=middle_run.id,
         chunk_id=chunk.id,
         rank=1,
         citation_json={"snippet": "middle evidence"},
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
     repo.fail_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         error_message="runner failed",
     )
     session.add(
         KnowledgeProposal(
-            project_id=project.id,
+            workspace_id=workspace.id,
             origin_session_id=middle.id,
             proposed_text="Pending chat learning",
             status="pending",
@@ -1363,34 +1363,34 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     )
 
     newest = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "newest"},
     )
     _set_session_timestamp(newest, base_time + timedelta(minutes=2))
-    repo.succeed_session(project_id=project.id, session_id=newest.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=newest.id)
     session.add(
         KnowledgeProposal(
-            project_id=project.id,
+            workspace_id=workspace.id,
             origin_session_id=newest.id,
             proposed_text="Approved chat learning",
             status="approved",
         )
     )
 
-    archived = repo.create_session(project_id=project.id)
+    archived = repo.create_session(workspace_id=workspace.id)
     _set_session_timestamp(archived, base_time + timedelta(minutes=3))
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=archived.id,
         role="user",
         content="archived question",
     )
-    repo.archive_session(project_id=project.id, session_id=archived.id)
+    repo.archive_session(workspace_id=workspace.id, session_id=archived.id)
 
-    other_session = repo.create_session(project_id=other_project.id)
+    other_session = repo.create_session(workspace_id=other_workspace.id)
     _set_session_timestamp(other_session, base_time + timedelta(minutes=4))
     other_run = repo.create_retrieval_run(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         session_id=other_session.id,
         tool_call_id=None,
         query="other",
@@ -1399,7 +1399,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         retrieval_run_id=other_run.id,
         chunk_id=other_chunk.id,
         rank=1,
@@ -1411,7 +1411,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"limit": 2},
     )
 
@@ -1444,7 +1444,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     assert middle_item["error_message"] == "runner failed"
 
     second_page = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"limit": 2, "cursor": data["next_cursor"]},
     )
     assert second_page.status_code == 200
@@ -1455,7 +1455,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     assert second_page.json()["next_cursor"] is None
 
     archived_page = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"archived": True, "limit": 10},
     )
     assert archived_page.status_code == 200
@@ -1465,7 +1465,7 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     assert archived_page.json()["items"][0]["archived_at"] is not None
 
     failed_page = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"status": "failed", "limit": 10},
     )
     assert failed_page.status_code == 200
@@ -1474,14 +1474,14 @@ def test_chat_sessions_endpoint_lists_project_sessions_with_counts_filters_and_c
     ]
 
     invalid_limit = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"limit": 0},
     )
     assert invalid_limit.status_code == 422
     assert invalid_limit.json() == {"detail": "limit must be between 1 and 100"}
 
     invalid_status = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"status": "archived"},
     )
     assert invalid_status.status_code == 422
@@ -1493,23 +1493,23 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     repo = ChatAuditRepository(session)
-    chat_session = repo.create_session(project_id=project.id)
+    chat_session = repo.create_session(workspace_id=workspace.id)
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="original title",
     )
-    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=chat_session.id)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     rename = client.patch(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}/title",
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}/title",
         json={"title": "  Renamed session  "},
     )
 
@@ -1521,18 +1521,18 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
     }
 
     blank_rename = client.patch(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}/title",
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}/title",
         json={"title": "   "},
     )
     assert blank_rename.status_code == 422
     assert blank_rename.json() == {"detail": "session title must not be empty"}
 
     archive = client.post(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}/archive"
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}/archive"
     )
-    active_list = client.get(f"/projects/{project.id}/chat/sessions")
+    active_list = client.get(f"/workspaces/{workspace.id}/chat/sessions")
     archived_list = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         params={"archived": True},
     )
 
@@ -1545,7 +1545,7 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
     assert archived_list.json()["items"][0]["archived_at"] is not None
 
     blocked = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={
             "message": "Continue after archive.",
             "session_id": str(chat_session.id),
@@ -1567,9 +1567,9 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
     assert runner.requests == []
 
     unarchive = client.post(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}/unarchive"
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}/unarchive"
     )
-    active_again = client.get(f"/projects/{project.id}/chat/sessions")
+    active_again = client.get(f"/workspaces/{workspace.id}/chat/sessions")
 
     assert unarchive.status_code == 204
     assert [item["session_id"] for item in active_again.json()["items"]] == [
@@ -1577,21 +1577,16 @@ def test_chat_session_sidebar_actions_rename_archive_and_unarchive(
     ]
 
     deleted = client.delete(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}"
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}"
     )
-    after_delete = client.get(f"/projects/{project.id}/chat/sessions")
-    missing = client.get(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}"
-    )
+    after_delete = client.get(f"/workspaces/{workspace.id}/chat/sessions")
+    missing = client.get(f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}")
 
     assert deleted.status_code == 204
     assert after_delete.json()["items"] == []
     assert missing.status_code == 404
     fresh_session = session_factory()
-    assert (
-        fresh_session.query(ChatSession).filter_by(id=chat_session.id).count()
-        == 0
-    )
+    assert fresh_session.query(ChatSession).filter_by(id=chat_session.id).count() == 0
 
 
 def test_chat_sessions_endpoint_scopes_history_to_current_user(
@@ -1599,7 +1594,7 @@ def test_chat_sessions_endpoint_scopes_history_to_current_user(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     first_user = _create_user(session, login="first@example.com", token="first-token")
     second_user = _create_user(
         session,
@@ -1612,49 +1607,53 @@ def test_chat_sessions_endpoint_scopes_history_to_current_user(
         token="root-token",
         system_role="superadmin",
     )
-    membership_repo = ProjectMembershipRepository(session)
+    membership_repo = WorkspaceMembershipRepository(session)
     membership_repo.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=first_user.id,
         role="viewer",
     )
     membership_repo.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=second_user.id,
         role="viewer",
     )
     repo = ChatAuditRepository(session)
-    first_session = repo.create_session(project_id=project.id, user_id=first_user.id)
+    first_session = repo.create_session(
+        workspace_id=workspace.id, user_id=first_user.id
+    )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=first_session.id,
         role="user",
         content="first question",
     )
-    repo.succeed_session(project_id=project.id, session_id=first_session.id)
-    second_session = repo.create_session(project_id=project.id, user_id=second_user.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=first_session.id)
+    second_session = repo.create_session(
+        workspace_id=workspace.id, user_id=second_user.id
+    )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=second_session.id,
         role="user",
         content="second question",
     )
-    repo.succeed_session(project_id=project.id, session_id=second_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=second_session.id)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     first_history = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         headers=_bearer("first-token"),
     )
     forbidden_detail = client.get(
-        f"/projects/{project.id}/chat/sessions/{second_session.id}",
+        f"/workspaces/{workspace.id}/chat/sessions/{second_session.id}",
         headers=_bearer("first-token"),
     )
     superadmin_history = client.get(
-        f"/projects/{project.id}/chat/sessions",
+        f"/workspaces/{workspace.id}/chat/sessions",
         headers=_bearer("root-token"),
     )
 
@@ -1672,16 +1671,16 @@ def test_chat_sessions_endpoint_scopes_history_to_current_user(
     }
 
 
-def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
+def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_workspace(
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     _source, _document, _version, first_chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="first.md",
         stable_id="first-doc",
         text="Alpha first evidence",
@@ -1691,7 +1690,7 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
     _second_source, _second_document, _second_version, second_chunk = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="second.md",
             stable_id="second-doc",
             text="Alpha second evidence",
@@ -1702,31 +1701,31 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
     chat_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake"},
         prompt_version="history-v1",
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="What supports alpha?",
         metadata_json={"retrieval_limit": 2},
     )
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
     )
     repo.complete_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         tool_call_id=tool_call.id,
         result_summary_json={"result_count": 2},
         latency_ms=5,
     )
     retrieval_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -1737,7 +1736,7 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
         latency_ms=5,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=second_chunk.id,
         rank=2,
@@ -1745,7 +1744,7 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
         dense_score=0.2,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=first_chunk.id,
         rank=1,
@@ -1753,26 +1752,26 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
         dense_score=0.1,
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="assistant",
         content="Alpha is supported.",
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
-    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=chat_session.id)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.get(
-        f"/projects/{project.id}/chat/sessions/{chat_session.id}",
+        f"/workspaces/{workspace.id}/chat/sessions/{chat_session.id}",
     )
 
     assert response.status_code == 200
@@ -1812,11 +1811,11 @@ def test_chat_session_detail_endpoint_returns_audit_records_and_scopes_project(
     assert data["provider_usage"][0]["operation"] == "chat"
     assert data["provider_usage"][0]["estimated_cost_usd"] == pytest.approx(0.0001)
 
-    cross_project = client.get(
-        f"/projects/{other_project.id}/chat/sessions/{chat_session.id}",
+    cross_workspace = client.get(
+        f"/workspaces/{other_workspace.id}/chat/sessions/{chat_session.id}",
     )
-    assert cross_project.status_code == 404
-    assert cross_project.json() == {"detail": "chat session not found"}
+    assert cross_workspace.status_code == 404
+    assert cross_workspace.json() == {"detail": "chat session not found"}
 
 
 def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
@@ -1824,10 +1823,10 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = _create_user(session, login="chatter@example.com", token="chatter-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="viewer",
     )
@@ -1837,7 +1836,7 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
     client = _client(session=session, provider=provider, runner=runner)
 
     first = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("chatter-token"),
         json={"message": "What is Adaptive RAG indexing?"},
     )
@@ -1845,7 +1844,7 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
     session_id = first.json()["session_id"]
 
     follow_up = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("chatter-token"),
         json={
             "message": "Why does it matter?",
@@ -1866,7 +1865,7 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
     assert "Why does it matter?" in follow_up_request.retrieval_query
 
     detail = client.get(
-        f"/projects/{project.id}/chat/sessions/{session_id}",
+        f"/workspaces/{workspace.id}/chat/sessions/{session_id}",
         headers=_bearer("chatter-token"),
     )
     assert detail.status_code == 200
@@ -1887,14 +1886,14 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
 def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     response = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "Continue please.", "session_id": str(uuid4())},
     )
 
@@ -1912,7 +1911,7 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
     assert fresh_session.query(ChatSession).count() == 0
 
     stream_response = client.post(
-        f"/projects/{project.id}/chat/stream",
+        f"/workspaces/{workspace.id}/chat/stream",
         json={"message": "Continue please.", "session_id": str(uuid4())},
     )
 
@@ -1933,17 +1932,17 @@ def test_chat_endpoint_rejects_unknown_session_id(tmp_path: Path) -> None:
 def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     owner = _create_user(session, login="owner@example.com", token="owner-token")
     other = _create_user(session, login="other@example.com", token="other-token")
-    memberships = ProjectMembershipRepository(session)
+    memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=owner.id,
         role="viewer",
     )
     memberships.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=other.id,
         role="viewer",
     )
@@ -1953,7 +1952,7 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
     client = _client(session=session, provider=provider, runner=runner)
 
     first = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("owner-token"),
         json={"message": "Private first turn."},
     )
@@ -1961,7 +1960,7 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
     session_id = first.json()["session_id"]
 
     hijack = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         headers=_bearer("other-token"),
         json={"message": "Hijack attempt.", "session_id": session_id},
     )
@@ -1984,21 +1983,21 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
 def test_chat_stream_endpoint_continues_session(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
     client = _client(session=session, provider=provider, runner=runner)
 
     first = client.post(
-        f"/projects/{project.id}/chat",
+        f"/workspaces/{workspace.id}/chat",
         json={"message": "What is Adaptive RAG indexing?"},
     )
     assert first.status_code == 200
     session_id = first.json()["session_id"]
 
     follow_up = client.post(
-        f"/projects/{project.id}/chat/stream",
+        f"/workspaces/{workspace.id}/chat/stream",
         json={
             "message": "Why does it matter?",
             "session_id": session_id,

@@ -15,19 +15,19 @@ from adaptive_rag.db.models import (
     Document,
     DocumentVersion,
     Job,
-    Project,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
     Source,
     ToolCall,
     User,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -37,7 +37,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             Source.__table__,
             Document.__table__,
@@ -55,23 +55,23 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _make_project(session) -> Project:
-    return ProjectRepository(session).create(name="demo")
+def _make_workspace(session) -> Workspace:
+    return WorkspaceRepository(session).create(name="demo")
 
 
-def _make_chunk(session, *, project: Project) -> Chunk:
+def _make_chunk(session, *, workspace: Workspace) -> Chunk:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="alpha.md",
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="alpha-doc",
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Alpha evidence",
@@ -79,7 +79,7 @@ def _make_chunk(session, *, project: Project) -> Chunk:
         index_fingerprint="fp:alpha",
     )
     return ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -99,8 +99,8 @@ def _assert_integrity_error(session) -> None:
 
 def test_chat_session_defaults_to_running() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chat_session = ChatSession(workspace_id=workspace.id)
 
     session.add(chat_session)
     session.commit()
@@ -112,9 +112,9 @@ def test_chat_session_defaults_to_running() -> None:
 
 def test_chat_session_persists_model_config_and_prompt_version() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     chat_session = ChatSession(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "qwen", "model": "qwen-plus"},
         prompt_version="m13-chat-v1",
     )
@@ -139,11 +139,11 @@ def test_chat_session_persists_model_config_and_prompt_version() -> None:
 
 def test_chat_session_can_store_owner_user_id() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     user = User(login="owner@example.com", display_name="Owner")
     session.add(user)
     session.flush()
-    chat_session = ChatSession(project_id=project.id, user_id=user.id)
+    chat_session = ChatSession(workspace_id=workspace.id, user_id=user.id)
 
     session.add(chat_session)
     session.commit()
@@ -156,12 +156,12 @@ def test_chat_session_can_store_owner_user_id() -> None:
 
 def test_chat_message_persists_role_content_and_metadata() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chat_session = ChatSession(workspace_id=workspace.id)
     session.add(chat_session)
     session.flush()
     message = ChatMessage(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="What supports alpha?",
@@ -173,7 +173,7 @@ def test_chat_message_persists_role_content_and_metadata() -> None:
     session.expunge_all()
 
     fetched = session.execute(select(ChatMessage)).scalar_one()
-    assert fetched.project_id == project.id
+    assert fetched.workspace_id == workspace.id
     assert fetched.session_id == chat_session.id
     assert fetched.role == "user"
     assert fetched.content == "What supports alpha?"
@@ -182,8 +182,8 @@ def test_chat_message_persists_role_content_and_metadata() -> None:
 
 def test_invalid_statuses_and_roles_are_rejected() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chat_session = ChatSession(project_id=project.id, status="bogus")
+    workspace = _make_workspace(session)
+    chat_session = ChatSession(workspace_id=workspace.id, status="bogus")
     session.add(chat_session)
 
     try:
@@ -193,12 +193,12 @@ def test_invalid_statuses_and_roles_are_rejected() -> None:
     else:
         raise AssertionError("Expected IntegrityError for invalid chat status")
 
-    valid_session = ChatSession(project_id=project.id)
+    valid_session = ChatSession(workspace_id=workspace.id)
     session.add(valid_session)
     session.flush()
     session.add(
         ChatMessage(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=valid_session.id,
             role="bogus",
             content="bad role",
@@ -215,13 +215,13 @@ def test_invalid_statuses_and_roles_are_rejected() -> None:
 
 def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chunk = _make_chunk(session, project=project)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
+    chat_session = ChatSession(workspace_id=workspace.id)
     session.add(chat_session)
     session.flush()
     tool_call = ToolCall(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha", "limit": 1},
@@ -229,7 +229,7 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     session.add(tool_call)
     session.flush()
     retrieval_run = RetrievalRun(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -241,7 +241,7 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
     session.add(retrieval_run)
     session.flush()
     retrieved = RetrievedChunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
@@ -276,13 +276,13 @@ def test_retrieval_run_and_retrieved_chunk_persist_citation_payload() -> None:
 
 def test_retrieved_chunk_requires_citation_payload() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chunk = _make_chunk(session, project=project)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
+    chat_session = ChatSession(workspace_id=workspace.id)
     session.add(chat_session)
     session.flush()
     retrieval_run = RetrievalRun(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         query="alpha",
         strategy="dense",
@@ -291,7 +291,7 @@ def test_retrieved_chunk_requires_citation_payload() -> None:
     session.add(retrieval_run)
     session.flush()
     retrieved = RetrievedChunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
@@ -303,14 +303,14 @@ def test_retrieved_chunk_requires_citation_payload() -> None:
 
 def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chunk = _make_chunk(session, project=project)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
+    chat_session = ChatSession(workspace_id=workspace.id)
     session.add(chat_session)
     session.commit()
     session.add(
         RetrievalRun(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=chat_session.id,
             query="alpha",
             strategy="dense",
@@ -320,7 +320,7 @@ def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
     _assert_integrity_error(session)
 
     retrieval_run = RetrievalRun(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         query="alpha",
         strategy="dense",
@@ -330,7 +330,7 @@ def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
     session.commit()
     session.add(
         RetrievedChunk(
-            project_id=project.id,
+            workspace_id=workspace.id,
             retrieval_run_id=retrieval_run.id,
             chunk_id=chunk.id,
             rank=0,
@@ -340,14 +340,14 @@ def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
     _assert_integrity_error(session)
 
     first_rank = RetrievedChunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
         citation_json={"chunk_id": str(chunk.id), "rank": 1},
     )
     duplicate_rank = RetrievedChunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
@@ -358,7 +358,7 @@ def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
 
     session.add(
         ProviderUsage(
-            project_id=project.id,
+            workspace_id=workspace.id,
             operation="chat",
             provider="qwen",
             model="qwen-plus",
@@ -372,19 +372,19 @@ def test_audit_numeric_and_uniqueness_constraints_are_enforced() -> None:
 
 def test_tool_call_and_retrieval_run_defaults_are_persisted() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chat_session = ChatSession(project_id=project.id)
+    workspace = _make_workspace(session)
+    chat_session = ChatSession(workspace_id=workspace.id)
     session.add(chat_session)
     session.flush()
     tool_call = ToolCall(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
     )
     session.add(tool_call)
     session.flush()
     retrieval_run = RetrievalRun(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -401,14 +401,14 @@ def test_tool_call_and_retrieval_run_defaults_are_persisted() -> None:
 
 def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chat_session = ChatSession(project_id=project.id)
-    job = Job(project_id=project.id, job_type="ingest_url")
+    workspace = _make_workspace(session)
+    chat_session = ChatSession(workspace_id=workspace.id)
+    job = Job(workspace_id=workspace.id, job_type="ingest_url")
     session.add_all([chat_session, job])
     session.flush()
     eval_run_id = uuid4()
     usage = ProviderUsage(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         job_id=job.id,
         eval_run_id=eval_run_id,
@@ -445,7 +445,7 @@ def test_provider_usage_can_link_to_session_job_or_eval_context() -> None:
     assert "error_type" not in columns
 
 
-def test_audit_tables_have_project_session_indexes() -> None:
+def test_audit_tables_have_workspace_session_indexes() -> None:
     table_indexes = {
         ChatSession.__tablename__: inspect(ChatSession).local_table.indexes,
         ChatMessage.__tablename__: inspect(ChatMessage).local_table.indexes,
@@ -462,37 +462,37 @@ def test_audit_tables_have_project_session_indexes() -> None:
         for table_name, indexes in table_indexes.items()
     }
 
-    assert ("project_id", "created_at") in indexed_columns["chat_sessions"]
-    assert ("project_id", "user_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "created_at") in indexed_columns["chat_sessions"]
+    assert ("workspace_id", "user_id", "created_at") in indexed_columns[
         "chat_sessions"
     ]
-    assert ("project_id", "user_id", "archived_at", "created_at") in indexed_columns[
+    assert ("workspace_id", "user_id", "archived_at", "created_at") in indexed_columns[
         "chat_sessions"
     ]
-    assert ("project_id", "status") in indexed_columns["chat_sessions"]
-    assert ("project_id", "session_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "status") in indexed_columns["chat_sessions"]
+    assert ("workspace_id", "session_id", "created_at") in indexed_columns[
         "chat_messages"
     ]
-    assert ("project_id", "session_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "session_id", "created_at") in indexed_columns[
         "tool_calls"
     ]
-    assert ("project_id", "session_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "session_id", "created_at") in indexed_columns[
         "retrieval_runs"
     ]
-    assert ("project_id", "strategy") in indexed_columns["retrieval_runs"]
-    assert ("project_id", "retrieval_run_id", "rank") in indexed_columns[
+    assert ("workspace_id", "strategy") in indexed_columns["retrieval_runs"]
+    assert ("workspace_id", "retrieval_run_id", "rank") in indexed_columns[
         "retrieved_chunks"
     ]
-    assert ("project_id", "chunk_id") in indexed_columns["retrieved_chunks"]
-    assert ("project_id", "session_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "chunk_id") in indexed_columns["retrieved_chunks"]
+    assert ("workspace_id", "session_id", "created_at") in indexed_columns[
         "provider_usage"
     ]
-    assert ("project_id", "operation", "created_at") in indexed_columns[
+    assert ("workspace_id", "operation", "created_at") in indexed_columns[
         "provider_usage"
     ]
-    assert ("project_id", "job_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "job_id", "created_at") in indexed_columns[
         "provider_usage"
     ]
-    assert ("project_id", "eval_run_id", "created_at") in indexed_columns[
+    assert ("workspace_id", "eval_run_id", "created_at") in indexed_columns[
         "provider_usage"
     ]

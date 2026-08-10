@@ -27,7 +27,7 @@ class RecordingRetrievalService:
 
 
 def test_retrieval_grounded_runner_answers_with_retrieved_snippets() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     first_chunk_id = uuid4()
     second_chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
@@ -45,7 +45,7 @@ def test_retrieval_grounded_runner_answers_with_retrieved_snippets() -> None:
     tools = ChatTools(
         retrieval=ChatRetrievalTool(
             retrieval_service=retrieval,
-            project_id=project_id,
+            workspace_id=workspace_id,
             default_limit=2,
             default_metadata_filter=None,
         )
@@ -53,7 +53,7 @@ def test_retrieval_grounded_runner_answers_with_retrieved_snippets() -> None:
 
     output = RetrievalGroundedChatRunner().run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
@@ -63,7 +63,7 @@ def test_retrieval_grounded_runner_answers_with_retrieved_snippets() -> None:
 
     assert retrieval.requests == [
         RetrievalSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query="What supports alpha?",
             limit=2,
             metadata_filter=None,
@@ -74,12 +74,12 @@ def test_retrieval_grounded_runner_answers_with_retrieved_snippets() -> None:
 
 
 def test_retrieval_grounded_runner_handles_empty_retrieval_results() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     retrieval = RecordingRetrievalService([])
     tools = ChatTools(
         retrieval=ChatRetrievalTool(
             retrieval_service=retrieval,
-            project_id=project_id,
+            workspace_id=workspace_id,
             default_limit=2,
             default_metadata_filter=None,
         )
@@ -87,7 +87,7 @@ def test_retrieval_grounded_runner_handles_empty_retrieval_results() -> None:
 
     output = RetrievalGroundedChatRunner().run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,

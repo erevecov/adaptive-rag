@@ -13,15 +13,15 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
+    Graphprojection,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.graph import GraphRetrievalResult, GraphStoreUnavailableError
@@ -54,16 +54,16 @@ class RecordingGraphRetriever:
         self.failure = failure
         self.requests: list[dict[str, object]] = []
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: tuple[UUID, ...],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         self.requests.append(
             {
-                "project_id": project_id,
+                "workspace_id": workspace_id,
                 "seed_chunk_ids": tuple(seed_chunk_ids),
                 "limit": limit,
             }
@@ -75,10 +75,10 @@ class RecordingGraphRetriever:
 
 def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _dense_source, _dense_document, _dense_version, dense_seed = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="markdown",
         external_id="dense.md",
         tags=("docs",),
@@ -89,7 +89,7 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
     )
     _graph_source, _graph_document, _graph_version, graph_hit = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="markdown",
         external_id="graph.md",
         tags=("docs",),
@@ -100,7 +100,7 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
     )
     _text_source, _text_document, _text_version, text_hit = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="text",
         external_id="filtered.txt",
         tags=("docs",),
@@ -109,7 +109,7 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
         snippet="Filtered graph evidence",
         embedding=_vector(0.8),
     )
-    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="ready"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(
@@ -123,7 +123,7 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
         session=session,
         provider=provider,
         graph_retriever=graph_retriever,
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="alpha graph smoke",
         limit=2,
         metadata_filter=RetrievalMetadataFilter(source_type="markdown"),
@@ -133,12 +133,12 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
     assert provider.inputs == ["alpha graph smoke"]
     assert graph_retriever.requests == [
         {
-            "project_id": project.id,
+            "workspace_id": workspace.id,
             "seed_chunk_ids": (dense_seed.id, graph_hit.id),
             "limit": 2,
         }
     ]
-    assert report.project_id == project.id
+    assert report.workspace_id == workspace.id
     assert report.backend == "neo4j"
     assert report.status == "ready"
     assert report.requested_strategy == "graph"
@@ -154,10 +154,10 @@ def test_run_graph_retrieval_smoke_reports_ready_graph_results_with_citations() 
 
 def test_run_graph_retrieval_smoke_reports_fallback_reason() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     _source, _document, _version, dense_seed = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="markdown",
         external_id="dense.md",
         tags=("docs",),
@@ -166,7 +166,7 @@ def test_run_graph_retrieval_smoke_reports_fallback_reason() -> None:
         snippet="Dense seed evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="ready"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(
@@ -178,7 +178,7 @@ def test_run_graph_retrieval_smoke_reports_fallback_reason() -> None:
         session=session,
         provider=provider,
         graph_retriever=graph_retriever,
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="alpha graph smoke",
         limit=1,
         monotonic=_monotonic(20.0, 20.5),
@@ -186,7 +186,7 @@ def test_run_graph_retrieval_smoke_reports_fallback_reason() -> None:
 
     assert graph_retriever.requests == [
         {
-            "project_id": project.id,
+            "workspace_id": workspace.id,
             "seed_chunk_ids": (dense_seed.id,),
             "limit": 1,
         }
@@ -208,12 +208,12 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -222,7 +222,7 @@ def _make_session() -> Session:
 def _create_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str,
     external_id: str,
     tags: tuple[str, ...],
@@ -232,19 +232,19 @@ def _create_chunk(
     embedding: list[float],
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -253,7 +253,7 @@ def _create_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,

@@ -10,9 +10,9 @@ import typer
 
 from adaptive_rag.acceptance import (
     DEFAULT_ACCEPTANCE_CONTENT,
-    DEFAULT_ACCEPTANCE_PROJECT_NAME,
     DEFAULT_ACCEPTANCE_SOURCE_EXTERNAL_ID,
     DEFAULT_ACCEPTANCE_WORKER_ID,
+    DEFAULT_ACCEPTANCE_WORKSPACE_NAME,
     AcceptanceError,
     run_runtime_settings_acceptance_smoke,
     runtime_settings_acceptance_report_payload,
@@ -25,10 +25,10 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("runtime-settings-smoke")
 def runtime_settings_smoke(
-    project_name: Annotated[
+    workspace_name: Annotated[
         str,
-        typer.Option("--project-name"),
-    ] = DEFAULT_ACCEPTANCE_PROJECT_NAME,
+        typer.Option("--workspace-name"),
+    ] = DEFAULT_ACCEPTANCE_WORKSPACE_NAME,
     source_external_id: Annotated[
         str,
         typer.Option("--source-external-id"),
@@ -54,7 +54,7 @@ def runtime_settings_smoke(
         try:
             report = run_runtime_settings_acceptance_smoke(
                 session,
-                project_name=project_name,
+                workspace_name=workspace_name,
                 source_external_id=source_external_id,
                 content=content,
                 question=question,

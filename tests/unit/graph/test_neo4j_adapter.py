@@ -133,15 +133,15 @@ def test_neo4j_close_delegates_to_driver() -> None:
     assert fake_driver.close_calls == 1
 
 
-def test_neo4j_indexing_requires_project_graph_loader() -> None:
+def test_neo4j_indexing_requires_workspace_graph_loader() -> None:
     store = Neo4jGraphStore(driver=FakeNeo4jDriver())
 
     with pytest.raises(
         GraphStoreConfigurationError,
-        match="project graph loader is required for neo4j indexing",
+        match="workspace graph loader is required for neo4j indexing",
     ):
-        store.backfill_project_graph(
-            project_id=uuid4(),
+        store.backfill_workspace_graph(
+            workspace_id=uuid4(),
             source_watermark="chunks:v1",
         )
 

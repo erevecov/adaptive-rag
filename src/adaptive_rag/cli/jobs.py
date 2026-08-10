@@ -19,7 +19,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("enqueue-ingest-source")
 def enqueue_ingest_source(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_id: Annotated[UUID, typer.Option("--source-id")],
     priority: Annotated[int, typer.Option("--priority")] = 0,
     max_attempts: Annotated[int, typer.Option("--max-attempts", min=1)] = 3,
@@ -28,7 +28,7 @@ def enqueue_ingest_source(
         try:
             job = ingestion_ops.enqueue_source_ingestion(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_id=source_id,
                 priority=priority,
                 max_attempts=max_attempts,
@@ -43,7 +43,7 @@ def enqueue_ingest_source(
 
 @app.command("list")
 def list_jobs(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
     status: Annotated[str | None, typer.Option("--status")] = None,
     job_type: Annotated[str | None, typer.Option("--job-type")] = None,
@@ -52,7 +52,7 @@ def list_jobs(
         try:
             jobs = ingestion_ops.list_ingestion_jobs(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_id=source_id,
                 status=status,
                 job_type=job_type,
@@ -66,14 +66,14 @@ def list_jobs(
 
 @app.command("show")
 def show_job(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     job_id: Annotated[UUID, typer.Option("--job-id")],
 ) -> None:
     with session_scope() as session:
         try:
             detail = ingestion_ops.get_ingestion_job_detail(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
             )
         except ingestion_ops.IngestionOpsError as exc:
@@ -90,7 +90,7 @@ def show_job(
 
 @app.command("retry")
 def retry_job(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     job_id: Annotated[UUID, typer.Option("--job-id")],
     reset_attempts: Annotated[bool, typer.Option("--reset-attempts")] = True,
 ) -> None:
@@ -98,7 +98,7 @@ def retry_job(
         try:
             job = ingestion_ops.retry_ingestion_job(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
                 reset_attempts=reset_attempts,
             )
@@ -112,7 +112,7 @@ def retry_job(
 
 @app.command("run-worker")
 def run_worker(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     worker_id: Annotated[str | None, typer.Option("--worker-id")] = None,
     once: Annotated[
         bool,
@@ -135,7 +135,7 @@ def run_worker(
 
     while True:
         payload = _run_worker_once(
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=active_worker_id,
             lease_seconds=lease_seconds,
             processed_jobs=processed_jobs,
@@ -156,7 +156,7 @@ def run_worker(
 
 def _run_worker_once(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     worker_id: str,
     lease_seconds: int,
     processed_jobs: int,
@@ -164,7 +164,7 @@ def _run_worker_once(
     with session_scope() as session:
         report = ingestion_ops.run_next_ingestion_job(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             lease_seconds=lease_seconds,
         )
@@ -172,7 +172,7 @@ def _run_worker_once(
 
     payload: dict[str, object] = {
         "status": report.status,
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "worker_id": report.worker_id,
         "processed_jobs": processed_jobs,
     }

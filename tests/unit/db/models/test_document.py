@@ -9,7 +9,7 @@ from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Document, Project, Source
+from adaptive_rag.db.models import Document, Source, Workspace
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -17,43 +17,43 @@ def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
         engine,
-        tables=[Project.__table__, Source.__table__, Document.__table__],
+        tables=[Workspace.__table__, Source.__table__, Document.__table__],
     )
     return create_session_factory(engine)()
 
 
-def _make_project_and_source(session):
-    project = Project(name="demo")
-    session.add(project)
+def _make_workspace_and_source(session):
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
     source = Source(
-        project_id=project.id, source_type="web", external_id="id-1"
+        workspace_id=workspace.id, source_type="web", external_id="id-1"
     )
     session.add(source)
     session.commit()
-    return project, source
+    return workspace, source
 
 
-def test_document_belongs_to_project_and_source():
+def test_document_belongs_to_workspace_and_source():
     session = _make_session()
-    project, source = _make_project_and_source(session)
+    workspace, source = _make_workspace_and_source(session)
 
     document = Document(
-        project_id=project.id, source_id=source.id, stable_id="doc-1"
+        workspace_id=workspace.id, source_id=source.id, stable_id="doc-1"
     )
     session.add(document)
     session.commit()
 
-    assert document.project_id == project.id
+    assert document.workspace_id == workspace.id
     assert document.source_id == source.id
 
 
 def test_document_stable_identifier_persists():
     session = _make_session()
-    project, source = _make_project_and_source(session)
+    workspace, source = _make_workspace_and_source(session)
 
     document = Document(
-        project_id=project.id, source_id=source.id, stable_id="doc-abc"
+        workspace_id=workspace.id, source_id=source.id, stable_id="doc-abc"
     )
     session.add(document)
     session.commit()
@@ -63,17 +63,17 @@ def test_document_stable_identifier_persists():
         select(Document).where(Document.stable_id == "doc-abc")
     ).scalar_one()
 
-    assert fetched.project_id == project.id
+    assert fetched.workspace_id == workspace.id
 
 
 def test_document_stable_id_is_unique_within_source():
     session = _make_session()
-    project, source = _make_project_and_source(session)
+    workspace, source = _make_workspace_and_source(session)
     document = Document(
-        project_id=project.id, source_id=source.id, stable_id="doc-abc"
+        workspace_id=workspace.id, source_id=source.id, stable_id="doc-abc"
     )
     duplicate = Document(
-        project_id=project.id, source_id=source.id, stable_id="doc-abc"
+        workspace_id=workspace.id, source_id=source.id, stable_id="doc-abc"
     )
 
     session.add(document)
@@ -90,22 +90,22 @@ def test_document_stable_id_is_unique_within_source():
     raise AssertionError("Expected IntegrityError for duplicate document identity")
 
 
-def test_document_project_id_and_source_id_are_required():
+def test_document_workspace_id_and_source_id_are_required():
     columns = {c.name: c for c in inspect(Document).columns}
 
-    assert columns["project_id"].nullable is False
+    assert columns["workspace_id"].nullable is False
     assert columns["source_id"].nullable is False
 
 
-def test_document_has_foreign_keys_to_projects_and_sources():
+def test_document_has_foreign_keys_to_workspaces_and_sources():
     table = inspect(Document).local_table
     fk_targets = {fk.column.table.name for fk in table.foreign_keys}
 
-    assert "projects" in fk_targets
+    assert "workspaces" in fk_targets
     assert "sources" in fk_targets
 
 
-def test_document_project_and_source_are_indexed():
+def test_document_workspace_and_source_are_indexed():
     # SQLAlchemy expone index=True como columnas en table.indexes o via
     # el flag de columna. Validamos que existan indices que cubran esas
     # columnas (se creen como indices individuales o compuestos).
@@ -114,5 +114,5 @@ def test_document_project_and_source_are_indexed():
     for index in table.indexes:
         indexed_columns.update(col.name for col in index.columns)
 
-    assert "project_id" in indexed_columns
+    assert "workspace_id" in indexed_columns
     assert "source_id" in indexed_columns
