@@ -860,6 +860,11 @@ export type ApiClient = {
     workspaceId: string,
     attachmentId: string,
   ): Promise<void>
+  /** Authenticated blob fetch for attachment preview / download. */
+  getChatAttachmentContent(
+    workspaceId: string,
+    attachmentId: string,
+  ): Promise<Blob>
   searchRetrieval(
     workspaceId: string,
     body: RetrievalSearchRequestBody,
@@ -1232,6 +1237,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/workspaces/${encodePathSegment(
           workspaceId,
         )}/chat/attachments/${encodePathSegment(attachmentId)}`,
+      })
+    },
+    getChatAttachmentContent(workspaceId, attachmentId) {
+      return requestBlob(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/chat/attachments/${encodePathSegment(attachmentId)}/content`,
       })
     },
     getChatSession(workspaceId, sessionId) {
@@ -1701,6 +1714,27 @@ async function requestForm<T>(
   }
 
   return payload as T
+}
+
+async function requestBlob(
+  fetchImpl: typeof fetch,
+  options: {
+    method: 'GET'
+    url: string
+  },
+): Promise<Blob> {
+  const response = await fetchImpl(options.url, {
+    method: options.method,
+  })
+  if (!response.ok) {
+    const payload = await readJson(response)
+    const detail = getErrorDetail(payload)
+    throw new ApiClientError(getApiErrorMessage(detail, response.status), {
+      detail,
+      status: response.status,
+    })
+  }
+  return response.blob()
 }
 
 async function requestVoid(

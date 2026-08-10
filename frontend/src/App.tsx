@@ -2766,6 +2766,12 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                 isSpeechSupported={isSpeechSupported}
                 onAddAttachmentFiles={chatAttachments.addFiles}
                 onCancelRequest={handleCancelRequest}
+                onLoadAttachmentContent={(attachmentId) =>
+                  client.getChatAttachmentContent(
+                    workspaceId.trim(),
+                    attachmentId,
+                  )
+                }
                 onOpenContextInspector={handleOpenContextOverview}
                 onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
                 onOpenSource={(sourceId, citationSnippet) =>
