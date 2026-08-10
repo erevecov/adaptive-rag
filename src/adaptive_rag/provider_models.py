@@ -96,6 +96,14 @@ def _models_endpoint(base_url: str) -> str:
 
 
 def _model_items(data: object) -> list[object] | None:
+    """Extract model rows from OpenAI-compatible or DashScope native listings.
+
+    Shapes observed:
+    - OpenAI / Token Plan: ``{"data": [{"id": "..."}]}``
+    - DashScope ``/api/v1/models``: ``{"output": {"models": [{"model": "..."}]}}``
+      (also an older ``output.data`` variant)
+    """
+
     if not isinstance(data, dict):
         return None
     items = data.get("data")
@@ -103,19 +111,23 @@ def _model_items(data: object) -> list[object] | None:
         return items
     output = data.get("output")
     if isinstance(output, dict):
-        output_items = output.get("data")
-        if isinstance(output_items, list):
-            return output_items
+        for key in ("data", "models"):
+            output_items = output.get(key)
+            if isinstance(output_items, list):
+                return output_items
     return None
 
 
 def _model_from_item(item: object, *, provider: str) -> ProviderModelInfo:
     if not isinstance(item, dict):
         raise ValueError("provider model item must be an object")
-    model_id = item.get("id")
-    if not isinstance(model_id, str) or not model_id.strip():
+    # OpenAI uses "id"; DashScope Model Studio list uses "model".
+    raw_id = item.get("id")
+    if not isinstance(raw_id, str) or not raw_id.strip():
+        raw_id = item.get("model")
+    if not isinstance(raw_id, str) or not raw_id.strip():
         raise ValueError("provider model item missing id")
-    normalized_model_id = model_id.strip()
+    normalized_model_id = raw_id.strip()
     capabilities = _capabilities_from_item(item)
     if not capabilities and provider == "qwen":
         capabilities = infer_qwen_model_capabilities(normalized_model_id)

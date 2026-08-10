@@ -130,6 +130,53 @@ def test_model_lister_reads_dashscope_output_data_shape() -> None:
     assert [model.model_id for model in models] == ["qwen-max"]
 
 
+def test_model_lister_reads_dashscope_api_v1_models_list_shape() -> None:
+    """Live DashScope intl returns output.models[].model (not data[].id)."""
+
+    lister = HTTPProviderModelLister(
+        timeout_seconds=3.0,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "success": True,
+                    "output": {
+                        "total": 2,
+                        "page_no": 1,
+                        "page_size": 20,
+                        "models": [
+                            {
+                                "model": "qwen3-rerank",
+                                "name": "Qwen3-Rerank",
+                            },
+                            {
+                                "model": "text-embedding-v4",
+                                "name": "Text Embedding V4",
+                            },
+                        ],
+                    },
+                },
+            )
+        ),
+    )
+    connection = ProviderConnection(
+        connection_id="qwen-dashscope",
+        provider="qwen",
+        connection_type="hosted",
+        base_url="https://dashscope-intl.aliyuncs.com/api/v1",
+        capabilities_json=["dense_embedding", "sparse_embedding", "rerank"],
+    )
+
+    models = lister.list_models(connection, api_key="sk-hosted-secret")
+
+    assert [model.model_id for model in models] == [
+        "qwen3-rerank",
+        "text-embedding-v4",
+    ]
+    assert models[0].capabilities == ("rerank",)
+    assert models[1].capabilities == ("dense_embedding", "sparse_embedding")
+
+
 def test_qwen_model_lister_infers_safe_capabilities_when_provider_is_silent() -> None:
     lister = HTTPProviderModelLister(
         timeout_seconds=3.0,
