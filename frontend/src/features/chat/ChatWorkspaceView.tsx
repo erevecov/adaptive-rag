@@ -1,5 +1,6 @@
 import {
   type Dispatch,
+  type DragEvent,
   type FormEvent,
   type KeyboardEvent,
   type Ref,
@@ -228,6 +229,8 @@ export function ChatWorkspacePanel({
 }: ChatWorkspacePanelProps) {
   const questionInputRef = useRef<HTMLTextAreaElement>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
+  const [isComposerDragActive, setIsComposerDragActive] = useState(false)
+  const composerDragDepthRef = useRef(0)
 
   useEffect(() => {
     if (question.length > 0) {
@@ -241,6 +244,60 @@ export function ChatWorkspacePanel({
 
   const canSend =
     question.trim().length > 0 && !attachmentsBlocked && !isAsking
+  const canAcceptDroppedFiles =
+    onAddAttachmentFiles !== undefined && !attachmentsAtCap && !isAsking
+
+  function resetComposerDrag() {
+    composerDragDepthRef.current = 0
+    setIsComposerDragActive(false)
+  }
+
+  function handleComposerDragEnter(event: DragEvent<HTMLDivElement>) {
+    if (!canAcceptDroppedFiles) {
+      return
+    }
+    if (![...event.dataTransfer.types].includes('Files')) {
+      return
+    }
+    event.preventDefault()
+    composerDragDepthRef.current += 1
+    setIsComposerDragActive(true)
+  }
+
+  function handleComposerDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!canAcceptDroppedFiles) {
+      return
+    }
+    if (![...event.dataTransfer.types].includes('Files')) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+  }
+
+  function handleComposerDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (!canAcceptDroppedFiles) {
+      return
+    }
+    event.preventDefault()
+    composerDragDepthRef.current = Math.max(0, composerDragDepthRef.current - 1)
+    if (composerDragDepthRef.current === 0) {
+      setIsComposerDragActive(false)
+    }
+  }
+
+  function handleComposerDrop(event: DragEvent<HTMLDivElement>) {
+    if (!canAcceptDroppedFiles || onAddAttachmentFiles === undefined) {
+      return
+    }
+    event.preventDefault()
+    resetComposerDrag()
+    const files = event.dataTransfer.files
+    if (files.length === 0) {
+      return
+    }
+    onAddAttachmentFiles(files)
+  }
 
   return (
     <Panel
@@ -341,8 +398,17 @@ export function ChatWorkspacePanel({
           tabIndex={-1}
         >
           <div
-            className="rounded-2xl border border-border bg-muted/15 p-1.5 shadow-sm"
+            className={cn(
+              'rounded-2xl border border-border bg-muted/15 p-1.5 shadow-sm',
+              isComposerDragActive &&
+                'border-primary/60 bg-primary/5 ring-1 ring-primary/30',
+            )}
+            data-drag-active={isComposerDragActive ? 'true' : undefined}
             data-slot="chat-composer-input-shell"
+            onDragEnter={handleComposerDragEnter}
+            onDragLeave={handleComposerDragLeave}
+            onDragOver={handleComposerDragOver}
+            onDrop={handleComposerDrop}
           >
             {attachments.length > 0 ? (
               <div className="px-2 pb-1 pt-1">

@@ -785,6 +785,79 @@ describe('ChatWorkspacePanel', () => {
     ).toBeNull()
   })
 
+  test('composer paperclip, paste, and drop all call onAddAttachmentFiles', async () => {
+    const user = userEvent.setup()
+    const onAddAttachmentFiles = vi.fn()
+    const { view } = renderChatWorkspace({
+      attachmentAccept: 'image/png,text/plain',
+      attachments: [],
+      onAddAttachmentFiles,
+      response: null,
+    })
+
+    expect(screen.getByRole('button', { name: 'Attach files' })).toBeTruthy()
+    const fileInput = view.container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement | null
+    expect(fileInput).toBeTruthy()
+
+    // Paperclip path: change the hidden file input (same as clicking Attach).
+    const paperclipFile = new File(['png'], 'clip.png', { type: 'image/png' })
+    await user.upload(fileInput!, paperclipFile)
+    expect(onAddAttachmentFiles).toHaveBeenCalled()
+    const paperclipArg = onAddAttachmentFiles.mock.calls.at(-1)?.[0] as FileList
+    expect(Array.from(paperclipArg).map((file) => file.name)).toEqual([
+      'clip.png',
+    ])
+
+    // Paste path: clipboard image into the question textarea.
+    const pasteFile = new File(['pasted'], 'paste.png', { type: 'image/png' })
+    const textarea = screen.getByLabelText('Question')
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true })
+    Object.defineProperty(pasteEvent, 'clipboardData', {
+      value: {
+        files: {
+          0: pasteFile,
+          length: 1,
+          item: (index: number) => (index === 0 ? pasteFile : null),
+          [Symbol.iterator]: function* () {
+            yield pasteFile
+          },
+        },
+      },
+    })
+    textarea.dispatchEvent(pasteEvent)
+    expect(onAddAttachmentFiles).toHaveBeenCalledTimes(2)
+    const pasteArg = onAddAttachmentFiles.mock.calls.at(-1)?.[0] as FileList
+    expect(Array.from(pasteArg).map((file) => file.name)).toEqual(['paste.png'])
+
+    // Drop path: file onto the composer shell.
+    const dropFile = new File(['drop'], 'drop.png', { type: 'image/png' })
+    const shell = view.container.querySelector(
+      '[data-slot="chat-composer-input-shell"]',
+    )
+    expect(shell).toBeTruthy()
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(dropEvent, 'dataTransfer', {
+      value: {
+        files: {
+          0: dropFile,
+          length: 1,
+          item: (index: number) => (index === 0 ? dropFile : null),
+          [Symbol.iterator]: function* () {
+            yield dropFile
+          },
+        },
+        types: ['Files'],
+        dropEffect: 'none',
+      },
+    })
+    shell!.dispatchEvent(dropEvent)
+    expect(onAddAttachmentFiles).toHaveBeenCalledTimes(3)
+    const dropArg = onAddAttachmentFiles.mock.calls.at(-1)?.[0] as FileList
+    expect(Array.from(dropArg).map((file) => file.name)).toEqual(['drop.png'])
+  })
+
   test('renders knowledge draft actions with editable text', () => {
     const draftResponse: ChatResponseBody = {
       ...response,
