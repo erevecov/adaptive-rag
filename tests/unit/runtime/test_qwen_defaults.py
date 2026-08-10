@@ -116,37 +116,70 @@ def test_seeds_rerank_and_embedding_when_declared_but_missing_from_provider_list
 
 
 def test_infers_known_qwen_model_capabilities() -> None:
-    assert infer_qwen_model_capabilities("qwen-plus") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen-plus") == ("chat", "contextualization")
     assert infer_qwen_model_capabilities("text-embedding-v4") == (
         "dense_embedding",
         "sparse_embedding",
     )
     assert infer_qwen_model_capabilities("qwen3-rerank") == ("rerank",)
     # Modern dotted ids from Bailian Token Plan.
-    assert infer_qwen_model_capabilities("qwen3.7-plus") == ("chat",)
-    assert infer_qwen_model_capabilities("qwen3.8-max") == ("chat",)
-    assert infer_qwen_model_capabilities("qwen3.6-flash") == ("chat",)
-    assert infer_qwen_model_capabilities("deepseek-v4-pro") == ("chat",)
-    assert infer_qwen_model_capabilities("glm-5.2") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen3.7-plus") == (
+        "chat",
+        "contextualization",
+    )
+    assert infer_qwen_model_capabilities("qwen3.8-max") == (
+        "chat",
+        "contextualization",
+    )
+    assert infer_qwen_model_capabilities("qwen3.6-flash") == (
+        "chat",
+        "contextualization",
+    )
+    assert infer_qwen_model_capabilities("deepseek-v4-pro") == (
+        "chat",
+        "contextualization",
+    )
+    assert infer_qwen_model_capabilities("glm-5.2") == ("chat", "contextualization")
     assert infer_qwen_model_capabilities("wan2.7-image") == ()
     assert infer_qwen_model_capabilities("qwen-audio-3.0-tts-plus") == ()
 
 
 def test_infers_vision_capabilities_for_qwen_vl_models() -> None:
-    assert infer_qwen_model_capabilities("qwen-vl-max") == ("chat", "vision")
-    assert infer_qwen_model_capabilities("qwen2-vl-7b") == ("chat", "vision")
-    assert infer_qwen_model_capabilities("qwen2.5-vl-72b") == ("chat", "vision")
-    assert infer_qwen_model_capabilities("qwen3-vl-plus") == ("chat", "vision")
-    assert infer_qwen_model_capabilities("Qwen2.5-VL-72B-Instruct") == (
+    assert infer_qwen_model_capabilities("qwen-vl-max") == (
         "chat",
+        "contextualization",
         "vision",
     )
-    assert infer_qwen_model_capabilities("qwen3-vision-plus") == ("chat", "vision")
+    assert infer_qwen_model_capabilities("qwen2-vl-7b") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen2.5-vl-72b") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen3-vl-plus") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("Qwen2.5-VL-72B-Instruct") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen3-vision-plus") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
 
 
 def test_does_not_mark_non_vision_qwen_models_as_vision() -> None:
-    assert infer_qwen_model_capabilities("qwen-plus") == ("chat",)
-    assert infer_qwen_model_capabilities("qwen3-max") == ("chat",)
+    assert infer_qwen_model_capabilities("qwen-plus") == ("chat", "contextualization")
+    assert infer_qwen_model_capabilities("qwen3-max") == ("chat", "contextualization")
     assert infer_qwen_model_capabilities("qwen3-embedding-8b") == (
         "dense_embedding",
         "sparse_embedding",

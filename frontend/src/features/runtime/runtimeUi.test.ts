@@ -10,6 +10,7 @@ import {
   connectionTypeLabel,
   formatProviderModelPricing,
   missingSyncedModelMessage,
+  effectiveModelCapabilities,
   providerLabel,
   providerModelsForConnection,
   qwenServiceModelEndpointWarning,
@@ -118,6 +119,30 @@ describe('providerModelsForConnection', () => {
         (model) => model.model_id,
       ),
     ).toEqual(['qwen3.7-plus'])
+  })
+})
+
+describe('effectiveModelCapabilities', () => {
+  test('expands chat models to Contextualization when the connection declares it', () => {
+    const connection: ProviderConnection = {
+      ...baseConnection,
+      capabilities: ['chat', 'contextualization', 'vision'],
+      connection_id: 'token-plan',
+    }
+    const model: ProviderModel = {
+      capabilities: ['chat'],
+      connection_id: 'token-plan',
+      created_at: '2026-01-01T00:00:00Z',
+      last_seen_at: '2026-01-01T00:00:00Z',
+      metadata: null,
+      model_id: 'qwen3.7-plus',
+      pricing: null,
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    expect(effectiveModelCapabilities({ connection, model })).toEqual([
+      'chat',
+      'contextualization',
+    ])
   })
 })
 

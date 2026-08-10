@@ -187,7 +187,8 @@ export function providerModelsForConnection({
     if (declared.size === 0) {
       return true
     }
-    return model.capabilities.some((capability) => declared.has(capability))
+    const effective = effectiveModelCapabilities({ connection, model })
+    return effective.some((capability) => declared.has(capability))
   })
 }
 
@@ -224,15 +225,53 @@ export function selectedSlotEndpointWarning({
   })
 }
 
+/**
+ * Effective slots a catalog model can fill on a connection.
+ * Chat LLMs also serve Contextualization when that slot is declared.
+ */
+export function effectiveModelCapabilities({
+  connection,
+  model,
+}: {
+  connection: ProviderConnection | null | undefined
+  model: ProviderModel
+}): string[] {
+  const caps = new Set(model.capabilities)
+  const declared = new Set(connection?.capabilities ?? [])
+  if (
+    caps.has('chat') &&
+    (declared.size === 0 || declared.has('contextualization'))
+  ) {
+    caps.add('contextualization')
+  }
+  // Stable order matching Global Defaults slot list.
+  return RUNTIME_SLOTS.filter((slot) => caps.has(slot))
+}
+
+export function modelServesCapability({
+  capability,
+  connection,
+  model,
+}: {
+  capability: string
+  connection?: ProviderConnection | null
+  model: ProviderModel
+}): boolean {
+  return effectiveModelCapabilities({ connection, model }).includes(capability)
+}
+
 export function providerModelOptions({
   capability,
   configuredModels = [],
+  connection,
   connectionId,
   providerModels,
   selectedModelId,
 }: {
   capability: string
   configuredModels?: ProviderModelOption[]
+  /** Optional connection for expanding chat → contextualization eligibility. */
+  connection?: ProviderConnection | null
   connectionId: string
   providerModels: ProviderModel[]
   selectedModelId: string
@@ -244,7 +283,7 @@ export function providerModelOptions({
     .filter(
       (model) =>
         model.connection_id === connectionId &&
-        model.capabilities.includes(capability),
+        modelServesCapability({ capability, connection, model }),
     )
     .map((model) => ({
       connection_id: model.connection_id,

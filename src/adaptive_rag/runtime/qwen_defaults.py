@@ -63,12 +63,13 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
     if "tts" in normalized or "audio" in normalized or "realtime" in normalized:
         return ()
     if _QWEN_VISION_MODEL_PATTERN.search(normalized) or "vision" in normalized:
-        return ("chat", "vision")
+        # Vision-capable chat models also drive contextualization when declared.
+        return ("chat", "contextualization", "vision")
     if normalized in _QWEN_CHAT_MODEL_IDS:
-        return ("chat",)
+        return ("chat", "contextualization")
     # qwen3-max, qwen3.7-plus, qwen3.8-max, qwen3.6-flash, …
     if normalized.startswith("qwen") and "embedding" not in normalized:
-        return ("chat",)
+        return ("chat", "contextualization")
     # Third-party LLMs served via Model Studio / Bailian.
     if (
         "deepseek" in normalized
@@ -76,7 +77,7 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
         or normalized.startswith("kimi")
         or normalized.startswith("moonshot")
     ):
-        return ("chat",)
+        return ("chat", "contextualization")
     return ()
 
 

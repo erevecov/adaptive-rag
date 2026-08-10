@@ -392,6 +392,9 @@ def _catalog_capabilities(
     When the provider listing omits capabilities (common for OpenAI-compatible
     ``/models``), infer them for Qwen/Model Studio ids so Global Defaults can
     offer chat/embedding/rerank options after sync.
+
+    Chat LLMs also fill the ``contextualization`` slot when the connection
+    declares it (same OpenAI-compatible chat completions path).
     """
 
     capabilities = list(model.capabilities)
@@ -402,11 +405,18 @@ def _catalog_capabilities(
     if not capabilities:
         return []
     connection_capabilities = set(connection.capabilities_json)
-    return [
+    matched = [
         capability
         for capability in capabilities
         if capability in connection_capabilities
     ]
+    if (
+        "chat" in matched
+        and "contextualization" in connection_capabilities
+        and "contextualization" not in matched
+    ):
+        matched.append("contextualization")
+    return matched
 
 
 def _http_error(error: ValueError) -> HTTPException:
