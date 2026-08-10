@@ -535,12 +535,12 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     }
 
     let ignore = false
-    setRuntimeState('loading')
-    setRuntimeError(null)
 
-    void client
-      .listProviderConnections()
-      .then(async (connections) => {
+    async function loadModelCatalog() {
+      setRuntimeState('loading')
+      setRuntimeError(null)
+      try {
+        const connections = await client.listProviderConnections()
         const currentConnectionId = modelSyncConnectionId.trim()
         const selectedConnectionId = connections.items.some(
           (connection) => connection.connection_id === currentConnectionId,
@@ -579,12 +579,14 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
         )
         setRuntimeError(null)
         setRuntimeState('succeeded')
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (ignore) return
         setRuntimeState('failed')
         setRuntimeError(getErrorMessage(error))
-      })
+      }
+    }
+
+    void loadModelCatalog()
 
     return () => {
       ignore = true
@@ -607,33 +609,35 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     }
 
     let ignore = false
-    setRuntimeState('loading')
-    setRuntimeError(null)
 
-    void Promise.all([
-      client.listProviderConnections(),
-      client.listRuntimeSlotDefaults(),
-      client.listChatModels(),
-      client.listProviderModels(),
-      client.getChatRetrievalSettings(),
-    ])
-      .then(
-        ([connections, slots, chatModels, providerModels, chatRetrieval]) => {
-          if (ignore) return
-          setRuntimeConnections(connections.items)
-          setRuntimeSlots(slots.items)
-          setRuntimeChatModels(chatModels.items)
-          setRuntimeProviderModels(providerModels.items)
-          setRuntimeChatRetrieval(chatRetrieval)
-          syncGlobalChatRetrievalFields(chatRetrieval)
-          setRuntimeState('succeeded')
-        },
-      )
-      .catch((error: unknown) => {
+    async function loadGlobalDefaults() {
+      setRuntimeState('loading')
+      setRuntimeError(null)
+      try {
+        const [connections, slots, chatModels, providerModels, chatRetrieval] =
+          await Promise.all([
+            client.listProviderConnections(),
+            client.listRuntimeSlotDefaults(),
+            client.listChatModels(),
+            client.listProviderModels(),
+            client.getChatRetrievalSettings(),
+          ])
+        if (ignore) return
+        setRuntimeConnections(connections.items)
+        setRuntimeSlots(slots.items)
+        setRuntimeChatModels(chatModels.items)
+        setRuntimeProviderModels(providerModels.items)
+        setRuntimeChatRetrieval(chatRetrieval)
+        syncGlobalChatRetrievalFields(chatRetrieval)
+        setRuntimeState('succeeded')
+      } catch (error: unknown) {
         if (ignore) return
         setRuntimeState('failed')
         setRuntimeError(getErrorMessage(error))
-      })
+      }
+    }
+
+    void loadGlobalDefaults()
 
     return () => {
       ignore = true

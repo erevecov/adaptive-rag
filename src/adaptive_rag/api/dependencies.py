@@ -20,6 +20,7 @@ from adaptive_rag.auth import (
     users_exist,
 )
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
+from adaptive_rag.chat.attachments import ChatAttachmentContext
 from adaptive_rag.chat.knowledge import SqlAlchemyKnowledgeProposalSubmitter
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.models import Workspace
@@ -476,7 +477,7 @@ def get_chat_service(
         workspace_id: UUID,
         user_id: UUID | None,
         attachment_ids: Sequence[UUID],
-    ):
+    ) -> tuple[ChatAttachmentContext, ...]:
         from adaptive_rag.chat.attachments import load_chat_attachments
 
         return load_chat_attachments(
@@ -487,13 +488,10 @@ def get_chat_service(
         )
 
     def _vision_runner_factory(workspace_id: UUID) -> ChatRunner | None:
-        return cast(
-            ChatRunner | None,
-            get_vision_chat_runner(
-                workspace_id=workspace_id,
-                session=session,
-                usage_tracker=usage_tracker,
-            ),
+        return get_vision_chat_runner(
+            workspace_id=workspace_id,
+            session=session,
+            usage_tracker=usage_tracker,
         )
 
     return ChatService(

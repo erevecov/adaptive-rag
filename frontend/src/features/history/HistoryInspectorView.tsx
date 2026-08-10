@@ -61,6 +61,7 @@ export type FocusedTurn = {
  * Slice session detail to a single Q/A turn window.
  * Turn id matches transcript builders: assistant message_id, else user message_id.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- pure helper for turn focus
 export function filterSessionDetailToTurn(
   detail: ChatSessionDetailResponse,
   turnId: string,
@@ -1342,10 +1343,31 @@ function InternalActionStepper({
 }) {
   const stepCount = countInternalSteps(detail)
   // Controlled open so turn-focus starts expanded; user can still collapse.
-  const [isOpen, setIsOpen] = useState(defaultOpen)
-  useEffect(() => {
-    setIsOpen(defaultOpen)
-  }, [defaultOpen])
+  // Key remounts when defaultOpen changes so initial open state resets without
+  // an effect that calls setState (react-hooks/set-state-in-effect).
+  return (
+    <PipelineActivityDetailsBody
+      detail={detail}
+      initiallyOpen={defaultOpen}
+      key={defaultOpen ? 'pipeline-open' : 'pipeline-closed'}
+      state={state}
+      stepCount={stepCount}
+    />
+  )
+}
+
+function PipelineActivityDetailsBody({
+  detail,
+  initiallyOpen,
+  state,
+  stepCount,
+}: {
+  detail: ChatSessionDetailResponse | null
+  initiallyOpen: boolean
+  state: RequestState
+  stepCount: number
+}) {
+  const [isOpen, setIsOpen] = useState(initiallyOpen)
 
   return (
     <details
