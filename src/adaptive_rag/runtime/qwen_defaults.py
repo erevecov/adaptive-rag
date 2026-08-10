@@ -21,6 +21,12 @@ QWEN_RERANK_MODEL_ID = "qwen3-rerank"
 _QWEN_EMBEDDING_MODEL_IDS = {"text-embedding-v3", "text-embedding-v4"}
 _QWEN_CHAT_MODEL_IDS = {"qwen-plus", "qwen-max", "qwen-turbo"}
 _QWEN_VISION_MODEL_PATTERN = re.compile(r"(?:^|[-_.])vl(?:[-_.]|$)")
+# Token Plan / Model Studio chat ids that accept multimodal image_url without a
+# "-vl-" segment (verified live: 3.6-flash, 3.7-plus, 3.8-max; 3.7-max does not).
+_NATIVE_MULTIMODAL_QWEN_PLUS_FLASH = re.compile(
+    r"^qwen3\.(\d+)-(?:plus|flash)(?:-|$)"
+)
+_NATIVE_MULTIMODAL_QWEN_MAX = re.compile(r"^qwen3\.(\d+)-max(?:-|$)")
 
 # OpenAI-compatible GET /models (Bailian Token Plan, etc.) often omits these
 # service models even when the connection declares the slot capability.
@@ -62,13 +68,18 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
     # Audio / TTS / realtime — not chat pipeline slots.
     if "tts" in normalized or "audio" in normalized or "realtime" in normalized:
         return ()
-    if _QWEN_VISION_MODEL_PATTERN.search(normalized) or "vision" in normalized:
-        return ("chat", "vision")
+    if (
+        _QWEN_VISION_MODEL_PATTERN.search(normalized)
+        or "vision" in normalized
+        or _is_native_multimodal_qwen_chat(normalized)
+    ):
+        # Vision-capable chat models also drive contextualization when declared.
+        return ("chat", "contextualization", "vision")
     if normalized in _QWEN_CHAT_MODEL_IDS:
-        return ("chat",)
+        return ("chat", "contextualization")
     # qwen3-max, qwen3.7-plus, qwen3.8-max, qwen3.6-flash, …
     if normalized.startswith("qwen") and "embedding" not in normalized:
-        return ("chat",)
+        return ("chat", "contextualization")
     # Third-party LLMs served via Model Studio / Bailian.
     if (
         "deepseek" in normalized
@@ -76,8 +87,26 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
         or normalized.startswith("kimi")
         or normalized.startswith("moonshot")
     ):
-        return ("chat",)
+        return ("chat", "contextualization")
     return ()
+
+
+def _is_native_multimodal_qwen_chat(normalized_model_id: str) -> bool:
+    """Return whether a non-VL Qwen chat id still accepts multimodal images.
+
+    Recent Model Studio / Bailian Token Plan models (``qwen3.6-flash``,
+    ``qwen3.7-plus``, ``qwen3.8-max``, …) accept ``image_url`` content parts
+    without a ``-vl-`` segment in the id. Classic text-only ids such as
+    ``qwen3.7-max`` and legacy ``qwen-plus`` do not.
+    """
+
+    match = _NATIVE_MULTIMODAL_QWEN_PLUS_FLASH.match(normalized_model_id)
+    if match is not None and int(match.group(1)) >= 6:
+        return True
+    match = _NATIVE_MULTIMODAL_QWEN_MAX.match(normalized_model_id)
+    if match is not None and int(match.group(1)) >= 8:
+        return True
+    return False
 
 
 def ensure_qwen_declared_capability_models(
@@ -204,16 +233,28 @@ def materialize_qwen_runtime_defaults(
 
 
 def is_qwen_native_sparse_base_url(base_url: str | None) -> bool:
-    """Return whether a Qwen base URL can serve native sparse embeddings."""
+    """Return whether a Qwen base URL can serve native sparse embeddings.
+
+    Accepts either the full DashScope text-embedding service URL or the API
+    root (``…/api/v1``), which the embedding client expands to the service path.
+    OpenAI-compatible chat gateways (Token Plan ``compatible-mode``, bare
+    ``…/v1``) cannot serve sparse embeddings.
+    """
 
     if base_url is None:
         return False
     normalized = base_url.strip().rstrip("/")
     if not normalized:
         return False
-    if "/compatible-mode/" in normalized or normalized.endswith("/v1"):
+    if "/compatible-mode/" in normalized:
         return False
-    return "/services/embeddings/text-embedding" in normalized
+    if "/services/embeddings/text-embedding" in normalized:
+        return True
+    if normalized.endswith("/api/v1"):
+        return True
+    if normalized.endswith("/v1"):
+        return False
+    return False
 
 
 def _qwen_catalog_candidate(

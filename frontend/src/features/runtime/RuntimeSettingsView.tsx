@@ -33,11 +33,13 @@ import {
   connectionOptionLabel,
   connectionTypeLabel,
   connectionsForCapability,
+  effectiveModelCapabilities,
   formatProviderModelPricing,
   missingSyncedModelMessage,
   normalizeChatRetrievalLimit,
   providerLabel,
   providerModelOptions,
+  providerModelsForConnection,
   qwenServiceModelEndpointWarning,
   runtimeStatusLabel,
   selectedSlotEndpointWarning,
@@ -200,23 +202,35 @@ export function RuntimeSettingsPanel({
   state,
 }: RuntimeSettingsPanelProps) {
   const globalSlotConnections = connectionsForCapability(connections, globalSlot)
+  const globalSlotConnection =
+    connections.find((c) => c.connection_id === globalSlotConnectionId.trim()) ??
+    null
   const globalSlotModelOptions = providerModelOptions({
     capability: globalSlot,
+    connection: globalSlotConnection,
     connectionId: globalSlotConnectionId,
     providerModels,
     selectedModelId: globalSlotModelId,
   })
   const chatConnections = connectionsForCapability(connections, 'chat')
+  const chatConnection =
+    connections.find((c) => c.connection_id === chatConnectionId.trim()) ?? null
   const chatModelOptions = providerModelOptions({
     capability: 'chat',
+    connection: chatConnection,
     connectionId: chatConnectionId,
     configuredModels: chatModels,
     providerModels,
     selectedModelId: chatModelId,
   })
   const workspaceSlotConnections = connectionsForCapability(connections, workspaceSlot)
+  const workspaceSlotConnection =
+    connections.find(
+      (c) => c.connection_id === workspaceSlotConnectionId.trim(),
+    ) ?? null
   const workspaceSlotModelOptions = providerModelOptions({
     capability: workspaceSlot,
+    connection: workspaceSlotConnection,
     connectionId: workspaceSlotConnectionId,
     providerModels,
     selectedModelId: workspaceSlotModelId,
@@ -1039,9 +1053,16 @@ export function RuntimeModelCatalogPanel({
   providerModels: ProviderModel[]
   state: RequestState
 }) {
+  const selectedConnectionId = modelSyncConnectionId.trim()
   const selectedConnection = connections.find(
-    (connection) => connection.connection_id === modelSyncConnectionId.trim(),
+    (connection) => connection.connection_id === selectedConnectionId,
   )
+  // Scope to selected connection and only models that match its declared slots
+  // (drops stale qwen3-rerank / text-embedding-v4 seeds on chat-only gateways).
+  const catalogModels = providerModelsForConnection({
+    connection: selectedConnection ?? null,
+    providerModels,
+  })
 
   return (
     <RuntimePanel
@@ -1113,7 +1134,7 @@ export function RuntimeModelCatalogPanel({
       <ProviderModelCatalogView
         connections={connections}
         isLoading={state === 'loading'}
-        providerModels={providerModels}
+        providerModels={catalogModels}
       />
     </RuntimePanel>
   )
@@ -1860,13 +1881,17 @@ export function ProviderModelCatalogView({
           {providerModels.map((model) => {
             const pricing = formatProviderModelPricing(model.pricing)
             const connection = connectionsById.get(model.connection_id)
+            const displayCapabilities = effectiveModelCapabilities({
+              connection: connection ?? null,
+              model,
+            })
             const endpointWarning =
               connection === undefined
                 ? null
                 : qwenServiceModelEndpointWarning({
                     provider: connection.provider,
                     baseUrl: connection.base_url,
-                    capabilities: model.capabilities,
+                    capabilities: displayCapabilities,
                   })
             return (
               <DataListItem
@@ -1878,7 +1903,7 @@ export function ProviderModelCatalogView({
                     {model.model_id}
                   </strong>
                   <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {model.capabilities
+                    {displayCapabilities
                       .map((capability) => slotLabel(capability))
                       .join(', ')}
                   </small>

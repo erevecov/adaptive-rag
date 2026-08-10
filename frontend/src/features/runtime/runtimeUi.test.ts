@@ -2,13 +2,17 @@ import { describe, expect, test } from 'vitest'
 
 import type { ProviderConnection } from '@/lib/apiClient'
 
+import type { ProviderModel } from '@/lib/apiClient'
+
 import {
   RUNTIME_SLOTS,
   connectionOptionLabel,
   connectionTypeLabel,
   formatProviderModelPricing,
   missingSyncedModelMessage,
+  effectiveModelCapabilities,
   providerLabel,
+  providerModelsForConnection,
   qwenServiceModelEndpointWarning,
   slotLabel,
 } from './runtimeUi'
@@ -61,6 +65,87 @@ describe('runtimeUi labels', () => {
   })
 })
 
+describe('providerModelsForConnection', () => {
+  test('keeps only models that intersect declared connection capabilities', () => {
+    const connection: ProviderConnection = {
+      ...baseConnection,
+      capabilities: ['chat', 'contextualization', 'vision'],
+      connection_id: 'token-plan',
+    }
+    const models: ProviderModel[] = [
+      {
+        capabilities: ['chat'],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'qwen3.7-plus',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: ['rerank'],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'qwen3-rerank',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: [],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'wan2.7-image',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: ['chat'],
+        connection_id: 'other',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'other-chat',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]
+    expect(
+      providerModelsForConnection({ connection, providerModels: models }).map(
+        (model) => model.model_id,
+      ),
+    ).toEqual(['qwen3.7-plus'])
+  })
+})
+
+describe('effectiveModelCapabilities', () => {
+  test('expands chat models to Contextualization when the connection declares it', () => {
+    const connection: ProviderConnection = {
+      ...baseConnection,
+      capabilities: ['chat', 'contextualization', 'vision'],
+      connection_id: 'token-plan',
+    }
+    const model: ProviderModel = {
+      capabilities: ['chat'],
+      connection_id: 'token-plan',
+      created_at: '2026-01-01T00:00:00Z',
+      last_seen_at: '2026-01-01T00:00:00Z',
+      metadata: null,
+      model_id: 'qwen3.7-plus',
+      pricing: null,
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    expect(effectiveModelCapabilities({ connection, model })).toEqual([
+      'chat',
+      'contextualization',
+    ])
+  })
+})
+
 describe('qwenServiceModelEndpointWarning', () => {
   test('warns for rerank/embed on Bailian Token Plan compatible-mode URL', () => {
     const baseUrl =
@@ -88,7 +173,7 @@ describe('qwenServiceModelEndpointWarning', () => {
     ).toMatch(/Sparse embeddings/i)
   })
 
-  test('is silent for chat and for native DashScope service URLs', () => {
+  test('is silent for chat and for a single DashScope api/v1 root', () => {
     expect(
       qwenServiceModelEndpointWarning({
         provider: 'qwen',
@@ -97,11 +182,19 @@ describe('qwenServiceModelEndpointWarning', () => {
         capabilities: ['chat'],
       }),
     ).toBeNull()
+    const dashscopeRoot = 'https://dashscope-intl.aliyuncs.com/api/v1'
     expect(
       qwenServiceModelEndpointWarning({
         provider: 'qwen',
-        baseUrl: 'https://dashscope-intl.aliyuncs.com/api/v1',
+        baseUrl: dashscopeRoot,
         capabilities: ['rerank'],
+      }),
+    ).toBeNull()
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl: dashscopeRoot,
+        capabilities: ['dense_embedding', 'sparse_embedding'],
       }),
     ).toBeNull()
     expect(

@@ -7,8 +7,15 @@ import base64
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ProviderConnection, ProviderSecret
-from adaptive_rag.db.repositories import ProviderConnectionRepository
+from adaptive_rag.db.models import (
+    ProviderConnection,
+    ProviderModelCatalog,
+    ProviderSecret,
+)
+from adaptive_rag.db.repositories import (
+    ProviderConnectionRepository,
+    ProviderModelCatalogRepository,
+)
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.provider_secrets import ProviderSecretStore
 
@@ -17,7 +24,11 @@ def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
         engine,
-        tables=[ProviderConnection.__table__, ProviderSecret.__table__],
+        tables=[
+            ProviderConnection.__table__,
+            ProviderSecret.__table__,
+            ProviderModelCatalog.__table__,
+        ],
     )
     return create_session_factory(engine)()
 
@@ -126,3 +137,54 @@ def test_repository_rejects_unknown_capability_before_persisting() -> None:
         )
 
     assert repository.list_connections() == []
+
+
+def test_catalog_prunes_models_outside_declared_capabilities() -> None:
+    session = _make_session()
+    connections = ProviderConnectionRepository(session)
+    catalog = ProviderModelCatalogRepository(session)
+    connections.upsert_connection(
+        connection_id="token-plan",
+        provider="qwen",
+        connection_type="hosted",
+        base_url="https://token-plan.example.test/compatible-mode/v1",
+        capabilities=["chat", "contextualization", "vision"],
+    )
+    catalog.upsert_model(
+        connection_id="token-plan",
+        model_id="qwen3.7-plus",
+        capabilities=["chat"],
+    )
+    catalog.upsert_model(
+        connection_id="token-plan",
+        model_id="qwen3-rerank",
+        capabilities=["rerank"],
+        metadata={"source": "qwen_declared_capability_seed"},
+    )
+    catalog.upsert_model(
+        connection_id="token-plan",
+        model_id="text-embedding-v4",
+        capabilities=["dense_embedding", "sparse_embedding"],
+    )
+    catalog.upsert_model(
+        connection_id="token-plan",
+        model_id="wan2.7-image",
+        capabilities=[],
+    )
+    session.commit()
+
+    deleted = catalog.prune_models_outside_declared_capabilities(
+        connection_id="token-plan",
+        declared_capabilities=["chat", "contextualization", "vision"],
+    )
+    session.commit()
+
+    remaining = {
+        model.model_id for model in catalog.list_models(connection_id="token-plan")
+    }
+    assert set(deleted) == {
+        "qwen3-rerank",
+        "text-embedding-v4",
+        "wan2.7-image",
+    }
+    assert remaining == {"qwen3.7-plus"}

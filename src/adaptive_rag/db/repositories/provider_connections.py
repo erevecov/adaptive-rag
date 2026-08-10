@@ -303,6 +303,42 @@ class ProviderModelCatalogRepository:
             model for model in models if normalized in model.capabilities_json
         ]
 
+    def delete_model(self, *, connection_id: str, model_id: str) -> bool:
+        """Remove one catalog row. Returns True when a row was deleted."""
+
+        model_id = _normalize_identifier(model_id, "model_id")
+        model = self._session.get(ProviderModelCatalog, (connection_id, model_id))
+        if model is None:
+            return False
+        self._session.delete(model)
+        self._session.flush()
+        return True
+
+    def prune_models_outside_declared_capabilities(
+        self,
+        *,
+        connection_id: str,
+        declared_capabilities: Iterable[str],
+    ) -> list[str]:
+        """Drop catalog rows that cannot serve any declared connection slot.
+
+        Used after capability edits and after /models sync so seeded service
+        models (rerank/embed) and provider noise (audio/image) do not linger
+        on a chat-only gateway. Returns deleted model_ids.
+        """
+
+        declared = set(_normalize_capabilities(declared_capabilities))
+        models = self.list_models(connection_id=connection_id)
+        deleted: list[str] = []
+        for model in models:
+            model_caps = set(model.capabilities_json or [])
+            if declared and model_caps.isdisjoint(declared):
+                self._session.delete(model)
+                deleted.append(model.model_id)
+        if deleted:
+            self._session.flush()
+        return deleted
+
 
 def _secret_status(secret: ProviderSecret) -> ProviderSecretStatus:
     return ProviderSecretStatus(

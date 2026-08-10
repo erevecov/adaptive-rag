@@ -17,6 +17,7 @@ from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
     ProviderConnection,
+    ProviderModelCatalog,
     ProviderSecret,
     RuntimeSlotDefault,
     User,
@@ -36,6 +37,7 @@ def _make_session() -> Session:
         engine,
         tables=[
             ProviderConnection.__table__,
+            ProviderModelCatalog.__table__,
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,

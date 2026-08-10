@@ -229,3 +229,56 @@ def test_provider_model_sync_persists_unclassified_models_without_slot_capabilit
         "qwen-experimental-preview",
         "qwen-plus",
     ]
+
+
+def test_provider_connection_capability_edit_prunes_stale_service_seeds(
+    monkeypatch,
+) -> None:
+    """Narrowing Token Plan to chat-only must drop seeded rerank/embed rows."""
+
+    key = base64.urlsafe_b64encode(b"9" * 32).decode("ascii")
+    monkeypatch.setenv("ADAPTIVE_RAG_PROVIDER_SECRETS_KEY", key)
+    session = _make_session()
+    lister = StubProviderModelLister()
+    client = _client(lister=lister, session=session)
+    client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": [
+                "chat",
+                "dense_embedding",
+                "sparse_embedding",
+                "rerank",
+            ],
+            "api_key": "sk-hosted-secret",
+        },
+    )
+    sync_full = client.post("/runtime-settings/connections/qwen-hosted/models/sync")
+    assert sync_full.status_code == 200
+    full_ids = {item["model_id"] for item in sync_full.json()["items"]}
+    assert "qwen3-rerank" in full_ids
+    assert "text-embedding-v4" in full_ids
+
+    narrow = client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "base_url": "https://dashscope.example.test/compatible-mode/v1",
+            "capabilities": ["chat", "contextualization", "vision"],
+        },
+    )
+    assert narrow.status_code == 200
+
+    listed = client.get(
+        "/runtime-settings/models",
+        params={"connection_id": "qwen-hosted"},
+    )
+    assert listed.status_code == 200
+    remaining = {item["model_id"] for item in listed.json()["items"]}
+    assert "qwen3-rerank" not in remaining
+    assert "text-embedding-v4" not in remaining
+    assert "qwen-plus" in remaining

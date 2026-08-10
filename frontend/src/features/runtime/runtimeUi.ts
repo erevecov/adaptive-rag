@@ -119,23 +119,28 @@ export function qwenServiceModelEndpointWarning({
   }
 
   const isCompatMode = base.includes('/compatible-mode/')
-  const isNativeEmbed = base.includes('/services/embeddings/text-embedding')
+  const isNativeEmbedService = base.includes(
+    '/services/embeddings/text-embedding',
+  )
   const isNativeRerank = base.includes('/services/rerank/text-rerank')
+  // Single DashScope connection can host embed + rerank from the API root.
   const isDashscopeApiRoot = /\/api\/v1$/i.test(base) && !isCompatMode
+  const canServeNativeEmbed = isNativeEmbedService || isDashscopeApiRoot
+  const canServeRerank = isNativeRerank || isDashscopeApiRoot
 
-  if (needsSparse && !isNativeEmbed) {
+  if (needsSparse && !canServeNativeEmbed) {
     return (
-      'Sparse embeddings need a DashScope native text-embedding URL ' +
-      '(…/services/embeddings/…), not an OpenAI-compatible chat base URL.'
+      'Sparse embeddings need a DashScope API root (…/api/v1) or native ' +
+      'text-embedding service URL, not an OpenAI-compatible chat gateway.'
     )
   }
-  if (needsDense && !isNativeEmbed && isCompatMode) {
+  if (needsDense && !canServeNativeEmbed && isCompatMode) {
     return (
       'This OpenAI-compatible base URL often lacks embedding APIs ' +
-      '(e.g. Bailian Token Plan returns 404). Prefer a DashScope embeddings endpoint.'
+      '(e.g. Bailian Token Plan returns 404). Prefer a DashScope …/api/v1 connection.'
     )
   }
-  if (needsRerank && !isNativeRerank && !isDashscopeApiRoot) {
+  if (needsRerank && !canServeRerank) {
     return (
       'Rerank needs a DashScope API root (…/api/v1) or native text-rerank URL. ' +
       'OpenAI-compatible chat gateways typically return 404 for qwen3-rerank.'
@@ -156,6 +161,35 @@ export function connectionForId(
     connections.find((connection) => connection.connection_id === trimmed) ??
     null
   )
+}
+
+/**
+ * Catalog rows for one connection that can serve at least one declared slot.
+ * Hides stale seeds (rerank/embed on chat-only) and provider noise with empty
+ * capabilities (audio/image) when the connection only declares RAG slots.
+ */
+export function providerModelsForConnection({
+  connection,
+  providerModels,
+}: {
+  connection: ProviderConnection | null
+  providerModels: ProviderModel[]
+}): ProviderModel[] {
+  if (connection === null) {
+    return []
+  }
+  const connectionId = connection.connection_id
+  const declared = new Set(connection.capabilities)
+  return providerModels.filter((model) => {
+    if (model.connection_id !== connectionId) {
+      return false
+    }
+    if (declared.size === 0) {
+      return true
+    }
+    const effective = effectiveModelCapabilities({ connection, model })
+    return effective.some((capability) => declared.has(capability))
+  })
 }
 
 /** Slot/catalog warning for a selected connection + model capability set. */
@@ -191,15 +225,53 @@ export function selectedSlotEndpointWarning({
   })
 }
 
+/**
+ * Effective slots a catalog model can fill on a connection.
+ * Chat LLMs also serve Contextualization when that slot is declared.
+ */
+export function effectiveModelCapabilities({
+  connection,
+  model,
+}: {
+  connection: ProviderConnection | null | undefined
+  model: ProviderModel
+}): string[] {
+  const caps = new Set(model.capabilities)
+  const declared = new Set(connection?.capabilities ?? [])
+  if (
+    caps.has('chat') &&
+    (declared.size === 0 || declared.has('contextualization'))
+  ) {
+    caps.add('contextualization')
+  }
+  // Stable order matching Global Defaults slot list.
+  return RUNTIME_SLOTS.filter((slot) => caps.has(slot))
+}
+
+export function modelServesCapability({
+  capability,
+  connection,
+  model,
+}: {
+  capability: string
+  connection?: ProviderConnection | null
+  model: ProviderModel
+}): boolean {
+  return effectiveModelCapabilities({ connection, model }).includes(capability)
+}
+
 export function providerModelOptions({
   capability,
   configuredModels = [],
+  connection,
   connectionId,
   providerModels,
   selectedModelId,
 }: {
   capability: string
   configuredModels?: ProviderModelOption[]
+  /** Optional connection for expanding chat → contextualization eligibility. */
+  connection?: ProviderConnection | null
   connectionId: string
   providerModels: ProviderModel[]
   selectedModelId: string
@@ -211,7 +283,7 @@ export function providerModelOptions({
     .filter(
       (model) =>
         model.connection_id === connectionId &&
-        model.capabilities.includes(capability),
+        modelServesCapability({ capability, connection, model }),
     )
     .map((model) => ({
       connection_id: model.connection_id,
