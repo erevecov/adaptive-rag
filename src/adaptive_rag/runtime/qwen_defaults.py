@@ -21,6 +21,12 @@ QWEN_RERANK_MODEL_ID = "qwen3-rerank"
 _QWEN_EMBEDDING_MODEL_IDS = {"text-embedding-v3", "text-embedding-v4"}
 _QWEN_CHAT_MODEL_IDS = {"qwen-plus", "qwen-max", "qwen-turbo"}
 _QWEN_VISION_MODEL_PATTERN = re.compile(r"(?:^|[-_.])vl(?:[-_.]|$)")
+# Token Plan / Model Studio chat ids that accept multimodal image_url without a
+# "-vl-" segment (verified live: 3.6-flash, 3.7-plus, 3.8-max; 3.7-max does not).
+_NATIVE_MULTIMODAL_QWEN_PLUS_FLASH = re.compile(
+    r"^qwen3\.(\d+)-(?:plus|flash)(?:-|$)"
+)
+_NATIVE_MULTIMODAL_QWEN_MAX = re.compile(r"^qwen3\.(\d+)-max(?:-|$)")
 
 # OpenAI-compatible GET /models (Bailian Token Plan, etc.) often omits these
 # service models even when the connection declares the slot capability.
@@ -62,7 +68,11 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
     # Audio / TTS / realtime — not chat pipeline slots.
     if "tts" in normalized or "audio" in normalized or "realtime" in normalized:
         return ()
-    if _QWEN_VISION_MODEL_PATTERN.search(normalized) or "vision" in normalized:
+    if (
+        _QWEN_VISION_MODEL_PATTERN.search(normalized)
+        or "vision" in normalized
+        or _is_native_multimodal_qwen_chat(normalized)
+    ):
         # Vision-capable chat models also drive contextualization when declared.
         return ("chat", "contextualization", "vision")
     if normalized in _QWEN_CHAT_MODEL_IDS:
@@ -79,6 +89,24 @@ def infer_qwen_model_capabilities(model_id: str) -> tuple[str, ...]:
     ):
         return ("chat", "contextualization")
     return ()
+
+
+def _is_native_multimodal_qwen_chat(normalized_model_id: str) -> bool:
+    """Return whether a non-VL Qwen chat id still accepts multimodal images.
+
+    Recent Model Studio / Bailian Token Plan models (``qwen3.6-flash``,
+    ``qwen3.7-plus``, ``qwen3.8-max``, …) accept ``image_url`` content parts
+    without a ``-vl-`` segment in the id. Classic text-only ids such as
+    ``qwen3.7-max`` and legacy ``qwen-plus`` do not.
+    """
+
+    match = _NATIVE_MULTIMODAL_QWEN_PLUS_FLASH.match(normalized_model_id)
+    if match is not None and int(match.group(1)) >= 6:
+        return True
+    match = _NATIVE_MULTIMODAL_QWEN_MAX.match(normalized_model_id)
+    if match is not None and int(match.group(1)) >= 8:
+        return True
+    return False
 
 
 def ensure_qwen_declared_capability_models(

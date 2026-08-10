@@ -126,12 +126,20 @@ def test_infers_known_qwen_model_capabilities() -> None:
     assert infer_qwen_model_capabilities("qwen3.7-plus") == (
         "chat",
         "contextualization",
+        "vision",
     )
     assert infer_qwen_model_capabilities("qwen3.8-max") == (
         "chat",
         "contextualization",
+        "vision",
     )
     assert infer_qwen_model_capabilities("qwen3.6-flash") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    # Text-only max on the 3.7 line (does not accept image_url content parts).
+    assert infer_qwen_model_capabilities("qwen3.7-max") == (
         "chat",
         "contextualization",
     )
@@ -180,6 +188,10 @@ def test_infers_vision_capabilities_for_qwen_vl_models() -> None:
 def test_does_not_mark_non_vision_qwen_models_as_vision() -> None:
     assert infer_qwen_model_capabilities("qwen-plus") == ("chat", "contextualization")
     assert infer_qwen_model_capabilities("qwen3-max") == ("chat", "contextualization")
+    assert infer_qwen_model_capabilities("qwen3.7-max") == (
+        "chat",
+        "contextualization",
+    )
     assert infer_qwen_model_capabilities("qwen3-embedding-8b") == (
         "dense_embedding",
         "sparse_embedding",
@@ -188,6 +200,24 @@ def test_does_not_mark_non_vision_qwen_models_as_vision() -> None:
     assert infer_qwen_model_capabilities("text-embedding-v4") == (
         "dense_embedding",
         "sparse_embedding",
+    )
+
+
+def test_marks_native_multimodal_qwen_chat_models_as_vision() -> None:
+    assert infer_qwen_model_capabilities("qwen3.6-flash") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen3.7-plus") == (
+        "chat",
+        "contextualization",
+        "vision",
+    )
+    assert infer_qwen_model_capabilities("qwen3.8-max") == (
+        "chat",
+        "contextualization",
+        "vision",
     )
 
 
