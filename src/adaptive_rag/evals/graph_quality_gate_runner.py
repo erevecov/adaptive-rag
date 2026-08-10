@@ -10,11 +10,11 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.repositories import GraphProjectionRepository
+from adaptive_rag.db.repositories import GraphprojectionRepository
 from adaptive_rag.embeddings import DenseEmbeddingProvider, FakeDenseEmbeddingProvider
 from adaptive_rag.evals.fixtures import (
-    EvalRetrievalFixtureProject,
-    build_retrieval_fixture_project,
+    EvalRetrievalFixtureWorkspace,
+    build_retrieval_fixture_workspace,
 )
 from adaptive_rag.evals.metrics import ratio
 from adaptive_rag.evals.models import (
@@ -30,7 +30,7 @@ from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
 from adaptive_rag.graph import GraphRetrievalResult, GraphRetriever
 
 GraphQualityGateDecision = Literal["hold_default"]
-GraphRetrieverFactory = Callable[[EvalRetrievalFixtureProject], GraphRetriever]
+GraphRetrieverFactory = Callable[[EvalRetrievalFixtureWorkspace], GraphRetriever]
 
 _OUTCOME_ORDER: tuple[EvalCaseComparisonOutcome, ...] = (
     "regression",
@@ -62,26 +62,26 @@ def run_graph_quality_gate_eval_suite(
     """Ejecuta la comparacion versionada dense vs graph sin Neo4j live."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
-    fixture_project = build_retrieval_fixture_project(
+    fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=active_provider,
     )
-    GraphProjectionRepository(session).mark_ready(
-        project_id=fixture_project.project_id,
+    GraphprojectionRepository(session).mark_ready(
+        workspace_id=fixture_workspace.workspace_id,
         source_watermark=f"eval:{suite.suite_id}",
         indexed_at=datetime.now(UTC),
     )
     graph_retriever = (
-        graph_retriever_factory(fixture_project)
+        graph_retriever_factory(fixture_workspace)
         if graph_retriever_factory is not None
-        else FixtureOrderGraphRetriever(fixture_project=fixture_project)
+        else FixtureOrderGraphRetriever(fixture_workspace=fixture_workspace)
     )
     dense_report = run_retrieval_eval_suite(
         session,
         suite,
         provider=active_provider,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     graph_report = run_retrieval_eval_suite(
         session,
@@ -89,7 +89,7 @@ def run_graph_quality_gate_eval_suite(
         provider=active_provider,
         strategy="graph",
         graph_retriever=graph_retriever,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     comparison_cases = _build_graph_case_comparisons(
         suite=suite,
@@ -146,16 +146,16 @@ def serialize_graph_quality_gate_report(
 class FixtureOrderGraphRetriever:
     """Graph retriever determinista para evals offline sin servicio live."""
 
-    def __init__(self, *, fixture_project: EvalRetrievalFixtureProject) -> None:
-        ordered = tuple(fixture_project.evidence_id_by_chunk_id)
+    def __init__(self, *, fixture_workspace: EvalRetrievalFixtureWorkspace) -> None:
+        ordered = tuple(fixture_workspace.evidence_id_by_chunk_id)
         self._rank_by_chunk_id = {
             chunk_id: rank for rank, chunk_id in enumerate(ordered)
         }
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: Sequence[UUID],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:

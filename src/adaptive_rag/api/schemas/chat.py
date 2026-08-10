@@ -14,6 +14,10 @@ from adaptive_rag.api.schemas.retrieval import (
     RetrievalResultResponse,
 )
 from adaptive_rag.chat import ChatRequest
+from adaptive_rag.chat.attachments import (
+    MAX_ATTACHMENTS_PER_MESSAGE,
+    ChatAttachmentError,
+)
 from adaptive_rag.chat.models import ChatResponse as ServiceChatResponse
 from adaptive_rag.chat.payloads import serialize_chat_response
 from adaptive_rag.db.models import (
@@ -49,14 +53,24 @@ class ChatRequestBody(BaseModel):
     session_id: UUID | None = None
     retrieval_limit: int | None = None
     metadata_filter: RetrievalMetadataFilterRequest | None = None
+    attachment_ids: list[UUID] | None = None
 
     def to_service_request(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         *,
         chat_retrieval_settings: EffectiveChatRetrievalSettings | None = None,
         user_id: UUID | None = None,
     ) -> ChatRequest:
+        if (
+            self.attachment_ids is not None
+            and len(self.attachment_ids) > MAX_ATTACHMENTS_PER_MESSAGE
+        ):
+            raise ChatAttachmentError(
+                "At most "
+                f"{MAX_ATTACHMENTS_PER_MESSAGE} attachments per message.",
+                code="invalid_attachment",
+            )
         settings = chat_retrieval_settings or EffectiveChatRetrievalSettings(
             source="global",
             retrieval_limit=DEFAULT_CHAT_RETRIEVAL_LIMIT,
@@ -64,7 +78,7 @@ class ChatRequestBody(BaseModel):
             rerank_candidate_limit=DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
         )
         return ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             user_id=user_id,
             session_id=self.session_id,
             message=self.message,
@@ -80,6 +94,7 @@ class ChatRequestBody(BaseModel):
                 if self.metadata_filter is not None
                 else None
             ),
+            attachments=tuple(self.attachment_ids or ()),
         )
 
 
@@ -316,7 +331,7 @@ class ChatObservabilityErrorSummaryResponse(BaseModel):
 
 
 class ChatObservabilitySummaryResponse(BaseModel):
-    project_id: UUID
+    workspace_id: UUID
     filters: ChatObservabilityFiltersResponse
     sessions: ChatObservabilitySessionSummaryResponse
     provider_usage: ChatObservabilityProviderUsageSummaryResponse
@@ -328,7 +343,7 @@ class ChatObservabilitySummaryResponse(BaseModel):
         summary: ChatObservabilitySummary,
     ) -> ChatObservabilitySummaryResponse:
         return cls(
-            project_id=summary.project_id,
+            workspace_id=summary.workspace_id,
             filters=ChatObservabilityFiltersResponse.from_filters(summary.filters),
             sessions=ChatObservabilitySessionSummaryResponse.from_summary(
                 summary.sessions

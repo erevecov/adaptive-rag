@@ -3,7 +3,7 @@
 ## Purpose
 Define la persistencia durable del audit trail de chat: sesiones, mensajes,
 tool calls, retrieval runs, retrieved chunks, citations y usage/cost asociados,
-manteniendo aislamiento por proyecto y sin convertir M13 en streaming,
+manteniendo aislamiento por workspace y sin convertir M13 en streaming,
 historial publico ni dashboards.
 ## Requirements
 ### Requirement: Chat persiste audit trail durable
@@ -15,7 +15,7 @@ y citations.
 #### Scenario: Chat exitoso guarda sesion y mensajes
 
 - **WHEN** una solicitud valida de chat produce una respuesta final
-- **THEN** el sistema guarda una sesion de chat con `project_id`, status
+- **THEN** el sistema guarda una sesion de chat con `workspace_id`, status
   `succeeded`, timestamps y metadata de modelo/prompt cuando exista
 - **AND** guarda el mensaje del usuario y el mensaje final del assistant
 - **AND** la respuesta publica puede incluir un identificador de sesion estable
@@ -45,36 +45,36 @@ y citations.
 - **AND** preserva los mensajes, tool calls o retrieval runs completados antes
   del fallo
 
-### Requirement: Audit trail conserva aislamiento por proyecto
+### Requirement: Audit trail conserva aislamiento por workspace
 
-El sistema MUST aislar todos los registros de audit trail por `project_id` y
-MUST impedir que repositories lean o escriban datos de otro proyecto.
+El sistema MUST aislar todos los registros de audit trail por `workspace_id` y
+MUST impedir que repositories lean o escriban datos de otro workspace.
 
-#### Scenario: Repository filtra por proyecto
+#### Scenario: Repository filtra por workspace
 
 - **WHEN** se consultan sesiones, mensajes, tool calls o retrieval runs mediante
   repository
-- **THEN** la query aplica `project_id` cuando el registro o su padre pertenece
-  a un proyecto
-- **AND** una consulta para otro proyecto no devuelve datos cruzados
+- **THEN** la query aplica `workspace_id` cuando el registro o su padre pertenece
+  a un workspace
+- **AND** una consulta para otro workspace no devuelve datos cruzados
 
 #### Scenario: Retrieved chunks apuntan a chunks existentes
 
 - **WHEN** se persiste un chunk recuperado en el audit trail
-- **THEN** el registro referencia un chunk del mismo proyecto que la sesion
+- **THEN** el registro referencia un chunk del mismo workspace que la sesion
 - **AND** la operacion falla con error estable si el chunk pertenece a otro
-  proyecto
+  workspace
 
 ### Requirement: Provider usage se vincula a contexto durable
 
 El sistema MUST poder vincular metadata de usage/cost de providers a un contexto
-durable de proyecto, sesion, job o eval run sin romper los runners offline.
+durable de workspace, sesion, job o eval run sin romper los runners offline.
 
 #### Scenario: Usage de chat se asocia a sesion
 
 - **WHEN** una llamada live de chat, embedding o rerank ocurre dentro de una
   sesion de chat
-- **THEN** el usage record guarda `project_id`, `session_id`, provider, modelo,
+- **THEN** el usage record guarda `workspace_id`, `session_id`, provider, modelo,
   operation, tokens/unidades disponibles, costo estimado, status y latencia
 - **AND** los campos ausentes del provider se representan como ausentes, no
   inventados
@@ -84,7 +84,7 @@ durable de proyecto, sesion, job o eval run sin romper los runners offline.
 - **WHEN** un eval o job registra usage fuera de una sesion de chat
 - **THEN** el usage record puede guardar `eval_run_id` o `job_id` sin
   `session_id`
-- **AND** conserva `project_id`, provider, modelo, operation, status y costo
+- **AND** conserva `workspace_id`, provider, modelo, operation, status y costo
   estimado cuando exista
 
 #### Scenario: Offline sigue sin red ni credenciales
@@ -100,7 +100,7 @@ de sesiones ni streaming.
 
 #### Scenario: Endpoint de chat mantiene respuesta compatible
 
-- **WHEN** `POST /projects/{project_id}/chat` recibe una solicitud valida
+- **WHEN** `POST /workspaces/{workspace_id}/chat` recibe una solicitud valida
 - **THEN** retorna `answer`, `citations` y metadata minima de tool calls como
   antes
 - **AND** puede incluir `session_id` como metadata de trazabilidad

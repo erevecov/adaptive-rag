@@ -4,7 +4,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Brain, MoreVertical, Plus, X } from 'lucide-react'
+import { Brain, ChevronDown, ChevronUp, MoreVertical, Plus, X } from 'lucide-react'
 
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, IconButton } from '@/components/ui/button'
@@ -49,6 +49,157 @@ export type SourceViewerState = {
   source: Source | null
   sourceId: string | null
   state: RequestState
+}
+
+/** Turn selected via answer ⋯ → Ver detalles (scoped Context mode). */
+export type FocusedTurn = {
+  question: string
+  turnId: string
+}
+
+/**
+ * Slice session detail to a single Q/A turn window.
+ * Turn id matches transcript builders: assistant message_id, else user message_id.
+ */
+export function filterSessionDetailToTurn(
+  detail: ChatSessionDetailResponse,
+  turnId: string,
+): ChatSessionDetailResponse | null {
+  const bounds = resolveTurnBounds(detail.messages, turnId)
+  if (bounds === null) {
+    return null
+  }
+
+  const { assistantIndex, turnEndMs, turnStartMs, userIndex } = bounds
+  const turnMessages = detail.messages.filter((_, index) => {
+    if (index === userIndex) {
+      return true
+    }
+    return assistantIndex >= 0 && index === assistantIndex
+  })
+
+  const turnToolCalls = detail.tool_calls.filter((call) => {
+    const createdAtMs = Date.parse(call.created_at)
+    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+  })
+  const turnToolCallIds = new Set(
+    turnToolCalls.map((call) => call.tool_call_id),
+  )
+  const turnRetrievalRuns = detail.retrieval_runs.filter((run) => {
+    if (run.tool_call_id !== null) {
+      return turnToolCallIds.has(run.tool_call_id)
+    }
+    const createdAtMs = Date.parse(run.created_at)
+    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+  })
+  const turnProviderUsage = detail.provider_usage.filter((usage) => {
+    const createdAtMs = Date.parse(usage.created_at)
+    return createdAtMs >= turnStartMs && createdAtMs < turnEndMs
+  })
+
+  return {
+    session: detail.session,
+    messages: turnMessages,
+    tool_calls: turnToolCalls,
+    retrieval_runs: turnRetrievalRuns,
+    provider_usage: turnProviderUsage,
+  }
+}
+
+function resolveTurnBounds(
+  messages: ChatSessionDetailResponse['messages'],
+  turnId: string,
+): {
+  assistantIndex: number
+  turnEndMs: number
+  turnStartMs: number
+  userIndex: number
+} | null {
+  let userIndex = -1
+  let assistantIndex = -1
+
+  const directIndex = messages.findIndex(
+    (message) => message.message_id === turnId,
+  )
+  if (directIndex >= 0) {
+    const matched = messages[directIndex]
+    if (matched.role === 'assistant') {
+      assistantIndex = directIndex
+      for (let index = directIndex - 1; index >= 0; index -= 1) {
+        if (messages[index]?.role === 'user') {
+          userIndex = index
+          break
+        }
+      }
+    } else if (matched.role === 'user') {
+      userIndex = directIndex
+      for (let index = directIndex + 1; index < messages.length; index += 1) {
+        if (messages[index]?.role === 'user') {
+          break
+        }
+        if (messages[index]?.role === 'assistant') {
+          assistantIndex = index
+          break
+        }
+      }
+    }
+  }
+
+  if (userIndex < 0) {
+    for (let index = 0; index < messages.length; index += 1) {
+      const message = messages[index]
+      if (message?.role !== 'user') {
+        continue
+      }
+      let foundAssistant = -1
+      for (let next = index + 1; next < messages.length; next += 1) {
+        if (messages[next]?.role === 'user') {
+          break
+        }
+        if (messages[next]?.role === 'assistant') {
+          foundAssistant = next
+          break
+        }
+      }
+      const resolvedId =
+        (foundAssistant >= 0
+          ? messages[foundAssistant]?.message_id
+          : undefined) ??
+        message.message_id ??
+        `turn-${index}`
+      if (resolvedId === turnId) {
+        userIndex = index
+        assistantIndex = foundAssistant
+        break
+      }
+    }
+  }
+
+  if (userIndex < 0) {
+    return null
+  }
+
+  const userMessage = messages[userIndex]
+  if (userMessage === undefined) {
+    return null
+  }
+
+  const turnStartMs = Date.parse(userMessage.created_at)
+  let turnEndMs = Number.POSITIVE_INFINITY
+  const scanFrom = assistantIndex >= 0 ? assistantIndex + 1 : userIndex + 1
+  for (let index = scanFrom; index < messages.length; index += 1) {
+    if (messages[index]?.role === 'user') {
+      turnEndMs = Date.parse(messages[index].created_at)
+      break
+    }
+  }
+
+  return {
+    assistantIndex,
+    turnEndMs,
+    turnStartMs,
+    userIndex,
+  }
 }
 
 const SESSION_FILTERS: {
@@ -228,7 +379,7 @@ export function SessionNavigationPanel({
         data-slot="session-list-scroll"
       >
       <DataList
-        aria-label="Project Sessions"
+        aria-label="Workspace Sessions"
         className="min-w-0 gap-0.5 pr-2.5 max-[680px]:pr-1"
       >
         {isLoading && sessions.length === 0 ? (
@@ -492,9 +643,11 @@ export function WorkspaceInspectorPanel({
   detail,
   detailError,
   detailState,
+  focusedTurn = null,
   layout,
   liveContextSteps = null,
   onActiveTabChange,
+  onClearFocusedTurn,
   onClose,
   onNavigateMessage,
   onOpenSource,
@@ -505,10 +658,13 @@ export function WorkspaceInspectorPanel({
   detail: ChatSessionDetailResponse | null
   detailError: string | null
   detailState: RequestState
+  /** When set, Context shows only this turn’s tools/messages. */
+  focusedTurn?: FocusedTurn | null
   layout: 'inline' | 'overlay'
   /** Freshest context packing step from the in-flight / latest chat response. */
   liveContextSteps?: ChatStep[] | null
   onActiveTabChange(tab: InspectorTab): void
+  onClearFocusedTurn?(): void
   onClose(): void
   onNavigateMessage(messageId: string): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
@@ -518,6 +674,17 @@ export function WorkspaceInspectorPanel({
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const isOverlay = layout === 'overlay'
+  const isTurnFocused = focusedTurn !== null
+  const scopedDetail =
+    isTurnFocused && detail !== null
+      ? (filterSessionDetailToTurn(detail, focusedTurn.turnId) ?? {
+          ...detail,
+          messages: [],
+          provider_usage: [],
+          retrieval_runs: [],
+          tool_calls: [],
+        })
+      : detail
   useFocusTrap(panelRef, isOverlay)
 
   useEffect(() => {
@@ -606,24 +773,50 @@ export function WorkspaceInspectorPanel({
       {activeTab === 'context' ? (
         <div
           aria-labelledby="context-tab"
-          className="grid min-h-0 gap-4 overflow-y-auto max-[680px]:gap-0.5"
+          className="grid min-h-0 gap-3 overflow-y-auto max-[680px]:gap-0.5"
+          data-slot="context-inspector-stack"
+          data-turn-focused={isTurnFocused ? 'true' : undefined}
           id="context-panel"
           role="tabpanel"
         >
+          {focusedTurn !== null ? (
+            <TurnFocusHeader
+              onClearFocusedTurn={onClearFocusedTurn}
+              question={focusedTurn.question}
+            />
+          ) : (
+            /* 1. Primary: what thread / model / usage (scannable) */
+            <SessionContextPanel
+              detail={detail}
+              liveContextSteps={liveContextSteps}
+              onStartNewSession={onStartNewSession}
+              state={detailState}
+            />
+          )}
+          {/* Session load errors used to live under Messages; keep them visible in overview. */}
+          {!isTurnFocused && detailError !== null && detailError.trim().length > 0 ? (
+            <InlineFeedback role="alert" tone="danger">
+              {operatorSafeMessage(detailError)}
+            </InlineFeedback>
+          ) : null}
+          {/* 2. Only when a citation is open */}
           <SourceViewerPanel viewer={sourceViewer} />
-          <SessionContextPanel
-            detail={detail}
-            liveContextSteps={liveContextSteps}
-            onStartNewSession={onStartNewSession}
+          {/* 3. Session overview: pipeline summary only (no full message/turn dump).
+              Per-turn messages + tool/retrieval detail: answer ⋯ → Ver detalles. */}
+          <InternalActionStepper
+            defaultOpen={isTurnFocused}
+            detail={scopedDetail}
             state={detailState}
           />
-          <InternalActionStepper detail={detail} state={detailState} />
-          <SessionDetailPanel
-            detail={detail}
-            error={detailError}
-            onOpenSource={onOpenSource}
-            state={detailState}
-          />
+          {isTurnFocused ? (
+            <SessionDetailPanel
+              detail={scopedDetail}
+              error={detailError}
+              onOpenSource={onOpenSource}
+              state={detailState}
+              turnScoped
+            />
+          ) : null}
         </div>
       ) : (
         <div
@@ -836,21 +1029,29 @@ function SessionContextPanel({
   const contextWindow = resolveContextWindowSummary(detail, liveContextSteps)
   const messageCount = detail?.messages.length ?? 0
   const isContinuingThread = detail !== null && messageCount > 0
+  const sessionTitle =
+    detail?.session.title?.trim() ||
+    (detail !== null ? shortSessionId(detail.session.session_id) : null)
 
   return (
     <Panel aria-label="Session Context" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <PanelTitle>Session Context</PanelTitle>
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+        <div className="grid min-w-0 gap-0.5">
+          <PanelTitle>This thread</PanelTitle>
+          <p className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]">
+            Snapshot of the active chat session
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
           {isContinuingThread ? (
-            <StatusBadge tone="primary">Continuing thread</StatusBadge>
+            <StatusBadge tone="primary">Continuing</StatusBadge>
           ) : null}
           <StatusBadge tone={sessionStatusTone(detail?.session.status)}>
             {sessionStatusLabel(detail?.session.status)}
           </StatusBadge>
         </div>
       </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
+      <PanelBody className="grid gap-3 p-3 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Session Context"
@@ -858,74 +1059,202 @@ function SessionContextPanel({
           />
         ) : detail === null ? (
           <EmptyState>
-            Select A Session To Inspect Model, Prompt And Usage Context.
+            Select a session to see model, usage, and context packing.
           </EmptyState>
         ) : (
-          <div className="grid gap-3 max-[680px]:gap-0.5">
-            {onStartNewSession !== undefined ? (
-              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                <Button
-                  className="h-7 px-2 text-[11px]"
-                  data-slot="session-context-new-thread"
-                  onClick={onStartNewSession}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  New thread
-                </Button>
+          <>
+            {/* 1. Identity + actions */}
+            <section
+              aria-label="Thread identity"
+              className="grid gap-2 rounded-md border border-border/70 bg-muted/15 p-2.5 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+              data-slot="session-context-identity"
+            >
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground max-[680px]:text-[0.6875rem]">
+                    {sessionTitle}
+                  </p>
+                  <p
+                    className="mt-0.5 break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem]"
+                    title={detail.session.session_id}
+                  >
+                    {shortSessionId(detail.session.session_id)}
+                    {messageCount > 0
+                      ? ` · ${messageCount} message${messageCount === 1 ? '' : 's'}`
+                      : ''}
+                  </p>
+                </div>
+                {onStartNewSession !== undefined ? (
+                  <Button
+                    className="h-7 shrink-0 px-2 text-[11px]"
+                    data-slot="session-context-new-thread"
+                    onClick={onStartNewSession}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    New thread
+                  </Button>
+                ) : null}
               </div>
+            </section>
+
+            {/* 2. Model used */}
+            <section
+              aria-label="Model used"
+              className="grid gap-1.5"
+              data-slot="session-context-model"
+            >
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-[0.5625rem]">
+                Model
+              </h3>
+              <div className="grid gap-1 rounded-md border border-border/70 bg-card p-2.5 max-[680px]:p-0.5">
+                <p className="break-words text-sm font-semibold text-foreground max-[680px]:text-[0.6875rem]">
+                  {firstUsage?.model ?? 'Unknown model'}
+                </p>
+                <p className="text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]">
+                  {firstUsage === null
+                    ? 'No provider usage recorded yet'
+                    : `${firstUsage.provider} · ${firstUsage.operation} · ${titleCaseToken(firstUsage.status)}`}
+                </p>
+                <p className="text-[11px] text-muted-foreground max-[680px]:text-[0.5625rem]">
+                  Prompt {detail.session.prompt_version ?? 'unknown'}
+                </p>
+              </div>
+            </section>
+
+            {/* 3. Usage strip */}
+            <section
+              aria-label="Usage summary"
+              className="grid gap-1.5"
+              data-slot="session-context-usage"
+            >
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-[0.5625rem]">
+                Usage
+              </h3>
+              <div className="grid grid-cols-3 gap-1.5 max-[680px]:gap-0.5">
+                <UsageCell
+                  label="Cost"
+                  value={formatSessionCost(detail.provider_usage)}
+                />
+                <UsageCell
+                  label="Tokens"
+                  value={formatSessionTokens(detail.provider_usage)}
+                />
+                <UsageCell
+                  label="Latency"
+                  value={formatSessionLatency(detail.provider_usage)}
+                />
+              </div>
+              {detail.provider_usage.length > 0 ? (
+                <p className="text-[10px] text-muted-foreground max-[680px]:text-[0.5625rem]">
+                  {detail.provider_usage.length} provider record
+                  {detail.provider_usage.length === 1 ? '' : 's'}
+                </p>
+              ) : null}
+            </section>
+
+            {/* 4. Context packing (only when meaningful) */}
+            {contextWindow !== null || messageCount > 0 ? (
+              <section
+                aria-label="Context packing"
+                className="grid gap-1.5"
+                data-slot="session-context-window"
+              >
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-[680px]:text-[0.5625rem]">
+                  Context window
+                </h3>
+                <ContextWindowCard
+                  label={contextWindow?.label ?? `${messageCount} messages`}
+                  summaryText={
+                    contextWindow?.summaryFull ??
+                    contextWindow?.summaryPreview ??
+                    null
+                  }
+                />
+              </section>
             ) : null}
-            <div className="grid gap-3 sm:grid-cols-2 max-[680px]:gap-0.5">
-              <MetricCard
-                detail={detail.session.session_id}
-                label="Session"
-                value={shortSessionId(detail.session.session_id)}
-              />
-              <MetricCard
-                detail={
-                  contextWindow?.summaryPreview ??
-                  (messageCount > 0
-                    ? `${messageCount} messages in thread`
-                    : 'No packed context yet')
-                }
-                label="Context window"
-                value={contextWindow?.label ?? `${messageCount} messages`}
-              />
-              <MetricCard
-                detail={detail.session.session_id}
-                label="Prompt"
-                value={`Prompt ${detail.session.prompt_version ?? 'Unknown'}`}
-              />
-              <MetricCard
-                detail={
-                  firstUsage === null
-                    ? 'Unknown Provider'
-                    : `${firstUsage.provider} ${firstUsage.operation} ${titleCaseToken(firstUsage.status)}`
-                }
-                label="Model"
-                value={firstUsage?.model ?? 'Unknown Model'}
-              />
-              <MetricCard
-                detail={`${detail.provider_usage.length} Provider Records`}
-                label="Cost"
-                value={formatSessionCost(detail.provider_usage)}
-              />
-              <MetricCard
-                detail="Known Usage Only"
-                label="Tokens"
-                value={formatSessionTokens(detail.provider_usage)}
-              />
-              <MetricCard
-                detail="Average Known Latency"
-                label="Latency"
-                value={formatSessionLatency(detail.provider_usage)}
-              />
-            </div>
-          </div>
+          </>
         )}
       </PanelBody>
     </Panel>
+  )
+}
+
+function UsageCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-0.5 rounded-md border border-border/70 bg-card px-2 py-2 text-center max-[680px]:px-0.5 max-[680px]:py-0.5">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground max-[680px]:text-[0.5rem]">
+        {label}
+      </span>
+      <strong className="break-words text-xs font-semibold tabular-nums text-foreground max-[680px]:text-[0.625rem]">
+        {value}
+      </strong>
+    </div>
+  )
+}
+
+/** Collapsed by default; expand shows full condensed history summary. */
+const CONTEXT_WINDOW_COLLAPSE_CHARS = 180
+
+function ContextWindowCard({
+  label,
+  summaryText,
+}: {
+  label: string
+  summaryText: string | null
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const text = summaryText?.trim() ?? ''
+  const canExpand = text.length > CONTEXT_WINDOW_COLLAPSE_CHARS
+
+  return (
+    <div
+      className="rounded-md border border-border/70 bg-muted/15 p-2.5 max-[680px]:p-0.5"
+      data-slot="context-window-card"
+      data-expanded={expanded ? 'true' : 'false'}
+    >
+      <p className="text-sm font-medium text-foreground max-[680px]:text-[0.6875rem]">
+        {label}
+      </p>
+      {text.length > 0 ? (
+        <>
+          <p
+            className={cn(
+              'mt-1 text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]',
+              expanded
+                ? 'max-h-64 overflow-y-auto whitespace-pre-wrap break-words'
+                : 'line-clamp-3',
+            )}
+            data-slot="context-window-summary"
+          >
+            {text}
+          </p>
+          {canExpand ? (
+            <Button
+              aria-expanded={expanded}
+              className="mt-1.5 h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+              data-slot="context-window-expand"
+              onClick={() => setExpanded((current) => !current)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {expanded ? (
+                <ChevronUp aria-hidden="true" className="size-3.5" />
+              ) : (
+                <ChevronDown aria-hidden="true" className="size-3.5" />
+              )}
+              {expanded ? 'Contraer' : 'Expandir'}
+            </Button>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]">
+          How much history is kept raw vs summarized for the model.
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -955,53 +1284,100 @@ function resolveContextWindowSummary(
   return null
 }
 
-function MetricCard({
-  detail,
-  label,
-  value,
+function TurnFocusHeader({
+  onClearFocusedTurn,
+  question,
 }: {
-  detail: string
-  label: string
-  value: string
+  onClearFocusedTurn?(): void
+  question: string
 }) {
+  const preview =
+    question.trim().length === 0
+      ? 'Sin pregunta'
+      : question.trim().length > 120
+        ? `${question.trim().slice(0, 117)}…`
+        : question.trim()
+
   return (
-    <article className="grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 text-card-foreground tracking-tight max-[680px]:min-h-20 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary/95">
-      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-        {label}
-      </span>
-      <strong className="break-words text-xl font-semibold leading-none max-[680px]:text-lg max-[680px]:leading-tight">
-        {value}
-      </strong>
-      <small className="text-sm leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-        {detail}
-      </small>
-    </article>
+    <Panel
+      aria-label="Detalles del turno"
+      data-slot="turn-focus-header"
+      role="region"
+    >
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+        <div className="grid min-w-0 gap-0.5">
+          <PanelTitle>Detalles del turno</PanelTitle>
+          <p
+            className="line-clamp-2 text-[11px] leading-snug text-muted-foreground max-[680px]:text-[0.5625rem]"
+            title={question.trim() || undefined}
+          >
+            {preview}
+          </p>
+        </div>
+        {onClearFocusedTurn !== undefined ? (
+          <Button
+            className="h-7 shrink-0 px-2 text-[11px]"
+            data-slot="turn-focus-clear"
+            onClick={onClearFocusedTurn}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Ver sesión completa
+          </Button>
+        ) : null}
+      </PanelHeader>
+    </Panel>
   )
 }
 
 function InternalActionStepper({
+  defaultOpen = false,
   detail,
   state,
 }: {
+  defaultOpen?: boolean
   detail: ChatSessionDetailResponse | null
   state: RequestState
 }) {
+  const stepCount = countInternalSteps(detail)
+  // Controlled open so turn-focus starts expanded; user can still collapse.
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  useEffect(() => {
+    setIsOpen(defaultOpen)
+  }, [defaultOpen])
+
   return (
-    <Panel aria-label="Internal Action Stepper" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
-        <PanelTitle>Action Stepper</PanelTitle>
+    <details
+      className="group rounded-md border border-border/70 bg-card open:bg-card"
+      data-slot="context-action-stepper-details"
+      onToggle={(event) => {
+        setIsOpen(event.currentTarget.open)
+      }}
+      open={isOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-3 marker:content-none [&::-webkit-details-marker]:hidden max-[680px]:min-h-11 max-[680px]:p-0.5">
+        <span className="text-sm font-semibold text-foreground max-[680px]:text-[0.6875rem]">
+          Pipeline activity
+        </span>
         <StatusBadge>
-          {countInternalSteps(detail)} Steps
+          {stepCount} Step{stepCount === 1 ? '' : 's'}
         </StatusBadge>
-      </PanelHeader>
-      <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
+      </summary>
+      <div
+        aria-label="Internal Action Stepper"
+        className="border-t border-border/60 p-3 pt-2 max-[680px]:p-0.5"
+        role="region"
+      >
         {state === 'loading' ? (
           <InspectorLoadingSkeleton
             ariaLabel="Loading Action Stepper"
             slot="action-stepper-loading"
           />
-        ) : detail === null || countInternalSteps(detail) === 0 ? (
-          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Stored Internal Actions For This Session.</EmptyState>
+        ) : detail === null || stepCount === 0 ? (
+          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+            No tool or retrieval activity stored for this session.
+          </EmptyState>
         ) : (
           <DataList>
             {detail.tool_calls.map((call) => (
@@ -1065,8 +1441,8 @@ function InternalActionStepper({
             ))}
           </DataList>
         )}
-      </PanelBody>
-    </Panel>
+      </div>
+    </details>
   )
 }
 
@@ -1075,19 +1451,21 @@ function SessionDetailPanel({
   error,
   onOpenSource,
   state,
+  turnScoped = false,
 }: {
   detail: ChatSessionDetailResponse | null
   error: string | null
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   state: RequestState
+  turnScoped?: boolean
 }) {
   if (state === 'loading') {
     return (
       <Panel aria-live="polite" role="region">
-        <PanelHeader className="p-4 max-[680px]:p-0.5">
-          <PanelTitle>Session Detail</PanelTitle>
+        <PanelHeader className="p-3 max-[680px]:p-0.5">
+          <PanelTitle>Messages</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
+        <PanelBody className="p-3 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
           <div
             aria-busy="true"
             aria-label="Loading Session Detail"
@@ -1116,10 +1494,10 @@ function SessionDetailPanel({
   if (error) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-0.5">
-          <PanelTitle>Session Detail</PanelTitle>
+        <PanelHeader className="p-3 max-[680px]:p-0.5">
+          <PanelTitle>Messages</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
+        <PanelBody className="p-3 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
           <InlineFeedback role="alert" tone="danger">
             {operatorSafeMessage(error)}
           </InlineFeedback>
@@ -1131,11 +1509,11 @@ function SessionDetailPanel({
   if (detail === null) {
     return (
       <Panel role="region">
-        <PanelHeader className="p-4 max-[680px]:p-0.5">
-          <PanelTitle>Session Detail</PanelTitle>
+        <PanelHeader className="p-3 max-[680px]:p-0.5">
+          <PanelTitle>Messages</PanelTitle>
         </PanelHeader>
-        <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
-          <EmptyState>Select A Session To Inspect Stored History.</EmptyState>
+        <PanelBody className="p-3 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
+          <EmptyState>Select a session to inspect stored history.</EmptyState>
         </PanelBody>
       </Panel>
     )
@@ -1143,11 +1521,13 @@ function SessionDetailPanel({
 
   return (
     <Panel aria-label="Selected Session Detail" role="region">
-      <PanelHeader className="flex-row items-start justify-between gap-2 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5">
+      <PanelHeader className="flex-row items-start justify-between gap-2 p-3 max-[680px]:gap-0.5 max-[680px]:p-0.5">
         <div className="grid min-w-0 gap-1 max-[680px]:gap-0.5">
-          <PanelTitle>Session Detail</PanelTitle>
+          <PanelTitle>{turnScoped ? 'Turn messages' : 'Messages'}</PanelTitle>
           <p className="break-all text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            {detail.session.session_id}
+            {turnScoped
+              ? `${detail.messages.length} in this turn`
+              : detail.session.session_id}
           </p>
         </div>
         <StatusBadge tone={sessionStatusTone(detail.session.status)}>
@@ -1161,7 +1541,11 @@ function SessionDetailPanel({
           </h4>
           <DataList aria-label="Session Messages">
             {detail.messages.length === 0 ? (
-              <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">No Messages In This Session.</EmptyState>
+              <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                {turnScoped
+                  ? 'No messages stored for this turn yet.'
+                  : 'No Messages In This Session.'}
+              </EmptyState>
             ) : (
               detail.messages.map((message) => (
                 <DataListItem key={message.message_id}>

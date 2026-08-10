@@ -34,7 +34,7 @@ class RunNextIngestionJobRequestBody(BaseModel):
 
 class JobResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    workspace_id: UUID
     job_type: str
     status: str
     priority: int
@@ -52,7 +52,7 @@ class JobResponse(BaseModel):
     def from_job(cls, job: Job) -> JobResponse:
         return cls(
             id=job.id,
-            project_id=job.project_id,
+            workspace_id=job.workspace_id,
             job_type=job.job_type,
             status=job.status,
             priority=job.priority,
@@ -70,7 +70,7 @@ class JobResponse(BaseModel):
 
 class JobEventResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    workspace_id: UUID
     job_id: UUID
     event_type: str
     message: str | None
@@ -81,7 +81,7 @@ class JobEventResponse(BaseModel):
     def from_event(cls, event: JobEvent) -> JobEventResponse:
         return cls(
             id=event.id,
-            project_id=event.project_id,
+            workspace_id=event.workspace_id,
             job_id=event.job_id,
             event_type=event.event_type,
             message=event.message,
@@ -117,7 +117,7 @@ class JobDetailResponse(BaseModel):
 
 class IngestionRunResponse(BaseModel):
     status: str
-    project_id: UUID
+    workspace_id: UUID
     worker_id: str
     job_id: UUID | None
     job_type: str | None = None
@@ -138,7 +138,7 @@ class IngestionRunResponse(BaseModel):
     def from_report(cls, report: IngestionRunReport) -> IngestionRunResponse:
         return cls(
             status=report.status,
-            project_id=report.project_id,
+            workspace_id=report.workspace_id,
             worker_id=report.worker_id,
             job_id=report.job_id,
             job_type=report.job_type,

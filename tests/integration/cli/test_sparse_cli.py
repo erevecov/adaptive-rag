@@ -15,14 +15,14 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import FakeSparseEmbeddingProvider
@@ -40,11 +40,11 @@ def test_sparse_command_is_registered() -> None:
     assert "backfill" in command.stdout
 
 
-def test_sparse_backfill_command_embeds_project_chunks(
+def test_sparse_backfill_command_embeds_workspace_chunks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project, version, chunks = _create_document_version_with_chunks(session)
+    workspace, version, chunks = _create_document_version_with_chunks(session)
     provider = FakeSparseEmbeddingProvider()
     _patch_sparse_cli(monkeypatch, session=session, provider=provider)
 
@@ -53,8 +53,8 @@ def test_sparse_backfill_command_embeds_project_chunks(
         [
             "sparse",
             "backfill",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
         ],
     )
 
@@ -66,7 +66,7 @@ def test_sparse_backfill_command_embeds_project_chunks(
     ]
 
     assert payload == {
-        "project_id": str(project.id),
+        "workspace_id": str(workspace.id),
         "document_version_count": 1,
         "embedded_chunk_count": 2,
         "reused_chunk_count": 0,
@@ -82,7 +82,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -101,19 +101,19 @@ def _create_document_version_with_chunks(session):
         "## Details\n\n"
         "Delta evidence covers cited answers."
     )
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="guide.md",
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="guide.md",
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -125,7 +125,7 @@ def _create_document_version_with_chunks(session):
     second_start = text.index("Delta")
     chunk_repo = ChunkRepository(session)
     first = chunk_repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=first_start,
@@ -133,14 +133,14 @@ def _create_document_version_with_chunks(session):
         contextual_summary="Generated context for Alpha.",
     )
     second = chunk_repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=1,
         char_start=second_start,
         char_end=len(text),
     )
     session.commit()
-    return project, version, [first, second]
+    return workspace, version, [first, second]
 
 
 def _patch_sparse_cli(

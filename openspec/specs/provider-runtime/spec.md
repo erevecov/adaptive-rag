@@ -182,7 +182,7 @@ fake provider runtime or dense embedding contract.
 ### Requirement: Runtime provider connections son globales
 
 El sistema MUST modelar provider connections como configuracion global del
-workspace local, no como secrets por proyecto.
+workspace local, no como secrets por workspace.
 
 #### Scenario: Hosted y local coexisten
 
@@ -215,7 +215,7 @@ workspace local, no como secrets por proyecto.
 ### Requirement: Runtime slots son fijos y resolubles
 
 El sistema MUST exponer un conjunto fijo inicial de slots de runtime y MUST
-resolver cada operacion desde project override, default global o fallback
+resolver cada operacion desde workspace override, default global o fallback
 legacy.
 
 #### Scenario: Slots soportados son finitos
@@ -225,22 +225,22 @@ legacy.
   `sparse_embedding`, `rerank` o `contextualization`
 - **AND** cualquier otro valor se rechaza con `unsupported_slot`
 
-#### Scenario: Project override gana sobre default global
+#### Scenario: Workspace override gana sobre default global
 
-- **WHEN** un proyecto define override para un slot
-- **THEN** las operaciones de ese proyecto usan el override
-- **AND** otros proyectos siguen usando el default global o su propio override
+- **WHEN** un workspace define override para un slot
+- **THEN** las operaciones de ese workspace usan el override
+- **AND** otros workspaces siguen usando el default global o su propio override
 
 #### Scenario: Default global gana sobre environment
 
-- **WHEN** un slot no tiene override de proyecto pero si tiene default global
+- **WHEN** un slot no tiene override de workspace pero si tiene default global
   persistido
 - **THEN** el runtime usa el default global
 - **AND** no lee el provider/modelo legacy de `.env` para ese slot
 
 #### Scenario: Environment sigue como fallback local
 
-- **WHEN** no existe override de proyecto ni default global para un slot
+- **WHEN** no existe override de workspace ni default global para un slot
 - **THEN** el runtime puede usar la configuracion legacy de `.env` cuando existe
 - **AND** si tampoco existe configuracion live valida, conserva fake fallback
   donde el contrato offline lo permite
@@ -276,32 +276,32 @@ mantener exactamente un default efectivo por scope.
 - **THEN** el sistema rechaza la operacion
 - **AND** indica que primero debe rotar el default a otro modelo habilitado
 
-#### Scenario: Proyecto puede overridear pool de chat
+#### Scenario: Workspace puede overridear pool de chat
 
-- **WHEN** un proyecto define su propio pool/default de chat
-- **THEN** las llamadas de ese proyecto usan ese pool/default
-- **AND** el pool global queda intacto para los proyectos que heredan defaults
+- **WHEN** un workspace define su propio pool/default de chat
+- **THEN** las llamadas de ese workspace usan ese pool/default
+- **AND** el pool global queda intacto para los workspaces que heredan defaults
 
-### Requirement: Configuracion de proyecto no contiene secrets
+### Requirement: Configuracion de workspace no contiene secrets
 
-El sistema MUST permitir overrides de runtime por proyecto sin guardar secrets
-en tablas project-scoped.
+El sistema MUST permitir overrides de runtime por workspace sin guardar secrets
+en tablas workspace-scoped.
 
-#### Scenario: Override de proyecto referencia connection global
+#### Scenario: Override de workspace referencia connection global
 
-- **WHEN** un proyecto configura un slot para usar una hosted connection
+- **WHEN** un workspace configura un slot para usar una hosted connection
 - **THEN** el override guarda referencia a la connection y modelo
 - **AND** el secret usado sigue siendo el secret global de la connection
 
 #### Scenario: Reset vuelve a defaults globales
 
-- **WHEN** el usuario elimina un override de proyecto
-- **THEN** el proyecto vuelve a resolver ese slot desde defaults globales
+- **WHEN** el usuario elimina un override de workspace
+- **THEN** el workspace vuelve a resolver ese slot desde defaults globales
 - **AND** no elimina ni modifica connections, secrets o pools globales
 
-#### Scenario: Responses de proyecto muestran herencia
+#### Scenario: Responses de workspace muestran herencia
 
-- **WHEN** el frontend consulta runtime settings efectivos de un proyecto
+- **WHEN** el frontend consulta runtime settings efectivos de un workspace
 - **THEN** la respuesta indica si cada slot es `inherited` u `overridden`
 - **AND** no incluye secrets ni payloads raw de provider
 
@@ -367,13 +367,13 @@ providers.
 - **AND** sincroniza/persiste un catalogo de modelos para esa connection
 - **AND** configura defaults globales para `chat`, `dense_embedding` y
   `contextualization`
-- **AND** configura al menos un override por proyecto
+- **AND** configura al menos un override por workspace
 
 #### Scenario: Acceptance uses persisted runtime resolution
 
-- **WHEN** el smoke ejecuta indexing y chat para el proyecto creado
+- **WHEN** el smoke ejecuta indexing y chat para el workspace creado
 - **THEN** el provider de embeddings se resuelve desde el override efectivo del
-  proyecto
+  workspace
 - **AND** el chat runner se resuelve desde el default global heredado
 - **AND** el resultado incluye citations
 
@@ -396,26 +396,26 @@ Qwen/local live como acceptance manual opt-in.
 - **AND** no requiere `ADAPTIVE_RAG_QWEN_API_KEY`
 - **AND** reporta Qwen/local live como opt-in fuera del gate default
 
-### Requirement: Chat retrieval settings inherit globally and override per project
+### Requirement: Chat retrieval settings inherit globally and override per workspace
 
 El sistema MUST permitir configurar settings operativos de retrieval de chat a
-nivel global y pisarlos por proyecto sin mover secrets ni provider connections
-al scope del proyecto.
+nivel global y pisarlos por workspace sin mover secrets ni provider connections
+al scope del workspace.
 
 #### Scenario: Global defaults define chat retrieval behavior
 
-- **WHEN** no existe override de proyecto
+- **WHEN** no existe override de workspace
 - **THEN** el chat usa defaults globales efectivos para `retrieval_limit`,
   `rerank_enabled` y `rerank_candidate_limit`
 - **AND** los defaults iniciales son `retrieval_limit=5`,
   `rerank_enabled=true` y `rerank_candidate_limit=10`
 
-#### Scenario: Project override shadows global defaults
+#### Scenario: Workspace override shadows global defaults
 
-- **WHEN** un proyecto define override de chat retrieval settings
-- **THEN** el chat usa los valores del proyecto
-- **AND** la respuesta efectiva marca la fuente como `project`
-- **AND** al borrar el override el proyecto vuelve a heredar defaults globales
+- **WHEN** un workspace define override de chat retrieval settings
+- **THEN** el chat usa los valores del workspace
+- **AND** la respuesta efectiva marca la fuente como `workspace`
+- **AND** al borrar el override el workspace vuelve a heredar defaults globales
 
 #### Scenario: Limits are bounded
 

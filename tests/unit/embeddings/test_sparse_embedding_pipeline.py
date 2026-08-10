@@ -11,14 +11,14 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -33,7 +33,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -44,20 +44,22 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVersion]:
-    project = ProjectRepository(session).create(name="demo")
+def _create_document_version(
+    session, *, text: str
+) -> tuple[Workspace, DocumentVersion]:
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="guide.md",
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="guide.md",
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -65,13 +67,13 @@ def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVe
         index_fingerprint="ingestion-fp",
     )
     session.flush()
-    return project, version
+    return workspace, version
 
 
 def _create_chunks(
     session,
     *,
-    project: Project,
+    workspace: Workspace,
     version: DocumentVersion,
 ) -> list[Chunk]:
     text = version.normalized_text
@@ -80,7 +82,7 @@ def _create_chunks(
     second_start = text.index("Delta")
     repo = ChunkRepository(session)
     first = repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=first_start,
@@ -89,7 +91,7 @@ def _create_chunks(
         contextual_summary="Generated context for Alpha.",
     )
     second = repo.create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=1,
         char_start=second_start,
@@ -100,8 +102,9 @@ def _create_chunks(
     return [first, second]
 
 
-def test_sparse_embedding_pipeline_backfills_contextualized_inputs_idempotently(
-) -> None:
+def test_sparse_embedding_pipeline_backfills_contextualized_inputs_idempotently() -> (
+    None
+):
     text = (
         "# Product Guide\n\n"
         "## Intro\n\n"
@@ -110,16 +113,16 @@ def test_sparse_embedding_pipeline_backfills_contextualized_inputs_idempotently(
         "Delta evidence covers cited answers."
     )
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
-    chunks = _create_chunks(session, project=project, version=version)
+    workspace, version = _create_document_version(session, text=text)
+    chunks = _create_chunks(session, workspace=workspace, version=version)
     provider = FakeSparseEmbeddingProvider()
 
     first = SparseEmbeddingPipeline(session, provider=provider).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     second = SparseEmbeddingPipeline(session, provider=provider).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
@@ -148,21 +151,21 @@ def test_sparse_embedding_pipeline_backfills_contextualized_inputs_idempotently(
     )
 
 
-def test_sparse_embedding_pipeline_rejects_cross_project_version() -> None:
+def test_sparse_embedding_pipeline_rejects_cross_workspace_version() -> None:
     session = _make_session()
-    project, version = _create_document_version(session, text="Alpha evidence")
-    other_project = ProjectRepository(session).create(name="other")
+    workspace, version = _create_document_version(session, text="Alpha evidence")
+    other_workspace = WorkspaceRepository(session).create(name="other")
     provider = FakeSparseEmbeddingProvider()
     session.commit()
 
     with pytest.raises(
         SparseEmbeddingPipelineError,
-        match="document version does not belong to project",
+        match="document version does not belong to workspace",
     ):
         SparseEmbeddingPipeline(session, provider=provider).embed_document_version(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             document_version_id=version.id,
         )
 
-    assert project.id != other_project.id
+    assert workspace.id != other_workspace.id
     assert session.scalar(select(func.count()).select_from(ChunkSparseEmbedding)) == 0

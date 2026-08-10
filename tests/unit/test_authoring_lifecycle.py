@@ -12,10 +12,10 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    Project,
     Source,
+    Workspace,
 )
-from adaptive_rag.db.repositories import DocumentRepository, ProjectRepository
+from adaptive_rag.db.repositories import DocumentRepository, WorkspaceRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
     DenseEmbeddingPipeline,
@@ -30,7 +30,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -41,34 +41,34 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def test_update_and_soft_delete_project() -> None:
+def test_update_and_soft_delete_workspace() -> None:
     session = _make_session()
-    project = authoring.create_project(session, name="Alpha")
-    updated = authoring.update_project(session, project.id, name="Beta")
+    workspace = authoring.create_workspace(session, name="Alpha")
+    updated = authoring.update_workspace(session, workspace.id, name="Beta")
     assert updated.name == "Beta"
-    deleted = authoring.soft_delete_project(session, project.id)
+    deleted = authoring.soft_delete_workspace(session, workspace.id)
     assert deleted.deleted_at is not None
-    assert ProjectRepository(session).get(project.id) is None
-    assert authoring.list_projects(session) == []
+    assert WorkspaceRepository(session).get(workspace.id) is None
+    assert authoring.list_workspaces(session) == []
 
 
 def test_soft_delete_source_cascades_index_rows() -> None:
     session = _make_session()
-    project = authoring.create_project(session, name="Demo")
+    workspace = authoring.create_workspace(session, name="Demo")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes\n\nIndex cascade evidence."},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="# Notes\n\nIndex cascade evidence.",
@@ -78,26 +78,26 @@ def test_soft_delete_source_cascades_index_rows() -> None:
         extraction_metadata={},
     )
     ChunkingPipeline(session).chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     DenseEmbeddingPipeline(
         session, provider=FakeDenseEmbeddingProvider()
     ).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     SparseEmbeddingPipeline(
         session, provider=FakeSparseEmbeddingProvider()
     ).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     assert session.scalar(select(func.count()).select_from(Chunk)) >= 1
 
     deleted = authoring.soft_delete_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     assert deleted.deleted_at is not None
@@ -108,21 +108,21 @@ def test_soft_delete_source_cascades_index_rows() -> None:
 
 def test_create_source_revives_soft_deleted_identity() -> None:
     session = _make_session()
-    project = authoring.create_project(session, name="Revive")
+    workspace = authoring.create_workspace(session, name="Revive")
     first = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         tags=["v1"],
         extra_metadata={"content": "# v1"},
     )
     authoring.soft_delete_source(
-        session, project_id=project.id, source_id=first.id
+        session, workspace_id=workspace.id, source_id=first.id
     )
     revived = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         tags=["v2"],
@@ -156,21 +156,21 @@ def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
 
     Base.metadata.create_all(engine)
     session = create_session_factory(engine)()
-    project = authoring.create_project(session, name="Cite")
+    workspace = authoring.create_workspace(session, name="Cite")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="cited.md",
         extra_metadata={"content": "# Cited\n\nBody."},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="# Cited\n\nBody.",
@@ -180,13 +180,13 @@ def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
         extraction_metadata={},
     )
     ChunkingPipeline(session).chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     chunk = session.scalars(select(Chunk)).first()
     assert chunk is not None
     chat = ChatSession(
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="succeeded",
         model_config_json={},
         prompt_version="t",
@@ -194,7 +194,7 @@ def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
     session.add(chat)
     session.flush()
     run = RetrievalRun(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat.id,
         query="q",
         strategy="dense",
@@ -204,7 +204,7 @@ def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
     session.flush()
     session.add(
         RetrievedChunk(
-            project_id=project.id,
+            workspace_id=workspace.id,
             retrieval_run_id=run.id,
             chunk_id=chunk.id,
             rank=1,
@@ -214,7 +214,7 @@ def test_soft_delete_source_preserves_retrieved_chunk_rows() -> None:
     session.flush()
 
     authoring.soft_delete_source(
-        session, project_id=project.id, source_id=source.id
+        session, workspace_id=workspace.id, source_id=source.id
     )
     session.expire_all()
     remaining = session.scalars(select(RetrievedChunk)).all()

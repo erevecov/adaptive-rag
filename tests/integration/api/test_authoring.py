@@ -1,4 +1,4 @@
-"""Tests de la superficie HTTP de authoring de projects/sources."""
+"""Tests de la superficie HTTP de authoring de workspaces/sources."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from sqlalchemy.pool import StaticPool
 from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, Source, User
-from adaptive_rag.db.repositories import ProjectRepository, SourceRepository
+from adaptive_rag.db.models import Source, User, Workspace
+from adaptive_rag.db.repositories import SourceRepository, WorkspaceRepository
 from adaptive_rag.db.session import create_session_factory
 
 
@@ -27,7 +27,7 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         # User must exist: bootstrap auth fails closed when the table is missing.
-        tables=[Project.__table__, Source.__table__, User.__table__],
+        tables=[Workspace.__table__, Source.__table__, User.__table__],
     )
     return create_session_factory(engine)()
 
@@ -42,11 +42,11 @@ def _client(*, session: Session) -> TestClient:
     return TestClient(app)
 
 
-def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
+def test_create_workspace_defaults_to_dense_sparse_and_lists_workspaces() -> None:
     session = _make_session()
     client = _client(session=session)
 
-    response = client.post("/projects", json={"name": "Demo"})
+    response = client.post("/workspaces", json={"name": "Demo"})
 
     assert response.status_code == 200
     payload = response.json()
@@ -69,26 +69,26 @@ def test_create_project_defaults_to_dense_sparse_and_lists_projects() -> None:
         "deleted_at",
     }
 
-    list_response = client.get("/projects")
+    list_response = client.get("/workspaces")
 
     assert list_response.status_code == 200
     assert [item["id"] for item in list_response.json()["items"]] == [payload["id"]]
 
 
-def test_get_project_returns_404_for_missing_project() -> None:
+def test_get_workspace_returns_404_for_missing_workspace() -> None:
     client = _client(session=_make_session())
 
-    response = client.get(f"/projects/{uuid4()}")
+    response = client.get(f"/workspaces/{uuid4()}")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "project not found"
+    assert response.json()["detail"] == "workspace not found"
 
 
-def test_create_project_accepts_explicit_dense_mode() -> None:
+def test_create_workspace_accepts_explicit_dense_mode() -> None:
     client = _client(session=_make_session())
 
     response = client.post(
-        "/projects",
+        "/workspaces",
         json={"name": "Dense", "embedding_mode": "dense"},
     )
 
@@ -98,12 +98,12 @@ def test_create_project_accepts_explicit_dense_mode() -> None:
 
 def test_create_text_source_requires_content_and_lists_sources() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     client = _client(session=session)
 
     missing_content = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={"source_type": "markdown", "external_id": "notes.md"},
     )
 
@@ -114,7 +114,7 @@ def test_create_text_source_requires_content_and_lists_sources() -> None:
     )
 
     response = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={
             "source_type": "markdown",
             "external_id": "notes.md",
@@ -125,14 +125,14 @@ def test_create_text_source_requires_content_and_lists_sources() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["project_id"] == str(project.id)
+    assert payload["workspace_id"] == str(workspace.id)
     assert payload["source_type"] == "markdown"
     assert payload["external_id"] == "notes.md"
     assert payload["tags"] == ["docs", "local"]
     assert payload["extra_metadata"] == {"content": "# Notes"}
     assert set(payload) == {
         "id",
-        "project_id",
+        "workspace_id",
         "source_type",
         "external_id",
         "tags",
@@ -142,22 +142,20 @@ def test_create_text_source_requires_content_and_lists_sources() -> None:
         "deleted_at",
     }
 
-    list_response = client.get(f"/projects/{project.id}/sources")
+    list_response = client.get(f"/workspaces/{workspace.id}/sources")
 
     assert list_response.status_code == 200
-    assert [item["id"] for item in list_response.json()["items"]] == [
-        payload["id"]
-    ]
+    assert [item["id"] for item in list_response.json()["items"]] == [payload["id"]]
 
 
 def test_create_url_source_does_not_require_content() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     client = _client(session=session)
 
     response = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={
             "source_type": "url",
             "external_id": "https://example.com/article",
@@ -172,9 +170,9 @@ def test_create_url_source_does_not_require_content() -> None:
 
 def test_create_source_returns_409_for_duplicate_identity() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/article",
     )
@@ -182,7 +180,7 @@ def test_create_source_returns_409_for_duplicate_identity() -> None:
     client = _client(session=session)
 
     response = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={
             "source_type": "url",
             "external_id": "https://example.com/article",
@@ -193,58 +191,58 @@ def test_create_source_returns_409_for_duplicate_identity() -> None:
     assert response.json()["detail"] == "source already exists"
 
 
-def test_sources_are_scoped_to_project_for_list_and_get() -> None:
+def test_sources_are_scoped_to_workspace_for_list_and_get() -> None:
     session = _make_session()
-    project_a = ProjectRepository(session).create(name="A")
-    project_b = ProjectRepository(session).create(name="B")
+    workspace_a = WorkspaceRepository(session).create(name="A")
+    workspace_b = WorkspaceRepository(session).create(name="B")
     source_a = SourceRepository(session).create(
-        project_id=project_a.id,
+        workspace_id=workspace_a.id,
         source_type="url",
         external_id="https://example.com/a",
     )
     source_b = SourceRepository(session).create(
-        project_id=project_b.id,
+        workspace_id=workspace_b.id,
         source_type="url",
         external_id="https://example.com/b",
     )
     session.commit()
     client = _client(session=session)
 
-    list_response = client.get(f"/projects/{project_a.id}/sources")
-    cross_project_response = client.get(
-        f"/projects/{project_a.id}/sources/{source_b.id}"
+    list_response = client.get(f"/workspaces/{workspace_a.id}/sources")
+    cross_workspace_response = client.get(
+        f"/workspaces/{workspace_a.id}/sources/{source_b.id}"
     )
-    own_source_response = client.get(f"/projects/{project_a.id}/sources/{source_a.id}")
+    own_source_response = client.get(
+        f"/workspaces/{workspace_a.id}/sources/{source_a.id}"
+    )
 
     assert list_response.status_code == 200
-    assert [item["id"] for item in list_response.json()["items"]] == [
-        str(source_a.id)
-    ]
-    assert cross_project_response.status_code == 404
-    assert cross_project_response.json()["detail"] == "source not found"
+    assert [item["id"] for item in list_response.json()["items"]] == [str(source_a.id)]
+    assert cross_workspace_response.status_code == 404
+    assert cross_workspace_response.json()["detail"] == "source not found"
     assert own_source_response.status_code == 200
     assert own_source_response.json()["id"] == str(source_a.id)
 
 
-def test_create_source_rejects_unknown_project_and_source_type() -> None:
+def test_create_source_rejects_unknown_workspace_and_source_type() -> None:
     client = _client(session=_make_session())
-    project_id = uuid4()
+    workspace_id = uuid4()
 
-    missing_project = client.post(
-        f"/projects/{project_id}/sources",
+    missing_workspace = client.post(
+        f"/workspaces/{workspace_id}/sources",
         json={"source_type": "url", "external_id": "https://example.com"},
     )
 
-    assert missing_project.status_code == 404
-    assert missing_project.json()["detail"] == "project not found"
+    assert missing_workspace.status_code == 404
+    assert missing_workspace.json()["detail"] == "workspace not found"
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     client = _client(session=session)
 
     unsupported = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={"source_type": "pptx", "external_id": "deck.pptx"},
     )
 
@@ -255,7 +253,7 @@ def test_create_source_rejects_unknown_project_and_source_type() -> None:
     )
 
     missing_payload = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         json={"source_type": "pdf", "external_id": "file.pdf"},
     )
     assert missing_payload.status_code == 422

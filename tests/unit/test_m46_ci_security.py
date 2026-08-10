@@ -15,7 +15,7 @@ def test_ci_workflow_includes_bandit_and_pip_audit() -> None:
     assert "bandit" in text
     assert "pip-audit" in text
     assert "bandit -r src" in text
-    # Must audit the project env, not an isolated tool env that skips app deps.
+    # Must audit the workspace env, not an isolated tool env that skips app deps.
     assert "uv run --with pip-audit pip-audit" in text
     assert "uv tool run pip-audit" not in text
 

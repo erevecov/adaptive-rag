@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.retrieval import DenseRetrievalFilters
@@ -24,7 +24,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -34,14 +34,14 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _create_project(session, name: str) -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session, name: str) -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_chunk(
     session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -53,19 +53,19 @@ def _create_chunk(
     document_created_at: datetime | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -74,7 +74,7 @@ def _create_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -94,11 +94,11 @@ def _create_chunk(
 
 def test_bm25_retriever_prefers_concise_matches_over_long_matches() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     filler = " ".join(f"filler{i}" for i in range(80))
     _long_source, _long_document, _long_version, long_match = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="long.md",
         stable_id="long",
         text=f"SKU 42 manual {filler}",
@@ -106,7 +106,7 @@ def test_bm25_retriever_prefers_concise_matches_over_long_matches() -> None:
     )
     source, document, version, short_match = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="short.md",
         tags=("docs",),
         stable_id="short",
@@ -116,7 +116,7 @@ def test_bm25_retriever_prefers_concise_matches_over_long_matches() -> None:
     session.commit()
 
     results = Bm25Retriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="SKU 42 manual",
         limit=2,
     )
@@ -136,13 +136,13 @@ def test_bm25_retriever_prefers_concise_matches_over_long_matches() -> None:
 
 def test_bm25_retriever_filters_before_scoring() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     feb_1 = datetime(2026, 2, 1, tzinfo=UTC)
     feb_2 = datetime(2026, 2, 2, tzinfo=UTC)
     wanted_source, wanted_document, _version, wanted = _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="wanted.md",
         tags=("docs", "v1"),
         stable_id="wanted",
@@ -153,7 +153,7 @@ def test_bm25_retriever_filters_before_scoring() -> None:
     )
     _create_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="text",
         external_id="wrong-type.txt",
         tags=("docs", "v1"),
@@ -165,19 +165,19 @@ def test_bm25_retriever_filters_before_scoring() -> None:
     )
     _create_chunk(
         session,
-        project=other_project,
+        workspace=other_workspace,
         external_id="other.md",
         tags=("docs", "v1"),
         stable_id="other",
-        text="Invoice ID 777 belongs to another project.",
-        snippet="Invoice ID 777 belongs to another project.",
+        text="Invoice ID 777 belongs to another workspace.",
+        snippet="Invoice ID 777 belongs to another workspace.",
         source_created_at=feb_1,
         document_created_at=feb_2,
     )
     session.commit()
 
     results = Bm25Retriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="invoice 777",
         limit=5,
         filters=DenseRetrievalFilters(
@@ -197,12 +197,12 @@ def test_bm25_retriever_filters_before_scoring() -> None:
 
 def test_bm25_retriever_rejects_invalid_request() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     session.commit()
 
     with pytest.raises(Bm25RetrievalError, match="limit must be positive"):
         Bm25Retriever(session).search(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="invoice",
             limit=0,
         )
@@ -210,21 +210,21 @@ def test_bm25_retriever_rejects_invalid_request() -> None:
 
 def test_bm25_retriever_only_returns_latest_document_version() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="policy.md",
         tags=("docs",),
         extra_metadata={"title": "policy"},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id="policy",
     )
     old_version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Legacy refund token UNIQUEOLDTOKEN refund policy",
@@ -232,7 +232,7 @@ def test_bm25_retriever_only_returns_latest_document_version() -> None:
         index_fingerprint="fp:policy-v1",
     )
     new_version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=2,
         normalized_text="Current refund token UNIQUENEWTOKEN refund policy",
@@ -242,7 +242,7 @@ def test_bm25_retriever_only_returns_latest_document_version() -> None:
     old_text = old_version.normalized_text
     new_text = new_version.normalized_text
     old_chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=old_version.id,
         ordinal=0,
         char_start=0,
@@ -250,7 +250,7 @@ def test_bm25_retriever_only_returns_latest_document_version() -> None:
         token_count=6,
     )
     new_chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=new_version.id,
         ordinal=0,
         char_start=0,
@@ -260,7 +260,7 @@ def test_bm25_retriever_only_returns_latest_document_version() -> None:
     session.commit()
 
     results = Bm25Retriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="refund policy",
         limit=5,
     )
@@ -270,7 +270,7 @@ def test_bm25_retriever_only_returns_latest_document_version() -> None:
     assert old_chunk.id not in {result.chunk_id for result in results}
 
     old_only = Bm25Retriever(session).search(
-        project_id=project.id,
+        workspace_id=workspace.id,
         query="UNIQUEOLDTOKEN",
         limit=5,
     )

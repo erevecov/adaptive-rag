@@ -1,4 +1,4 @@
-"""Rutas HTTP de authoring publico de projects y sources."""
+"""Rutas HTTP de authoring publico de workspaces y sources."""
 
 from __future__ import annotations
 
@@ -12,38 +12,38 @@ from sqlalchemy.orm import Session
 from adaptive_rag import authoring
 from adaptive_rag.api.dependencies import (
     get_current_user,
-    get_project_access,
-    get_project_admin_access,
-    get_project_contributor_access,
     get_session,
+    get_workspace_access,
+    get_workspace_admin_access,
+    get_workspace_contributor_access,
     require_superadmin,
 )
 from adaptive_rag.api.schemas.authoring import (
-    ProjectCreateRequestBody,
-    ProjectListResponse,
-    ProjectResponse,
-    ProjectUpdateRequestBody,
     SourceCreateRequestBody,
     SourceListResponse,
     SourceResponse,
     SourceUpdateRequestBody,
+    WorkspaceCreateRequestBody,
+    WorkspaceListResponse,
+    WorkspaceResponse,
+    WorkspaceUpdateRequestBody,
 )
-from adaptive_rag.auth import CurrentPrincipal, get_project_role
-from adaptive_rag.db.models import Project
+from adaptive_rag.auth import CurrentPrincipal, get_workspace_role
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.repositories import SourceFilters
 
 router = APIRouter(tags=["authoring"])
 
 
-@router.post("/projects", response_model=ProjectResponse)
-def create_project(
-    body: ProjectCreateRequestBody,
+@router.post("/workspaces", response_model=WorkspaceResponse)
+def create_workspace(
+    body: WorkspaceCreateRequestBody,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-) -> ProjectResponse:
+) -> WorkspaceResponse:
     require_superadmin(current)
     try:
-        project = authoring.create_project(
+        workspace = authoring.create_workspace(
             session,
             name=body.name,
             embedding_mode=body.embedding_mode,
@@ -55,59 +55,61 @@ def create_project(
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectResponse.from_project(
-        project,
+    return WorkspaceResponse.from_workspace(
+        workspace,
         access_role="superadmin",
         can_access=True,
     )
 
 
-@router.get("/projects", response_model=ProjectListResponse)
-def list_projects(
+@router.get("/workspaces", response_model=WorkspaceListResponse)
+def list_workspaces(
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-) -> ProjectListResponse:
-    # Superadmin/bootstrap see all projects. Non-superadmin only membership
-    # rows at query level (no existence disclosure of foreign projects).
+) -> WorkspaceListResponse:
+    # Superadmin/bootstrap see all workspaces. Non-superadmin only membership
+    # rows at query level (no existence disclosure of foreign workspaces).
     if current.is_superadmin:
-        projects = authoring.list_projects(session)
+        workspaces = authoring.list_workspaces(session)
     elif current.user_id is None:
-        projects = []
+        workspaces = []
     else:
-        projects = authoring.list_projects(session, member_user_id=current.user_id)
-    return ProjectListResponse(
+        workspaces = authoring.list_workspaces(session, member_user_id=current.user_id)
+    return WorkspaceListResponse(
         items=[
-            _project_response_for_current_user(
+            _workspace_response_for_current_user(
                 session=session,
                 current=current,
-                project=project,
+                workspace=workspace,
             )
-            for project in projects
+            for workspace in workspaces
         ]
     )
 
 
-@router.get("/projects/{project_id}", response_model=ProjectResponse)
-def get_project(
-    project_id: UUID,
-    access: Annotated[tuple[Project, str], Depends(get_project_access)],
-) -> ProjectResponse:
-    project, role = access
-    return ProjectResponse.from_project(project, access_role=role, can_access=True)
+@router.get("/workspaces/{workspace_id}", response_model=WorkspaceResponse)
+def get_workspace(
+    workspace_id: UUID,
+    access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
+) -> WorkspaceResponse:
+    workspace, role = access
+    return WorkspaceResponse.from_workspace(
+        workspace, access_role=role, can_access=True
+    )
 
 
-@router.patch("/projects/{project_id}", response_model=ProjectResponse)
-def update_project(
-    project_id: UUID,
-    body: ProjectUpdateRequestBody,
+@router.patch("/workspaces/{workspace_id}", response_model=WorkspaceResponse)
+def update_workspace(
+    workspace_id: UUID,
+    body: WorkspaceUpdateRequestBody,
     session: Annotated[Session, Depends(get_session)],
-    access: Annotated[tuple[Project, str], Depends(get_project_admin_access)],
-) -> ProjectResponse:
-    _project, role = access
+    access: Annotated[tuple[Workspace, str], Depends(get_workspace_admin_access)],
+) -> WorkspaceResponse:
+    _workspace, role = access
     try:
-        project = authoring.update_project(
+        workspace = authoring.update_workspace(
             session,
-            project_id,
+            workspace_id,
             name=body.name,
             embedding_mode=body.embedding_mode,
             retrieval_contextualization_enabled=(
@@ -118,39 +120,43 @@ def update_project(
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectResponse.from_project(project, access_role=role, can_access=True)
+    return WorkspaceResponse.from_workspace(
+        workspace, access_role=role, can_access=True
+    )
 
 
-@router.delete("/projects/{project_id}", response_model=ProjectResponse)
-def delete_project(
-    project_id: UUID,
+@router.delete("/workspaces/{workspace_id}", response_model=WorkspaceResponse)
+def delete_workspace(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-) -> ProjectResponse:
+) -> WorkspaceResponse:
     require_superadmin(current)
     try:
-        project = authoring.soft_delete_project(session, project_id)
+        workspace = authoring.soft_delete_workspace(session, workspace_id)
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     session.commit()
-    return ProjectResponse.from_project(
-        project,
+    return WorkspaceResponse.from_workspace(
+        workspace,
         access_role="superadmin",
         can_access=True,
     )
 
 
-@router.post("/projects/{project_id}/sources", response_model=SourceResponse)
+@router.post("/workspaces/{workspace_id}/sources", response_model=SourceResponse)
 def create_source(
-    project_id: UUID,
+    workspace_id: UUID,
     body: SourceCreateRequestBody,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_contributor_access)],
+    _access: Annotated[
+        tuple[Workspace, str], Depends(get_workspace_contributor_access)
+    ],
 ) -> SourceResponse:
     try:
         source = authoring.create_source(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_type=body.source_type,
             external_id=body.external_id,
             tags=body.tags,
@@ -162,11 +168,11 @@ def create_source(
     return SourceResponse.from_source(source)
 
 
-@router.get("/projects/{project_id}/sources", response_model=SourceListResponse)
+@router.get("/workspaces/{workspace_id}/sources", response_model=SourceListResponse)
 def list_sources(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
     source_type: Annotated[str | None, Query()] = None,
     external_id: Annotated[str | None, Query()] = None,
     tag: Annotated[str | None, Query()] = None,
@@ -176,7 +182,7 @@ def list_sources(
     try:
         sources = authoring.list_sources(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=SourceFilters(
                 source_type=source_type,
                 external_id=external_id,
@@ -190,17 +196,19 @@ def list_sources(
     return SourceListResponse.from_sources(sources)
 
 
-@router.get("/projects/{project_id}/sources/{source_id}", response_model=SourceResponse)
+@router.get(
+    "/workspaces/{workspace_id}/sources/{source_id}", response_model=SourceResponse
+)
 def get_source(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> SourceResponse:
     try:
         source = authoring.get_source(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
         )
     except authoring.AuthoringError as exc:
@@ -209,20 +217,22 @@ def get_source(
 
 
 @router.patch(
-    "/projects/{project_id}/sources/{source_id}",
+    "/workspaces/{workspace_id}/sources/{source_id}",
     response_model=SourceResponse,
 )
 def update_source(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     body: SourceUpdateRequestBody,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_contributor_access)],
+    _access: Annotated[
+        tuple[Workspace, str], Depends(get_workspace_contributor_access)
+    ],
 ) -> SourceResponse:
     try:
         source = authoring.update_source(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
             tags=body.tags,
             extra_metadata=body.extra_metadata,
@@ -235,19 +245,19 @@ def update_source(
 
 
 @router.delete(
-    "/projects/{project_id}/sources/{source_id}",
+    "/workspaces/{workspace_id}/sources/{source_id}",
     response_model=SourceResponse,
 )
 def delete_source(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_admin_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_admin_access)],
 ) -> SourceResponse:
     try:
         source = authoring.soft_delete_source(
             session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
         )
     except authoring.AuthoringError as exc:
@@ -260,25 +270,25 @@ def _http_error(error: authoring.AuthoringError) -> HTTPException:
     return HTTPException(status_code=error.status_code, detail=error.detail)
 
 
-def _project_response_for_current_user(
+def _workspace_response_for_current_user(
     *,
     session: Session,
     current: CurrentPrincipal,
-    project: Project,
-) -> ProjectResponse:
-    role = get_project_role(session, principal=current, project_id=project.id)
-    return ProjectResponse.from_project(
-        project,
+    workspace: Workspace,
+) -> WorkspaceResponse:
+    role = get_workspace_role(session, principal=current, workspace_id=workspace.id)
+    return WorkspaceResponse.from_workspace(
+        workspace,
         access_role=role,
         can_access=role is not None,
     )
 
 
-@router.get("/projects/{project_id}/knowledge/dedup-report")
+@router.get("/workspaces/{workspace_id}/knowledge/dedup-report")
 def knowledge_dedup_report(
-    project_id: UUID,
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> dict[str, object]:
     from adaptive_rag.knowledge_lifecycle import (
         build_dedup_report,
@@ -286,18 +296,18 @@ def knowledge_dedup_report(
     )
 
     try:
-        report = build_dedup_report(session, project_id=project_id)
+        report = build_dedup_report(session, workspace_id=workspace_id)
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     return dedup_report_payload(report)
 
 
-@router.get("/projects/{project_id}/sources/{source_id}/sync-status")
+@router.get("/workspaces/{workspace_id}/sources/{source_id}/sync-status")
 def source_sync_status(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    _access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> dict[str, object]:
     from adaptive_rag.knowledge_lifecycle import (
         get_source_sync_status,
@@ -306,25 +316,27 @@ def source_sync_status(
 
     try:
         status = get_source_sync_status(
-            session, project_id=project_id, source_id=source_id
+            session, workspace_id=workspace_id, source_id=source_id
         )
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     return source_sync_status_payload(status)
 
 
-@router.post("/projects/{project_id}/sources/{source_id}/resync", status_code=201)
+@router.post("/workspaces/{workspace_id}/sources/{source_id}/resync", status_code=201)
 def source_resync(
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[Project, str], Depends(get_project_contributor_access)],
+    _access: Annotated[
+        tuple[Workspace, str], Depends(get_workspace_contributor_access)
+    ],
 ) -> dict[str, object]:
     from adaptive_rag.ingestion_ops import job_payload
     from adaptive_rag.knowledge_lifecycle import resync_source
 
     try:
-        result = resync_source(session, project_id=project_id, source_id=source_id)
+        result = resync_source(session, workspace_id=workspace_id, source_id=source_id)
     except authoring.AuthoringError as exc:
         raise _http_error(exc) from exc
     except Exception as exc:

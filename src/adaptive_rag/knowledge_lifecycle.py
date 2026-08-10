@@ -37,7 +37,7 @@ class DedupGroup:
 
 @dataclass(frozen=True, slots=True)
 class DedupReport:
-    project_id: UUID
+    workspace_id: UUID
     groups: tuple[DedupGroup, ...]
     duplicate_group_count: int
     duplicate_version_count: int
@@ -50,10 +50,14 @@ class ResyncResult:
 
 
 def get_source_sync_status(
-    session: Session, *, project_id: UUID, source_id: UUID
+    session: Session, *, workspace_id: UUID, source_id: UUID
 ) -> SourceSyncStatus:
-    source = authoring.get_source(session, project_id=project_id, source_id=source_id)
-    version = _latest_version_for_source(session, project_id=project_id, source=source)
+    source = authoring.get_source(
+        session, workspace_id=workspace_id, source_id=source_id
+    )
+    version = _latest_version_for_source(
+        session, workspace_id=workspace_id, source=source
+    )
     meta = source.extra_metadata or {}
     last_synced = meta.get("last_synced_at")
     if not isinstance(last_synced, str):
@@ -75,34 +79,36 @@ def get_source_sync_status(
 
 
 def list_source_sync_statuses(
-    session: Session, *, project_id: UUID
+    session: Session, *, workspace_id: UUID
 ) -> list[SourceSyncStatus]:
-    sources = SourceRepository(session).list(project_id=project_id)
+    sources = SourceRepository(session).list(workspace_id=workspace_id)
     return [
-        get_source_sync_status(session, project_id=project_id, source_id=source.id)
+        get_source_sync_status(session, workspace_id=workspace_id, source_id=source.id)
         for source in sources
     ]
 
 
 def resync_source(
-    session: Session, *, project_id: UUID, source_id: UUID
+    session: Session, *, workspace_id: UUID, source_id: UUID
 ) -> ResyncResult:
     """Enqueue public ingest_source job for an existing source (re-index path M40)."""
 
     try:
-        authoring.get_source(session, project_id=project_id, source_id=source_id)
+        authoring.get_source(session, workspace_id=workspace_id, source_id=source_id)
         job = ingestion_ops.enqueue_source_ingestion(
-            session, project_id=project_id, source_id=source_id
+            session, workspace_id=workspace_id, source_id=source_id
         )
     except IngestionOpsError as exc:
         raise authoring.AuthoringError(exc.detail, status_code=exc.status_code) from exc
-    source = SourceRepository(session).get(project_id=project_id, source_id=source_id)
+    source = SourceRepository(session).get(
+        workspace_id=workspace_id, source_id=source_id
+    )
     if source is None:
         raise authoring.AuthoringError("source not found", status_code=404)
     meta = dict(source.extra_metadata or {})
     meta["last_resync_enqueued_at"] = datetime.now(UTC).isoformat()
     SourceRepository(session).update(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_id=source_id,
         extra_metadata=meta,
     )
@@ -112,31 +118,33 @@ def resync_source(
 def mark_source_synced(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     source_id: UUID,
     content_hash: str,
 ) -> None:
     """Record successful ingest content hash on the source (lifecycle watermark)."""
 
-    source = authoring.get_source(session, project_id=project_id, source_id=source_id)
+    source = authoring.get_source(
+        session, workspace_id=workspace_id, source_id=source_id
+    )
     meta = dict(source.extra_metadata or {})
     meta["last_content_hash"] = content_hash
     meta["last_synced_at"] = datetime.now(UTC).isoformat()
     SourceRepository(session).update(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_id=source_id,
         extra_metadata=meta,
     )
 
 
-def build_dedup_report(session: Session, *, project_id: UUID) -> DedupReport:
+def build_dedup_report(session: Session, *, workspace_id: UUID) -> DedupReport:
     """Report document versions that share the same content_hash (silent dedup view)."""
 
-    authoring.get_project(session, project_id)
+    authoring.get_workspace(session, workspace_id)
     rows = session.execute(
         select(DocumentVersion, Document)
         .join(Document, Document.id == DocumentVersion.document_id)
-        .where(Document.project_id == project_id)
+        .where(Document.workspace_id == workspace_id)
     ).all()
     by_hash: dict[str, list[tuple[DocumentVersion, Document]]] = defaultdict(list)
     for version, document in rows:
@@ -160,7 +168,7 @@ def build_dedup_report(session: Session, *, project_id: UUID) -> DedupReport:
         duplicate_versions += len(items)
 
     return DedupReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         groups=tuple(groups),
         duplicate_group_count=len(groups),
         duplicate_version_count=duplicate_versions,
@@ -169,7 +177,7 @@ def build_dedup_report(session: Session, *, project_id: UUID) -> DedupReport:
 
 def dedup_report_payload(report: DedupReport) -> dict[str, Any]:
     return {
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "duplicate_group_count": report.duplicate_group_count,
         "duplicate_version_count": report.duplicate_version_count,
         "groups": [
@@ -196,17 +204,17 @@ def source_sync_status_payload(status: SourceSyncStatus) -> dict[str, Any]:
 
 
 def _latest_version_for_source(
-    session: Session, *, project_id: UUID, source: Source
+    session: Session, *, workspace_id: UUID, source: Source
 ) -> DocumentVersion | None:
     from adaptive_rag.db.repositories import DocumentFilters
 
     documents = DocumentRepository(session).list(
-        project_id=project_id,
+        workspace_id=workspace_id,
         filters=DocumentFilters(source_id=source.id),
     )
     if not documents:
         return None
     versions = DocumentRepository(session).list_versions(
-        project_id=project_id, document_id=documents[0].id
+        workspace_id=workspace_id, document_id=documents[0].id
     )
     return versions[-1] if versions else None

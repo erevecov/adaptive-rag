@@ -26,7 +26,7 @@ class ReadyGraphStore:
             status="ready",
         )
 
-    def expand_project_chunks(self, **_kwargs):
+    def expand_workspace_chunks(self, **_kwargs):
         return ()
 
     def close(self) -> None:
@@ -95,13 +95,13 @@ def test_graph_neo4j_smoke_exits_nonzero_when_unavailable(monkeypatch) -> None:
 
 
 def test_graph_backfill_outputs_operation_report(monkeypatch) -> None:
-    project_id = "00000000-0000-0000-0000-000000000123"
+    workspace_id = "00000000-0000-0000-0000-000000000123"
     calls: list[dict[str, object]] = []
 
     def fake_run_graph_backfill_operation(**kwargs):
         calls.append(kwargs)
         return GraphBackfillOperationReport(
-            project_id=UUID(project_id),
+            workspace_id=UUID(workspace_id),
             backend="neo4j",
             operation="backfill",
             previous_status="disabled",
@@ -128,7 +128,7 @@ def test_graph_backfill_outputs_operation_report(monkeypatch) -> None:
         [
             "graph",
             "backfill",
-            project_id,
+            workspace_id,
             "--source-watermark",
             "chunks:v1",
         ],
@@ -137,7 +137,7 @@ def test_graph_backfill_outputs_operation_report(monkeypatch) -> None:
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert data == {
-        "project_id": project_id,
+        "workspace_id": workspace_id,
         "backend": "neo4j",
         "operation": "backfill",
         "previous_status": "disabled",
@@ -152,11 +152,11 @@ def test_graph_backfill_outputs_operation_report(monkeypatch) -> None:
 
 
 def test_graph_reindex_exits_nonzero_on_failed_report(monkeypatch) -> None:
-    project_id = "00000000-0000-0000-0000-000000000123"
+    workspace_id = "00000000-0000-0000-0000-000000000123"
 
     def fake_run_graph_backfill_operation(**_kwargs):
         return GraphBackfillOperationReport(
-            project_id=UUID(project_id),
+            workspace_id=UUID(workspace_id),
             backend="neo4j",
             operation="reindex",
             previous_status="stale",
@@ -183,7 +183,7 @@ def test_graph_reindex_exits_nonzero_on_failed_report(monkeypatch) -> None:
         [
             "graph",
             "reindex",
-            project_id,
+            workspace_id,
             "--source-watermark",
             "chunks:v2",
         ],
@@ -197,7 +197,7 @@ def test_graph_reindex_exits_nonzero_on_failed_report(monkeypatch) -> None:
 
 
 def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
-    project_id = "00000000-0000-0000-0000-000000000123"
+    workspace_id = "00000000-0000-0000-0000-000000000123"
     chunk_id = "00000000-0000-0000-0000-000000000456"
     store = ReadyGraphStore()
     calls: list[dict[str, object]] = []
@@ -205,7 +205,7 @@ def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
     def fake_run_graph_retrieval_smoke(**kwargs):
         calls.append(kwargs)
         return GraphRetrievalSmokeReport(
-            project_id=UUID(project_id),
+            workspace_id=UUID(workspace_id),
             backend="neo4j",
             status="ready",
             requested_strategy="graph",
@@ -238,7 +238,7 @@ def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
         [
             "graph",
             "retrieval-smoke",
-            project_id,
+            workspace_id,
             "--query",
             "alpha question",
             "--limit",
@@ -253,7 +253,7 @@ def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert data == {
-        "project_id": project_id,
+        "workspace_id": workspace_id,
         "backend": "neo4j",
         "status": "ready",
         "requested_strategy": "graph",
@@ -266,7 +266,7 @@ def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
         "chunk_ids": [chunk_id],
         "source_external_ids": ["alpha.md"],
     }
-    assert calls[0]["project_id"] == UUID(project_id)
+    assert calls[0]["workspace_id"] == UUID(workspace_id)
     assert calls[0]["query"] == "alpha question"
     assert calls[0]["limit"] == 3
     assert calls[0]["metadata_filter"].source_type == "markdown"
@@ -276,11 +276,11 @@ def test_graph_retrieval_smoke_outputs_ready_report(monkeypatch) -> None:
 
 
 def test_graph_retrieval_smoke_exits_nonzero_on_fallback_report(monkeypatch) -> None:
-    project_id = "00000000-0000-0000-0000-000000000123"
+    workspace_id = "00000000-0000-0000-0000-000000000123"
 
     def fake_run_graph_retrieval_smoke(**_kwargs):
         return GraphRetrievalSmokeReport(
-            project_id=UUID(project_id),
+            workspace_id=UUID(workspace_id),
             backend="neo4j",
             status="fallback",
             requested_strategy="graph",
@@ -313,7 +313,7 @@ def test_graph_retrieval_smoke_exits_nonzero_on_fallback_report(monkeypatch) -> 
 
     result = CliRunner().invoke(
         app,
-        ["graph", "retrieval-smoke", project_id, "--query", "alpha question"],
+        ["graph", "retrieval-smoke", workspace_id, "--query", "alpha question"],
     )
 
     assert result.exit_code == 1

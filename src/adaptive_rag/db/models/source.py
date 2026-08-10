@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 
 class Source(Base):
@@ -19,19 +19,19 @@ class Source(Base):
     __tablename__ = "sources"
     __table_args__ = (
         UniqueConstraint(
-            "project_id",
+            "workspace_id",
             "source_type",
             "external_id",
-            name="uq_sources_project_type_external_id",
+            name="uq_sources_workspace_type_external_id",
         ),
-        Index("ix_sources_project_type", "project_id", "source_type"),
-        Index("ix_sources_project_created_at", "project_id", "created_at"),
+        Index("ix_sources_workspace_type", "workspace_id", "source_type"),
+        Index("ix_sources_workspace_created_at", "workspace_id", "created_at"),
         Index("ix_sources_tags", "tags", postgresql_using="gin"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     source_type: Mapped[str] = mapped_column(nullable=False)
     external_id: Mapped[str] = mapped_column(nullable=False)

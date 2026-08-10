@@ -127,7 +127,7 @@ class ProviderUsageSnapshot:
 
 
 def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     metadata_filter = RetrievalMetadataFilter(source_type="markdown", tags=("docs",))
     retrieval_result = _retrieval_result(
@@ -145,7 +145,7 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
         retrieval_service=retrieval,
     ).respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=metadata_filter,
@@ -153,7 +153,7 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
     )
 
     assert len(runner.requests) == 1
-    assert runner.requests[0].project_id == project_id
+    assert runner.requests[0].workspace_id == workspace_id
     assert runner.requests[0].message == "What supports alpha?"
     assert runner.requests[0].retrieval_limit == 2
     assert runner.requests[0].metadata_filter == metadata_filter
@@ -161,7 +161,7 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
     assert runner.requests[0].history == ()
     assert retrieval.requests == [
         RetrievalSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query="alpha evidence",
             limit=2,
             metadata_filter=metadata_filter,
@@ -193,7 +193,7 @@ def test_chat_service_runs_retrieval_tool_and_returns_cited_payloads() -> None:
 
 
 def test_chat_service_passes_rerank_options_to_retrieval_tool() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
         [_retrieval_result(chunk_id=chunk_id, snippet="Alpha original evidence")]
@@ -205,7 +205,7 @@ def test_chat_service_passes_rerank_options_to_retrieval_tool() -> None:
 
     ChatService(runner=runner, retrieval_service=retrieval).respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=3,
             rerank_enabled=True,
@@ -215,7 +215,7 @@ def test_chat_service_passes_rerank_options_to_retrieval_tool() -> None:
 
     assert retrieval.requests == [
         RetrievalSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query="alpha evidence",
             limit=3,
             metadata_filter=None,
@@ -226,7 +226,7 @@ def test_chat_service_passes_rerank_options_to_retrieval_tool() -> None:
 
 
 def test_chat_service_can_answer_without_retrieval_tool_call() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     retrieval = RecordingRetrievalService([])
     runner = NoToolRunner()
 
@@ -235,7 +235,7 @@ def test_chat_service_can_answer_without_retrieval_tool_call() -> None:
         retrieval_service=retrieval,
     ).respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="Say hello.",
         )
     )
@@ -248,7 +248,7 @@ def test_chat_service_can_answer_without_retrieval_tool_call() -> None:
 
 
 def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     session_id = uuid4()
     retrieval_result = _retrieval_result(
@@ -288,7 +288,7 @@ def test_chat_service_streams_session_tool_delta_and_final_events() -> None:
             provider_usage_records=provider_usage,
         ).stream(
             ChatRequest(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 message="What supports alpha?",
                 retrieval_limit=2,
             )
@@ -388,7 +388,7 @@ def test_chat_service_stream_rejects_invalid_requests_before_session_start() -> 
                 runner=runner,
                 retrieval_service=retrieval,
                 audit_writer=audit,
-            ).stream(ChatRequest(project_id=uuid4(), message=" "))
+            ).stream(ChatRequest(workspace_id=uuid4(), message=" "))
         )
 
     assert runner.requests == []
@@ -404,7 +404,7 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
             runner=RaisingRunner("runner failed"),
             retrieval_service=RecordingRetrievalService([]),
             audit_writer=audit,
-        ).stream(ChatRequest(project_id=uuid4(), message="alpha"))
+        ).stream(ChatRequest(workspace_id=uuid4(), message="alpha"))
     )
 
     assert [event.event for event in events] == [
@@ -433,20 +433,20 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
     ("chat_request", "message"),
     [
         (
-            ChatRequest(project_id=uuid4(), message=" "),
+            ChatRequest(workspace_id=uuid4(), message=" "),
             "message must not be empty",
         ),
         (
-            ChatRequest(project_id=uuid4(), message="hello", retrieval_limit=0),
+            ChatRequest(workspace_id=uuid4(), message="hello", retrieval_limit=0),
             "retrieval_limit must be positive",
         ),
         (
-            ChatRequest(project_id=uuid4(), message="hello", retrieval_limit=51),
+            ChatRequest(workspace_id=uuid4(), message="hello", retrieval_limit=51),
             "retrieval_limit must be between 1 and 50",
         ),
         (
             ChatRequest(
-                project_id=uuid4(),
+                workspace_id=uuid4(),
                 message="hello",
                 retrieval_limit=11,
                 rerank_enabled=True,
@@ -456,7 +456,7 @@ def test_chat_service_stream_yields_error_event_after_session_failure() -> None:
         ),
         (
             ChatRequest(
-                project_id=uuid4(),
+                workspace_id=uuid4(),
                 message="x" * (MAX_CHAT_MESSAGE_CHARS + 1),
             ),
             f"message must be at most {MAX_CHAT_MESSAGE_CHARS} characters",
@@ -478,13 +478,13 @@ def test_chat_service_rejects_invalid_requests_without_runner_or_retrieval_call(
 
 
 def test_chat_service_accepts_message_at_max_length() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     runner = NoToolRunner()
     retrieval = RecordingRetrievalService([])
     message = "a" * MAX_CHAT_MESSAGE_CHARS
 
     ChatService(runner=runner, retrieval_service=retrieval).respond(
-        ChatRequest(project_id=project_id, message=message)
+        ChatRequest(workspace_id=workspace_id, message=message)
     )
 
     assert len(runner.requests) == 1
@@ -492,7 +492,7 @@ def test_chat_service_accepts_message_at_max_length() -> None:
 
 
 def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     retrieval = RaisingRetrievalService("source_type must not be empty")
     runner = ToolCallingRunner(
         retrieval_query="alpha evidence",
@@ -501,7 +501,7 @@ def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
 
     with pytest.raises(ChatServiceError, match="source_type must not be empty"):
         ChatService(runner=runner, retrieval_service=retrieval).respond(
-            ChatRequest(project_id=project_id, message="What supports alpha?")
+            ChatRequest(workspace_id=workspace_id, message="What supports alpha?")
         )
 
     assert len(runner.requests) == 1
@@ -511,7 +511,7 @@ def test_chat_service_maps_retrieval_errors_to_chat_errors() -> None:
 def test_chat_service_skips_citations_not_returned_by_retrieval(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     retrieved_chunk_id = uuid4()
     unknown_chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
@@ -529,7 +529,7 @@ def test_chat_service_skips_citations_not_returned_by_retrieval(
 
     with caplog.at_level(logging.WARNING, logger="adaptive_rag.chat.service"):
         response = ChatService(runner=runner, retrieval_service=retrieval).respond(
-            ChatRequest(project_id=project_id, message="What supports alpha?")
+            ChatRequest(workspace_id=workspace_id, message="What supports alpha?")
         )
 
     assert response.answer == "Alpha is backed by retrieved evidence."
@@ -544,7 +544,7 @@ def test_chat_service_skips_citations_not_returned_by_retrieval(
 def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
         [_retrieval_result(chunk_id=chunk_id, snippet="Alpha original evidence")]
@@ -564,7 +564,9 @@ def test_chat_service_logs_provider_usage_audit_failure_with_exc_info(
             retrieval_service=retrieval,
             audit_writer=audit,
             provider_usage_records=_raise_usage,
-        ).respond(ChatRequest(project_id=project_id, message="What supports alpha?"))
+        ).respond(
+            ChatRequest(workspace_id=workspace_id, message="What supports alpha?")
+        )
 
     assert response.answer == "Alpha is backed by retrieved evidence."
     warnings = [
@@ -613,6 +615,7 @@ def _retrieval_result(
         embedding_metadata={"provider": "fake"},
     )
 
+
 def test_chat_service_stream_emits_heartbeats_while_runner_blocks() -> None:
     from time import sleep
 
@@ -631,7 +634,7 @@ def test_chat_service_stream_emits_heartbeats_while_runner_blocks() -> None:
                 runner=SlowRunner(),
                 retrieval_service=RecordingRetrievalService([]),
                 audit_writer=InMemoryChatAuditWriter(session_id=uuid4()),
-            ).stream(ChatRequest(project_id=uuid4(), message="hello"))
+            ).stream(ChatRequest(workspace_id=uuid4(), message="hello"))
         )
     finally:
         service_module._STREAM_HEARTBEAT_SECONDS = old
@@ -657,7 +660,7 @@ def test_chat_service_stream_close_fails_session_as_client_disconnected() -> Non
         runner=SlowRunner(),
         retrieval_service=RecordingRetrievalService([]),
         audit_writer=audit,
-    ).stream(ChatRequest(project_id=uuid4(), message="cancel me"))
+    ).stream(ChatRequest(workspace_id=uuid4(), message="cancel me"))
 
     assert next(stream).event == "session_started"
     assert next(stream).event == "step"  # answer start
@@ -702,7 +705,7 @@ def test_chat_service_stream_emits_retrieval_steps_before_answer_deltas() -> Non
             audit_writer=InMemoryChatAuditWriter(session_id=uuid4()),
         ).stream(
             ChatRequest(
-                project_id=uuid4(),
+                workspace_id=uuid4(),
                 message="What is live?",
                 retrieval_limit=2,
             )

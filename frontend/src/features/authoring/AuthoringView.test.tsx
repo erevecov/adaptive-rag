@@ -11,8 +11,8 @@ import type {
   IngestionJob,
   IngestionRunResponse,
   KnowledgeProposal,
-  Project,
-  ProjectMembership,
+  Workspace,
+  WorkspaceMembership,
   Source,
   User,
 } from '@/lib/apiClient'
@@ -24,23 +24,23 @@ afterEach(() => {
   cleanup()
 })
 
-const project: Project = {
+const workspace: Workspace = {
   access_role: 'admin',
   budget_config_json: null,
   can_access: true,
   created_at: '2026-06-22T00:00:00Z',
   embedding_mode: 'dense',
-  id: 'project-1',
+  id: 'workspace-1',
   name: 'Demo',
   retrieval_contextualization_enabled: false,
   updated_at: '2026-06-22T00:00:00Z',
 }
 
-const restrictedProject: Project = {
-  ...project,
+const restrictedWorkspace: Workspace = {
+  ...workspace,
   access_role: null,
   can_access: false,
-  id: 'project-2',
+  id: 'workspace-2',
   name: 'Restricted',
 }
 
@@ -49,7 +49,7 @@ const source: Source = {
   external_id: 'notes.md',
   extra_metadata: null,
   id: 'source-1',
-  project_id: project.id,
+  workspace_id: workspace.id,
   source_type: 'markdown',
   tags: ['docs'],
   updated_at: '2026-06-22T00:00:00Z',
@@ -60,16 +60,16 @@ const user: User = {
   display_name: 'Viewer User',
   id: 'user-1',
   is_active: true,
-  last_project_id: null,
+  last_workspace_id: null,
   login: 'viewer@example.com',
   system_role: 'user',
   updated_at: '2026-06-22T00:00:00Z',
 }
 
-const membership: ProjectMembership = {
+const membership: WorkspaceMembership = {
   created_at: '2026-06-22T00:00:00Z',
   id: 'membership-1',
-  project_id: project.id,
+  workspace_id: workspace.id,
   role: 'admin',
   updated_at: '2026-06-22T00:00:00Z',
   user_id: user.id,
@@ -81,7 +81,7 @@ const proposal: KnowledgeProposal = {
   id: 'proposal-1',
   origin_message_id: null,
   origin_session_id: null,
-  project_id: project.id,
+  workspace_id: workspace.id,
   proposed_text: 'Document the escalation runbook.',
   refined_text: 'Existing refined text.',
   review_note: null,
@@ -103,7 +103,7 @@ const ingestionJob: IngestionJob = {
   max_attempts: 3,
   payload_json: { source_id: source.id },
   priority: 0,
-  project_id: project.id,
+  workspace_id: workspace.id,
   run_after: '2026-06-22T00:00:02Z',
   status: 'blocked',
   updated_at: '2026-06-22T00:00:00Z',
@@ -115,7 +115,7 @@ const ingestionRun: IngestionRunResponse = {
   document_version_id: null,
   error_message: null,
   job_id: null,
-  project_id: project.id,
+  workspace_id: workspace.id,
   source_id: null,
   status: 'idle',
   worker_id: 'frontend',
@@ -131,7 +131,7 @@ function renderAuthoringPanel(
   const props: React.ComponentProps<typeof AuthoringPanel> = {
     accessError: null,
     accessState: 'idle',
-    activeSubmodule: 'projects',
+    activeSubmodule: 'workspaces',
     ingestionError: null,
     ingestionJobs: [ingestionJob],
     ingestionRun,
@@ -143,18 +143,18 @@ function renderAuthoringPanel(
     memberUserId: '',
     memberships: [membership],
     onApproveKnowledgeProposal: vi.fn(),
-    onCreateProject: vi.fn(noopSubmit),
+    onCreateWorkspace: vi.fn(noopSubmit),
     onCreateSource: vi.fn(noopSubmit),
     onCreateUser: vi.fn(noopSubmit),
     onDeactivateUser: vi.fn(),
     onDeleteMembership: vi.fn(),
-    onDeleteProject: vi.fn(),
+    onDeleteWorkspace: vi.fn(),
     onDeleteSource: vi.fn(),
     onEnqueueIngestion: vi.fn(),
     onMemberRoleChange: vi.fn(),
     onMemberUserIdChange: vi.fn(),
-    onProjectIdChange: vi.fn(),
-    onProjectNameChange: vi.fn(),
+    onWorkspaceIdChange: vi.fn(),
+    onWorkspaceNameChange: vi.fn(),
     onProposalDraftChange: vi.fn(),
     onProposalRejectReasonChange: vi.fn(),
     onRefreshAccess: vi.fn(),
@@ -166,8 +166,8 @@ function renderAuthoringPanel(
     onRetryIngestionJob: vi.fn(),
     onRevokeAccessToken: vi.fn(),
     onRunNextIngestion: vi.fn(),
-    onSaveProjectMembership: vi.fn(noopSubmit),
-    onSelectProject: vi.fn(),
+    onSaveWorkspaceMembership: vi.fn(noopSubmit),
+    onSelectWorkspace: vi.fn(),
     onSourceContentChange: vi.fn(),
     onSourceExternalIdChange: vi.fn(),
     onSourceFileChange: vi.fn(),
@@ -177,11 +177,11 @@ function renderAuthoringPanel(
     onUserDisplayNameChange: vi.fn(),
     onUserLoginChange: vi.fn(),
     onUserSystemRoleChange: vi.fn(),
-    projectError: null,
-    projectId: project.id,
-    projectName: '',
-    projectState: 'idle',
-    projects: [project, restrictedProject],
+    workspaceError: null,
+    workspaceId: workspace.id,
+    workspaceName: '',
+    workspaceState: 'idle',
+    workspaces: [workspace, restrictedWorkspace],
     proposalDrafts: {},
     proposalRejectReasons: {},
     sourceContent: '',
@@ -215,29 +215,29 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 
 describe('AuthoringPanel', () => {
   test('primary Create buttons keep min-h and stable Creating labels', () => {
-    const idle = renderAuthoringPanel({ activeSubmodule: 'projects' })
-    const create = screen.getByRole('button', { name: 'Create Project' })
+    const idle = renderAuthoringPanel({ activeSubmodule: 'workspaces' })
+    const create = screen.getByRole('button', { name: 'Create Workspace' })
     expect(create.className).toMatch(/min-h-9/)
-    expect(create.textContent).toContain('Create Project')
+    expect(create.textContent).toContain('Create Workspace')
     idle.view.unmount()
 
     renderAuthoringPanel({
-      activeSubmodule: 'projects',
-      projectState: 'loading',
+      activeSubmodule: 'workspaces',
+      workspaceState: 'loading',
     })
     const busy = screen.getByRole('button', { name: 'Creating…' })
     expect(busy.className).toMatch(/min-h-9/)
     expect(busy.textContent).toContain('Creating…')
   })
 
-  test('projects submodule uses tokenized panels, controls, and data rows', async () => {
+  test('workspaces submodule uses tokenized panels, controls, and data rows', async () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel()
 
-    expect(screen.getByLabelText('Project Name').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Workspace Name').getAttribute('data-slot')).toBe(
       'input',
     )
-    expect(screen.getByRole('region', { name: 'Authoring Projects' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Authoring Workspaces' })).toBeTruthy()
     expect(screen.getByText('Ready').getAttribute('data-slot')).toBe('badge')
     expect(
       view.container.querySelector('[data-slot="panel"]'),
@@ -248,7 +248,7 @@ describe('AuthoringPanel', () => {
     expectNoLegacyAuthoringClasses(view.container)
 
     await userDriver.click(screen.getByRole('button', { name: 'Select Demo' }))
-    expect(props.onSelectProject).toHaveBeenCalledWith(project)
+    expect(props.onSelectWorkspace).toHaveBeenCalledWith(workspace)
     expect(
       screen.getByRole('button', { name: 'Select Restricted' }).getAttribute(
         'disabled',
@@ -280,7 +280,7 @@ describe('AuthoringPanel', () => {
     expect(screen.getByLabelText('System Role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
-    expect(screen.getByLabelText('Project Role').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Workspace Role').getAttribute('data-slot')).toBe(
       'select-trigger',
     )
     await chooseRadixSelectOption(
@@ -290,7 +290,7 @@ describe('AuthoringPanel', () => {
     )
     await chooseRadixSelectOption(
       userDriver,
-      screen.getByLabelText('Project Role'),
+      screen.getByLabelText('Workspace Role'),
       'Admin',
     )
     expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
@@ -299,19 +299,19 @@ describe('AuthoringPanel', () => {
     expectNoLegacyAuthoringClasses(view.container)
   })
 
-  test('project list shows loading instead of empty while busy', () => {
+  test('workspace list shows loading instead of empty while busy', () => {
     const { view } = renderAuthoringPanel({
-      activeSubmodule: 'projects',
-      projectState: 'loading',
-      projects: [],
+      activeSubmodule: 'workspaces',
+      workspaceState: 'loading',
+      workspaces: [],
     })
 
-    expect(screen.queryByText('No Projects Yet.')).toBeNull()
+    expect(screen.queryByText('No Workspaces Yet.')).toBeNull()
     const loadingState = view.container.querySelector(
       '[data-slot="empty-state"][data-slot-state="loading"]',
     )
     expect(loadingState).toBeTruthy()
-    expect(loadingState?.textContent).toContain('Loading Projects')
+    expect(loadingState?.textContent).toContain('Loading Workspaces')
     view.unmount()
   })
 
@@ -332,7 +332,7 @@ describe('AuthoringPanel', () => {
     const userDriver = userEvent.setup()
     const { props, view } = renderAuthoringPanel({ activeSubmodule: 'sources' })
 
-    expect(screen.getByLabelText('Project ID').getAttribute('data-slot')).toBe(
+    expect(screen.getByLabelText('Workspace ID').getAttribute('data-slot')).toBe(
       'input',
     )
     expect(screen.getByLabelText('Source Type').getAttribute('data-slot')).toBe(
@@ -372,11 +372,11 @@ describe('AuthoringPanel', () => {
 
   test('distinguishes loading lists from empty and canceled status', () => {
     const loading = renderAuthoringPanel({
-      activeSubmodule: 'projects',
-      projectState: 'loading',
-      projects: [],
+      activeSubmodule: 'workspaces',
+      workspaceState: 'loading',
+      workspaces: [],
     })
-    expect(screen.getByText('Loading Projects…')).toBeTruthy()
+    expect(screen.getByText('Loading Workspaces…')).toBeTruthy()
     const loadingState = loading.view.container.querySelector(
       '[data-slot-state="loading"]',
     )
@@ -385,23 +385,23 @@ describe('AuthoringPanel', () => {
     loading.view.unmount()
 
     renderAuthoringPanel({
-      activeSubmodule: 'projects',
-      projectState: 'canceled',
-      projects: [project],
+      activeSubmodule: 'workspaces',
+      workspaceState: 'canceled',
+      workspaces: [workspace],
     })
     expect(screen.getByText('Canceled').getAttribute('data-tone')).toBe(
       'neutral',
     )
   })
 
-  test('shows soft-deleted project timestamp and danger tone', () => {
-    const deleted: Project = {
-      ...project,
+  test('shows soft-deleted workspace timestamp and danger tone', () => {
+    const deleted: Workspace = {
+      ...workspace,
       deleted_at: '2026-06-22T12:00:00Z',
-      id: 'project-deleted',
+      id: 'workspace-deleted',
       name: 'Gone',
     }
-    renderAuthoringPanel({ projects: [deleted] })
+    renderAuthoringPanel({ workspaces: [deleted] })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Deleted /)).toBeTruthy()
   })
@@ -412,7 +412,7 @@ describe('AuthoringPanel', () => {
       memberships: [],
       users: [user],
     })
-    expect(screen.getByText('No Project Memberships Yet.')).toBeTruthy()
+    expect(screen.getByText('No Workspace Memberships Yet.')).toBeTruthy()
     expect(screen.getByText(user.login)).toBeTruthy()
     cleanup()
 

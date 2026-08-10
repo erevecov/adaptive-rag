@@ -14,12 +14,12 @@ from adaptive_rag.api.app import create_app
 from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, ProjectMembership, Source, User
+from adaptive_rag.db.models import Source, User, Workspace, WorkspaceMembership
 from adaptive_rag.db.models.user import UserAccessToken
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
@@ -33,10 +33,10 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
             Source.__table__,
         ],
     )
@@ -91,7 +91,7 @@ def test_me_resolves_bearer_token_user() -> None:
     assert payload["id"] == str(user.id)
     assert payload["login"] == "viewer@example.com"
     assert payload["system_role"] == "user"
-    assert payload["last_project_id"] is None
+    assert payload["last_workspace_id"] is None
 
 
 def test_auth_required_when_users_exist() -> None:
@@ -132,7 +132,7 @@ def test_bootstrap_can_create_first_superadmin() -> None:
     )
 
 
-def test_superadmin_creates_users_and_project_memberships() -> None:
+def test_superadmin_creates_users_and_workspace_memberships() -> None:
     session = _make_session()
     root = _create_user(
         session,
@@ -140,7 +140,7 @@ def test_superadmin_creates_users_and_project_memberships() -> None:
         token="root-token",
         system_role="superadmin",
     )
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     client = _client(session=session)
 
@@ -156,7 +156,7 @@ def test_superadmin_creates_users_and_project_memberships() -> None:
     )
     admin_id = UUID(user_response.json()["id"])
     membership_response = client.put(
-        f"/projects/{project.id}/memberships/{admin_id}",
+        f"/workspaces/{workspace.id}/memberships/{admin_id}",
         headers=_bearer("root-token"),
         json={"role": "admin"},
     )
@@ -166,26 +166,26 @@ def test_superadmin_creates_users_and_project_memberships() -> None:
     assert membership_response.status_code == 200
     assert membership_response.json()["role"] == "admin"
     assert (
-        ProjectMembershipRepository(session).get_membership(
-            project_id=project.id,
+        WorkspaceMembershipRepository(session).get_membership(
+            workspace_id=workspace.id,
             user_id=admin_id,
         )
         is not None
     )
 
 
-def test_project_admin_can_manage_project_users_but_viewer_cannot() -> None:
+def test_workspace_admin_can_manage_workspace_users_but_viewer_cannot() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     admin = _create_user(session, login="admin@example.com", token="admin-token")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=admin.id,
         role="admin",
     )
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=viewer.id,
         role="viewer",
     )
@@ -193,12 +193,12 @@ def test_project_admin_can_manage_project_users_but_viewer_cannot() -> None:
     client = _client(session=session)
 
     allowed = client.put(
-        f"/projects/{project.id}/memberships/{viewer.id}",
+        f"/workspaces/{workspace.id}/memberships/{viewer.id}",
         headers=_bearer("admin-token"),
         json={"role": "contributor"},
     )
     denied = client.put(
-        f"/projects/{project.id}/memberships/{admin.id}",
+        f"/workspaces/{workspace.id}/memberships/{admin.id}",
         headers=_bearer("viewer-token"),
         json={"role": "viewer"},
     )
@@ -206,42 +206,42 @@ def test_project_admin_can_manage_project_users_but_viewer_cannot() -> None:
     assert allowed.status_code == 200
     assert allowed.json()["role"] == "contributor"
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project admin role required"
+    assert denied.json()["detail"] == "workspace admin role required"
 
 
-def test_project_list_returns_only_membership_projects_for_non_superadmin() -> None:
+def test_workspace_list_returns_only_membership_workspaces_for_non_superadmin() -> None:
     session = _make_session()
-    allowed_project = ProjectRepository(session).create(name="Allowed")
-    denied_project = ProjectRepository(session).create(name="Denied")
+    allowed_workspace = WorkspaceRepository(session).create(name="Allowed")
+    denied_workspace = WorkspaceRepository(session).create(name="Denied")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=allowed_project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=allowed_workspace.id,
         user_id=viewer.id,
         role="viewer",
     )
     session.commit()
     client = _client(session=session)
 
-    list_response = client.get("/projects", headers=_bearer("viewer-token"))
+    list_response = client.get("/workspaces", headers=_bearer("viewer-token"))
     denied_detail = client.get(
-        f"/projects/{denied_project.id}",
+        f"/workspaces/{denied_workspace.id}",
         headers=_bearer("viewer-token"),
     )
 
     assert list_response.status_code == 200
-    projects = {item["name"]: item for item in list_response.json()["items"]}
-    # Membership-only listing: no existence disclosure of foreign projects.
-    assert set(projects) == {"Allowed"}
-    assert projects["Allowed"]["can_access"] is True
-    assert projects["Allowed"]["access_role"] == "viewer"
+    workspaces = {item["name"]: item for item in list_response.json()["items"]}
+    # Membership-only listing: no existence disclosure of foreign workspaces.
+    assert set(workspaces) == {"Allowed"}
+    assert workspaces["Allowed"]["can_access"] is True
+    assert workspaces["Allowed"]["access_role"] == "viewer"
     assert denied_detail.status_code == 403
-    assert denied_detail.json()["detail"] == "project access required"
+    assert denied_detail.json()["detail"] == "workspace access required"
 
 
-def test_superadmin_project_list_includes_all_projects() -> None:
+def test_superadmin_workspace_list_includes_all_workspaces() -> None:
     session = _make_session()
-    ProjectRepository(session).create(name="Alpha")
-    ProjectRepository(session).create(name="Beta")
+    WorkspaceRepository(session).create(name="Alpha")
+    WorkspaceRepository(session).create(name="Beta")
     _create_user(
         session,
         login="root@example.com",
@@ -251,22 +251,22 @@ def test_superadmin_project_list_includes_all_projects() -> None:
     session.commit()
     client = _client(session=session)
 
-    list_response = client.get("/projects", headers=_bearer("root-token"))
+    list_response = client.get("/workspaces", headers=_bearer("root-token"))
 
     assert list_response.status_code == 200
-    projects = {item["name"]: item for item in list_response.json()["items"]}
-    assert set(projects) == {"Alpha", "Beta"}
-    assert all(item["can_access"] is True for item in projects.values())
-    assert all(item["access_role"] == "superadmin" for item in projects.values())
+    workspaces = {item["name"]: item for item in list_response.json()["items"]}
+    assert set(workspaces) == {"Alpha", "Beta"}
+    assert all(item["can_access"] is True for item in workspaces.values())
+    assert all(item["access_role"] == "superadmin" for item in workspaces.values())
 
 
-def test_user_can_store_accessible_last_project_preference() -> None:
+def test_user_can_store_accessible_last_workspace_preference() -> None:
     session = _make_session()
-    allowed_project = ProjectRepository(session).create(name="Allowed")
-    denied_project = ProjectRepository(session).create(name="Denied")
+    allowed_workspace = WorkspaceRepository(session).create(name="Allowed")
+    denied_workspace = WorkspaceRepository(session).create(name="Denied")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=allowed_project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=allowed_workspace.id,
         user_id=viewer.id,
         role="viewer",
     )
@@ -276,47 +276,47 @@ def test_user_can_store_accessible_last_project_preference() -> None:
     allowed = client.patch(
         "/auth/me/preferences",
         headers=_bearer("viewer-token"),
-        json={"last_project_id": str(allowed_project.id)},
+        json={"last_workspace_id": str(allowed_workspace.id)},
     )
     me = client.get("/auth/me", headers=_bearer("viewer-token"))
     denied = client.patch(
         "/auth/me/preferences",
         headers=_bearer("viewer-token"),
-        json={"last_project_id": str(denied_project.id)},
+        json={"last_workspace_id": str(denied_workspace.id)},
     )
     cleared = client.patch(
         "/auth/me/preferences",
         headers=_bearer("viewer-token"),
-        json={"last_project_id": None},
+        json={"last_workspace_id": None},
     )
 
     assert allowed.status_code == 200
-    assert allowed.json()["last_project_id"] == str(allowed_project.id)
-    assert me.json()["last_project_id"] == str(allowed_project.id)
+    assert allowed.json()["last_workspace_id"] == str(allowed_workspace.id)
+    assert me.json()["last_workspace_id"] == str(allowed_workspace.id)
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project access required"
+    assert denied.json()["detail"] == "workspace access required"
     assert cleared.status_code == 200
-    assert cleared.json()["last_project_id"] is None
+    assert cleared.json()["last_workspace_id"] is None
     session.refresh(viewer)
-    assert viewer.last_project_id is None
+    assert viewer.last_workspace_id is None
 
 
-def test_source_create_requires_contributor_or_project_admin() -> None:
+def test_source_create_requires_contributor_or_workspace_admin() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
         login="contributor@example.com",
         token="contributor-token",
     )
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=viewer.id,
         role="viewer",
     )
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=contributor.id,
         role="contributor",
     )
@@ -324,7 +324,7 @@ def test_source_create_requires_contributor_or_project_admin() -> None:
     client = _client(session=session)
 
     denied = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         headers=_bearer("viewer-token"),
         json={
             "source_type": "markdown",
@@ -333,7 +333,7 @@ def test_source_create_requires_contributor_or_project_admin() -> None:
         },
     )
     allowed = client.post(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         headers=_bearer("contributor-token"),
         json={
             "source_type": "markdown",
@@ -343,26 +343,26 @@ def test_source_create_requires_contributor_or_project_admin() -> None:
     )
 
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project contributor role required"
+    assert denied.json()["detail"] == "workspace contributor role required"
     assert allowed.status_code == 200
     assert allowed.json()["external_id"] == "contributor.md"
 
 
-def test_missing_project_membership_returns_403_for_project_tools() -> None:
+def test_missing_workspace_membership_returns_403_for_workspace_tools() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     outsider = _create_user(session, login="outsider@example.com", token="token")
     session.commit()
     client = _client(session=session)
 
     response = client.get(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         headers=_bearer("token"),
     )
 
     assert outsider.system_role == "user"
     assert response.status_code == 403
-    assert response.json()["detail"] == "project access required"
+    assert response.json()["detail"] == "workspace access required"
 
 
 def test_invalid_bearer_token_returns_401() -> None:
@@ -390,13 +390,15 @@ def test_inactive_user_token_returns_inactive_user_error() -> None:
     assert response.json()["detail"] == "inactive_user"
 
 
-def test_project_detail_returns_404_before_access_check_for_missing_project() -> None:
+def test_workspace_detail_returns_404_before_access_check_for_missing_workspace() -> (
+    None
+):
     session = _make_session()
     _create_user(session, login="viewer@example.com", token="viewer-token")
     session.commit()
     client = _client(session=session)
 
-    response = client.get(f"/projects/{uuid4()}", headers=_bearer("viewer-token"))
+    response = client.get(f"/workspaces/{uuid4()}", headers=_bearer("viewer-token"))
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "project not found"
+    assert response.json()["detail"] == "workspace not found"

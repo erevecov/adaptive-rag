@@ -21,8 +21,8 @@ from adaptive_rag.embeddings import (
     SparseEmbeddingProvider,
 )
 from adaptive_rag.evals.fixtures import (
-    EvalRetrievalFixtureProject,
-    build_retrieval_fixture_project,
+    EvalRetrievalFixtureWorkspace,
+    build_retrieval_fixture_workspace,
 )
 from adaptive_rag.evals.metrics import passes_threshold, ratio
 from adaptive_rag.evals.models import (
@@ -49,7 +49,7 @@ def run_chat_eval_suite(
 
     active_provider = provider or FakeDenseEmbeddingProvider()
     active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
-    fixture_project = build_retrieval_fixture_project(
+    fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=active_provider,
@@ -58,9 +58,9 @@ def run_chat_eval_suite(
         session,
         provider=active_sparse_provider,
     )
-    for document_version_id in fixture_project.document_version_ids:
+    for document_version_id in fixture_workspace.document_version_ids:
         sparse_pipeline.embed_document_version(
-            project_id=fixture_project.project_id,
+            workspace_id=fixture_workspace.workspace_id,
             document_version_id=document_version_id,
         )
     service = ChatService(
@@ -74,7 +74,7 @@ def run_chat_eval_suite(
     cases = tuple(
         _run_chat_case(
             service,
-            fixture_project=fixture_project,
+            fixture_workspace=fixture_workspace,
             chat_case=chat_case,
         )
         for chat_case in suite.chat_cases
@@ -110,13 +110,13 @@ def run_chat_eval_suite(
 def _run_chat_case(
     service: ChatService,
     *,
-    fixture_project: EvalRetrievalFixtureProject,
+    fixture_workspace: EvalRetrievalFixtureWorkspace,
     chat_case: ChatEvalCase,
 ) -> EvalCaseResult:
     try:
         response = service.respond(
             ChatRequest(
-                project_id=fixture_project.project_id,
+                workspace_id=fixture_workspace.workspace_id,
                 message=chat_case.message,
                 retrieval_limit=chat_case.retrieval_limit,
                 metadata_filter=chat_case.metadata_filter,
@@ -139,7 +139,7 @@ def _run_chat_case(
         )
 
     observed_evidence_ids = tuple(
-        fixture_project.evidence_id_by_chunk_id[UUID(citation["chunk_id"])]
+        fixture_workspace.evidence_id_by_chunk_id[UUID(citation["chunk_id"])]
         for citation in response.citations
     )
     observed_tool_queries = tuple(

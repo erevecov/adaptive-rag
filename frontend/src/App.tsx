@@ -11,14 +11,20 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
+import { useChatAttachments } from '@/features/chat/ChatAttachments'
 import {
   ChatWorkspacePanel,
   type ChatKnowledgeDraft,
   type ChatKnowledgeDraftMap,
   type ChatTranscriptTurn,
+  type ViewTurnDetailsPayload,
 } from '@/features/chat/ChatWorkspaceView'
 import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
-import { WorkspaceInspectorPanel } from '@/features/history/HistoryInspectorView'
+import {
+  WorkspaceInspectorPanel,
+  type FocusedTurn,
+} from '@/features/history/HistoryInspectorView'
+import { setOpenDetailsInstanceId } from '@/lib/detailsAccordion'
 import { ObservabilityPanel } from '@/features/observability/ObservabilityView'
 import { RetrievalPlaygroundPanel } from '@/features/retrieval/RetrievalPlaygroundView'
 import { RuntimeSettingsPanel } from '@/features/runtime/RuntimeSettingsView'
@@ -60,9 +66,9 @@ import {
   type IngestionRunResponse,
   type ChatModel,
   type KnowledgeProposal,
-  type Project,
-  type ProjectMembership,
-  type ProjectRuntimeSettings,
+  type Workspace,
+  type WorkspaceMembership,
+  type WorkspaceRuntimeSettings,
   type ProviderConnection,
   type ProviderConnectionCheckResponse,
   type ProviderModel,
@@ -91,7 +97,7 @@ const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
 const DEFAULT_RERANK_CANDIDATE_LIMIT = 10
 const SESSION_PAGE_SIZE = 15
-const PROJECT_STORAGE_KEY = 'adaptive-rag:last-project-id'
+const WORKSPACE_STORAGE_KEY = 'adaptive-rag:last-workspace-id'
 const RIGHT_DOCK_INLINE_WIDTH_PX = 1280
 type ActiveView = PrimaryView | SettingsModule
 const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
@@ -127,10 +133,10 @@ type SpeechRecognitionResultEventLike = {
 
 type AppProps = {
   apiClient?: ApiClient
-  initialProjectId?: string
+  initialWorkspaceId?: string
 }
 
-function App({ apiClient, initialProjectId = '' }: AppProps) {
+function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const client = useMemo(
     () =>
       apiClient ??
@@ -140,10 +146,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       }),
     [apiClient],
   )
-  const [projectId, setProjectId] = useState(() =>
-    initialProjectId.trim() || readPersistedProjectId(),
+  const [workspaceId, setWorkspaceId] = useState(() =>
+    initialWorkspaceId.trim() || readPersistedWorkspaceId(),
   )
-  const projectIdRef = useRef(projectId.trim())
+  const workspaceIdRef = useRef(workspaceId.trim())
   const [question, setQuestion] = useState('')
   const [speechState, setSpeechState] = useState<RequestState>('idle')
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null)
@@ -168,6 +174,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   })
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([])
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const chatAttachments = useChatAttachments({
+    upload: (file) =>
+      client.uploadChatAttachment(
+        workspaceId.trim(),
+        file,
+        selectedSessionId,
+      ),
+    deleteRemote: (attachmentId) =>
+      client.deleteChatAttachment(workspaceId.trim(), attachmentId),
+  })
   const [sessionDetail, setSessionDetail] =
     useState<ChatSessionDetailResponse | null>(null)
   /** Earlier turns in the open multi-turn session (excludes the live/current turn). */
@@ -180,6 +196,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     useState(SESSION_PAGE_SIZE)
   const [hasMoreSessions, setHasMoreSessions] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('context')
+  /** Answer ⋯ → Ver detalles: Context scoped to one turn. */
+  const [focusedTurn, setFocusedTurn] = useState<FocusedTurn | null>(null)
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() =>
     readInitialLeftSidebarOpen(),
   )
@@ -202,7 +220,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     return isSettingsModule(initialActiveView) ? initialActiveView : 'authoring'
   })
   const [authoringSubmodule, setAuthoringSubmodule] =
-    useState<AuthoringSubmodule>('projects')
+    useState<AuthoringSubmodule>('workspaces')
   const [observabilitySubmodule, setObservabilitySubmodule] =
     useState<ObservabilitySubmodule>('summary')
   const [runtimeSubmodule, setRuntimeSubmodule] =
@@ -218,16 +236,16 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [observabilityError, setObservabilityError] = useState<string | null>(
     null,
   )
-  const [projects, setProjects] = useState<Project[]>([])
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [sources, setSources] = useState<Source[]>([])
   const [users, setUsers] = useState<User[]>([])
-  const [projectMemberships, setProjectMemberships] = useState<
-    ProjectMembership[]
+  const [workspaceMemberships, setWorkspaceMemberships] = useState<
+    WorkspaceMembership[]
   >([])
   const [knowledgeProposals, setKnowledgeProposals] = useState<
     KnowledgeProposal[]
   >([])
-  const [projectName, setProjectName] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
   const [sourceType, setSourceType] = useState('markdown')
   const [sourceExternalId, setSourceExternalId] = useState('')
   const [sourceContent, setSourceContent] = useState('')
@@ -244,7 +262,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [proposalRejectReasons, setProposalRejectReasons] = useState<
     Record<string, string>
   >({})
-  const [projectAuthoringState, setProjectAuthoringState] =
+  const [workspaceAuthoringState, setWorkspaceAuthoringState] =
     useState<RequestState>('loading')
   const [sourceAuthoringState, setSourceAuthoringState] =
     useState<RequestState>('idle')
@@ -252,7 +270,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     useState<RequestState>('idle')
   const [knowledgeReviewState, setKnowledgeReviewState] =
     useState<RequestState>('idle')
-  const [projectAuthoringError, setProjectAuthoringError] = useState<
+  const [workspaceAuthoringError, setWorkspaceAuthoringError] = useState<
     string | null
   >(null)
   const [sourceAuthoringError, setSourceAuthoringError] = useState<string | null>(
@@ -280,8 +298,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [runtimeProviderModels, setRuntimeProviderModels] = useState<
     ProviderModel[]
   >([])
-  const [projectRuntimeSettings, setProjectRuntimeSettings] =
-    useState<ProjectRuntimeSettings | null>(null)
+  const [workspaceRuntimeSettings, setWorkspaceRuntimeSettings] =
+    useState<WorkspaceRuntimeSettings | null>(null)
   const [runtimeState, setRuntimeState] = useState<RequestState>('idle')
   const [runtimeError, setRuntimeError] = useState<string | null>(null)
   const [connectionProvider, setConnectionProvider] = useState('qwen')
@@ -294,6 +312,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(
     null,
   )
+  const [isCreatingConnection, setIsCreatingConnection] = useState(false)
   const [connectionCheckResults, setConnectionCheckResults] = useState<
     Record<string, ProviderConnectionCheckResponse>
   >({})
@@ -317,14 +336,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   const [globalChatRerankEnabled, setGlobalChatRerankEnabled] = useState(true)
   const [globalChatRerankCandidateLimit, setGlobalChatRerankCandidateLimit] =
     useState(DEFAULT_RERANK_CANDIDATE_LIMIT)
-  const [projectSlot, setProjectSlot] = useState('chat')
-  const [projectSlotConnectionId, setProjectSlotConnectionId] = useState('')
-  const [projectSlotModelId, setProjectSlotModelId] = useState('')
-  const [projectChatRetrievalLimit, setProjectChatRetrievalLimit] = useState(
+  const [workspaceSlot, setWorkspaceSlot] = useState('chat')
+  const [workspaceSlotConnectionId, setWorkspaceSlotConnectionId] = useState('')
+  const [workspaceSlotModelId, setWorkspaceSlotModelId] = useState('')
+  const [workspaceChatRetrievalLimit, setWorkspaceChatRetrievalLimit] = useState(
     DEFAULT_RETRIEVAL_LIMIT,
   )
-  const [projectChatRerankEnabled, setProjectChatRerankEnabled] = useState(true)
-  const [projectChatRerankCandidateLimit, setProjectChatRerankCandidateLimit] =
+  const [workspaceChatRerankEnabled, setWorkspaceChatRerankEnabled] = useState(true)
+  const [workspaceChatRerankCandidateLimit, setWorkspaceChatRerankCandidateLimit] =
     useState(DEFAULT_RERANK_CANDIDATE_LIMIT)
 
   const isAsking = requestState === 'loading'
@@ -359,19 +378,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [])
 
   useEffect(() => {
-    persistProjectId(projectId)
-  }, [projectId])
+    persistWorkspaceId(workspaceId)
+  }, [workspaceId])
 
   useEffect(() => {
-    if (initialProjectId.trim().length > 0) return
+    if (initialWorkspaceId.trim().length > 0) return
 
     let ignore = false
     void client
       .getCurrentUser()
       .then((currentUser) => {
         if (ignore) return
-        const lastProjectId = currentUser.last_project_id?.trim() ?? ''
-        if (lastProjectId.length > 0) {
+        const lastWorkspaceId = currentUser.last_workspace_id?.trim() ?? ''
+        if (lastWorkspaceId.length > 0) {
           setVisibleSessionCount(SESSION_PAGE_SIZE)
           setSessions([])
           setHasMoreSessions(false)
@@ -379,8 +398,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           setSessionDetail(null)
           setHistoryError(null)
           setHistoryState('loading')
-          projectIdRef.current = lastProjectId
-          setProjectId(lastProjectId)
+          workspaceIdRef.current = lastWorkspaceId
+          setWorkspaceId(lastWorkspaceId)
         }
       })
       .catch(() => {
@@ -390,21 +409,21 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     return () => {
       ignore = true
     }
-  }, [client, initialProjectId])
+  }, [client, initialWorkspaceId])
 
   useEffect(() => {
     let ignore = false
     void client
-      .listProjects()
+      .listWorkspaces()
       .then((response) => {
         if (ignore) return
-        setProjects(response.items)
-        setProjectAuthoringState('succeeded')
+        setWorkspaces(response.items)
+        setWorkspaceAuthoringState('succeeded')
       })
       .catch((error: unknown) => {
         if (ignore) return
-        setProjectAuthoringState('failed')
-        setProjectAuthoringError(getErrorMessage(error))
+        setWorkspaceAuthoringState('failed')
+        setWorkspaceAuthoringError(getErrorMessage(error))
       })
 
     return () => {
@@ -413,15 +432,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }, [client])
 
   useEffect(() => {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       return
     }
 
     let ignore = false
     void refreshHistory(
       client,
-      trimmedProjectId,
+      trimmedWorkspaceId,
       historyStatusFilter,
       visibleSessionCount,
       {
@@ -443,17 +462,25 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     return () => {
       ignore = true
     }
-  }, [client, historyStatusFilter, projectId, visibleSessionCount])
+  }, [client, historyStatusFilter, workspaceId, visibleSessionCount])
 
   useEffect(() => {
     if (inspectorTab !== 'context' || pendingFocusMessageIdRef.current === null) {
       return
     }
+    // Message nodes live in turn-scoped SessionDetailPanel (Ver detalles / minimap).
+    if (focusedTurn === null || detailState === 'loading') {
+      return
+    }
 
     const messageId = pendingFocusMessageIdRef.current
+    const target = document.getElementById(messageElementId(messageId))
+    if (target === null) {
+      return
+    }
     pendingFocusMessageIdRef.current = null
-    focusMessage(messageId)
-  }, [inspectorTab])
+    target.focus()
+  }, [detailState, focusedTurn, inspectorTab, sessionDetail])
 
   useEffect(() => {
     if (primaryView !== 'chat' || !chatAutoFollowRef.current) {
@@ -508,6 +535,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     let ignore = false
+    setRuntimeState('loading')
+    setRuntimeError(null)
 
     void client
       .listProviderConnections()
@@ -521,6 +550,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
         if (ignore) return
         setRuntimeConnections(connections.items)
+        // Changing the selected connection re-runs this effect to sync + load.
         if (selectedConnectionId !== currentConnectionId) {
           setModelSyncConnectionId(selectedConnectionId)
           if (selectedConnectionId.length > 0) {
@@ -535,11 +565,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           return
         }
 
-        const providerModels = await client.listProviderModels({
-          connection_id: selectedConnectionId,
-        })
+        // Entering the module or changing connection: sync from provider, then
+        // show the catalog for that connection (no manual Refresh/Sync buttons).
+        const synced = await client.syncProviderModels(selectedConnectionId)
         if (ignore) return
-        setRuntimeProviderModels(providerModels.items)
+        setRuntimeProviderModels((current) =>
+          upsertProviderModels(
+            current.filter(
+              (model) => model.connection_id !== selectedConnectionId,
+            ),
+            synced.items,
+          ),
+        )
         setRuntimeError(null)
         setRuntimeState('succeeded')
       })
@@ -560,6 +597,49 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     settingsModule,
   ])
 
+  useEffect(() => {
+    if (
+      primaryView !== 'settings' ||
+      settingsModule !== 'runtime' ||
+      runtimeSubmodule !== 'global_defaults'
+    ) {
+      return
+    }
+
+    let ignore = false
+    setRuntimeState('loading')
+    setRuntimeError(null)
+
+    void Promise.all([
+      client.listProviderConnections(),
+      client.listRuntimeSlotDefaults(),
+      client.listChatModels(),
+      client.listProviderModels(),
+      client.getChatRetrievalSettings(),
+    ])
+      .then(
+        ([connections, slots, chatModels, providerModels, chatRetrieval]) => {
+          if (ignore) return
+          setRuntimeConnections(connections.items)
+          setRuntimeSlots(slots.items)
+          setRuntimeChatModels(chatModels.items)
+          setRuntimeProviderModels(providerModels.items)
+          setRuntimeChatRetrieval(chatRetrieval)
+          syncGlobalChatRetrievalFields(chatRetrieval)
+          setRuntimeState('succeeded')
+        },
+      )
+      .catch((error: unknown) => {
+        if (ignore) return
+        setRuntimeState('failed')
+        setRuntimeError(getErrorMessage(error))
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [client, primaryView, runtimeSubmodule, settingsModule])
+
   function handleChatTranscriptScroll() {
     const transcript = chatTranscriptRef.current
     if (transcript === null) {
@@ -576,7 +656,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     const trimmedQuestion = question.trim()
     if (trimmedQuestion.length === 0) {
       setRequestState('failed')
-      setRequestError('Project ID and question are required.')
+      setRequestError('Workspace ID and question are required.')
       return
     }
     await submitChatQuestion(trimmedQuestion, { replaceLast: false })
@@ -589,12 +669,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     if (requestState === 'loading') {
       return
     }
-
-    const trimmedProjectId = projectId.trim()
-
-    if (trimmedProjectId.length === 0 || trimmedQuestion.length === 0) {
+    if (chatAttachments.blocked) {
       setRequestState('failed')
-      setRequestError('Project ID and question are required.')
+      setRequestError(
+        'Wait for attachments to finish uploading or remove failed ones.',
+      )
+      return
+    }
+
+    const trimmedWorkspaceId = workspaceId.trim()
+
+    if (trimmedWorkspaceId.length === 0 || trimmedQuestion.length === 0) {
+      setRequestState('failed')
+      setRequestError('Workspace ID and question are required.')
       return
     }
 
@@ -648,9 +735,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     if (continueSessionId === null && !options.replaceLast) {
       setPriorTurns([])
     }
+    const readyAttachmentIds = chatAttachments.readyAttachments.map(
+      (item) => item.attachmentId,
+    )
     const requestBody = {
       message: trimmedQuestion,
       ...(continueSessionId === null ? {} : { session_id: continueSessionId }),
+      ...(readyAttachmentIds.length > 0
+        ? { attachment_ids: readyAttachmentIds }
+        : {}),
     }
     const controller = new AbortController()
     let streamOpened = false
@@ -660,7 +753,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setActiveRequestController(controller)
     try {
       const nextResponse = await client.askChatStream(
-        trimmedProjectId,
+        trimmedWorkspaceId,
         requestBody,
         {
           onAnswerDelta: (text) => {
@@ -704,16 +797,17 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setRequestState('succeeded')
       setHeartbeatElapsedMs(null)
       setQuestion('')
+      chatAttachments.reset()
       try {
         const memories = await client.listUserMemories({
-          project_id: trimmedProjectId,
+          workspace_id: trimmedWorkspaceId,
           status: 'approved',
         })
         setAppliedMemories(memories.items)
       } catch {
         setAppliedMemories([])
       }
-      await handleRefreshHistory(trimmedProjectId, 'active')
+      await handleRefreshHistory(trimmedWorkspaceId, 'active')
       if (nextSessionId !== null) {
         setSessions((current) =>
           ensureSessionSummary(
@@ -725,7 +819,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             ),
           ),
         )
-        await refreshOpenSessionDetail(trimmedProjectId, nextSessionId)
+        await refreshOpenSessionDetail(trimmedWorkspaceId, nextSessionId)
       }
     } catch (error) {
       if (isAbortError(error)) {
@@ -736,14 +830,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         // failed/canceled turn is visible and continuity stays valid.
         // Partial streamed answer (if any) is left on screen for the user.
         if (selectedSessionId !== null) {
-          void handleRefreshHistory(trimmedProjectId, 'active')
-          void refreshOpenSessionDetail(trimmedProjectId, selectedSessionId)
+          void handleRefreshHistory(trimmedWorkspaceId, 'active')
+          void refreshOpenSessionDetail(trimmedWorkspaceId, selectedSessionId)
         }
         return
       }
       if (!streamOpened && shouldFallbackToJsonChat(error)) {
         try {
-          const nextResponse = await client.askChat(trimmedProjectId, requestBody)
+          const nextResponse = await client.askChat(trimmedWorkspaceId, requestBody)
           setResponse(nextResponse)
           const nextSessionId = nextResponse.session_id
           if (nextSessionId !== null) {
@@ -753,14 +847,14 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           setQuestion('')
           try {
             const memories = await client.listUserMemories({
-              project_id: trimmedProjectId,
+              workspace_id: trimmedWorkspaceId,
               status: 'approved',
             })
             setAppliedMemories(memories.items)
           } catch {
             setAppliedMemories([])
           }
-          await handleRefreshHistory(trimmedProjectId, 'active')
+          await handleRefreshHistory(trimmedWorkspaceId, 'active')
           if (nextSessionId !== null) {
             setSessions((current) =>
               ensureSessionSummary(
@@ -772,7 +866,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 ),
               ),
             )
-            await refreshOpenSessionDetail(trimmedProjectId, nextSessionId)
+            await refreshOpenSessionDetail(trimmedWorkspaceId, nextSessionId)
           }
           return
         } catch (fallbackError) {
@@ -792,7 +886,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function refreshOpenSessionDetail(
-    trimmedProjectId: string,
+    trimmedWorkspaceId: string,
     sessionId: string,
   ): Promise<void> {
     if (!isRightDockOpen) {
@@ -801,7 +895,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setDetailState('loading')
     setDetailError(null)
     try {
-      const detail = await client.getChatSession(trimmedProjectId, sessionId)
+      const detail = await client.getChatSession(trimmedWorkspaceId, sessionId)
       setSessionDetail(detail)
       setDetailState('succeeded')
     } catch (error) {
@@ -814,11 +908,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal> {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const text = draft.text.trim()
 
-    if (trimmedProjectId.length === 0 || text.length === 0) {
-      throw new Error('Project ID and knowledge text are required.')
+    if (trimmedWorkspaceId.length === 0 || text.length === 0) {
+      throw new Error('Workspace ID and knowledge text are required.')
     }
 
     // Durable path: commit_knowledge already created a pending proposal whose
@@ -832,19 +926,19 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       const proposalId = draft.proposalId ?? draft.draftId
       try {
         proposal = await client.approveKnowledgeProposal(
-          trimmedProjectId,
+          trimmedWorkspaceId,
           proposalId,
           {},
         )
       } catch {
         // Fall back to create if approve fails (e.g. not yet durable).
-        proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+        proposal = await client.submitKnowledgeProposal(trimmedWorkspaceId, {
           ...(sessionId === null ? {} : { origin_session_id: sessionId }),
           proposed_text: text,
         })
       }
     } else {
-      proposal = await client.submitKnowledgeProposal(trimmedProjectId, {
+      proposal = await client.submitKnowledgeProposal(trimmedWorkspaceId, {
         ...(sessionId === null ? {} : { origin_session_id: sessionId }),
         proposed_text: text,
       })
@@ -857,7 +951,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       const sourceId = proposal.approved_source_id
       void (async () => {
         try {
-          const jobs = await client.listIngestionJobs(trimmedProjectId, {
+          const jobs = await client.listIngestionJobs(trimmedWorkspaceId, {
             source_id: sourceId,
           })
           const latest = jobs.items[0]
@@ -952,15 +1046,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefreshHistory(
-    projectIdOverride?: string,
+    workspaceIdOverride?: string,
     statusFilterOverride: SessionNavigationFilter = historyStatusFilter,
     limitOverride: number = visibleSessionCount,
   ) {
-    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+    const trimmedWorkspaceId = (workspaceIdOverride ?? workspaceId).trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setHistoryState('failed')
-      setHistoryError('Project ID is required to refresh history.')
+      setHistoryError('Workspace ID is required to refresh history.')
       setHasMoreSessions(false)
       return
     }
@@ -968,7 +1062,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setHistoryError(null)
     await refreshHistory(
       client,
-      trimmedProjectId,
+      trimmedWorkspaceId,
       statusFilterOverride,
       limitOverride,
       {
@@ -990,18 +1084,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRenameSession(sessionId: string, title: string) {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setHistoryState('failed')
-      setHistoryError('Project ID is required to rename a session.')
+      setHistoryError('Workspace ID is required to rename a session.')
       return
     }
 
     setHistoryError(null)
     setHistoryState('loading')
     try {
-      await client.updateChatSessionTitle(trimmedProjectId, sessionId, title)
-      await handleRefreshHistory(trimmedProjectId)
+      await client.updateChatSessionTitle(trimmedWorkspaceId, sessionId, title)
+      await handleRefreshHistory(trimmedWorkspaceId)
     } catch (error) {
       setHistoryError(getErrorMessage(error))
       setHistoryState('failed')
@@ -1009,18 +1103,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleArchiveSession(sessionId: string) {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setHistoryState('failed')
-      setHistoryError('Project ID is required to archive a session.')
+      setHistoryError('Workspace ID is required to archive a session.')
       return
     }
 
     setHistoryError(null)
     setHistoryState('loading')
     try {
-      await client.archiveChatSession(trimmedProjectId, sessionId)
-      await handleRefreshHistory(trimmedProjectId)
+      await client.archiveChatSession(trimmedWorkspaceId, sessionId)
+      await handleRefreshHistory(trimmedWorkspaceId)
     } catch (error) {
       setHistoryError(getErrorMessage(error))
       setHistoryState('failed')
@@ -1028,18 +1122,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleUnarchiveSession(sessionId: string) {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setHistoryState('failed')
-      setHistoryError('Project ID is required to unarchive a session.')
+      setHistoryError('Workspace ID is required to unarchive a session.')
       return
     }
 
     setHistoryError(null)
     setHistoryState('loading')
     try {
-      await client.unarchiveChatSession(trimmedProjectId, sessionId)
-      await handleRefreshHistory(trimmedProjectId)
+      await client.unarchiveChatSession(trimmedWorkspaceId, sessionId)
+      await handleRefreshHistory(trimmedWorkspaceId)
     } catch (error) {
       setHistoryError(getErrorMessage(error))
       setHistoryState('failed')
@@ -1047,42 +1141,116 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleDeleteSession(sessionId: string) {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setHistoryState('failed')
-      setHistoryError('Project ID is required to delete a session.')
+      setHistoryError('Workspace ID is required to delete a session.')
       return
     }
 
     setHistoryError(null)
     setHistoryState('loading')
     try {
-      await client.deleteChatSession(trimmedProjectId, sessionId)
+      await client.deleteChatSession(trimmedWorkspaceId, sessionId)
       if (selectedSessionId === sessionId) {
         handleStartNewSession()
       }
-      await handleRefreshHistory(trimmedProjectId)
+      await handleRefreshHistory(trimmedWorkspaceId)
     } catch (error) {
       setHistoryError(getErrorMessage(error))
       setHistoryState('failed')
     }
   }
 
-  function handleChangeProjectId(nextProjectId: string) {
-    const selectedProject = projects.find((project) => project.id === nextProjectId)
-    if (selectedProject !== undefined) {
-      if (selectedProject.can_access === false) {
+  function handleChangeWorkspaceId(nextWorkspaceId: string) {
+    const selectedWorkspace = workspaces.find((workspace) => workspace.id === nextWorkspaceId)
+    if (selectedWorkspace !== undefined) {
+      if (selectedWorkspace.can_access === false) {
         return
       }
-      handleSelectProject(selectedProject)
+      handleSelectWorkspace(selectedWorkspace)
       return
     }
-    setSelectedProjectId(nextProjectId)
+    setSelectedWorkspaceId(nextWorkspaceId)
   }
 
   function handleOpenInspectorTab(tab: InspectorTab) {
     setInspectorTab(tab)
     setIsRightDockOpen(true)
+  }
+
+  function handleOpenContextOverview() {
+    setFocusedTurn(null)
+    handleOpenInspectorTab('context')
+    const sessionId = selectedSessionId ?? response?.session_id ?? null
+    if (sessionId !== null) {
+      void loadSessionDetailForInspector(sessionId)
+    }
+  }
+
+  function handleViewTurnDetails(payload: ViewTurnDetailsPayload) {
+    const sessionId = selectedSessionId ?? response?.session_id ?? null
+    setFocusedTurn({
+      question: payload.question,
+      turnId: payload.turnId,
+    })
+    handleOpenInspectorTab('context')
+    setOpenDetailsInstanceId(payload.detailsInstanceId)
+    if (sessionId !== null) {
+      void loadSessionDetailForInspector(sessionId, payload)
+    }
+  }
+
+  async function loadSessionDetailForInspector(
+    sessionId: string,
+    pendingTurn?: ViewTurnDetailsPayload,
+  ): Promise<void> {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
+      return
+    }
+    // Always load for turn focus / overview — do not gate on dock-already-open.
+    setDetailState('loading')
+    setDetailError(null)
+    try {
+      const detail = await client.getChatSession(trimmedWorkspaceId, sessionId)
+      setSessionDetail(detail)
+      setDetailState('succeeded')
+      if (pendingTurn !== undefined) {
+        const resolvedTurnId = resolveFocusedTurnId(detail, pendingTurn)
+        if (resolvedTurnId !== pendingTurn.turnId) {
+          setFocusedTurn({
+            question: pendingTurn.question,
+            turnId: resolvedTurnId,
+          })
+        }
+      }
+    } catch (error) {
+      setDetailState('failed')
+      setDetailError(getErrorMessage(error))
+    }
+  }
+
+  function resolveFocusedTurnId(
+    detail: ChatSessionDetailResponse,
+    payload: ViewTurnDetailsPayload,
+  ): string {
+    if (!payload.turnId.startsWith('live-')) {
+      return payload.turnId
+    }
+    const turns = transcriptTurnsFromSessionDetail(detail)
+    if (turns.length === 0) {
+      return payload.turnId
+    }
+    const question = payload.question.trim()
+    if (question.length > 0) {
+      for (let index = turns.length - 1; index >= 0; index -= 1) {
+        if (turns[index]?.question.trim() === question) {
+          return turns[index].id
+        }
+      }
+    }
+    return turns[turns.length - 1].id
   }
 
   function handlePrimaryViewChange(view: PrimaryView) {
@@ -1093,7 +1261,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     handleChangeActiveView(module)
     setSettingsModule(module)
     if (module === 'authoring') {
-      setAuthoringSubmodule('projects')
+      setAuthoringSubmodule('workspaces')
     } else if (module === 'observability') {
       setObservabilitySubmodule('summary')
     } else {
@@ -1121,6 +1289,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setPriorTurns([])
     setSelectedSessionId(null)
     setSessionDetail(null)
+    setFocusedTurn(null)
     setRequestState('idle')
     setRequestError(null)
     setDetailState('idle')
@@ -1131,6 +1300,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function handleNavigateToMessage(messageId: string) {
     pendingFocusMessageIdRef.current = messageId
+    // Open turn-scoped Context so the message target exists (full overview
+    // no longer dumps every turn’s messages).
+    setFocusedTurn({
+      question: questionPreviewForMessage(sessionDetail, messageId),
+      turnId: messageId,
+    })
     handleOpenInspectorTab('context')
   }
 
@@ -1145,7 +1320,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleOpenSource(sourceId: string, citationSnippet: string | null) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     handleOpenInspectorTab('context')
     setSourceViewer({
       citationSnippet,
@@ -1155,10 +1330,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       state: 'loading',
     })
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setSourceViewer({
         citationSnippet,
-        error: 'Project ID is required to load source details.',
+        error: 'Workspace ID is required to load source details.',
         source: null,
         sourceId,
         state: 'failed',
@@ -1167,7 +1342,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
 
     try {
-      const source = await client.getSource(trimmedProjectId, sourceId)
+      const source = await client.getSource(trimmedWorkspaceId, sourceId)
       setSourceViewer({
         citationSnippet,
         error: null,
@@ -1237,11 +1412,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleSelectSession(sessionId: string) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setDetailState('failed')
-      setDetailError('Project ID is required to load session detail.')
+      setDetailError('Workspace ID is required to load session detail.')
       return
     }
 
@@ -1250,6 +1425,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setActiveResponseQuestion(null)
     setSelectedSessionId(sessionId)
     setPriorTurns([])
+    setFocusedTurn(null)
     setRequestState('idle')
     setRequestError(null)
     resetSourceViewer()
@@ -1257,7 +1433,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setDetailError(null)
 
     try {
-      const detail = await client.getChatSession(trimmedProjectId, sessionId)
+      const detail = await client.getChatSession(trimmedWorkspaceId, sessionId)
       setSessionDetail(detail)
       const turns = transcriptTurnsFromSessionDetail(detail)
       const sessionStatus = detail.session.status
@@ -1323,11 +1499,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefreshObservability() {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setObservabilityState('failed')
-      setObservabilityError('Project ID is required to refresh observability.')
+      setObservabilityError('Workspace ID is required to refresh observability.')
       return
     }
 
@@ -1335,7 +1511,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setObservabilityError(null)
 
     try {
-      const summary = await client.getChatObservabilitySummary(trimmedProjectId, {
+      const summary = await client.getChatObservabilitySummary(trimmedWorkspaceId, {
         created_at_from: optionalFilterValue(createdAtFrom),
         created_at_to: optionalFilterValue(createdAtTo),
         status: optionalFilterValue(observabilityStatus),
@@ -1348,39 +1524,39 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateWorkspace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const trimmedName = projectName.trim()
+    const trimmedName = workspaceName.trim()
     if (trimmedName.length === 0) {
-      setProjectAuthoringState('failed')
-      setProjectAuthoringError('Project name is required.')
+      setWorkspaceAuthoringState('failed')
+      setWorkspaceAuthoringError('Workspace name is required.')
       return
     }
 
-    setProjectAuthoringState('loading')
-    setProjectAuthoringError(null)
+    setWorkspaceAuthoringState('loading')
+    setWorkspaceAuthoringError(null)
 
     try {
-      const project = await client.createProject({ name: trimmedName })
-      setProjects((current) => upsertProject(current, project))
-      setSelectedProjectId(project.id)
-      setProjectName('')
+      const workspace = await client.createWorkspace({ name: trimmedName })
+      setWorkspaces((current) => upsertWorkspace(current, workspace))
+      setSelectedWorkspaceId(workspace.id)
+      setWorkspaceName('')
       setSources([])
       setIngestionJobs([])
       setIngestionRun(null)
-      setProjectAuthoringState('succeeded')
+      setWorkspaceAuthoringState('succeeded')
     } catch (error) {
-      setProjectAuthoringState('failed')
-      setProjectAuthoringError(getErrorMessage(error))
+      setWorkspaceAuthoringState('failed')
+      setWorkspaceAuthoringError(getErrorMessage(error))
     }
   }
 
-  function handleSelectProject(project: Project) {
-    if (project.can_access === false) {
+  function handleSelectWorkspace(workspace: Workspace) {
+    if (workspace.can_access === false) {
       return
     }
-    setSelectedProjectId(project.id)
+    setSelectedWorkspaceId(workspace.id)
     setSources([])
     setIngestionJobs([])
     setIngestionRun(null)
@@ -1388,42 +1564,42 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionState('idle')
     setSourceAuthoringError(null)
     setSourceAuthoringState('idle')
-    setProjectMemberships([])
+    setWorkspaceMemberships([])
     setKnowledgeProposals([])
     setKnowledgeReviewError(null)
     setKnowledgeReviewState('idle')
   }
 
-  function setSelectedProjectId(nextProjectId: string) {
-    const trimmedProjectId = nextProjectId.trim()
-    projectIdRef.current = trimmedProjectId
+  function setSelectedWorkspaceId(nextWorkspaceId: string) {
+    const trimmedWorkspaceId = nextWorkspaceId.trim()
+    workspaceIdRef.current = trimmedWorkspaceId
     setVisibleSessionCount(SESSION_PAGE_SIZE)
     setSessions([])
     setHasMoreSessions(false)
     setSelectedSessionId(null)
     setSessionDetail(null)
     setHistoryError(null)
-    setHistoryState(trimmedProjectId.length === 0 ? 'idle' : 'loading')
-    syncProjectRuntimeSettings(null)
+    setHistoryState(trimmedWorkspaceId.length === 0 ? 'idle' : 'loading')
+    syncWorkspaceRuntimeSettings(null)
     setRuntimeState('idle')
     setRuntimeError(null)
-    setProjectId(trimmedProjectId)
-    if (trimmedProjectId.length === 0) {
+    setWorkspaceId(trimmedWorkspaceId)
+    if (trimmedWorkspaceId.length === 0) {
       return
     }
     void client
-      .updateCurrentUserPreferences({ last_project_id: trimmedProjectId })
+      .updateCurrentUserPreferences({ last_workspace_id: trimmedWorkspaceId })
       .catch(() => {
         // Local storage remains the fallback when there is no authenticated account.
       })
   }
 
-  async function handleRefreshSources(projectIdOverride?: string) {
-    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+  async function handleRefreshSources(workspaceIdOverride?: string) {
+    const trimmedWorkspaceId = (workspaceIdOverride ?? workspaceId).trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setSourceAuthoringState('failed')
-      setSourceAuthoringError('Project ID is required to refresh sources.')
+      setSourceAuthoringError('Workspace ID is required to refresh sources.')
       return
     }
 
@@ -1431,7 +1607,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSourceAuthoringError(null)
 
     try {
-      const response = await client.listSources(trimmedProjectId)
+      const response = await client.listSources(trimmedWorkspaceId)
       setSources(response.items)
       setSourceAuthoringState('succeeded')
     } catch (error) {
@@ -1443,13 +1619,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   async function handleCreateSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const trimmedExternalId = sourceExternalId.trim()
     const content = sourceContent
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setSourceAuthoringState('failed')
-      setSourceAuthoringError('Project ID is required to create a source.')
+      setSourceAuthoringError('Workspace ID is required to create a source.')
       return
     }
     if (trimmedExternalId.length === 0) {
@@ -1480,7 +1656,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSourceAuthoringError(null)
 
     try {
-      const source = await client.createSource(trimmedProjectId, body)
+      const source = await client.createSource(trimmedWorkspaceId, body)
       setSources((current) => upsertSource(current, source))
       setSourceExternalId('')
       setSourceContent('')
@@ -1523,7 +1699,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefreshAccess() {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
     setAccessManagementState('loading')
     setAccessManagementError(null)
@@ -1532,10 +1708,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       const usersResponse = await client.listUsers()
       setUsers(usersResponse.items)
 
-      if (trimmedProjectId.length > 0) {
+      if (trimmedWorkspaceId.length > 0) {
         const membershipsResponse =
-          await client.listProjectMemberships(trimmedProjectId)
-        setProjectMemberships(membershipsResponse.items)
+          await client.listWorkspaceMemberships(trimmedWorkspaceId)
+        setWorkspaceMemberships(membershipsResponse.items)
       }
 
       setAccessManagementState('succeeded')
@@ -1584,15 +1760,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleSaveProjectMembership(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveWorkspaceMembership(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const trimmedUserId = memberUserId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setAccessManagementState('failed')
-      setAccessManagementError('Project ID is required to save membership.')
+      setAccessManagementError('Workspace ID is required to save membership.')
       return
     }
     if (trimmedUserId.length === 0) {
@@ -1605,12 +1781,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setAccessManagementError(null)
 
     try {
-      const membership = await client.upsertProjectMembership(
-        trimmedProjectId,
+      const membership = await client.upsertWorkspaceMembership(
+        trimmedWorkspaceId,
         trimmedUserId,
         { role: memberRole },
       )
-      setProjectMemberships((current) => upsertMembership(current, membership))
+      setWorkspaceMemberships((current) => upsertMembership(current, membership))
       setAccessManagementState('succeeded')
     } catch (error) {
       setAccessManagementState('failed')
@@ -1618,28 +1794,28 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleDeleteProject(project: Project) {
+  async function handleDeleteWorkspace(workspace: Workspace) {
     const confirmed = window.confirm(
-      `Soft-delete project "${project.name}"? This hides it from lists.`,
+      `Soft-delete workspace "${workspace.name}"? This hides it from lists.`,
     )
     if (!confirmed) {
       return
     }
-    setProjectAuthoringState('loading')
-    setProjectAuthoringError(null)
+    setWorkspaceAuthoringState('loading')
+    setWorkspaceAuthoringError(null)
     try {
-      await client.deleteProject(project.id)
-      setProjects((current) => current.filter((item) => item.id !== project.id))
-      if (projectId === project.id) {
-        setSelectedProjectId('')
+      await client.deleteWorkspace(workspace.id)
+      setWorkspaces((current) => current.filter((item) => item.id !== workspace.id))
+      if (workspaceId === workspace.id) {
+        setSelectedWorkspaceId('')
         setSources([])
         setIngestionJobs([])
         setIngestionRun(null)
       }
-      setProjectAuthoringState('succeeded')
+      setWorkspaceAuthoringState('succeeded')
     } catch (error) {
-      setProjectAuthoringState('failed')
-      setProjectAuthoringError(getErrorMessage(error))
+      setWorkspaceAuthoringState('failed')
+      setWorkspaceAuthoringError(getErrorMessage(error))
     }
   }
 
@@ -1653,7 +1829,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setSourceAuthoringState('loading')
     setSourceAuthoringError(null)
     try {
-      await client.deleteSource(source.project_id, source.id)
+      await client.deleteSource(source.workspace_id, source.id)
       setSources((current) => current.filter((item) => item.id !== source.id))
       setSourceAuthoringState('succeeded')
     } catch (error) {
@@ -1662,7 +1838,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleDeleteMembership(membership: ProjectMembership) {
+  async function handleDeleteMembership(membership: WorkspaceMembership) {
     const confirmed = window.confirm(
       `Remove membership for user ${membership.user_id}?`,
     )
@@ -1672,11 +1848,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setAccessManagementState('loading')
     setAccessManagementError(null)
     try {
-      await client.deleteProjectMembership(
-        membership.project_id,
+      await client.deleteWorkspaceMembership(
+        membership.workspace_id,
         membership.user_id,
       )
-      setProjectMemberships((current) =>
+      setWorkspaceMemberships((current) =>
         current.filter((item) => item.id !== membership.id),
       )
       setAccessManagementState('succeeded')
@@ -1731,11 +1907,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefreshKnowledgeProposals() {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setKnowledgeReviewState('failed')
-      setKnowledgeReviewError('Project ID is required to refresh proposals.')
+      setKnowledgeReviewError('Workspace ID is required to refresh proposals.')
       return
     }
 
@@ -1743,7 +1919,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setKnowledgeReviewError(null)
 
     try {
-      const response = await client.listKnowledgeProposals(trimmedProjectId, {
+      const response = await client.listKnowledgeProposals(trimmedWorkspaceId, {
         status: 'pending',
       })
       setKnowledgeProposals(response.items)
@@ -1755,12 +1931,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRefineKnowledgeProposal(proposal: KnowledgeProposal) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const refinedText = proposalDraftText(proposalDrafts, proposal).trim()
 
-    if (trimmedProjectId.length === 0 || refinedText.length === 0) {
+    if (trimmedWorkspaceId.length === 0 || refinedText.length === 0) {
       setKnowledgeReviewState('failed')
-      setKnowledgeReviewError('Project ID and refined text are required.')
+      setKnowledgeReviewError('Workspace ID and refined text are required.')
       return
     }
 
@@ -1769,7 +1945,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     try {
       const updated = await client.refineKnowledgeProposal(
-        trimmedProjectId,
+        trimmedWorkspaceId,
         proposal.id,
         { refined_text: refinedText },
       )
@@ -1784,12 +1960,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleApproveKnowledgeProposal(proposal: KnowledgeProposal) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const refinedText = proposalDraftText(proposalDrafts, proposal).trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setKnowledgeReviewState('failed')
-      setKnowledgeReviewError('Project ID is required to approve proposals.')
+      setKnowledgeReviewError('Workspace ID is required to approve proposals.')
       return
     }
 
@@ -1798,7 +1974,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     try {
       const updated = await client.approveKnowledgeProposal(
-        trimmedProjectId,
+        trimmedWorkspaceId,
         proposal.id,
         {
           refined_text: refinedText.length > 0 ? refinedText : null,
@@ -1816,12 +1992,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRejectKnowledgeProposal(proposal: KnowledgeProposal) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const reason = (proposalRejectReasons[proposal.id] ?? '').trim()
 
-    if (trimmedProjectId.length === 0 || reason.length === 0) {
+    if (trimmedWorkspaceId.length === 0 || reason.length === 0) {
       setKnowledgeReviewState('failed')
-      setKnowledgeReviewError('Project ID and rejection reason are required.')
+      setKnowledgeReviewError('Workspace ID and rejection reason are required.')
       return
     }
 
@@ -1830,7 +2006,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
     try {
       const updated = await client.rejectKnowledgeProposal(
-        trimmedProjectId,
+        trimmedWorkspaceId,
         proposal.id,
         { reason },
       )
@@ -1844,12 +2020,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshIngestionJobs(projectIdOverride?: string) {
-    const trimmedProjectId = (projectIdOverride ?? projectId).trim()
+  async function handleRefreshIngestionJobs(workspaceIdOverride?: string) {
+    const trimmedWorkspaceId = (workspaceIdOverride ?? workspaceId).trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setIngestionState('failed')
-      setIngestionError('Project ID is required to refresh ingestion jobs.')
+      setIngestionError('Workspace ID is required to refresh ingestion jobs.')
       return
     }
 
@@ -1857,7 +2033,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionError(null)
 
     try {
-      const response = await client.listIngestionJobs(trimmedProjectId, {
+      const response = await client.listIngestionJobs(trimmedWorkspaceId, {
         job_type: 'ingest_source',
       })
       setIngestionJobs(response.items)
@@ -1869,11 +2045,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleEnqueueIngestion(source: Source) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setIngestionState('failed')
-      setIngestionError('Project ID is required to enqueue ingestion.')
+      setIngestionError('Workspace ID is required to enqueue ingestion.')
       return
     }
 
@@ -1881,7 +2057,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionError(null)
 
     try {
-      const job = await client.enqueueIngestionJob(trimmedProjectId, source.id)
+      const job = await client.enqueueIngestionJob(trimmedWorkspaceId, source.id)
       setIngestionJobs((current) => upsertIngestionJob(current, job))
       setIngestionState('succeeded')
     } catch (error) {
@@ -1891,11 +2067,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRunNextIngestion() {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setIngestionState('failed')
-      setIngestionError('Project ID is required to run ingestion.')
+      setIngestionError('Workspace ID is required to run ingestion.')
       return
     }
 
@@ -1903,11 +2079,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionError(null)
 
     try {
-      const run = await client.runNextIngestionJob(trimmedProjectId)
+      const run = await client.runNextIngestionJob(trimmedWorkspaceId)
       setIngestionRun(run)
       setIngestionState('succeeded')
       if (run.job_id !== null) {
-        await handleRefreshIngestionJobs(trimmedProjectId)
+        await handleRefreshIngestionJobs(trimmedWorkspaceId)
       }
     } catch (error) {
       setIngestionState('failed')
@@ -1916,11 +2092,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
   }
 
   async function handleRetryIngestionJob(job: IngestionJob) {
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
 
-    if (trimmedProjectId.length === 0) {
+    if (trimmedWorkspaceId.length === 0) {
       setIngestionState('failed')
-      setIngestionError('Project ID is required to retry ingestion.')
+      setIngestionError('Workspace ID is required to retry ingestion.')
       return
     }
 
@@ -1928,7 +2104,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setIngestionError(null)
 
     try {
-      const nextJob = await client.retryIngestionJob(trimmedProjectId, job.id)
+      const nextJob = await client.retryIngestionJob(trimmedWorkspaceId, job.id)
       setIngestionJobs((current) => upsertIngestionJob(current, nextJob))
       setIngestionState('succeeded')
     } catch (error) {
@@ -1937,103 +2113,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshRuntimeModelCatalog() {
+  async function handleRefreshRuntimeWorkspaceOverrides() {
+    const trimmedWorkspaceId = workspaceId.trim()
     setRuntimeState('loading')
     setRuntimeError(null)
 
     try {
-      const trimmedConnectionId = modelSyncConnectionId.trim()
-      const [connections, providerModels] = await Promise.all([
-        client.listProviderConnections(),
-        client.listProviderModels(
-          trimmedConnectionId.length > 0
-            ? { connection_id: trimmedConnectionId }
-            : undefined,
-        ),
-      ])
-      setRuntimeConnections(connections.items)
-      setRuntimeProviderModels(providerModels.items)
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    }
-  }
-
-  async function handleSelectModelCatalogConnection(value: string) {
-    setModelSyncConnectionId(value)
-    const trimmedConnectionId = value.trim()
-    if (trimmedConnectionId.length === 0) {
-      setRuntimeProviderModels([])
-      setRuntimeError(null)
-      setRuntimeState('idle')
-      return
-    }
-
-    setRuntimeState('loading')
-    setRuntimeError(null)
-    try {
-      const providerModels = await client.listProviderModels({
-        connection_id: trimmedConnectionId,
-      })
-      setRuntimeProviderModels(providerModels.items)
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    }
-  }
-
-  async function handleRefreshRuntimeGlobalDefaults() {
-    setRuntimeState('loading')
-    setRuntimeError(null)
-
-    try {
-      const [connections, slots, chatModels, providerModels, chatRetrieval] =
-        await Promise.all([
-          client.listProviderConnections(),
-          client.listRuntimeSlotDefaults(),
-          client.listChatModels(),
-          client.listProviderModels(),
-          client.getChatRetrievalSettings(),
-        ])
-      setRuntimeConnections(connections.items)
-      setRuntimeSlots(slots.items)
-      setRuntimeChatModels(chatModels.items)
-      setRuntimeProviderModels(providerModels.items)
-      setRuntimeChatRetrieval(chatRetrieval)
-      syncGlobalChatRetrievalFields(chatRetrieval)
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    }
-  }
-
-  async function handleRefreshRuntimeProjectOverrides() {
-    const trimmedProjectId = projectId.trim()
-    setRuntimeState('loading')
-    setRuntimeError(null)
-
-    try {
-      const projectSettingsPromise =
-        trimmedProjectId.length > 0
-          ? client.getProjectRuntimeSettings(trimmedProjectId)
+      const workspaceSettingsPromise =
+        trimmedWorkspaceId.length > 0
+          ? client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
           : Promise.resolve(null)
-      const [connections, providerModels, projectSettings] = await Promise.all([
+      const [connections, providerModels, workspaceSettings] = await Promise.all([
         client.listProviderConnections(),
         client.listProviderModels(),
-        projectSettingsPromise,
+        workspaceSettingsPromise,
       ])
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeConnections(connections.items)
       setRuntimeProviderModels(providerModels.items)
-      syncProjectRuntimeSettings(projectSettings)
+      syncWorkspaceRuntimeSettings(workspaceSettings)
       setRuntimeState('succeeded')
     } catch (error) {
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeState('failed')
@@ -2043,11 +2146,26 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   function resetConnectionForm() {
     setEditingConnectionId(null)
+    setIsCreatingConnection(false)
     setConnectionProvider('qwen')
     setConnectionType('hosted')
     setConnectionBaseUrl('')
     setConnectionCapabilities(['chat'])
     setConnectionApiKey('')
+  }
+
+  function handleRequestCreateConnection() {
+    setEditingConnectionId(null)
+    setIsCreatingConnection(true)
+    setConnectionProvider('qwen')
+    setConnectionType('hosted')
+    setConnectionBaseUrl('')
+    setConnectionCapabilities(['chat'])
+    setConnectionApiKey('')
+    setDeleteConnectionId(null)
+    setDeleteConnectionConfirmation('')
+    setRuntimeError(null)
+    setRuntimeSubmodule('connections')
   }
 
   function handleRequestEditConnection(connectionId: string) {
@@ -2060,6 +2178,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       return
     }
 
+    setIsCreatingConnection(false)
     setEditingConnectionId(connection.connection_id)
     setConnectionProvider(connection.provider)
     setConnectionType(connection.connection_type)
@@ -2121,7 +2240,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         return next
       })
       setModelSyncConnectionId(connection.connection_id)
-      setConnectionApiKey('')
+      resetConnectionForm()
       setRuntimeState('succeeded')
     } catch (error) {
       setRuntimeState('failed')
@@ -2197,7 +2316,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         delete next[connectionId]
         return next
       })
-      setProjectRuntimeSettings((current) =>
+      setWorkspaceRuntimeSettings((current) =>
         current === null
           ? null
           : {
@@ -2224,35 +2343,12 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         setGlobalChatConnectionId('')
         setGlobalChatModelId('')
       }
-      if (projectSlotConnectionId === connectionId) {
-        setProjectSlotConnectionId('')
-        setProjectSlotModelId('')
+      if (workspaceSlotConnectionId === connectionId) {
+        setWorkspaceSlotConnectionId('')
+        setWorkspaceSlotModelId('')
       }
       setDeleteConnectionId(null)
       setDeleteConnectionConfirmation('')
-      setRuntimeState('succeeded')
-    } catch (error) {
-      setRuntimeState('failed')
-      setRuntimeError(getErrorMessage(error))
-    }
-  }
-
-  async function handleSyncProviderModels(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmedConnectionId = modelSyncConnectionId.trim()
-    if (trimmedConnectionId.length === 0) {
-      setRuntimeState('failed')
-      setRuntimeError('Model sync connection is required.')
-      return
-    }
-
-    setRuntimeState('loading')
-    setRuntimeError(null)
-    try {
-      const response = await client.syncProviderModels(trimmedConnectionId)
-      setRuntimeProviderModels((current) =>
-        upsertProviderModels(current, response.items),
-      )
       setRuntimeState('succeeded')
     } catch (error) {
       setRuntimeState('failed')
@@ -2313,7 +2409,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 
   async function handleSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const trimmedProjectId = projectId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
     const validationError = validateChatRetrievalSettings({
       candidateLimit: globalChatRerankCandidateLimit,
       rerankEnabled: globalChatRerankEnabled,
@@ -2335,13 +2431,13 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       })
       setRuntimeChatRetrieval(settings)
       syncGlobalChatRetrievalFields(settings)
-      if (trimmedProjectId.length > 0) {
-        const projectSettings =
-          await client.getProjectRuntimeSettings(trimmedProjectId)
+      if (trimmedWorkspaceId.length > 0) {
+        const workspaceSettings =
+          await client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
         if (
-          !syncProjectRuntimeSettingsForProject(
-            trimmedProjectId,
-            projectSettings,
+          !syncWorkspaceRuntimeSettingsForWorkspace(
+            trimmedWorkspaceId,
+            workspaceSettings,
           )
         ) {
           return
@@ -2350,8 +2446,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
       setRuntimeState('succeeded')
     } catch (error) {
       if (
-        trimmedProjectId.length > 0 &&
-        !isCurrentProjectRuntimeRequest(trimmedProjectId)
+        trimmedWorkspaceId.length > 0 &&
+        !isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)
       ) {
         return
       }
@@ -2360,35 +2456,35 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleSaveProjectOverride(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveWorkspaceOverride(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const trimmedProjectId = projectId.trim()
-    const trimmedConnectionId = projectSlotConnectionId.trim()
-    const trimmedModelId = projectSlotModelId.trim()
+    const trimmedWorkspaceId = workspaceId.trim()
+    const trimmedConnectionId = workspaceSlotConnectionId.trim()
+    const trimmedModelId = workspaceSlotModelId.trim()
     if (
-      trimmedProjectId.length === 0 ||
+      trimmedWorkspaceId.length === 0 ||
       trimmedConnectionId.length === 0 ||
       trimmedModelId.length === 0
     ) {
       setRuntimeState('failed')
-      setRuntimeError('Project, connection and model are required.')
+      setRuntimeError('Workspace, connection and model are required.')
       return
     }
 
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      await client.upsertProjectRuntimeSlotOverride(trimmedProjectId, projectSlot, {
+      await client.upsertWorkspaceRuntimeSlotOverride(trimmedWorkspaceId, workspaceSlot, {
         connection_id: trimmedConnectionId,
         model_id: trimmedModelId,
       })
-      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
-      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+      const settings = await client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
+      if (!syncWorkspaceRuntimeSettingsForWorkspace(trimmedWorkspaceId, settings)) {
         return
       }
       setRuntimeState('succeeded')
     } catch (error) {
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeState('failed')
@@ -2396,25 +2492,25 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleResetProjectSlot(slot: string) {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+  async function handleResetWorkspaceSlot(slot: string) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setRuntimeState('failed')
-      setRuntimeError('Project ID is required to reset runtime overrides.')
+      setRuntimeError('Workspace ID is required to reset runtime overrides.')
       return
     }
 
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      await client.deleteProjectRuntimeSlotOverride(trimmedProjectId, slot)
-      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
-      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+      await client.deleteWorkspaceRuntimeSlotOverride(trimmedWorkspaceId, slot)
+      const settings = await client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
+      if (!syncWorkspaceRuntimeSettingsForWorkspace(trimmedWorkspaceId, settings)) {
         return
       }
       setRuntimeState('succeeded')
     } catch (error) {
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeState('failed')
@@ -2422,20 +2518,20 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleSaveProjectChatRetrieval(
+  async function handleSaveWorkspaceChatRetrieval(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setRuntimeState('failed')
-      setRuntimeError('Project ID is required for project retrieval settings.')
+      setRuntimeError('Workspace ID is required for workspace retrieval settings.')
       return
     }
     const validationError = validateChatRetrievalSettings({
-      candidateLimit: projectChatRerankCandidateLimit,
-      rerankEnabled: projectChatRerankEnabled,
-      retrievalLimit: projectChatRetrievalLimit,
+      candidateLimit: workspaceChatRerankCandidateLimit,
+      rerankEnabled: workspaceChatRerankEnabled,
+      retrievalLimit: workspaceChatRetrievalLimit,
     })
     if (validationError !== null) {
       setRuntimeState('failed')
@@ -2446,18 +2542,18 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      await client.upsertProjectChatRetrievalSettings(trimmedProjectId, {
-        retrieval_limit: projectChatRetrievalLimit,
-        rerank_enabled: projectChatRerankEnabled,
-        rerank_candidate_limit: projectChatRerankCandidateLimit,
+      await client.upsertWorkspaceChatRetrievalSettings(trimmedWorkspaceId, {
+        retrieval_limit: workspaceChatRetrievalLimit,
+        rerank_enabled: workspaceChatRerankEnabled,
+        rerank_candidate_limit: workspaceChatRerankCandidateLimit,
       })
-      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
-      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+      const settings = await client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
+      if (!syncWorkspaceRuntimeSettingsForWorkspace(trimmedWorkspaceId, settings)) {
         return
       }
       setRuntimeState('succeeded')
     } catch (error) {
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeState('failed')
@@ -2465,25 +2561,25 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     }
   }
 
-  async function handleResetProjectChatRetrieval() {
-    const trimmedProjectId = projectId.trim()
-    if (trimmedProjectId.length === 0) {
+  async function handleResetWorkspaceChatRetrieval() {
+    const trimmedWorkspaceId = workspaceId.trim()
+    if (trimmedWorkspaceId.length === 0) {
       setRuntimeState('failed')
-      setRuntimeError('Project ID is required to reset chat retrieval.')
+      setRuntimeError('Workspace ID is required to reset chat retrieval.')
       return
     }
 
     setRuntimeState('loading')
     setRuntimeError(null)
     try {
-      await client.deleteProjectChatRetrievalSettings(trimmedProjectId)
-      const settings = await client.getProjectRuntimeSettings(trimmedProjectId)
-      if (!syncProjectRuntimeSettingsForProject(trimmedProjectId, settings)) {
+      await client.deleteWorkspaceChatRetrievalSettings(trimmedWorkspaceId)
+      const settings = await client.getWorkspaceRuntimeSettings(trimmedWorkspaceId)
+      if (!syncWorkspaceRuntimeSettingsForWorkspace(trimmedWorkspaceId, settings)) {
         return
       }
       setRuntimeState('succeeded')
     } catch (error) {
-      if (!isCurrentProjectRuntimeRequest(trimmedProjectId)) {
+      if (!isCurrentWorkspaceRuntimeRequest(trimmedWorkspaceId)) {
         return
       }
       setRuntimeState('failed')
@@ -2497,41 +2593,41 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
     setGlobalChatRerankCandidateLimit(settings.rerank_candidate_limit)
   }
 
-  function syncProjectRuntimeSettings(settings: ProjectRuntimeSettings | null) {
-    setProjectRuntimeSettings(settings)
+  function syncWorkspaceRuntimeSettings(settings: WorkspaceRuntimeSettings | null) {
+    setWorkspaceRuntimeSettings(settings)
     if (settings === null) {
-      resetProjectRuntimeFormFields()
+      resetWorkspaceRuntimeFormFields()
       return
     }
-    setProjectChatRetrievalLimit(settings.chat_retrieval.retrieval_limit)
-    setProjectChatRerankEnabled(settings.chat_retrieval.rerank_enabled)
-    setProjectChatRerankCandidateLimit(
+    setWorkspaceChatRetrievalLimit(settings.chat_retrieval.retrieval_limit)
+    setWorkspaceChatRerankEnabled(settings.chat_retrieval.rerank_enabled)
+    setWorkspaceChatRerankCandidateLimit(
       settings.chat_retrieval.rerank_candidate_limit,
     )
   }
 
-  function syncProjectRuntimeSettingsForProject(
-    requestedProjectId: string,
-    settings: ProjectRuntimeSettings | null,
+  function syncWorkspaceRuntimeSettingsForWorkspace(
+    requestedWorkspaceId: string,
+    settings: WorkspaceRuntimeSettings | null,
   ): boolean {
-    if (!isCurrentProjectRuntimeRequest(requestedProjectId)) {
+    if (!isCurrentWorkspaceRuntimeRequest(requestedWorkspaceId)) {
       return false
     }
-    syncProjectRuntimeSettings(settings)
+    syncWorkspaceRuntimeSettings(settings)
     return true
   }
 
-  function isCurrentProjectRuntimeRequest(requestedProjectId: string): boolean {
-    return projectIdRef.current === requestedProjectId.trim()
+  function isCurrentWorkspaceRuntimeRequest(requestedWorkspaceId: string): boolean {
+    return workspaceIdRef.current === requestedWorkspaceId.trim()
   }
 
-  function resetProjectRuntimeFormFields() {
-    setProjectSlot('chat')
-    setProjectSlotConnectionId('')
-    setProjectSlotModelId('')
-    setProjectChatRetrievalLimit(DEFAULT_RETRIEVAL_LIMIT)
-    setProjectChatRerankEnabled(true)
-    setProjectChatRerankCandidateLimit(DEFAULT_RERANK_CANDIDATE_LIMIT)
+  function resetWorkspaceRuntimeFormFields() {
+    setWorkspaceSlot('chat')
+    setWorkspaceSlotConnectionId('')
+    setWorkspaceSlotModelId('')
+    setWorkspaceChatRetrievalLimit(DEFAULT_RETRIEVAL_LIMIT)
+    setWorkspaceChatRerankEnabled(true)
+    setWorkspaceChatRerankCandidateLimit(DEFAULT_RERANK_CANDIDATE_LIMIT)
   }
 
   function handleChangeActiveView(view: ActiveView) {
@@ -2564,7 +2660,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           onDeleteSession={(sessionId) => void handleDeleteSession(sessionId)}
           onLoadMoreSessions={handleLoadMoreSessions}
           onPrimaryViewChange={handlePrimaryViewChange}
-          onProjectIdChange={handleChangeProjectId}
+          onWorkspaceIdChange={handleChangeWorkspaceId}
           onRenameSession={(sessionId, title) =>
             void handleRenameSession(sessionId, title)
           }
@@ -2578,9 +2674,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
             void handleUnarchiveSession(sessionId)
           }
           primaryView={primaryView}
-          projectId={projectId}
-          projectState={projectAuthoringState}
-          projects={projects}
+          workspaceId={workspaceId}
+          workspaceState={workspaceAuthoringState}
+          workspaces={workspaces}
           runtimeSubmodule={runtimeSubmodule}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
@@ -2593,8 +2689,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
         <WorkspaceTopline
           isChatWorkspace={primaryView === 'chat'}
           isLeftSidebarOpen={isLeftSidebarOpen}
-          projectId={projectId}
-          projects={projects}
+          workspaceId={workspaceId}
+          workspaces={workspaces}
           selectedSessionId={selectedSessionId}
           sessionDetail={sessionDetail}
           sessions={sessions}
@@ -2625,6 +2721,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
               <ChatWorkspacePanel
                 activeResponseQuestion={activeResponseQuestion}
                 appliedMemories={appliedMemories}
+                attachmentAccept={chatAttachments.accept}
+                attachments={chatAttachments.attachments}
+                attachmentsAtCap={chatAttachments.atCap}
+                attachmentsBlocked={chatAttachments.blocked}
                 continuingSessionId={selectedSessionId}
                 drafts={knowledgeDrafts}
                 heartbeatElapsedMs={heartbeatElapsedMs}
@@ -2636,8 +2736,9 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   isRightDockOpen && inspectorTab === 'minimap'
                 }
                 isSpeechSupported={isSpeechSupported}
+                onAddAttachmentFiles={chatAttachments.addFiles}
                 onCancelRequest={handleCancelRequest}
-                onOpenContextInspector={() => handleOpenInspectorTab('context')}
+                onOpenContextInspector={handleOpenContextOverview}
                 onOpenMinimapInspector={() => handleOpenInspectorTab('minimap')}
                 onOpenSource={(sourceId, citationSnippet) =>
                   void handleOpenSource(sourceId, citationSnippet)
@@ -2646,6 +2747,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onRefineKnowledgeDraft={handleRefineKnowledgeDraft}
                 onEditQuestion={handleEditQuestion}
                 onRegenerateLastAnswer={handleRegenerateLastAnswer}
+                onRemoveAttachment={chatAttachments.remove}
                 onRetryLastQuestion={handleRetryLastQuestion}
                 onStartNewSession={handleStartNewSession}
                 onStartSpeechRecognition={handleStartSpeechRecognition}
@@ -2653,6 +2755,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onSubmit={handleSubmit}
                 onSubmitKnowledgeDraft={handleSubmitKnowledgeDraft}
                 onTranscriptScroll={handleChatTranscriptScroll}
+                onViewTurnDetails={handleViewTurnDetails}
                 priorTurns={priorTurns}
                 providerUsage={
                   response !== null &&
@@ -2677,6 +2780,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 detail={sessionDetail}
                 detailError={detailError}
                 detailState={detailState}
+                focusedTurn={focusedTurn}
                 layout={isRightDockInline ? 'inline' : 'overlay'}
                 liveContextSteps={
                   response !== null &&
@@ -2685,7 +2789,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                     ? (response.steps ?? null)
                     : null
                 }
-                onClose={() => setIsRightDockOpen(false)}
+                onClearFocusedTurn={() => setFocusedTurn(null)}
+                onClose={() => {
+                  setFocusedTurn(null)
+                  setIsRightDockOpen(false)
+                }}
                 onNavigateMessage={handleNavigateToMessage}
                 onActiveTabChange={handleOpenInspectorTab}
                 onOpenSource={(sourceId, citationSnippet) =>
@@ -2700,7 +2808,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
           accountModule === 'appearance' ? (
             <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
           ) : (
-            <UserMemoryPanel apiClient={client} projectId={projectId} />
+            <UserMemoryPanel apiClient={client} workspaceId={workspaceId} />
           )
         ) : (
           <SettingsPanel>
@@ -2712,7 +2820,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 error={observabilityError}
                 onCreatedAtFromChange={setCreatedAtFrom}
                 onCreatedAtToChange={setCreatedAtTo}
-                onProjectIdChange={handleChangeProjectId}
+                onWorkspaceIdChange={handleChangeWorkspaceId}
                 onRefresh={() => void handleRefreshObservability()}
                 onStatusChange={setObservabilityStatus}
                 onSubmoduleChange={(submodule) =>
@@ -2721,7 +2829,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                     submodule,
                   })
                 }
-                projectId={projectId}
+                workspaceId={workspaceId}
                 state={observabilityState}
                 status={observabilityStatus}
                 summary={observabilitySummary}
@@ -2745,6 +2853,7 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 deleteConnectionId={deleteConnectionId}
                 editingConnectionId={editingConnectionId}
                 error={runtimeError}
+                isCreatingConnection={isCreatingConnection}
                 globalChatRerankCandidateLimit={
                   globalChatRerankCandidateLimit
                 }
@@ -2777,27 +2886,22 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onGlobalSlotChange={setGlobalSlot}
                 onGlobalSlotConnectionIdChange={setGlobalSlotConnectionId}
                 onGlobalSlotModelIdChange={setGlobalSlotModelId}
-                onProjectChatRerankCandidateLimitChange={
-                  setProjectChatRerankCandidateLimit
+                onWorkspaceChatRerankCandidateLimitChange={
+                  setWorkspaceChatRerankCandidateLimit
                 }
-                onProjectChatRerankEnabledChange={setProjectChatRerankEnabled}
-                onProjectChatRetrievalLimitChange={setProjectChatRetrievalLimit}
-                onProjectSlotChange={setProjectSlot}
-                onProjectSlotConnectionIdChange={setProjectSlotConnectionId}
-                onProjectSlotModelIdChange={setProjectSlotModelId}
-                onRefreshGlobalDefaults={() =>
-                  void handleRefreshRuntimeGlobalDefaults()
+                onWorkspaceChatRerankEnabledChange={setWorkspaceChatRerankEnabled}
+                onWorkspaceChatRetrievalLimitChange={setWorkspaceChatRetrievalLimit}
+                onWorkspaceSlotChange={setWorkspaceSlot}
+                onWorkspaceSlotConnectionIdChange={setWorkspaceSlotConnectionId}
+                onWorkspaceSlotModelIdChange={setWorkspaceSlotModelId}
+                onRefreshWorkspaceOverrides={() =>
+                  void handleRefreshRuntimeWorkspaceOverrides()
                 }
-                onRefreshModelCatalog={() =>
-                  void handleRefreshRuntimeModelCatalog()
+                onResetWorkspaceChatRetrieval={() =>
+                  void handleResetWorkspaceChatRetrieval()
                 }
-                onRefreshProjectOverrides={() =>
-                  void handleRefreshRuntimeProjectOverrides()
-                }
-                onResetProjectChatRetrieval={() =>
-                  void handleResetProjectChatRetrieval()
-                }
-                onResetProjectSlot={(slot) => void handleResetProjectSlot(slot)}
+                onResetWorkspaceSlot={(slot) => void handleResetWorkspaceSlot(slot)}
+                onRequestCreateConnection={handleRequestCreateConnection}
                 onRequestDeleteConnection={handleRequestDeleteConnection}
                 onRequestEditConnection={handleRequestEditConnection}
                 onSaveConnection={(event) => void handleSaveConnection(event)}
@@ -2808,35 +2912,30 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                   void handleSaveGlobalChatRetrieval(event)
                 }
                 onSaveGlobalSlot={(event) => void handleSaveGlobalSlot(event)}
-                onSaveProjectChatRetrieval={(event) =>
-                  void handleSaveProjectChatRetrieval(event)
+                onSaveWorkspaceChatRetrieval={(event) =>
+                  void handleSaveWorkspaceChatRetrieval(event)
                 }
-                onSaveProjectOverride={(event) =>
-                  void handleSaveProjectOverride(event)
+                onSaveWorkspaceOverride={(event) =>
+                  void handleSaveWorkspaceOverride(event)
                 }
-                onSyncProviderModels={(event) =>
-                  void handleSyncProviderModels(event)
+                onModelSyncConnectionIdChange={setModelSyncConnectionId}
+                workspaceId={workspaceId}
+                workspaceChatRerankCandidateLimit={
+                  workspaceChatRerankCandidateLimit
                 }
-                onModelSyncConnectionIdChange={(value) =>
-                  void handleSelectModelCatalogConnection(value)
-                }
-                projectId={projectId}
-                projectChatRerankCandidateLimit={
-                  projectChatRerankCandidateLimit
-                }
-                projectChatRerankEnabled={projectChatRerankEnabled}
-                projectChatRetrievalLimit={projectChatRetrievalLimit}
-                projectRuntimeSettings={projectRuntimeSettings}
-                projectSlot={projectSlot}
-                projectSlotConnectionId={projectSlotConnectionId}
-                projectSlotModelId={projectSlotModelId}
+                workspaceChatRerankEnabled={workspaceChatRerankEnabled}
+                workspaceChatRetrievalLimit={workspaceChatRetrievalLimit}
+                workspaceRuntimeSettings={workspaceRuntimeSettings}
+                workspaceSlot={workspaceSlot}
+                workspaceSlotConnectionId={workspaceSlotConnectionId}
+                workspaceSlotModelId={workspaceSlotModelId}
                 modelSyncConnectionId={modelSyncConnectionId}
                 providerModels={runtimeProviderModels}
                 slots={runtimeSlots}
                 state={runtimeState}
               />
             ) : authoringSubmodule === 'retrieval' ? (
-              <RetrievalPlaygroundPanel client={client} projectId={projectId} />
+              <RetrievalPlaygroundPanel client={client} workspaceId={workspaceId} />
             ) : (
               <AuthoringPanel
                 activeSubmodule={authoringSubmodule}
@@ -2851,15 +2950,15 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 knowledgeReviewState={knowledgeReviewState}
                 memberRole={memberRole}
                 memberUserId={memberUserId}
-                memberships={projectMemberships}
-                onCreateProject={(event) => void handleCreateProject(event)}
+                memberships={workspaceMemberships}
+                onCreateWorkspace={(event) => void handleCreateWorkspace(event)}
                 onCreateSource={(event) => void handleCreateSource(event)}
                 onCreateUser={(event) => void handleCreateUser(event)}
                 onDeactivateUser={(user) => void handleDeactivateUser(user)}
                 onDeleteMembership={(membership) =>
                   void handleDeleteMembership(membership)
                 }
-                onDeleteProject={(project) => void handleDeleteProject(project)}
+                onDeleteWorkspace={(workspace) => void handleDeleteWorkspace(workspace)}
                 onDeleteSource={(source) => void handleDeleteSource(source)}
                 onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
                 onApproveKnowledgeProposal={(proposal) =>
@@ -2867,8 +2966,8 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 }
                 onMemberRoleChange={setMemberRole}
                 onMemberUserIdChange={setMemberUserId}
-                onProjectIdChange={handleChangeProjectId}
-                onProjectNameChange={setProjectName}
+                onWorkspaceIdChange={handleChangeWorkspaceId}
+                onWorkspaceNameChange={setWorkspaceName}
                 onProposalDraftChange={(proposalId, value) =>
                   setProposalDrafts((current) => ({
                     ...current,
@@ -2896,10 +2995,10 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
                 onRevokeAccessToken={() => void handleRevokeAccessToken()}
                 onRunNextIngestion={() => void handleRunNextIngestion()}
-                onSaveProjectMembership={(event) =>
-                  void handleSaveProjectMembership(event)
+                onSaveWorkspaceMembership={(event) =>
+                  void handleSaveWorkspaceMembership(event)
                 }
-                onSelectProject={handleSelectProject}
+                onSelectWorkspace={handleSelectWorkspace}
                 onSourceContentChange={setSourceContent}
                 onSourceExternalIdChange={setSourceExternalId}
                 onSourceFileChange={(file) => void handleSourceFileChange(file)}
@@ -2918,11 +3017,11 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
                 onUserDisplayNameChange={setUserDisplayName}
                 onUserLoginChange={setUserLogin}
                 onUserSystemRoleChange={setUserSystemRole}
-                projectError={projectAuthoringError}
-                projectId={projectId}
-                projectName={projectName}
-                projectState={projectAuthoringState}
-                projects={projects}
+                workspaceError={workspaceAuthoringError}
+                workspaceId={workspaceId}
+                workspaceName={workspaceName}
+                workspaceState={workspaceAuthoringState}
+                workspaces={workspaces}
                 proposalDrafts={proposalDrafts}
                 proposalRejectReasons={proposalRejectReasons}
                 sourceContent={sourceContent}
@@ -2949,24 +3048,22 @@ function App({ apiClient, initialProjectId = '' }: AppProps) {
 function SettingsPanel({ children }: { children: ReactNode }) {
   return (
     <section
-      className="grid gap-4"
+      className="grid min-w-0 gap-1"
       data-slot="settings-shell"
       aria-labelledby="settings-title"
     >
       <header
-        className="flex items-end justify-between"
+        className="flex min-h-0 min-w-0 items-center justify-between gap-1.5 py-0"
         data-slot="settings-shell-header"
       >
-        <div>
-          <h2
-            className="text-xl font-semibold leading-tight text-foreground"
-            id="settings-title"
-          >
-            Settings
-          </h2>
-        </div>
+        <h2
+          className="min-w-0 text-[13px] font-extrabold leading-[1.2] tracking-tight text-foreground"
+          id="settings-title"
+        >
+          Settings
+        </h2>
       </header>
-      <div className="grid min-w-0 gap-4" data-slot="settings-section-body">
+      <div className="grid min-w-0 gap-2" data-slot="settings-section-body">
         {children}
       </div>
     </section>
@@ -3070,7 +3167,7 @@ function AppearanceSettingsPanel({
 
 async function refreshHistory(
   client: ApiClient,
-  projectId: string,
+  workspaceId: string,
   statusFilter: SessionNavigationFilter,
   limit: number,
   callbacks: {
@@ -3082,7 +3179,7 @@ async function refreshHistory(
 ) {
   callbacks.onState('loading')
   try {
-    const history = await client.listChatSessions(projectId, {
+    const history = await client.listChatSessions(workspaceId, {
       archived: statusFilter === 'archived',
       limit,
     })
@@ -3210,22 +3307,22 @@ function updateRouteForActiveView(
   window.history.pushState(state, '', nextPath)
 }
 
-function readPersistedProjectId(): string {
+function readPersistedWorkspaceId(): string {
   try {
-    return localStorage.getItem(PROJECT_STORAGE_KEY)?.trim() ?? ''
+    return localStorage.getItem(WORKSPACE_STORAGE_KEY)?.trim() ?? ''
   } catch {
     return ''
   }
 }
 
-function persistProjectId(projectId: string): void {
-  const trimmedProjectId = projectId.trim()
+function persistWorkspaceId(workspaceId: string): void {
+  const trimmedWorkspaceId = workspaceId.trim()
   try {
-    if (trimmedProjectId.length === 0) {
-      localStorage.removeItem(PROJECT_STORAGE_KEY)
+    if (trimmedWorkspaceId.length === 0) {
+      localStorage.removeItem(WORKSPACE_STORAGE_KEY)
       return
     }
-    localStorage.setItem(PROJECT_STORAGE_KEY, trimmedProjectId)
+    localStorage.setItem(WORKSPACE_STORAGE_KEY, trimmedWorkspaceId)
   } catch {
     // Storage can be unavailable in restricted browser contexts.
   }
@@ -3352,6 +3449,8 @@ function transcriptTurnsFromSessionDetail(
         assistantMessage?.message_id ??
         message.message_id ??
         `turn-${index}`,
+      userMessageId: message.message_id,
+      assistantMessageId: assistantMessage?.message_id ?? null,
       question,
       answer: assistantMessage?.content ?? '',
       citations: turnRetrievalRuns.flatMap((run) =>
@@ -3588,9 +3687,9 @@ function parseTags(value: string): string[] {
     .filter((tag) => tag.length > 0)
 }
 
-function upsertProject(projects: Project[], project: Project): Project[] {
-  const nextProjects = projects.filter((item) => item.id !== project.id)
-  return [...nextProjects, project]
+function upsertWorkspace(workspaces: Workspace[], workspace: Workspace): Workspace[] {
+  const nextWorkspaces = workspaces.filter((item) => item.id !== workspace.id)
+  return [...nextWorkspaces, workspace]
 }
 
 function upsertUser(users: User[], user: User): User[] {
@@ -3599,9 +3698,9 @@ function upsertUser(users: User[], user: User): User[] {
 }
 
 function upsertMembership(
-  memberships: ProjectMembership[],
-  membership: ProjectMembership,
-): ProjectMembership[] {
+  memberships: WorkspaceMembership[],
+  membership: WorkspaceMembership,
+): WorkspaceMembership[] {
   const nextMemberships = memberships.filter(
     (item) => item.id !== membership.id && item.user_id !== membership.user_id,
   )
@@ -3752,12 +3851,37 @@ function scrollChatTranscriptToBottom(transcript: HTMLElement): void {
   transcript.scrollTop = top
 }
 
-function focusMessage(messageId: string): void {
-  document.getElementById(messageElementId(messageId))?.focus()
-}
-
 function messageElementId(messageId: string): string {
   return `chat-message-${messageId}`
+}
+
+/** Question text for turn focus when navigating from minimap / message id. */
+function questionPreviewForMessage(
+  detail: ChatSessionDetailResponse | null,
+  messageId: string,
+): string {
+  if (detail === null) {
+    return ''
+  }
+  const messages = detail.messages
+  const index = messages.findIndex((message) => message.message_id === messageId)
+  if (index < 0) {
+    return ''
+  }
+  const matched = messages[index]
+  if (matched === undefined) {
+    return ''
+  }
+  if (matched.role === 'user') {
+    return matched.content
+  }
+  for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+    const previous = messages[cursor]
+    if (previous?.role === 'user') {
+      return previous.content
+    }
+  }
+  return matched.content
 }
 
 function optionalFilterValue(value: string): string | null {

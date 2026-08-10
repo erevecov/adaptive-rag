@@ -17,13 +17,13 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -43,9 +43,9 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="demo.md",
         extra_metadata={"content": "# Demo"},
@@ -59,8 +59,8 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
         [
             "jobs",
             "enqueue-ingest-source",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-id",
             str(source.id),
             "--priority",
@@ -80,8 +80,8 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
         [
             "jobs",
             "list",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-id",
             str(source.id),
         ],
@@ -91,8 +91,8 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
         [
             "jobs",
             "show",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--job-id",
             job["id"],
         ],
@@ -110,9 +110,13 @@ def test_jobs_retry_requeues_blocked_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
-    job = JobRepository(session).create(project_id=project.id, job_type="ingest_source")
-    JobRepository(session).block(project_id=project.id, job_id=job.id, reason="blocked")
+    workspace = WorkspaceRepository(session).create(name="demo")
+    job = JobRepository(session).create(
+        workspace_id=workspace.id, job_type="ingest_source"
+    )
+    JobRepository(session).block(
+        workspace_id=workspace.id, job_id=job.id, reason="blocked"
+    )
     session.commit()
     _patch_jobs_session_scope(monkeypatch, session=session)
 
@@ -121,8 +125,8 @@ def test_jobs_retry_requeues_blocked_job(
         [
             "jobs",
             "retry",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--job-id",
             str(job.id),
         ],
@@ -138,7 +142,7 @@ def test_jobs_commands_return_stable_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     _patch_jobs_session_scope(monkeypatch, session=session)
     runner = CliRunner()
@@ -148,10 +152,10 @@ def test_jobs_commands_return_stable_errors(
         [
             "jobs",
             "enqueue-ingest-source",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-id",
-            str(project.id),
+            str(workspace.id),
         ],
     )
     missing_job = runner.invoke(
@@ -159,10 +163,10 @@ def test_jobs_commands_return_stable_errors(
         [
             "jobs",
             "show",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--job-id",
-            str(project.id),
+            str(workspace.id),
         ],
     )
 
@@ -176,15 +180,15 @@ def test_jobs_run_worker_once_processes_ingest_source_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="demo.md",
         extra_metadata={"content": "# Demo\n\nEvidence"},
     )
     job = JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type="ingest_source",
         payload_json={"source_id": str(source.id)},
         run_after=datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
@@ -202,8 +206,8 @@ def test_jobs_run_worker_once_processes_ingest_source_job(
         [
             "jobs",
             "run-worker",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--worker-id",
             "worker-test",
             "--once",
@@ -217,7 +221,7 @@ def test_jobs_run_worker_once_processes_ingest_source_job(
     assert payload["job_id"] == str(job.id)
     assert payload["created_document_version"] is True
 
-    stored_job = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    stored_job = JobRepository(session).get(workspace_id=workspace.id, job_id=job.id)
     document_version = session.scalars(select(DocumentVersion)).one()
     assert stored_job is not None
     assert stored_job.status == "succeeded"
@@ -228,14 +232,14 @@ def test_jobs_run_worker_once_reports_blocked_ingestion_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="missing.md",
     )
     job = JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type="ingest_source",
         payload_json={"source_id": str(source.id)},
         run_after=datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
@@ -253,8 +257,8 @@ def test_jobs_run_worker_once_reports_blocked_ingestion_job(
         [
             "jobs",
             "run-worker",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--worker-id",
             "worker-test",
             "--once",
@@ -268,7 +272,7 @@ def test_jobs_run_worker_once_reports_blocked_ingestion_job(
     assert payload["source_id"] == str(source.id)
     assert payload["error_message"] == "markdown source requires extra_metadata.content"
 
-    stored_job = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    stored_job = JobRepository(session).get(workspace_id=workspace.id, job_id=job.id)
     assert stored_job is not None
     assert stored_job.status == "blocked"
 
@@ -278,7 +282,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,

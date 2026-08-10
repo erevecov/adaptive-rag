@@ -8,14 +8,14 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import GraphProjection
+from adaptive_rag.db.models import Graphprojection
 from adaptive_rag.db.models.graph_projection import (
     DEFAULT_GRAPH_EXTRACTOR_VERSION,
     DEFAULT_GRAPH_SCHEMA_VERSION,
 )
 
 
-class GraphProjectionRepository:
+class GraphprojectionRepository:
     """Acceso al estado graph por proyecto con transaccion controlada por caller."""
 
     def __init__(self, session: Session) -> None:
@@ -24,25 +24,25 @@ class GraphProjectionRepository:
     def get(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         backend: str = "neo4j",
-    ) -> GraphProjection | None:
-        statement = select(GraphProjection).where(
-            GraphProjection.project_id == project_id,
-            GraphProjection.backend == backend,
+    ) -> Graphprojection | None:
+        statement = select(Graphprojection).where(
+            Graphprojection.workspace_id == workspace_id,
+            Graphprojection.backend == backend,
         )
         return self._session.scalars(statement).one_or_none()
 
     def ensure(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         backend: str = "neo4j",
-    ) -> GraphProjection:
-        projection = self.get(project_id=project_id, backend=backend)
+    ) -> Graphprojection:
+        projection = self.get(workspace_id=workspace_id, backend=backend)
         if projection is not None:
             return projection
-        projection = GraphProjection(project_id=project_id, backend=backend)
+        projection = Graphprojection(workspace_id=workspace_id, backend=backend)
         self._session.add(projection)
         self._session.flush()
         return projection
@@ -50,12 +50,12 @@ class GraphProjectionRepository:
     def mark_pending_backfill(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
         schema_version: str = DEFAULT_GRAPH_SCHEMA_VERSION,
         extractor_version: str = DEFAULT_GRAPH_EXTRACTOR_VERSION,
-    ) -> GraphProjection:
-        projection = self.ensure(project_id=project_id)
+    ) -> Graphprojection:
+        projection = self.ensure(workspace_id=workspace_id)
         projection.status = "pending_backfill"
         projection.source_watermark = source_watermark
         projection.schema_version = schema_version
@@ -65,8 +65,8 @@ class GraphProjectionRepository:
         self._session.flush()
         return projection
 
-    def mark_indexing(self, *, project_id: UUID) -> GraphProjection:
-        projection = self.ensure(project_id=project_id)
+    def mark_indexing(self, *, workspace_id: UUID) -> Graphprojection:
+        projection = self.ensure(workspace_id=workspace_id)
         projection.status = "indexing"
         self._clear_error(projection)
         self._session.flush()
@@ -75,11 +75,11 @@ class GraphProjectionRepository:
     def mark_ready(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
         indexed_at: datetime,
-    ) -> GraphProjection:
-        projection = self.ensure(project_id=project_id)
+    ) -> Graphprojection:
+        projection = self.ensure(workspace_id=workspace_id)
         projection.status = "ready"
         projection.source_watermark = source_watermark
         projection.last_indexed_at = indexed_at
@@ -90,10 +90,10 @@ class GraphProjectionRepository:
     def mark_stale(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
-    ) -> GraphProjection:
-        projection = self.ensure(project_id=project_id)
+    ) -> Graphprojection:
+        projection = self.ensure(workspace_id=workspace_id)
         projection.status = "stale"
         projection.source_watermark = source_watermark
         self._session.flush()
@@ -102,11 +102,11 @@ class GraphProjectionRepository:
     def mark_failed(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         error_code: str,
         error_message: str,
-    ) -> GraphProjection:
-        projection = self.ensure(project_id=project_id)
+    ) -> Graphprojection:
+        projection = self.ensure(workspace_id=workspace_id)
         projection.status = "failed"
         projection.error_code = error_code
         projection.error_message = error_message
@@ -114,6 +114,6 @@ class GraphProjectionRepository:
         return projection
 
     @staticmethod
-    def _clear_error(projection: GraphProjection) -> None:
+    def _clear_error(projection: Graphprojection) -> None:
         projection.error_code = None
         projection.error_message = None

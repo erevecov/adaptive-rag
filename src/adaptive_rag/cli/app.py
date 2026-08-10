@@ -11,12 +11,13 @@ from adaptive_rag.cli.first_run import app as first_run_app
 from adaptive_rag.cli.graph import app as graph_app
 from adaptive_rag.cli.jobs import app as jobs_app
 from adaptive_rag.cli.mcp_cmd import app as mcp_app
-from adaptive_rag.cli.projects import app as projects_app
 from adaptive_rag.cli.providers import app as providers_app
 from adaptive_rag.cli.retrieval import app as retrieval_app
 from adaptive_rag.cli.sources import app as sources_app
 from adaptive_rag.cli.sparse import app as sparse_app
+from adaptive_rag.cli.system import app as system_app
 from adaptive_rag.cli.v1 import app as v1_app
+from adaptive_rag.cli.workspaces import app as workspaces_app
 from adaptive_rag.config.logging import configure_logging
 from adaptive_rag.config.settings import get_settings
 
@@ -31,7 +32,8 @@ app.add_typer(graph_app, name="graph")
 app.add_typer(jobs_app, name="jobs")
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(providers_app, name="providers")
-app.add_typer(projects_app, name="projects")
+app.add_typer(system_app, name="system")
+app.add_typer(workspaces_app, name="workspaces")
 app.add_typer(retrieval_app, name="retrieval")
 app.add_typer(sources_app, name="sources")
 app.add_typer(sparse_app, name="sparse")

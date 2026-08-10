@@ -20,16 +20,16 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
+    Graphprojection,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
     SparseEmbeddingRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -90,16 +90,16 @@ class RecordingGraphRetriever:
         self.results = results
         self.requests: list[dict[str, object]] = []
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id,
+        workspace_id,
         seed_chunk_ids,
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         self.requests.append(
             {
-                "project_id": project_id,
+                "workspace_id": workspace_id,
                 "seed_chunk_ids": tuple(seed_chunk_ids),
                 "limit": limit,
             }
@@ -116,13 +116,13 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -135,14 +135,14 @@ def _vector(first: float, second: float = 0.0) -> list[float]:
     return values
 
 
-def _create_project(session: Session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_embedded_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -153,19 +153,19 @@ def _create_embedded_chunk(
     contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -174,7 +174,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -192,14 +192,14 @@ def _create_embedded_chunk(
 def _create_sparse_embedding(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     chunk: Chunk,
     indices: tuple[int, ...],
     values: tuple[float, ...],
     fingerprint: str,
 ) -> None:
     SparseEmbeddingRepository(session).upsert_current(
-        project_id=project.id,
+        workspace_id=workspace.id,
         chunk_id=chunk.id,
         vector=SparseEmbeddingVector(indices=indices, values=values),
         input_hash=f"sha256:{fingerprint}",
@@ -249,10 +249,10 @@ def test_retrieval_search_command_outputs_json_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         tags=("docs", "v1"),
         stable_id="far-doc",
@@ -262,7 +262,7 @@ def test_retrieval_search_command_outputs_json_results(
     )
     source, document, version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         tags=("docs", "v1"),
         stable_id="near-doc",
@@ -272,7 +272,7 @@ def test_retrieval_search_command_outputs_json_results(
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=near,
         indices=(1,),
         values=(1.0,),
@@ -280,7 +280,7 @@ def test_retrieval_search_command_outputs_json_results(
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=far,
         indices=(2,),
         values=(0.5,),
@@ -289,7 +289,7 @@ def test_retrieval_search_command_outputs_json_results(
     _wrong_type_source, _wrong_type_document, _wrong_type_version, _wrong_type = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             source_type="text",
             external_id="wrong-type.txt",
             tags=("docs", "v1"),
@@ -316,8 +316,8 @@ def test_retrieval_search_command_outputs_json_results(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "alpha question",
             "--limit",
@@ -370,10 +370,10 @@ def test_retrieval_search_command_reranks_when_requested(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far-doc",
         text="Far original evidence",
@@ -382,7 +382,7 @@ def test_retrieval_search_command_reranks_when_requested(
     )
     _mid_source, _mid_document, _mid_version, mid = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="mid.md",
         stable_id="mid-doc",
         text="Header\n\nBeta rerank evidence",
@@ -391,7 +391,7 @@ def test_retrieval_search_command_reranks_when_requested(
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Header\n\nAlpha dense evidence",
@@ -422,8 +422,8 @@ def test_retrieval_search_command_reranks_when_requested(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "beta question",
             "--limit",
@@ -461,11 +461,11 @@ def test_retrieval_search_command_uses_lexical_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -476,7 +476,7 @@ def test_retrieval_search_command_uses_lexical_strategy(
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -494,8 +494,8 @@ def test_retrieval_search_command_uses_lexical_strategy(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "SKU-42 installation",
             "--limit",
@@ -524,12 +524,12 @@ def test_retrieval_search_command_uses_bm25_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     filler = " ".join(f"filler{i}" for i in range(80))
     _long_source, _long_document, _long_version, long_match = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="long.md",
             stable_id="long-doc",
             text=f"SKU 42 manual {filler}",
@@ -540,7 +540,7 @@ def test_retrieval_search_command_uses_bm25_strategy(
     _short_source, _short_document, _short_version, short_match = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="short.md",
             stable_id="short-doc",
             text="Header\n\nSKU 42 manual",
@@ -565,8 +565,8 @@ def test_retrieval_search_command_uses_bm25_strategy(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "SKU 42 manual",
             "--limit",
@@ -595,11 +595,11 @@ def test_retrieval_search_command_uses_hybrid_rrf_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -610,7 +610,7 @@ def test_retrieval_search_command_uses_hybrid_rrf_strategy(
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -628,8 +628,8 @@ def test_retrieval_search_command_uses_hybrid_rrf_strategy(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "SKU-42 installation",
             "--limit",
@@ -660,11 +660,11 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -675,7 +675,7 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -686,7 +686,7 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -709,8 +709,8 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "SKU-42 installation",
             "--limit",
@@ -743,11 +743,11 @@ def test_retrieval_search_command_uses_sparse_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general-doc",
             text="General installation notes",
@@ -758,7 +758,7 @@ def test_retrieval_search_command_uses_sparse_strategy(
     _target_source, _target_document, _target_version, target = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="target.md",
             stable_id="target-doc",
             text="Header\n\nInstall the connector with the default path.",
@@ -769,7 +769,7 @@ def test_retrieval_search_command_uses_sparse_strategy(
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -792,8 +792,8 @@ def test_retrieval_search_command_uses_sparse_strategy(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "SKU-42 installation",
             "--limit",
@@ -821,10 +821,10 @@ def test_retrieval_search_command_uses_graph_strategy_when_requested(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far-doc",
         text="Far graph-expanded evidence",
@@ -833,14 +833,14 @@ def test_retrieval_search_command_uses_graph_strategy_when_requested(
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Header\n\nAlpha dense seed evidence",
         snippet="Alpha dense seed evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="ready"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(
@@ -858,8 +858,8 @@ def test_retrieval_search_command_uses_graph_strategy_when_requested(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "alpha question",
             "--limit",
@@ -873,7 +873,7 @@ def test_retrieval_search_command_uses_graph_strategy_when_requested(
     assert provider.inputs == ["alpha question"]
     assert graph_retriever.requests == [
         {
-            "project_id": project.id,
+            "workspace_id": workspace.id,
             "seed_chunk_ids": (near.id,),
             "limit": 1,
         }
@@ -888,7 +888,7 @@ def test_retrieval_search_command_rejects_invalid_rerank_limit_before_provider(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     reranker = RecordingRerankProvider(scores=())
@@ -904,8 +904,8 @@ def test_retrieval_search_command_rejects_invalid_rerank_limit_before_provider(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             "alpha question",
             "--limit",
@@ -927,7 +927,7 @@ def test_retrieval_search_command_reports_service_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     _patch_retrieval_dependencies(monkeypatch, session=session, provider=provider)
@@ -937,8 +937,8 @@ def test_retrieval_search_command_reports_service_errors(
         [
             "retrieval",
             "search",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--query",
             " ",
         ],

@@ -24,7 +24,7 @@ The system MUST include only `approved` memories in chat injection text.
 #### Scenario: Injection text excludes non-approved
 
 - **WHEN** injection text is requested
-- **THEN** only `approved` memories for the user (and project/global scope) appear
+- **THEN** only `approved` memories for the user (and workspace/global scope) appear
 
 ### Requirement: Proposed memories MAY be edited before review
 

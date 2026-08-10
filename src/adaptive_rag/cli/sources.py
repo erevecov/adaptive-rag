@@ -32,7 +32,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("create")
 def create(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_type: Annotated[str, typer.Option("--source-type")],
     external_id: Annotated[str, typer.Option("--external-id")],
     content: Annotated[str | None, typer.Option("--content")] = None,
@@ -62,7 +62,7 @@ def create(
         try:
             source = create_authoring_source(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_type=source_type,
                 external_id=external_id,
                 tags=tag,
@@ -78,7 +78,7 @@ def create(
 
 @app.command("list")
 def list_sources(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_type: Annotated[str | None, typer.Option("--source-type")] = None,
     external_id: Annotated[str | None, typer.Option("--external-id")] = None,
     tag: Annotated[str | None, typer.Option("--tag")] = None,
@@ -87,7 +87,7 @@ def list_sources(
         try:
             sources = list_authoring_sources(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 filters=SourceFilters(
                     source_type=source_type,
                     external_id=external_id,
@@ -103,14 +103,14 @@ def list_sources(
 
 @app.command("show")
 def show(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_id: Annotated[UUID, typer.Option("--source-id")],
 ) -> None:
     with session_scope() as session:
         try:
             source = get_authoring_source(
                 session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_id=source_id,
             )
         except AuthoringError as exc:
@@ -160,7 +160,7 @@ def _exit_authoring_error(error: AuthoringError) -> NoReturn:
 
 @app.command("resync")
 def resync(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_id: Annotated[UUID, typer.Option("--source-id")],
 ) -> None:
     """Enqueue ingest_source again for an existing source (lifecycle resync)."""
@@ -170,7 +170,7 @@ def resync(
     with session_scope() as session:
         try:
             result = resync_source(
-                session, project_id=project_id, source_id=source_id
+                session, workspace_id=workspace_id, source_id=source_id
             )
         except AuthoringError as exc:
             _exit_authoring_error(exc)
@@ -189,7 +189,7 @@ def resync(
 
 @app.command("dedup-report")
 def dedup_report(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
 ) -> None:
     """Report document versions that share content hashes (dedup view)."""
 
@@ -200,7 +200,7 @@ def dedup_report(
 
     with session_scope() as session:
         try:
-            report = build_dedup_report(session, project_id=project_id)
+            report = build_dedup_report(session, workspace_id=workspace_id)
         except AuthoringError as exc:
             _exit_authoring_error(exc)
         typer.echo(json.dumps(dedup_report_payload(report)))
@@ -208,7 +208,7 @@ def dedup_report(
 
 @app.command("sync-status")
 def sync_status(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
     source_id: Annotated[UUID | None, typer.Option("--source-id")] = None,
 ) -> None:
     """Show content-hash sync status for one or all sources."""
@@ -222,14 +222,14 @@ def sync_status(
     with session_scope() as session:
         try:
             if source_id is None:
-                items = list_source_sync_statuses(session, project_id=project_id)
+                items = list_source_sync_statuses(session, workspace_id=workspace_id)
                 payload = {
                     "items": [source_sync_status_payload(item) for item in items]
                 }
             else:
                 payload = source_sync_status_payload(
                     get_source_sync_status(
-                        session, project_id=project_id, source_id=source_id
+                        session, workspace_id=workspace_id, source_id=source_id
                     )
                 )
         except AuthoringError as exc:

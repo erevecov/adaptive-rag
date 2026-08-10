@@ -35,7 +35,7 @@ class _EmptyRetrieval:
 def test_respond_redacts_secret_in_answer() -> None:
     service = ChatService(runner=_LeakyRunner(), retrieval_service=_EmptyRetrieval())
     response = service.respond(
-        ChatRequest(project_id=uuid4(), message="What is the key?")
+        ChatRequest(workspace_id=uuid4(), message="What is the key?")
     )
     assert "sk-proj-" not in response.answer
     assert REDACTION_MARKER in response.answer
@@ -44,7 +44,7 @@ def test_respond_redacts_secret_in_answer() -> None:
 def test_stream_redacts_secret_in_answer_delta() -> None:
     service = ChatService(runner=_LeakyRunner(), retrieval_service=_EmptyRetrieval())
     events = list(
-        service.stream(ChatRequest(project_id=uuid4(), message="leak please"))
+        service.stream(ChatRequest(workspace_id=uuid4(), message="leak please"))
     )
     payload = "\n".join(serialize_chat_stream_event(event) for event in events)
     assert "sk-proj-" not in payload

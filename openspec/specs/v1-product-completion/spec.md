@@ -2,7 +2,7 @@
 
 ## Purpose
 Definir el contrato de producto terminado para v1: una experiencia
-local-first single-user que permite crear proyectos, agregar sources, ingerir
+local-first single-user que permite crear workspaces, agregar sources, ingerir
 datos propios, consultar con citations y operar estado/errores sin depender de
 fixtures internas ni SQL manual.
 ## Requirements
@@ -22,7 +22,7 @@ a portfolio-only release of the current core.
 #### Scenario: Product completion uses user-owned data
 
 - **WHEN** v1 product readiness is evaluated
-- **THEN** the happy path starts from a user-created project and user-provided
+- **THEN** the happy path starts from a user-created workspace and user-provided
   sources
 - **AND** the user can ingest those sources without editing database rows or
   relying on hidden fixtures
@@ -31,20 +31,20 @@ a portfolio-only release of the current core.
 
 ### Requirement: V1 provides public authoring and ingestion operations
 
-The system MUST expose the minimum public operations needed to create projects,
+The system MUST expose the minimum public operations needed to create workspaces,
 create sources, run ingestion and inspect job state.
 
-#### Scenario: User creates a project and source
+#### Scenario: User creates a workspace and source
 
 - **WHEN** a user starts from an empty local installation
-- **THEN** the product exposes a documented public path to create a project
+- **THEN** the product exposes a documented public path to create a workspace
 - **AND** exposes a documented public path to add at least Markdown, TXT or URL
-  sources to that project
+  sources to that workspace
 - **AND** the path does not require importing private fixtures or direct SQL
 
 #### Scenario: User monitors ingestion state
 
-- **WHEN** ingestion is requested for a project source
+- **WHEN** ingestion is requested for a workspace source
 - **THEN** the product exposes job status, failure reason and retry/dead-letter
   state through public surfaces
 - **AND** errors are actionable without reading internal logs as the primary
@@ -59,7 +59,7 @@ locally with documented inputs and expected outputs.
 
 - **WHEN** a user follows the v1 runbook on a clean local environment
 - **THEN** the user can start required services, apply migrations, create a
-  project, add a source, ingest it and ask a cited question
+  workspace, add a source, ingest it and ask a cited question
 - **AND** optional hosted providers and graph services are clearly marked
   opt-in and are not required for the default path
 
@@ -95,13 +95,13 @@ completion.
 
 ### Requirement: V1 product completion includes authoring surfaces
 
-The product-completion gate MUST require public project and source authoring
+The product-completion gate MUST require public workspace and source authoring
 before v1.0 can be released.
 
 #### Scenario: Product flow starts without SQL
 
 - **WHEN** v1 product readiness is evaluated
-- **THEN** the user can create a project through a documented public surface
+- **THEN** the user can create a workspace through a documented public surface
 - **AND** the user can add at least Markdown, TXT and URL sources through a
   documented public surface
 - **AND** the flow does not require direct SQL, private fixtures or test helpers
@@ -109,7 +109,7 @@ before v1.0 can be released.
 #### Scenario: Authoring precedes ingestion operations
 
 - **WHEN** M23 is complete
-- **THEN** projects and sources can be authored publicly
+- **THEN** workspaces and sources can be authored publicly
 - **AND** ingestion execution and job-state operations remain explicit follow-up
   work for M24
 
@@ -136,7 +136,7 @@ v1.0 can be released.
 - **WHEN** M25 is complete
 - **THEN** a user can follow documented local setup from an empty database
 - **AND** run a public first-run smoke command
-- **AND** receive evidence for project/source creation, ingestion job status,
+- **AND** receive evidence for workspace/source creation, ingestion job status,
   chunking, embeddings, cited chat and next commands
 
 ### Requirement: V1 product completion includes final quality gate
@@ -166,7 +166,7 @@ release evidence from the complete local-first product flow.
 
 El producto MUST validar que runtime settings persistidos funcionan con el flujo
 local completo despues de agregar provider connections, catalogo de modelos y
-overrides por proyecto.
+overrides por workspace.
 
 #### Scenario: Runtime acceptance complements v1 quality gate
 

@@ -99,6 +99,8 @@ export function summarizeContextWindow(
 ): {
   keptRecent: number | null
   label: string
+  /** Full condensed summary when present (expandable in Context inspector). */
+  summaryFull: string | null
   summaryPreview: string | null
   summarizedMessages: number
   totalMessages: number | null
@@ -134,9 +136,14 @@ export function summarizeContextWindow(
     detail.summary_preview.trim().length > 0
       ? detail.summary_preview
       : null
+  const summaryFull =
+    typeof detail.summary === 'string' && detail.summary.trim().length > 0
+      ? detail.summary
+      : summaryPreview
   return {
     keptRecent,
     label,
+    summaryFull,
     summaryPreview,
     summarizedMessages,
     totalMessages,

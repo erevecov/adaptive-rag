@@ -102,11 +102,11 @@ def test_multi_turn_same_session_and_history() -> None:
         audit_writer=audit,
         query_condenser=DeterministicQueryCondenser(),
     )
-    project_id = uuid4()
+    workspace_id = uuid4()
 
     first = service.respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What is Adaptive RAG indexing?",
         )
     )
@@ -114,7 +114,7 @@ def test_multi_turn_same_session_and_history() -> None:
 
     second = service.respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=first.session_id,
             message="Why does it matter?",
         )
@@ -130,7 +130,7 @@ def test_multi_turn_same_session_and_history() -> None:
     assert retrieval.requests[-1].query == follow_up.retrieval_query
 
     history_turns = audit.list_history_turns(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=first.session_id,
         limit=20,
     )
@@ -151,12 +151,12 @@ def test_multi_turn_stream_same_session_history_and_condense() -> None:
         audit_writer=audit,
         query_condenser=DeterministicQueryCondenser(),
     )
-    project_id = uuid4()
+    workspace_id = uuid4()
 
     first_events = list(
         service.stream(
             ChatRequest(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 message="What is Adaptive RAG indexing?",
             )
         )
@@ -168,7 +168,7 @@ def test_multi_turn_stream_same_session_history_and_condense() -> None:
     second_events = list(
         service.stream(
             ChatRequest(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session_id=UUID(first_session_id),
                 message="Why does it matter?",
             )
@@ -190,7 +190,7 @@ def test_multi_turn_stream_same_session_history_and_condense() -> None:
     assert retrieval.requests[-1].query == follow_up.retrieval_query
 
     history_turns = audit.list_history_turns(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=UUID(first_session_id),
         limit=20,
     )
@@ -209,14 +209,14 @@ def test_grounded_runner_uses_retrieval_query() -> None:
     tools = ChatTools(
         retrieval=ChatRetrievalTool(
             retrieval_service=retrieval,
-            project_id=uuid4(),
+            workspace_id=uuid4(),
             default_limit=5,
             default_metadata_filter=None,
         )
     )
     output = runner.run(
         ChatRunnerRequest(
-            project_id=uuid4(),
+            workspace_id=uuid4(),
             message="Why does it matter?",
             retrieval_limit=5,
             metadata_filter=None,
@@ -268,12 +268,12 @@ def test_user_memory_not_stored_in_history_or_retrieval_query() -> None:
         audit_writer=audit,
         query_condenser=DeterministicQueryCondenser(),
     )
-    project_id = uuid4()
+    workspace_id = uuid4()
     memory = "User memory (approved):\n- Prefer concise answers"
 
     first = service.respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What is Adaptive RAG indexing?",
             user_memory=memory,
         )
@@ -282,7 +282,7 @@ def test_user_memory_not_stored_in_history_or_retrieval_query() -> None:
 
     second = service.respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=first.session_id,
             message="Why does it matter?",
             user_memory=memory,
@@ -309,7 +309,7 @@ def test_user_memory_not_stored_in_history_or_retrieval_query() -> None:
 
     # Audit/history stores raw user turns only.
     history_turns = audit.list_history_turns(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=first.session_id,
         limit=20,
     )

@@ -10,7 +10,7 @@ con Claude Code / Cursor, reutilizando el camino publico de producto.
 ### Requirement: MCP stdio server exposes product tools
 
 The system MUST provide an MCP stdio server with tools
-`list_projects`, `list_sources`, `search`, `ask`, and `ingest_text` that
+`list_workspaces`, `list_sources`, `search`, `ask`, and `ingest_text` that
 delegate to the same authoring/retrieval/chat/ingestion job paths as CLI/API.
 
 #### Scenario: Required tool names are registered
@@ -20,14 +20,14 @@ delegate to the same authoring/retrieval/chat/ingestion job paths as CLI/API.
 
 #### Scenario: ingest_text enqueues public ingest job
 
-- **WHEN** `ingest_text` is invoked with project id, external id and content
+- **WHEN** `ingest_text` is invoked with workspace id, external id and content
 - **THEN** a markdown source is created
 - **AND** an `ingest_source` job is enqueued for that source
 
-#### Scenario: list_projects returns project payloads
+#### Scenario: list_workspaces returns workspace payloads
 
-- **WHEN** `list_projects` is invoked
-- **THEN** it returns a JSON list of projects from the local database
+- **WHEN** `list_workspaces` is invoked
+- **THEN** it returns a JSON list of workspaces from the local database
 
 ### Requirement: MCP entry is available via CLI
 

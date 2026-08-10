@@ -3,16 +3,16 @@
 ## Purpose
 
 Definir el contrato de cola persistente de jobs para Adaptive RAG: trabajo
-asincronico aislado por proyecto, eventos auditables, retries y leasing de
+asincronico aislado por workspace, eventos auditables, retries y leasing de
 workers.
 ## Requirements
-### Requirement: Jobs persisten trabajo asincronico por proyecto
+### Requirement: Jobs persisten trabajo asincronico por workspace
 
-El sistema MUST persistir jobs aislados por `project_id` con tipo, payload, prioridad, estado, intentos, limites de retry y lease opcional.
+El sistema MUST persistir jobs aislados por `workspace_id` con tipo, payload, prioridad, estado, intentos, limites de retry y lease opcional.
 
 #### Scenario: Job nuevo queda queued
 
-- **WHEN** se crea un job para un proyecto
+- **WHEN** se crea un job para un workspace
 - **THEN** el job queda con `status = queued`
 - **AND** `attempts = 0`
 - **AND** `max_attempts` es positivo
@@ -24,18 +24,18 @@ El sistema MUST persistir jobs aislados por `project_id` con tipo, payload, prio
 
 ### Requirement: Job events registran auditoria append-only
 
-El sistema MUST persistir eventos por job con `project_id`, `event_type`, mensaje opcional, metadata opcional y timestamp.
+El sistema MUST persistir eventos por job con `workspace_id`, `event_type`, mensaje opcional, metadata opcional y timestamp.
 
 #### Scenario: Crear job registra evento created
 
 - **WHEN** el repository crea un job
 - **THEN** tambien agrega un evento `created` para ese job
 
-#### Scenario: Eventos se listan por job y proyecto
+#### Scenario: Eventos se listan por job y workspace
 
 - **WHEN** un job tiene multiples eventos
 - **THEN** el repository los devuelve ordenados por creacion
-- **AND** no devuelve eventos si el `project_id` no corresponde
+- **AND** no devuelve eventos si el `workspace_id` no corresponde
 
 ### Requirement: Leasing asigna jobs disponibles a workers
 
@@ -49,9 +49,9 @@ El sistema MUST permitir que un worker leasee el siguiente job disponible sin ha
 - **AND** incrementa `attempts`
 - **AND** guarda `locked_by` y `locked_until`
 
-#### Scenario: Jobs futuros o de otro proyecto no se leasean
+#### Scenario: Jobs futuros o de otro workspace no se leasean
 
-- **WHEN** un job tiene `run_after > now` o pertenece a otro proyecto
+- **WHEN** un job tiene `run_after > now` o pertenece a otro workspace
 - **THEN** `lease_next` no lo devuelve
 
 ### Requirement: Retry, blocked y dead-letter son transiciones explicitas
@@ -83,8 +83,8 @@ callers to write SQL.
 
 #### Scenario: Jobs are listed deterministically
 
-- **WHEN** API or CLI lists jobs for a project
-- **THEN** `JobRepository` returns project-scoped jobs ordered by creation time
+- **WHEN** API or CLI lists jobs for a workspace
+- **THEN** `JobRepository` returns workspace-scoped jobs ordered by creation time
   and id
 - **AND** optional filters can narrow by status and job type
 
@@ -102,7 +102,7 @@ declared set of job types so ingestion and indexing share one public worker loop
 
 #### Scenario: Lease prefers highest priority ready family job
 
-- **WHEN** a project has queued `ingest_source` and `index_document_version` jobs
+- **WHEN** a workspace has queued `ingest_source` and `index_document_version` jobs
   ready to run
 - **AND** the worker leases the next job for the ingestion family
 - **THEN** selection uses existing priority / run_after / created_at ordering
@@ -112,12 +112,12 @@ declared set of job types so ingestion and indexing share one public worker loop
 ### Requirement: Worker recovers expired leases before leasing
 
 The public ingestion-family worker MUST release expired running leases for the
-project before selecting the next job.
+workspace before selecting the next job.
 
 #### Scenario: Expired running job becomes leaseable again
 
 - **WHEN** a job is `running` with `locked_until <= now`
-- **AND** a worker runs the next ingestion-family cycle for that project
+- **AND** a worker runs the next ingestion-family cycle for that workspace
 - **THEN** the system releases the expired lease back to `queued`
 - **AND** appends a `released` event
 - **AND** the job may be leased again by a subsequent worker cycle

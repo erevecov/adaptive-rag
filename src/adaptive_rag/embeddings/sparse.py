@@ -108,20 +108,20 @@ class SparseEmbeddingPipeline:
     def embed_document_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
     ) -> SparseEmbeddingRunResult:
         document_version = self._document_repo.get_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if document_version is None:
             raise SparseEmbeddingPipelineError(
-                "document version does not belong to project"
+                "document version does not belong to workspace"
             )
 
         chunks = self._chunk_repo.list_by_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         if not chunks:
@@ -135,7 +135,7 @@ class SparseEmbeddingPipeline:
             embedding_input
             for embedding_input in inputs
             if not self._has_current_sparse_embedding(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 embedding_input=embedding_input,
             )
         ]
@@ -161,7 +161,7 @@ class SparseEmbeddingPipeline:
 
         for embedding_input, vector in zip(pending_inputs, vectors, strict=True):
             self._sparse_repo.upsert_current(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 chunk_id=embedding_input.chunk.id,
                 vector=vector,
                 input_hash=embedding_input.embedding_input_hash,
@@ -179,11 +179,11 @@ class SparseEmbeddingPipeline:
     def _has_current_sparse_embedding(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         embedding_input: DenseEmbeddingInput,
     ) -> bool:
         row = self._sparse_repo.get_current(
-            project_id=project_id,
+            workspace_id=workspace_id,
             chunk_id=embedding_input.chunk.id,
             index_fingerprint=self._index_fingerprint(embedding_input),
         )

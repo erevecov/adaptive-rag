@@ -19,7 +19,7 @@ import { Select } from '@/components/ui/select'
 import type {
   ChatModel,
   ChatRetrievalSettings,
-  ProjectRuntimeSettings,
+  WorkspaceRuntimeSettings,
   ProviderConnection,
   ProviderConnectionCheckResponse,
   ProviderModel,
@@ -33,6 +33,7 @@ import {
   connectionOptionLabel,
   connectionTypeLabel,
   connectionsForCapability,
+  formatProviderModelPricing,
   missingSyncedModelMessage,
   normalizeChatRetrievalLimit,
   providerLabel,
@@ -76,6 +77,7 @@ export type RuntimeSettingsPanelProps = {
   onConnectionCapabilitiesChange(value: string[]): void
   onConnectionProviderChange(value: string): void
   onConnectionTypeChange(value: string): void
+  isCreatingConnection: boolean
   onCancelDeleteConnection(): void
   onCancelEditConnection(): void
   onCheckConnection(connectionId: string): void
@@ -87,37 +89,35 @@ export type RuntimeSettingsPanelProps = {
   onGlobalSlotChange(value: string): void
   onGlobalSlotConnectionIdChange(value: string): void
   onGlobalSlotModelIdChange(value: string): void
-  onProjectChatRerankCandidateLimitChange(value: number): void
-  onProjectChatRerankEnabledChange(value: boolean): void
-  onProjectChatRetrievalLimitChange(value: number): void
-  onProjectSlotChange(value: string): void
-  onProjectSlotConnectionIdChange(value: string): void
-  onProjectSlotModelIdChange(value: string): void
-  onRefreshGlobalDefaults(): void
-  onRefreshModelCatalog(): void
-  onRefreshProjectOverrides(): void
-  onResetProjectChatRetrieval(): void
-  onResetProjectSlot(slot: string): void
+  onWorkspaceChatRerankCandidateLimitChange(value: number): void
+  onWorkspaceChatRerankEnabledChange(value: boolean): void
+  onWorkspaceChatRetrievalLimitChange(value: number): void
+  onWorkspaceSlotChange(value: string): void
+  onWorkspaceSlotConnectionIdChange(value: string): void
+  onWorkspaceSlotModelIdChange(value: string): void
+  onRefreshWorkspaceOverrides(): void
+  onResetWorkspaceChatRetrieval(): void
+  onResetWorkspaceSlot(slot: string): void
+  onRequestCreateConnection(): void
   onRequestDeleteConnection(connectionId: string): void
   onRequestEditConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
-  onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
-  onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
-  onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
+  onSaveWorkspaceChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveWorkspaceOverride(event: FormEvent<HTMLFormElement>): void
   onModelSyncConnectionIdChange(value: string): void
   modelSyncConnectionId: string
   providerModels: ProviderModel[]
-  projectId: string
-  projectChatRerankCandidateLimit: number
-  projectChatRerankEnabled: boolean
-  projectChatRetrievalLimit: number
-  projectRuntimeSettings: ProjectRuntimeSettings | null
-  projectSlot: string
-  projectSlotConnectionId: string
-  projectSlotModelId: string
+  workspaceId: string
+  workspaceChatRerankCandidateLimit: number
+  workspaceChatRerankEnabled: boolean
+  workspaceChatRetrievalLimit: number
+  workspaceRuntimeSettings: WorkspaceRuntimeSettings | null
+  workspaceSlot: string
+  workspaceSlotConnectionId: string
+  workspaceSlotModelId: string
   slots: RuntimeSlotDefault[]
   state: RequestState
 }
@@ -146,6 +146,7 @@ export function RuntimeSettingsPanel({
   globalSlot,
   globalSlotConnectionId,
   globalSlotModelId,
+  isCreatingConnection,
   onChatConnectionIdChange,
   onChatModelIdChange,
   onConnectionApiKeyChange,
@@ -164,37 +165,35 @@ export function RuntimeSettingsPanel({
   onGlobalSlotChange,
   onGlobalSlotConnectionIdChange,
   onGlobalSlotModelIdChange,
-  onProjectChatRerankCandidateLimitChange,
-  onProjectChatRerankEnabledChange,
-  onProjectChatRetrievalLimitChange,
-  onProjectSlotChange,
-  onProjectSlotConnectionIdChange,
-  onProjectSlotModelIdChange,
-  onRefreshGlobalDefaults,
-  onRefreshModelCatalog,
-  onRefreshProjectOverrides,
-  onResetProjectChatRetrieval,
-  onResetProjectSlot,
+  onWorkspaceChatRerankCandidateLimitChange,
+  onWorkspaceChatRerankEnabledChange,
+  onWorkspaceChatRetrievalLimitChange,
+  onWorkspaceSlotChange,
+  onWorkspaceSlotConnectionIdChange,
+  onWorkspaceSlotModelIdChange,
+  onRefreshWorkspaceOverrides,
+  onResetWorkspaceChatRetrieval,
+  onResetWorkspaceSlot,
+  onRequestCreateConnection,
   onRequestDeleteConnection,
   onRequestEditConnection,
   onSaveConnection,
   onSaveGlobalChatModel,
   onSaveGlobalChatRetrieval,
   onSaveGlobalSlot,
-  onSaveProjectChatRetrieval,
-  onSaveProjectOverride,
-  onSyncProviderModels,
+  onSaveWorkspaceChatRetrieval,
+  onSaveWorkspaceOverride,
   onModelSyncConnectionIdChange,
   modelSyncConnectionId,
   providerModels,
-  projectId,
-  projectChatRerankCandidateLimit,
-  projectChatRerankEnabled,
-  projectChatRetrievalLimit,
-  projectRuntimeSettings,
-  projectSlot,
-  projectSlotConnectionId,
-  projectSlotModelId,
+  workspaceId,
+  workspaceChatRerankCandidateLimit,
+  workspaceChatRerankEnabled,
+  workspaceChatRetrievalLimit,
+  workspaceRuntimeSettings,
+  workspaceSlot,
+  workspaceSlotConnectionId,
+  workspaceSlotModelId,
   slots,
   state,
 }: RuntimeSettingsPanelProps) {
@@ -213,12 +212,12 @@ export function RuntimeSettingsPanel({
     providerModels,
     selectedModelId: chatModelId,
   })
-  const projectSlotConnections = connectionsForCapability(connections, projectSlot)
-  const projectSlotModelOptions = providerModelOptions({
-    capability: projectSlot,
-    connectionId: projectSlotConnectionId,
+  const workspaceSlotConnections = connectionsForCapability(connections, workspaceSlot)
+  const workspaceSlotModelOptions = providerModelOptions({
+    capability: workspaceSlot,
+    connectionId: workspaceSlotConnectionId,
     providerModels,
-    selectedModelId: projectSlotModelId,
+    selectedModelId: workspaceSlotModelId,
   })
   const globalSlotSyncMessage = missingSyncedModelMessage({
     connectionId: globalSlotConnectionId,
@@ -230,10 +229,10 @@ export function RuntimeSettingsPanel({
     modelOptions: chatModelOptions,
     target: 'chat default',
   })
-  const projectSlotSyncMessage = missingSyncedModelMessage({
-    connectionId: projectSlotConnectionId,
-    modelOptions: projectSlotModelOptions,
-    target: projectSlot,
+  const workspaceSlotSyncMessage = missingSyncedModelMessage({
+    connectionId: workspaceSlotConnectionId,
+    modelOptions: workspaceSlotModelOptions,
+    target: workspaceSlot,
   })
 
   const activePanel =
@@ -250,6 +249,7 @@ export function RuntimeSettingsPanel({
         deleteConnectionConfirmation={deleteConnectionConfirmation}
         deleteConnectionId={deleteConnectionId}
         editingConnectionId={editingConnectionId}
+        isCreatingConnection={isCreatingConnection}
         onCancelDeleteConnection={onCancelDeleteConnection}
         onCancelEditConnection={onCancelEditConnection}
         onCheckConnection={onCheckConnection}
@@ -262,6 +262,7 @@ export function RuntimeSettingsPanel({
         onDeleteConnectionConfirmationChange={
           onDeleteConnectionConfirmationChange
         }
+        onRequestCreateConnection={onRequestCreateConnection}
         onRequestDeleteConnection={onRequestDeleteConnection}
         onRequestEditConnection={onRequestEditConnection}
         onSaveConnection={onSaveConnection}
@@ -273,8 +274,6 @@ export function RuntimeSettingsPanel({
         modelSyncConnectionId={modelSyncConnectionId}
         onEditConnection={onRequestEditConnection}
         onModelSyncConnectionIdChange={onModelSyncConnectionIdChange}
-        onRefresh={onRefreshModelCatalog}
-        onSyncProviderModels={onSyncProviderModels}
         providerModels={providerModels}
         state={state}
       />
@@ -306,7 +305,6 @@ export function RuntimeSettingsPanel({
         onGlobalSlotChange={onGlobalSlotChange}
         onGlobalSlotConnectionIdChange={onGlobalSlotConnectionIdChange}
         onGlobalSlotModelIdChange={onGlobalSlotModelIdChange}
-        onRefresh={onRefreshGlobalDefaults}
         onSaveGlobalChatModel={onSaveGlobalChatModel}
         onSaveGlobalChatRetrieval={onSaveGlobalChatRetrieval}
         onSaveGlobalSlot={onSaveGlobalSlot}
@@ -314,31 +312,31 @@ export function RuntimeSettingsPanel({
         state={state}
       />
     ) : (
-      <RuntimeProjectOverridesPanel
-        onProjectChatRerankCandidateLimitChange={
-          onProjectChatRerankCandidateLimitChange
+      <RuntimeWorkspaceOverridesPanel
+        onWorkspaceChatRerankCandidateLimitChange={
+          onWorkspaceChatRerankCandidateLimitChange
         }
-        onProjectChatRerankEnabledChange={onProjectChatRerankEnabledChange}
-        onProjectChatRetrievalLimitChange={onProjectChatRetrievalLimitChange}
-        onProjectSlotChange={onProjectSlotChange}
-        onProjectSlotConnectionIdChange={onProjectSlotConnectionIdChange}
-        onProjectSlotModelIdChange={onProjectSlotModelIdChange}
-        onRefresh={onRefreshProjectOverrides}
-        onResetProjectChatRetrieval={onResetProjectChatRetrieval}
-        onResetProjectSlot={onResetProjectSlot}
-        onSaveProjectChatRetrieval={onSaveProjectChatRetrieval}
-        onSaveProjectOverride={onSaveProjectOverride}
-        projectChatRerankCandidateLimit={projectChatRerankCandidateLimit}
-        projectChatRerankEnabled={projectChatRerankEnabled}
-        projectChatRetrievalLimit={projectChatRetrievalLimit}
-        projectId={projectId}
-        projectRuntimeSettings={projectRuntimeSettings}
-        projectSlot={projectSlot}
-        projectSlotConnectionId={projectSlotConnectionId}
-        projectSlotConnections={projectSlotConnections}
-        projectSlotModelId={projectSlotModelId}
-        projectSlotModelOptions={projectSlotModelOptions}
-        projectSlotSyncMessage={projectSlotSyncMessage}
+        onWorkspaceChatRerankEnabledChange={onWorkspaceChatRerankEnabledChange}
+        onWorkspaceChatRetrievalLimitChange={onWorkspaceChatRetrievalLimitChange}
+        onWorkspaceSlotChange={onWorkspaceSlotChange}
+        onWorkspaceSlotConnectionIdChange={onWorkspaceSlotConnectionIdChange}
+        onWorkspaceSlotModelIdChange={onWorkspaceSlotModelIdChange}
+        onRefresh={onRefreshWorkspaceOverrides}
+        onResetWorkspaceChatRetrieval={onResetWorkspaceChatRetrieval}
+        onResetWorkspaceSlot={onResetWorkspaceSlot}
+        onSaveWorkspaceChatRetrieval={onSaveWorkspaceChatRetrieval}
+        onSaveWorkspaceOverride={onSaveWorkspaceOverride}
+        workspaceChatRerankCandidateLimit={workspaceChatRerankCandidateLimit}
+        workspaceChatRerankEnabled={workspaceChatRerankEnabled}
+        workspaceChatRetrievalLimit={workspaceChatRetrievalLimit}
+        workspaceId={workspaceId}
+        workspaceRuntimeSettings={workspaceRuntimeSettings}
+        workspaceSlot={workspaceSlot}
+        workspaceSlotConnectionId={workspaceSlotConnectionId}
+        workspaceSlotConnections={workspaceSlotConnections}
+        workspaceSlotModelId={workspaceSlotModelId}
+        workspaceSlotModelOptions={workspaceSlotModelOptions}
+        workspaceSlotSyncMessage={workspaceSlotSyncMessage}
         state={state}
       />
     )
@@ -374,14 +372,16 @@ function RuntimePanel({
     <Panel
       aria-label={ariaLabel}
       aria-labelledby={ariaLabel === undefined ? id : undefined}
+      // Flat surface: no elevated card wash / soft white shadow on dark themes.
+      className="bg-background shadow-none"
       role="region"
     >
-      <PanelHeader className="max-[680px]:justify-start max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary min-w-0 flex-col items-start justify-between gap-3 p-4 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
-        <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
+      <PanelHeader className="max-[680px]:justify-start max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-b max-[680px]:border-primary max-[680px]:shadow-none min-w-0 flex-col items-start justify-between gap-1 px-3 py-2 sm:flex-row max-[680px]:gap-0 max-[680px]:p-0">
+        <div className="grid min-w-0 gap-0.5 max-[680px]:gap-0">
+          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-[10px] font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
             Runtime
           </p>
-          <h2 id={id} className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-lg font-semibold leading-none tracking-tight max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+          <h2 id={id} className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none tracking-tight max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
             {title}
           </h2>
           {description ? (
@@ -392,7 +392,7 @@ function RuntimePanel({
           {status}
         </div>
       </PanelHeader>
-      <PanelBody className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-4 p-4 pt-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:pt-0">{children}</PanelBody>
+      <PanelBody className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:isolate max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:overscroll-contain max-[680px]:ring-offset-0 max-[680px]:shadow-none max-[680px]:rounded-sm max-[680px]:overflow-x-auto max-[680px]:border-t max-[680px]:border-primary grid gap-3 px-3 pb-3 pt-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:pt-0">{children}</PanelBody>
     </Panel>
   )
 }
@@ -428,8 +428,8 @@ function sourceLabel(source: string): string {
   if (source === 'global') {
     return 'Global'
   }
-  if (source === 'project') {
-    return 'Project'
+  if (source === 'workspace') {
+    return 'Workspace'
   }
   if (source === 'default') {
     return 'Default'
@@ -481,6 +481,7 @@ export function RuntimeConnectionsPanel({
   deleteConnectionConfirmation,
   deleteConnectionId,
   editingConnectionId,
+  isCreatingConnection,
   onCancelDeleteConnection,
   onCancelEditConnection,
   onCheckConnection,
@@ -491,6 +492,7 @@ export function RuntimeConnectionsPanel({
   onConnectionTypeChange,
   onDeleteConnection,
   onDeleteConnectionConfirmationChange,
+  onRequestCreateConnection,
   onRequestDeleteConnection,
   onRequestEditConnection,
   onSaveConnection,
@@ -507,6 +509,7 @@ export function RuntimeConnectionsPanel({
   deleteConnectionConfirmation: string
   deleteConnectionId: string | null
   editingConnectionId: string | null
+  isCreatingConnection: boolean
   onCancelDeleteConnection(): void
   onCancelEditConnection(): void
   onCheckConnection(connectionId: string): void
@@ -517,6 +520,7 @@ export function RuntimeConnectionsPanel({
   onConnectionTypeChange(value: string): void
   onDeleteConnection(event: FormEvent<HTMLFormElement>): void
   onDeleteConnectionConfirmationChange(value: string): void
+  onRequestCreateConnection(): void
   onRequestDeleteConnection(connectionId: string): void
   onRequestEditConnection(connectionId: string): void
   onSaveConnection(event: FormEvent<HTMLFormElement>): void
@@ -524,6 +528,7 @@ export function RuntimeConnectionsPanel({
 }) {
   const canSaveConnection = connectionCapabilities.length > 0 && state !== 'loading'
   const isEditingConnection = editingConnectionId !== null
+  const showConnectionForm = isCreatingConnection || isEditingConnection
 
   return (
     <RuntimePanel
@@ -531,6 +536,144 @@ export function RuntimeConnectionsPanel({
       status={<RuntimeStatus state={state} />}
       title="Connections"
     >
+      {!showConnectionForm ? (
+        <div className="max-[680px]:items-start max-[680px]:justify-start flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0">
+          <Button
+            className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+            disabled={state === 'loading'}
+            onClick={onRequestCreateConnection}
+            size="sm"
+          >
+            New Connection
+          </Button>
+        </div>
+      ) : (
+        <form
+          aria-label={
+            isEditingConnection
+              ? `Edit Connection ${editingConnectionId}`
+              : 'New Connection'
+          }
+          className="grid gap-4 max-[680px]:gap-0"
+          onSubmit={onSaveConnection}
+        >
+          <div className="max-[680px]:items-start max-[680px]:justify-start flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0">
+            <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
+              {isEditingConnection
+                ? `Edit Connection ${editingConnectionId}`
+                : 'New Connection'}
+            </h3>
+            <Button
+              className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+              disabled={state === 'loading'}
+              onClick={onCancelEditConnection}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              {isEditingConnection ? 'Cancel Edit' : 'Cancel'}
+            </Button>
+          </div>
+          <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
+            <RuntimeField id="runtime-connection-provider" label="Provider">
+              {(fieldId) => (
+                <Select
+                  className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  id={fieldId}
+                  onValueChange={onConnectionProviderChange}
+                  options={[
+                    { label: 'Qwen', value: 'qwen' },
+                    {
+                      label: 'Local OpenAI-compatible',
+                      value: 'local_openai_compatible',
+                    },
+                    { label: 'Fake', value: 'fake' },
+                  ]}
+                  value={connectionProvider}
+                />
+              )}
+            </RuntimeField>
+            <RuntimeField
+              id="runtime-connection-type"
+              label="Connection Type"
+            >
+              {(fieldId) => (
+                <Select
+                  className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  id={fieldId}
+                  onValueChange={onConnectionTypeChange}
+                  options={[
+                    { label: 'Hosted', value: 'hosted' },
+                    { label: 'Local', value: 'local' },
+                    { label: 'Fake', value: 'fake' },
+                  ]}
+                  value={connectionType}
+                />
+              )}
+            </RuntimeField>
+            <RuntimeField id="runtime-connection-base-url" label="Base URL">
+              {(fieldId) => (
+                <Input
+                  className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  id={fieldId}
+                  onChange={(event) =>
+                    onConnectionBaseUrlChange(event.currentTarget.value)
+                  }
+                  value={connectionBaseUrl}
+                />
+              )}
+            </RuntimeField>
+            <Field className="md:col-span-2 max-[680px]:gap-0">
+              <FieldLabel
+                className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                htmlFor="runtime-capability-filter"
+                id="runtime-connection-capabilities-label"
+              >
+                Capabilities
+              </FieldLabel>
+              <FieldControl>
+                <CapabilitySelector
+                  labelledBy="runtime-connection-capabilities-label"
+                  onChange={onConnectionCapabilitiesChange}
+                  options={PROVIDER_CONNECTION_CAPABILITIES}
+                  value={connectionCapabilities}
+                />
+              </FieldControl>
+            </Field>
+            <RuntimeField
+              className="md:col-span-2"
+              help={
+                isEditingConnection
+                  ? 'Leave Blank to Keep the Existing Key. A New Value Replaces It.'
+                  : undefined
+              }
+              id="runtime-connection-api-key"
+              label="API Key"
+            >
+              {(fieldId) => (
+                <Input
+                  className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  aria-describedby={
+                    isEditingConnection ? `${fieldId}-help` : undefined
+                  }
+                  autoComplete="new-password"
+                  id={fieldId}
+                  onChange={(event) =>
+                    onConnectionApiKeyChange(event.currentTarget.value)
+                  }
+                  spellCheck={false}
+                  type="password"
+                  value={connectionApiKey}
+                />
+              )}
+            </RuntimeField>
+          </div>
+          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={!canSaveConnection} type="submit">
+            {isEditingConnection ? 'Update Connection' : 'Save Connection'}
+          </Button>
+        </form>
+      )}
+
       <section aria-label="Provider Connections" className="grid gap-3 max-[680px]:gap-0">
         {state === 'loading' && connections.length === 0 ? (
           <EmptyState
@@ -694,123 +837,6 @@ export function RuntimeConnectionsPanel({
           </DataList>
         )}
       </section>
-
-      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveConnection}>
-        <div className="max-[680px]:items-start max-[680px]:justify-start flex flex-wrap items-center justify-between gap-2 max-[680px]:gap-0">
-          <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">
-            {isEditingConnection
-              ? `Edit Connection ${editingConnectionId}`
-              : 'New Connection'}
-          </h3>
-          {isEditingConnection ? (
-            <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-              disabled={state === 'loading'}
-              onClick={onCancelEditConnection}
-              size="sm"
-              variant="secondary"
-            >
-              Cancel Edit
-            </Button>
-          ) : null}
-        </div>
-        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
-          <RuntimeField id="runtime-connection-provider" label="Provider">
-            {(fieldId) => (
-              <Select
-                className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                onValueChange={onConnectionProviderChange}
-                options={[
-                  { label: 'Qwen', value: 'qwen' },
-                  {
-                    label: 'Local OpenAI-compatible',
-                    value: 'local_openai_compatible',
-                  },
-                  { label: 'Fake', value: 'fake' },
-                ]}
-                value={connectionProvider}
-              />
-            )}
-          </RuntimeField>
-          <RuntimeField
-            id="runtime-connection-type"
-            label="Connection Type"
-          >
-            {(fieldId) => (
-              <Select
-                className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                onValueChange={onConnectionTypeChange}
-                options={[
-                  { label: 'Hosted', value: 'hosted' },
-                  { label: 'Local', value: 'local' },
-                  { label: 'Fake', value: 'fake' },
-                ]}
-                value={connectionType}
-              />
-            )}
-          </RuntimeField>
-          <RuntimeField id="runtime-connection-base-url" label="Base URL">
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                onChange={(event) =>
-                  onConnectionBaseUrlChange(event.currentTarget.value)
-                }
-                value={connectionBaseUrl}
-              />
-            )}
-          </RuntimeField>
-          <Field className="md:col-span-2 max-[680px]:gap-0">
-            <FieldLabel
-              className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:antialiased max-[680px]:select-none max-[680px]:ring-offset-0 max-[680px]:rounded-sm max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-              htmlFor="runtime-capability-filter"
-              id="runtime-connection-capabilities-label"
-            >
-              Capabilities
-            </FieldLabel>
-            <FieldControl>
-              <CapabilitySelector
-                labelledBy="runtime-connection-capabilities-label"
-                onChange={onConnectionCapabilitiesChange}
-                options={PROVIDER_CONNECTION_CAPABILITIES}
-                value={connectionCapabilities}
-              />
-            </FieldControl>
-          </Field>
-          <RuntimeField
-            className="md:col-span-2"
-            help={
-              isEditingConnection
-                ? 'Leave Blank to Keep the Existing Key. A New Value Replaces It.'
-                : undefined
-            }
-            id="runtime-connection-api-key"
-            label="API Key"
-          >
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                aria-describedby={
-                  isEditingConnection ? `${fieldId}-help` : undefined
-                }
-                autoComplete="new-password"
-                id={fieldId}
-                onChange={(event) =>
-                  onConnectionApiKeyChange(event.currentTarget.value)
-                }
-                spellCheck={false}
-                type="password"
-                value={connectionApiKey}
-              />
-            )}
-          </RuntimeField>
-        </div>
-        <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={!canSaveConnection} type="submit">
-          {isEditingConnection ? 'Update Connection' : 'Save Connection'}
-        </Button>
-      </form>
     </RuntimePanel>
   )
 }
@@ -985,8 +1011,6 @@ export function RuntimeModelCatalogPanel({
   modelSyncConnectionId,
   onEditConnection,
   onModelSyncConnectionIdChange,
-  onRefresh,
-  onSyncProviderModels,
   providerModels,
   state,
 }: {
@@ -994,8 +1018,6 @@ export function RuntimeModelCatalogPanel({
   modelSyncConnectionId: string
   onEditConnection(connectionId: string): void
   onModelSyncConnectionIdChange(value: string): void
-  onRefresh(): void
-  onSyncProviderModels(event: FormEvent<HTMLFormElement>): void
   providerModels: ProviderModel[]
   state: RequestState
 }) {
@@ -1009,37 +1031,25 @@ export function RuntimeModelCatalogPanel({
       status={<RuntimeStatus state={state} />}
       title="Model Catalog"
     >
-      <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-        disabled={state === 'loading'}
-        onClick={onRefresh}
-        type="button"
-        variant="secondary"
+      <RuntimeField
+        id="runtime-model-sync-connection"
+        label="Connection"
       >
-        {state === 'loading' ? 'Refreshing…' : 'Refresh Catalog'}
-      </Button>
-
-      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSyncProviderModels}>
-        <RuntimeField
-          id="runtime-model-sync-connection"
-          label="Model Sync Connection"
-        >
-          {(fieldId) => (
-            <ConnectionSelect
-              connections={connections}
-              id={fieldId}
-              isLoading={state === 'loading'}
-              onChange={onModelSyncConnectionIdChange}
-              testId="model-sync-connection-select"
-              value={modelSyncConnectionId}
-            />
-          )}
-        </RuntimeField>
-        <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit">Sync Models</Button>
-      </form>
+        {(fieldId) => (
+          <ConnectionSelect
+            connections={connections}
+            id={fieldId}
+            isLoading={state === 'loading'}
+            onChange={onModelSyncConnectionIdChange}
+            testId="model-sync-connection-select"
+            value={modelSyncConnectionId}
+          />
+        )}
+      </RuntimeField>
 
       {selectedConnection ? (
         <section
-          aria-label="Selected Model Sync Connection"
+          aria-label="Selected Connection"
           className="grid gap-3 max-[680px]:gap-0"
         >
           <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
@@ -1115,7 +1125,6 @@ export function RuntimeGlobalDefaultsPanel({
   onGlobalSlotChange,
   onGlobalSlotConnectionIdChange,
   onGlobalSlotModelIdChange,
-  onRefresh,
   onSaveGlobalChatModel,
   onSaveGlobalChatRetrieval,
   onSaveGlobalSlot,
@@ -1146,7 +1155,6 @@ export function RuntimeGlobalDefaultsPanel({
   onGlobalSlotChange(value: string): void
   onGlobalSlotConnectionIdChange(value: string): void
   onGlobalSlotModelIdChange(value: string): void
-  onRefresh(): void
   onSaveGlobalChatModel(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalChatRetrieval(event: FormEvent<HTMLFormElement>): void
   onSaveGlobalSlot(event: FormEvent<HTMLFormElement>): void
@@ -1159,15 +1167,6 @@ export function RuntimeGlobalDefaultsPanel({
       status={<RuntimeStatus state={state} />}
       title="Global Defaults"
     >
-      <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-        disabled={state === 'loading'}
-        onClick={onRefresh}
-        type="button"
-        variant="secondary"
-      >
-        {state === 'loading' ? 'Refreshing…' : 'Reload Global Defaults'}
-      </Button>
-
       <RuntimeSlotList slots={slots} state={state} />
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalSlot}>
@@ -1424,68 +1423,68 @@ export function RuntimeGlobalDefaultsPanel({
   )
 }
 
-export function RuntimeProjectOverridesPanel({
-  onProjectChatRerankCandidateLimitChange,
-  onProjectChatRerankEnabledChange,
-  onProjectChatRetrievalLimitChange,
-  onProjectSlotChange,
-  onProjectSlotConnectionIdChange,
-  onProjectSlotModelIdChange,
+export function RuntimeWorkspaceOverridesPanel({
+  onWorkspaceChatRerankCandidateLimitChange,
+  onWorkspaceChatRerankEnabledChange,
+  onWorkspaceChatRetrievalLimitChange,
+  onWorkspaceSlotChange,
+  onWorkspaceSlotConnectionIdChange,
+  onWorkspaceSlotModelIdChange,
   onRefresh,
-  onResetProjectChatRetrieval,
-  onResetProjectSlot,
-  onSaveProjectChatRetrieval,
-  onSaveProjectOverride,
-  projectChatRerankCandidateLimit,
-  projectChatRerankEnabled,
-  projectChatRetrievalLimit,
-  projectId,
-  projectRuntimeSettings,
-  projectSlot,
-  projectSlotConnectionId,
-  projectSlotConnections,
-  projectSlotModelId,
-  projectSlotModelOptions,
-  projectSlotSyncMessage,
+  onResetWorkspaceChatRetrieval,
+  onResetWorkspaceSlot,
+  onSaveWorkspaceChatRetrieval,
+  onSaveWorkspaceOverride,
+  workspaceChatRerankCandidateLimit,
+  workspaceChatRerankEnabled,
+  workspaceChatRetrievalLimit,
+  workspaceId,
+  workspaceRuntimeSettings,
+  workspaceSlot,
+  workspaceSlotConnectionId,
+  workspaceSlotConnections,
+  workspaceSlotModelId,
+  workspaceSlotModelOptions,
+  workspaceSlotSyncMessage,
   state,
 }: {
-  onProjectChatRerankCandidateLimitChange(value: number): void
-  onProjectChatRerankEnabledChange(value: boolean): void
-  onProjectChatRetrievalLimitChange(value: number): void
-  onProjectSlotChange(value: string): void
-  onProjectSlotConnectionIdChange(value: string): void
-  onProjectSlotModelIdChange(value: string): void
+  onWorkspaceChatRerankCandidateLimitChange(value: number): void
+  onWorkspaceChatRerankEnabledChange(value: boolean): void
+  onWorkspaceChatRetrievalLimitChange(value: number): void
+  onWorkspaceSlotChange(value: string): void
+  onWorkspaceSlotConnectionIdChange(value: string): void
+  onWorkspaceSlotModelIdChange(value: string): void
   onRefresh(): void
-  onResetProjectChatRetrieval(): void
-  onResetProjectSlot(slot: string): void
-  onSaveProjectChatRetrieval(event: FormEvent<HTMLFormElement>): void
-  onSaveProjectOverride(event: FormEvent<HTMLFormElement>): void
-  projectChatRerankCandidateLimit: number
-  projectChatRerankEnabled: boolean
-  projectChatRetrievalLimit: number
-  projectId: string
-  projectRuntimeSettings: ProjectRuntimeSettings | null
-  projectSlot: string
-  projectSlotConnectionId: string
-  projectSlotConnections: ProviderConnection[]
-  projectSlotModelId: string
-  projectSlotModelOptions: ProviderModelOption[]
-  projectSlotSyncMessage: string | null
+  onResetWorkspaceChatRetrieval(): void
+  onResetWorkspaceSlot(slot: string): void
+  onSaveWorkspaceChatRetrieval(event: FormEvent<HTMLFormElement>): void
+  onSaveWorkspaceOverride(event: FormEvent<HTMLFormElement>): void
+  workspaceChatRerankCandidateLimit: number
+  workspaceChatRerankEnabled: boolean
+  workspaceChatRetrievalLimit: number
+  workspaceId: string
+  workspaceRuntimeSettings: WorkspaceRuntimeSettings | null
+  workspaceSlot: string
+  workspaceSlotConnectionId: string
+  workspaceSlotConnections: ProviderConnection[]
+  workspaceSlotModelId: string
+  workspaceSlotModelOptions: ProviderModelOption[]
+  workspaceSlotSyncMessage: string | null
   state: RequestState
 }) {
   return (
     <RuntimePanel
-      ariaLabel="Project Runtime Settings"
-      id="runtime-project-overrides-title"
+      ariaLabel="Workspace Runtime Settings"
+      id="runtime-workspace-overrides-title"
       status={
         <div className="max-[680px]:justify-start flex max-w-full min-w-0 flex-wrap items-start justify-end gap-2 max-[680px]:gap-0">
           <RuntimeStatus state={state} />
           <StatusBadge className="max-[680px]:min-w-0 max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:rounded-sm max-w-full break-all max-[680px]:truncate text-left max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">
-            {projectId.trim() || 'No Project'}
+            {workspaceId.trim() || 'No Workspace'}
           </StatusBadge>
         </div>
       }
-      title="Project Overrides"
+      title="Workspace Overrides"
     >
       <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
         disabled={state === 'loading'}
@@ -1493,19 +1492,19 @@ export function RuntimeProjectOverridesPanel({
         type="button"
         variant="secondary"
       >
-        {state === 'loading' ? 'Refreshing…' : 'Reload Project Settings'}
+        {state === 'loading' ? 'Refreshing…' : 'Reload Workspace Settings'}
       </Button>
 
-      <ProjectRuntimeSettingsView
-        onResetProjectSlot={onResetProjectSlot}
-        settings={projectRuntimeSettings}
+      <WorkspaceRuntimeSettingsView
+        onResetWorkspaceSlot={onResetWorkspaceSlot}
+        settings={workspaceRuntimeSettings}
         state={state}
       />
 
-      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectChatRetrieval}>
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveWorkspaceChatRetrieval}>
         <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
           <RuntimeField
-            id="runtime-project-retrieval-limit"
+            id="runtime-workspace-retrieval-limit"
             label="Retrieval Limit"
           >
             {(fieldId) => (
@@ -1515,33 +1514,33 @@ export function RuntimeProjectOverridesPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRetrievalLimitChange(
+                  onWorkspaceChatRetrievalLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRetrievalLimit}
+                value={workspaceChatRetrievalLimit}
               />
             )}
           </RuntimeField>
-          <RuntimeField id="runtime-project-rerank" label="Rerank">
+          <RuntimeField id="runtime-workspace-rerank" label="Rerank">
             {(fieldId) => (
               <Select
                 className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                 id={fieldId}
                 onValueChange={(nextValue) =>
-                  onProjectChatRerankEnabledChange(nextValue === 'true')
+                  onWorkspaceChatRerankEnabledChange(nextValue === 'true')
                 }
                 options={[
                   { label: 'On', value: 'true' },
                   { label: 'Off', value: 'false' },
                 ]}
-                value={String(projectChatRerankEnabled)}
+                value={String(workspaceChatRerankEnabled)}
               />
             )}
           </RuntimeField>
           <RuntimeField
-            id="runtime-project-candidate-limit"
+            id="runtime-workspace-candidate-limit"
             label="Candidate Limit"
           >
             {(fieldId) => (
@@ -1551,21 +1550,21 @@ export function RuntimeProjectOverridesPanel({
                 max={CHAT_RETRIEVAL_MAX_LIMIT}
                 min={1}
                 onChange={(event) =>
-                  onProjectChatRerankCandidateLimitChange(
+                  onWorkspaceChatRerankCandidateLimitChange(
                     normalizeChatRetrievalLimit(event.currentTarget.value),
                   )
                 }
                 type="number"
-                value={projectChatRerankCandidateLimit}
+                value={workspaceChatRerankCandidateLimit}
               />
             )}
           </RuntimeField>
         </div>
         <DataListItemActions className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
-          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit">Save Project Retrieval Override</Button>
-          {projectRuntimeSettings?.chat_retrieval.source === 'project' ? (
+          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" type="submit">Save Workspace Retrieval Override</Button>
+          {workspaceRuntimeSettings?.chat_retrieval.source === 'workspace' ? (
             <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-              onClick={onResetProjectChatRetrieval}
+              onClick={onResetWorkspaceChatRetrieval}
               type="button"
               variant="secondary"
             >
@@ -1575,60 +1574,60 @@ export function RuntimeProjectOverridesPanel({
         </DataListItemActions>
       </form>
 
-      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveProjectOverride}>
+      <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveWorkspaceOverride}>
         <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
-          <RuntimeField id="runtime-project-slot" label="Project Slot">
+          <RuntimeField id="runtime-workspace-slot" label="Workspace Slot">
             {(fieldId) => (
               <Select
                 className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                 id={fieldId}
-                onValueChange={onProjectSlotChange}
+                onValueChange={onWorkspaceSlotChange}
                 options={RUNTIME_SLOTS.map((slot) => ({
                   label: slotLabel(slot),
                   value: slot,
                 }))}
-                value={projectSlot}
+                value={workspaceSlot}
               />
             )}
           </RuntimeField>
           <RuntimeField
-            id="runtime-project-slot-connection"
-            label="Project Slot Connection"
+            id="runtime-workspace-slot-connection"
+            label="Workspace Slot Connection"
           >
             {(fieldId) => (
               <ConnectionSelect
-                connections={projectSlotConnections}
+                connections={workspaceSlotConnections}
                 id={fieldId}
                 isLoading={state === 'loading'}
-                onChange={onProjectSlotConnectionIdChange}
-                testId="project-slot-connection-select"
-                value={projectSlotConnectionId}
+                onChange={onWorkspaceSlotConnectionIdChange}
+                testId="workspace-slot-connection-select"
+                value={workspaceSlotConnectionId}
               />
             )}
           </RuntimeField>
           <RuntimeField
-            id="runtime-project-slot-model"
-            label="Project Slot Model"
+            id="runtime-workspace-slot-model"
+            label="Workspace Slot Model"
           >
             {(fieldId) => (
               <ProviderModelSelect
                 id={fieldId}
                 isLoading={state === 'loading'}
-                models={projectSlotModelOptions}
-                onChange={onProjectSlotModelIdChange}
-                testId="project-slot-model-select"
-                value={projectSlotModelId}
+                models={workspaceSlotModelOptions}
+                onChange={onWorkspaceSlotModelIdChange}
+                testId="workspace-slot-model-select"
+                value={workspaceSlotModelId}
               />
             )}
           </RuntimeField>
         </div>
-        {projectSlotSyncMessage ? (
+        {workspaceSlotSyncMessage ? (
           <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status" tone="warning">
-            {projectSlotSyncMessage}
+            {workspaceSlotSyncMessage}
           </InlineFeedback>
         ) : null}
-        <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={projectSlotSyncMessage !== null} type="submit">
-          Save Project Override
+        <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={workspaceSlotSyncMessage !== null} type="submit">
+          Save Workspace Override
         </Button>
       </form>
     </RuntimePanel>
@@ -1810,32 +1809,40 @@ export function ProviderModelCatalogView({
         </EmptyState>
       ) : (
         <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-          {providerModels.map((model) => (
-            <DataListItem
-              className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
-              key={`${model.connection_id}-${model.model_id}`}
-            >
-              <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {model.model_id}
-                </strong>
-                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {model.connection_id} /{' '}
-                  {model.capabilities
-                    .map((capability) => slotLabel(capability))
-                    .join(', ')}
-                </small>
-                {model.pricing ? (
+          {providerModels.map((model) => {
+            const pricing = formatProviderModelPricing(model.pricing)
+            return (
+              <DataListItem
+                className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
+                key={`${model.connection_id}-${model.model_id}`}
+              >
+                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
+                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                    {model.model_id}
+                  </strong>
                   <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    Pricing metadata saved
+                    {model.capabilities
+                      .map((capability) => slotLabel(capability))
+                      .join(', ')}
                   </small>
-                ) : null}
-              </div>
-              <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.pricing ? 'primary' : 'neutral'}>
-                {model.pricing ? 'Pricing' : 'Metadata'}
-              </Badge>
-            </DataListItem>
-          ))}
+                  <small
+                    className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter tabular-nums"
+                    data-pricing-state={
+                      pricing.hasPricing ? 'priced' : 'missing'
+                    }
+                  >
+                    {pricing.hasPricing ? pricing.summary : 'No pricing'}
+                  </small>
+                </div>
+                <Badge
+                  className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                  tone={pricing.hasPricing ? 'primary' : 'neutral'}
+                >
+                  {pricing.badgeLabel}
+                </Badge>
+              </DataListItem>
+            )
+          })}
         </DataList>
       )}
     </section>
@@ -1903,13 +1910,13 @@ export function RuntimeSlotList({
   )
 }
 
-export function ProjectRuntimeSettingsView({
-  onResetProjectSlot,
+export function WorkspaceRuntimeSettingsView({
+  onResetWorkspaceSlot,
   settings,
   state = 'idle',
 }: {
-  onResetProjectSlot(slot: string): void
-  settings: ProjectRuntimeSettings | null
+  onResetWorkspaceSlot(slot: string): void
+  settings: WorkspaceRuntimeSettings | null
   state?: RequestState
 }) {
   if (state === 'loading' && settings === null) {
@@ -1920,7 +1927,7 @@ export function ProjectRuntimeSettingsView({
         data-slot-state="loading"
         role="status"
       >
-        Loading Project Runtime Settings…
+        Loading Workspace Runtime Settings…
       </EmptyState>
     )
   }
@@ -1931,14 +1938,14 @@ export function ProjectRuntimeSettingsView({
         data-slot-state="canceled"
         role="status"
       >
-        Project Runtime Settings Load Canceled.
+        Workspace Runtime Settings Load Canceled.
       </EmptyState>
     )
   }
   if (settings === null) {
     return (
       <EmptyState className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
-        No Project Runtime Settings Yet.
+        No Workspace Runtime Settings Yet.
       </EmptyState>
     )
   }
@@ -1968,7 +1975,7 @@ export function ProjectRuntimeSettingsView({
                   <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="neutral">{sourceLabel(slot.source)}</Badge>
                   {slot.source === 'overridden' ? (
                     <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                      onClick={() => onResetProjectSlot(slot.slot)}
+                      onClick={() => onResetWorkspaceSlot(slot.slot)}
                       size="sm"
                       type="button"
                       variant="secondary"
@@ -1990,8 +1997,8 @@ export function ProjectRuntimeSettingsView({
             data-slot-state="empty"
             role="status"
           >
-            No Chat Models in the Project Pool Yet. Save a Global Chat Default or
-            Sync Models.
+            No Chat Models in the Workspace Pool Yet. Save a Global Chat Default
+            or open Model Catalog to load provider models.
           </EmptyState>
         ) : (
           <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">

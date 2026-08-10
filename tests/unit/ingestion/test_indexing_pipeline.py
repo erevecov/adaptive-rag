@@ -14,14 +14,14 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     DocumentRepository,
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -41,7 +41,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -60,15 +60,15 @@ def _run_time() -> datetime:
 
 def test_successful_ingest_enqueues_index_job_without_creating_chunks() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Title\n\nBody evidence for indexing."},
     )
     JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         payload_json={"source_id": str(source.id)},
         run_after=_run_time(),
@@ -76,7 +76,7 @@ def test_successful_ingest_enqueues_index_job_without_creating_chunks() -> None:
     session.commit()
 
     result = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=5),
@@ -87,7 +87,7 @@ def test_successful_ingest_enqueues_index_job_without_creating_chunks() -> None:
     assert session.scalar(select(func.count()).select_from(Chunk)) == 0
 
     index_jobs = JobRepository(session).list(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type=INDEX_DOCUMENT_VERSION_JOB_TYPE,
     )
     assert len(index_jobs) == 1
@@ -100,9 +100,9 @@ def test_successful_ingest_enqueues_index_job_without_creating_chunks() -> None:
 
 def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={
@@ -113,7 +113,7 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
         },
     )
     JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         payload_json={"source_id": str(source.id)},
         run_after=_run_time(),
@@ -121,7 +121,7 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
     session.commit()
 
     IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=5),
@@ -137,7 +137,7 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
         dense_embedding_provider=dense,
         sparse_embedding_provider=sparse,
     ).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         now=index_now,
         lease_until=index_now + timedelta(minutes=5),
@@ -164,7 +164,7 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
     assert len(sparse_rows) == result.chunk_count
 
     index_job = JobRepository(session).list(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type=INDEX_DOCUMENT_VERSION_JOB_TYPE,
     )[0]
     assert index_job.status == "succeeded"
@@ -172,21 +172,21 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
 
 def test_index_job_blocks_when_document_version_is_foreign() -> None:
     session = _make_session()
-    project_a = ProjectRepository(session).create(name="a")
-    project_b = ProjectRepository(session).create(name="b")
+    workspace_a = WorkspaceRepository(session).create(name="a")
+    workspace_b = WorkspaceRepository(session).create(name="b")
     source = SourceRepository(session).create(
-        project_id=project_a.id,
+        workspace_id=workspace_a.id,
         source_type="txt",
         external_id="a.txt",
         extra_metadata={"content": "private"},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project_a.id,
+        workspace_id=workspace_a.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project_a.id,
+        workspace_id=workspace_a.id,
         document_id=document.id,
         version_number=1,
         normalized_text="private",
@@ -196,7 +196,7 @@ def test_index_job_blocks_when_document_version_is_foreign() -> None:
         extraction_metadata={},
     )
     job = JobRepository(session).create(
-        project_id=project_b.id,
+        workspace_id=workspace_b.id,
         job_type=INDEX_DOCUMENT_VERSION_JOB_TYPE,
         payload_json={
             "document_version_id": str(version.id),
@@ -211,7 +211,7 @@ def test_index_job_blocks_when_document_version_is_foreign() -> None:
         dense_embedding_provider=FakeDenseEmbeddingProvider(),
         sparse_embedding_provider=FakeSparseEmbeddingProvider(),
     ).run_next(
-        project_id=project_b.id,
+        workspace_id=workspace_b.id,
         worker_id="worker-1",
         now=_run_time(),
         lease_until=_run_time() + timedelta(minutes=5),
@@ -219,5 +219,5 @@ def test_index_job_blocks_when_document_version_is_foreign() -> None:
 
     assert isinstance(result, IndexingBlockedResult)
     assert result.job.id == job.id
-    assert "does not belong to project" in result.error_message
+    assert "does not belong to workspace" in result.error_message
     assert session.scalar(select(func.count()).select_from(Chunk)) == 0

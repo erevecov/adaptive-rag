@@ -1,4 +1,4 @@
-"""Routes for local users and project memberships."""
+"""Routes for local users and workspace memberships."""
 
 from __future__ import annotations
 
@@ -10,26 +10,26 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.api.dependencies import (
     get_current_user,
-    get_project_admin_access,
     get_session,
+    get_workspace_admin_access,
     require_superadmin,
 )
 from adaptive_rag.api.schemas.auth import (
     AccessTokenRevokeRequestBody,
     CurrentUserPreferencesRequestBody,
     CurrentUserResponse,
-    ProjectMembershipListResponse,
-    ProjectMembershipResponse,
-    ProjectMembershipUpsertRequestBody,
     UserCreateRequestBody,
     UserListResponse,
     UserResponse,
+    WorkspaceMembershipListResponse,
+    WorkspaceMembershipResponse,
+    WorkspaceMembershipUpsertRequestBody,
 )
-from adaptive_rag.auth import CurrentPrincipal, get_project_role, hash_access_token
+from adaptive_rag.auth import CurrentPrincipal, get_workspace_role, hash_access_token
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 
 router = APIRouter(tags=["auth"])
@@ -51,22 +51,22 @@ def update_me_preferences(
     if current.user_id is None:
         raise HTTPException(status_code=401, detail="authenticated user required")
 
-    if body.last_project_id is not None:
-        if ProjectRepository(session).get(body.last_project_id) is None:
-            raise HTTPException(status_code=404, detail="project not found")
+    if body.last_workspace_id is not None:
+        if WorkspaceRepository(session).get(body.last_workspace_id) is None:
+            raise HTTPException(status_code=404, detail="workspace not found")
         if (
-            get_project_role(
+            get_workspace_role(
                 session,
                 principal=current,
-                project_id=body.last_project_id,
+                workspace_id=body.last_workspace_id,
             )
             is None
         ):
-            raise HTTPException(status_code=403, detail="project access required")
+            raise HTTPException(status_code=403, detail="workspace access required")
 
-    user = UserRepository(session).update_last_project_id(
+    user = UserRepository(session).update_last_workspace_id(
         current.user_id,
-        last_project_id=body.last_project_id,
+        last_workspace_id=body.last_workspace_id,
     )
     if user is None:
         raise HTTPException(status_code=404, detail="user not found")
@@ -120,57 +120,57 @@ def create_user(
 
 
 @router.get(
-    "/projects/{project_id}/memberships",
-    response_model=ProjectMembershipListResponse,
+    "/workspaces/{workspace_id}/memberships",
+    response_model=WorkspaceMembershipListResponse,
 )
-def list_project_memberships(
-    project_id: UUID,
+def list_workspace_memberships(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[object, str], Depends(get_project_admin_access)],
-) -> ProjectMembershipListResponse:
-    memberships = ProjectMembershipRepository(session).list_project_members(
-        project_id=project_id
+    _access: Annotated[tuple[object, str], Depends(get_workspace_admin_access)],
+) -> WorkspaceMembershipListResponse:
+    memberships = WorkspaceMembershipRepository(session).list_workspace_members(
+        workspace_id=workspace_id
     )
-    return ProjectMembershipListResponse.from_memberships(memberships)
+    return WorkspaceMembershipListResponse.from_memberships(memberships)
 
 
 @router.put(
-    "/projects/{project_id}/memberships/{user_id}",
-    response_model=ProjectMembershipResponse,
+    "/workspaces/{workspace_id}/memberships/{user_id}",
+    response_model=WorkspaceMembershipResponse,
 )
-def upsert_project_membership(
-    project_id: UUID,
+def upsert_workspace_membership(
+    workspace_id: UUID,
     user_id: UUID,
-    body: ProjectMembershipUpsertRequestBody,
+    body: WorkspaceMembershipUpsertRequestBody,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[object, str], Depends(get_project_admin_access)],
-) -> ProjectMembershipResponse:
+    _access: Annotated[tuple[object, str], Depends(get_workspace_admin_access)],
+) -> WorkspaceMembershipResponse:
     if UserRepository(session).get_user(user_id) is None:
         raise HTTPException(status_code=404, detail="user not found")
     try:
-        membership = ProjectMembershipRepository(session).upsert_membership(
-            project_id=project_id,
+        membership = WorkspaceMembershipRepository(session).upsert_membership(
+            workspace_id=workspace_id,
             user_id=user_id,
             role=body.role,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     session.commit()
-    return ProjectMembershipResponse.from_membership(membership)
+    return WorkspaceMembershipResponse.from_membership(membership)
 
 
 @router.delete(
-    "/projects/{project_id}/memberships/{user_id}",
+    "/workspaces/{workspace_id}/memberships/{user_id}",
     status_code=204,
 )
-def delete_project_membership(
-    project_id: UUID,
+def delete_workspace_membership(
+    workspace_id: UUID,
     user_id: UUID,
     session: Annotated[Session, Depends(get_session)],
-    _access: Annotated[tuple[object, str], Depends(get_project_admin_access)],
+    _access: Annotated[tuple[object, str], Depends(get_workspace_admin_access)],
 ) -> None:
-    removed = ProjectMembershipRepository(session).remove_membership(
-        project_id=project_id,
+    removed = WorkspaceMembershipRepository(session).remove_membership(
+        workspace_id=workspace_id,
         user_id=user_id,
     )
     if not removed:

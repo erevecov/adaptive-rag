@@ -17,21 +17,21 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     KnowledgeProposal,
-    Project,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
     Source,
     ToolCall,
     User,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     ProviderUsageRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.provider_usage import ProviderCallRecord, ProviderTokenUsage
@@ -43,7 +43,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             Source.__table__,
             Document.__table__,
@@ -62,8 +62,8 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _make_project(session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _make_workspace(session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _make_user(session, login: str) -> User:
@@ -73,27 +73,27 @@ def _make_user(session, login: str) -> User:
     return user
 
 
-def _make_chunk(session, *, project: Project, suffix: str = "") -> Chunk:
+def _make_chunk(session, *, workspace: Workspace, suffix: str = "") -> Chunk:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
-        external_id=f"{project.name}{suffix}.md",
+        external_id=f"{workspace.name}{suffix}.md",
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
-        stable_id=f"{project.name}{suffix}-doc",
+        stable_id=f"{workspace.name}{suffix}-doc",
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text="Alpha evidence",
-        content_hash=f"sha256:{project.name}{suffix}",
-        index_fingerprint=f"fp:{project.name}{suffix}",
+        content_hash=f"sha256:{workspace.name}{suffix}",
+        index_fingerprint=f"fp:{workspace.name}{suffix}",
     )
     return ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -132,36 +132,36 @@ def _set_session_timestamp(
 
 def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chunk = _make_chunk(session, project=project)
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
     repo = ChatAuditRepository(session)
 
     chat_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake"},
         prompt_version="tool_selection_v1",
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="What supports alpha?",
         metadata_json={"retrieval_limit": 1},
     )
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha", "limit": 1},
     )
     repo.complete_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         tool_call_id=tool_call.id,
         result_summary_json={"result_count": 1},
         latency_ms=7,
     )
     retrieval_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -172,7 +172,7 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         latency_ms=7,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
@@ -184,24 +184,24 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
         citation_json={"chunk_id": str(chunk.id), "snippet": "Alpha evidence"},
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="assistant",
         content="Alpha evidence",
     )
-    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=chat_session.id)
 
-    messages = repo.list_messages(project_id=project.id, session_id=chat_session.id)
+    messages = repo.list_messages(workspace_id=workspace.id, session_id=chat_session.id)
     tool_calls = repo.list_tool_calls(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
     )
     retrieval_runs = repo.list_retrieval_runs(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
     )
     retrieved_chunks = repo.list_retrieved_chunks(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
     )
 
@@ -223,16 +223,16 @@ def test_repository_creates_session_messages_tool_and_retrieval_run() -> None:
 def test_list_messages_limit_returns_last_n_in_chronological_order() -> None:
     """limit loads only the tail via SQL; order stays oldest→newest."""
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     repo = ChatAuditRepository(session)
-    chat_session = repo.create_session(project_id=project.id)
+    chat_session = repo.create_session(workspace_id=workspace.id)
 
     for index, content in enumerate(
         ["m0", "m1", "m2", "m3", "m4"],
         start=1,
     ):
         message = repo.add_message(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=chat_session.id,
             role="user" if index % 2 else "assistant",
             content=content,
@@ -243,21 +243,21 @@ def test_list_messages_limit_returns_last_n_in_chronological_order() -> None:
     session.flush()
 
     all_messages = repo.list_messages(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
     )
     limited = repo.list_messages(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         limit=3,
     )
     empty = repo.list_messages(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         limit=0,
     )
     oversized = repo.list_messages(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         limit=50,
     )
@@ -283,7 +283,7 @@ def test_list_messages_limit_returns_last_n_in_chronological_order() -> None:
 def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
     """Writer must return last N user/assistant turns without full-list slice."""
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     audit_repo = ChatAuditRepository(session)
     writer = SqlAlchemyChatAuditWriter(
         session=session,
@@ -291,7 +291,7 @@ def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
         provider_usage_repository=ProviderUsageRepository(session),
     )
     session_id = writer.start_session(
-        ChatRequest(project_id=project.id, message="first"),
+        ChatRequest(workspace_id=workspace.id, message="first"),
         "first",
     )
     assert session_id is not None
@@ -306,7 +306,7 @@ def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
     ]
     for index, (role, content) in enumerate(turns, start=1):
         message = audit_repo.add_message(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=session_id,
             role=role,
             content=content,
@@ -315,7 +315,7 @@ def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
     session.flush()
 
     history = writer.list_history_turns(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=session_id,
         limit=4,
     )
@@ -327,7 +327,7 @@ def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
     ]
     assert (
         writer.list_history_turns(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=session_id,
             limit=0,
         )
@@ -337,26 +337,26 @@ def test_sqlalchemy_list_history_turns_applies_limit_as_tail() -> None:
 
 def test_repository_scopes_session_history_to_owner_user() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
+    workspace = _make_workspace(session, "demo")
     first_user = _make_user(session, "first@example.com")
     second_user = _make_user(session, "second@example.com")
     repo = ChatAuditRepository(session)
     first_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=first_user.id,
     )
     second_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=second_user.id,
     )
     session.commit()
 
     first_page = repo.list_session_summaries(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=first_user.id,
     )
     second_detail = repo.get_session_detail(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=second_session.id,
         user_id=first_user.id,
     )
@@ -368,8 +368,8 @@ def test_repository_scopes_session_history_to_owner_user() -> None:
 
 def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
     session = _make_session()
-    project = _make_project(session)
-    chunk = _make_chunk(session, project=project)
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
     version = session.get(DocumentVersion, chunk.document_version_id)
     assert version is not None
     document = session.get(Document, version.document_id)
@@ -383,11 +383,11 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
         provider_usage_repository=ProviderUsageRepository(session),
     )
     session_id = writer.start_session(
-        ChatRequest(project_id=project.id, message="alpha"),
+        ChatRequest(workspace_id=workspace.id, message="alpha"),
         "alpha",
     )
     tool_call_id = writer.start_retrieval_tool(
-        project.id,
+        workspace.id,
         session_id,
         "alpha",
         1,
@@ -428,7 +428,7 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
     }
 
     writer.complete_retrieval_tool(
-        project.id,
+        workspace.id,
         session_id,
         tool_call_id,
         "alpha",
@@ -440,11 +440,11 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
     )
 
     retrieval_runs = audit_repo.list_retrieval_runs(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=session_id,
     )
     retrieved_chunks = audit_repo.list_retrieved_chunks(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_runs[0].id,
     )
     assert retrieval_runs[0].strategy == "hybrid_rrf"
@@ -455,22 +455,22 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
     assert retrieved_chunks[0].rerank_score == 0.97
 
 
-def test_repository_scopes_reads_and_writes_by_project() -> None:
+def test_repository_scopes_reads_and_writes_by_workspace() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
-    chunk = _make_chunk(session, project=project)
-    other_chunk = _make_chunk(session, project=other_project)
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
+    chunk = _make_chunk(session, workspace=workspace)
+    other_chunk = _make_chunk(session, workspace=other_workspace)
     repo = ChatAuditRepository(session)
-    chat_session = repo.create_session(project_id=project.id)
+    chat_session = repo.create_session(workspace_id=workspace.id)
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
     )
     retrieval_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -480,12 +480,12 @@ def test_repository_scopes_reads_and_writes_by_project() -> None:
     )
 
     assert (
-        repo.get_session(project_id=other_project.id, session_id=chat_session.id)
+        repo.get_session(workspace_id=other_workspace.id, session_id=chat_session.id)
         is None
     )
-    with pytest.raises(ValueError, match="chunk does not belong to project"):
+    with pytest.raises(ValueError, match="chunk does not belong to workspace"):
         repo.add_retrieved_chunk(
-            project_id=project.id,
+            workspace_id=workspace.id,
             retrieval_run_id=retrieval_run.id,
             chunk_id=other_chunk.id,
             rank=1,
@@ -493,7 +493,7 @@ def test_repository_scopes_reads_and_writes_by_project() -> None:
         )
 
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
@@ -501,7 +501,7 @@ def test_repository_scopes_reads_and_writes_by_project() -> None:
     )
     assert (
         repo.list_retrieved_chunks(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             retrieval_run_id=retrieval_run.id,
         )
         == []
@@ -510,24 +510,24 @@ def test_repository_scopes_reads_and_writes_by_project() -> None:
 
 def test_repository_marks_failed_session_and_tool_call() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     repo = ChatAuditRepository(session)
-    chat_session = repo.create_session(project_id=project.id)
+    chat_session = repo.create_session(workspace_id=workspace.id)
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
     )
 
     failed_tool = repo.fail_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         tool_call_id=tool_call.id,
         error_message="query must not be empty",
         latency_ms=3,
     )
     failed_session = repo.fail_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         error_message="query must not be empty",
     )
@@ -540,12 +540,12 @@ def test_repository_marks_failed_session_and_tool_call() -> None:
 
 def test_repository_rejects_tool_call_from_different_session() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     repo = ChatAuditRepository(session)
-    first_session = repo.create_session(project_id=project.id)
-    second_session = repo.create_session(project_id=project.id)
+    first_session = repo.create_session(workspace_id=workspace.id)
+    second_session = repo.create_session(workspace_id=workspace.id)
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=first_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
@@ -553,7 +553,7 @@ def test_repository_rejects_tool_call_from_different_session() -> None:
 
     with pytest.raises(ValueError, match="tool call does not belong to session"):
         repo.create_retrieval_run(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=second_session.id,
             tool_call_id=tool_call.id,
             query="alpha",
@@ -565,13 +565,13 @@ def test_repository_rejects_tool_call_from_different_session() -> None:
 
 def test_provider_usage_repository_persists_provider_call_record() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
-    chat_session = repo.create_session(project_id=project.id)
+    chat_session = repo.create_session(workspace_id=workspace.id)
 
     usage = usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         job_id=None,
         eval_run_id=None,
@@ -590,17 +590,17 @@ def test_provider_usage_repository_persists_provider_call_record() -> None:
     assert usage.error_message == "RateLimitError"
 
 
-def test_provider_usage_repository_rejects_wrong_project_session() -> None:
+def test_provider_usage_repository_rejects_wrong_workspace_session() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
-    other_session = repo.create_session(project_id=other_project.id)
+    other_session = repo.create_session(workspace_id=other_workspace.id)
 
-    with pytest.raises(ValueError, match="chat session does not belong to project"):
+    with pytest.raises(ValueError, match="chat session does not belong to workspace"):
         usage_repo.create_from_record(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=other_session.id,
             job_id=None,
             eval_run_id=None,
@@ -608,18 +608,18 @@ def test_provider_usage_repository_rejects_wrong_project_session() -> None:
         )
 
 
-def test_provider_usage_repository_rejects_wrong_project_job() -> None:
+def test_provider_usage_repository_rejects_wrong_workspace_job() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
     usage_repo = ProviderUsageRepository(session)
-    other_job = Job(project_id=other_project.id, job_type="chat")
+    other_job = Job(workspace_id=other_workspace.id, job_type="chat")
     session.add(other_job)
     session.flush()
 
-    with pytest.raises(ValueError, match="job does not belong to project"):
+    with pytest.raises(ValueError, match="job does not belong to workspace"):
         usage_repo.create_from_record(
-            project_id=project.id,
+            workspace_id=workspace.id,
             session_id=None,
             job_id=other_job.id,
             eval_run_id=None,
@@ -629,14 +629,14 @@ def test_provider_usage_repository_rejects_wrong_project_job() -> None:
 
 def test_provider_usage_repository_persists_job_only_context() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     usage_repo = ProviderUsageRepository(session)
-    job = Job(project_id=project.id, job_type="chat")
+    job = Job(workspace_id=workspace.id, job_type="chat")
     session.add(job)
     session.flush()
 
     usage = usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=None,
         job_id=job.id,
         eval_run_id=None,
@@ -645,47 +645,47 @@ def test_provider_usage_repository_persists_job_only_context() -> None:
 
     assert usage.session_id is None
     assert usage.job_id == job.id
-    assert usage.project_id == project.id
+    assert usage.workspace_id == workspace.id
 
 
 def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
-    chunk = _make_chunk(session, project=project)
-    other_chunk = _make_chunk(session, project=other_project)
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
+    chunk = _make_chunk(session, workspace=workspace)
+    other_chunk = _make_chunk(session, workspace=other_workspace)
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
     base_time = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
 
     older = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "older"},
         prompt_version="history-v1",
     )
     _set_session_timestamp(older, base_time)
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=older.id,
         role="user",
         content="older question",
     )
-    repo.succeed_session(project_id=project.id, session_id=older.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=older.id)
 
     middle = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "middle"},
         prompt_version="history-v1",
     )
     _set_session_timestamp(middle, base_time + timedelta(minutes=1))
     middle_tool = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_name="retrieval.search",
         arguments_json={"query": "middle"},
     )
     middle_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_call_id=middle_tool.id,
         query="middle",
@@ -694,36 +694,36 @@ def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> 
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=middle_run.id,
         chunk_id=chunk.id,
         rank=1,
         citation_json={"snippet": "middle evidence"},
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
     repo.fail_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         error_message="runner failed",
     )
 
     newest = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "newest"},
     )
     _set_session_timestamp(newest, base_time + timedelta(minutes=2))
-    repo.succeed_session(project_id=project.id, session_id=newest.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=newest.id)
 
-    other_session = repo.create_session(project_id=other_project.id)
+    other_session = repo.create_session(workspace_id=other_workspace.id)
     _set_session_timestamp(other_session, base_time + timedelta(minutes=3))
     other_run = repo.create_retrieval_run(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         session_id=other_session.id,
         tool_call_id=None,
         query="other",
@@ -732,14 +732,14 @@ def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> 
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         retrieval_run_id=other_run.id,
         chunk_id=other_chunk.id,
         rank=1,
         citation_json={"snippet": "other evidence"},
     )
 
-    first_page = repo.list_session_summaries(project_id=project.id, limit=2)
+    first_page = repo.list_session_summaries(workspace_id=workspace.id, limit=2)
     assert [item.session_id for item in first_page.items] == [newest.id, middle.id]
     assert first_page.next_cursor is not None
     assert first_page.items[1].status == "failed"
@@ -756,7 +756,7 @@ def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> 
     assert first_page.items[1].error_message == "runner failed"
 
     second_page = repo.list_session_summaries(
-        project_id=project.id,
+        workspace_id=workspace.id,
         limit=2,
         cursor=first_page.next_cursor,
     )
@@ -764,7 +764,7 @@ def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> 
     assert second_page.next_cursor is None
 
     failed_page = repo.list_session_summaries(
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="failed",
         limit=10,
     )
@@ -773,52 +773,54 @@ def test_repository_lists_session_summaries_with_counts_filters_and_cursor() -> 
 
 def test_repository_rejects_invalid_session_summary_options() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     repo = ChatAuditRepository(session)
 
     with pytest.raises(ValueError, match="limit must be between 1 and 100"):
-        repo.list_session_summaries(project_id=project.id, limit=0)
+        repo.list_session_summaries(workspace_id=workspace.id, limit=0)
 
     with pytest.raises(ValueError, match="invalid chat session status"):
-        repo.list_session_summaries(project_id=project.id, status="archived")
+        repo.list_session_summaries(workspace_id=workspace.id, status="archived")
 
     with pytest.raises(ValueError, match="invalid chat session cursor"):
-        repo.list_session_summaries(project_id=project.id, cursor="not-a-cursor")
+        repo.list_session_summaries(workspace_id=workspace.id, cursor="not-a-cursor")
 
 
-def test_repository_gets_session_detail_with_audit_records_and_project_scope() -> None:
+def test_repository_gets_session_detail_with_audit_records_and_workspace_scope() -> (
+    None
+):
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
-    chunk = _make_chunk(session, project=project)
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
+    chunk = _make_chunk(session, workspace=workspace)
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
     chat_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake"},
         prompt_version="history-v1",
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="What supports alpha?",
         metadata_json={"retrieval_limit": 1},
     )
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
     )
     repo.complete_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         tool_call_id=tool_call.id,
         result_summary_json={"result_count": 2},
         latency_ms=5,
     )
     retrieval_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -828,38 +830,38 @@ def test_repository_gets_session_detail_with_audit_records_and_project_scope() -
         filters_json={"source_type": "markdown"},
         latency_ms=5,
     )
-    second_chunk = _make_chunk(session, project=project, suffix="-second")
+    second_chunk = _make_chunk(session, workspace=workspace, suffix="-second")
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=second_chunk.id,
         rank=2,
         citation_json={"snippet": "second"},
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=chunk.id,
         rank=1,
         citation_json={"snippet": "first"},
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="assistant",
         content="Alpha is supported.",
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
-    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=chat_session.id)
 
     detail = repo.get_session_detail(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
     )
 
@@ -880,7 +882,7 @@ def test_repository_gets_session_detail_with_audit_records_and_project_scope() -
 
     assert (
         repo.get_session_detail(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             session_id=chat_session.id,
         )
         is None

@@ -16,16 +16,16 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
+    Graphprojection,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
     SparseEmbeddingRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -45,7 +45,7 @@ from adaptive_rag.retrieval import (
     RetrievalServiceError,
 )
 
-PROJECT_ID = uuid4()
+WORKSPACE_ID = uuid4()
 
 
 class StaticQueryEmbeddingProvider:
@@ -138,16 +138,16 @@ class RecordingGraphRetriever:
         self.failure = failure
         self.requests: list[dict[str, object]] = []
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id,
+        workspace_id,
         seed_chunk_ids,
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         self.requests.append(
             {
-                "project_id": project_id,
+                "workspace_id": workspace_id,
                 "seed_chunk_ids": tuple(seed_chunk_ids),
                 "limit": limit,
             }
@@ -162,13 +162,13 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -181,14 +181,14 @@ def _vector(first: float, second: float = 0.0) -> list[float]:
     return values
 
 
-def _create_project(session: Session, name: str) -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str) -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_embedded_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -201,19 +201,19 @@ def _create_embedded_chunk(
     contextual_summary: str | None = None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -222,7 +222,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -244,14 +244,14 @@ def _create_embedded_chunk(
 def _create_sparse_embedding(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     chunk: Chunk,
     indices: tuple[int, ...],
     values: tuple[float, ...],
     fingerprint: str,
 ) -> None:
     SparseEmbeddingRepository(session).upsert_current(
-        project_id=project.id,
+        workspace_id=workspace.id,
         chunk_id=chunk.id,
         vector=SparseEmbeddingVector(indices=indices, values=values),
         input_hash=f"sha256:{fingerprint}",
@@ -262,10 +262,10 @@ def _create_sparse_embedding(
 
 def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far",
         text="Far original text",
@@ -274,7 +274,7 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Header\n\nAlpha original evidence",
@@ -286,7 +286,7 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
 
     results = RetrievalService(session, provider=provider).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="alpha question",
             limit=2,
             strategy="dense",
@@ -304,11 +304,11 @@ def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
 
 def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _general_source, _general_document, _general_version, general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general",
             text="General installation notes",
@@ -318,7 +318,7 @@ def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> No
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="sku.md",
         stable_id="sku",
         text="Header\n\nInstall the connector with the default path.",
@@ -331,7 +331,7 @@ def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> No
 
     results = RetrievalService(session, provider=provider).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=2,
             strategy="lexical",
@@ -352,11 +352,11 @@ def test_retrieval_service_uses_lexical_strategy_without_embedding_query() -> No
 
 def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     filler = " ".join(f"filler{i}" for i in range(80))
     _long_source, _long_document, _long_version, long_match = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="long.md",
         stable_id="long",
         text=f"SKU 42 manual {filler}",
@@ -366,7 +366,7 @@ def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
     _short_source, _short_document, _short_version, short_match = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="short.md",
             stable_id="short",
             text="Header\n\nSKU 42 manual",
@@ -379,7 +379,7 @@ def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
 
     results = RetrievalService(session, provider=provider).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="SKU 42 manual",
             limit=2,
             strategy="bm25",
@@ -399,10 +399,10 @@ def test_retrieval_service_uses_bm25_strategy_without_embedding_query() -> None:
 
 def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _dense_source, _dense_document, _dense_version, dense_only = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="dense.md",
         stable_id="dense",
         text="Alpha semantic evidence",
@@ -411,7 +411,7 @@ def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="target.md",
         stable_id="target",
         text="Header\n\nInstall the connector with the default path.",
@@ -424,7 +424,7 @@ def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
 
     results = RetrievalService(session, provider=provider).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=2,
             strategy="hybrid_rrf",
@@ -456,10 +456,10 @@ def test_retrieval_service_fuses_dense_and_lexical_with_rrf() -> None:
 
 def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _dense_source, _dense_document, _dense_version, dense_only = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="dense.md",
         stable_id="dense",
         text="Alpha semantic evidence",
@@ -468,7 +468,7 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="target.md",
         stable_id="target",
         text="Header\n\nInstall the connector with the default path.",
@@ -478,7 +478,7 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -496,7 +496,7 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
         sparse_provider=sparse_provider,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=2,
             strategy="dense_sparse",
@@ -530,11 +530,11 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
 
 def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _general_source, _general_document, _general_version, _general = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="general.md",
             stable_id="general",
             text="General installation notes",
@@ -544,7 +544,7 @@ def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
     )
     _target_source, _target_document, _target_version, target = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="target.md",
         stable_id="target",
         text="Header\n\nInstall the connector with the default path.",
@@ -554,7 +554,7 @@ def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
     )
     _create_sparse_embedding(
         session,
-        project=project,
+        workspace=workspace,
         chunk=target,
         indices=(42,),
         values=(3.0,),
@@ -572,7 +572,7 @@ def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
         sparse_provider=sparse_provider,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=2,
             strategy="sparse",
@@ -593,10 +593,10 @@ def test_retrieval_service_uses_sparse_strategy_without_dense_query() -> None:
 
 def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far",
         text="Far graph-expanded evidence",
@@ -605,15 +605,15 @@ def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> Non
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Alpha dense seed evidence",
         snippet="Alpha dense seed evidence",
         embedding=_vector(0.1),
     )
-    projection = GraphProjection(
-        project_id=project.id,
+    projection = Graphprojection(
+        workspace_id=workspace.id,
         status="ready",
         source_watermark="chunks:v1",
     )
@@ -633,7 +633,7 @@ def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> Non
         graph_retriever=graph_retriever,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="alpha question",
             limit=2,
             strategy="graph",
@@ -643,7 +643,7 @@ def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> Non
     assert provider.inputs == ["alpha question"]
     assert graph_retriever.requests == [
         {
-            "project_id": project.id,
+            "workspace_id": workspace.id,
             "seed_chunk_ids": (near.id, far.id),
             "limit": 2,
         }
@@ -657,10 +657,10 @@ def test_retrieval_service_uses_graph_strategy_when_projection_is_ready() -> Non
 
 def test_retrieval_service_falls_back_to_dense_when_projection_is_not_ready() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far",
         text="Far original text",
@@ -669,14 +669,14 @@ def test_retrieval_service_falls_back_to_dense_when_projection_is_not_ready() ->
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Alpha original evidence",
         snippet="Alpha original evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="pending_backfill"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="pending_backfill"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(())
@@ -687,7 +687,7 @@ def test_retrieval_service_falls_back_to_dense_when_projection_is_not_ready() ->
         graph_retriever=graph_retriever,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="alpha question",
             limit=2,
             strategy="graph",
@@ -705,10 +705,10 @@ def test_retrieval_service_falls_back_to_dense_when_projection_is_not_ready() ->
 
 def test_retrieval_service_falls_back_to_dense_when_graph_is_unavailable() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far",
         text="Far original text",
@@ -717,14 +717,14 @@ def test_retrieval_service_falls_back_to_dense_when_graph_is_unavailable() -> No
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Alpha original evidence",
         snippet="Alpha original evidence",
         embedding=_vector(0.1),
     )
-    session.add(GraphProjection(project_id=project.id, status="ready"))
+    session.add(Graphprojection(workspace_id=workspace.id, status="ready"))
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     graph_retriever = RecordingGraphRetriever(
@@ -738,7 +738,7 @@ def test_retrieval_service_falls_back_to_dense_when_graph_is_unavailable() -> No
         graph_retriever=graph_retriever,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="alpha question",
             limit=2,
             strategy="graph",
@@ -756,12 +756,12 @@ def test_retrieval_service_falls_back_to_dense_when_graph_is_unavailable() -> No
 
 def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     feb_1 = datetime(2026, 2, 1, tzinfo=UTC)
     feb_2 = datetime(2026, 2, 2, tzinfo=UTC)
     wanted_source, wanted_document, _version, wanted_chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="wanted.md",
         tags=("docs", "v1"),
         stable_id="wanted-doc",
@@ -773,7 +773,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
     )
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="wrong-doc.md",
         tags=("docs", "v1"),
         stable_id="wrong-doc",
@@ -785,7 +785,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
     )
     _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         source_type="text",
         external_id="wrong-type.txt",
         tags=("docs", "v1"),
@@ -801,7 +801,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
 
     results = RetrievalService(session, provider=provider).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="filtered question",
             limit=5,
             strategy="dense",
@@ -826,16 +826,16 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
     ("search_request", "message"),
     [
         (
-            RetrievalSearchRequest(project_id=PROJECT_ID, query=" "),
+            RetrievalSearchRequest(workspace_id=WORKSPACE_ID, query=" "),
             "query must not be empty",
         ),
         (
-            RetrievalSearchRequest(project_id=PROJECT_ID, query="x", limit=0),
+            RetrievalSearchRequest(workspace_id=WORKSPACE_ID, query="x", limit=0),
             "limit must be positive",
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 limit=CHAT_RETRIEVAL_MAX_LIMIT + 1,
             ),
@@ -843,7 +843,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 limit=2,
                 rerank=RetrievalRerankOptions(candidate_limit=1),
@@ -852,7 +852,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 limit=1,
                 rerank=RetrievalRerankOptions(
@@ -866,7 +866,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 strategy="unsupported",
             ),
@@ -875,7 +875,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(source_type=" "),
@@ -884,7 +884,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(tags=("",)),
@@ -893,7 +893,7 @@ def test_retrieval_service_maps_metadata_filter_to_dense_filters() -> None:
         ),
         (
             RetrievalSearchRequest(
-                project_id=PROJECT_ID,
+                workspace_id=WORKSPACE_ID,
                 query="x",
                 strategy="dense",
                 metadata_filter=RetrievalMetadataFilter(
@@ -923,7 +923,7 @@ def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
     strategy: str,
 ) -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     session.commit()
 
@@ -933,7 +933,7 @@ def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
     ):
         RetrievalService(session, provider=provider).search(
             RetrievalSearchRequest(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 query="alpha question",
                 limit=3,
                 strategy=strategy,
@@ -945,7 +945,7 @@ def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
 
 def test_retrieval_service_requires_rerank_provider_when_enabled() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     session.commit()
 
@@ -955,7 +955,7 @@ def test_retrieval_service_requires_rerank_provider_when_enabled() -> None:
     ):
         RetrievalService(session, provider=provider).search(
             RetrievalSearchRequest(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 query="alpha question",
                 limit=3,
                 rerank=RetrievalRerankOptions(candidate_limit=3),
@@ -967,10 +967,10 @@ def test_retrieval_service_requires_rerank_provider_when_enabled() -> None:
 
 def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         stable_id="far",
         text="Far original text",
@@ -979,7 +979,7 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
     )
     _mid_source, _mid_document, _mid_version, mid = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="mid.md",
         stable_id="mid",
         text="Header\n\nBeta rerank evidence",
@@ -988,7 +988,7 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
     )
     _near_source, _near_document, _near_version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Header\n\nAlpha dense evidence",
@@ -1015,7 +1015,7 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
         reranker=reranker,
     ).search(
         RetrievalSearchRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             query="beta question",
             limit=1,
             strategy="dense",
@@ -1053,10 +1053,10 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
 
 def test_retrieval_service_maps_rerank_provider_errors() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _source, _document, _version, _chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Alpha dense evidence",
@@ -1076,7 +1076,7 @@ def test_retrieval_service_maps_rerank_provider_errors() -> None:
             reranker=FailingRerankProvider(),
         ).search(
             RetrievalSearchRequest(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 query="alpha question",
                 limit=1,
                 strategy="dense",
@@ -1087,10 +1087,10 @@ def test_retrieval_service_maps_rerank_provider_errors() -> None:
 
 def test_retrieval_service_maps_rerank_budget_errors() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     _source, _document, _version, _chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near",
         text="Alpha dense evidence",
@@ -1110,7 +1110,7 @@ def test_retrieval_service_maps_rerank_budget_errors() -> None:
             reranker=BudgetBlockedRerankProvider(),
         ).search(
             RetrievalSearchRequest(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 query="alpha question",
                 limit=1,
                 strategy="dense",
@@ -1121,7 +1121,7 @@ def test_retrieval_service_maps_rerank_budget_errors() -> None:
 
 def test_retrieval_service_rejects_wrong_query_embedding_dimension() -> None:
     session = _make_session()
-    project = _create_project(session, "demo")
+    workspace = _create_workspace(session, "demo")
     provider = WrongDimensionQueryEmbeddingProvider()
     session.commit()
 
@@ -1131,7 +1131,7 @@ def test_retrieval_service_rejects_wrong_query_embedding_dimension() -> None:
     ):
         RetrievalService(session, provider=provider).search(
             RetrievalSearchRequest(
-                project_id=project.id,
+                workspace_id=workspace.id,
                 query="dimension question",
                 strategy="dense",
             )

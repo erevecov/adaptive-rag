@@ -19,16 +19,24 @@ import {
   CornerDownLeft,
   Map as MapIcon,
   Mic,
+  MoreVertical,
+  Paperclip,
   RefreshCw,
   Square,
 } from 'lucide-react'
 
+import {
+  AttachmentChips,
+  AttachmentFileInput,
+  type LocalAttachment,
+} from '@/features/chat/ChatAttachments'
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { MarkdownAnswer } from '@/components/MarkdownAnswer'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
 import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
+import * as DropdownMenu from '@/components/ui/dropdown-menu'
 import { Callout, EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
 import { Panel } from '@/components/ui/panel'
@@ -85,16 +93,30 @@ type ChatKnowledgeLifecycleEvent = {
 /** Prior multi-turn Q/A already stored for the selected session. */
 export type ChatTranscriptTurn = {
   answer: string
+  assistantMessageId?: string | null
   citations: ChatResponseBody['citations']
   id: string
   question: string
   steps: ChatResponseBody['steps']
   tool_calls: ChatResponseBody['tool_calls']
+  userMessageId?: string | null
+}
+
+/** Payload for answer ⋯ → Ver detalles (turn-scoped Context). */
+export type ViewTurnDetailsPayload = {
+  detailsInstanceId: string
+  question: string
+  turnId: string
 }
 
 export type ChatWorkspacePanelProps = {
   activeResponseQuestion: string | null
   appliedMemories?: UserMemory[]
+  /** Local composer attachments (upload chips). */
+  attachments?: LocalAttachment[]
+  attachmentAccept?: string
+  attachmentsAtCap?: boolean
+  attachmentsBlocked?: boolean
   /** When set, follow-ups continue this multi-turn session. */
   continuingSessionId?: string | null
   drafts: ChatKnowledgeDraftMap
@@ -104,6 +126,7 @@ export type ChatWorkspacePanelProps = {
   isContextInspectorActive: boolean
   isMinimapInspectorActive: boolean
   isSpeechSupported: boolean
+  onAddAttachmentFiles?(files: FileList | File[]): void
   onCancelRequest(): void
   onOpenContextInspector(): void
   onOpenMinimapInspector(): void
@@ -112,6 +135,7 @@ export type ChatWorkspacePanelProps = {
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
   /** Re-run the last succeeded answer without archiving it into prior turns. */
   onRegenerateLastAnswer?(): void
+  onRemoveAttachment?(localId: string): void
   /** Resend the last failed/canceled question without retyping. */
   onRetryLastQuestion?(): void
   onStartNewSession?(): void
@@ -125,6 +149,8 @@ export type ChatWorkspacePanelProps = {
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
   onTranscriptScroll?: () => void
+  /** Open Context dock scoped to one transcript turn. */
+  onViewTurnDetails?(payload: ViewTurnDetailsPayload): void
   /** Earlier turns in the selected session (newest last). */
   priorTurns?: ChatTranscriptTurn[]
   providerUsage: ChatHistoryProviderUsage[]
@@ -153,6 +179,10 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 export function ChatWorkspacePanel({
   activeResponseQuestion,
   appliedMemories = [],
+  attachments = [],
+  attachmentAccept,
+  attachmentsAtCap = false,
+  attachmentsBlocked = false,
   continuingSessionId = null,
   drafts,
   heartbeatElapsedMs = null,
@@ -160,6 +190,7 @@ export function ChatWorkspacePanel({
   isContextInspectorActive,
   isMinimapInspectorActive,
   isSpeechSupported,
+  onAddAttachmentFiles,
   onCancelRequest,
   onOpenContextInspector,
   onOpenMinimapInspector,
@@ -167,6 +198,7 @@ export function ChatWorkspacePanel({
   onQuestionChange,
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
+  onRemoveAttachment,
   onRetryLastQuestion,
   onStartNewSession,
   onEditQuestion,
@@ -175,6 +207,7 @@ export function ChatWorkspacePanel({
   onSubmit,
   onSubmitKnowledgeDraft,
   onTranscriptScroll,
+  onViewTurnDetails,
   priorTurns = [],
   providerUsage,
   question,
@@ -187,6 +220,7 @@ export function ChatWorkspacePanel({
   transcriptRef,
 }: ChatWorkspacePanelProps) {
   const questionInputRef = useRef<HTMLTextAreaElement>(null)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (question.length > 0) {
@@ -197,6 +231,9 @@ export function ChatWorkspacePanel({
       el.style.height = ''
     }
   }, [question])
+
+  const canSend =
+    question.trim().length > 0 && !attachmentsBlocked && !isAsking
 
   return (
     <Panel
@@ -231,6 +268,7 @@ export function ChatWorkspacePanel({
               onOpenSource={onOpenSource}
               onRefineKnowledgeDraft={onRefineKnowledgeDraft}
               onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+              onViewTurnDetails={onViewTurnDetails}
               providerUsage={[]}
               question={turn.question}
               questionSticky={false}
@@ -243,6 +281,7 @@ export function ChatWorkspacePanel({
               }}
               setDrafts={setDrafts}
               state="succeeded"
+              turnId={turn.assistantMessageId ?? turn.id}
             />
           ))}
           <ResponsePanel
@@ -258,6 +297,7 @@ export function ChatWorkspacePanel({
             onRetryLastQuestion={onRetryLastQuestion}
             onStartNewSession={onStartNewSession}
             onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+            onViewTurnDetails={onViewTurnDetails}
             providerUsage={providerUsage}
             question={activeResponseQuestion}
             response={response}
@@ -295,6 +335,22 @@ export function ChatWorkspacePanel({
             className="rounded-2xl border border-border bg-muted/15 p-1.5 shadow-sm"
             data-slot="chat-composer-input-shell"
           >
+            {attachments.length > 0 ? (
+              <div className="px-2 pb-1 pt-1">
+                <AttachmentChips
+                  attachments={attachments.map((item) => ({
+                    localId: item.localId,
+                    filename: item.file.name,
+                    previewUrl: item.previewUrl,
+                    kind: item.kind,
+                    status: item.status,
+                    error: item.error,
+                  }))}
+                  onRemove={onRemoveAttachment}
+                />
+              </div>
+            ) : null}
+
             <Field className="gap-0">
               <FieldLabel className="sr-only" htmlFor="chat-question">
                 Question
@@ -330,11 +386,22 @@ export function ChatWorkspacePanel({
                       !event.nativeEvent.isComposing
                     ) {
                       event.preventDefault()
-                      if (isAsking || question.trim().length === 0) {
+                      if (!canSend) {
                         return
                       }
                       event.currentTarget.form?.requestSubmit()
                     }
+                  }}
+                  onPaste={(event) => {
+                    if (onAddAttachmentFiles === undefined) {
+                      return
+                    }
+                    const files = event.clipboardData?.files
+                    if (files === undefined || files.length === 0) {
+                      return
+                    }
+                    event.preventDefault()
+                    onAddAttachmentFiles(files)
                   }}
                   placeholder="Ask a question about indexed sources"
                   ref={questionInputRef}
@@ -369,6 +436,34 @@ export function ChatWorkspacePanel({
               </p>
               <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
+                  {onAddAttachmentFiles !== undefined &&
+                  attachmentAccept !== undefined ? (
+                    <>
+                      <AttachmentFileInput
+                        accept={attachmentAccept}
+                        disabled={attachmentsAtCap || isAsking}
+                        inputRef={attachmentInputRef}
+                        onChange={(event) => {
+                          const files = event.currentTarget.files
+                          if (files !== null && files.length > 0) {
+                            onAddAttachmentFiles(files)
+                          }
+                          event.currentTarget.value = ''
+                        }}
+                      />
+                      <Button
+                        aria-label="Attach files"
+                        className={COMPOSER_TOOL_BUTTON_CLASS}
+                        disabled={attachmentsAtCap || isAsking}
+                        onClick={() => attachmentInputRef.current?.click()}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Paperclip aria-hidden="true" className="size-4" />
+                      </Button>
+                    </>
+                  ) : null}
                   <Button
                     aria-label="Open Context Sidebar"
                     aria-pressed={isContextInspectorActive}
@@ -425,7 +520,7 @@ export function ChatWorkspacePanel({
                   <Button
                     aria-label="Ask"
                     className={COMPOSER_PRIMARY_ACTION_CLASS}
-                    disabled={question.trim().length === 0}
+                    disabled={!canSend}
                     size="icon"
                     title="Enter to send"
                     type="submit"
@@ -549,7 +644,7 @@ function SpeechInputControl({
 
 const SAMPLE_QUESTIONS = [
   'What is the release mascot?',
-  'What is the project codename?',
+  'What is the workspace codename?',
   'Which sources cover deployment?',
 ] as const
 
@@ -566,6 +661,7 @@ function ResponsePanel({
   onRetryLastQuestion,
   onStartNewSession,
   onSubmitKnowledgeDraft,
+  onViewTurnDetails,
   providerUsage,
   question,
   response,
@@ -587,6 +683,7 @@ function ResponsePanel({
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
+  onViewTurnDetails?(payload: ViewTurnDetailsPayload): void
   providerUsage: ChatHistoryProviderUsage[]
   question: string | null
   response: ChatResponseBody | null
@@ -602,6 +699,7 @@ function ResponsePanel({
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
           onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+          onViewTurnDetails={onViewTurnDetails}
           providerUsage={providerUsage}
           question={question}
           response={response}
@@ -836,6 +934,7 @@ function ResponsePanel({
           state === 'succeeded' ? onRegenerateLastAnswer : undefined
         }
         onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
+        onViewTurnDetails={onViewTurnDetails}
         providerUsage={providerUsage}
         question={question}
         response={response}
@@ -855,12 +954,14 @@ function ResponseContent({
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
   onSubmitKnowledgeDraft,
+  onViewTurnDetails,
   providerUsage,
   question,
   questionSticky = true,
   response,
   setDrafts,
   state,
+  turnId,
 }: {
   appliedMemories: UserMemory[]
   /** Exclusive Details accordion id (only one open across the transcript). */
@@ -874,6 +975,7 @@ function ResponseContent({
     draft: ChatKnowledgeDraft,
     sessionId: string | null,
   ): Promise<KnowledgeProposal>
+  onViewTurnDetails?(payload: ViewTurnDetailsPayload): void
   providerUsage: ChatHistoryProviderUsage[]
   question: string | null
   /** Prior turns render their question in normal flow (no sticky stacking). */
@@ -881,8 +983,20 @@ function ResponseContent({
   response: ChatResponseBody
   setDrafts: ChatKnowledgeDraftSetter
   state: RequestState
+  /** Stable id for Context turn focus (assistant message id when known). */
+  turnId?: string
 }) {
   const isStreaming = state === 'loading'
+  const resolvedDetailsInstanceId =
+    detailsInstanceId ??
+    `live-${response.session_id ?? 'current'}-${question ?? 'q'}`
+  const resolvedTurnId =
+    turnId ??
+    `live-${response.session_id ?? 'current'}`
+  const canViewTurnDetails =
+    onViewTurnDetails !== undefined &&
+    !isStreaming &&
+    (response.answer.trim().length > 0 || state === 'succeeded')
   const processedLifecycleEvents = useRef<Set<string>>(new Set())
   const lifecycleEvents = useMemo(
     () => extractKnowledgeLifecycleEvents(response.tool_calls),
@@ -1111,6 +1225,45 @@ function ResponseContent({
                   Regenerate
                 </Button>
               ) : null}
+              {canViewTurnDetails ? (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <Button
+                      aria-label="Más opciones de respuesta"
+                      className="size-7 shrink-0 rounded-md p-0 text-muted-foreground hover:bg-primary/15 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      data-slot="answer-actions-trigger"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <MoreVertical aria-hidden="true" className="size-3.5" />
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content
+                      align="end"
+                      className="z-50 grid min-w-[140px] gap-0.5 rounded-md border border-border bg-popover p-1 text-sm tracking-tight text-popover-foreground shadow-[var(--shadow-popover)]"
+                      data-slot="answer-actions-menu"
+                      onCloseAutoFocus={(event) => event.preventDefault()}
+                      sideOffset={4}
+                    >
+                      <DropdownMenu.Item
+                        className="px-3 py-1.5 text-left"
+                        data-slot="answer-view-details"
+                        onClick={() => {
+                          onViewTurnDetails?.({
+                            detailsInstanceId: resolvedDetailsInstanceId,
+                            question: question ?? '',
+                            turnId: resolvedTurnId,
+                          })
+                        }}
+                      >
+                        Ver detalles
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
+              ) : null}
             </div>
           </div>
           {response.answer.trim().length > 0 ? (
@@ -1150,7 +1303,7 @@ function ResponseContent({
               tone="neutral"
             >
               No sources cited. The answer may be general knowledge or retrieval
-              returned nothing useful — verify before trusting project claims.
+              returned nothing useful — verify before trusting workspace claims.
             </Callout>
           ) : null}
           {/* Citation chips live inline in MarkdownAnswer (doc-N). Full
@@ -1161,10 +1314,7 @@ function ResponseContent({
 
       {hasStepDetails ? (
         <ChatPipelineSteps
-          instanceId={
-            detailsInstanceId ??
-            `live-${response.session_id ?? 'current'}-${question ?? 'q'}`
-          }
+          instanceId={resolvedDetailsInstanceId}
           isStreaming={isStreaming}
           sourceCount={response.citations.length}
           steps={steps}

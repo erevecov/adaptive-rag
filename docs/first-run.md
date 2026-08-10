@@ -43,7 +43,7 @@ Ejecuta el camino completo authoring -> ingestion -> indexing -> cited chat:
 uv run adaptive-rag first-run smoke
 ```
 
-El comando crea un project, crea una source Markdown, encola y procesa un job
+El comando crea un workspace, crea una source Markdown, encola y procesa un job
 `ingest_source`, crea chunks, genera `contextual_summary`, persiste embeddings
 densos fake y pregunta al chat local. La salida es JSON machine-readable.
 Campos esperados:
@@ -51,7 +51,7 @@ Campos esperados:
 ```json
 {
   "status": "succeeded",
-  "project": {"id": "...", "name": "Adaptive RAG First Run"},
+  "workspace": {"id": "...", "name": "Adaptive RAG First Run"},
   "source": {"id": "...", "external_id": "first-run.md"},
   "job": {"id": "...", "status": "succeeded"},
   "document_version_id": "...",
@@ -68,7 +68,7 @@ Para usar contenido propio sin fixtures internas:
 
 ```bash
 uv run adaptive-rag first-run smoke \
-  --project-name "My local corpus" \
+  --workspace-name "My local corpus" \
   --source-external-id "notes.md" \
   --content "# Notes
 
@@ -81,9 +81,9 @@ My local evidence lives here." \
 El reporte incluye `next_commands`. Tambien puedes inspeccionar manualmente:
 
 ```bash
-uv run adaptive-rag sources list --project-id <project-id>
-uv run adaptive-rag jobs list --project-id <project-id>
-uv run adaptive-rag chat ask --project-id <project-id> --message "What did I ingest?"
+uv run adaptive-rag sources list --workspace-id <workspace-id>
+uv run adaptive-rag jobs list --workspace-id <workspace-id>
+uv run adaptive-rag chat ask --workspace-id <workspace-id> --message "What did I ingest?"
 ```
 
 ## Opt-in
@@ -100,5 +100,5 @@ red, credenciales o presupuesto; el smoke default de este runbook no.
 - Si el smoke falla con `first-run ingestion did not process`, revisa el campo
   `last_error` del job con `adaptive-rag jobs show`.
 - Si el smoke falla con `first-run chat returned no citations`, ejecuta otra
-  vez con contenido mas explicito o revisa que el proyecto tenga chunks con
+  vez con contenido mas explicito o revisa que el workspace tenga chunks con
   embeddings.

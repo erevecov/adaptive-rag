@@ -17,16 +17,16 @@ from adaptive_rag.auth import hash_access_token
 from adaptive_rag.chat import ChatRequest
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
-    Project,
-    ProjectMembership,
     User,
     UserAccessToken,
     UserMemory,
+    Workspace,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
@@ -40,10 +40,10 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
             UserMemory.__table__,
         ],
     )
@@ -83,10 +83,10 @@ def _bearer(token: str) -> dict[str, str]:
 
 def test_propose_list_approve_and_chat_injection_path() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Mem API")
+    workspace = WorkspaceRepository(session).create(name="Mem API")
     user = _create_user(session, login="mem@example.com", token="mem-token")
-    ProjectMembershipRepository(session).upsert_membership(
-        project_id=project.id,
+    WorkspaceMembershipRepository(session).upsert_membership(
+        workspace_id=workspace.id,
         user_id=user.id,
         role="contributor",
     )
@@ -102,13 +102,16 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
     proposed = client.post(
         "/users/me/memories",
         headers=_bearer("mem-token"),
-        json={"content": "  Prefer concise answers  ", "project_id": str(project.id)},
+        json={
+            "content": "  Prefer concise answers  ",
+            "workspace_id": str(workspace.id),
+        },
     )
     assert proposed.status_code == 201, proposed.text
     body = proposed.json()
     assert body["status"] == "proposed"
     assert body["content"] == "Prefer concise answers"
-    assert body["project_id"] == str(project.id)
+    assert body["workspace_id"] == str(workspace.id)
     memory_id = body["id"]
 
     listed = client.get("/users/me/memories", headers=_bearer("mem-token"))
@@ -119,12 +122,12 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
 
     # Chat inject must not include proposed memories
     request = ChatRequest(
-        project_id=project.id,
+        workspace_id=workspace.id,
         message="Hello",
         user_id=user.id,
     )
     not_injected = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=project.id
+        session, request=request, user_id=user.id, workspace_id=workspace.id
     )
     assert not_injected.message == "Hello"
     assert not_injected.user_memory is None
@@ -137,7 +140,7 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
     assert approved.json()["status"] == "approved"
 
     injected = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=project.id
+        session, request=request, user_id=user.id, workspace_id=workspace.id
     )
     # Raw user turn must stay untouched for audit/history/condenser.
     assert injected.message == "Hello"
@@ -236,9 +239,9 @@ def test_empty_content_validation() -> None:
     assert whitespace.status_code == 422
 
 
-def test_propose_project_scoped_without_membership_forbidden() -> None:
+def test_propose_workspace_scoped_without_membership_forbidden() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Secret Project")
+    workspace = WorkspaceRepository(session).create(name="Secret Workspace")
     _create_user(session, login="outsider@example.com", token="out-token")
     session.commit()
     client = _client(session=session)
@@ -247,25 +250,25 @@ def test_propose_project_scoped_without_membership_forbidden() -> None:
         "/users/me/memories",
         headers=_bearer("out-token"),
         json={
-            "content": "Inject into foreign project",
-            "project_id": str(project.id),
+            "content": "Inject into foreign workspace",
+            "workspace_id": str(workspace.id),
         },
     )
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project access required"
+    assert denied.json()["detail"] == "workspace access required"
 
     listed = client.get("/users/me/memories", headers=_bearer("out-token"))
     assert listed.status_code == 200
     assert listed.json()["items"] == []
 
 
-def test_approve_project_scoped_without_membership_forbidden() -> None:
+def test_approve_workspace_scoped_without_membership_forbidden() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Revoked Access")
+    workspace = WorkspaceRepository(session).create(name="Revoked Access")
     user = _create_user(session, login="member@example.com", token="mem-token")
-    memberships = ProjectMembershipRepository(session)
+    memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=user.id,
         role="contributor",
     )
@@ -275,12 +278,12 @@ def test_approve_project_scoped_without_membership_forbidden() -> None:
     proposed = client.post(
         "/users/me/memories",
         headers=_bearer("mem-token"),
-        json={"content": "Project preference", "project_id": str(project.id)},
+        json={"content": "Workspace preference", "workspace_id": str(workspace.id)},
     )
     assert proposed.status_code == 201, proposed.text
     memory_id = proposed.json()["id"]
 
-    assert memberships.remove_membership(project_id=project.id, user_id=user.id)
+    assert memberships.remove_membership(workspace_id=workspace.id, user_id=user.id)
     session.commit()
 
     denied = client.post(
@@ -288,22 +291,22 @@ def test_approve_project_scoped_without_membership_forbidden() -> None:
         headers=_bearer("mem-token"),
     )
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "project access required"
+    assert denied.json()["detail"] == "workspace access required"
 
     request = ChatRequest(
-        project_id=project.id,
+        workspace_id=workspace.id,
         message="Hello",
         user_id=user.id,
     )
     not_injected = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=project.id
+        session, request=request, user_id=user.id, workspace_id=workspace.id
     )
     assert not_injected.user_memory is None
 
 
-def test_superadmin_can_propose_project_scoped_without_membership() -> None:
+def test_superadmin_can_propose_workspace_scoped_without_membership() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Any Project")
+    workspace = WorkspaceRepository(session).create(name="Any Workspace")
     _create_user(
         session,
         login="admin@example.com",
@@ -316,7 +319,7 @@ def test_superadmin_can_propose_project_scoped_without_membership() -> None:
     proposed = client.post(
         "/users/me/memories",
         headers=_bearer("admin-token"),
-        json={"content": "Admin note", "project_id": str(project.id)},
+        json={"content": "Admin note", "workspace_id": str(workspace.id)},
     )
     assert proposed.status_code == 201, proposed.text
     memory_id = proposed.json()["id"]
@@ -367,12 +370,12 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
     assert conflict.status_code == 409
 
     request = ChatRequest(
-        project_id=uuid4(),
+        workspace_id=uuid4(),
         message="Hello",
         user_id=user.id,
     )
     injected = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=None
+        session, request=request, user_id=user.id, workspace_id=None
     )
     assert injected.user_memory is not None
     assert "Edited preference" in injected.user_memory
@@ -385,7 +388,7 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
     assert removed.json()["status"] == "rejected"
 
     cleared = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=None
+        session, request=request, user_id=user.id, workspace_id=None
     )
     assert cleared.user_memory is None
 
@@ -397,7 +400,7 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
     assert restored.json()["status"] == "approved"
 
     reinjected = _with_approved_user_memory(
-        session, request=request, user_id=user.id, project_id=None
+        session, request=request, user_id=user.id, workspace_id=None
     )
     assert reinjected.user_memory is not None
     assert "Edited preference" in reinjected.user_memory

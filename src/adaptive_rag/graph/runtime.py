@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from adaptive_rag.config.settings import Settings, get_settings
 from adaptive_rag.graph.indexer import (
-    ProjectGraphLoader,
-    load_project_graph_from_database,
+    WorkspaceGraphLoader,
+    load_workspace_graph_from_database,
 )
 from adaptive_rag.graph.neo4j import (
     Neo4jDriverFactory,
@@ -25,7 +25,7 @@ def get_graph_store(
     settings: Settings | None = None,
     *,
     driver_factory: Neo4jDriverFactory | None = None,
-    project_graph_loader: ProjectGraphLoader | None = None,
+    workspace_graph_loader: WorkspaceGraphLoader | None = None,
 ) -> GraphStore:
     runtime_settings = settings or get_settings()
     if runtime_settings.graph_store == "disabled":
@@ -43,7 +43,8 @@ def get_graph_store(
         ) from exc
     return Neo4jGraphStore(
         driver=driver,
-        project_graph_loader=project_graph_loader or load_project_graph_from_database,
+        workspace_graph_loader=workspace_graph_loader
+        or load_workspace_graph_from_database,
     )
 
 

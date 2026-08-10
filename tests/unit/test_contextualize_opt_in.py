@@ -10,7 +10,7 @@ from adaptive_rag.contextualization import (
     OptInLlmContextualizer,
 )
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import ChunkRepository, DocumentRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -20,7 +20,7 @@ def _session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -31,22 +31,22 @@ def _session():
 
 
 def _seed(session, text: str = "# Title\n\nBody chunk for contextualization A/B."):
-    project = authoring.create_project(session, name="Ctx")
+    workspace = authoring.create_workspace(session, name="Ctx")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="c.md",
         extra_metadata={"content": text},
     )
     doc_repo = DocumentRepository(session)
     document = doc_repo.create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = doc_repo.create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -56,7 +56,7 @@ def _seed(session, text: str = "# Title\n\nBody chunk for contextualization A/B.
         extraction_metadata={},
     )
     ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -65,18 +65,18 @@ def _seed(session, text: str = "# Title\n\nBody chunk for contextualization A/B.
         chunker_metadata={"chunker_version": "test"},
     )
     session.commit()
-    return project, version
+    return workspace, version
 
 
 def test_opt_in_llm_differs_from_deterministic() -> None:
     session = _session()
-    project, version = _seed(session)
+    workspace, version = _seed(session)
     chunks = ChunkRepository(session).list_by_document_version(
-        project_id=project.id, document_version_id=version.id
+        workspace_id=workspace.id, document_version_id=version.id
     )
     chunk = chunks[0]
     request_kwargs = dict(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         force=True,
     )
@@ -101,10 +101,10 @@ def test_opt_in_llm_differs_from_deterministic() -> None:
 
 def test_ab_compare_reports_differences() -> None:
     session = _session()
-    project, version = _seed(session)
+    workspace, version = _seed(session)
     report = compare_contextualizers(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     assert report["chunk_count"] == 1

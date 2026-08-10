@@ -117,7 +117,7 @@ class RecordingKnowledgeProposalTool:
 
 
 def test_qwen_chat_runner_executes_retrieval_tool_and_returns_citations() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
         [_retrieval_result(chunk_id=chunk_id, snippet="Alpha smoke evidence")]
@@ -136,17 +136,17 @@ def test_qwen_chat_runner_executes_retrieval_tool_and_returns_citations() -> Non
 
     output = QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
         ),
-        _tools(project_id=project_id, retrieval=retrieval, default_limit=2),
+        _tools(workspace_id=workspace_id, retrieval=retrieval, default_limit=2),
     )
 
     assert retrieval.requests == [
         RetrievalSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query="alpha evidence",
             limit=2,
             metadata_filter=None,
@@ -165,7 +165,7 @@ def test_qwen_chat_runner_executes_retrieval_tool_and_returns_citations() -> Non
 
 
 def test_qwen_chat_runner_executes_commit_knowledge_tool_when_requested() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     knowledge = RecordingKnowledgeProposalTool()
     client = RecordingChatClient(
         [
@@ -187,13 +187,13 @@ def test_qwen_chat_runner_executes_commit_knowledge_tool_when_requested() -> Non
 
     output = QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="Propose this as knowledge: Document this deployment exception.",
             retrieval_limit=2,
             metadata_filter=None,
         ),
         _tools(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval=RecordingRetrievalService([]),
             default_limit=2,
             knowledge=knowledge,
@@ -225,7 +225,7 @@ def test_qwen_chat_runner_executes_commit_knowledge_tool_when_requested() -> Non
 
 
 def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     knowledge = RecordingKnowledgeProposalTool()
     client = RecordingChatClient(
         [
@@ -251,7 +251,7 @@ def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
         ]
     )
     tools = _tools(
-        project_id=project_id,
+        workspace_id=workspace_id,
         retrieval=RecordingRetrievalService([]),
         default_limit=2,
         knowledge=knowledge,
@@ -259,7 +259,7 @@ def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
 
     QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="Refine draft-33333333.",
             retrieval_limit=2,
             metadata_filter=None,
@@ -268,7 +268,7 @@ def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
     )
     QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="Approve draft-33333333.",
             retrieval_limit=2,
             metadata_filter=None,
@@ -277,7 +277,7 @@ def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
     )
     QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="Cancel draft-44444444.",
             retrieval_limit=2,
             metadata_filter=None,
@@ -293,7 +293,7 @@ def test_qwen_chat_runner_executes_knowledge_lifecycle_tools() -> None:
 
 
 def test_qwen_chat_runner_rejects_non_json_final_response() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     client = RecordingChatClient([_final_response("plain text")])
 
     with pytest.raises(
@@ -302,13 +302,13 @@ def test_qwen_chat_runner_rejects_non_json_final_response() -> None:
     ):
         QwenChatRunner(model_name="qwen-plus", client=client).run(
             ChatRunnerRequest(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 message="What supports alpha?",
                 retrieval_limit=2,
                 metadata_filter=None,
             ),
             _tools(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 retrieval=RecordingRetrievalService([]),
                 default_limit=2,
             ),
@@ -316,7 +316,7 @@ def test_qwen_chat_runner_rejects_non_json_final_response() -> None:
 
 
 def test_qwen_chat_runner_parses_fenced_json_answer_contract() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     fenced = (
         "Here is the result:\n"
@@ -330,13 +330,13 @@ def test_qwen_chat_runner_parses_fenced_json_answer_contract() -> None:
 
     output = QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
         ),
         _tools(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval=RecordingRetrievalService([]),
             default_limit=2,
         ),
@@ -347,7 +347,7 @@ def test_qwen_chat_runner_parses_fenced_json_answer_contract() -> None:
 
 
 def test_qwen_chat_runner_parses_json_with_think_tags_and_preamble() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     payload = {
         "answer": "Stripped think answer",
         "cited_chunk_ids": [],
@@ -362,13 +362,13 @@ def test_qwen_chat_runner_parses_json_with_think_tags_and_preamble() -> None:
 
     output = QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
         ),
         _tools(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval=RecordingRetrievalService([]),
             default_limit=2,
         ),
@@ -379,7 +379,7 @@ def test_qwen_chat_runner_parses_json_with_think_tags_and_preamble() -> None:
 
 
 def test_qwen_chat_runner_parses_multipart_text_content() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     content_parts = [
         {"type": "text", "text": '{"answer":"Multipart answer",'},
         {"type": "text", "text": '"cited_chunk_ids":[]}'},
@@ -401,13 +401,13 @@ def test_qwen_chat_runner_parses_multipart_text_content() -> None:
 
     output = QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
         ),
         _tools(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval=RecordingRetrievalService([]),
             default_limit=2,
         ),
@@ -419,7 +419,7 @@ def test_qwen_chat_runner_parses_multipart_text_content() -> None:
 
 def _tools(
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     retrieval: RecordingRetrievalService,
     default_limit: int,
     knowledge: RecordingKnowledgeProposalTool | None = None,
@@ -427,7 +427,7 @@ def _tools(
     return ChatTools(
         retrieval=ChatRetrievalTool(
             retrieval_service=retrieval,
-            project_id=project_id,
+            workspace_id=workspace_id,
             default_limit=default_limit,
             default_metadata_filter=None,
         ),
@@ -508,7 +508,7 @@ def _retrieval_result(
 
 
 def test_qwen_chat_runner_injects_user_memory_into_system_not_user() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     retrieval = RecordingRetrievalService(
         [_retrieval_result(chunk_id=chunk_id, snippet="Alpha smoke evidence")]
@@ -527,13 +527,13 @@ def test_qwen_chat_runner_injects_user_memory_into_system_not_user() -> None:
 
     QwenChatRunner(model_name="qwen-plus", client=client).run(
         ChatRunnerRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=2,
             metadata_filter=None,
             user_memory=memory,
         ),
-        _tools(project_id=project_id, retrieval=retrieval, default_limit=2),
+        _tools(workspace_id=workspace_id, retrieval=retrieval, default_limit=2),
     )
 
     messages = client.requests[0]["messages"]

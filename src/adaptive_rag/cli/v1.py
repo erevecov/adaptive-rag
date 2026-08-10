@@ -16,10 +16,10 @@ from adaptive_rag.cli.dependencies import (
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.first_run import (
     DEFAULT_CONTENT,
-    DEFAULT_PROJECT_NAME,
     DEFAULT_QUESTION,
     DEFAULT_SOURCE_EXTERNAL_ID,
     DEFAULT_WORKER_ID,
+    DEFAULT_WORKSPACE_NAME,
     FirstRunError,
 )
 from adaptive_rag.v1_quality_gate import (
@@ -32,10 +32,10 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command("quality-gate")
 def quality_gate(
-    project_name: Annotated[
+    workspace_name: Annotated[
         str,
-        typer.Option("--project-name"),
-    ] = DEFAULT_PROJECT_NAME,
+        typer.Option("--workspace-name"),
+    ] = DEFAULT_WORKSPACE_NAME,
     source_external_id: Annotated[
         str,
         typer.Option("--source-external-id"),
@@ -64,7 +64,7 @@ def quality_gate(
                 dense_embedding_provider=get_cli_dense_embedding_provider(),
                 sparse_embedding_provider=get_cli_sparse_embedding_provider(),
                 chat_runner=get_cli_chat_runner(),
-                project_name=project_name,
+                workspace_name=workspace_name,
                 source_external_id=source_external_id,
                 content=content,
                 question=question,

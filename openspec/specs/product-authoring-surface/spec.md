@@ -3,78 +3,78 @@
 ## Purpose
 TBD - created by archiving change m23-product-authoring-surface. Update Purpose after archive.
 ## Requirements
-### Requirement: Projects are authored through public surfaces
+### Requirement: Workspaces are authored through public surfaces
 
-The system MUST let authorized users create, list and inspect projects without
-direct SQL, private fixtures or test helpers. Project creation is restricted to
-`superadmin`; project listing remains available to authenticated users as a
+The system MUST let authorized users create, list and inspect workspaces without
+direct SQL, private fixtures or test helpers. Workspace creation is restricted to
+`superadmin`; workspace listing remains available to authenticated users as a
 discovery surface.
 
-#### Scenario: Superadmin creates a dense_sparse project
+#### Scenario: Superadmin creates a dense_sparse workspace
 
 - **GIVEN** the current user is `superadmin`
-- **WHEN** they create a project through API, CLI or frontend
-- **THEN** the project is persisted with a stable `id`
+- **WHEN** they create a workspace through API, CLI or frontend
+- **THEN** the workspace is persisted with a stable `id`
 - **AND** `embedding_mode` defaults to `dense_sparse`
 - **AND** `retrieval_contextualization_enabled` defaults according to the
   existing domain contract
-- **AND** the response includes public project fields without provider secrets
+- **AND** the response includes public workspace fields without provider secrets
 
-#### Scenario: Non-superadmin cannot create project
+#### Scenario: Non-superadmin cannot create workspace
 
 - **GIVEN** the current user is not `superadmin`
-- **WHEN** they create a project through API, CLI or frontend
+- **WHEN** they create a workspace through API, CLI or frontend
 - **THEN** the operation is rejected with a stable authorization error
-- **AND** no project row is created
+- **AND** no workspace row is created
 
-#### Scenario: User lists projects deterministically with access status
+#### Scenario: User lists workspaces deterministically with access status
 
-- **WHEN** an authenticated user lists projects through API, CLI or frontend
+- **WHEN** an authenticated user lists workspaces through API, CLI or frontend
 - **THEN** the results are ordered deterministically
-- **AND** each item includes public project fields, effective role and access
+- **AND** each item includes public workspace fields, effective role and access
   status for the current user
 - **AND** no provider secrets, API keys or internal connection settings are
   returned
 
-#### Scenario: Missing or locked project is explicit
+#### Scenario: Missing or locked workspace is explicit
 
-- **WHEN** a user asks for a project id that does not exist
+- **WHEN** a user asks for a workspace id that does not exist
 - **THEN** API returns 404
 - **AND** CLI exits non-zero with a stable user-facing error
 - **AND** frontend preserves input state and shows an error state
 
-- **WHEN** a user asks for a project id that exists but is not accessible to
+- **WHEN** a user asks for a workspace id that exists but is not accessible to
   them
-- **THEN** project-scoped tool routes return a stable access error
-- **AND** do not return project-private data
+- **THEN** workspace-scoped tool routes return a stable access error
+- **AND** do not return workspace-private data
 
-### Requirement: Sources are authored within a project
+### Requirement: Sources are authored within a workspace
 
-The system MUST let users with project role `contributor` or higher create,
-list and inspect sources for an existing accessible project without direct SQL,
+The system MUST let users with workspace role `contributor` or higher create,
+list and inspect sources for an existing accessible workspace without direct SQL,
 private fixtures or test helpers.
 
 #### Scenario: Contributor creates a text source
 
-- **GIVEN** the current user has project role `contributor` or `admin`
+- **GIVEN** the current user has workspace role `contributor` or `admin`
 - **WHEN** they create a `markdown`, `text` or `txt` source
-- **THEN** the source is persisted under the requested `project_id`
+- **THEN** the source is persisted under the requested `workspace_id`
 - **AND** the request requires non-empty text content that is persisted in
   `extra_metadata.content`
 
 #### Scenario: Viewer cannot create source directly
 
-- **GIVEN** the current user has project role `viewer`
+- **GIVEN** the current user has workspace role `viewer`
 - **WHEN** they create a source directly
 - **THEN** the request is rejected
 - **AND** they can only propose knowledge through the proposal flow
 
-#### Scenario: Source reads stay project-scoped and access-scoped
+#### Scenario: Source reads stay workspace-scoped and access-scoped
 
-- **WHEN** a user lists or gets sources for an accessible project
-- **THEN** only sources belonging to that `project_id` are returned
-- **AND** a source id from another project is treated as not found
-- **AND** a source in a locked project is not returned
+- **WHEN** a user lists or gets sources for an accessible workspace
+- **THEN** only sources belonging to that `workspace_id` are returned
+- **AND** a source id from another workspace is treated as not found
+- **AND** a source in a locked workspace is not returned
 
 ### Requirement: Authoring does not run ingestion jobs
 
@@ -112,18 +112,18 @@ state.
 - **THEN** the source is persisted
 - **AND** no ingestion job is created by authoring alone
 
-### Requirement: Authoring polish keeps project and source work compact
+### Requirement: Authoring polish keeps workspace and source work compact
 
 The frontend authoring surface MUST let a local user create, select and inspect
-projects and sources from a compact workspace without direct SQL or hidden
+workspaces and sources from a compact workspace without direct SQL or hidden
 fixtures.
 
-#### Scenario: Project selection drives the workspace
+#### Scenario: Workspace selection drives the workspace
 
-- **WHEN** a user creates or selects a project in the polished frontend
-- **THEN** the selected project id is visible enough to orient the workflow
+- **WHEN** a user creates or selects a workspace in the polished frontend
+- **THEN** the selected workspace id is visible enough to orient the workflow
 - **AND** downstream authoring, ingestion, chat, history and observability
-  requests use that selected project
+  requests use that selected workspace
 
 #### Scenario: Source authoring shows the next explicit step
 
@@ -133,20 +133,20 @@ fixtures.
   happened until the public ingestion workflow reports it
 - **AND** it offers the explicit ingestion next step when appropriate
 
-### Requirement: Projects can be updated and soft-deleted
+### Requirement: Workspaces can be updated and soft-deleted
 
-The system MUST allow authorized clients to rename projects and soft-delete them
-so removed projects leave the default list while remaining auditable.
+The system MUST allow authorized clients to rename workspaces and soft-delete them
+so removed workspaces leave the default list while remaining auditable.
 
-#### Scenario: Admin renames project
+#### Scenario: Admin renames workspace
 
-- **WHEN** a project admin PATCHes a project name
-- **THEN** the project name is updated
+- **WHEN** a workspace admin PATCHes a workspace name
+- **THEN** the workspace name is updated
 
-#### Scenario: Superadmin soft-deletes project
+#### Scenario: Superadmin soft-deletes workspace
 
-- **WHEN** a superadmin DELETEs a project
-- **THEN** the project gains `deleted_at`
+- **WHEN** a superadmin DELETEs a workspace
+- **THEN** the workspace gains `deleted_at`
 - **AND** subsequent GET/list omit it
 
 ### Requirement: Sources can be updated and soft-deleted with index cascade
@@ -161,7 +161,7 @@ sources, cascading removal of searchable index rows for that source.
 
 #### Scenario: Admin soft-deletes source and cascades index
 
-- **WHEN** a project admin DELETEs a source
+- **WHEN** a workspace admin DELETEs a source
 - **THEN** the source is soft-deleted
 - **AND** documents/chunks/embeddings for that source are removed
 

@@ -19,8 +19,8 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -41,7 +41,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -54,10 +54,10 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _run_family(session, *, project_id, dense, sparse):
+def _run_family(session, *, workspace_id, dense, sparse):
     return ingestion_ops.run_ingestion_family_until_idle(
         session,
-        project_id=project_id,
+        workspace_id=workspace_id,
         worker_id="m45-worker",
         dense_embedding_provider=dense,
         sparse_embedding_provider=sparse,
@@ -70,18 +70,20 @@ def test_pdf_source_public_path_to_cited_chat() -> None:
     sparse = FakeSparseEmbeddingProvider()
     pdf_b64 = base64.b64encode((FIXTURES / "sample.pdf").read_bytes()).decode("ascii")
 
-    project = authoring.create_project(session, name="M45 PDF Demo")
+    workspace = authoring.create_workspace(session, name="M45 PDF Demo")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="pdf",
         external_id="sample.pdf",
         extra_metadata={"content_base64": pdf_b64, "filename": "sample.pdf"},
     )
     ingestion_ops.enqueue_source_ingestion(
-        session, project_id=project.id, source_id=source.id
+        session, workspace_id=workspace.id, source_id=source.id
     )
-    reports = _run_family(session, project_id=project.id, dense=dense, sparse=sparse)
+    reports = _run_family(
+        session, workspace_id=workspace.id, dense=dense, sparse=sparse
+    )
 
     assert len(reports) == 2
     assert reports[0].job_type == INGEST_SOURCE_JOB_TYPE
@@ -105,7 +107,7 @@ def test_pdf_source_public_path_to_cited_chat() -> None:
         ),
     ).respond(
         ChatRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             message="What is the distinctive PDF phrase ALPHA-PDF-442 about?",
             retrieval_limit=5,
         )
@@ -121,22 +123,22 @@ def test_docx_source_public_path_to_cited_chat() -> None:
     session = _make_session()
     dense = FakeDenseEmbeddingProvider()
     sparse = FakeSparseEmbeddingProvider()
-    docx_b64 = base64.b64encode((FIXTURES / "sample.docx").read_bytes()).decode(
-        "ascii"
-    )
+    docx_b64 = base64.b64encode((FIXTURES / "sample.docx").read_bytes()).decode("ascii")
 
-    project = authoring.create_project(session, name="M45 DOCX Demo")
+    workspace = authoring.create_workspace(session, name="M45 DOCX Demo")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="docx",
         external_id="sample.docx",
         extra_metadata={"content_base64": docx_b64},
     )
     ingestion_ops.enqueue_source_ingestion(
-        session, project_id=project.id, source_id=source.id
+        session, workspace_id=workspace.id, source_id=source.id
     )
-    reports = _run_family(session, project_id=project.id, dense=dense, sparse=sparse)
+    reports = _run_family(
+        session, workspace_id=workspace.id, dense=dense, sparse=sparse
+    )
 
     assert reports[0].status == "processed"
     assert reports[1].status == "processed"
@@ -154,7 +156,7 @@ def test_docx_source_public_path_to_cited_chat() -> None:
         ),
     ).respond(
         ChatRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             message="What is the distinctive DOCX phrase ALPHA-DOCX-991 about?",
             retrieval_limit=5,
         )

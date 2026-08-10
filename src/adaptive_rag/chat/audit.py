@@ -35,7 +35,7 @@ class ChatAuditWriter(Protocol):
 
     def record_message(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         role: str,
         content: str,
@@ -46,7 +46,7 @@ class ChatAuditWriter(Protocol):
 
     def record_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -60,7 +60,7 @@ class ChatAuditWriter(Protocol):
 
     def start_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -72,7 +72,7 @@ class ChatAuditWriter(Protocol):
 
     def complete_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         query: str,
@@ -87,7 +87,7 @@ class ChatAuditWriter(Protocol):
 
     def fail_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         error_message: str,
@@ -98,7 +98,7 @@ class ChatAuditWriter(Protocol):
 
     def start_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_name: str,
         arguments_json: Mapping[str, Any] | None = None,
@@ -108,7 +108,7 @@ class ChatAuditWriter(Protocol):
 
     def complete_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         result_summary_json: Mapping[str, Any],
@@ -119,7 +119,7 @@ class ChatAuditWriter(Protocol):
 
     def fail_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
@@ -128,13 +128,13 @@ class ChatAuditWriter(Protocol):
         """Marca una llamada generica a tool como fallida."""
         ...
 
-    def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
+    def succeed_session(self, workspace_id: UUID, session_id: UUID) -> None:
         """Marca una sesion como exitosa."""
         ...
 
     def fail_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str,
     ) -> None:
@@ -143,7 +143,7 @@ class ChatAuditWriter(Protocol):
 
     def cancel_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str = "client_disconnected",
     ) -> None:
@@ -152,7 +152,7 @@ class ChatAuditWriter(Protocol):
 
     def record_provider_usage(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         records: Sequence[ProviderCallRecord],
     ) -> None:
@@ -162,7 +162,7 @@ class ChatAuditWriter(Protocol):
     def list_history_turns(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         limit: int,
     ) -> list[tuple[str, str]]:
@@ -185,7 +185,7 @@ class NullChatAuditWriter:
 
     def record_message(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         role: str,
         content: str,
@@ -195,7 +195,7 @@ class NullChatAuditWriter:
 
     def record_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -208,7 +208,7 @@ class NullChatAuditWriter:
 
     def start_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -219,7 +219,7 @@ class NullChatAuditWriter:
 
     def complete_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         query: str,
@@ -233,7 +233,7 @@ class NullChatAuditWriter:
 
     def fail_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         error_message: str,
@@ -243,7 +243,7 @@ class NullChatAuditWriter:
 
     def start_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_name: str,
         arguments_json: Mapping[str, Any] | None = None,
@@ -252,7 +252,7 @@ class NullChatAuditWriter:
 
     def complete_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         result_summary_json: Mapping[str, Any],
@@ -262,7 +262,7 @@ class NullChatAuditWriter:
 
     def fail_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
@@ -270,12 +270,12 @@ class NullChatAuditWriter:
     ) -> None:
         return None
 
-    def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
+    def succeed_session(self, workspace_id: UUID, session_id: UUID) -> None:
         return None
 
     def fail_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str,
     ) -> None:
@@ -283,7 +283,7 @@ class NullChatAuditWriter:
 
     def cancel_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str = "client_disconnected",
     ) -> None:
@@ -291,7 +291,7 @@ class NullChatAuditWriter:
 
     def record_provider_usage(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         records: Sequence[ProviderCallRecord],
     ) -> None:
@@ -300,7 +300,7 @@ class NullChatAuditWriter:
     def list_history_turns(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         limit: int,
     ) -> list[tuple[str, str]]:
@@ -327,7 +327,7 @@ class InMemoryChatAuditWriter:
             self.session_id = request.session_id
         event: dict[str, object] = {
             "event": "start_session",
-            "project_id": str(request.project_id),
+            "workspace_id": str(request.workspace_id),
             "message": message,
             "retrieval_limit": request.retrieval_limit,
             "session_id": str(self.session_id),
@@ -343,7 +343,7 @@ class InMemoryChatAuditWriter:
 
     def record_message(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         role: str,
         content: str,
@@ -364,11 +364,11 @@ class InMemoryChatAuditWriter:
     def list_history_turns(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         limit: int,
     ) -> list[tuple[str, str]]:
-        _ = project_id
+        _ = workspace_id
         turns = [
             (role, content)
             for stored_session_id, role, content in self.messages
@@ -380,7 +380,7 @@ class InMemoryChatAuditWriter:
 
     def record_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -405,7 +405,7 @@ class InMemoryChatAuditWriter:
 
     def start_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         query: str,
         limit: int,
@@ -416,7 +416,7 @@ class InMemoryChatAuditWriter:
 
     def complete_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         query: str,
@@ -427,7 +427,7 @@ class InMemoryChatAuditWriter:
         strategy: str = DEFAULT_CHAT_RETRIEVAL_STRATEGY,
     ) -> None:
         self.record_retrieval_tool(
-            project_id,
+            workspace_id,
             session_id,
             query,
             limit,
@@ -439,7 +439,7 @@ class InMemoryChatAuditWriter:
 
     def fail_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         error_message: str,
@@ -455,7 +455,7 @@ class InMemoryChatAuditWriter:
 
     def start_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_name: str,
         arguments_json: Mapping[str, Any] | None = None,
@@ -473,7 +473,7 @@ class InMemoryChatAuditWriter:
 
     def complete_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         result_summary_json: Mapping[str, Any],
@@ -490,7 +490,7 @@ class InMemoryChatAuditWriter:
 
     def fail_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
@@ -505,12 +505,12 @@ class InMemoryChatAuditWriter:
             }
         )
 
-    def succeed_session(self, project_id: UUID, session_id: UUID) -> None:
+    def succeed_session(self, workspace_id: UUID, session_id: UUID) -> None:
         self.events.append({"event": "succeed_session"})
 
     def fail_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str,
     ) -> None:
@@ -523,7 +523,7 @@ class InMemoryChatAuditWriter:
 
     def cancel_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str = "client_disconnected",
     ) -> None:
@@ -536,7 +536,7 @@ class InMemoryChatAuditWriter:
 
     def record_provider_usage(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         records: Sequence[ProviderCallRecord],
     ) -> None:
@@ -574,7 +574,7 @@ class SqlAlchemyChatAuditWriter:
     ) -> UUID | None:
         if request.session_id is not None:
             existing = self._chat_audit_repository.get_session(
-                project_id=request.project_id,
+                workspace_id=request.workspace_id,
                 session_id=request.session_id,
                 user_id=request.user_id,
             )
@@ -589,7 +589,7 @@ class SqlAlchemyChatAuditWriter:
             return existing.id
 
         chat_session = self._chat_audit_repository.create_session(
-            project_id=request.project_id,
+            workspace_id=request.workspace_id,
             user_id=request.user_id,
             model_config_json=model_config_json,
             prompt_version=prompt_version,
@@ -599,13 +599,13 @@ class SqlAlchemyChatAuditWriter:
     def list_history_turns(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         limit: int,
     ) -> list[tuple[str, str]]:
         # Push limit into SQL (last N by created_at/id), keep chronological order.
         messages = self._chat_audit_repository.list_messages(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             limit=limit,
         )
@@ -617,7 +617,7 @@ class SqlAlchemyChatAuditWriter:
 
     def record_message(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         role: str,
         content: str,
@@ -626,7 +626,7 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None:
             return None
         message = self._chat_audit_repository.add_message(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             role=role,
             content=content,
@@ -636,7 +636,7 @@ class SqlAlchemyChatAuditWriter:
 
     def record_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         query: str,
         limit: int,
@@ -649,7 +649,7 @@ class SqlAlchemyChatAuditWriter:
             return
 
         tool_call_id = self.start_retrieval_tool(
-            project_id,
+            workspace_id,
             session_id,
             query,
             limit,
@@ -657,7 +657,7 @@ class SqlAlchemyChatAuditWriter:
             strategy,
         )
         self.complete_retrieval_tool(
-            project_id,
+            workspace_id,
             session_id,
             tool_call_id,
             query,
@@ -670,7 +670,7 @@ class SqlAlchemyChatAuditWriter:
 
     def start_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         query: str,
         limit: int,
@@ -681,7 +681,7 @@ class SqlAlchemyChatAuditWriter:
             return None
 
         tool_call = self._chat_audit_repository.start_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             tool_name="retrieval.search",
             arguments_json={
@@ -695,7 +695,7 @@ class SqlAlchemyChatAuditWriter:
 
     def complete_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         query: str,
@@ -710,7 +710,7 @@ class SqlAlchemyChatAuditWriter:
 
         filters_json = serialize_metadata_filter(metadata_filter)
         self._chat_audit_repository.complete_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
             result_summary_json=_retrieval_result_summary(
                 results=results,
@@ -719,7 +719,7 @@ class SqlAlchemyChatAuditWriter:
             latency_ms=latency_ms,
         )
         retrieval_run = self._chat_audit_repository.create_retrieval_run(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             tool_call_id=tool_call_id,
             query=query,
@@ -731,7 +731,7 @@ class SqlAlchemyChatAuditWriter:
         )
         for rank, result in enumerate(results, start=1):
             self._chat_audit_repository.add_retrieved_chunk(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 retrieval_run_id=retrieval_run.id,
                 chunk_id=UUID(result["chunk_id"]),
                 rank=rank,
@@ -745,7 +745,7 @@ class SqlAlchemyChatAuditWriter:
 
     def fail_retrieval_tool(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
@@ -754,7 +754,7 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None or tool_call_id is None:
             return
         self._chat_audit_repository.fail_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
             error_message=error_message,
             latency_ms=latency_ms,
@@ -762,7 +762,7 @@ class SqlAlchemyChatAuditWriter:
 
     def start_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_name: str,
         arguments_json: Mapping[str, Any] | None = None,
@@ -770,7 +770,7 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None:
             return None
         tool_call = self._chat_audit_repository.start_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             tool_name=tool_name,
             arguments_json=arguments_json,
@@ -779,7 +779,7 @@ class SqlAlchemyChatAuditWriter:
 
     def complete_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         result_summary_json: Mapping[str, Any],
@@ -788,7 +788,7 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None or tool_call_id is None:
             return
         self._chat_audit_repository.complete_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
             result_summary_json=result_summary_json,
             latency_ms=latency_ms,
@@ -796,7 +796,7 @@ class SqlAlchemyChatAuditWriter:
 
     def fail_tool_call(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         tool_call_id: UUID | None,
         error_message: str,
@@ -805,51 +805,51 @@ class SqlAlchemyChatAuditWriter:
         if session_id is None or tool_call_id is None:
             return
         self._chat_audit_repository.fail_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
             error_message=error_message,
             latency_ms=latency_ms,
         )
 
-    def succeed_session(self, project_id: UUID, session_id: UUID | None) -> None:
+    def succeed_session(self, workspace_id: UUID, session_id: UUID | None) -> None:
         if session_id is None:
             return
         self._chat_audit_repository.succeed_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
         )
 
     def fail_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         error_message: str,
     ) -> None:
         if session_id is None:
             return
         self._chat_audit_repository.fail_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             error_message=error_message,
         )
 
     def cancel_session(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         error_message: str = "client_disconnected",
     ) -> None:
         if session_id is None:
             return
         self._chat_audit_repository.cancel_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             error_message=error_message,
         )
 
     def record_provider_usage(
         self,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         records: Sequence[ProviderCallRecord],
     ) -> None:
@@ -860,7 +860,7 @@ class SqlAlchemyChatAuditWriter:
             try:
                 with self._session.begin_nested():
                     self._provider_usage_repository.create_from_record(
-                        project_id=project_id,
+                        workspace_id=workspace_id,
                         session_id=session_id,
                         job_id=None,
                         eval_run_id=None,

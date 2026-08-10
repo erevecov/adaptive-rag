@@ -68,7 +68,7 @@ class _EmptyRetrieval:
 def test_chat_service_strips_fabricated_markers_and_secrets() -> None:
     service = ChatService(runner=_MarkerRunner(), retrieval_service=_EmptyRetrieval())
     response = service.respond(
-        ChatRequest(project_id=uuid4(), message="summarize")
+        ChatRequest(workspace_id=uuid4(), message="summarize")
     )
     # max_doc=0 when no structured citations → all doc markers dropped
     assert "[doc-1]" not in response.answer
@@ -79,7 +79,7 @@ def test_chat_service_strips_fabricated_markers_and_secrets() -> None:
 def test_stream_strips_fabricated_markers() -> None:
     service = ChatService(runner=_MarkerRunner(), retrieval_service=_EmptyRetrieval())
     events = list(
-        service.stream(ChatRequest(project_id=uuid4(), message="stream"))
+        service.stream(ChatRequest(workspace_id=uuid4(), message="stream"))
     )
     payload = "\n".join(serialize_chat_stream_event(event) for event in events)
     assert "[doc-7]" not in payload

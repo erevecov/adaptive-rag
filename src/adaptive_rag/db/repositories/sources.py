@@ -15,7 +15,7 @@ from adaptive_rag.db.repositories.filters import SourceFilters
 
 
 class SourceRepository:
-    """Acceso a sources siempre filtrado por `project_id`."""
+    """Acceso a sources siempre filtrado por `workspace_id`."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -23,14 +23,14 @@ class SourceRepository:
     def create(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_type: str,
         external_id: str,
         tags: Sequence[str] | None = None,
         extra_metadata: Mapping[str, Any] | None = None,
     ) -> Source:
         source = Source(
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_type=source_type,
             external_id=external_id,
             tags=list(tags) if tags is not None else None,
@@ -43,12 +43,12 @@ class SourceRepository:
     def list(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: SourceFilters | None = None,
         include_deleted: bool = False,
     ) -> list[Source]:
         active_filters = filters or SourceFilters()
-        statement = select(Source).where(Source.project_id == project_id)
+        statement = select(Source).where(Source.workspace_id == workspace_id)
         if not include_deleted:
             statement = statement.where(Source.deleted_at.is_(None))
 
@@ -84,13 +84,13 @@ class SourceRepository:
     def get(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_id: UUID,
         include_deleted: bool = False,
     ) -> Source | None:
         statement = select(Source).where(
             Source.id == source_id,
-            Source.project_id == project_id,
+            Source.workspace_id == workspace_id,
         )
         if not include_deleted:
             statement = statement.where(Source.deleted_at.is_(None))
@@ -99,13 +99,13 @@ class SourceRepository:
     def get_by_identity(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_type: str,
         external_id: str,
         include_deleted: bool = False,
     ) -> Source | None:
         statement = select(Source).where(
-            Source.project_id == project_id,
+            Source.workspace_id == workspace_id,
             Source.source_type == source_type,
             Source.external_id == external_id,
         )
@@ -116,13 +116,13 @@ class SourceRepository:
     def restore(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_id: UUID,
         tags: Sequence[str] | None = None,
         extra_metadata: Mapping[str, Any] | None = None,
     ) -> Source | None:
         source = self.get(
-            project_id=project_id, source_id=source_id, include_deleted=True
+            workspace_id=workspace_id, source_id=source_id, include_deleted=True
         )
         if source is None or source.deleted_at is None:
             return None
@@ -137,13 +137,13 @@ class SourceRepository:
     def update(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_id: UUID,
         tags: Sequence[str] | None = None,
         extra_metadata: Mapping[str, Any] | None = None,
         external_id: str | None = None,
     ) -> Source | None:
-        source = self.get(project_id=project_id, source_id=source_id)
+        source = self.get(workspace_id=workspace_id, source_id=source_id)
         if source is None:
             return None
         if tags is not None:
@@ -155,8 +155,8 @@ class SourceRepository:
         self._session.flush()
         return source
 
-    def soft_delete(self, *, project_id: UUID, source_id: UUID) -> Source | None:
-        source = self.get(project_id=project_id, source_id=source_id)
+    def soft_delete(self, *, workspace_id: UUID, source_id: UUID) -> Source | None:
+        source = self.get(workspace_id=workspace_id, source_id=source_id)
         if source is None:
             return None
         source.deleted_at = datetime.now(UTC)

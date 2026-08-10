@@ -33,15 +33,15 @@ sin consultar tablas internas ni duplicar logica backend.
 
 #### Scenario: Cliente envia pregunta de chat
 
-- **WHEN** el usuario envia una pregunta desde la UI con `project_id`
-- **THEN** el frontend llama `POST /projects/{project_id}/chat`
+- **WHEN** el usuario envia una pregunta desde la UI con `workspace_id`
+- **THEN** el frontend llama `POST /workspaces/{workspace_id}/chat`
 - **AND** muestra `answer`, `citations`, `tool_calls` y `session_id` cuando
   existan en la respuesta
 
 #### Scenario: Cliente lista sesiones persistidas
 
-- **WHEN** el usuario abre o refresca el historial de un proyecto
-- **THEN** el frontend llama `GET /projects/{project_id}/chat/sessions`
+- **WHEN** el usuario abre o refresca el historial de un workspace
+- **THEN** el frontend llama `GET /workspaces/{workspace_id}/chat/sessions`
 - **AND** renderiza sesiones ordenadas segun el contrato backend
 - **AND** soporta limite/cursor solo mediante parametros publicos del endpoint
 
@@ -49,7 +49,7 @@ sin consultar tablas internas ni duplicar logica backend.
 
 - **WHEN** el usuario selecciona una sesion persistida
 - **THEN** el frontend llama
-  `GET /projects/{project_id}/chat/sessions/{session_id}`
+  `GET /workspaces/{workspace_id}/chat/sessions/{session_id}`
 - **AND** muestra mensajes, tool calls, retrieval runs, citations y provider
   usage disponibles
 - **AND** no re-ejecuta chat, retrieval ni providers
@@ -62,7 +62,7 @@ historial como primera pantalla del frontend.
 #### Scenario: Primera pantalla permite trabajar
 
 - **WHEN** el usuario abre la app frontend
-- **THEN** ve controles para elegir o ingresar `project_id`, enviar una pregunta
+- **THEN** ve controles para elegir o ingresar `workspace_id`, enviar una pregunta
   y revisar sesiones recientes
 - **AND** no se muestra una landing page como pantalla principal
 
@@ -96,12 +96,12 @@ alterar contratos backend fuera del alcance M15.
 The frontend MUST expose a read-only dashboard for chat observability using the
 public API contracts already exposed by the backend.
 
-#### Scenario: User filters observability by project and time range
+#### Scenario: User filters observability by workspace and time range
 
-- **WHEN** the user enters a `project_id`, optional `created_at_from`,
+- **WHEN** the user enters a `workspace_id`, optional `created_at_from`,
   `created_at_to` and `status` filters, then refreshes observability
 - **THEN** the frontend calls
-  `GET /projects/{project_id}/chat/observability/summary`
+  `GET /workspaces/{workspace_id}/chat/observability/summary`
 - **AND** sends only non-empty public query parameters
 - **AND** preserves the filter inputs when the request fails
 
@@ -117,7 +117,7 @@ public API contracts already exposed by the backend.
 #### Scenario: Dashboard renders recent session health read-only
 
 - **WHEN** the dashboard needs a recent session health table
-- **THEN** the frontend may call `GET /projects/{project_id}/chat/sessions`
+- **THEN** the frontend may call `GET /workspaces/{workspace_id}/chat/sessions`
   with public list parameters
 - **AND** displays only session summary fields such as status, counts,
   timestamps and estimated cost
@@ -139,40 +139,40 @@ public API contracts already exposed by the backend.
 - **AND** it does not change retrieval, rerank, provider, streaming or graph
   defaults
 
-### Requirement: Frontend exposes compact project and source authoring
+### Requirement: Frontend exposes compact workspace and source authoring
 
 The frontend MUST expose a compact working surface for creating or selecting a
-project and adding sources before chat, without becoming a marketing page or
+workspace and adding sources before chat, without becoming a marketing page or
 changing backend contracts outside M23.
 
-#### Scenario: User creates or selects a project
+#### Scenario: User creates or selects a workspace
 
-- **WHEN** the user opens the frontend without a known `project_id`
-- **THEN** the UI provides controls to create a project or choose an existing
-  project from the public API
-- **AND** the selected project id is used by chat, history and observability
+- **WHEN** the user opens the frontend without a known `workspace_id`
+- **THEN** the UI provides controls to create a workspace or choose an existing
+  workspace from the public API
+- **AND** the selected workspace id is used by chat, history and observability
   requests
-- **AND** valid user inputs are preserved when project requests fail
+- **AND** valid user inputs are preserved when workspace requests fail
 
 #### Scenario: User adds and reviews sources
 
-- **WHEN** a project is selected
+- **WHEN** a workspace is selected
 - **THEN** the UI provides controls to add supported sources and list existing
-  sources for that project
+  sources for that workspace
 - **AND** source creation does not claim that ingestion or indexing has already
   run
 - **AND** valid user inputs are preserved when source requests fail
 
 ### Requirement: Frontend exposes ingestion job operations
 
-The frontend MUST expose compact ingestion controls alongside project/source
+The frontend MUST expose compact ingestion controls alongside workspace/source
 authoring.
 
 #### Scenario: User enqueues and reviews ingestion jobs
 
-- **WHEN** a project has sources in the authoring view
+- **WHEN** a workspace has sources in the authoring view
 - **THEN** the UI provides a control to enqueue ingestion for a source
-- **AND** the UI can list jobs for the selected project
+- **AND** the UI can list jobs for the selected workspace
 - **AND** each listed job shows status and last error when present
 
 #### Scenario: User runs or retries ingestion locally
@@ -189,13 +189,13 @@ the chat workspace.
 #### Scenario: User prepares data before opening chat UI
 
 - **WHEN** a user follows the first-run runbook
-- **THEN** the docs explain how to create a project with cited data using
+- **THEN** the docs explain how to create a workspace with cited data using
   `adaptive-rag first-run smoke`
-- **AND** the resulting project id can be reused in the chat UI
+- **AND** the resulting workspace id can be reused in the chat UI
 
 ### Requirement: Frontend exposes Runtime settings without secrets
 
-The frontend MUST expose global runtime/provider configuration and project
+The frontend MUST expose global runtime/provider configuration and workspace
 runtime overrides through public backend contracts without storing or rendering
 provider secrets in the browser.
 
@@ -203,7 +203,7 @@ provider secrets in the browser.
 
 - **WHEN** a user opens Settings > Runtime
 - **THEN** the UI exposes `Connections`, `Model catalog`, `Global defaults`
-  and `Project overrides` as separate Runtime submodules
+  and `Workspace overrides` as separate Runtime submodules
 - **AND** each submodule renders only the controls and data for that concern
 - **AND** the UI does not render a generic `Refresh runtime` button
 
@@ -249,14 +249,14 @@ provider secrets in the browser.
 - **AND** prevents deleting the last model or deleting the default without
   rotating it first
 
-#### Scenario: Project runtime settings show inheritance
+#### Scenario: Workspace runtime settings show inheritance
 
-- **WHEN** a user opens Runtime > Project overrides
+- **WHEN** a user opens Runtime > Workspace overrides
 - **THEN** each slot shows whether it inherits the global default or uses a
-  project override
+  workspace override
 - **AND** the UI provides a reset-to-global action for overridden slots
-- **AND** project override controls do not ask for provider API keys
-- **AND** project override model controls are selectors, not free-text model ID
+- **AND** workspace override controls do not ask for provider API keys
+- **AND** workspace override model controls are selectors, not free-text model ID
   fields
 
 ### Requirement: Frontend polish is workflow-first
@@ -268,17 +268,17 @@ demos.
 #### Scenario: Product workspace is the first screen
 
 - **WHEN** a user opens the frontend
-- **THEN** the first useful screen gives access to project context, authoring,
+- **THEN** the first useful screen gives access to workspace context, authoring,
   ingestion, chat, history, runtime and observability workflows
 - **AND** it does not require the user to pass through a marketing landing page
   before doing product work
 
-#### Scenario: Workflow navigation preserves project context
+#### Scenario: Workflow navigation preserves workspace context
 
-- **WHEN** a user selects or creates a project
+- **WHEN** a user selects or creates a workspace
 - **THEN** authoring, ingestion, chat, history, runtime and observability
-  surfaces reuse the same project context
-- **AND** changing workflow views does not silently clear valid project/source
+  surfaces reuse the same workspace context
+- **AND** changing workflow views does not silently clear valid workspace/source
   inputs or chat draft text
 
 ### Requirement: Frontend polish covers operational states
@@ -343,35 +343,35 @@ closed.
 - **THEN** the affected README or runbook instructions are updated in the same
   milestone sequence
 
-### Requirement: Frontend uses a searchable project selector with access states
+### Requirement: Frontend uses a searchable workspace selector with access states
 
-The frontend MUST replace manual project id entry with project discovery that
-shows accessible and locked projects.
+The frontend MUST replace manual workspace id entry with workspace discovery that
+shows accessible and locked workspaces.
 
-#### Scenario: Selector shows all project names
+#### Scenario: Selector shows all workspace names
 
-- **GIVEN** the project list API returns accessible and locked projects
-- **WHEN** the app renders the project selector
-- **THEN** all project names are searchable
-- **AND** locked projects are visually disabled or marked unavailable
-- **AND** locked projects cannot be selected for chat, authoring or ingestion
+- **GIVEN** the workspace list API returns accessible and locked workspaces
+- **WHEN** the app renders the workspace selector
+- **THEN** all workspace names are searchable
+- **AND** locked workspaces are visually disabled or marked unavailable
+- **AND** locked workspaces cannot be selected for chat, authoring or ingestion
 
-#### Scenario: Accessible project drives workspace requests
+#### Scenario: Accessible workspace drives workspace requests
 
-- **WHEN** the user selects an accessible project
+- **WHEN** the user selects an accessible workspace
 - **THEN** chat, session history, source viewer, authoring, ingestion,
-  observability and runtime override requests use that project id
-- **AND** stale selected sessions from a previous project are cleared
+  observability and runtime override requests use that workspace id
+- **AND** stale selected sessions from a previous workspace are cleared
 
 ### Requirement: Frontend gates surfaces by effective role
 
 The frontend MUST use the current user's effective role to show only usable
-project surfaces while relying on backend authorization as source of truth.
+workspace surfaces while relying on backend authorization as source of truth.
 
 #### Scenario: Viewer sees chat and proposal actions
 
-- **GIVEN** the current user has project role `viewer`
-- **WHEN** they open an accessible project
+- **GIVEN** the current user has workspace role `viewer`
+- **WHEN** they open an accessible workspace
 - **THEN** chat is available
 - **AND** direct source authoring, ingestion controls, member management and
   knowledge review queue are hidden or disabled
@@ -379,24 +379,24 @@ project surfaces while relying on backend authorization as source of truth.
 
 #### Scenario: Contributor sees knowledge review
 
-- **GIVEN** the current user has project role `contributor`
-- **WHEN** they open an accessible project
+- **GIVEN** the current user has workspace role `contributor`
+- **WHEN** they open an accessible workspace
 - **THEN** direct source authoring and knowledge review queue are available
-- **AND** project member management remains unavailable
+- **AND** workspace member management remains unavailable
 
-#### Scenario: Admin sees project member management
+#### Scenario: Admin sees workspace member management
 
-- **GIVEN** the current user has project role `admin`
-- **WHEN** they open an accessible project
-- **THEN** project member management is available
-- **AND** project archive/delete controls are unavailable unless the user is
+- **GIVEN** the current user has workspace role `admin`
+- **WHEN** they open an accessible workspace
+- **THEN** workspace member management is available
+- **AND** workspace archive/delete controls are unavailable unless the user is
   also `superadmin`
 
 #### Scenario: Superadmin sees global administration
 
 - **GIVEN** the current user has system role `superadmin`
 - **WHEN** they open admin settings
-- **THEN** global user management and project creation are available
+- **THEN** global user management and workspace creation are available
 - **AND** provider secret values are still not shown in the browser
 
 ### Requirement: Frontend supports knowledge proposal review
@@ -406,7 +406,7 @@ knowledge proposals.
 
 #### Scenario: Reviewer approves proposal
 
-- **GIVEN** a pending proposal exists for the selected project
+- **GIVEN** a pending proposal exists for the selected workspace
 - **WHEN** a contributor approves it from the review queue
 - **THEN** the row updates to approved
 - **AND** the UI shows the source or ingestion job created by the backend when
@@ -446,7 +446,7 @@ by public chat history APIs.
 
 - **WHEN** a user selects a chat session filter such as all, running,
   succeeded or failed
-- **THEN** the frontend calls `GET /projects/{project_id}/chat/sessions` with
+- **THEN** the frontend calls `GET /workspaces/{workspace_id}/chat/sessions` with
   only supported public query parameters
 - **AND** the visible sessions come from the API response
 - **AND** no archived-session state is shown unless a public archive contract
@@ -456,7 +456,7 @@ by public chat history APIs.
 
 - **WHEN** the user selects a session from navigation
 - **THEN** the frontend calls
-  `GET /projects/{project_id}/chat/sessions/{session_id}`
+  `GET /workspaces/{workspace_id}/chat/sessions/{session_id}`
 - **AND** messages, tool calls, retrieval runs, retrieved chunks and provider
   usage are rendered read-only from that response
 - **AND** the frontend does not replay chat, retrieval or providers
@@ -474,10 +474,10 @@ existing chat audit and observability data.
 - **AND** unknown or missing values remain visible as unknown
 - **AND** no values are invented from absent provider fields
 
-#### Scenario: Project observability is optional and isolated
+#### Scenario: Workspace observability is optional and isolated
 
-- **WHEN** project observability summary data is loaded
-- **THEN** the context panel can show project-level session totals, provider
+- **WHEN** workspace observability summary data is loaded
+- **THEN** the context panel can show workspace-level session totals, provider
   usage totals, known cost and status breakdowns
 - **AND** observability loading or failure does not clear the selected chat
   session
@@ -506,7 +506,7 @@ public source contracts when enough citation metadata is available.
 
 - **WHEN** the user opens a current response citation or persisted retrieved
   chunk whose metadata includes `source_id`
-- **THEN** the frontend calls `GET /projects/{project_id}/sources/{source_id}`
+- **THEN** the frontend calls `GET /workspaces/{workspace_id}/sources/{source_id}`
 - **AND** renders source type, external id, tags, sync metadata and citation
   snippet
 - **AND** lookup failure preserves the citation metadata and shows an isolated

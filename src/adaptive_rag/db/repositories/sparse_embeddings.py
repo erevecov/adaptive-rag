@@ -29,11 +29,13 @@ class SparseEmbeddingRepository:
     def get_current(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
         index_fingerprint: str,
     ) -> ChunkSparseEmbedding | None:
-        if not self._chunk_belongs_to_project(project_id=project_id, chunk_id=chunk_id):
+        if not self._chunk_belongs_to_workspace(
+            workspace_id=workspace_id, chunk_id=chunk_id
+        ):
             return None
         statement = select(ChunkSparseEmbedding).where(
             ChunkSparseEmbedding.chunk_id == chunk_id,
@@ -44,15 +46,17 @@ class SparseEmbeddingRepository:
     def upsert_current(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
         vector: SparseEmbeddingVector,
         input_hash: str,
         index_fingerprint: str,
         extra_metadata: Mapping[str, Any] | None = None,
     ) -> ChunkSparseEmbedding:
-        if not self._chunk_belongs_to_project(project_id=project_id, chunk_id=chunk_id):
-            raise ValueError("chunk does not belong to project")
+        if not self._chunk_belongs_to_workspace(
+            workspace_id=workspace_id, chunk_id=chunk_id
+        ):
+            raise ValueError("chunk does not belong to workspace")
 
         self._session.execute(
             delete(ChunkSparseEmbedding).where(
@@ -89,16 +93,16 @@ class SparseEmbeddingRepository:
         self._session.flush()
         return row
 
-    def _chunk_belongs_to_project(
+    def _chunk_belongs_to_workspace(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
     ) -> bool:
         statement = (
             select(Chunk.id)
             .join(DocumentVersion, Chunk.document_version_id == DocumentVersion.id)
             .join(Document, DocumentVersion.document_id == Document.id)
-            .where(Chunk.id == chunk_id, Document.project_id == project_id)
+            .where(Chunk.id == chunk_id, Document.workspace_id == workspace_id)
         )
         return self._session.scalar(statement) is not None

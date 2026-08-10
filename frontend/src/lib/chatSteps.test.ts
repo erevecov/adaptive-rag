@@ -91,17 +91,36 @@ describe('chatSteps', () => {
             total_messages: 22,
             kept_recent: 8,
             summarized_messages: 14,
-            summary_preview: 'Pinned facts',
+            summary: 'Pinned facts full text for expand',
+            summary_preview: 'Pinned facts…',
           },
         },
       ]),
     ).toEqual({
       keptRecent: 8,
       label: '8 recent + 14 summarized',
-      summaryPreview: 'Pinned facts',
+      summaryFull: 'Pinned facts full text for expand',
+      summaryPreview: 'Pinned facts…',
       summarizedMessages: 14,
       totalMessages: 22,
     })
     expect(summarizeContextWindow([])).toBeNull()
+  })
+
+  test('falls back summaryFull to summary_preview when full summary missing', () => {
+    expect(
+      summarizeContextWindow([
+        {
+          id: 'context',
+          status: 'done',
+          detail: {
+            total_messages: 10,
+            kept_recent: 4,
+            summarized_messages: 6,
+            summary_preview: 'Legacy preview only',
+          },
+        },
+      ])?.summaryFull,
+    ).toBe('Legacy preview only')
   })
 })

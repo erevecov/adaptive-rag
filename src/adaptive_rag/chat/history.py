@@ -51,11 +51,14 @@ class PreparedChatHistory:
             "pinned_facts": len(self.pinned_facts),
         }
         if self.summary:
+            # Full summary (already bounded by max_summary_chars) for Context expand.
+            detail["summary"] = self.summary
             preview = (
                 self.summary if len(self.summary) <= 240 else self.summary[:237] + "..."
             )
             detail["summary_preview"] = preview
         if self.pinned_facts:
+            detail["pinned_facts_list"] = list(self.pinned_facts)
             detail["pinned_fact_preview"] = list(self.pinned_facts[:4])
         return detail
 

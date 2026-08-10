@@ -1,4 +1,4 @@
-"""Repositories for local users, access tokens, and project memberships."""
+"""Repositories for local users, access tokens, and workspace memberships."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import (
-    PROJECT_ROLE_VALUES,
     SYSTEM_ROLE_VALUES,
-    ProjectMembership,
+    WORKSPACE_ROLE_VALUES,
     User,
     UserAccessToken,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.models.job import utc_now
 
@@ -72,7 +72,7 @@ class UserRepository:
         display_name: str | None = None,
         system_role: str | None = None,
         is_active: bool | None = None,
-        last_project_id: UUID | None = None,
+        last_workspace_id: UUID | None = None,
     ) -> User | None:
         user = self.get_user(user_id)
         if user is None:
@@ -87,21 +87,21 @@ class UserRepository:
             )
         if is_active is not None:
             user.is_active = is_active
-        if last_project_id is not None:
-            user.last_project_id = last_project_id
+        if last_workspace_id is not None:
+            user.last_workspace_id = last_workspace_id
         self._session.flush()
         return user
 
-    def update_last_project_id(
+    def update_last_workspace_id(
         self,
         user_id: UUID,
         *,
-        last_project_id: UUID | None,
+        last_workspace_id: UUID | None,
     ) -> User | None:
         user = self.get_user(user_id)
         if user is None:
             return None
-        user.last_project_id = last_project_id
+        user.last_workspace_id = last_workspace_id
         self._session.flush()
         return user
 
@@ -172,8 +172,8 @@ class UserRepository:
         return None
 
 
-class ProjectMembershipRepository:
-    """Persistence for project-scoped user roles."""
+class WorkspaceMembershipRepository:
+    """Persistence for workspace-scoped user roles."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -181,19 +181,19 @@ class ProjectMembershipRepository:
     def upsert_membership(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
         role: str,
-    ) -> ProjectMembership:
+    ) -> WorkspaceMembership:
         normalized_role = _normalize_supported_value(
             role,
-            supported=PROJECT_ROLE_VALUES,
-            label="project role",
+            supported=WORKSPACE_ROLE_VALUES,
+            label="workspace role",
         )
-        membership = self.get_membership(project_id=project_id, user_id=user_id)
+        membership = self.get_membership(workspace_id=workspace_id, user_id=user_id)
         if membership is None:
-            membership = ProjectMembership(
-                project_id=project_id,
+            membership = WorkspaceMembership(
+                workspace_id=workspace_id,
                 user_id=user_id,
                 role=normalized_role,
             )
@@ -206,34 +206,34 @@ class ProjectMembershipRepository:
     def get_membership(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         user_id: UUID,
-    ) -> ProjectMembership | None:
-        statement = select(ProjectMembership).where(
-            ProjectMembership.project_id == project_id,
-            ProjectMembership.user_id == user_id,
+    ) -> WorkspaceMembership | None:
+        statement = select(WorkspaceMembership).where(
+            WorkspaceMembership.workspace_id == workspace_id,
+            WorkspaceMembership.user_id == user_id,
         )
         return self._session.scalars(statement).one_or_none()
 
-    def list_project_members(self, project_id: UUID) -> list[ProjectMembership]:
+    def list_workspace_members(self, workspace_id: UUID) -> list[WorkspaceMembership]:
         statement = (
-            select(ProjectMembership)
-            .join(User, User.id == ProjectMembership.user_id)
-            .where(ProjectMembership.project_id == project_id)
-            .order_by(User.login, ProjectMembership.id)
+            select(WorkspaceMembership)
+            .join(User, User.id == WorkspaceMembership.user_id)
+            .where(WorkspaceMembership.workspace_id == workspace_id)
+            .order_by(User.login, WorkspaceMembership.id)
         )
         return list(self._session.scalars(statement))
 
-    def list_user_memberships(self, user_id: UUID) -> list[ProjectMembership]:
+    def list_user_memberships(self, user_id: UUID) -> list[WorkspaceMembership]:
         statement = (
-            select(ProjectMembership)
-            .where(ProjectMembership.user_id == user_id)
-            .order_by(ProjectMembership.project_id, ProjectMembership.id)
+            select(WorkspaceMembership)
+            .where(WorkspaceMembership.user_id == user_id)
+            .order_by(WorkspaceMembership.workspace_id, WorkspaceMembership.id)
         )
         return list(self._session.scalars(statement))
 
-    def remove_membership(self, *, project_id: UUID, user_id: UUID) -> bool:
-        membership = self.get_membership(project_id=project_id, user_id=user_id)
+    def remove_membership(self, *, workspace_id: UUID, user_id: UUID) -> bool:
+        membership = self.get_membership(workspace_id=workspace_id, user_id=user_id)
         if membership is None:
             return False
         self._session.delete(membership)

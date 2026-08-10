@@ -88,13 +88,13 @@ class ChatAuditRepository:
     def create_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         user_id: UUID | None = None,
         model_config_json: Mapping[str, Any] | None = None,
         prompt_version: str | None = None,
     ) -> ChatSession:
         chat_session = ChatSession(
-            project_id=project_id,
+            workspace_id=workspace_id,
             user_id=user_id,
             model_config_json=(
                 dict(model_config_json) if model_config_json is not None else None
@@ -108,13 +108,13 @@ class ChatAuditRepository:
     def get_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         user_id: UUID | None = None,
     ) -> ChatSession | None:
         statement = select(ChatSession).where(
             ChatSession.id == session_id,
-            ChatSession.project_id == project_id,
+            ChatSession.workspace_id == workspace_id,
         )
         if user_id is not None:
             statement = statement.where(ChatSession.user_id == user_id)
@@ -123,15 +123,15 @@ class ChatAuditRepository:
     def add_message(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         role: str,
         content: str,
         metadata_json: Mapping[str, Any] | None = None,
     ) -> ChatMessage:
-        self._require_session(project_id=project_id, session_id=session_id)
+        self._require_session(workspace_id=workspace_id, session_id=session_id)
         message = ChatMessage(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             role=role,
             content=content,
@@ -144,7 +144,7 @@ class ChatAuditRepository:
     def list_messages(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         limit: int | None = None,
     ) -> list[ChatMessage]:
@@ -158,7 +158,7 @@ class ChatAuditRepository:
             return []
 
         statement = select(ChatMessage).where(
-            ChatMessage.project_id == project_id,
+            ChatMessage.workspace_id == workspace_id,
             ChatMessage.session_id == session_id,
         )
         if limit is None:
@@ -177,11 +177,11 @@ class ChatAuditRepository:
     def succeed_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
     ) -> ChatSession:
         chat_session = self._require_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
         )
         chat_session.status = "succeeded"
@@ -192,12 +192,12 @@ class ChatAuditRepository:
     def fail_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str,
     ) -> ChatSession:
         chat_session = self._require_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
         )
         chat_session.status = "failed"
@@ -208,12 +208,12 @@ class ChatAuditRepository:
     def cancel_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         error_message: str = "client_disconnected",
     ) -> ChatSession:
         chat_session = self._require_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
         )
         chat_session.status = "canceled"
@@ -224,18 +224,18 @@ class ChatAuditRepository:
     def update_session_title(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         title: str,
         user_id: UUID | None = None,
     ) -> ChatSession:
         chat_session = self.get_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=user_id,
         )
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         chat_session.title = _normalize_session_title(title)
         chat_session.title_is_custom = True
         self._session.flush()
@@ -244,17 +244,17 @@ class ChatAuditRepository:
     def archive_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         user_id: UUID | None = None,
     ) -> ChatSession:
         chat_session = self.get_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=user_id,
         )
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         if chat_session.archived_at is None:
             chat_session.archived_at = utc_now()
         self._session.flush()
@@ -263,17 +263,17 @@ class ChatAuditRepository:
     def unarchive_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         user_id: UUID | None = None,
     ) -> ChatSession:
         chat_session = self.get_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=user_id,
         )
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         chat_session.archived_at = None
         self._session.flush()
         return chat_session
@@ -281,33 +281,33 @@ class ChatAuditRepository:
     def delete_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         user_id: UUID | None = None,
     ) -> None:
         """Hard-delete a session; related messages/runs cascade via FK."""
 
         chat_session = self.get_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=user_id,
         )
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         self._session.delete(chat_session)
         self._session.flush()
 
     def start_tool_call(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_name: str,
         arguments_json: Mapping[str, Any] | None = None,
     ) -> ToolCall:
-        self._require_session(project_id=project_id, session_id=session_id)
+        self._require_session(workspace_id=workspace_id, session_id=session_id)
         tool_call = ToolCall(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             tool_name=tool_name,
             arguments_json=dict(arguments_json) if arguments_json is not None else None,
@@ -319,13 +319,13 @@ class ChatAuditRepository:
     def complete_tool_call(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         tool_call_id: UUID,
         result_summary_json: Mapping[str, Any],
         latency_ms: int,
     ) -> ToolCall:
         tool_call = self._require_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
         )
         tool_call.status = "succeeded"
@@ -338,13 +338,13 @@ class ChatAuditRepository:
     def fail_tool_call(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         tool_call_id: UUID,
         error_message: str,
         latency_ms: int,
     ) -> ToolCall:
         tool_call = self._require_tool_call(
-            project_id=project_id,
+            workspace_id=workspace_id,
             tool_call_id=tool_call_id,
         )
         tool_call.status = "failed"
@@ -356,13 +356,13 @@ class ChatAuditRepository:
     def list_tool_calls(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
     ) -> list[ToolCall]:
         statement = (
             select(ToolCall)
             .where(
-                ToolCall.project_id == project_id,
+                ToolCall.workspace_id == workspace_id,
                 ToolCall.session_id == session_id,
             )
             .order_by(ToolCall.created_at, ToolCall.id)
@@ -372,7 +372,7 @@ class ChatAuditRepository:
     def create_retrieval_run(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         tool_call_id: UUID | None,
         query: str,
@@ -382,16 +382,16 @@ class ChatAuditRepository:
         filters_json: Mapping[str, Any] | None = None,
         latency_ms: int | None = None,
     ) -> RetrievalRun:
-        self._require_session(project_id=project_id, session_id=session_id)
+        self._require_session(workspace_id=workspace_id, session_id=session_id)
         if tool_call_id is not None:
             self._require_tool_call(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 tool_call_id=tool_call_id,
                 session_id=session_id,
             )
 
         retrieval_run = RetrievalRun(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             tool_call_id=tool_call_id,
             query=query,
@@ -408,13 +408,13 @@ class ChatAuditRepository:
     def list_retrieval_runs(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
     ) -> list[RetrievalRun]:
         statement = (
             select(RetrievalRun)
             .where(
-                RetrievalRun.project_id == project_id,
+                RetrievalRun.workspace_id == workspace_id,
                 RetrievalRun.session_id == session_id,
             )
             .order_by(RetrievalRun.created_at, RetrievalRun.id)
@@ -424,7 +424,7 @@ class ChatAuditRepository:
     def add_retrieved_chunk(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         retrieval_run_id: UUID,
         chunk_id: UUID,
         rank: int,
@@ -436,17 +436,17 @@ class ChatAuditRepository:
         rerank_score: float | None = None,
     ) -> RetrievedChunk:
         self._require_retrieval_run(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval_run_id=retrieval_run_id,
         )
-        if not self._chunk_belongs_to_project(
-            project_id=project_id,
+        if not self._chunk_belongs_to_workspace(
+            workspace_id=workspace_id,
             chunk_id=chunk_id,
         ):
-            raise ValueError("chunk does not belong to project")
+            raise ValueError("chunk does not belong to workspace")
 
         retrieved_chunk = RetrievedChunk(
-            project_id=project_id,
+            workspace_id=workspace_id,
             retrieval_run_id=retrieval_run_id,
             chunk_id=chunk_id,
             rank=rank,
@@ -464,13 +464,13 @@ class ChatAuditRepository:
     def list_retrieved_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         retrieval_run_id: UUID,
     ) -> list[RetrievedChunk]:
         statement = (
             select(RetrievedChunk)
             .where(
-                RetrievedChunk.project_id == project_id,
+                RetrievedChunk.workspace_id == workspace_id,
                 RetrievedChunk.retrieval_run_id == retrieval_run_id,
             )
             .order_by(RetrievedChunk.rank)
@@ -480,7 +480,7 @@ class ChatAuditRepository:
     def list_session_summaries(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         user_id: UUID | None = None,
         status: str | None = None,
         archived: bool = False,
@@ -498,7 +498,7 @@ class ChatAuditRepository:
         message_count = (
             select(func.count(ChatMessage.id))
             .where(
-                ChatMessage.project_id == project_id,
+                ChatMessage.workspace_id == workspace_id,
                 ChatMessage.session_id == ChatSession.id,
             )
             .correlate(ChatSession)
@@ -507,7 +507,7 @@ class ChatAuditRepository:
         first_user_message = (
             select(ChatMessage.content)
             .where(
-                ChatMessage.project_id == project_id,
+                ChatMessage.workspace_id == workspace_id,
                 ChatMessage.session_id == ChatSession.id,
                 ChatMessage.role == "user",
             )
@@ -519,7 +519,7 @@ class ChatAuditRepository:
         tool_call_count = (
             select(func.count(ToolCall.id))
             .where(
-                ToolCall.project_id == project_id,
+                ToolCall.workspace_id == workspace_id,
                 ToolCall.session_id == ChatSession.id,
             )
             .correlate(ChatSession)
@@ -528,7 +528,7 @@ class ChatAuditRepository:
         retrieval_run_count = (
             select(func.count(RetrievalRun.id))
             .where(
-                RetrievalRun.project_id == project_id,
+                RetrievalRun.workspace_id == workspace_id,
                 RetrievalRun.session_id == ChatSession.id,
             )
             .correlate(ChatSession)
@@ -537,7 +537,7 @@ class ChatAuditRepository:
         provider_usage_count = (
             select(func.count(ProviderUsage.id))
             .where(
-                ProviderUsage.project_id == project_id,
+                ProviderUsage.workspace_id == workspace_id,
                 ProviderUsage.session_id == ChatSession.id,
             )
             .correlate(ChatSession)
@@ -546,7 +546,7 @@ class ChatAuditRepository:
         total_estimated_cost = (
             select(func.coalesce(func.sum(ProviderUsage.estimated_cost_usd), 0.0))
             .where(
-                ProviderUsage.project_id == project_id,
+                ProviderUsage.workspace_id == workspace_id,
                 ProviderUsage.session_id == ChatSession.id,
             )
             .correlate(ChatSession)
@@ -555,7 +555,7 @@ class ChatAuditRepository:
         pending_training_count = (
             select(func.count(KnowledgeProposal.id))
             .where(
-                KnowledgeProposal.project_id == project_id,
+                KnowledgeProposal.workspace_id == workspace_id,
                 KnowledgeProposal.origin_session_id == ChatSession.id,
                 KnowledgeProposal.status == "pending",
             )
@@ -565,7 +565,7 @@ class ChatAuditRepository:
         approved_training_count = (
             select(func.count(KnowledgeProposal.id))
             .where(
-                KnowledgeProposal.project_id == project_id,
+                KnowledgeProposal.workspace_id == workspace_id,
                 KnowledgeProposal.origin_session_id == ChatSession.id,
                 KnowledgeProposal.status == "approved",
             )
@@ -585,7 +585,7 @@ class ChatAuditRepository:
                 pending_training_count,
                 approved_training_count,
             )
-            .where(ChatSession.project_id == project_id)
+            .where(ChatSession.workspace_id == workspace_id)
             .order_by(ChatSession.created_at.desc(), ChatSession.id.desc())
             .limit(limit + 1)
         )
@@ -663,12 +663,12 @@ class ChatAuditRepository:
     def get_session_detail(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
         user_id: UUID | None = None,
     ) -> ChatSessionDetail | None:
         chat_session = self.get_session(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             user_id=user_id,
         )
@@ -679,7 +679,7 @@ class ChatAuditRepository:
             self._session.scalars(
                 select(ChatMessage)
                 .where(
-                    ChatMessage.project_id == project_id,
+                    ChatMessage.workspace_id == workspace_id,
                     ChatMessage.session_id == session_id,
                 )
                 .order_by(ChatMessage.created_at, ChatMessage.id)
@@ -689,7 +689,7 @@ class ChatAuditRepository:
             self._session.scalars(
                 select(ToolCall)
                 .where(
-                    ToolCall.project_id == project_id,
+                    ToolCall.workspace_id == workspace_id,
                     ToolCall.session_id == session_id,
                 )
                 .order_by(ToolCall.created_at, ToolCall.id)
@@ -699,7 +699,7 @@ class ChatAuditRepository:
             self._session.scalars(
                 select(RetrievalRun)
                 .where(
-                    RetrievalRun.project_id == project_id,
+                    RetrievalRun.workspace_id == workspace_id,
                     RetrievalRun.session_id == session_id,
                 )
                 .order_by(RetrievalRun.created_at, RetrievalRun.id)
@@ -713,7 +713,7 @@ class ChatAuditRepository:
             retrieved_chunks = self._session.scalars(
                 select(RetrievedChunk)
                 .where(
-                    RetrievedChunk.project_id == project_id,
+                    RetrievedChunk.workspace_id == workspace_id,
                     RetrievedChunk.retrieval_run_id.in_(retrieval_run_ids),
                 )
                 .order_by(RetrievedChunk.retrieval_run_id, RetrievedChunk.rank)
@@ -732,7 +732,7 @@ class ChatAuditRepository:
             self._session.scalars(
                 select(ProviderUsage)
                 .where(
-                    ProviderUsage.project_id == project_id,
+                    ProviderUsage.workspace_id == workspace_id,
                     ProviderUsage.session_id == session_id,
                 )
                 .order_by(ProviderUsage.created_at, ProviderUsage.id)
@@ -750,28 +750,30 @@ class ChatAuditRepository:
     def _require_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
     ) -> ChatSession:
-        chat_session = self.get_session(project_id=project_id, session_id=session_id)
+        chat_session = self.get_session(
+            workspace_id=workspace_id, session_id=session_id
+        )
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         return chat_session
 
     def _require_tool_call(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         tool_call_id: UUID,
         session_id: UUID | None = None,
     ) -> ToolCall:
         statement = select(ToolCall).where(
             ToolCall.id == tool_call_id,
-            ToolCall.project_id == project_id,
+            ToolCall.workspace_id == workspace_id,
         )
         tool_call = self._session.scalars(statement).one_or_none()
         if tool_call is None:
-            raise ValueError("tool call does not belong to project")
+            raise ValueError("tool call does not belong to workspace")
         if session_id is not None and tool_call.session_id != session_id:
             raise ValueError("tool call does not belong to session")
         return tool_call
@@ -779,22 +781,22 @@ class ChatAuditRepository:
     def _require_retrieval_run(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         retrieval_run_id: UUID,
     ) -> RetrievalRun:
         statement = select(RetrievalRun).where(
             RetrievalRun.id == retrieval_run_id,
-            RetrievalRun.project_id == project_id,
+            RetrievalRun.workspace_id == workspace_id,
         )
         retrieval_run = self._session.scalars(statement).one_or_none()
         if retrieval_run is None:
-            raise ValueError("retrieval run does not belong to project")
+            raise ValueError("retrieval run does not belong to workspace")
         return retrieval_run
 
-    def _chunk_belongs_to_project(
+    def _chunk_belongs_to_workspace(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
     ) -> bool:
         statement = (
@@ -803,7 +805,7 @@ class ChatAuditRepository:
             .join(Document, DocumentVersion.document_id == Document.id)
             .where(
                 Chunk.id == chunk_id,
-                Document.project_id == project_id,
+                Document.workspace_id == workspace_id,
             )
         )
         return self._session.scalar(statement) is not None
@@ -818,19 +820,19 @@ class ProviderUsageRepository:
     def create_from_record(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID | None,
         job_id: UUID | None,
         eval_run_id: UUID | None,
         record: ProviderCallRecord,
     ) -> ProviderUsage:
         if session_id is not None:
-            self._require_session(project_id=project_id, session_id=session_id)
+            self._require_session(workspace_id=workspace_id, session_id=session_id)
         if job_id is not None:
-            self._require_job(project_id=project_id, job_id=job_id)
+            self._require_job(workspace_id=workspace_id, job_id=job_id)
 
         usage = ProviderUsage(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session_id=session_id,
             job_id=job_id,
             eval_run_id=eval_run_id,
@@ -856,31 +858,31 @@ class ProviderUsageRepository:
     def _require_session(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         session_id: UUID,
     ) -> ChatSession:
         statement = select(ChatSession).where(
             ChatSession.id == session_id,
-            ChatSession.project_id == project_id,
+            ChatSession.workspace_id == workspace_id,
         )
         chat_session = self._session.scalars(statement).one_or_none()
         if chat_session is None:
-            raise ValueError("chat session does not belong to project")
+            raise ValueError("chat session does not belong to workspace")
         return chat_session
 
     def _require_job(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job_id: UUID,
     ) -> Job:
         statement = select(Job).where(
             Job.id == job_id,
-            Job.project_id == project_id,
+            Job.workspace_id == workspace_id,
         )
         job = self._session.scalars(statement).one_or_none()
         if job is None:
-            raise ValueError("job does not belong to project")
+            raise ValueError("job does not belong to workspace")
         return job
 
 

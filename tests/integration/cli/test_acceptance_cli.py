@@ -18,14 +18,14 @@ from adaptive_rag.db.models import (
     GlobalChatRetrievalSettings,
     Job,
     JobEvent,
-    Project,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderModelCatalog,
     RuntimeSlotDefault,
     Source,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceRuntimeSlotOverride,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -53,7 +53,7 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
         [
             "acceptance",
             "runtime-settings-smoke",
-            "--project-name",
+            "--workspace-name",
             "Runtime Acceptance Demo",
             "--source-external-id",
             "runtime-acceptance.md",
@@ -66,7 +66,7 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
     payload = json.loads(result.stdout)
     assert payload["status"] == "succeeded"
     assert payload["first_run"]["status"] == "succeeded"
-    assert payload["first_run"]["project"]["name"] == "Runtime Acceptance Demo"
+    assert payload["first_run"]["workspace"]["name"] == "Runtime Acceptance Demo"
     assert payload["first_run"]["source"]["external_id"] == "runtime-acceptance.md"
     assert payload["first_run"]["citation_count"] >= 1
     assert all(criterion["status"] == "passed" for criterion in payload["criteria"])
@@ -75,7 +75,7 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
     } == {
         "model_catalog_synced",
         "global_runtime_defaults",
-        "project_runtime_override",
+        "workspace_runtime_override",
         "effective_runtime_resolution",
         "cited_chat",
         "secret_values_not_exposed",
@@ -94,13 +94,13 @@ def test_runtime_settings_acceptance_smoke_uses_persisted_effective_settings(
         runtime["global_slots"]["sparse_embedding"]["model_id"]
         == "fake-sparse-embedding-v1"
     )
-    assert runtime["effective_project_settings"]["chat"]["source"] == "inherited"
+    assert runtime["effective_workspace_settings"]["chat"]["source"] == "inherited"
     assert (
-        runtime["effective_project_settings"]["sparse_embedding"]["source"]
+        runtime["effective_workspace_settings"]["sparse_embedding"]["source"]
         == "inherited"
     )
     assert (
-        runtime["effective_project_settings"]["dense_embedding"]["source"]
+        runtime["effective_workspace_settings"]["dense_embedding"]["source"]
         == "overridden"
     )
     assert runtime["resolved_runtime"]["chat"]["provider"] == "fake"
@@ -124,7 +124,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -137,9 +137,9 @@ def _make_session():
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectRuntimeSlotOverride.__table__,
-            ProjectChatModel.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceRuntimeSlotOverride.__table__,
+            WorkspaceChatModel.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()

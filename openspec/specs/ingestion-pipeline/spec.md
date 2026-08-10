@@ -4,18 +4,18 @@
 
 Definir el pipeline inicial que procesa jobs `ingest_source` y convierte
 sources soportadas en `document_versions` normalizadas, auditables e
-idempotentes dentro de un proyecto.
+idempotentes dentro de un workspace.
 ## Requirements
 ### Requirement: Ingestion pipeline convierte sources en document versions
 
 El sistema MUST procesar jobs `ingest_source` para convertir sources de un
-proyecto en `document_versions` con texto normalizado, hash de contenido,
+workspace en `document_versions` con texto normalizado, hash de contenido,
 metadata de parser e `index_fingerprint`.
 
 #### Scenario: Source Markdown crea primera document version
 
 - **WHEN** un job `ingest_source` referencia una source Markdown del mismo
-  proyecto
+  workspace
 - **THEN** el pipeline crea o reutiliza el document asociado a esa source
 - **AND** crea `document_versions.version_number = 1`
 - **AND** normaliza line endings del texto fuente
@@ -28,17 +28,17 @@ metadata de parser e `index_fingerprint`.
 - **AND** no crea una version duplicada
 - **AND** marca el job nuevo como `succeeded`
 
-### Requirement: Ingestion pipeline mantiene aislamiento por proyecto
+### Requirement: Ingestion pipeline mantiene aislamiento por workspace
 
 El sistema MUST rechazar jobs `ingest_source` cuyo payload intente cargar una
-source que no pertenece al `project_id` del job leaseado.
+source que no pertenece al `workspace_id` del job leaseado.
 
-#### Scenario: Source de otro proyecto bloquea el job
+#### Scenario: Source de otro workspace bloquea el job
 
-- **WHEN** un job de un proyecto referencia una source de otro proyecto
+- **WHEN** un job de un workspace referencia una source de otro workspace
 - **THEN** el pipeline no crea documents ni document versions
 - **AND** marca el job como `blocked`
-- **AND** registra el evento `blocked` con el mismo `project_id` del job
+- **AND** registra el evento `blocked` con el mismo `workspace_id` del job
 - **AND** devuelve un resultado observable que identifica el job bloqueado y el
   error
 
@@ -112,13 +112,13 @@ equivalentes, no como efecto colateral silencioso de `ingest_source`.
 ### Requirement: Approved knowledge proposals feed ingestion
 
 The system MUST convert approved knowledge proposals into explicit source
-ingestion work for the same project.
+ingestion work for the same workspace.
 
 #### Scenario: Approval creates source and ingestion job
 
-- **GIVEN** a pending knowledge proposal in project `P`
+- **GIVEN** a pending knowledge proposal in workspace `P`
 - **WHEN** a contributor approves it
-- **THEN** the system creates a text source in project `P` using the approved
+- **THEN** the system creates a text source in workspace `P` using the approved
   proposal text
 - **AND** records the created source id on the proposal
 - **AND** enqueues an `ingest_source` job for that source
@@ -140,7 +140,7 @@ ingestion work for the same project.
 #### Scenario: Pending proposals are not retrievable
 
 - **GIVEN** a viewer submitted a pending proposal
-- **WHEN** retrieval or chat runs for that project before approval
+- **WHEN** retrieval or chat runs for that workspace before approval
 - **THEN** the pending proposal text is not included in retrieval candidates
 
 ### Requirement: Knowledge review actions are audited
@@ -169,7 +169,7 @@ the public worker path rather than only inside privileged smokes.
 
 - **WHEN** a worker completes an `ingest_source` job successfully
 - **THEN** a new job with `job_type = index_document_version` is created in the
-  same project
+  same workspace
 - **AND** the payload includes the resulting `document_version_id` and
   `source_id`
 - **AND** the indexing job starts with `status = queued`
@@ -186,12 +186,12 @@ the public worker path rather than only inside privileged smokes.
 
 The system MUST process `index_document_version` jobs by running chunking,
 contextualization, dense embeddings and sparse embeddings for the target
-document version inside the project.
+document version inside the workspace.
 
 #### Scenario: Index job produces chunks and embeddings
 
 - **WHEN** a worker processes a queued `index_document_version` job for a
-  document version in the same project
+  document version in the same workspace
 - **THEN** the system creates or reuses chunks for that version
 - **AND** generates or reuses contextual summaries for those chunks
 - **AND** writes dense and sparse embeddings for those chunks
@@ -201,9 +201,9 @@ document version inside the project.
 #### Scenario: Missing document version blocks indexing job
 
 - **WHEN** an `index_document_version` job references a document version outside
-  the job project
+  the job workspace
 - **THEN** the job is marked `blocked`
-- **AND** no chunks or embeddings are written for foreign projects
+- **AND** no chunks or embeddings are written for foreign workspaces
 
 ### Requirement: PDF sources extract embedded text into document versions
 

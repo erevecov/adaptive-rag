@@ -19,7 +19,7 @@ from adaptive_rag.evals.models import EvalStatus
 from adaptive_rag.graph import (
     GraphBackfillOperationName,
     GraphBackfillOperationReport,
-    GraphProjectionStatus,
+    GraphprojectionStatus,
     GraphRetrievalSmokeReport,
     GraphRetrievalSmokeStatus,
 )
@@ -123,11 +123,11 @@ def load_graph_operation_report(path: Path) -> GraphBackfillOperationReport:
     data = _load_json_object(path)
     try:
         return GraphBackfillOperationReport(
-            project_id=UUID(str(data["project_id"])),
+            workspace_id=UUID(str(data["workspace_id"])),
             backend=cast(Literal["neo4j"], data["backend"]),
             operation=cast(GraphBackfillOperationName, data["operation"]),
             previous_status=str(data["previous_status"]),
-            status=cast(GraphProjectionStatus, data["status"]),
+            status=cast(GraphprojectionStatus, data["status"]),
             source_watermark=str(data["source_watermark"]),
             duration_ms=int(data["duration_ms"]),
             node_count=_optional_int(data.get("node_count")),
@@ -146,7 +146,7 @@ def load_graph_retrieval_smoke_report(path: Path) -> GraphRetrievalSmokeReport:
     data = _load_json_object(path)
     try:
         return GraphRetrievalSmokeReport(
-            project_id=UUID(str(data["project_id"])),
+            workspace_id=UUID(str(data["workspace_id"])),
             backend=cast(Literal["neo4j"], data["backend"]),
             status=cast(GraphRetrievalSmokeStatus, data["status"]),
             requested_strategy=cast(Literal["graph"], data["requested_strategy"]),
@@ -255,7 +255,7 @@ def _serialize_operation_report(
     report: GraphBackfillOperationReport,
 ) -> dict[str, object]:
     return {
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "backend": report.backend,
         "operation": report.operation,
         "previous_status": report.previous_status,
@@ -272,7 +272,7 @@ def _serialize_retrieval_smoke_report(
     report: GraphRetrievalSmokeReport,
 ) -> dict[str, object]:
     return {
-        "project_id": str(report.project_id),
+        "workspace_id": str(report.workspace_id),
         "backend": report.backend,
         "status": report.status,
         "requested_strategy": report.requested_strategy,

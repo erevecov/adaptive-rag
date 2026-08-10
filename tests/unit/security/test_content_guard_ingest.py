@@ -10,13 +10,13 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.ingestion.pipeline import IngestionPipeline
@@ -28,7 +28,7 @@ def _session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -41,10 +41,10 @@ def _session():
 
 def test_ingest_redacts_secret_in_markdown_before_persist() -> None:
     session = _session()
-    project = ProjectRepository(session).create(name="guard")
+    workspace = WorkspaceRepository(session).create(name="guard")
     secret = "sk-proj-abcdefghijklmnopqrstuvwxyz012345"
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="leaky.md",
         extra_metadata={
@@ -53,7 +53,7 @@ def test_ingest_redacts_secret_in_markdown_before_persist() -> None:
     )
     now = datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
     JobRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type="ingest_source",
         payload_json={"source_id": str(source.id)},
         run_after=now,
@@ -61,7 +61,7 @@ def test_ingest_redacts_secret_in_markdown_before_persist() -> None:
     session.commit()
 
     result = IngestionPipeline(session).run_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="guard-worker",
         now=now,
         lease_until=now + timedelta(minutes=5),

@@ -16,7 +16,7 @@ def test_local_frontend_cors_preflight_is_allowed():
     client = TestClient(create_app())
 
     response = client.options(
-        "/projects",
+        "/workspaces",
         headers={
             "Origin": "http://localhost:3001",
             "Access-Control-Request-Method": "POST",

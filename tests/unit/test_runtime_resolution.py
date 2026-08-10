@@ -14,19 +14,19 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    Project,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
     ProviderSecret,
     RuntimeSlotDefault,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceRuntimeSlotOverride,
 )
 from adaptive_rag.db.repositories import (
-    ProjectRepository,
-    ProjectRuntimeSettingsRepository,
     ProviderConnectionRepository,
     RuntimeSettingsRepository,
+    WorkspaceRepository,
+    WorkspaceRuntimeSettingsRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import QwenDenseEmbeddingProvider
@@ -37,6 +37,7 @@ from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_contextualizer,
     get_dense_embedding_provider,
+    get_vision_chat_runner,
 )
 from adaptive_rag.provider_secrets import ProviderSecretStore
 
@@ -50,15 +51,15 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             ProviderConnection.__table__,
             ProviderSecret.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectRuntimeSlotOverride.__table__,
-            ProjectChatModel.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceRuntimeSlotOverride.__table__,
+            WorkspaceChatModel.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -69,10 +70,12 @@ def _secret_store() -> ProviderSecretStore:
     return ProviderSecretStore(key)
 
 
-def test_project_chat_override_wins_over_global_and_env_without_local_secret() -> None:
+def test_workspace_chat_override_wins_over_global_and_env_without_local_secret() -> (
+    None
+):
     session = _make_session()
     secret_store = _secret_store()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     connections = ProviderConnectionRepository(session)
     connections.upsert_connection(
         connection_id="qwen-hosted",
@@ -98,8 +101,8 @@ def test_project_chat_override_wins_over_global_and_env_without_local_secret() -
         connection_id="qwen-hosted",
         model_id="qwen-plus",
     )
-    ProjectRuntimeSettingsRepository(session).upsert_chat_model(
-        project_id=project.id,
+    WorkspaceRuntimeSettingsRepository(session).upsert_chat_model(
+        workspace_id=workspace.id,
         connection_id="local-chat",
         model_id="llama3.1:8b",
         make_default=True,
@@ -114,7 +117,7 @@ def test_project_chat_override_wins_over_global_and_env_without_local_secret() -
             qwen_api_key="sk-env",
             qwen_base_url="https://env.example.test/v1",
         ),
-        project_id=project.id,
+        workspace_id=workspace.id,
         secret_store=secret_store,
         session=session,
     )
@@ -129,7 +132,7 @@ def test_project_chat_override_wins_over_global_and_env_without_local_secret() -
 def test_global_dense_slot_wins_over_env_and_uses_persisted_secret() -> None:
     session = _make_session()
     secret_store = _secret_store()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     connections = ProviderConnectionRepository(session)
     connections.upsert_connection(
         connection_id="qwen-hosted",
@@ -159,7 +162,7 @@ def test_global_dense_slot_wins_over_env_and_uses_persisted_secret() -> None:
             qwen_api_key="sk-env",
             qwen_base_url="https://env.example.test/v1",
         ),
-        project_id=project.id,
+        workspace_id=workspace.id,
         secret_store=secret_store,
         session=session,
     )
@@ -168,10 +171,12 @@ def test_global_dense_slot_wins_over_env_and_uses_persisted_secret() -> None:
     assert provider.model_name == "text-embedding-v4"
     assert isinstance(provider.client, QwenHTTPEmbeddingClient)
     assert provider.client.api_key == "sk-db"
-    assert provider.client.base_url == "https://dashscope.example.test/compatible-mode/v1"
+    assert (
+        provider.client.base_url == "https://dashscope.example.test/compatible-mode/v1"
+    )
 
 
-def test_global_chat_default_resolves_without_project_id() -> None:
+def test_global_chat_default_resolves_without_workspace_id() -> None:
     session = _make_session()
     connections = ProviderConnectionRepository(session)
     connections.upsert_connection(
@@ -224,7 +229,7 @@ def test_resolved_runtime_slot_repr_hides_api_key() -> None:
 
 def test_runtime_resolution_falls_back_to_env_when_no_persisted_setting() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
 
     runner = get_chat_runner(
         _settings(
@@ -234,7 +239,7 @@ def test_runtime_resolution_falls_back_to_env_when_no_persisted_setting() -> Non
             qwen_api_key="sk-env",
             qwen_base_url="https://env.example.test/v1",
         ),
-        project_id=project.id,
+        workspace_id=workspace.id,
         session=session,
     )
 
@@ -248,7 +253,7 @@ def test_runtime_resolution_falls_back_to_env_when_no_persisted_setting() -> Non
 def test_runtime_resolution_rejects_hosted_slot_without_persisted_secret() -> None:
     session = _make_session()
     secret_store = _secret_store()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     ProviderConnectionRepository(session).upsert_connection(
         connection_id="qwen-hosted",
         provider="qwen",
@@ -269,7 +274,7 @@ def test_runtime_resolution_rejects_hosted_slot_without_persisted_secret() -> No
     ):
         get_dense_embedding_provider(
             _settings(provider_runtime_mode="fake"),
-            project_id=project.id,
+            workspace_id=workspace.id,
             secret_store=secret_store,
             session=session,
         )
@@ -277,7 +282,7 @@ def test_runtime_resolution_rejects_hosted_slot_without_persisted_secret() -> No
 
 def test_contextualizer_resolves_fake_runtime_slot() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     ProviderConnectionRepository(session).upsert_connection(
         connection_id="fake-context",
         provider="fake",
@@ -293,10 +298,79 @@ def test_contextualizer_resolves_fake_runtime_slot() -> None:
 
     contextualizer = get_contextualizer(
         _settings(provider_runtime_mode="live"),
-        project_id=project.id,
+        workspace_id=workspace.id,
         session=session,
     )
 
     assert isinstance(contextualizer, DeterministicContextualizer)
     assert contextualizer.provider_name == "local"
     assert contextualizer.model_name == "deterministic-context-v1"
+
+
+def test_vision_chat_runner_returns_none_when_slot_unconfigured() -> None:
+    session = _make_session()
+    workspace = WorkspaceRepository(session).create(name="demo")
+
+    runner = get_vision_chat_runner(
+        _settings(provider_runtime_mode="live"),
+        workspace_id=workspace.id,
+        session=session,
+    )
+
+    assert runner is None
+
+
+def test_vision_chat_runner_builds_from_configured_slot() -> None:
+    session = _make_session()
+    connections = ProviderConnectionRepository(session)
+    connections.upsert_connection(
+        connection_id="local-vision",
+        provider="local_openai_compatible",
+        connection_type="local",
+        base_url="http://localhost:11434/v1",
+        capabilities=["vision"],
+    )
+    RuntimeSettingsRepository(session).upsert_slot_default(
+        slot="vision",
+        connection_id="local-vision",
+        model_id="qwen2.5-vl-72b",
+    )
+    session.commit()
+
+    runner = get_vision_chat_runner(
+        _settings(provider_runtime_mode="live"),
+        session=session,
+    )
+
+    assert isinstance(runner, QwenChatRunner)
+    assert runner.provider_name == "local_openai_compatible"
+    assert runner.model_name == "qwen2.5-vl-72b"
+    assert isinstance(runner.client, QwenHTTPChatClient)
+    assert runner.client.base_url == "http://localhost:11434/v1"
+
+
+def test_vision_chat_runner_returns_none_when_slot_incomplete() -> None:
+    session = _make_session()
+    secret_store = _secret_store()
+    connections = ProviderConnectionRepository(session)
+    connections.upsert_connection(
+        connection_id="qwen-hosted",
+        provider="qwen",
+        connection_type="hosted",
+        base_url="https://dashscope.example.test/compatible-mode/v1",
+        capabilities=["vision"],
+    )
+    RuntimeSettingsRepository(session).upsert_slot_default(
+        slot="vision",
+        connection_id="qwen-hosted",
+        model_id="qwen3-vl-plus",
+    )
+    session.commit()
+
+    runner = get_vision_chat_runner(
+        _settings(provider_runtime_mode="live"),
+        secret_store=secret_store,
+        session=session,
+    )
+
+    assert runner is None

@@ -20,7 +20,7 @@ def test_factual_defaults_to_dense_sparse() -> None:
 
 def test_graph_ready_vs_fallback() -> None:
     router = RuleBasedQueryRouter()
-    query = "How is Project A related to Service B?"
+    query = "How is Workspace A related to Service B?"
     ready = router.route(query, graph_ready=True)
     not_ready = router.route(query, graph_ready=False)
     assert ready.route == "graph"

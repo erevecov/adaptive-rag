@@ -8,11 +8,11 @@ from uuid import uuid4
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, ProjectMembership, User, UserAccessToken
+from adaptive_rag.db.models import User, UserAccessToken, Workspace, WorkspaceMembership
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -22,17 +22,17 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
-            ProjectMembership.__table__,
+            WorkspaceMembership.__table__,
         ],
     )
     return create_session_factory(engine)()
 
 
-def _create_project(session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def test_user_repository_create_flushes_without_committing() -> None:
@@ -100,24 +100,26 @@ def test_user_repository_updates_user_fields() -> None:
     assert updated.is_active is False
 
 
-def test_user_repository_updates_last_project_preference() -> None:
+def test_user_repository_updates_last_workspace_preference() -> None:
     session = _make_session()
     repo = UserRepository(session)
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = repo.create_user(login="member@example.com", display_name="Member")
     session.commit()
 
-    updated = repo.update_last_project_id(
+    updated = repo.update_last_workspace_id(
         user.id,
-        last_project_id=project.id,
+        last_workspace_id=workspace.id,
     )
     assert updated is not None
-    assert updated.last_project_id == project.id
+    assert updated.last_workspace_id == workspace.id
 
-    cleared = repo.update_last_project_id(user.id, last_project_id=None)
+    cleared = repo.update_last_workspace_id(user.id, last_workspace_id=None)
     assert cleared is not None
-    assert cleared.last_project_id is None
-    assert repo.update_last_project_id(uuid4(), last_project_id=project.id) is None
+    assert cleared.last_workspace_id is None
+    assert (
+        repo.update_last_workspace_id(uuid4(), last_workspace_id=workspace.id) is None
+    )
 
 
 def test_user_repository_upserts_token_hash_and_can_revoke() -> None:
@@ -161,84 +163,87 @@ def test_user_repository_rejects_token_for_missing_user() -> None:
         )
 
 
-def test_project_membership_repository_creates_and_updates_role() -> None:
+def test_workspace_membership_repository_creates_and_updates_role() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
         login="admin@example.com",
         display_name="Admin",
     )
-    repo = ProjectMembershipRepository(session)
+    repo = WorkspaceMembershipRepository(session)
 
     membership = repo.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=user.id,
         role="VIEWER",
     )
     updated = repo.upsert_membership(
-        project_id=project.id,
+        workspace_id=workspace.id,
         user_id=user.id,
         role="admin",
     )
 
     assert updated.id == membership.id
     assert updated.role == "admin"
-    assert repo.get_membership(project_id=project.id, user_id=user.id) == updated
+    assert repo.get_membership(workspace_id=workspace.id, user_id=user.id) == updated
 
 
-def test_project_membership_repository_rejects_unsupported_role() -> None:
+def test_workspace_membership_repository_rejects_unsupported_role() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
         login="bad-role@example.com",
         display_name="Bad Role",
     )
 
-    with pytest.raises(ValueError, match="unsupported project role: owner"):
-        ProjectMembershipRepository(session).upsert_membership(
-            project_id=project.id,
+    with pytest.raises(ValueError, match="unsupported workspace role: owner"):
+        WorkspaceMembershipRepository(session).upsert_membership(
+            workspace_id=workspace.id,
             user_id=user.id,
             role="owner",
         )
 
 
-def test_project_membership_repository_lists_deterministic_orders() -> None:
+def test_workspace_membership_repository_lists_deterministic_orders() -> None:
     session = _make_session()
-    project = _create_project(session)
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session)
+    other_workspace = _create_workspace(session, "other")
     user_repo = UserRepository(session)
     bob = user_repo.create_user(login="bob@example.com", display_name="Bob")
     ada = user_repo.create_user(login="ada@example.com", display_name="Ada")
     mia = user_repo.create_user(login="mia@example.com", display_name="Mia")
-    repo = ProjectMembershipRepository(session)
-    repo.upsert_membership(project_id=project.id, user_id=bob.id, role="viewer")
-    repo.upsert_membership(project_id=project.id, user_id=ada.id, role="admin")
-    repo.upsert_membership(project_id=other_project.id, user_id=mia.id, role="viewer")
-    repo.upsert_membership(project_id=project.id, user_id=mia.id, role="contributor")
+    repo = WorkspaceMembershipRepository(session)
+    repo.upsert_membership(workspace_id=workspace.id, user_id=bob.id, role="viewer")
+    repo.upsert_membership(workspace_id=workspace.id, user_id=ada.id, role="admin")
+    repo.upsert_membership(
+        workspace_id=other_workspace.id, user_id=mia.id, role="viewer"
+    )
+    repo.upsert_membership(
+        workspace_id=workspace.id, user_id=mia.id, role="contributor"
+    )
     session.commit()
 
-    project_members = repo.list_project_members(project_id=project.id)
+    workspace_members = repo.list_workspace_members(workspace_id=workspace.id)
     user_memberships = repo.list_user_memberships(user_id=mia.id)
 
-    assert [member.user_id for member in project_members] == [ada.id, bob.id, mia.id]
-    assert [membership.project_id for membership in user_memberships] == sorted(
-        [project.id, other_project.id],
+    assert [member.user_id for member in workspace_members] == [ada.id, bob.id, mia.id]
+    assert [membership.workspace_id for membership in user_memberships] == sorted(
+        [workspace.id, other_workspace.id],
         key=str,
     )
 
 
-def test_project_membership_repository_removes_membership() -> None:
+def test_workspace_membership_repository_removes_membership() -> None:
     session = _make_session()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
         login="remove@example.com",
         display_name="Remove",
     )
-    repo = ProjectMembershipRepository(session)
-    repo.upsert_membership(project_id=project.id, user_id=user.id, role="viewer")
+    repo = WorkspaceMembershipRepository(session)
+    repo.upsert_membership(workspace_id=workspace.id, user_id=user.id, role="viewer")
     session.commit()
 
-    assert repo.remove_membership(project_id=project.id, user_id=user.id) is True
-    assert repo.get_membership(project_id=project.id, user_id=user.id) is None
-    assert repo.remove_membership(project_id=project.id, user_id=user.id) is False
-
+    assert repo.remove_membership(workspace_id=workspace.id, user_id=user.id) is True
+    assert repo.get_membership(workspace_id=workspace.id, user_id=user.id) is None
+    assert repo.remove_membership(workspace_id=workspace.id, user_id=user.id) is False

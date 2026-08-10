@@ -243,9 +243,33 @@ class ProviderModelCatalogRepository:
         else:
             model.capabilities_json = capabilities_json
             model.metadata_json = metadata_json
-            model.pricing_json = pricing_json
+            # Preserve catalog pricing when the provider listing omits it (common
+            # for DashScope /models). Daily pricing sync fills pricing_json.
+            if pricing is not None:
+                model.pricing_json = pricing_json
             model.last_seen_at = now
 
+        self._session.flush()
+        return model
+
+    def update_model_pricing(
+        self,
+        *,
+        connection_id: str,
+        model_id: str,
+        pricing: Mapping[str, Any] | None,
+    ) -> ProviderModelCatalog | None:
+        """Update only ``pricing_json`` for an existing catalog row.
+
+        Returns None when the model is not in the catalog. Does not touch
+        capabilities, metadata, or last_seen_at.
+        """
+
+        model_id = _normalize_identifier(model_id, "model_id")
+        model = self._session.get(ProviderModelCatalog, (connection_id, model_id))
+        if model is None:
+            return None
+        model.pricing_json = dict(pricing) if pricing is not None else None
         self._session.flush()
         return model
 

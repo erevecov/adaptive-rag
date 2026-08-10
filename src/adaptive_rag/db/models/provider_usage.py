@@ -74,34 +74,34 @@ class ProviderUsage(Base):
             name="provider_usage_estimated_cost_usd_non_negative_check",
         ),
         Index(
-            "ix_provider_usage_project_session_created_at",
-            "project_id",
+            "ix_provider_usage_workspace_session_created_at",
+            "workspace_id",
             "session_id",
             "created_at",
         ),
         Index(
-            "ix_provider_usage_project_operation_created_at",
-            "project_id",
+            "ix_provider_usage_workspace_operation_created_at",
+            "workspace_id",
             "operation",
             "created_at",
         ),
         Index(
-            "ix_provider_usage_project_job_created_at",
-            "project_id",
+            "ix_provider_usage_workspace_job_created_at",
+            "workspace_id",
             "job_id",
             "created_at",
         ),
         Index(
-            "ix_provider_usage_project_eval_run_created_at",
-            "project_id",
+            "ix_provider_usage_workspace_eval_run_created_at",
+            "workspace_id",
             "eval_run_id",
             "created_at",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     session_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True

@@ -24,8 +24,8 @@ class Document(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     source_id: Mapped[UUID] = mapped_column(
         ForeignKey("sources.id", ondelete="CASCADE"), nullable=False, index=True

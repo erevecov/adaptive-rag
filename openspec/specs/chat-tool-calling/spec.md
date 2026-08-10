@@ -9,15 +9,15 @@ adaptadores API/CLI delgados con respuestas citables.
 
 El sistema MUST exponer chat mediante un servicio compartido que puede llamar a
 una tool de retrieval tipada y MUST reutilizar `RetrievalService` para obtener
-contexto. El chat MUST resolver settings efectivos de retrieval por proyecto
+contexto. El chat MUST resolver settings efectivos de retrieval por workspace
 antes de ejecutar la tool.
 
 #### Scenario: Chat llama retrieval con settings efectivos
 
-- **WHEN** una solicitud de chat incluye `project_id` y `message`
+- **WHEN** una solicitud de chat incluye `workspace_id` y `message`
 - **THEN** el servicio conversacional resuelve `retrieval_limit`,
   `rerank_enabled` y `rerank_candidate_limit` desde defaults globales y
-  overrides de proyecto
+  overrides de workspace
 - **AND** la tool llama a `RetrievalService.search()` con `strategy=dense_sparse`
   y filtros tipados
 - **AND** si `rerank_enabled=true`, la llamada usa
@@ -77,52 +77,52 @@ mismo servicio conversacional.
 
 #### Scenario: API retorna respuesta con citations
 
-- **WHEN** `POST /projects/{project_id}/chat` recibe una solicitud valida
+- **WHEN** `POST /workspaces/{workspace_id}/chat` recibe una solicitud valida
 - **THEN** retorna `answer`, `citations` y metadata minima de tool calls
 - **AND** usa el mismo servicio conversacional que la CLI
 
 #### Scenario: CLI usa el mismo contrato que API
 
-- **WHEN** `adaptive-rag chat ask` recibe proyecto, pregunta, limite y filtros
+- **WHEN** `adaptive-rag chat ask` recibe workspace, pregunta, limite y filtros
 - **THEN** llama al mismo servicio conversacional que la API
 - **AND** emite una salida JSON estable para tests automatizados
 
-### Requirement: Chat requests execute as the current project user
+### Requirement: Chat requests execute as the current workspace user
 
-The system MUST bind every chat request to an authenticated user and project
+The system MUST bind every chat request to an authenticated user and workspace
 role before running retrieval or model calls.
 
 #### Scenario: Viewer can start private chat session
 
-- **GIVEN** the current user has project role `viewer`
-- **WHEN** they send a chat request for that project
+- **GIVEN** the current user has workspace role `viewer`
+- **WHEN** they send a chat request for that workspace
 - **THEN** the chat service creates a session owned by that user
-- **AND** retrieval uses only approved knowledge from that project
+- **AND** retrieval uses only approved knowledge from that workspace
 - **AND** the response includes the created session id
 
-#### Scenario: Locked project chat is rejected before providers
+#### Scenario: Locked workspace chat is rejected before providers
 
-- **GIVEN** the current user has no access to a project
-- **WHEN** they send a chat request for that project
+- **GIVEN** the current user has no access to a workspace
+- **WHEN** they send a chat request for that workspace
 - **THEN** the request is rejected before retrieval, embeddings or chat
   providers are called
 
 ### Requirement: Chat can propose knowledge with auditable origin
 
-The system MUST let users propose new project knowledge from a chat context
+The system MUST let users propose new workspace knowledge from a chat context
 without making pending proposals retrievable.
 
 #### Scenario: Viewer proposal remains pending
 
-- **GIVEN** a viewer is chatting in a project
+- **GIVEN** a viewer is chatting in a workspace
 - **WHEN** they propose knowledge from a chat message
 - **THEN** the system creates a pending knowledge proposal linked to the
-  project, session, message and submitter
+  workspace, session, message and submitter
 - **AND** the proposal does not create chunks or embeddings until approved
 
 #### Scenario: Contributor proposal is approved directly
 
-- **GIVEN** a contributor is chatting in a project
+- **GIVEN** a contributor is chatting in a workspace
 - **WHEN** they propose knowledge from a chat message
 - **THEN** the system records an approved proposal or equivalent audit record
 - **AND** creates approved source input for ingestion without human review
@@ -136,8 +136,8 @@ without making pending proposals retrievable.
 
 ### Requirement: Chat requests may continue a session
 
-`POST /projects/{project_id}/chat` and stream MUST accept optional `session_id`
-and continue that session when it belongs to the project (and user when scoped).
+`POST /workspaces/{workspace_id}/chat` and stream MUST accept optional `session_id`
+and continue that session when it belongs to the workspace (and user when scoped).
 
 #### Scenario: Follow-up reuses session_id
 

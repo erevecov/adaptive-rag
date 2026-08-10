@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
+from adaptive_rag.chat.attachments import ChatAttachmentContext
 from adaptive_rag.db.models import (
     DEFAULT_CHAT_RERANK_CANDIDATE_LIMIT,
     DEFAULT_CHAT_RETRIEVAL_LIMIT,
@@ -26,7 +27,7 @@ class ChatHistoryTurn:
 class ChatRequest:
     """Solicitud interna de chat sobre un proyecto."""
 
-    project_id: UUID
+    workspace_id: UUID
     message: str
     user_id: UUID | None = None
     session_id: UUID | None = None
@@ -36,13 +37,15 @@ class ChatRequest:
     metadata_filter: RetrievalMetadataFilter | None = None
     # Approved durable memory for runner system context only — never audit/history text.
     user_memory: str | None = None
+    # Uploaded attachment ids; the service resolves them to contexts.
+    attachments: tuple[UUID, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class ChatRunnerRequest:
     """Request normalizada entregada al runner conversacional."""
 
-    project_id: UUID
+    workspace_id: UUID
     message: str
     retrieval_limit: int
     metadata_filter: RetrievalMetadataFilter | None
@@ -50,6 +53,7 @@ class ChatRunnerRequest:
     history: tuple[ChatHistoryTurn, ...] = ()
     retrieval_query: str | None = None
     user_memory: str | None = None
+    attachments: tuple[ChatAttachmentContext, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,5 +1,6 @@
 """Repositories publicos para persistencia del dominio Adaptive RAG."""
 
+from adaptive_rag.db.repositories.chat_attachments import ChatAttachmentRepository
 from adaptive_rag.db.repositories.chat_audit import (
     ChatAuditRepository,
     ChatSessionDetail,
@@ -21,10 +22,9 @@ from adaptive_rag.db.repositories.chat_observability import (
 from adaptive_rag.db.repositories.chunks import ChunkRepository
 from adaptive_rag.db.repositories.documents import DocumentRepository
 from adaptive_rag.db.repositories.filters import DocumentFilters, SourceFilters
-from adaptive_rag.db.repositories.graph_projection import GraphProjectionRepository
+from adaptive_rag.db.repositories.graph_projection import GraphprojectionRepository
 from adaptive_rag.db.repositories.jobs import JobRepository
 from adaptive_rag.db.repositories.knowledge_proposals import KnowledgeProposalRepository
-from adaptive_rag.db.repositories.projects import ProjectRepository
 from adaptive_rag.db.repositories.provider_connections import (
     ProviderConnectionRepository,
     ProviderModelCatalogRepository,
@@ -35,19 +35,22 @@ from adaptive_rag.db.repositories.runtime_settings import (
     EffectiveChatModel,
     EffectiveChatRetrievalSettings,
     EffectiveRuntimeSlot,
-    ProjectRuntimeSettings,
-    ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
+    WorkspaceRuntimeSettings,
+    WorkspaceRuntimeSettingsRepository,
 )
 from adaptive_rag.db.repositories.sources import SourceRepository
 from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingRepository
+from adaptive_rag.db.repositories.system_tasks import SystemTaskRepository
 from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
 from adaptive_rag.db.repositories.users import (
-    ProjectMembershipRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
 )
+from adaptive_rag.db.repositories.workspaces import WorkspaceRepository
 
 __all__ = [
+    "ChatAttachmentRepository",
     "ChatAuditRepository",
     "ChatObservabilityErrorMessage",
     "ChatObservabilityErrorSummary",
@@ -65,11 +68,11 @@ __all__ = [
     "ChunkRepository",
     "DocumentFilters",
     "DocumentRepository",
-    "GraphProjectionRepository",
+    "GraphprojectionRepository",
     "JobRepository",
     "KnowledgeProposalRepository",
-    "ProjectMembershipRepository",
-    "ProjectRepository",
+    "WorkspaceMembershipRepository",
+    "WorkspaceRepository",
     "ProviderConnectionRepository",
     "ProviderModelCatalogRepository",
     "ProviderSecretStatus",
@@ -77,12 +80,13 @@ __all__ = [
     "EffectiveChatRetrievalSettings",
     "EffectiveChatModel",
     "EffectiveRuntimeSlot",
-    "ProjectRuntimeSettings",
-    "ProjectRuntimeSettingsRepository",
+    "WorkspaceRuntimeSettings",
+    "WorkspaceRuntimeSettingsRepository",
     "RuntimeSettingsRepository",
     "SourceFilters",
     "SourceRepository",
     "SparseEmbeddingRepository",
+    "SystemTaskRepository",
     "UserRepository",
     "UserMemoryRepository",
 ]

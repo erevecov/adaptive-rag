@@ -39,10 +39,10 @@ const STATUS_FILTERS: Array<{ id: MemoryStatusFilter; label: string }> = [
 
 export type UserMemoryPanelProps = {
   apiClient: ApiClient
-  projectId: string
+  workspaceId: string
 }
 
-export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) {
+export function UserMemoryPanel({ apiClient, workspaceId }: UserMemoryPanelProps) {
   const titleId = useId()
   const draftFieldId = useId()
   const [statusFilter, setStatusFilter] = useState<MemoryStatusFilter>('all')
@@ -50,7 +50,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   const [listState, setListState] = useState<RequestState>('idle')
   const [listError, setListError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
-  const [scopeToProject, setScopeToProject] = useState(false)
+  const [scopeToWorkspace, setScopeToWorkspace] = useState(false)
   const [proposeState, setProposeState] = useState<RequestState>('idle')
   const [proposeError, setProposeError] = useState<string | null>(null)
   const [proposeSuccess, setProposeSuccess] = useState<string | null>(null)
@@ -78,7 +78,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
   // commit list state, so out-of-order or stale responses never win.
   const listRequestIdRef = useRef(0)
 
-  const trimmedProjectId = projectId.trim()
+  const trimmedWorkspaceId = workspaceId.trim()
   const draftLength = draft.length
   const draftOverLimit = draftLength > USER_MEMORY_MAX_CHARS
 
@@ -173,17 +173,17 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
       setListError(null)
       setConfirmRemoveId(null)
       try {
-        const projectScope =
-          trimmedProjectId.length > 0 ? trimmedProjectId : null
+        const workspaceScope =
+          trimmedWorkspaceId.length > 0 ? trimmedWorkspaceId : null
         const tallyResponse = await apiClient.listUserMemories({
-          project_id: projectScope,
+          workspace_id: workspaceScope,
           status: null,
         })
         const listResponse =
           statusFilter === 'all'
             ? tallyResponse
             : await apiClient.listUserMemories({
-                project_id: projectScope,
+                workspace_id: workspaceScope,
                 status: statusFilter,
               })
         if (requestId !== listRequestIdRef.current) {
@@ -218,11 +218,11 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
 
     void load()
     return () => {
-      // Invalidate in-flight fetches on unmount or filter/project change so
+      // Invalidate in-flight fetches on unmount or filter/workspace change so
       // their responses can never commit over the newer request's state.
       listRequestIdRef.current += 1
     }
-  }, [apiClient, statusFilter, trimmedProjectId])
+  }, [apiClient, statusFilter, trimmedWorkspaceId])
 
 
   async function refreshList() {
@@ -230,17 +230,17 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     setListState('loading')
     setListError(null)
     try {
-      const projectScope =
-        trimmedProjectId.length > 0 ? trimmedProjectId : null
+      const workspaceScope =
+        trimmedWorkspaceId.length > 0 ? trimmedWorkspaceId : null
       const tallyResponse = await apiClient.listUserMemories({
-        project_id: projectScope,
+        workspace_id: workspaceScope,
         status: null,
       })
       const response =
         statusFilter === 'all'
           ? tallyResponse
           : await apiClient.listUserMemories({
-              project_id: projectScope,
+              workspace_id: workspaceScope,
               status: statusFilter,
             })
       if (requestId !== listRequestIdRef.current) {
@@ -287,8 +287,8 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
     try {
       await apiClient.proposeUserMemory({
         content,
-        project_id:
-          scopeToProject && trimmedProjectId.length > 0 ? trimmedProjectId : null,
+        workspace_id:
+          scopeToWorkspace && trimmedWorkspaceId.length > 0 ? trimmedWorkspaceId : null,
       })
       setDraft('')
       setProposeState('succeeded')
@@ -567,18 +567,18 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
           </FieldHelp>
         </Field>
 
-        {trimmedProjectId.length > 0 ? (
+        {trimmedWorkspaceId.length > 0 ? (
           <label className="flex items-start gap-2 text-xs text-foreground">
             <input
-              checked={scopeToProject}
+              checked={scopeToWorkspace}
               className="mt-0.5"
-              onChange={(event) => setScopeToProject(event.target.checked)}
+              onChange={(event) => setScopeToWorkspace(event.target.checked)}
               type="checkbox"
             />
             <span>
-              Scope to current project
+              Scope to current workspace
               <span className="block text-muted-foreground">
-                Unchecked = global (all projects for this user).
+                Unchecked = global (all workspaces for this user).
               </span>
             </span>
           </label>
@@ -793,7 +793,7 @@ export function UserMemoryPanel({ apiClient, projectId }: UserMemoryPanelProps) 
                       {statusLabel(memory.status)}
                     </StatusBadge>
                     <span className="text-xs text-muted-foreground">
-                      {memory.project_id ? 'Project-scoped' : 'Global'}
+                      {memory.workspace_id ? 'Workspace-scoped' : 'Global'}
                     </span>
                     {formatRelativeTime(memory.created_at) ? (
                       <>

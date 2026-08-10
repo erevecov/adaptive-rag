@@ -120,7 +120,7 @@ const knowledgeProposal: KnowledgeProposal = {
   id: 'proposal-1',
   origin_message_id: null,
   origin_session_id: 'session-1',
-  project_id: 'project-1',
+  workspace_id: 'workspace-1',
   proposed_text: 'Persist this fact',
   refined_text: 'Refined draft text',
   review_note: null,
@@ -399,6 +399,45 @@ describe('ChatWorkspacePanel', () => {
     await userDriver.click(regenerate)
     expect(onRegenerateLastAnswer).toHaveBeenCalledTimes(1)
     view.unmount()
+  })
+
+  test('answer ⋯ menu exposes Ver detalles and calls onViewTurnDetails', async () => {
+    const userDriver = userEvent.setup()
+    const onViewTurnDetails = vi.fn()
+    renderChatWorkspace({
+      activeResponseQuestion: 'What do the architecture notes say?',
+      onViewTurnDetails,
+      priorTurns: [
+        {
+          answer: 'Earlier answer.',
+          id: 'message-assistant-prior',
+          question: 'Prior question?',
+          steps: [],
+          tool_calls: [],
+          citations: [],
+        },
+      ],
+      requestState: 'succeeded',
+      response,
+    })
+
+    const answerMenus = screen.getAllByRole('button', {
+      name: 'Más opciones de respuesta',
+    })
+    expect(answerMenus.length).toBeGreaterThanOrEqual(2)
+
+    await userDriver.click(answerMenus[0])
+    expect(screen.getByRole('menuitem', { name: 'Ver detalles' })).toBeTruthy()
+    await userDriver.click(screen.getByRole('menuitem', { name: 'Ver detalles' }))
+
+    expect(onViewTurnDetails).toHaveBeenCalledTimes(1)
+    expect(onViewTurnDetails).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detailsInstanceId: 'turn-message-assistant-prior',
+        question: 'Prior question?',
+        turnId: 'message-assistant-prior',
+      }),
+    )
   })
 
   test('edit question loads text into the composer via onEditQuestion', async () => {
@@ -694,7 +733,7 @@ describe('ChatWorkspacePanel', () => {
             draft_id: 'draft-1',
             proposed_text: 'Persist this fact',
             review_action: 'approve',
-            scope: 'project',
+            scope: 'workspace',
             status: 'draft',
           },
         },
@@ -709,7 +748,7 @@ describe('ChatWorkspacePanel', () => {
           ingestStatus: null,
           proposalId: null,
           reviewAction: 'approve',
-          scope: 'project',
+          scope: 'workspace',
           status: 'draft',
           text: 'Persist this fact',
         },
@@ -738,7 +777,7 @@ describe('ChatWorkspacePanel', () => {
             ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
-            scope: 'project',
+            scope: 'workspace',
             status,
             text: `Text for ${status}`,
           },
@@ -868,7 +907,7 @@ describe('ChatWorkspacePanel', () => {
             ingestStatus: null,
             proposalId: status === 'pending' ? 'proposal-1' : null,
             reviewAction: 'approve',
-            scope: 'project',
+            scope: 'workspace',
             status,
             text: `Text for ${status}`,
           },

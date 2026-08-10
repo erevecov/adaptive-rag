@@ -13,7 +13,7 @@ body JSON del contrato actual y devuelva eventos `text/event-stream`.
 #### Scenario: Endpoint acepta request de chat por POST
 
 - **WHEN** el cliente envia una solicitud valida a
-  `POST /projects/{project_id}/chat/stream`
+  `POST /workspaces/{workspace_id}/chat/stream`
 - **THEN** el sistema procesa `message`, `retrieval_limit` y `metadata_filter`
   con las mismas reglas del flujo no streaming
 - **AND** responde con media type `text/event-stream`
@@ -22,7 +22,7 @@ body JSON del contrato actual y devuelva eventos `text/event-stream`.
 #### Scenario: Flujo no streaming sigue disponible
 
 - **WHEN** M16 queda implementado
-- **THEN** `POST /projects/{project_id}/chat` sigue retornando el JSON final
+- **THEN** `POST /workspaces/{workspace_id}/chat` sigue retornando el JSON final
   compatible
 - **AND** clientes que no soportan streaming pueden usar el endpoint existente
 
@@ -97,7 +97,7 @@ superficies de producto independientes.
 
 ### Requirement: Streaming chat accepts session_id
 
-`POST /projects/{project_id}/chat/stream` MUST accept the same optional
+`POST /workspaces/{workspace_id}/chat/stream` MUST accept the same optional
 `session_id` contract as non-stream chat.
 
 #### Scenario: Stream follow-up continues session

@@ -81,7 +81,7 @@ class RaisingProviderUsage:
 
 
 def test_chat_service_records_successful_session_tool_and_messages() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     metadata_filter = RetrievalMetadataFilter(source_type="markdown", tags=("docs",))
     audit = InMemoryChatAuditWriter(session_id=uuid4())
@@ -95,7 +95,7 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
 
     response = service.respond(
         ChatRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             message="What supports alpha?",
             retrieval_limit=1,
             metadata_filter=metadata_filter,
@@ -105,7 +105,7 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
     assert response.session_id == audit.session_id
     assert audit.events[0] == {
         "event": "start_session",
-        "project_id": str(project_id),
+        "workspace_id": str(workspace_id),
         "message": "What supports alpha?",
         "retrieval_limit": 1,
         "session_id": str(audit.session_id),
@@ -142,7 +142,7 @@ def test_chat_service_records_successful_session_tool_and_messages() -> None:
 
 
 def test_chat_service_passes_user_id_to_audit_session() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     user_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -152,14 +152,14 @@ def test_chat_service_passes_user_id_to_audit_session() -> None:
     )
 
     service.respond(
-        ChatRequest(project_id=project_id, user_id=user_id, message="alpha")
+        ChatRequest(workspace_id=workspace_id, user_id=user_id, message="alpha")
     )
 
     assert audit.events[0]["user_id"] == str(user_id)
 
 
 def test_chat_service_records_graph_retrieval_strategy_from_results() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -176,7 +176,7 @@ def test_chat_service_records_graph_retrieval_strategy_from_results() -> None:
         audit_writer=audit,
     )
 
-    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+    service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     tool_events = [
         event for event in audit.events if event["event"] == "retrieval_tool"
@@ -185,7 +185,7 @@ def test_chat_service_records_graph_retrieval_strategy_from_results() -> None:
 
 
 def test_chat_service_records_hybrid_retrieval_strategy_from_results() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -202,7 +202,7 @@ def test_chat_service_records_hybrid_retrieval_strategy_from_results() -> None:
         audit_writer=audit,
     )
 
-    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+    service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     tool_events = [
         event for event in audit.events if event["event"] == "retrieval_tool"
@@ -211,7 +211,7 @@ def test_chat_service_records_hybrid_retrieval_strategy_from_results() -> None:
 
 
 def test_chat_service_records_dense_sparse_retrieval_strategy_from_results() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -228,7 +228,7 @@ def test_chat_service_records_dense_sparse_retrieval_strategy_from_results() -> 
         audit_writer=audit,
     )
 
-    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+    service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     tool_events = [
         event for event in audit.events if event["event"] == "retrieval_tool"
@@ -237,7 +237,7 @@ def test_chat_service_records_dense_sparse_retrieval_strategy_from_results() -> 
 
 
 def test_chat_service_records_graph_fallback_reason_from_results() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -254,7 +254,7 @@ def test_chat_service_records_graph_fallback_reason_from_results() -> None:
         audit_writer=audit,
     )
 
-    service.respond(ChatRequest(project_id=project_id, message="alpha"))
+    service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     tool_events = [
         event for event in audit.events if event["event"] == "retrieval_tool"
@@ -264,7 +264,7 @@ def test_chat_service_records_graph_fallback_reason_from_results() -> None:
 
 
 def test_successful_chat_ignores_provider_usage_failure_and_succeeds() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     provider_usage = RaisingProviderUsage()
@@ -278,7 +278,7 @@ def test_successful_chat_ignores_provider_usage_failure_and_succeeds() -> None:
     )
 
     response = service.respond(
-        ChatRequest(project_id=project_id, message="What supports alpha?")
+        ChatRequest(workspace_id=workspace_id, message="What supports alpha?")
     )
 
     assert response.answer == "Alpha is backed by retrieved evidence."
@@ -287,7 +287,7 @@ def test_successful_chat_ignores_provider_usage_failure_and_succeeds() -> None:
 
 
 def test_chat_service_records_failed_session_after_runner_error() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     service = ChatService(
@@ -299,7 +299,7 @@ def test_chat_service_records_failed_session_after_runner_error() -> None:
     )
 
     with pytest.raises(ChatServiceError, match="runner failed"):
-        service.respond(ChatRequest(project_id=project_id, message="alpha"))
+        service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     assert audit.events[-1] == {
         "event": "fail_session",
@@ -309,7 +309,7 @@ def test_chat_service_records_failed_session_after_runner_error() -> None:
 
 
 def test_runner_error_ignores_provider_usage_failure_and_preserves_error() -> None:
-    project_id = uuid4()
+    workspace_id = uuid4()
     chunk_id = uuid4()
     audit = InMemoryChatAuditWriter(session_id=uuid4())
     provider_usage = RaisingProviderUsage()
@@ -323,7 +323,7 @@ def test_runner_error_ignores_provider_usage_failure_and_preserves_error() -> No
     )
 
     with pytest.raises(ChatServiceError, match="runner failed"):
-        service.respond(ChatRequest(project_id=project_id, message="alpha"))
+        service.respond(ChatRequest(workspace_id=workspace_id, message="alpha"))
 
     assert audit.events[-1] == {
         "event": "fail_session",
@@ -341,7 +341,7 @@ def test_non_chat_service_error_after_session_start_records_failure() -> None:
     )
 
     with pytest.raises(ChatServiceError, match="provider exploded"):
-        service.respond(ChatRequest(project_id=uuid4(), message="alpha"))
+        service.respond(ChatRequest(workspace_id=uuid4(), message="alpha"))
 
     assert audit.events[-1] == {
         "event": "fail_session",
@@ -358,7 +358,7 @@ def test_invalid_request_does_not_start_audit_session() -> None:
     )
 
     with pytest.raises(ChatServiceError, match="message must not be empty"):
-        service.respond(ChatRequest(project_id=uuid4(), message=" "))
+        service.respond(ChatRequest(workspace_id=uuid4(), message=" "))
 
     assert audit.events == []
 
@@ -373,7 +373,7 @@ def test_invalid_retrieval_limit_does_not_start_audit_session() -> None:
 
     with pytest.raises(ChatServiceError, match="retrieval_limit must be positive"):
         service.respond(
-            ChatRequest(project_id=uuid4(), message="alpha", retrieval_limit=0)
+            ChatRequest(workspace_id=uuid4(), message="alpha", retrieval_limit=0)
         )
 
     assert audit.events == []

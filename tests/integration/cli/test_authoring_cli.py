@@ -13,58 +13,58 @@ from typer.testing import CliRunner
 
 from adaptive_rag.cli.app import app
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, Source
-from adaptive_rag.db.repositories import ProjectRepository, SourceRepository
+from adaptive_rag.db.models import Source, Workspace
+from adaptive_rag.db.repositories import SourceRepository, WorkspaceRepository
 from adaptive_rag.db.session import create_session_factory
 
 
 def test_authoring_commands_are_registered() -> None:
     runner = CliRunner()
 
-    projects = runner.invoke(app, ["projects", "--help"])
+    workspaces = runner.invoke(app, ["workspaces", "--help"])
     sources = runner.invoke(app, ["sources", "--help"])
 
-    assert projects.exit_code == 0
-    assert "create" in projects.stdout
-    assert "list" in projects.stdout
-    assert "show" in projects.stdout
+    assert workspaces.exit_code == 0
+    assert "create" in workspaces.stdout
+    assert "list" in workspaces.stdout
+    assert "show" in workspaces.stdout
     assert sources.exit_code == 0
     assert "create" in sources.stdout
     assert "list" in sources.stdout
     assert "show" in sources.stdout
 
 
-def test_projects_create_list_and_show_output_json(
+def test_workspaces_create_list_and_show_output_json(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
     _patch_authoring_session_scope(monkeypatch, session=session)
     runner = CliRunner()
 
-    created = runner.invoke(app, ["projects", "create", "--name", "Demo"])
+    created = runner.invoke(app, ["workspaces", "create", "--name", "Demo"])
 
     assert created.exit_code == 0
-    project = json.loads(created.stdout)
-    assert project["name"] == "Demo"
-    assert project["embedding_mode"] == "dense_sparse"
-    assert project["retrieval_contextualization_enabled"] is True
-    assert project["budget_config_json"] is None
+    workspace = json.loads(created.stdout)
+    assert workspace["name"] == "Demo"
+    assert workspace["embedding_mode"] == "dense_sparse"
+    assert workspace["retrieval_contextualization_enabled"] is True
+    assert workspace["budget_config_json"] is None
 
-    listed = runner.invoke(app, ["projects", "list"])
+    listed = runner.invoke(app, ["workspaces", "list"])
     shown = runner.invoke(
         app,
-        ["projects", "show", "--project-id", project["id"]],
+        ["workspaces", "show", "--workspace-id", workspace["id"]],
     )
 
     assert listed.exit_code == 0
     assert [item["id"] for item in json.loads(listed.stdout)["items"]] == [
-        project["id"]
+        workspace["id"]
     ]
     assert shown.exit_code == 0
-    assert json.loads(shown.stdout)["id"] == project["id"]
+    assert json.loads(shown.stdout)["id"] == workspace["id"]
 
 
-def test_projects_show_missing_project_exits_with_stable_error(
+def test_workspaces_show_missing_workspace_exits_with_stable_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
@@ -72,18 +72,18 @@ def test_projects_show_missing_project_exits_with_stable_error(
 
     result = CliRunner().invoke(
         app,
-        ["projects", "show", "--project-id", str(uuid4())],
+        ["workspaces", "show", "--workspace-id", str(uuid4())],
     )
 
     assert result.exit_code == 1
-    assert result.stderr.strip() == "project not found"
+    assert result.stderr.strip() == "workspace not found"
 
 
 def test_sources_create_list_and_show_output_json_without_ingestion_jobs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     _patch_authoring_session_scope(monkeypatch, session=session)
     runner = CliRunner()
@@ -93,8 +93,8 @@ def test_sources_create_list_and_show_output_json_without_ingestion_jobs(
         [
             "sources",
             "create",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-type",
             "markdown",
             "--external-id",
@@ -112,8 +112,8 @@ def test_sources_create_list_and_show_output_json_without_ingestion_jobs(
         [
             "sources",
             "create",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-type",
             "url",
             "--external-id",
@@ -125,7 +125,7 @@ def test_sources_create_list_and_show_output_json_without_ingestion_jobs(
     assert url.exit_code == 0
     markdown_payload = json.loads(markdown.stdout)
     url_payload = json.loads(url.stdout)
-    assert markdown_payload["project_id"] == str(project.id)
+    assert markdown_payload["workspace_id"] == str(workspace.id)
     assert markdown_payload["source_type"] == "markdown"
     assert markdown_payload["external_id"] == "notes.md"
     assert markdown_payload["tags"] == ["docs", "local"]
@@ -133,14 +133,16 @@ def test_sources_create_list_and_show_output_json_without_ingestion_jobs(
     assert url_payload["source_type"] == "url"
     assert url_payload["extra_metadata"] is None
 
-    listed = runner.invoke(app, ["sources", "list", "--project-id", str(project.id)])
+    listed = runner.invoke(
+        app, ["sources", "list", "--workspace-id", str(workspace.id)]
+    )
     shown = runner.invoke(
         app,
         [
             "sources",
             "show",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-id",
             markdown_payload["id"],
         ],
@@ -159,9 +161,9 @@ def test_sources_create_rejects_missing_text_content_and_duplicate_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="url",
         external_id="https://example.com/doc",
     )
@@ -174,8 +176,8 @@ def test_sources_create_rejects_missing_text_content_and_duplicate_identity(
         [
             "sources",
             "create",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-type",
             "markdown",
             "--external-id",
@@ -187,8 +189,8 @@ def test_sources_create_rejects_missing_text_content_and_duplicate_identity(
         [
             "sources",
             "create",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-type",
             "url",
             "--external-id",
@@ -204,21 +206,21 @@ def test_sources_create_rejects_missing_text_content_and_duplicate_identity(
     assert duplicate.stderr.strip() == "source already exists"
 
 
-def test_sources_show_missing_project_and_source_exit_with_stable_errors(
+def test_sources_show_missing_workspace_and_source_exit_with_stable_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="Demo")
+    workspace = WorkspaceRepository(session).create(name="Demo")
     session.commit()
     _patch_authoring_session_scope(monkeypatch, session=session)
     runner = CliRunner()
 
-    missing_project = runner.invoke(
+    missing_workspace = runner.invoke(
         app,
         [
             "sources",
             "list",
-            "--project-id",
+            "--workspace-id",
             str(uuid4()),
         ],
     )
@@ -227,15 +229,15 @@ def test_sources_show_missing_project_and_source_exit_with_stable_errors(
         [
             "sources",
             "show",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--source-id",
             str(uuid4()),
         ],
     )
 
-    assert missing_project.exit_code == 1
-    assert missing_project.stderr.strip() == "project not found"
+    assert missing_workspace.exit_code == 1
+    assert missing_workspace.stderr.strip() == "workspace not found"
     assert missing_source.exit_code == 1
     assert missing_source.stderr.strip() == "source not found"
 
@@ -246,7 +248,7 @@ def _make_session() -> Session:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Project.__table__, Source.__table__])
+    Base.metadata.create_all(engine, tables=[Workspace.__table__, Source.__table__])
     return create_session_factory(engine)()
 
 
@@ -260,7 +262,7 @@ def _patch_authoring_session_scope(
         yield session
 
     monkeypatch.setattr(
-        "adaptive_rag.cli.projects.session_scope",
+        "adaptive_rag.cli.workspaces.session_scope",
         override_session_scope,
     )
     monkeypatch.setattr(

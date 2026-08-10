@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 
 class RetrievedChunk(Base):
@@ -35,17 +35,17 @@ class RetrievedChunk(Base):
         ),
         CheckConstraint("rank > 0", name="retrieved_chunks_rank_positive_check"),
         Index(
-            "ix_retrieved_chunks_project_retrieval_run_rank",
-            "project_id",
+            "ix_retrieved_chunks_workspace_retrieval_run_rank",
+            "workspace_id",
             "retrieval_run_id",
             "rank",
         ),
-        Index("ix_retrieved_chunks_project_chunk", "project_id", "chunk_id"),
+        Index("ix_retrieved_chunks_workspace_chunk", "workspace_id", "chunk_id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     retrieval_run_id: Mapped[UUID] = mapped_column(
         ForeignKey("retrieval_runs.id", ondelete="CASCADE"), nullable=False

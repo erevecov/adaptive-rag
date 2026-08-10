@@ -1,7 +1,7 @@
 [project]
 name = "adaptive-rag"
 version = "0.1.0"
-description = "Sistema RAG adaptativo personal y aislado por proyecto."
+description = "Sistema RAG adaptativo personal y aislado por workspace."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,6 +17,7 @@ dependencies = [
   "pydantic-settings>=2.14.2",
   "pypdf>=6.15.0",
   "python-docx>=1.2.0",
+  "python-multipart>=0.0.18",
   "rich>=13.9",
   "sqlalchemy>=2.0",
   "tiktoken>=0.13",

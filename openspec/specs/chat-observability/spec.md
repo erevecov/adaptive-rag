@@ -1,21 +1,21 @@
 # chat-observability Specification
 
 ## Purpose
-Define la superficie read-only de observability de chat por proyecto: resumen
+Define la superficie read-only de observability de chat por workspace: resumen
 de sesiones, status, errores, provider usage, costo/usage y latencia usando el
 audit trail durable existente, con contrato JSON equivalente para API y CLI.
 ## Requirements
 ### Requirement: Chat observability expone resumen read-only
 
 El sistema MUST exponer una superficie read-only para resumir observability de
-chat por proyecto usando el audit trail durable existente.
+chat por workspace usando el audit trail durable existente.
 
-#### Scenario: Resumen usa datos del proyecto
+#### Scenario: Resumen usa datos del workspace
 
-- **WHEN** el cliente solicita el resumen de observability de un proyecto
+- **WHEN** el cliente solicita el resumen de observability de un workspace
 - **THEN** el sistema calcula agregados usando solo sesiones y provider usage de
-  ese proyecto
-- **AND** no devuelve datos de otros proyectos
+  ese workspace
+- **AND** no devuelve datos de otros workspaces
 - **AND** no crea ni modifica sesiones, mensajes, tool calls, retrieval runs ni
   provider usage
 
@@ -24,7 +24,7 @@ chat por proyecto usando el audit trail durable existente.
 - **WHEN** el cliente envia `created_at_from`, `created_at_to` o `status`
 - **THEN** el sistema aplica esos filtros de forma deterministica
 - **AND** rechaza filtros invalidos con error estable
-- **AND** sin filtros de fecha cubre todos los datos persistidos del proyecto
+- **AND** sin filtros de fecha cubre todos los datos persistidos del workspace
 
 ### Requirement: Resumen reporta volumen, status y errores
 
@@ -35,7 +35,7 @@ mensajes completos de usuario o assistant.
 
 - **WHEN** existen sesiones `running`, `succeeded` y `failed`
 - **THEN** el resumen incluye total de sesiones y conteos por status
-- **AND** los conteos respetan filtros de proyecto, status y fecha
+- **AND** los conteos respetan filtros de workspace, status y fecha
 
 #### Scenario: Errores se agrupan de forma segura
 
@@ -53,7 +53,7 @@ costos, tokens/unidades y latencias sin inventar datos ausentes.
 
 #### Scenario: Usage se agrupa por operation provider y model
 
-- **WHEN** existen provider usage records del proyecto
+- **WHEN** existen provider usage records del workspace
 - **THEN** el resumen agrupa records por `operation`, `provider` y `model`
 - **AND** cada grupo incluye record count, costo estimado conocido,
   tokens/unidades conocidas y latencia agregada
@@ -78,17 +78,17 @@ costos, tokens/unidades y latencias sin inventar datos ausentes.
 El sistema MUST exponer el resumen de observability por API y CLI con shape JSON
 equivalente.
 
-#### Scenario: API devuelve resumen de proyecto
+#### Scenario: API devuelve resumen de workspace
 
-- **WHEN** `GET /projects/{project_id}/chat/observability/summary` recibe una
+- **WHEN** `GET /workspaces/{workspace_id}/chat/observability/summary` recibe una
   solicitud valida
 - **THEN** retorna JSON estable con filtros aplicados, sesiones, provider usage,
   latencias y errores
-- **AND** respeta aislamiento por proyecto
+- **AND** respeta aislamiento por workspace
 
 #### Scenario: CLI devuelve resumen equivalente
 
-- **WHEN** `adaptive-rag chat observability summary --project-id <uuid>` se
+- **WHEN** `adaptive-rag chat observability summary --workspace-id <uuid>` se
   ejecuta
 - **THEN** escribe JSON estable equivalente al endpoint HTTP
 - **AND** acepta filtros de fecha y status equivalentes
@@ -112,13 +112,13 @@ introducir superficies fuera de alcance.
 The system MUST allow a frontend dashboard to consume chat observability
 summaries without changing the read-only audit trail contract.
 
-#### Scenario: Dashboard consumes the existing project summary
+#### Scenario: Dashboard consumes the existing workspace summary
 
 - **WHEN** the frontend requests
-  `GET /projects/{project_id}/chat/observability/summary`
+  `GET /workspaces/{workspace_id}/chat/observability/summary`
 - **THEN** the system returns the existing stable summary fields for filters,
   sessions, provider usage and errors
-- **AND** applies the same project, `created_at_from`, `created_at_to` and
+- **AND** applies the same workspace, `created_at_from`, `created_at_to` and
   `status` filters as the API/CLI contract
 - **AND** does not create or modify sessions, messages, tool calls, retrieval
   runs or provider usage
@@ -139,7 +139,7 @@ summaries without changing the read-only audit trail contract.
   as time buckets or global latency aggregates
 - **THEN** existing response fields remain backward-compatible
 - **AND** added fields are derived from existing chat audit tables for the same
-  project and filters
+  workspace and filters
 - **AND** no new mandatory tables, materialized views, exporters hosted or
   telemetry services are required
 

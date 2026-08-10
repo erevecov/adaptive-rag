@@ -189,7 +189,7 @@ def test_chat_service_redacts_regurgitated_retrieved_snippet() -> None:
         retrieval_service=_SnippetRetrieval(),
     )
     response = service.respond(
-        ChatRequest(project_id=uuid4(), message="explain the pipeline")
+        ChatRequest(workspace_id=uuid4(), message="explain the pipeline")
     )
     assert _CHUNK not in response.answer
     assert REGURGITATION_MARKER in response.answer

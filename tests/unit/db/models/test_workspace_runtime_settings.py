@@ -1,4 +1,4 @@
-"""Tests for project-scoped runtime override persistence models."""
+"""Tests for workspace-scoped runtime override persistence models."""
 
 from __future__ import annotations
 
@@ -7,12 +7,12 @@ from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
-    Project,
-    ProjectChatModel,
-    ProjectRuntimeSlotOverride,
     ProviderConnection,
+    Workspace,
+    WorkspaceChatModel,
+    WorkspaceRuntimeSlotOverride,
 )
-from adaptive_rag.db.repositories import ProjectRepository
+from adaptive_rag.db.repositories import WorkspaceRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -21,17 +21,17 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             ProviderConnection.__table__,
-            ProjectRuntimeSlotOverride.__table__,
-            ProjectChatModel.__table__,
+            WorkspaceRuntimeSlotOverride.__table__,
+            WorkspaceChatModel.__table__,
         ],
     )
     return create_session_factory(engine)()
 
 
-def _add_project_and_connection(session) -> Project:
-    project = ProjectRepository(session).create(name="demo")
+def _add_workspace_and_connection(session) -> Workspace:
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.add(
         ProviderConnection(
             connection_id="qwen-hosted",
@@ -41,14 +41,14 @@ def _add_project_and_connection(session) -> Project:
         )
     )
     session.flush()
-    return project
+    return workspace
 
 
-def test_project_runtime_slot_override_persists_project_model_selection() -> None:
+def test_workspace_runtime_slot_override_persists_workspace_model_selection() -> None:
     session = _make_session()
-    project = _add_project_and_connection(session)
-    override = ProjectRuntimeSlotOverride(
-        project_id=project.id,
+    workspace = _add_workspace_and_connection(session)
+    override = WorkspaceRuntimeSlotOverride(
+        workspace_id=workspace.id,
         slot="rerank",
         connection_id="qwen-hosted",
         model_id="qwen3-rerank",
@@ -59,7 +59,7 @@ def test_project_runtime_slot_override_persists_project_model_selection() -> Non
     session.commit()
     session.expunge_all()
 
-    fetched = session.get(ProjectRuntimeSlotOverride, (project.id, "rerank"))
+    fetched = session.get(WorkspaceRuntimeSlotOverride, (workspace.id, "rerank"))
 
     assert fetched is not None
     assert fetched.connection_id == "qwen-hosted"
@@ -67,11 +67,11 @@ def test_project_runtime_slot_override_persists_project_model_selection() -> Non
     assert fetched.parameters_json == {"top_n": 8}
 
 
-def test_project_runtime_slot_override_rejects_unknown_slot() -> None:
+def test_workspace_runtime_slot_override_rejects_unknown_slot() -> None:
     session = _make_session()
-    project = _add_project_and_connection(session)
-    override = ProjectRuntimeSlotOverride(
-        project_id=project.id,
+    workspace = _add_workspace_and_connection(session)
+    override = WorkspaceRuntimeSlotOverride(
+        workspace_id=workspace.id,
         slot="voice",
         connection_id="qwen-hosted",
         model_id="qwen-voice",
@@ -88,10 +88,10 @@ def test_project_runtime_slot_override_rejects_unknown_slot() -> None:
     raise AssertionError("Expected IntegrityError for unsupported runtime slot")
 
 
-def test_project_chat_model_has_project_scoped_composite_identity() -> None:
-    columns = {column.name: column for column in inspect(ProjectChatModel).columns}
+def test_workspace_chat_model_has_workspace_scoped_composite_identity() -> None:
+    columns = {column.name: column for column in inspect(WorkspaceChatModel).columns}
 
-    assert columns["project_id"].primary_key
+    assert columns["workspace_id"].primary_key
     assert columns["connection_id"].primary_key
     assert columns["model_id"].primary_key
     assert columns["is_default"].nullable is False

@@ -1,4 +1,4 @@
-"""Comandos CLI para authoring de projects."""
+"""Comandos CLI para authoring de workspaces."""
 
 from __future__ import annotations
 
@@ -10,16 +10,16 @@ import typer
 
 from adaptive_rag.authoring import (
     AuthoringError,
-    project_payload,
+    workspace_payload,
 )
 from adaptive_rag.authoring import (
-    create_project as create_authoring_project,
+    create_workspace as create_authoring_workspace,
 )
 from adaptive_rag.authoring import (
-    get_project as get_authoring_project,
+    get_workspace as get_authoring_workspace,
 )
 from adaptive_rag.authoring import (
-    list_projects as list_authoring_projects,
+    list_workspaces as list_authoring_workspaces,
 )
 from adaptive_rag.db.session import session_scope
 
@@ -32,34 +32,34 @@ def create(
 ) -> None:
     with session_scope() as session:
         try:
-            project = create_authoring_project(session, name=name)
+            workspace = create_authoring_workspace(session, name=name)
         except AuthoringError as exc:
             _exit_authoring_error(exc)
         session.commit()
-        payload = project_payload(project)
+        payload = workspace_payload(workspace)
 
     typer.echo(json.dumps(payload))
 
 
 @app.command("list")
-def list_projects() -> None:
+def list_workspaces() -> None:
     with session_scope() as session:
-        projects = list_authoring_projects(session)
-        payload = {"items": [project_payload(project) for project in projects]}
+        workspaces = list_authoring_workspaces(session)
+        payload = {"items": [workspace_payload(workspace) for workspace in workspaces]}
 
     typer.echo(json.dumps(payload))
 
 
 @app.command("show")
 def show(
-    project_id: Annotated[UUID, typer.Option("--project-id")],
+    workspace_id: Annotated[UUID, typer.Option("--workspace-id")],
 ) -> None:
     with session_scope() as session:
         try:
-            project = get_authoring_project(session, project_id)
+            workspace = get_authoring_workspace(session, workspace_id)
         except AuthoringError as exc:
             _exit_authoring_error(exc)
-        payload = project_payload(project)
+        payload = workspace_payload(workspace)
 
     typer.echo(json.dumps(payload))
 

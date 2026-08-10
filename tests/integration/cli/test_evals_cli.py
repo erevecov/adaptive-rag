@@ -23,9 +23,9 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
+    Graphprojection,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.evals import EvalRunOptions
@@ -889,7 +889,7 @@ def test_evals_graph_live_evidence_command_outputs_operational_report(
     operation_report.write_text(
         json.dumps(
             {
-                "project_id": "00000000-0000-0000-0000-000000000123",
+                "workspace_id": "00000000-0000-0000-0000-000000000123",
                 "backend": "neo4j",
                 "operation": "backfill",
                 "previous_status": "disabled",
@@ -907,7 +907,7 @@ def test_evals_graph_live_evidence_command_outputs_operational_report(
     retrieval_report.write_text(
         json.dumps(
             {
-                "project_id": "00000000-0000-0000-0000-000000000123",
+                "workspace_id": "00000000-0000-0000-0000-000000000123",
                 "backend": "neo4j",
                 "status": "ready",
                 "requested_strategy": "graph",
@@ -957,7 +957,7 @@ def test_evals_graph_live_evidence_command_outputs_operational_report(
     failed_operation_report.write_text(
         json.dumps(
             {
-                "project_id": "00000000-0000-0000-0000-000000000123",
+                "workspace_id": "00000000-0000-0000-0000-000000000123",
                 "backend": "neo4j",
                 "operation": "backfill",
                 "previous_status": "disabled",
@@ -1110,13 +1110,13 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
         ],
     )
     return create_session_factory(engine)()

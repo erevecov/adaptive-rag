@@ -36,7 +36,7 @@ DB como indice derivado reconstruible.
 #### Scenario: Postgres sigue siendo fuente de verdad
 
 - **WHEN** se materializan nodos o relaciones en graph DB
-- **THEN** esos datos se derivan de proyectos, sources, documents, document
+- **THEN** esos datos se derivan de workspaces, sources, documents, document
   versions, chunks y metadata persistidos en Postgres
 - **AND** el sistema puede reconstruir el grafo desde Postgres
 - **AND** graph DB no contiene la unica copia durable de datos primarios
@@ -50,26 +50,26 @@ DB como indice derivado reconstruible.
 - **AND** una habilitacion posterior de graph store puede reconstruir el grafo
   mediante backfill desde Postgres
 
-#### Scenario: Operaciones preservan aislamiento por proyecto
+#### Scenario: Operaciones preservan aislamiento por workspace
 
 - **WHEN** se indexa, borra, reindexa o consulta graph DB
-- **THEN** la operacion queda acotada por `project_id`
-- **AND** no mezcla nodos, relaciones, filtros ni citations entre proyectos
+- **THEN** la operacion queda acotada por `workspace_id`
+- **AND** no mezcla nodos, relaciones, filtros ni citations entre workspaces
 
 ### Requirement: Graph projection mantiene readiness en Postgres
 
 El sistema MUST registrar en Postgres el estado de la proyeccion graph por
-proyecto antes de usar retrieval graph.
+workspace antes de usar retrieval graph.
 
 #### Scenario: Habilitar graph store agenda backfill
 
-- **WHEN** un proyecto habilita un backend graph live despues de estar
+- **WHEN** un workspace habilita un backend graph live despues de estar
   deshabilitado
 - **THEN** el estado de la proyeccion graph queda en `pending_backfill` o
   `indexing`
 - **AND** el backfill materializa nodos y relaciones desde datos canonicos en
   Postgres
-- **AND** retrieval graph no se usa para ese proyecto hasta que el estado sea
+- **AND** retrieval graph no se usa para ese workspace hasta que el estado sea
   `ready`
 
 #### Scenario: Readiness controla fallback
@@ -88,7 +88,7 @@ proyecto antes de usar retrieval graph.
 - **THEN** el estado de la proyeccion queda `stale` o `pending_backfill`
 - **AND** Postgres conserva un watermark o version que permite decidir que debe
   reindexarse
-- **AND** el backfill posterior es idempotente por `project_id`
+- **AND** el backfill posterior es idempotente por `workspace_id`
 
 ### Requirement: Graph store expone contrato testeable
 
@@ -140,12 +140,12 @@ usa como ruta opt-in.
   llamadas que no lo solicitan
 - **AND** usa resultados dense como seeds antes de consultar graph DB
 - **AND** solo consulta graph DB cuando existe una proyeccion `ready` del
-  proyecto y un graph retriever disponible
+  workspace y un graph retriever disponible
 
 #### Scenario: Retrieval graph respeta filtros y citations
 
 - **WHEN** una consulta usa retrieval graph
-- **THEN** respeta aislamiento por proyecto y metadata filters
+- **THEN** respeta aislamiento por workspace y metadata filters
 - **AND** devuelve citations compatibles con la superficie de retrieval actual
 - **AND** registra audit trail de estrategia y fallos
 
@@ -196,11 +196,11 @@ operacional con Neo4j live.
 ### Requirement: Backfill y reindex graph son operaciones idempotentes
 
 El sistema MUST exponer operaciones de backfill/reindex de graph store acotadas
-por proyecto antes de evaluar promocion de graph retrieval.
+por workspace antes de evaluar promocion de graph retrieval.
 
 #### Scenario: Backfill transiciona readiness
 
-- **WHEN** se ejecuta backfill de una proyeccion graph para un `project_id`
+- **WHEN** se ejecuta backfill de una proyeccion graph para un `workspace_id`
 - **THEN** la proyeccion pasa por `pending_backfill` o `indexing`
 - **AND** termina en `ready` si la materializacion completa con exito
 - **AND** termina en `failed` con error code estable si Neo4j o el loader fallan
@@ -208,9 +208,9 @@ por proyecto antes de evaluar promocion de graph retrieval.
 #### Scenario: Reindex stale conserva aislamiento
 
 - **WHEN** una proyeccion esta `stale` y se solicita reindex
-- **THEN** el sistema reconstruye nodos y relaciones solo para ese `project_id`
+- **THEN** el sistema reconstruye nodos y relaciones solo para ese `workspace_id`
 - **AND** la operacion es idempotente si se repite
-- **AND** no mezcla datos, filtros ni citations entre proyectos
+- **AND** no mezcla datos, filtros ni citations entre workspaces
 
 ### Requirement: Evidence report mide calidad y operacion live
 

@@ -6,11 +6,11 @@ from uuid import uuid4
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Job, JobEvent, Project, Source
+from adaptive_rag.db.models import Job, JobEvent, Source, Workspace
 from adaptive_rag.db.repositories import (
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.ingestion.pipeline import INGEST_SOURCE_JOB_TYPE
@@ -23,11 +23,11 @@ from adaptive_rag.ingestion_ops import (
 )
 
 
-def test_enqueue_source_ingestion_creates_project_scoped_job() -> None:
+def test_enqueue_source_ingestion_creates_workspace_scoped_job() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
@@ -35,13 +35,13 @@ def test_enqueue_source_ingestion_creates_project_scoped_job() -> None:
 
     job = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         priority=5,
         max_attempts=2,
     )
 
-    assert job.project_id == project.id
+    assert job.workspace_id == workspace.id
     assert job.job_type == INGEST_SOURCE_JOB_TYPE
     assert job.status == "queued"
     assert job.priority == 5
@@ -50,7 +50,7 @@ def test_enqueue_source_ingestion_creates_project_scoped_job() -> None:
     assert (
         JobRepository(session)
         .list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )[0]
         .event_type
@@ -60,9 +60,9 @@ def test_enqueue_source_ingestion_creates_project_scoped_job() -> None:
 
 def test_enqueue_source_ingestion_dedupes_open_job_for_same_source() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
@@ -70,13 +70,13 @@ def test_enqueue_source_ingestion_dedupes_open_job_for_same_source() -> None:
 
     first = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         priority=1,
     )
     second = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         priority=9,
     )
@@ -84,7 +84,7 @@ def test_enqueue_source_ingestion_dedupes_open_job_for_same_source() -> None:
     assert second.id == first.id
     assert second.priority == 1
     open_jobs = JobRepository(session).list(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_type=INGEST_SOURCE_JOB_TYPE,
         statuses=("queued", "running"),
     )
@@ -93,27 +93,27 @@ def test_enqueue_source_ingestion_dedupes_open_job_for_same_source() -> None:
 
 def test_enqueue_source_ingestion_allows_new_job_after_terminal_status() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "notes"},
     )
     first = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     JobRepository(session).block(
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=first.id,
         reason="blocked for test",
     )
 
     second = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
 
@@ -122,7 +122,7 @@ def test_enqueue_source_ingestion_allows_new_job_after_terminal_status() -> None
     assert (
         JobRepository(session)
         .get(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=first.id,
         )
         .status
@@ -132,16 +132,16 @@ def test_enqueue_source_ingestion_allows_new_job_after_terminal_status() -> None
 
 def test_enqueue_source_ingestion_dedupes_running_job() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "notes"},
     )
     first = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     # Lease clock must be >= run_after (enqueue uses wall-clock now).
@@ -149,7 +149,7 @@ def test_enqueue_source_ingestion_dedupes_running_job() -> None:
     from datetime import timedelta
 
     leased = JobRepository(session).lease_next(
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="worker-1",
         lease_until=now + timedelta(minutes=5),
         now=now,
@@ -161,7 +161,7 @@ def test_enqueue_source_ingestion_dedupes_running_job() -> None:
 
     second = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
 
@@ -169,12 +169,12 @@ def test_enqueue_source_ingestion_dedupes_running_job() -> None:
     assert second.status == "running"
 
 
-def test_enqueue_source_ingestion_rejects_cross_project_source() -> None:
+def test_enqueue_source_ingestion_rejects_cross_workspace_source() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
-    other_project = ProjectRepository(session).create(name="other")
+    workspace = WorkspaceRepository(session).create(name="demo")
+    other_workspace = WorkspaceRepository(session).create(name="other")
     source = SourceRepository(session).create(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         source_type="txt",
         external_id="other.txt",
         extra_metadata={"content": "other"},
@@ -183,7 +183,7 @@ def test_enqueue_source_ingestion_rejects_cross_project_source() -> None:
     with pytest.raises(IngestionOpsError) as exc_info:
         enqueue_source_ingestion(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             source_id=source.id,
         )
 
@@ -193,30 +193,30 @@ def test_enqueue_source_ingestion_rejects_cross_project_source() -> None:
 
 def test_list_ingestion_jobs_filters_by_source_id() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source_a = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="a.txt",
         extra_metadata={"content": "a"},
     )
     source_b = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="b.txt",
         extra_metadata={"content": "b"},
     )
     job_a = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source_a.id,
     )
-    enqueue_source_ingestion(session, project_id=project.id, source_id=source_b.id)
-    JobRepository(session).create(project_id=project.id, job_type="graph_backfill")
+    enqueue_source_ingestion(session, workspace_id=workspace.id, source_id=source_b.id)
+    JobRepository(session).create(workspace_id=workspace.id, job_type="graph_backfill")
 
     jobs = list_ingestion_jobs(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source_a.id,
         job_type=INGEST_SOURCE_JOB_TYPE,
     )
@@ -226,18 +226,20 @@ def test_list_ingestion_jobs_filters_by_source_id() -> None:
 
 def test_get_ingestion_job_detail_includes_events() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "notes"},
     )
-    job = enqueue_source_ingestion(session, project_id=project.id, source_id=source.id)
+    job = enqueue_source_ingestion(
+        session, workspace_id=workspace.id, source_id=source.id
+    )
 
     detail = get_ingestion_job_detail(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=job.id,
     )
 
@@ -247,19 +249,23 @@ def test_get_ingestion_job_detail_includes_events() -> None:
 
 def test_retry_ingestion_job_requeues_blocked_job() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "notes"},
     )
-    job = enqueue_source_ingestion(session, project_id=project.id, source_id=source.id)
-    JobRepository(session).block(project_id=project.id, job_id=job.id, reason="blocked")
+    job = enqueue_source_ingestion(
+        session, workspace_id=workspace.id, source_id=source.id
+    )
+    JobRepository(session).block(
+        workspace_id=workspace.id, job_id=job.id, reason="blocked"
+    )
 
     retried = retry_ingestion_job(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=job.id,
         run_after=datetime(2026, 6, 23, 12, 0, tzinfo=UTC),
     )
@@ -269,7 +275,7 @@ def test_retry_ingestion_job_requeues_blocked_job() -> None:
     assert [
         event.event_type
         for event in JobRepository(session).list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
     ] == ["created", "blocked", "retried"]
@@ -277,20 +283,22 @@ def test_retry_ingestion_job_requeues_blocked_job() -> None:
 
 def test_retry_ingestion_job_returns_stable_errors() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="txt",
         external_id="notes.txt",
         extra_metadata={"content": "notes"},
     )
-    job = enqueue_source_ingestion(session, project_id=project.id, source_id=source.id)
+    job = enqueue_source_ingestion(
+        session, workspace_id=workspace.id, source_id=source.id
+    )
 
     with pytest.raises(IngestionOpsError) as missing:
-        retry_ingestion_job(session, project_id=project.id, job_id=uuid4())
+        retry_ingestion_job(session, workspace_id=workspace.id, job_id=uuid4())
 
     with pytest.raises(IngestionOpsError) as non_retryable:
-        retry_ingestion_job(session, project_id=project.id, job_id=job.id)
+        retry_ingestion_job(session, workspace_id=workspace.id, job_id=job.id)
 
     assert missing.value.detail == "job not found"
     assert missing.value.status_code == 404
@@ -302,6 +310,11 @@ def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
         engine,
-        tables=[Project.__table__, Source.__table__, Job.__table__, JobEvent.__table__],
+        tables=[
+            Workspace.__table__,
+            Source.__table__,
+            Job.__table__,
+            JobEvent.__table__,
+        ],
     )
     return create_session_factory(engine)()

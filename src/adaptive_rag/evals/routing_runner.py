@@ -44,13 +44,13 @@ DEFAULT_ROUTING_CASES: tuple[RoutingEvalCase, ...] = (
     ),
     RoutingEvalCase(
         "graph-ready",
-        "How is Project A related to Service B?",
+        "How is Workspace A related to Service B?",
         "graph",
         graph_ready=True,
     ),
     RoutingEvalCase(
         "graph-not-ready-fallback",
-        "How is Project A related to Service B?",
+        "How is Workspace A related to Service B?",
         "dense_sparse",
         graph_ready=False,
     ),

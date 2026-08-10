@@ -75,13 +75,13 @@ class IndexingPipeline:
     def run_next(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         worker_id: str,
         now: datetime,
         lease_until: datetime,
     ) -> IndexingRunResult | IndexingBlockedResult | None:
         job = self._job_repo.lease_next(
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             now=now,
             lease_until=lease_until,
@@ -89,30 +89,30 @@ class IndexingPipeline:
         )
         if job is None:
             return None
-        return self._finalize_job(project_id=project_id, job=job)
+        return self._finalize_job(workspace_id=workspace_id, job=job)
 
     def process_leased_job(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job: Job,
     ) -> IndexingRunResult | IndexingBlockedResult:
         if job.job_type != INDEX_DOCUMENT_VERSION_JOB_TYPE:
             raise IndexingPipelineError(
                 f"unsupported job_type for indexing pipeline: {job.job_type}"
             )
-        return self._finalize_job(project_id=project_id, job=job)
+        return self._finalize_job(workspace_id=workspace_id, job=job)
 
     def _finalize_job(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job: Job,
     ) -> IndexingRunResult | IndexingBlockedResult:
         job_id = job.id
         lease_owner = job.locked_by
         try:
-            result = self._process_job(project_id=project_id, job=job)
+            result = self._process_job(workspace_id=workspace_id, job=job)
         except (
             IndexingPipelineError,
             ChunkingPipelineError,
@@ -121,7 +121,7 @@ class IndexingPipeline:
             SparseEmbeddingPipelineError,
         ) as exc:
             blocked_job = self._job_repo.block(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
                 reason=str(exc),
                 worker_id=lease_owner,
@@ -129,41 +129,41 @@ class IndexingPipeline:
             return IndexingBlockedResult(job=blocked_job, error_message=str(exc))
 
         self._job_repo.complete(
-            project_id=project_id, job_id=job_id, worker_id=lease_owner
+            workspace_id=workspace_id, job_id=job_id, worker_id=lease_owner
         )
         return result
 
-    def _process_job(self, *, project_id: UUID, job: Job) -> IndexingRunResult:
+    def _process_job(self, *, workspace_id: UUID, job: Job) -> IndexingRunResult:
         document_version_id = _document_version_id_from_payload(job.payload_json)
         source_id = _optional_source_id_from_payload(job.payload_json)
 
-        dense_provider = self._resolve_dense_provider(project_id=project_id)
-        sparse_provider = self._resolve_sparse_provider(project_id=project_id)
-        contextualizer = self._resolve_contextualizer(project_id=project_id)
+        dense_provider = self._resolve_dense_provider(workspace_id=workspace_id)
+        sparse_provider = self._resolve_sparse_provider(workspace_id=workspace_id)
+        contextualizer = self._resolve_contextualizer(workspace_id=workspace_id)
 
         chunk_result = ChunkingPipeline(self._session).chunk_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         contextualization_result = ContextualizationPipeline(
             self._session,
             contextualizer=contextualizer,
         ).contextualize_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         dense_result = DenseEmbeddingPipeline(
             self._session,
             provider=dense_provider,
         ).embed_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
         sparse_result = SparseEmbeddingPipeline(
             self._session,
             provider=sparse_provider,
         ).embed_document_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=document_version_id,
         )
 
@@ -184,27 +184,29 @@ class IndexingPipeline:
             sparse_reused_chunk_count=sparse_result.reused_chunk_count,
         )
 
-    def _resolve_dense_provider(self, *, project_id: UUID) -> DenseEmbeddingProvider:
+    def _resolve_dense_provider(self, *, workspace_id: UUID) -> DenseEmbeddingProvider:
         if self._dense_embedding_provider is not None:
             return self._dense_embedding_provider
         from adaptive_rag.runtime.factories import get_dense_embedding_provider
 
         return get_dense_embedding_provider(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session=self._session,
         )
 
-    def _resolve_sparse_provider(self, *, project_id: UUID) -> SparseEmbeddingProvider:
+    def _resolve_sparse_provider(
+        self, *, workspace_id: UUID
+    ) -> SparseEmbeddingProvider:
         if self._sparse_embedding_provider is not None:
             return self._sparse_embedding_provider
         from adaptive_rag.runtime.factories import get_sparse_embedding_provider
 
         return get_sparse_embedding_provider(
-            project_id=project_id,
+            workspace_id=workspace_id,
             session=self._session,
         )
 
-    def _resolve_contextualizer(self, *, project_id: UUID) -> Contextualizer:
+    def _resolve_contextualizer(self, *, workspace_id: UUID) -> Contextualizer:
         if self._contextualizer is not None:
             return self._contextualizer
         # Injected embedding providers mean a controlled/test path: keep
@@ -216,13 +218,13 @@ class IndexingPipeline:
             return DeterministicContextualizer()
         from adaptive_rag.runtime.factories import get_contextualizer
 
-        return get_contextualizer(project_id=project_id, session=self._session)
+        return get_contextualizer(workspace_id=workspace_id, session=self._session)
 
 
 def enqueue_index_document_version_job(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     document_version_id: UUID,
     source_id: UUID | None = None,
     priority: int = 0,
@@ -232,7 +234,7 @@ def enqueue_index_document_version_job(
     if source_id is not None:
         payload["source_id"] = str(source_id)
     return JobRepository(session).create(
-        project_id=project_id,
+        workspace_id=workspace_id,
         job_type=INDEX_DOCUMENT_VERSION_JOB_TYPE,
         payload_json=payload,
         priority=priority,

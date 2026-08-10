@@ -14,7 +14,7 @@ from typer.testing import CliRunner
 from adaptive_rag.cli.app import app
 from adaptive_rag.config.settings import Settings
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.evals.models import EvalRunReport
 from adaptive_rag.evals.strategy_gate_runner import (
@@ -328,7 +328,7 @@ def _patch_session_scope(
 
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine, tables=[Project.__table__])
+    Base.metadata.create_all(engine, tables=[Workspace.__table__])
     return create_session_factory(engine)()
 
 

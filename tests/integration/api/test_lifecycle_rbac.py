@@ -18,17 +18,17 @@ from adaptive_rag.db.models import (
     ChunkSparseEmbedding,
     Document,
     DocumentVersion,
-    Project,
-    ProjectMembership,
     Source,
     User,
     UserAccessToken,
+    Workspace,
+    WorkspaceMembership,
 )
 from adaptive_rag.db.repositories import (
-    ProjectMembershipRepository,
-    ProjectRepository,
     SourceRepository,
     UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 
@@ -44,8 +44,8 @@ def _make_session() -> Session:
         tables=[
             User.__table__,
             UserAccessToken.__table__,
-            Project.__table__,
-            ProjectMembership.__table__,
+            Workspace.__table__,
+            WorkspaceMembership.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -83,26 +83,26 @@ def _seed(session: Session) -> dict[str, object]:
             token_hash=hash_access_token(token),
             label=token,
         )
-    project = ProjectRepository(session).create(name="Lifecycle")
-    memberships = ProjectMembershipRepository(session)
+    workspace = WorkspaceRepository(session).create(name="Lifecycle")
+    memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
-        project_id=project.id, user_id=admin.id, role="admin"
+        workspace_id=workspace.id, user_id=admin.id, role="admin"
     )
     memberships.upsert_membership(
-        project_id=project.id, user_id=contributor.id, role="contributor"
+        workspace_id=workspace.id, user_id=contributor.id, role="contributor"
     )
     memberships.upsert_membership(
-        project_id=project.id, user_id=viewer.id, role="viewer"
+        workspace_id=workspace.id, user_id=viewer.id, role="viewer"
     )
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="notes.md",
         extra_metadata={"content": "# Notes"},
     )
     session.commit()
     return {
-        "project": project,
+        "workspace": workspace,
         "source": source,
         "admin": admin,
         "viewer": viewer,
@@ -127,31 +127,31 @@ def _auth(token: str) -> dict[str, str]:
 def test_role_matrix_update_delete_source_and_membership() -> None:
     session = _make_session()
     seeded = _seed(session)
-    project = seeded["project"]
+    workspace = seeded["workspace"]
     source = seeded["source"]
     viewer_user = seeded["viewer"]
     client = _client(session)
 
     denied_patch = client.patch(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("viewer-token"),
         json={"tags": ["x"]},
     )
     allowed_patch = client.patch(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("contrib-token"),
         json={"tags": ["ok"]},
     )
     denied_delete = client.delete(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("viewer-token"),
     )
     denied_delete_contrib = client.delete(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("contrib-token"),
     )
     allowed_delete = client.delete(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("admin-token"),
     )
 
@@ -164,54 +164,54 @@ def test_role_matrix_update_delete_source_and_membership() -> None:
     assert allowed_delete.json()["deleted_at"] is not None
 
     denied_membership = client.delete(
-        f"/projects/{project.id}/memberships/{viewer_user.id}",
+        f"/workspaces/{workspace.id}/memberships/{viewer_user.id}",
         headers=_auth("contrib-token"),
     )
     allowed_membership = client.delete(
-        f"/projects/{project.id}/memberships/{viewer_user.id}",
+        f"/workspaces/{workspace.id}/memberships/{viewer_user.id}",
         headers=_auth("admin-token"),
     )
     assert denied_membership.status_code == 403
     assert allowed_membership.status_code == 204
 
 
-def test_soft_deleted_project_is_not_gettable_or_listed() -> None:
-    """OpenSpec M43: after soft-delete, GET/list must omit the project."""
+def test_soft_deleted_workspace_is_not_gettable_or_listed() -> None:
+    """OpenSpec M43: after soft-delete, GET/list must omit the workspace."""
 
     session = _make_session()
     seeded = _seed(session)
-    project = seeded["project"]
+    workspace = seeded["workspace"]
     client = _client(session)
 
     deleted = client.delete(
-        f"/projects/{project.id}",
+        f"/workspaces/{workspace.id}",
         headers=_auth("super-token"),
     )
     assert deleted.status_code == 200
     assert deleted.json()["deleted_at"] is not None
 
-    # Access path used by all project-scoped routes (get_project_access).
+    # Access path used by all workspace-scoped routes (get_workspace_access).
     get_response = client.get(
-        f"/projects/{project.id}",
+        f"/workspaces/{workspace.id}",
         headers=_auth("admin-token"),
     )
     assert get_response.status_code == 404
-    assert get_response.json()["detail"] == "project not found"
+    assert get_response.json()["detail"] == "workspace not found"
 
-    listed = client.get("/projects", headers=_auth("admin-token"))
+    listed = client.get("/workspaces", headers=_auth("admin-token"))
     assert listed.status_code == 200
-    assert all(item["id"] != str(project.id) for item in listed.json()["items"])
+    assert all(item["id"] != str(workspace.id) for item in listed.json()["items"])
 
     # Contributor surface also 404s instead of operating on a tombstone.
     sources = client.get(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         headers=_auth("contrib-token"),
     )
     assert sources.status_code == 404
 
-    # Runtime-settings project surface must not serve soft-deleted projects.
+    # Runtime-settings workspace surface must not serve soft-deleted workspaces.
     runtime = client.get(
-        f"/projects/{project.id}/runtime-settings",
+        f"/workspaces/{workspace.id}/runtime-settings",
         headers=_auth("admin-token"),
     )
     assert runtime.status_code == 404
@@ -220,33 +220,33 @@ def test_soft_deleted_project_is_not_gettable_or_listed() -> None:
 def test_soft_deleted_source_is_not_gettable_or_listed() -> None:
     session = _make_session()
     seeded = _seed(session)
-    project = seeded["project"]
+    workspace = seeded["workspace"]
     source = seeded["source"]
     client = _client(session)
 
     deleted = client.delete(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("admin-token"),
     )
     assert deleted.status_code == 200
     assert deleted.json()["deleted_at"] is not None
 
     get_response = client.get(
-        f"/projects/{project.id}/sources/{source.id}",
+        f"/workspaces/{workspace.id}/sources/{source.id}",
         headers=_auth("contrib-token"),
     )
     assert get_response.status_code == 404
     assert get_response.json()["detail"] == "source not found"
 
     listed = client.get(
-        f"/projects/{project.id}/sources",
+        f"/workspaces/{workspace.id}/sources",
         headers=_auth("contrib-token"),
     )
     assert listed.status_code == 200
     assert all(item["id"] != str(source.id) for item in listed.json()["items"])
 
     enqueue = client.post(
-        f"/projects/{project.id}/sources/{source.id}/ingestion-jobs",
+        f"/workspaces/{workspace.id}/sources/{source.id}/ingestion-jobs",
         headers=_auth("contrib-token"),
     )
     assert enqueue.status_code == 404

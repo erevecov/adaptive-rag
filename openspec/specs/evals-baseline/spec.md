@@ -160,5 +160,5 @@ strategies against dense baseline without hosted calls by default.
 
 - **WHEN** a suite declares `contextual_summary` on evidence
 - **THEN** the loader accepts it as optional evidence metadata
-- **AND** fixture projects can embed summary plus chunk text for
+- **AND** fixture workspaces can embed summary plus chunk text for
   `contextual_dense` comparisons

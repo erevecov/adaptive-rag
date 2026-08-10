@@ -1,4 +1,4 @@
-"""Chat-sourced knowledge proposals for project review workflows."""
+"""Chat-sourced knowledge proposals for workspace review workflows."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ KNOWLEDGE_PROPOSAL_STATUS_VALUES = ("pending", "approved", "rejected")
 
 
 class KnowledgeProposal(Base):
-    """User-submitted knowledge awaiting project-scoped review."""
+    """User-submitted knowledge awaiting workspace-scoped review."""
 
     __tablename__ = "knowledge_proposals"
     __table_args__ = (
@@ -24,27 +24,27 @@ class KnowledgeProposal(Base):
             name="knowledge_proposals_status_check",
         ),
         Index(
-            "ix_knowledge_proposals_project_status_created_at",
-            "project_id",
+            "ix_knowledge_proposals_workspace_status_created_at",
+            "workspace_id",
             "status",
             "created_at",
         ),
         Index(
-            "ix_knowledge_proposals_project_submitter_created_at",
-            "project_id",
+            "ix_knowledge_proposals_workspace_submitter_created_at",
+            "workspace_id",
             "submitted_by_user_id",
             "created_at",
         ),
         Index(
-            "ix_knowledge_proposals_project_origin_session",
-            "project_id",
+            "ix_knowledge_proposals_workspace_origin_session",
+            "workspace_id",
             "origin_session_id",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     submitted_by_user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True

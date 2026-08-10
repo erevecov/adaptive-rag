@@ -11,9 +11,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.repositories import GraphProjectionRepository
+from adaptive_rag.db.repositories import GraphprojectionRepository
 from adaptive_rag.graph.store import (
-    GraphProjectionStatus,
+    GraphprojectionStatus,
     GraphRetriever,
     GraphStore,
     GraphStoreError,
@@ -29,13 +29,13 @@ GraphRetrievalSmokeStatus = Literal["ready", "fallback", "no_results"]
 
 @dataclass(frozen=True, slots=True)
 class GraphBackfillOperationReport:
-    """Serializable report for a project-scoped graph rebuild operation."""
+    """Serializable report for a workspace-scoped graph rebuild operation."""
 
-    project_id: UUID
+    workspace_id: UUID
     backend: Literal["neo4j"]
     operation: GraphBackfillOperationName
     previous_status: str
-    status: GraphProjectionStatus
+    status: GraphprojectionStatus
     source_watermark: str
     duration_ms: int
     node_count: int | None
@@ -45,9 +45,9 @@ class GraphBackfillOperationReport:
 
 @dataclass(frozen=True, slots=True)
 class GraphRetrievalSmokeReport:
-    """Serializable report for a project-scoped graph retrieval smoke."""
+    """Serializable report for a workspace-scoped graph retrieval smoke."""
 
-    project_id: UUID
+    workspace_id: UUID
     backend: Literal["neo4j"]
     status: GraphRetrievalSmokeStatus
     requested_strategy: Literal["graph"]
@@ -65,7 +65,7 @@ def run_graph_backfill_operation(
     *,
     session: Session,
     graph_store: GraphStore,
-    project_id: UUID,
+    workspace_id: UUID,
     source_watermark: str,
     operation: GraphBackfillOperationName,
     now: Callable[[], datetime] | None = None,
@@ -75,36 +75,36 @@ def run_graph_backfill_operation(
 
     now_fn = now or _utc_now
     monotonic_fn = monotonic or perf_counter
-    repo = GraphProjectionRepository(session)
-    previous_projection = repo.get(project_id=project_id)
+    repo = GraphprojectionRepository(session)
+    previous_projection = repo.get(workspace_id=workspace_id)
     previous_status = (
         previous_projection.status if previous_projection is not None else "disabled"
     )
     start = monotonic_fn()
 
     repo.mark_pending_backfill(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_watermark=source_watermark,
     )
     session.commit()
-    repo.mark_indexing(project_id=project_id)
+    repo.mark_indexing(workspace_id=workspace_id)
     session.commit()
 
     try:
-        result = graph_store.backfill_project_graph(
-            project_id=project_id,
+        result = graph_store.backfill_workspace_graph(
+            workspace_id=workspace_id,
             source_watermark=source_watermark,
         )
     except GraphStoreError as exc:
         duration_ms = _duration_ms(start, monotonic_fn())
         repo.mark_failed(
-            project_id=project_id,
+            workspace_id=workspace_id,
             error_code=exc.error_code,
             error_message=str(exc),
         )
         session.commit()
         return GraphBackfillOperationReport(
-            project_id=project_id,
+            workspace_id=workspace_id,
             backend="neo4j",
             operation=operation,
             previous_status=previous_status,
@@ -117,13 +117,13 @@ def run_graph_backfill_operation(
         )
 
     repo.mark_ready(
-        project_id=project_id,
+        workspace_id=workspace_id,
         source_watermark=result.source_watermark,
         indexed_at=now_fn(),
     )
     session.commit()
     return GraphBackfillOperationReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         operation=operation,
         previous_status=previous_status,
@@ -141,7 +141,7 @@ def run_graph_retrieval_smoke(
     session: Session,
     provider: DenseEmbeddingProvider,
     graph_retriever: GraphRetriever,
-    project_id: UUID,
+    workspace_id: UUID,
     query: str,
     limit: int,
     metadata_filter: RetrievalMetadataFilter | None = None,
@@ -160,7 +160,7 @@ def run_graph_retrieval_smoke(
     )
     results = service.search(
         RetrievalSearchRequest(
-            project_id=project_id,
+            workspace_id=workspace_id,
             query=query,
             limit=limit,
             metadata_filter=metadata_filter,
@@ -174,7 +174,7 @@ def run_graph_retrieval_smoke(
         if result.strategy == "graph" and result.fallback_reason is None
     )
     return GraphRetrievalSmokeReport(
-        project_id=project_id,
+        workspace_id=workspace_id,
         backend="neo4j",
         status=_retrieval_smoke_status(
             graph_result_count=graph_result_count,

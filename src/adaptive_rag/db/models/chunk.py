@@ -19,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 # Dimension del embedding denso baseline (Qwen). Sin HNSW: dense exacto.
 EMBEDDING_DIMENSIONS = 1024

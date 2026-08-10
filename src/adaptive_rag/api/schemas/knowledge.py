@@ -39,7 +39,7 @@ class KnowledgeProposalRejectRequestBody(BaseModel):
 
 class KnowledgeProposalResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    workspace_id: UUID
     submitted_by_user_id: UUID | None
     origin_session_id: UUID | None
     origin_message_id: UUID | None
@@ -60,7 +60,7 @@ class KnowledgeProposalResponse(BaseModel):
     ) -> KnowledgeProposalResponse:
         return cls(
             id=proposal.id,
-            project_id=proposal.project_id,
+            workspace_id=proposal.workspace_id,
             submitted_by_user_id=proposal.submitted_by_user_id,
             origin_session_id=proposal.origin_session_id,
             origin_message_id=proposal.origin_message_id,

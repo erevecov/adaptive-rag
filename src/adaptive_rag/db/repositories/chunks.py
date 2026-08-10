@@ -21,7 +21,7 @@ class ChunkRepository:
     def create(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
         ordinal: int,
         char_start: int,
@@ -32,10 +32,10 @@ class ChunkRepository:
         contextual_summary: str | None = None,
         embedding: Sequence[float] | None = None,
     ) -> Chunk:
-        if not self._version_belongs_to_project(
-            project_id=project_id, document_version_id=document_version_id
+        if not self._version_belongs_to_workspace(
+            workspace_id=workspace_id, document_version_id=document_version_id
         ):
-            raise ValueError("document version does not belong to project")
+            raise ValueError("document version does not belong to workspace")
 
         chunk = Chunk(
             document_version_id=document_version_id,
@@ -59,7 +59,7 @@ class ChunkRepository:
     def list_by_document_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
     ) -> list[Chunk]:
         statement = (
@@ -68,7 +68,7 @@ class ChunkRepository:
             .join(Document, DocumentVersion.document_id == Document.id)
             .where(
                 Chunk.document_version_id == document_version_id,
-                Document.project_id == project_id,
+                Document.workspace_id == workspace_id,
             )
             .order_by(Chunk.ordinal)
         )
@@ -77,14 +77,16 @@ class ChunkRepository:
     def update_dense_embedding(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
         embedding: Sequence[float],
         embedding_metadata: Mapping[str, Any],
     ) -> Chunk:
-        chunk = self._get_chunk_for_project(project_id=project_id, chunk_id=chunk_id)
+        chunk = self._get_chunk_for_workspace(
+            workspace_id=workspace_id, chunk_id=chunk_id
+        )
         if chunk is None:
-            raise ValueError("chunk does not belong to project")
+            raise ValueError("chunk does not belong to workspace")
 
         chunk.embedding = list(embedding)
         chunk.embedding_metadata = dict(embedding_metadata)
@@ -94,41 +96,43 @@ class ChunkRepository:
     def update_contextual_summary(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
         contextual_summary: str,
     ) -> Chunk:
-        chunk = self._get_chunk_for_project(project_id=project_id, chunk_id=chunk_id)
+        chunk = self._get_chunk_for_workspace(
+            workspace_id=workspace_id, chunk_id=chunk_id
+        )
         if chunk is None:
-            raise ValueError("chunk does not belong to project")
+            raise ValueError("chunk does not belong to workspace")
 
         chunk.contextual_summary = contextual_summary
         self._session.flush()
         return chunk
 
-    def _get_chunk_for_project(
+    def _get_chunk_for_workspace(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         chunk_id: UUID,
     ) -> Chunk | None:
         statement = (
             select(Chunk)
             .join(DocumentVersion, Chunk.document_version_id == DocumentVersion.id)
             .join(Document, DocumentVersion.document_id == Document.id)
-            .where(Chunk.id == chunk_id, Document.project_id == project_id)
+            .where(Chunk.id == chunk_id, Document.workspace_id == workspace_id)
         )
         return self._session.scalars(statement).one_or_none()
 
-    def _version_belongs_to_project(
-        self, *, project_id: UUID, document_version_id: UUID
+    def _version_belongs_to_workspace(
+        self, *, workspace_id: UUID, document_version_id: UUID
     ) -> bool:
         statement = (
             select(DocumentVersion.id)
             .join(Document, DocumentVersion.document_id == Document.id)
             .where(
                 DocumentVersion.id == document_version_id,
-                Document.project_id == project_id,
+                Document.workspace_id == workspace_id,
             )
         )
         return self._session.scalar(statement) is not None

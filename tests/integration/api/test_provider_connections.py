@@ -16,9 +16,21 @@ from adaptive_rag.api.dependencies import get_provider_model_lister, get_session
 from adaptive_rag.auth import hash_access_token
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ProviderConnection, ProviderSecret, User
+from adaptive_rag.db.models import (
+    ProviderConnection,
+    ProviderModelCatalog,
+    ProviderSecret,
+    User,
+)
+from adaptive_rag.db.models.system_task import (
+    PROVIDER_MODEL_PRICING_SYNC_TASK_ID,
+    SystemTaskState,
+)
 from adaptive_rag.db.models.user import UserAccessToken
-from adaptive_rag.db.repositories import UserRepository
+from adaptive_rag.db.repositories import (
+    ProviderModelCatalogRepository,
+    UserRepository,
+)
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.provider_models import ProviderModelInfo
 
@@ -64,8 +76,10 @@ def _make_session() -> Session:
         tables=[
             ProviderConnection.__table__,
             ProviderSecret.__table__,
+            ProviderModelCatalog.__table__,
             User.__table__,
             UserAccessToken.__table__,
+            SystemTaskState.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -384,3 +398,63 @@ def test_connection_check_reports_provider_failures_without_syncing(
         "model_count": 0,
         "ok": False,
     }
+
+
+def test_system_task_pricing_run_requires_superadmin_and_updates_catalog() -> None:
+    session = _make_session()
+    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(
+        session,
+        login="root@example.com",
+        token="root-token",
+        system_role="superadmin",
+    )
+    client = _client(session=session)
+    client.put(
+        "/runtime-settings/connections/qwen-hosted",
+        headers=_bearer("root-token"),
+        json={
+            "provider": "qwen",
+            "connection_type": "hosted",
+            "capabilities": ["chat"],
+        },
+    )
+    ProviderModelCatalogRepository(session).upsert_model(
+        connection_id="qwen-hosted",
+        model_id="qwen-plus",
+        capabilities=["chat"],
+        pricing=None,
+    )
+    session.commit()
+
+    denied = client.post(
+        "/runtime-settings/system-tasks/provider-model-pricing/run",
+        headers=_bearer("viewer-token"),
+    )
+    listed = client.get(
+        "/runtime-settings/system-tasks",
+        headers=_bearer("root-token"),
+    )
+    ran = client.post(
+        "/runtime-settings/system-tasks/provider-model-pricing/run",
+        headers=_bearer("root-token"),
+    )
+
+    assert denied.status_code == 403
+    assert listed.status_code == 200
+    assert any(
+        item["task_id"] == PROVIDER_MODEL_PRICING_SYNC_TASK_ID
+        for item in listed.json()["items"]
+    )
+    assert ran.status_code == 200
+    payload = ran.json()
+    assert payload["status"] == "ran"
+    assert payload["report"] is not None
+    assert payload["report"]["updated"] >= 1
+    row = session.get(ProviderModelCatalog, ("qwen-hosted", "qwen-plus"))
+    assert row is not None
+    assert row.pricing_json is not None
+    assert row.pricing_json["input_per_million_tokens_usd"] == 0.4
+    state = session.get(SystemTaskState, PROVIDER_MODEL_PRICING_SYNC_TASK_ID)
+    assert state is not None
+    assert state.last_status == "succeeded"

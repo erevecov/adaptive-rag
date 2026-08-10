@@ -10,44 +10,44 @@ from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Project, Source
+from adaptive_rag.db.models import Source, Workspace
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
 def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
-        engine, tables=[Project.__table__, Source.__table__]
+        engine, tables=[Workspace.__table__, Source.__table__]
     )
     return create_session_factory(engine)()
 
 
-def _make_project(session):
-    project = Project(name="demo")
-    session.add(project)
+def _make_workspace(session):
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.commit()
-    return project
+    return workspace
 
 
-def test_source_belongs_to_project_via_foreign_key():
+def test_source_belongs_to_workspace_via_foreign_key():
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
 
     source = Source(
-        project_id=project.id, source_type="web", external_id="https://example.com"
+        workspace_id=workspace.id, source_type="web", external_id="https://example.com"
     )
     session.add(source)
     session.commit()
 
-    assert source.project_id == project.id
+    assert source.workspace_id == workspace.id
 
 
 def test_source_external_id_persists():
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
 
     source = Source(
-        project_id=project.id, source_type="web", external_id="https://example.com"
+        workspace_id=workspace.id, source_type="web", external_id="https://example.com"
     )
     session.add(source)
     session.commit()
@@ -60,12 +60,12 @@ def test_source_external_id_persists():
     assert fetched.source_type == "web"
 
 
-def test_source_identity_is_unique_within_project():
+def test_source_identity_is_unique_within_workspace():
     session = _make_session()
-    project = _make_project(session)
-    source = Source(project_id=project.id, source_type="web", external_id="id-1")
+    workspace = _make_workspace(session)
+    source = Source(workspace_id=workspace.id, source_type="web", external_id="id-1")
     duplicate = Source(
-        project_id=project.id, source_type="web", external_id="id-1"
+        workspace_id=workspace.id, source_type="web", external_id="id-1"
     )
 
     session.add(source)
@@ -84,11 +84,11 @@ def test_source_identity_is_unique_within_project():
 
 def test_source_tags_persist_as_json():
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
 
     tags = ["docs", "reference"]
     source = Source(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="web",
         external_id="id-1",
         tags=tags,
@@ -104,11 +104,11 @@ def test_source_tags_persist_as_json():
 
 def test_source_metadata_persists_as_json():
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
 
     metadata = {"author": "someone", "lang": "es"}
     source = Source(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="web",
         external_id="id-1",
         extra_metadata=metadata,
@@ -122,27 +122,27 @@ def test_source_metadata_persists_as_json():
     assert fetched.extra_metadata == metadata
 
 
-def test_source_project_id_is_required():
+def test_source_workspace_id_is_required():
     columns = {c.name: c for c in inspect(Source).columns}
 
-    assert columns["project_id"].nullable is False
+    assert columns["workspace_id"].nullable is False
 
 
-def test_source_project_id_has_foreign_key_to_projects():
+def test_source_workspace_id_has_foreign_key_to_workspaces():
     table = inspect(Source).local_table
     fk_targets = {fk.column.table.name for fk in table.foreign_keys}
 
-    assert "projects" in fk_targets
+    assert "workspaces" in fk_targets
 
 
-def test_source_rejects_unknown_project_id():
+def test_source_rejects_unknown_workspace_id():
     # La integridad referencial real se valida en integracion con Postgres.
-    # Aca validamos el contrato de columna: project_id es NOT NULL con FK.
+    # Aca validamos el contrato de columna: workspace_id es NOT NULL con FK.
     columns = {c.name: c for c in inspect(Source).columns}
-    assert columns["project_id"].nullable is False
+    assert columns["workspace_id"].nullable is False
     table = inspect(Source).local_table
     assert any(
-        fk.parent.name == "project_id" for fk in table.foreign_keys
+        fk.parent.name == "workspace_id" for fk in table.foreign_keys
     )
 
 
@@ -159,6 +159,6 @@ def test_source_filtering_columns_are_indexed():
         tuple(col.name for col in index.columns) for index in table.indexes
     }
 
-    assert ("project_id", "source_type") in indexed_columns
-    assert ("project_id", "created_at") in indexed_columns
+    assert ("workspace_id", "source_type") in indexed_columns
+    assert ("workspace_id", "created_at") in indexed_columns
     assert ("tags",) in indexed_columns

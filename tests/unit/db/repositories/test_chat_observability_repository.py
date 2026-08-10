@@ -8,8 +8,11 @@ from uuid import UUID
 import pytest
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import ChatSession, Job, Project, ProviderUsage
-from adaptive_rag.db.repositories import ChatObservabilityRepository, ProjectRepository
+from adaptive_rag.db.models import ChatSession, Job, ProviderUsage, Workspace
+from adaptive_rag.db.repositories import (
+    ChatObservabilityRepository,
+    WorkspaceRepository,
+)
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
 
@@ -18,7 +21,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Job.__table__,
             ChatSession.__table__,
             ProviderUsage.__table__,
@@ -27,20 +30,20 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _make_project(session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _make_workspace(session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _add_chat_session(
     session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     status: str,
     created_at: datetime,
     error_message: str | None = None,
 ) -> ChatSession:
     chat_session = ChatSession(
-        project_id=project_id,
+        workspace_id=workspace_id,
         status=status,
         error_message=error_message,
         created_at=created_at,
@@ -54,7 +57,7 @@ def _add_chat_session(
 def _add_provider_usage(
     session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     created_at: datetime,
     session_id: UUID | None = None,
     operation: str = "chat",
@@ -71,7 +74,7 @@ def _add_provider_usage(
     error_message: str | None = None,
 ) -> ProviderUsage:
     usage = ProviderUsage(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=session_id,
         operation=operation,
         provider=provider,
@@ -93,43 +96,43 @@ def _add_provider_usage(
     return usage
 
 
-def test_summary_aggregates_project_usage_latency_and_errors() -> None:
+def test_summary_aggregates_workspace_usage_latency_and_errors() -> None:
     session = _make_session()
-    project = _make_project(session, "demo")
-    other_project = _make_project(session, "other")
+    workspace = _make_workspace(session, "demo")
+    other_workspace = _make_workspace(session, "other")
     base = datetime(2026, 1, 1, tzinfo=UTC)
     long_error = "runner failed: " + ("x" * 220)
 
     succeeded = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="succeeded",
         created_at=base + timedelta(minutes=1),
     )
     failed = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="failed",
         created_at=base + timedelta(minutes=2),
         error_message=long_error,
     )
     _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="running",
         created_at=base + timedelta(minutes=3),
     )
     _add_chat_session(
         session,
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         status="failed",
         created_at=base + timedelta(minutes=4),
-        error_message="other project failure",
+        error_message="other workspace failure",
     )
 
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=succeeded.id,
         created_at=base + timedelta(minutes=1, seconds=10),
         input_tokens=100,
@@ -141,7 +144,7 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed.id,
         created_at=base + timedelta(minutes=2, seconds=10),
         status="failed",
@@ -152,7 +155,7 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=succeeded.id,
         created_at=base + timedelta(minutes=1, seconds=20),
         input_tokens=25,
@@ -163,7 +166,7 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         created_at=base + timedelta(minutes=5),
         operation="embedding",
         provider="openai",
@@ -175,15 +178,17 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         created_at=base + timedelta(minutes=5),
         estimated_cost_usd=9.99,
         latency_ms=1,
     )
 
-    summary = ChatObservabilityRepository(session).get_summary(project_id=project.id)
+    summary = ChatObservabilityRepository(session).get_summary(
+        workspace_id=workspace.id
+    )
 
-    assert summary.project_id == project.id
+    assert summary.workspace_id == workspace.id
     assert summary.filters.created_at_from is None
     assert summary.filters.created_at_to is None
     assert summary.filters.status is None
@@ -236,25 +241,25 @@ def test_summary_aggregates_project_usage_latency_and_errors() -> None:
 
 def test_summary_applies_date_and_status_filters_deterministically() -> None:
     session = _make_session()
-    project = _make_project(session)
+    workspace = _make_workspace(session)
     base = datetime(2026, 1, 1, tzinfo=UTC)
 
     failed_in_window = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="failed",
         created_at=base + timedelta(hours=1),
         error_message="window failure",
     )
     succeeded_in_window = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="succeeded",
         created_at=base + timedelta(hours=1, minutes=30),
     )
     failed_before_window = _add_chat_session(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         status="failed",
         created_at=base - timedelta(minutes=1),
         error_message="old failure",
@@ -262,7 +267,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
 
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed_in_window.id,
         created_at=base + timedelta(hours=1, seconds=1),
         estimated_cost_usd=0.20,
@@ -270,7 +275,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=succeeded_in_window.id,
         created_at=base + timedelta(hours=1, minutes=30, seconds=1),
         estimated_cost_usd=0.30,
@@ -278,7 +283,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         created_at=base + timedelta(hours=1, minutes=10),
         operation="embedding",
         provider="openai",
@@ -288,7 +293,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed_before_window.id,
         created_at=base - timedelta(seconds=1),
         estimated_cost_usd=0.50,
@@ -296,7 +301,7 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
     )
 
     summary = ChatObservabilityRepository(session).get_summary(
-        project_id=project.id,
+        workspace_id=workspace.id,
         created_at_from=base,
         created_at_to=base + timedelta(hours=1, minutes=15),
         status="failed",
@@ -322,6 +327,6 @@ def test_summary_applies_date_and_status_filters_deterministically() -> None:
 
     with pytest.raises(ValueError, match="invalid chat session status"):
         ChatObservabilityRepository(session).get_summary(
-            project_id=project.id,
+            workspace_id=workspace.id,
             status="done",
         )

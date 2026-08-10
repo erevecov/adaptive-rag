@@ -1,4 +1,4 @@
-"""Local authentication and project RBAC helpers."""
+"""Local authentication and workspace RBAC helpers."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import ProjectMembership, User
+from adaptive_rag.db.models import User, WorkspaceMembership
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROLE_RANK = {
+WORKSPACE_ROLE_RANK = {
     "viewer": 1,
     "contributor": 2,
     "admin": 3,
@@ -79,19 +79,19 @@ def users_exist(session: Session) -> bool:
     return bool(count)
 
 
-def get_project_role(
+def get_workspace_role(
     session: Session,
     *,
     principal: CurrentPrincipal,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> str | None:
     if principal.is_superadmin:
         return "superadmin"
     if principal.user_id is None:
         return None
-    statement = select(ProjectMembership.role).where(
-        ProjectMembership.project_id == project_id,
-        ProjectMembership.user_id == principal.user_id,
+    statement = select(WorkspaceMembership.role).where(
+        WorkspaceMembership.workspace_id == workspace_id,
+        WorkspaceMembership.user_id == principal.user_id,
     )
     return session.scalar(statement)
 
@@ -101,4 +101,4 @@ def role_meets(role: str | None, minimum_role: str) -> bool:
         return True
     if role is None:
         return False
-    return PROJECT_ROLE_RANK[role] >= PROJECT_ROLE_RANK[minimum_role]
+    return WORKSPACE_ROLE_RANK[role] >= WORKSPACE_ROLE_RANK[minimum_role]

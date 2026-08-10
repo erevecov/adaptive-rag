@@ -16,8 +16,8 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -45,7 +45,7 @@ def test_v1_quality_gate_emits_release_decision(
         [
             "v1",
             "quality-gate",
-            "--project-name",
+            "--workspace-name",
             "V1 Release Demo",
             "--source-external-id",
             "release-demo.md",
@@ -59,7 +59,7 @@ def test_v1_quality_gate_emits_release_decision(
     assert payload["status"] == "succeeded"
     assert payload["release_decision"] == "ready_for_v1_0"
     assert payload["first_run"]["status"] == "succeeded"
-    assert payload["first_run"]["project"]["name"] == "V1 Release Demo"
+    assert payload["first_run"]["workspace"]["name"] == "V1 Release Demo"
     assert payload["first_run"]["source"]["external_id"] == "release-demo.md"
     assert payload["first_run"]["job"]["status"] == "succeeded"
     assert payload["first_run"]["chunk_count"] >= 1
@@ -114,7 +114,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,

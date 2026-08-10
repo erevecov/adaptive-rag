@@ -16,12 +16,12 @@ from adaptive_rag.chunking import (
     SemanticMarkdownChunkerConfig,
 )
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import (
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -38,7 +38,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -48,21 +48,23 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVersion]:
-    project = ProjectRepository(session).create(name="demo")
+def _create_document_version(
+    session, *, text: str
+) -> tuple[Workspace, DocumentVersion]:
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="guide.md",
         extra_metadata={"content": text},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -70,7 +72,7 @@ def _create_document_version(session, *, text: str) -> tuple[Project, DocumentVe
         index_fingerprint="ingestion-fp",
     )
     session.commit()
-    return project, version
+    return workspace, version
 
 
 def _make_pipeline(session) -> ChunkingPipeline:
@@ -131,16 +133,16 @@ def test_chunk_document_version_persists_offsets_section_metadata_and_lineage():
         "Keep offsets stable for citations."
     )
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
+    workspace, version = _create_document_version(session, text=text)
 
     result = _make_pipeline(session).chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
     chunks = ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -168,16 +170,16 @@ def test_chunk_document_version_persists_offsets_section_metadata_and_lineage():
 def test_chunk_document_version_splits_oversized_block_by_token_fallback():
     text = "one two three four five six seven eight nine ten eleven twelve"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
+    workspace, version = _create_document_version(session, text=text)
 
     result = _make_pipeline(session).chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
     chunks = ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -190,16 +192,16 @@ def test_chunk_document_version_splits_oversized_block_by_token_fallback():
 def test_chunk_document_version_records_explicit_overlap():
     text = "one two three four five six seven eight"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
+    workspace, version = _create_document_version(session, text=text)
 
     result = _make_overlap_pipeline(session).chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
     chunks = ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -213,21 +215,21 @@ def test_chunk_document_version_records_explicit_overlap():
 def test_chunk_document_version_is_idempotent_for_same_chunker_config():
     text = "# Title\n\nsame content"
     session = _make_session()
-    project, version = _create_document_version(session, text=text)
+    workspace, version = _create_document_version(session, text=text)
     pipeline = _make_pipeline(session)
 
     first = pipeline.chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     second = pipeline.chunk_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     session.commit()
 
     chunks = ChunkRepository(session).list_by_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
 
@@ -237,19 +239,19 @@ def test_chunk_document_version_is_idempotent_for_same_chunker_config():
     assert session.scalar(select(func.count()).select_from(Chunk)) == len(chunks)
 
 
-def test_chunk_document_version_rejects_cross_project_version():
+def test_chunk_document_version_rejects_cross_workspace_version():
     text = "# Title\n\nprivate content"
     session = _make_session()
-    _project, version = _create_document_version(session, text=text)
-    other_project = ProjectRepository(session).create(name="other")
+    _workspace, version = _create_document_version(session, text=text)
+    other_workspace = WorkspaceRepository(session).create(name="other")
     session.commit()
 
     with pytest.raises(
         ChunkingPipelineError,
-        match="document version does not belong to project",
+        match="document version does not belong to workspace",
     ):
         _make_pipeline(session).chunk_document_version(
-            project_id=other_project.id,
+            workspace_id=other_workspace.id,
             document_version_id=version.id,
         )
 

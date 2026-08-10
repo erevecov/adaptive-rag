@@ -15,7 +15,7 @@ def test_runtime_acceptance_runbook_documents_post_runtime_settings_gate() -> No
     assert "uv run alembic upgrade head" in content
     assert "uv run adaptive-rag acceptance runtime-settings-smoke" in content
     assert '"model_catalog_synced"' in content
-    assert '"project_runtime_override"' in content
+    assert '"workspace_runtime_override"' in content
     assert '"effective_runtime_resolution"' in content
     assert '"first_run"' in content
     assert "Qwen" in content

@@ -14,10 +14,10 @@ from adaptive_rag.chat import ChatRequest, ChatService
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.models import ProviderConnection, ProviderModelCatalog
 from adaptive_rag.db.repositories import (
-    ProjectRuntimeSettingsRepository,
     ProviderConnectionRepository,
     ProviderModelCatalogRepository,
     RuntimeSettingsRepository,
+    WorkspaceRuntimeSettingsRepository,
 )
 from adaptive_rag.first_run import (
     DEFAULT_QUESTION,
@@ -34,19 +34,19 @@ from adaptive_rag.provider_runtime import (
 )
 from adaptive_rag.retrieval import RetrievalService
 
-DEFAULT_ACCEPTANCE_PROJECT_NAME = "Adaptive RAG Runtime Acceptance"
+DEFAULT_ACCEPTANCE_WORKSPACE_NAME = "Adaptive RAG Runtime Acceptance"
 DEFAULT_ACCEPTANCE_SOURCE_EXTERNAL_ID = "runtime-settings-acceptance.md"
 DEFAULT_ACCEPTANCE_WORKER_ID = "runtime-settings-acceptance"
 DEFAULT_ACCEPTANCE_CONTENT = """# Runtime settings acceptance
 
 Runtime settings acceptance proves that provider connections, model catalog
-sync, global slots, project overrides, indexing, and cited chat work together
+sync, global slots, workspace overrides, indexing, and cited chat work together
 through persisted local configuration.
 
 ## Evidence
 
 The default acceptance path uses fake providers, resolves the dense embedding
-slot from a project override, inherits chat from the global default, and returns
+slot from a workspace override, inherits chat from the global default, and returns
 citations without hosted credentials.
 """
 
@@ -85,7 +85,7 @@ class RuntimeSettingsAcceptanceReport:
 def run_runtime_settings_acceptance_smoke(
     session: Session,
     *,
-    project_name: str = DEFAULT_ACCEPTANCE_PROJECT_NAME,
+    workspace_name: str = DEFAULT_ACCEPTANCE_WORKSPACE_NAME,
     source_external_id: str = DEFAULT_ACCEPTANCE_SOURCE_EXTERNAL_ID,
     content: str = DEFAULT_ACCEPTANCE_CONTENT,
     question: str = DEFAULT_QUESTION,
@@ -105,25 +105,25 @@ def run_runtime_settings_acceptance_smoke(
         model_ids=required_models,
     )
 
-    project = authoring.create_project(session, name=project_name)
-    ProjectRuntimeSettingsRepository(session).upsert_slot_override(
-        project_id=project.id,
+    workspace = authoring.create_workspace(session, name=workspace_name)
+    WorkspaceRuntimeSettingsRepository(session).upsert_slot_override(
+        workspace_id=workspace.id,
         slot="dense_embedding",
         connection_id=connection.connection_id,
         model_id=required_models["dense_embedding"],
     )
-    first_run = _run_project_flow(
+    first_run = _run_workspace_flow(
         session,
-        project_id=project.id,
-        project_name=project_name,
+        workspace_id=workspace.id,
+        workspace_name=workspace_name,
         source_external_id=source_external_id,
         content=content,
         question=question,
         worker_id=worker_id,
     )
     global_slots = _global_slots(session)
-    effective_slots = _effective_slots(session, project_id=project.id)
-    resolved_runtime = _resolved_runtime(session, project_id=project.id)
+    effective_slots = _effective_slots(session, workspace_id=workspace.id)
+    resolved_runtime = _resolved_runtime(session, workspace_id=workspace.id)
     criteria = _criteria(
         first_run=first_run,
         model_catalog=model_catalog,
@@ -183,7 +183,7 @@ def runtime_settings_acceptance_report_payload(
                     report.global_slots["contextualization"]
                 ),
             },
-            "effective_project_settings": {
+            "effective_workspace_settings": {
                 "chat": _slot_payload(report.effective_slots["chat"]),
                 "dense_embedding": _slot_payload(
                     report.effective_slots["dense_embedding"]
@@ -308,22 +308,22 @@ def _configure_global_defaults(
     )
 
 
-def _run_project_flow(
+def _run_workspace_flow(
     session: Session,
     *,
-    project_id: UUID,
-    project_name: str,
+    workspace_id: UUID,
+    workspace_name: str,
     source_external_id: str,
     content: str,
     question: str,
     worker_id: str,
 ) -> FirstRunReport:
-    project = authoring.get_project(session, project_id)
-    if project is None:
-        raise AcceptanceError("runtime acceptance project was not persisted")
+    workspace = authoring.get_workspace(session, workspace_id)
+    if workspace is None:
+        raise AcceptanceError("runtime acceptance workspace was not persisted")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id=source_external_id,
         tags=["runtime-acceptance"],
@@ -331,35 +331,31 @@ def _run_project_flow(
     )
     job = ingestion_ops.enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     dense_embedding_provider = get_dense_embedding_provider(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session=session,
     )
     sparse_embedding_provider = get_sparse_embedding_provider(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session=session,
     )
     reports = ingestion_ops.run_ingestion_family_until_idle(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id=worker_id,
         dense_embedding_provider=dense_embedding_provider,
         sparse_embedding_provider=sparse_embedding_provider,
     )
     if not reports:
-        raise AcceptanceError(
-            "runtime acceptance ingestion did not process: idle"
-        )
+        raise AcceptanceError("runtime acceptance ingestion did not process: idle")
 
     blocked = next((item for item in reports if item.status == "blocked"), None)
     if blocked is not None:
         detail = blocked.error_message or blocked.status
-        raise AcceptanceError(
-            f"runtime acceptance ingestion did not process: {detail}"
-        )
+        raise AcceptanceError(f"runtime acceptance ingestion did not process: {detail}")
 
     ingest_report = next(
         (
@@ -387,7 +383,7 @@ def _run_project_flow(
             "runtime acceptance indexing did not process: missing index job"
         )
 
-    chat_runner = get_chat_runner(project_id=project.id, session=session)
+    chat_runner = get_chat_runner(workspace_id=workspace.id, session=session)
     chat = ChatService(
         runner=chat_runner,
         retrieval_service=RetrievalService(
@@ -397,7 +393,7 @@ def _run_project_flow(
         ),
     ).respond(
         ChatRequest(
-            project_id=project.id,
+            workspace_id=workspace.id,
             message=question,
             retrieval_limit=5,
         )
@@ -407,13 +403,13 @@ def _run_project_flow(
 
     refreshed_job = ingestion_ops.get_ingestion_job_detail(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=job.id,
     ).job
 
     return FirstRunReport(
         status="succeeded",
-        project=project,
+        workspace=workspace,
         source=source,
         job=refreshed_job,
         question=question,
@@ -433,11 +429,11 @@ def _run_project_flow(
 def _effective_slots(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> dict[str, dict[str, str]]:
-    settings = ProjectRuntimeSettingsRepository(session).get_project_runtime_settings(
-        project_id
-    )
+    settings = WorkspaceRuntimeSettingsRepository(
+        session
+    ).get_workspace_runtime_settings(workspace_id)
     return {
         slot.slot: {
             "source": slot.source,
@@ -462,19 +458,19 @@ def _global_slots(session: Session) -> dict[str, dict[str, str]]:
 def _resolved_runtime(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
 ) -> dict[str, dict[str, str]]:
-    effective_slots = _effective_slots(session, project_id=project_id)
+    effective_slots = _effective_slots(session, workspace_id=workspace_id)
     chat_runner = get_chat_runner(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     dense_provider = get_dense_embedding_provider(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     sparse_provider = get_sparse_embedding_provider(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
     )
     return {
@@ -524,17 +520,15 @@ def _criteria(
         _criterion(
             "global_runtime_defaults",
             effective_slots.get("chat", {}).get("source") == "inherited"
-            and effective_slots.get("sparse_embedding", {}).get("source")
-            == "inherited"
+            and effective_slots.get("sparse_embedding", {}).get("source") == "inherited"
             and effective_slots.get("contextualization", {}).get("source")
             == "inherited",
-            "Project inherits global chat, sparse and contextualization defaults.",
+            "Workspace inherits global chat, sparse and contextualization defaults.",
         ),
         _criterion(
-            "project_runtime_override",
-            effective_slots.get("dense_embedding", {}).get("source")
-            == "overridden",
-            "Project dense embedding slot override is effective.",
+            "workspace_runtime_override",
+            effective_slots.get("dense_embedding", {}).get("source") == "overridden",
+            "Workspace dense embedding slot override is effective.",
         ),
         _criterion(
             "effective_runtime_resolution",

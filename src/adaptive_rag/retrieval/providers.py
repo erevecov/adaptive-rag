@@ -18,12 +18,12 @@ from adaptive_rag.provider_usage import ProviderUsageTracker
 
 def get_default_dense_embedding_provider(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> DenseEmbeddingProvider:
     return get_runtime_dense_embedding_provider(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
@@ -31,12 +31,12 @@ def get_default_dense_embedding_provider(
 
 def get_default_sparse_embedding_provider(
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
 ) -> SparseEmbeddingProvider:
     return get_runtime_sparse_embedding_provider(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )

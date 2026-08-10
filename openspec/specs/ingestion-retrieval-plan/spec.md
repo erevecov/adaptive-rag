@@ -3,7 +3,7 @@
 ## Purpose
 
 Preservar el contrato de entrega secuencial de M3: ingestion, chunking,
-embeddings, retrieval y quality gate, con aislamiento por proyecto y
+embeddings, retrieval y quality gate, con aislamiento por workspace y
 determinismo antes de providers live.
 ## Requirements
 ### Requirement: M3 se entrega en slices secuenciales
@@ -29,22 +29,22 @@ chunking, embeddings y retrieval.
 - **THEN** el siguiente slice implementa `m3-embedding-baseline`
 - **AND** usa fakes deterministas antes de requerir providers live
 
-### Requirement: M3 conserva aislamiento por proyecto desde el primer slice
+### Requirement: M3 conserva aislamiento por workspace desde el primer slice
 
-El sistema MUST mantener `project_id` como frontera obligatoria en ingestion,
+El sistema MUST mantener `workspace_id` como frontera obligatoria en ingestion,
 chunking, embeddings y retrieval.
 
-#### Scenario: Jobs de ingestion no cruzan proyectos
+#### Scenario: Jobs de ingestion no cruzan workspaces
 
 - **WHEN** un worker reclama un job `ingest_source`
-- **THEN** carga source, document y document version usando el mismo `project_id`
-- **AND** registra eventos del job con ese `project_id`
+- **THEN** carga source, document y document version usando el mismo `workspace_id`
+- **AND** registra eventos del job con ese `workspace_id`
 
 #### Scenario: Retrieval filtra antes de rankear
 
 - **WHEN** un retrieval query se ejecuta en M3
-- **THEN** aplica `project_id` y filtros tipados antes de ordenar candidatos
-- **AND** no devuelve chunks de otro proyecto
+- **THEN** aplica `workspace_id` y filtros tipados antes de ordenar candidatos
+- **AND** no devuelve chunks de otro workspace
 
 ### Requirement: M3 prioriza contratos deterministas antes de providers live
 

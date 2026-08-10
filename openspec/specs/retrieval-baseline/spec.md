@@ -14,7 +14,7 @@ persistidos y MUST validar que el query embedding use la dimension baseline de
 
 #### Scenario: Query dense devuelve chunks ordenados por distancia
 
-- **WHEN** un proyecto tiene chunks con embeddings densos persistidos
+- **WHEN** un workspace tiene chunks con embeddings densos persistidos
 - **THEN** retrieval rankea candidatos por distancia L2 ascendente
 - **AND** aplica `limit` despues del ranking
 
@@ -26,13 +26,13 @@ persistidos y MUST validar que el query embedding use la dimension baseline de
 
 ### Requirement: Retrieval baseline filtra antes de rankear
 
-El sistema MUST aplicar `project_id` y filtros tipados antes de ordenar
+El sistema MUST aplicar `workspace_id` y filtros tipados antes de ordenar
 candidatos por similitud.
 
-#### Scenario: Project isolation bloquea candidatos cross-project
+#### Scenario: Workspace isolation bloquea candidatos cross-workspace
 
-- **WHEN** otro proyecto tiene un chunk mas cercano al query embedding
-- **THEN** retrieval para el proyecto solicitado no devuelve ese chunk
+- **WHEN** otro workspace tiene un chunk mas cercano al query embedding
+- **THEN** retrieval para el workspace solicitado no devuelve ese chunk
 
 #### Scenario: Filtros de source y document restringen candidatos
 

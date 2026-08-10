@@ -8,7 +8,7 @@ from typing import Literal, Protocol
 from uuid import UUID
 
 GraphStoreBackend = Literal["disabled", "neo4j"]
-GraphProjectionStatus = Literal[
+GraphprojectionStatus = Literal[
     "disabled",
     "pending_backfill",
     "indexing",
@@ -16,7 +16,7 @@ GraphProjectionStatus = Literal[
     "stale",
     "failed",
 ]
-GRAPH_PROJECTION_STATUS_VALUES: tuple[GraphProjectionStatus, ...] = (
+GRAPH_projection_STATUS_VALUES: tuple[GraphprojectionStatus, ...] = (
     "disabled",
     "pending_backfill",
     "indexing",
@@ -64,9 +64,9 @@ class GraphStoreHealth:
 class GraphBackfillResult:
     """Resultado de una reconstruccion idempotente por proyecto."""
 
-    project_id: UUID
+    workspace_id: UUID
     backend: Literal["neo4j"]
-    status: GraphProjectionStatus
+    status: GraphprojectionStatus
     source_watermark: str
     node_count: int | None = None
     relationship_count: int | None = None
@@ -84,10 +84,10 @@ class GraphRetrievalResult:
 class GraphRetriever(Protocol):
     """Contrato de consulta graph opt-in con fallback dense externo."""
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: Sequence[UUID],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
@@ -102,15 +102,15 @@ class GraphStore(Protocol):
     def health_check(self) -> GraphStoreHealth:
         """Reporta conectividad/configuracion sin exponer credenciales."""
 
-    def backfill_project_graph(
+    def backfill_workspace_graph(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
     ) -> GraphBackfillResult:
         """Reconstruye el grafo derivado para un proyecto."""
 
-    def delete_project_graph(self, *, project_id: UUID) -> None:
+    def delete_workspace_graph(self, *, workspace_id: UUID) -> None:
         """Elimina datos derivados de un proyecto en el backend graph."""
 
 
@@ -126,15 +126,15 @@ class DisabledGraphStore:
             status="disabled",
         )
 
-    def backfill_project_graph(
+    def backfill_workspace_graph(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
     ) -> GraphBackfillResult:
         raise GraphStoreConfigurationError("graph store is disabled")
 
-    def delete_project_graph(self, *, project_id: UUID) -> None:
+    def delete_workspace_graph(self, *, workspace_id: UUID) -> None:
         return None
 
 
@@ -161,22 +161,22 @@ class FakeGraphStore:
             status="ready",
         )
 
-    def backfill_project_graph(
+    def backfill_workspace_graph(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
     ) -> GraphBackfillResult:
-        self._backfill_requests.append((project_id, source_watermark))
+        self._backfill_requests.append((workspace_id, source_watermark))
         return GraphBackfillResult(
-            project_id=project_id,
+            workspace_id=workspace_id,
             backend=self.backend,
             status="ready",
             source_watermark=source_watermark,
         )
 
-    def delete_project_graph(self, *, project_id: UUID) -> None:
-        self._delete_requests.append(project_id)
+    def delete_workspace_graph(self, *, workspace_id: UUID) -> None:
+        self._delete_requests.append(workspace_id)
 
 
 def should_use_dense_fallback(status: str) -> bool:

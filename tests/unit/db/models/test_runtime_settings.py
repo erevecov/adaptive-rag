@@ -9,10 +9,10 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    Project,
-    ProjectChatRetrievalSettings,
     ProviderConnection,
     RuntimeSlotDefault,
+    Workspace,
+    WorkspaceChatRetrievalSettings,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 
@@ -22,12 +22,12 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             ProviderConnection.__table__,
             RuntimeSlotDefault.__table__,
             GlobalChatModel.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
         ],
     )
     return create_session_factory(engine)()
@@ -118,13 +118,13 @@ def test_global_chat_retrieval_settings_persist_defaults_and_limits() -> None:
     assert fetched.max_limit == 50
 
 
-def test_project_chat_retrieval_settings_are_project_scoped() -> None:
+def test_workspace_chat_retrieval_settings_are_workspace_scoped() -> None:
     session = _make_session()
-    project = Project(name="demo")
-    session.add(project)
+    workspace = Workspace(name="demo")
+    session.add(workspace)
     session.flush()
-    override = ProjectChatRetrievalSettings(
-        project_id=project.id,
+    override = WorkspaceChatRetrievalSettings(
+        workspace_id=workspace.id,
         retrieval_limit=8,
         rerank_enabled=False,
         rerank_candidate_limit=12,
@@ -134,7 +134,7 @@ def test_project_chat_retrieval_settings_are_project_scoped() -> None:
     session.commit()
     session.expunge_all()
 
-    fetched = session.get(ProjectChatRetrievalSettings, project.id)
+    fetched = session.get(WorkspaceChatRetrievalSettings, workspace.id)
 
     assert fetched is not None
     assert fetched.retrieval_limit == 8

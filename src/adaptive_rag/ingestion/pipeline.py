@@ -141,13 +141,13 @@ class IngestionPipeline:
     def run_next(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         worker_id: str,
         now: datetime,
         lease_until: datetime,
     ) -> IngestionRunResult | IngestionBlockedResult | None:
         job = self._job_repo.lease_next(
-            project_id=project_id,
+            workspace_id=workspace_id,
             worker_id=worker_id,
             now=now,
             lease_until=lease_until,
@@ -156,12 +156,12 @@ class IngestionPipeline:
         if job is None:
             return None
 
-        return self.process_leased_job(project_id=project_id, job=job)
+        return self.process_leased_job(workspace_id=workspace_id, job=job)
 
     def process_leased_job(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         job: Job,
     ) -> IngestionRunResult | IngestionBlockedResult:
         if job.job_type != INGEST_SOURCE_JOB_TYPE:
@@ -173,10 +173,10 @@ class IngestionPipeline:
         job_id = job.id
         lease_owner = job.locked_by
         try:
-            result = self._process_job(project_id=project_id, job=job)
+            result = self._process_job(workspace_id=workspace_id, job=job)
         except (IngestionPipelineError, URLFetchPolicyError) as exc:
             blocked_job = self._job_repo.block(
-                project_id=project_id,
+                workspace_id=workspace_id,
                 job_id=job_id,
                 reason=str(exc),
                 worker_id=lease_owner,
@@ -195,7 +195,7 @@ class IngestionPipeline:
                 self._session.rollback()
             try:
                 blocked_job = self._job_repo.block(
-                    project_id=project_id,
+                    workspace_id=workspace_id,
                     job_id=job_id,
                     reason=reason,
                     worker_id=lease_owner,
@@ -207,21 +207,21 @@ class IngestionPipeline:
             return IngestionBlockedResult(job=blocked_job, error_message=reason)
 
         self._job_repo.complete(
-            project_id=project_id, job_id=job_id, worker_id=lease_owner
+            workspace_id=workspace_id, job_id=job_id, worker_id=lease_owner
         )
         enqueue_index_document_version_job(
             self._session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_version_id=result.document_version.id,
             source_id=result.source.id,
         )
         return result
 
-    def _process_job(self, *, project_id: UUID, job: Job) -> IngestionRunResult:
+    def _process_job(self, *, workspace_id: UUID, job: Job) -> IngestionRunResult:
         source_id = _source_id_from_payload(job.payload_json)
-        source = self._source_repo.get(project_id=project_id, source_id=source_id)
+        source = self._source_repo.get(workspace_id=workspace_id, source_id=source_id)
         if source is None:
-            raise IngestionPipelineError("source does not belong to project")
+            raise IngestionPipelineError("source does not belong to workspace")
 
         parsed = self._parse_source(source)
         guarded_text, redaction_count = _apply_content_guard(parsed.normalized_text)
@@ -236,9 +236,11 @@ class IngestionPipeline:
             content_hash=content_hash,
             parser_metadata=parser_metadata,
         )
-        document = self._get_or_create_document(project_id=project_id, source=source)
+        document = self._get_or_create_document(
+            workspace_id=workspace_id, source=source
+        )
         existing_versions = self._document_repo.list_versions(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_id=document.id,
         )
         latest = existing_versions[-1] if existing_versions else None
@@ -252,7 +254,7 @@ class IngestionPipeline:
 
             mark_source_synced(
                 self._session,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 source_id=source.id,
                 content_hash=content_hash,
             )
@@ -266,7 +268,7 @@ class IngestionPipeline:
 
         next_version = 1 if latest is None else latest.version_number + 1
         document_version = self._document_repo.create_version(
-            project_id=project_id,
+            workspace_id=workspace_id,
             document_id=document.id,
             version_number=next_version,
             normalized_text=guarded_text,
@@ -279,7 +281,7 @@ class IngestionPipeline:
 
         mark_source_synced(
             self._session,
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source.id,
             content_hash=content_hash,
         )
@@ -332,15 +334,17 @@ class IngestionPipeline:
             f"URL source content type has no registered parser: {content_type}"
         )
 
-    def _get_or_create_document(self, *, project_id: UUID, source: Source) -> Document:
+    def _get_or_create_document(
+        self, *, workspace_id: UUID, source: Source
+    ) -> Document:
         documents = self._document_repo.list(
-            project_id=project_id,
+            workspace_id=workspace_id,
             filters=DocumentFilters(source_id=source.id, stable_id=source.external_id),
         )
         if documents:
             return documents[0]
         return self._document_repo.create_document(
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source.id,
             stable_id=source.external_id,
         )

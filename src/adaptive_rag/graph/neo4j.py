@@ -8,7 +8,7 @@ from uuid import UUID
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, DriverError, Neo4jError, ServiceUnavailable
 
-from adaptive_rag.graph.indexer import ProjectGraphLoader
+from adaptive_rag.graph.indexer import WorkspaceGraphLoader
 from adaptive_rag.graph.store import (
     GraphBackfillResult,
     GraphRetrievalResult,
@@ -41,7 +41,7 @@ class Neo4jDriverFactory(Protocol):
 
 
 class Neo4jGraphStore:
-    """Neo4j adapter for health checks and project graph indexing."""
+    """Neo4j adapter for health checks and workspace graph indexing."""
 
     backend: GraphStoreBackend = "neo4j"
 
@@ -49,10 +49,10 @@ class Neo4jGraphStore:
         self,
         *,
         driver: Neo4jDriver,
-        project_graph_loader: ProjectGraphLoader | None = None,
+        workspace_graph_loader: WorkspaceGraphLoader | None = None,
     ) -> None:
         self._driver = driver
-        self._project_graph_loader = project_graph_loader
+        self._workspace_graph_loader = workspace_graph_loader
 
     def health_check(self) -> GraphStoreHealth:
         try:
@@ -92,30 +92,30 @@ class Neo4jGraphStore:
             status="ready",
         )
 
-    def backfill_project_graph(
+    def backfill_workspace_graph(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
     ) -> GraphBackfillResult:
-        if self._project_graph_loader is None:
+        if self._workspace_graph_loader is None:
             raise GraphStoreConfigurationError(
-                "project graph loader is required for neo4j indexing"
+                "workspace graph loader is required for neo4j indexing"
             )
 
         try:
-            graph = self._project_graph_loader(project_id)
+            graph = self._workspace_graph_loader(workspace_id)
         except (GraphStoreConfigurationError, GraphStoreQueryError):
             raise
         except Exception as exc:
             raise GraphStoreQueryError(
-                "failed to load project graph source data"
+                "failed to load workspace graph source data"
             ) from exc
 
-        self.delete_project_graph(project_id=project_id)
+        self.delete_workspace_graph(workspace_id=workspace_id)
         self._execute_query(
-            _UPSERT_PROJECT_QUERY,
-            project=graph.project,
+            _UPSERT_WORKSPACE_QUERY,
+            workspace=graph.workspace,
             source_watermark=source_watermark,
         )
         self._execute_query(_UPSERT_SOURCES_QUERY, sources=list(graph.sources))
@@ -130,7 +130,7 @@ class Neo4jGraphStore:
             chunk_links=list(graph.chunk_links),
         )
         return GraphBackfillResult(
-            project_id=project_id,
+            workspace_id=workspace_id,
             backend="neo4j",
             status="ready",
             source_watermark=source_watermark,
@@ -150,21 +150,23 @@ class Neo4jGraphStore:
             ),
         )
 
-    def delete_project_graph(self, *, project_id: UUID) -> None:
-        self._execute_query(_DELETE_PROJECT_GRAPH_QUERY, project_id=str(project_id))
+    def delete_workspace_graph(self, *, workspace_id: UUID) -> None:
+        self._execute_query(
+            _DELETE_WORKSPACE_GRAPH_QUERY, workspace_id=str(workspace_id)
+        )
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: list[UUID] | tuple[UUID, ...],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         if limit <= 0 or not seed_chunk_ids:
             return ()
         records = self._execute_query_records(
-            _EXPAND_PROJECT_CHUNKS_QUERY,
-            project_id=str(project_id),
+            _EXPAND_WORKSPACE_CHUNKS_QUERY,
+            workspace_id=str(workspace_id),
             seed_chunk_ids=[str(chunk_id) for chunk_id in seed_chunk_ids],
             limit=limit,
         )
@@ -217,15 +219,15 @@ def default_neo4j_driver_factory(
     return cast(Neo4jDriver, GraphDatabase.driver(uri, auth=auth))
 
 
-_DELETE_PROJECT_GRAPH_QUERY = """
-MATCH (n:AdaptiveRagGraph {project_id: $project_id})
+_DELETE_WORKSPACE_GRAPH_QUERY = """
+MATCH (n:AdaptiveRagGraph {workspace_id: $workspace_id})
 DETACH DELETE n
 """
 
-_UPSERT_PROJECT_QUERY = """
-WITH $project AS project
-MERGE (p:AdaptiveRagGraph:AdaptiveRagProject {id: project.id})
-SET p += project,
+_UPSERT_WORKSPACE_QUERY = """
+WITH $workspace AS workspace
+MERGE (p:AdaptiveRagGraph:AdaptiveRagWorkspace {id: workspace.id})
+SET p += workspace,
     p.source_watermark = $source_watermark
 """
 
@@ -234,7 +236,7 @@ UNWIND $sources AS source
 MERGE (s:AdaptiveRagGraph:AdaptiveRagSource {id: source.id})
 SET s += source
 WITH source, s
-MATCH (p:AdaptiveRagProject {id: source.project_id})
+MATCH (p:AdaptiveRagWorkspace {id: source.workspace_id})
 MERGE (p)-[:HAS_SOURCE]->(s)
 """
 
@@ -272,11 +274,11 @@ MATCH (right:AdaptiveRagChunk {id: link.to_chunk_id})
 MERGE (left)-[:NEXT_CHUNK]->(right)
 """
 
-_EXPAND_PROJECT_CHUNKS_QUERY = """
+_EXPAND_WORKSPACE_CHUNKS_QUERY = """
 UNWIND $seed_chunk_ids AS seed_id
-MATCH (seed:AdaptiveRagChunk {id: seed_id, project_id: $project_id})
+MATCH (seed:AdaptiveRagChunk {id: seed_id, workspace_id: $workspace_id})
 MATCH path = (seed)-[:NEXT_CHUNK*0..1]-(chunk:AdaptiveRagChunk {
-    project_id: $project_id
+    workspace_id: $workspace_id
 })
 WITH chunk, min(length(path)) AS distance
 WITH chunk, distance, 1.0 / (1.0 + toFloat(distance)) AS score

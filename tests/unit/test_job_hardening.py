@@ -13,13 +13,13 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import (
     JobRepository,
-    ProjectRepository,
     SourceRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import (
@@ -38,7 +38,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -59,16 +59,16 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
     """Kill mid-job simulation: expired lease must not stay running forever."""
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="recover.md",
         extra_metadata={"content": "# Recover\n\nLease recovery requeues work."},
     )
     job = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     # Align clocks: enqueue uses wall-clock run_after; lease uses fixed _now().
@@ -82,7 +82,7 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
 
     report = run_next_ingestion_job(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="recovery-worker",
         now=_now(),
         dense_embedding_provider=FakeDenseEmbeddingProvider(),
@@ -91,7 +91,7 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
 
     assert report.status == "processed"
     assert report.job_id == job.id
-    stored = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    stored = JobRepository(session).get(workspace_id=workspace.id, job_id=job.id)
     assert stored is not None
     assert stored.status == "succeeded"
     assert stored.locked_by is None
@@ -99,7 +99,7 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
     events = [
         event.event_type
         for event in JobRepository(session).list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
     ]
@@ -109,7 +109,7 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
 
     detail = get_ingestion_job_detail(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         job_id=job.id,
     )
     assert [event.event_type for event in detail.events] == events
@@ -117,16 +117,16 @@ def test_expired_running_job_is_released_and_reprocessed() -> None:
 
 def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="boom.md",
         extra_metadata={"content": "# Boom\n\nTransient failure."},
     )
     job = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         max_attempts=2,
     )
@@ -139,12 +139,12 @@ def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
     ):
         first = run_next_ingestion_job(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             worker_id="worker-1",
             now=_now(),
         )
         stored_after_first = JobRepository(session).get(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
         assert first.status == "failed"
@@ -158,13 +158,13 @@ def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
 
         second = run_next_ingestion_job(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             worker_id="worker-1",
             now=_now() + timedelta(seconds=2),
         )
 
     assert second.status == "dead_letter"
-    stored_final = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    stored_final = JobRepository(session).get(workspace_id=workspace.id, job_id=job.id)
     assert stored_final is not None
     assert stored_final.status == "dead_letter"
     assert stored_final.locked_by is None
@@ -172,7 +172,7 @@ def test_unexpected_error_fails_with_backoff_then_dead_letters() -> None:
     events = [
         event.event_type
         for event in JobRepository(session).list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
     ]
@@ -185,28 +185,28 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
     """A poisoned session (failed mid-pipeline flush) must not bypass fail()."""
 
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="poison.md",
         extra_metadata={"content": "# Poison\n\nFlush failure."},
     )
     job = enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
     job.run_after = _now()
     session.commit()
 
-    def poison_session(self, *, project_id, job):  # type: ignore[no-untyped-def]
+    def poison_session(self, *, workspace_id, job):  # type: ignore[no-untyped-def]
         # Force a failed flush so the session needs a rollback, then raise an
         # unexpected error like a real mid-pipeline IntegrityError would.
         session.add(
             Job(
                 id=job.id,
-                project_id=project.id,
+                workspace_id=workspace.id,
                 job_type="ingest_source",
                 run_after=_now(),
             )
@@ -223,7 +223,7 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
     ):
         report = run_next_ingestion_job(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             worker_id="worker-1",
             now=_now(),
         )
@@ -233,7 +233,7 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
     assert report.job_id == job.id
     assert report.error_message == "integrity blow-up"
 
-    stored = JobRepository(session).get(project_id=project.id, job_id=job.id)
+    stored = JobRepository(session).get(workspace_id=workspace.id, job_id=job.id)
     assert stored is not None
     assert stored.status == "queued"
     assert stored.locked_by is None
@@ -243,7 +243,7 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
     events = [
         event.event_type
         for event in JobRepository(session).list_events(
-            project_id=project.id,
+            workspace_id=workspace.id,
             job_id=job.id,
         )
     ]
@@ -252,16 +252,16 @@ def test_unexpected_error_after_failed_flush_still_fails_job() -> None:
 
 def test_run_next_calls_release_expired_leases_before_lease() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     calls: list[tuple[object, object]] = []
 
     original_release = JobRepository.release_expired_leases
     original_lease = JobRepository.lease_next
 
-    def tracking_release(self, *, project_id, now):  # type: ignore[no-untyped-def]
+    def tracking_release(self, *, workspace_id, now):  # type: ignore[no-untyped-def]
         calls.append(("release", now))
-        return original_release(self, project_id=project_id, now=now)
+        return original_release(self, workspace_id=workspace_id, now=now)
 
     def tracking_lease(self, **kwargs):  # type: ignore[no-untyped-def]
         calls.append(("lease", kwargs.get("now")))
@@ -273,7 +273,7 @@ def test_run_next_calls_release_expired_leases_before_lease() -> None:
     ):
         report = run_next_ingestion_job(
             session,
-            project_id=project.id,
+            workspace_id=workspace.id,
             worker_id="worker-1",
             now=_now(),
         )

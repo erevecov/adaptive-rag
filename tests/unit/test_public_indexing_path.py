@@ -16,8 +16,8 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     Job,
     JobEvent,
-    Project,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.repositories import JobRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
@@ -34,7 +34,7 @@ def _make_session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -52,10 +52,10 @@ def test_public_path_source_worker_chunks_chat_citations() -> None:
     dense = FakeDenseEmbeddingProvider()
     sparse = FakeSparseEmbeddingProvider()
 
-    project = authoring.create_project(session, name="Public Index Demo")
+    workspace = authoring.create_workspace(session, name="Public Index Demo")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="public.md",
         extra_metadata={
@@ -67,13 +67,13 @@ def test_public_path_source_worker_chunks_chat_citations() -> None:
     )
     ingest_job = ingestion_ops.enqueue_source_ingestion(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
     )
 
     reports = ingestion_ops.run_ingestion_family_until_idle(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         worker_id="public-worker",
         dense_embedding_provider=dense,
         sparse_embedding_provider=sparse,
@@ -91,7 +91,7 @@ def test_public_path_source_worker_chunks_chat_citations() -> None:
     assert all(chunk.embedding is not None for chunk in chunks)
     assert all(chunk.contextual_summary for chunk in chunks)
 
-    jobs = JobRepository(session).list(project_id=project.id)
+    jobs = JobRepository(session).list(workspace_id=workspace.id)
     by_type = {job.job_type: job for job in jobs}
     assert by_type[INGEST_SOURCE_JOB_TYPE].id == ingest_job.id
     assert by_type[INGEST_SOURCE_JOB_TYPE].status == "succeeded"
@@ -102,7 +102,7 @@ def test_public_path_source_worker_chunks_chat_citations() -> None:
         dense_embedding_provider=FakeDenseEmbeddingProvider(),
         sparse_embedding_provider=FakeSparseEmbeddingProvider(),
         chat_runner=RetrievalGroundedChatRunner(),
-        project_name="First Run Via Jobs",
+        workspace_name="First Run Via Jobs",
         source_external_id="first-run-jobs.md",
         content=(
             "# First run via jobs\n\n"

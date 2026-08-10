@@ -11,6 +11,10 @@ from adaptive_rag.chat.tools import ChatTools
 class RetrievalGroundedChatRunner:
     """Runner local sin red que responde con evidencia recuperada."""
 
+    # Accepts image attachments without network (test hook).
+    model_capabilities: tuple[str, ...] = ("chat", "vision")
+    fallback_model_capabilities: tuple[str, ...] = ()
+
     def run(
         self,
         request: ChatRunnerRequest,
@@ -25,9 +29,17 @@ class RetrievalGroundedChatRunner:
         cited_chunk_ids = tuple(
             UUID(result["chunk_id"]) for result in retrieval.results
         )
+        image_count = sum(
+            1
+            for attachment in request.attachments
+            if attachment.kind == "image" and attachment.image_data_url
+        )
         if not retrieval.results:
+            answer = "No retrieval results found."
+            if image_count:
+                answer = f"{answer}\nAttached images: {image_count}"
             return ChatRunnerOutput(
-                answer="No retrieval results found.",
+                answer=answer,
                 cited_chunk_ids=(),
             )
 
@@ -35,7 +47,10 @@ class RetrievalGroundedChatRunner:
             result["citation"]["snippet"]
             for result in retrieval.results[:3]
         ]
+        answer = "\n\n".join(snippets)
+        if image_count:
+            answer = f"{answer}\nAttached images: {image_count}"
         return ChatRunnerOutput(
-            answer="\n\n".join(snippets),
+            answer=answer,
             cited_chunk_ids=cited_chunk_ids,
         )

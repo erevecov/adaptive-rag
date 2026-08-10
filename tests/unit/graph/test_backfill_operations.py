@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import GraphProjection, Project
-from adaptive_rag.db.repositories import GraphProjectionRepository, ProjectRepository
+from adaptive_rag.db.models import Graphprojection, Workspace
+from adaptive_rag.db.repositories import GraphprojectionRepository, WorkspaceRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.graph import GraphBackfillResult, GraphStoreUnavailableError
 from adaptive_rag.graph.operations import run_graph_backfill_operation
@@ -27,17 +27,17 @@ class RecordingBackfillGraphStore:
         self.failure = failure
         self.requests: list[tuple[UUID, str]] = []
 
-    def backfill_project_graph(
+    def backfill_workspace_graph(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_watermark: str,
     ) -> GraphBackfillResult:
-        self.requests.append((project_id, source_watermark))
+        self.requests.append((workspace_id, source_watermark))
         if self.failure is not None:
             raise self.failure
         return GraphBackfillResult(
-            project_id=project_id,
+            workspace_id=workspace_id,
             backend="neo4j",
             status="ready",
             source_watermark=source_watermark,
@@ -48,22 +48,22 @@ class RecordingBackfillGraphStore:
 
 def test_run_graph_backfill_operation_marks_projection_ready() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     store = RecordingBackfillGraphStore(node_count=9, relationship_count=8)
     indexed_at = datetime(2026, 6, 22, 16, 0, tzinfo=UTC)
 
     report = run_graph_backfill_operation(
         session=session,
         graph_store=store,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_watermark="chunks:v2",
         operation="backfill",
         now=lambda: indexed_at,
         monotonic=_monotonic(10.0, 10.125),
     )
 
-    projection = GraphProjectionRepository(session).get(project_id=project.id)
-    assert report.project_id == project.id
+    projection = GraphprojectionRepository(session).get(workspace_id=workspace.id)
+    assert report.workspace_id == workspace.id
     assert report.backend == "neo4j"
     assert report.operation == "backfill"
     assert report.previous_status == "disabled"
@@ -73,7 +73,7 @@ def test_run_graph_backfill_operation_marks_projection_ready() -> None:
     assert report.node_count == 9
     assert report.relationship_count == 8
     assert report.error_code is None
-    assert store.requests == [(project.id, "chunks:v2")]
+    assert store.requests == [(workspace.id, "chunks:v2")]
     assert projection is not None
     assert projection.status == "ready"
     assert projection.source_watermark == "chunks:v2"
@@ -84,7 +84,7 @@ def test_run_graph_backfill_operation_marks_projection_ready() -> None:
 
 def test_run_graph_backfill_operation_marks_projection_failed_on_store_error() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
+    workspace = WorkspaceRepository(session).create(name="demo")
     store = RecordingBackfillGraphStore(
         failure=GraphStoreUnavailableError("neo4j graph store unavailable")
     )
@@ -92,14 +92,14 @@ def test_run_graph_backfill_operation_marks_projection_failed_on_store_error() -
     report = run_graph_backfill_operation(
         session=session,
         graph_store=store,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_watermark="chunks:v3",
         operation="backfill",
         now=lambda: datetime(2026, 6, 22, 16, 1, tzinfo=UTC),
         monotonic=_monotonic(20.0, 20.5),
     )
 
-    projection = GraphProjectionRepository(session).get(project_id=project.id)
+    projection = GraphprojectionRepository(session).get(workspace_id=workspace.id)
     assert report.status == "failed"
     assert report.error_code == "graph_store_unavailable"
     assert report.duration_ms == 500
@@ -113,22 +113,22 @@ def test_run_graph_backfill_operation_marks_projection_failed_on_store_error() -
 
 def test_run_graph_backfill_operation_reindexes_existing_stale_projection() -> None:
     session = _make_session()
-    project = ProjectRepository(session).create(name="demo")
-    repo = GraphProjectionRepository(session)
-    repo.mark_stale(project_id=project.id, source_watermark="chunks:old")
+    workspace = WorkspaceRepository(session).create(name="demo")
+    repo = GraphprojectionRepository(session)
+    repo.mark_stale(workspace_id=workspace.id, source_watermark="chunks:old")
     store = RecordingBackfillGraphStore(node_count=3, relationship_count=2)
 
     report = run_graph_backfill_operation(
         session=session,
         graph_store=store,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_watermark="chunks:new",
         operation="reindex",
         now=lambda: datetime(2026, 6, 22, 16, 2, tzinfo=UTC),
         monotonic=_monotonic(30.0, 30.25),
     )
 
-    projection = repo.get(project_id=project.id)
+    projection = repo.get(workspace_id=workspace.id)
     assert report.operation == "reindex"
     assert report.previous_status == "stale"
     assert report.status == "ready"
@@ -142,7 +142,7 @@ def _make_session():
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
         engine,
-        tables=[Project.__table__, GraphProjection.__table__],
+        tables=[Workspace.__table__, Graphprojection.__table__],
     )
     return create_session_factory(engine)()
 

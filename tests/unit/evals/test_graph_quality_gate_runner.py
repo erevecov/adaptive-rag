@@ -15,9 +15,9 @@ from adaptive_rag.db.models import (
     Chunk,
     Document,
     DocumentVersion,
-    GraphProjection,
-    Project,
+    Graphprojection,
     Source,
+    Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.evals import load_eval_suite
@@ -55,16 +55,16 @@ class EvidenceOrderGraphRetriever:
         }
         self.requests: list[dict[str, object]] = []
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: Sequence[UUID],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:
         self.requests.append(
             {
-                "project_id": project_id,
+                "workspace_id": workspace_id,
                 "seed_chunk_ids": tuple(seed_chunk_ids),
                 "limit": limit,
             }
@@ -171,12 +171,12 @@ def test_graph_quality_gate_compares_dense_and_graph_with_contract_metrics(
         session,
         suite,
         provider=provider,
-        graph_retriever_factory=lambda fixture_project: EvidenceOrderGraphRetriever(
+        graph_retriever_factory=lambda fixture_workspace: EvidenceOrderGraphRetriever(
             evidence_order=("alpha", "distractor", "filtered", "blog"),
             chunk_id_by_evidence_id={
                 evidence_id: chunk_id
                 for chunk_id, evidence_id in (
-                    fixture_project.evidence_id_by_chunk_id.items()
+                    fixture_workspace.evidence_id_by_chunk_id.items()
                 )
             },
         ),
@@ -219,12 +219,12 @@ def _make_session() -> Session:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
-            GraphProjection.__table__,
+            Graphprojection.__table__,
         ],
     )
     return create_session_factory(engine)()

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-UI playground to run project retrieval and inspect ranked hits.
+UI playground to run workspace retrieval and inspect ranked hits.
 
 ## Requirements
 
@@ -10,6 +10,6 @@ UI playground to run project retrieval and inspect ranked hits.
 
 #### Scenario: Submit query with strategy
 
-- **WHEN** an operator enters a query for the selected project and searches
-- **THEN** the client calls `POST /projects/{id}/retrieval/search`
+- **WHEN** an operator enters a query for the selected workspace and searches
+- **THEN** the client calls `POST /workspaces/{id}/retrieval/search`
 - **AND** results show rank, score, strategy, source, and snippet

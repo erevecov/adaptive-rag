@@ -1,4 +1,4 @@
-"""Local users, access tokens, and project memberships for M37 RBAC."""
+"""Local users, access tokens, and workspace memberships for M37 RBAC."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
 
 SYSTEM_ROLE_VALUES = ("superadmin", "user")
-PROJECT_ROLE_VALUES = ("admin", "contributor", "viewer")
+WORKSPACE_ROLE_VALUES = ("admin", "contributor", "viewer")
 
 
 class User(Base):
@@ -43,8 +43,8 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(
         nullable=False, default=True, server_default="true"
     )
-    last_project_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    last_workspace_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -97,27 +97,27 @@ class UserAccessToken(Base):
     )
 
 
-class ProjectMembership(Base):
-    """Project-scoped role assignment for a user."""
+class WorkspaceMembership(Base):
+    """Workspace-scoped role assignment for a user."""
 
-    __tablename__ = "project_memberships"
+    __tablename__ = "workspace_memberships"
     __table_args__ = (
         CheckConstraint(
             "role IN ('admin', 'contributor', 'viewer')",
-            name="project_memberships_role_check",
+            name="workspace_memberships_role_check",
         ),
         UniqueConstraint(
-            "project_id",
+            "workspace_id",
             "user_id",
-            name="uq_project_memberships_project_user",
+            name="uq_workspace_memberships_workspace_user",
         ),
-        Index("ix_project_memberships_project_role", "project_id", "role"),
-        Index("ix_project_memberships_user_role", "user_id", "role"),
+        Index("ix_workspace_memberships_workspace_role", "workspace_id", "role"),
+        Index("ix_workspace_memberships_user_role", "user_id", "role"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False

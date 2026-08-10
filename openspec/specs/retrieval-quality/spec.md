@@ -29,12 +29,12 @@ habilitacion explicita para cualquier etapa de rerank.
 ### Requirement: Rerank preserva filtros y citations
 
 El sistema MUST aplicar rerank solo sobre candidatos que ya pasaron aislamiento
-de proyecto y filtros de metadata, y MUST preservar citations del baseline.
+de workspace y filtros de metadata, y MUST preservar citations del baseline.
 
 #### Scenario: Rerank recibe solo candidatos prefiltrados
 
 - **WHEN** retrieval ejecuta con `metadata_filter` y rerank habilitado
-- **THEN** dense retrieval aplica `project_id` y `metadata_filter` antes de
+- **THEN** dense retrieval aplica `workspace_id` y `metadata_filter` antes de
   construir candidatos para rerank
 - **AND** el provider de rerank no recibe chunks fuera de ese conjunto
 
@@ -71,7 +71,7 @@ limites seguros para llamadas hosted.
 
 #### Scenario: API/CLI conservan default dense_sparse
 
-- **WHEN** un usuario llama `POST /projects/{project_id}/retrieval/search` o
+- **WHEN** un usuario llama `POST /workspaces/{workspace_id}/retrieval/search` o
   `adaptive-rag retrieval search` sin flags de rerank
 - **THEN** el sistema responde con resultados `dense_sparse`
 - **AND** no lee credenciales de rerank ni llama providers live
@@ -281,7 +281,7 @@ comparing promotion decisions.
 
 - **WHEN** contextual retrieval has a stable contract
 - **THEN** local lexical retrieval and RRF are implemented before Qwen sparse
-- **AND** lexical retrieval preserves project isolation, metadata filters,
+- **AND** lexical retrieval preserves workspace isolation, metadata filters,
   stable ordering and original citations
 - **AND** RRF only fuses candidate lists that already satisfy those constraints
 
@@ -312,14 +312,14 @@ frontend assumptions.
 
 ### Requirement: Lexical and RRF preserve retrieval safety invariants
 
-The system MUST keep project isolation, metadata filters, stable ordering and
+The system MUST keep workspace isolation, metadata filters, stable ordering and
 original citations across lexical and hybrid RRF retrieval.
 
 #### Scenario: Lexical filters before ranking
 
 - **WHEN** lexical retrieval receives a metadata filter
-- **THEN** it applies `project_id` and metadata filters before ranking
-- **AND** excludes chunks outside the project or filter scope
+- **THEN** it applies `workspace_id` and metadata filters before ranking
+- **AND** excludes chunks outside the workspace or filter scope
 
 #### Scenario: RRF deduplicates candidates
 
@@ -336,14 +336,14 @@ original citations across lexical and hybrid RRF retrieval.
 
 ### Requirement: BM25 preserves retrieval safety invariants
 
-The system MUST keep project isolation, metadata filters, stable ordering and
+The system MUST keep workspace isolation, metadata filters, stable ordering and
 original citations across local Okapi BM25 retrieval.
 
 #### Scenario: BM25 filters before scoring
 
 - **WHEN** BM25 retrieval receives a metadata filter
-- **THEN** it applies `project_id` and metadata filters before scoring
-- **AND** excludes chunks outside the project or filter scope
+- **THEN** it applies `workspace_id` and metadata filters before scoring
+- **AND** excludes chunks outside the workspace or filter scope
 
 #### Scenario: BM25 remains provider-free
 
@@ -354,14 +354,14 @@ original citations across local Okapi BM25 retrieval.
 
 ### Requirement: Sparse retrieval preserves retrieval invariants
 
-Sparse retrieval and dense_sparse fusion MUST preserve project isolation,
+Sparse retrieval and dense_sparse fusion MUST preserve workspace isolation,
 metadata filters and original citations.
 
 #### Scenario: Sparse retrieval applies filters before scoring
 
 - **WHEN** sparse retrieval is requested with source/document/tag/date filters
 - **THEN** candidates outside those filters are excluded before ranking
-- **AND** results never cross project boundaries
+- **AND** results never cross workspace boundaries
 
 #### Scenario: Sparse citations use original chunk text
 

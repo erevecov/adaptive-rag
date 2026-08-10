@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models.job import utc_now
-from adaptive_rag.db.models.project import JSONWithJSONB
+from adaptive_rag.db.models.workspace import JSONWithJSONB
 
 CHAT_MESSAGE_ROLE_VALUES = ("user", "assistant")
 
@@ -26,16 +26,16 @@ class ChatMessage(Base):
             name="chat_messages_role_check",
         ),
         Index(
-            "ix_chat_messages_project_session_created_at",
-            "project_id",
+            "ix_chat_messages_workspace_session_created_at",
+            "workspace_id",
             "session_id",
             "created_at",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     session_id: Mapped[UUID] = mapped_column(
         ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False

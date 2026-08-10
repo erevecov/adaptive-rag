@@ -61,7 +61,7 @@ def test_alembic_upgrade_applies_cleanly(pg_url: str, pg_engine: Engine) -> None
     table_names = set(inspector.get_table_names())
 
     for expected in (
-        "projects",
+        "workspaces",
         "sources",
         "documents",
         "document_versions",
@@ -72,9 +72,9 @@ def test_alembic_upgrade_applies_cleanly(pg_url: str, pg_engine: Engine) -> None
     ):
         assert expected in table_names, expected
 
-    project_columns = {c["name"] for c in inspector.get_columns("projects")}
-    assert "budget_config_json" in project_columns
-    assert "budget_config" not in project_columns
+    workspace_columns = {c["name"] for c in inspector.get_columns("workspaces")}
+    assert "budget_config_json" in workspace_columns
+    assert "budget_config" not in workspace_columns
 
 
 def test_chunks_embedding_is_vector_type(pg_url: str, pg_engine: Engine) -> None:
@@ -114,29 +114,29 @@ def test_chunk_column_rejects_wrong_embedding_dimension(
     run_alembic_upgrade(pg_url)
 
     with pg_engine.begin() as conn:
-        project_id = "00000000-0000-0000-0000-000000000002"
+        workspace_id = "00000000-0000-0000-0000-000000000002"
         source_id = "00000000-0000-0000-0000-000000000003"
         document_id = "00000000-0000-0000-0000-000000000004"
         version_id = "00000000-0000-0000-0000-000000000005"
         conn.execute(
             text(
-                "INSERT INTO projects (id, name) VALUES (:id, 'dim-test')"
+                "INSERT INTO workspaces (id, name) VALUES (:id, 'dim-test')"
             ),
-            {"id": project_id},
+            {"id": workspace_id},
         )
         conn.execute(
             text(
-                "INSERT INTO sources (id, project_id, source_type, external_id) "
+                "INSERT INTO sources (id, workspace_id, source_type, external_id) "
                 "VALUES (:id, :pid, 'web', 'ext')"
             ),
-            {"id": source_id, "pid": project_id},
+            {"id": source_id, "pid": workspace_id},
         )
         conn.execute(
             text(
-                "INSERT INTO documents (id, project_id, source_id, stable_id) "
+                "INSERT INTO documents (id, workspace_id, source_id, stable_id) "
                 "VALUES (:id, :pid, :sid, 'stable')"
             ),
-            {"id": document_id, "pid": project_id, "sid": source_id},
+            {"id": document_id, "pid": workspace_id, "sid": source_id},
         )
         conn.execute(
             text(
@@ -193,17 +193,17 @@ def test_isolation_and_filtering_columns_are_indexed(
         cols.update(pk.get("constrained_columns") or [])
         return cols
 
-    assert "project_id" in indexed_columns("sources")
+    assert "workspace_id" in indexed_columns("sources")
     assert "source_type" in indexed_columns("sources")
     assert "created_at" in indexed_columns("sources")
     assert "tags" in indexed_columns("sources")
-    assert "project_id" in indexed_columns("documents")
+    assert "workspace_id" in indexed_columns("documents")
     assert "source_id" in indexed_columns("documents")
     assert "document_id" in indexed_columns("document_versions")
     assert "document_version_id" in indexed_columns("chunks")
     assert "chunk_id" in indexed_columns("chunk_sparse_embeddings")
     assert "sparse_indices" in indexed_columns("chunk_sparse_embeddings")
-    assert "project_id" in indexed_columns("jobs")
+    assert "workspace_id" in indexed_columns("jobs")
     assert "status" in indexed_columns("jobs")
     assert "run_after" in indexed_columns("jobs")
     assert "priority" in indexed_columns("jobs")
@@ -217,7 +217,7 @@ def test_identity_and_range_constraints_are_enforced(
 ) -> None:
     run_alembic_upgrade(pg_url)
 
-    project_id = "00000000-0000-0000-0000-000000000102"
+    workspace_id = "00000000-0000-0000-0000-000000000102"
     source_id = "00000000-0000-0000-0000-000000000103"
     document_id = "00000000-0000-0000-0000-000000000104"
     version_id = "00000000-0000-0000-0000-000000000105"
@@ -225,22 +225,22 @@ def test_identity_and_range_constraints_are_enforced(
 
     with pg_engine.begin() as conn:
         conn.execute(
-            text("INSERT INTO projects (id, name) VALUES (:id, 'constraint-test')"),
-            {"id": project_id},
+            text("INSERT INTO workspaces (id, name) VALUES (:id, 'constraint-test')"),
+            {"id": workspace_id},
         )
         conn.execute(
             text(
-                "INSERT INTO sources (id, project_id, source_type, external_id) "
+                "INSERT INTO sources (id, workspace_id, source_type, external_id) "
                 "VALUES (:id, :pid, 'web', 'ext')"
             ),
-            {"id": source_id, "pid": project_id},
+            {"id": source_id, "pid": workspace_id},
         )
         conn.execute(
             text(
-                "INSERT INTO documents (id, project_id, source_id, stable_id) "
+                "INSERT INTO documents (id, workspace_id, source_id, stable_id) "
                 "VALUES (:id, :pid, :sid, 'stable')"
             ),
-            {"id": document_id, "pid": project_id, "sid": source_id},
+            {"id": document_id, "pid": workspace_id, "sid": source_id},
         )
         conn.execute(
             text(
@@ -261,20 +261,20 @@ def test_identity_and_range_constraints_are_enforced(
 
     invalid_statements = [
         (
-            "INSERT INTO projects (id, name, embedding_mode) VALUES "
+            "INSERT INTO workspaces (id, name, embedding_mode) VALUES "
             "('00000000-0000-0000-0000-000000000112', 'bad-mode', 'bogus')",
             {},
         ),
         (
-            "INSERT INTO sources (id, project_id, source_type, external_id) "
+            "INSERT INTO sources (id, workspace_id, source_type, external_id) "
             "VALUES ('00000000-0000-0000-0000-000000000107', :pid, 'web', 'ext')",
-            {"pid": project_id},
+            {"pid": workspace_id},
         ),
         (
-            "INSERT INTO documents (id, project_id, source_id, stable_id) "
+            "INSERT INTO documents (id, workspace_id, source_id, stable_id) "
             "VALUES ('00000000-0000-0000-0000-000000000108', :pid, :sid, "
             "'stable')",
-            {"pid": project_id, "sid": source_id},
+            {"pid": workspace_id, "sid": source_id},
         ),
         (
             "INSERT INTO document_versions "

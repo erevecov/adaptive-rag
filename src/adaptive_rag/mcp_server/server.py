@@ -22,7 +22,7 @@ from adaptive_rag.retrieval import RetrievalSearchRequest, RetrievalService
 from adaptive_rag.retrieval.payloads import serialize_retrieval_results
 
 REQUIRED_TOOL_NAMES: tuple[str, ...] = (
-    "list_projects",
+    "list_workspaces",
     "list_sources",
     "search",
     "ask",
@@ -58,23 +58,23 @@ def _provider_config_error_payload(exc: ProviderConfigurationError) -> str:
 
 
 @mcp.tool()
-def list_projects() -> str:
-    """List Adaptive RAG projects accessible locally."""
+def list_workspaces() -> str:
+    """List Adaptive RAG workspaces accessible locally."""
 
     with session_scope() as session:
-        projects = authoring.list_projects(session)
+        workspaces = authoring.list_workspaces(session)
         return json.dumps(
-            {"items": [authoring.project_payload(p) for p in projects]},
+            {"items": [authoring.workspace_payload(p) for p in workspaces]},
             default=str,
         )
 
 
 @mcp.tool()
-def list_sources(project_id: str) -> str:
-    """List sources for a project UUID."""
+def list_sources(workspace_id: str) -> str:
+    """List sources for a workspace UUID."""
 
     with session_scope() as session:
-        sources = authoring.list_sources(session, project_id=UUID(project_id))
+        sources = authoring.list_sources(session, workspace_id=UUID(workspace_id))
         return json.dumps(
             {"items": [authoring.source_payload(s) for s in sources]},
             default=str,
@@ -82,8 +82,8 @@ def list_sources(project_id: str) -> str:
 
 
 @mcp.tool()
-def search(project_id: str, query: str, limit: int = 5) -> str:
-    """Dense_sparse retrieval search over a project corpus."""
+def search(workspace_id: str, query: str, limit: int = 5) -> str:
+    """Dense_sparse retrieval search over a workspace corpus."""
 
     try:
         dense, sparse, _runner = _providers()
@@ -95,7 +95,7 @@ def search(project_id: str, query: str, limit: int = 5) -> str:
             session, provider=dense, sparse_provider=sparse
         ).search(
             RetrievalSearchRequest(
-                project_id=UUID(project_id),
+                workspace_id=UUID(workspace_id),
                 query=query,
                 limit=max(1, min(limit, CHAT_RETRIEVAL_MAX_LIMIT)),
                 strategy="dense_sparse",
@@ -108,8 +108,8 @@ def search(project_id: str, query: str, limit: int = 5) -> str:
 
 
 @mcp.tool()
-def ask(project_id: str, question: str) -> str:
-    """Ask a grounded chat question over a project corpus."""
+def ask(workspace_id: str, question: str) -> str:
+    """Ask a grounded chat question over a workspace corpus."""
 
     try:
         dense, sparse, runner = _providers()
@@ -124,7 +124,7 @@ def ask(project_id: str, question: str) -> str:
             ),
         ).respond(
             ChatRequest(
-                project_id=UUID(project_id),
+                workspace_id=UUID(workspace_id),
                 message=question,
                 retrieval_limit=5,
             )
@@ -139,19 +139,19 @@ def ask(project_id: str, question: str) -> str:
 
 
 @mcp.tool()
-def ingest_text(project_id: str, external_id: str, content: str) -> str:
+def ingest_text(workspace_id: str, external_id: str, content: str) -> str:
     """Create a markdown source and enqueue public ingest_source."""
 
     with session_scope() as session:
         source = authoring.create_source(
             session,
-            project_id=UUID(project_id),
+            workspace_id=UUID(workspace_id),
             source_type="markdown",
             external_id=external_id,
             extra_metadata={"content": content},
         )
         job = ingestion_ops.enqueue_source_ingestion(
-            session, project_id=UUID(project_id), source_id=source.id
+            session, workspace_id=UUID(workspace_id), source_id=source.id
         )
         session.commit()
         return json.dumps(

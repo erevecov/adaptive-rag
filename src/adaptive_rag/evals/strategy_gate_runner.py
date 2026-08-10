@@ -10,7 +10,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.repositories import GraphProjectionRepository
+from adaptive_rag.db.repositories import GraphprojectionRepository
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
@@ -18,8 +18,8 @@ from adaptive_rag.embeddings import (
     SparseEmbeddingProvider,
 )
 from adaptive_rag.evals.fixtures import (
-    EvalRetrievalFixtureProject,
-    build_retrieval_fixture_project,
+    EvalRetrievalFixtureWorkspace,
+    build_retrieval_fixture_workspace,
 )
 from adaptive_rag.evals.metrics import ratio
 from adaptive_rag.evals.models import (
@@ -60,7 +60,7 @@ StrategyGateStrategy = Literal[
     "graph",
     "dense_rerank",
 ]
-GraphRetrieverFactory = Callable[[EvalRetrievalFixtureProject], GraphRetriever]
+GraphRetrieverFactory = Callable[[EvalRetrievalFixtureWorkspace], GraphRetriever]
 
 DEFAULT_STRATEGIES: tuple[StrategyGateStrategy, ...] = (
     "dense",
@@ -123,7 +123,7 @@ def run_retrieval_strategy_gate_eval_suite(
     active_provider = provider or FakeDenseEmbeddingProvider()
     active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
     active_reranker = reranker or FakeRerankProvider()
-    fixture_project = build_retrieval_fixture_project(
+    fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=active_provider,
@@ -132,7 +132,7 @@ def run_retrieval_strategy_gate_eval_suite(
         session,
         suite,
         provider=active_provider,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
     rows = tuple(
         _run_strategy_row(
@@ -146,7 +146,7 @@ def run_retrieval_strategy_gate_eval_suite(
             rerank_candidate_limit=(
                 rerank_candidate_limit or _default_rerank_candidate_limit(suite)
             ),
-            fixture_project=fixture_project,
+            fixture_workspace=fixture_workspace,
             graph_retriever_factory=graph_retriever_factory,
         )
         for strategy in strategies
@@ -198,7 +198,7 @@ def _run_strategy_row(
     sparse_provider: SparseEmbeddingProvider,
     reranker: RerankProvider,
     rerank_candidate_limit: int,
-    fixture_project: EvalRetrievalFixtureProject,
+    fixture_workspace: EvalRetrievalFixtureWorkspace,
     graph_retriever_factory: GraphRetrieverFactory | None,
 ) -> StrategyGateRow:
     if strategy == "dense":
@@ -236,7 +236,7 @@ def _run_strategy_row(
         sparse_provider=sparse_provider,
         reranker=reranker,
         rerank_candidate_limit=rerank_candidate_limit,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
         graph_retriever_factory=graph_retriever_factory,
     )
     comparison_cases = _order_gap_cases(
@@ -279,11 +279,11 @@ def _run_strategy_report(
     sparse_provider: SparseEmbeddingProvider,
     reranker: RerankProvider,
     rerank_candidate_limit: int,
-    fixture_project: EvalRetrievalFixtureProject,
+    fixture_workspace: EvalRetrievalFixtureWorkspace,
     graph_retriever_factory: GraphRetrieverFactory | None,
 ) -> EvalRunReport:
     if strategy == "contextual_dense":
-        contextual_fixture = build_retrieval_fixture_project(
+        contextual_fixture = build_retrieval_fixture_workspace(
             session,
             suite,
             provider=provider,
@@ -293,7 +293,7 @@ def _run_strategy_report(
             session,
             suite,
             provider=provider,
-            fixture_project=contextual_fixture,
+            fixture_workspace=contextual_fixture,
         )
     if strategy == "dense_rerank":
         return run_retrieval_eval_suite(
@@ -304,18 +304,18 @@ def _run_strategy_report(
             rerank_options=RetrievalRerankOptions(
                 candidate_limit=rerank_candidate_limit,
             ),
-            fixture_project=fixture_project,
+            fixture_workspace=fixture_workspace,
         )
     if strategy == "graph":
-        GraphProjectionRepository(session).mark_ready(
-            project_id=fixture_project.project_id,
+        GraphprojectionRepository(session).mark_ready(
+            workspace_id=fixture_workspace.workspace_id,
             source_watermark=f"eval:{suite.suite_id}",
             indexed_at=datetime.now(UTC),
         )
         graph_retriever = (
-            graph_retriever_factory(fixture_project)
+            graph_retriever_factory(fixture_workspace)
             if graph_retriever_factory is not None
-            else FixtureOrderGraphRetriever(fixture_project=fixture_project)
+            else FixtureOrderGraphRetriever(fixture_workspace=fixture_workspace)
         )
         return run_retrieval_eval_suite(
             session,
@@ -323,7 +323,7 @@ def _run_strategy_report(
             provider=provider,
             strategy="graph",
             graph_retriever=graph_retriever,
-            fixture_project=fixture_project,
+            fixture_workspace=fixture_workspace,
         )
     retrieval_strategy = _to_retrieval_strategy(strategy)
     return run_retrieval_eval_suite(
@@ -336,23 +336,23 @@ def _run_strategy_report(
             else None
         ),
         strategy=retrieval_strategy,
-        fixture_project=fixture_project,
+        fixture_workspace=fixture_workspace,
     )
 
 
 class FixtureOrderGraphRetriever:
     """Deterministic graph retriever for offline strategy gate runs."""
 
-    def __init__(self, *, fixture_project: EvalRetrievalFixtureProject) -> None:
-        ordered = tuple(fixture_project.evidence_id_by_chunk_id)
+    def __init__(self, *, fixture_workspace: EvalRetrievalFixtureWorkspace) -> None:
+        ordered = tuple(fixture_workspace.evidence_id_by_chunk_id)
         self._rank_by_chunk_id = {
             chunk_id: rank for rank, chunk_id in enumerate(ordered)
         }
 
-    def expand_project_chunks(
+    def expand_workspace_chunks(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         seed_chunk_ids: Sequence[UUID],
         limit: int,
     ) -> tuple[GraphRetrievalResult, ...]:

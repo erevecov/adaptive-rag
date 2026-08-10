@@ -23,17 +23,17 @@ class DocumentRepository:
     def create_document(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         source_id: UUID,
         stable_id: str,
     ) -> Document:
-        if not self._source_belongs_to_project(
-            project_id=project_id, source_id=source_id
+        if not self._source_belongs_to_workspace(
+            workspace_id=workspace_id, source_id=source_id
         ):
-            raise ValueError("source does not belong to project")
+            raise ValueError("source does not belong to workspace")
 
         document = Document(
-            project_id=project_id,
+            workspace_id=workspace_id,
             source_id=source_id,
             stable_id=stable_id,
         )
@@ -44,11 +44,11 @@ class DocumentRepository:
     def list(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         filters: DocumentFilters | None = None,
     ) -> builtins.list[Document]:
         active_filters = filters or DocumentFilters()
-        statement = select(Document).where(Document.project_id == project_id)
+        statement = select(Document).where(Document.workspace_id == workspace_id)
 
         if active_filters.source_id is not None:
             statement = statement.where(Document.source_id == active_filters.source_id)
@@ -69,7 +69,7 @@ class DocumentRepository:
     def create_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_id: UUID,
         version_number: int,
         normalized_text: str,
@@ -78,10 +78,10 @@ class DocumentRepository:
         parser_metadata: Mapping[str, Any] | None = None,
         extraction_metadata: Mapping[str, Any] | None = None,
     ) -> DocumentVersion:
-        if not self._document_belongs_to_project(
-            project_id=project_id, document_id=document_id
+        if not self._document_belongs_to_workspace(
+            workspace_id=workspace_id, document_id=document_id
         ):
-            raise ValueError("document does not belong to project")
+            raise ValueError("document does not belong to workspace")
 
         version = DocumentVersion(
             document_id=document_id,
@@ -103,13 +103,13 @@ class DocumentRepository:
     def list_versions(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_id: UUID,
     ) -> builtins.list[DocumentVersion]:
         statement = (
             select(DocumentVersion)
             .join(Document, DocumentVersion.document_id == Document.id)
-            .where(Document.id == document_id, Document.project_id == project_id)
+            .where(Document.id == document_id, Document.workspace_id == workspace_id)
             .order_by(DocumentVersion.version_number)
         )
         return builtins.list(self._session.scalars(statement))
@@ -117,7 +117,7 @@ class DocumentRepository:
     def get_version(
         self,
         *,
-        project_id: UUID,
+        workspace_id: UUID,
         document_version_id: UUID,
     ) -> DocumentVersion | None:
         statement = (
@@ -125,23 +125,25 @@ class DocumentRepository:
             .join(Document, DocumentVersion.document_id == Document.id)
             .where(
                 DocumentVersion.id == document_version_id,
-                Document.project_id == project_id,
+                Document.workspace_id == workspace_id,
             )
         )
         return self._session.scalars(statement).one_or_none()
 
-    def _source_belongs_to_project(self, *, project_id: UUID, source_id: UUID) -> bool:
+    def _source_belongs_to_workspace(
+        self, *, workspace_id: UUID, source_id: UUID
+    ) -> bool:
         statement = select(Source.id).where(
             Source.id == source_id,
-            Source.project_id == project_id,
+            Source.workspace_id == workspace_id,
         )
         return self._session.scalar(statement) is not None
 
-    def _document_belongs_to_project(
-        self, *, project_id: UUID, document_id: UUID
+    def _document_belongs_to_workspace(
+        self, *, workspace_id: UUID, document_id: UUID
     ) -> bool:
         statement = select(Document.id).where(
             Document.id == document_id,
-            Document.project_id == project_id,
+            Document.workspace_id == workspace_id,
         )
         return self._session.scalar(statement) is not None

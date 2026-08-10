@@ -46,7 +46,7 @@ from adaptive_rag.runtime.resolution import (
 def get_dense_embedding_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
@@ -55,7 +55,7 @@ def get_dense_embedding_provider(
     resolved = _resolve_persisted_slot(
         "dense_embedding",
         runtime_settings,
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )
@@ -71,7 +71,7 @@ def get_dense_embedding_provider(
 def get_sparse_embedding_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
@@ -80,7 +80,7 @@ def get_sparse_embedding_provider(
     resolved = _resolve_persisted_slot(
         "sparse_embedding",
         runtime_settings,
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )
@@ -99,7 +99,7 @@ def get_sparse_embedding_provider(
 def get_chat_runner(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
@@ -108,7 +108,7 @@ def get_chat_runner(
     resolved = _resolve_persisted_slot(
         "chat",
         runtime_settings,
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )
@@ -121,10 +121,40 @@ def get_chat_runner(
     return _build_chat_runner(runtime_settings, usage_tracker=usage_tracker)
 
 
+def get_vision_chat_runner(
+    settings: Settings | None = None,
+    *,
+    workspace_id: UUID | None = None,
+    secret_store: ProviderSecretStore | None = None,
+    session: Session | None = None,
+    usage_tracker: ProviderUsageTracker | None = None,
+) -> ChatRunner | None:
+    runtime_settings = settings or get_settings()
+    try:
+        resolved = _resolve_persisted_slot(
+            "vision",
+            runtime_settings,
+            workspace_id=workspace_id,
+            secret_store=secret_store,
+            session=session,
+        )
+        if resolved is None:
+            return None
+        return _build_resolved_chat_runner(
+            resolved,
+            runtime_settings,
+            usage_tracker=usage_tracker,
+        )
+    except ProviderConfigurationError:
+        # Optional slot: an unconfigured or incomplete vision slot must never
+        # break chat.
+        return None
+
+
 def get_rerank_provider(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
     usage_tracker: ProviderUsageTracker | None = None,
@@ -133,7 +163,7 @@ def get_rerank_provider(
     resolved = _resolve_persisted_slot(
         "rerank",
         runtime_settings,
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )
@@ -149,7 +179,7 @@ def get_rerank_provider(
 def get_contextualizer(
     settings: Settings | None = None,
     *,
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     secret_store: ProviderSecretStore | None = None,
     session: Session | None = None,
 ) -> Contextualizer:
@@ -157,7 +187,7 @@ def get_contextualizer(
     resolved = _resolve_persisted_slot(
         "contextualization",
         runtime_settings,
-        project_id=project_id,
+        workspace_id=workspace_id,
         secret_store=secret_store,
         session=session,
     )

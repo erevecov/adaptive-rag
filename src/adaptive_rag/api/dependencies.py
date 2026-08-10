@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from inspect import Parameter, signature
 from typing import Annotated, Any, cast
 from uuid import UUID
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.auth import (
     CurrentPrincipal,
-    get_project_role,
+    get_workspace_role,
     hash_access_token,
     role_meets,
     users_exist,
@@ -22,11 +22,11 @@ from adaptive_rag.auth import (
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.chat.knowledge import SqlAlchemyKnowledgeProposalSubmitter
 from adaptive_rag.config.settings import get_settings
-from adaptive_rag.db.models import Project
+from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
-    ProjectRepository,
     ProviderUsageRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.repositories.users import UserRepository
 from adaptive_rag.db.session import session_scope
@@ -36,6 +36,9 @@ from adaptive_rag.provider_models import HTTPProviderModelLister, ProviderModelL
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.provider_runtime import (
     get_rerank_provider as get_runtime_rerank_provider,
+)
+from adaptive_rag.provider_runtime import (
+    get_vision_chat_runner as get_runtime_vision_chat_runner,
 )
 from adaptive_rag.provider_secrets import ProviderSecretKeyError, ProviderSecretStore
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
@@ -97,37 +100,37 @@ def get_superadmin_user(
     return current
 
 
-def get_project_access(
-    project_id: UUID,
+def get_workspace_access(
+    workspace_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current: Annotated[CurrentPrincipal, Depends(get_current_user)],
-) -> tuple[Project, str]:
-    # ProjectRepository.get omits soft-deleted rows (deleted_at set).
-    project = ProjectRepository(session).get(project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="project not found")
-    role = get_project_role(session, principal=current, project_id=project_id)
+) -> tuple[Workspace, str]:
+    # WorkspaceRepository.get omits soft-deleted rows (deleted_at set).
+    workspace = WorkspaceRepository(session).get(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="workspace not found")
+    role = get_workspace_role(session, principal=current, workspace_id=workspace_id)
     if role is None:
-        raise HTTPException(status_code=403, detail="project access required")
-    return project, role
+        raise HTTPException(status_code=403, detail="workspace access required")
+    return workspace, role
 
 
-def get_project_contributor_access(
-    access: Annotated[tuple[Project, str], Depends(get_project_access)],
-) -> tuple[Project, str]:
+def get_workspace_contributor_access(
+    access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
+) -> tuple[Workspace, str]:
     if not role_meets(access[1], "contributor"):
         raise HTTPException(
             status_code=403,
-            detail="project contributor role required",
+            detail="workspace contributor role required",
         )
     return access
 
 
-def get_project_admin_access(
-    access: Annotated[tuple[Project, str], Depends(get_project_access)],
-) -> tuple[Project, str]:
+def get_workspace_admin_access(
+    access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
+) -> tuple[Workspace, str]:
     if not role_meets(access[1], "admin"):
-        raise HTTPException(status_code=403, detail="project admin role required")
+        raise HTTPException(status_code=403, detail="workspace admin role required")
     return access
 
 
@@ -140,7 +143,7 @@ def _parse_bearer_token(authorization: str) -> str:
 
 def get_graph_retriever() -> GraphRetriever | None:
     graph_store = get_graph_store()
-    if hasattr(graph_store, "expand_project_chunks"):
+    if hasattr(graph_store, "expand_workspace_chunks"):
         return cast(GraphRetriever, graph_store)
     return None
 
@@ -175,6 +178,7 @@ _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _RERANK_PROVIDER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
+_VISION_CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY = Depends(get_provider_usage_tracker)
 
 
 def _call_with_supported_kwargs(factory: Callable[..., Any], **kwargs: object) -> Any:
@@ -190,7 +194,7 @@ def _call_with_supported_kwargs(factory: Callable[..., Any], **kwargs: object) -
 
 
 def get_rerank_provider_factory(
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _RERANK_PROVIDER_USAGE_TRACKER_DEPENDENCY
@@ -208,7 +212,7 @@ def get_rerank_provider_factory(
             RerankProvider,
             _call_with_supported_kwargs(
                 get_runtime_rerank_provider,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=active_session,
                 usage_tracker=active_usage_tracker,
             ),
@@ -218,7 +222,7 @@ def get_rerank_provider_factory(
 
 
 def get_sparse_embedding_provider_factory(
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
@@ -236,7 +240,7 @@ def get_sparse_embedding_provider_factory(
             SparseEmbeddingProvider,
             _call_with_supported_kwargs(
                 get_default_sparse_embedding_provider,
-                project_id=project_id,
+                workspace_id=workspace_id,
                 session=active_session,
                 usage_tracker=active_usage_tracker,
             ),
@@ -246,7 +250,7 @@ def get_sparse_embedding_provider_factory(
 
 
 def get_dense_embedding_provider(
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _DENSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
@@ -262,7 +266,7 @@ def get_dense_embedding_provider(
         DenseEmbeddingProvider,
         _call_with_supported_kwargs(
             get_default_dense_embedding_provider,
-            project_id=project_id,
+            workspace_id=workspace_id,
             session=active_session,
             usage_tracker=active_usage_tracker,
         ),
@@ -270,7 +274,7 @@ def get_dense_embedding_provider(
 
 
 def get_sparse_embedding_provider(
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _SPARSE_PROVIDER_USAGE_TRACKER_DEPENDENCY
@@ -286,7 +290,7 @@ def get_sparse_embedding_provider(
         SparseEmbeddingProvider,
         _call_with_supported_kwargs(
             get_default_sparse_embedding_provider,
-            project_id=project_id,
+            workspace_id=workspace_id,
             session=active_session,
             usage_tracker=active_usage_tracker,
         ),
@@ -388,7 +392,7 @@ def get_chat_audit_writer(
 
 
 def get_chat_runner(
-    project_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     session: Session | DependsMarker = _SESSION_DEPENDENCY,
     usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
         _CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY
@@ -404,7 +408,31 @@ def get_chat_runner(
         ChatRunner,
         _call_with_supported_kwargs(
             get_runtime_chat_runner,
-            project_id=project_id,
+            workspace_id=workspace_id,
+            session=active_session,
+            usage_tracker=active_usage_tracker,
+        ),
+    )
+
+
+def get_vision_chat_runner(
+    workspace_id: UUID | None = None,
+    session: Session | DependsMarker = _SESSION_DEPENDENCY,
+    usage_tracker: InMemoryProviderUsageTracker | DependsMarker = (
+        _VISION_CHAT_RUNNER_USAGE_TRACKER_DEPENDENCY
+    ),
+) -> ChatRunner | None:
+    active_session = None if isinstance(session, DependsMarker) else session
+    active_usage_tracker = (
+        get_provider_usage_tracker()
+        if isinstance(usage_tracker, DependsMarker)
+        else usage_tracker
+    )
+    return cast(
+        ChatRunner | None,
+        _call_with_supported_kwargs(
+            get_runtime_vision_chat_runner,
+            workspace_id=workspace_id,
             session=active_session,
             usage_tracker=active_usage_tracker,
         ),
@@ -413,7 +441,7 @@ def get_chat_runner(
 
 def get_chat_service(
     session: Annotated[Session, Depends(get_session)],
-    access: Annotated[tuple[Project, str], Depends(get_project_access)],
+    access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
     retrieval_service: Annotated[
         LazyChatRetrievalSearcher,
         Depends(get_chat_retrieval_searcher),
@@ -431,17 +459,42 @@ def get_chat_service(
         Depends(get_provider_usage_tracker),
     ],
 ) -> ChatService:
-    def _graph_ready(project_id: UUID) -> bool:
+    def _graph_ready(workspace_id: UUID) -> bool:
         # Fail closed: missing table/projection → dense_sparse, never crash chat.
         try:
-            from adaptive_rag.db.repositories import GraphProjectionRepository
+            from adaptive_rag.db.repositories import GraphprojectionRepository
 
-            projection = GraphProjectionRepository(session).get(
-                project_id=project_id
+            projection = GraphprojectionRepository(session).get(
+                workspace_id=workspace_id
             )
         except Exception:
             return False
         return projection is not None and projection.status == "ready"
+
+    def _attachment_loader(
+        *,
+        workspace_id: UUID,
+        user_id: UUID | None,
+        attachment_ids: Sequence[UUID],
+    ):
+        from adaptive_rag.chat.attachments import load_chat_attachments
+
+        return load_chat_attachments(
+            session,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            attachment_ids=attachment_ids,
+        )
+
+    def _vision_runner_factory(workspace_id: UUID) -> ChatRunner | None:
+        return cast(
+            ChatRunner | None,
+            get_vision_chat_runner(
+                workspace_id=workspace_id,
+                session=session,
+                usage_tracker=usage_tracker,
+            ),
+        )
 
     return ChatService(
         runner=runner,
@@ -450,7 +503,9 @@ def get_chat_service(
         provider_usage_records=lambda: usage_tracker.records,
         knowledge_proposal_submitter=SqlAlchemyKnowledgeProposalSubmitter(
             session=session,
-            project_role=access[1],
+            workspace_role=access[1],
         ),
         graph_readiness=_graph_ready,
+        attachment_loader=_attachment_loader,
+        vision_runner_factory=_vision_runner_factory,
     )

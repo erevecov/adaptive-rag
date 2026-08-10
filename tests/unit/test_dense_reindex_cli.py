@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from adaptive_rag import authoring
-from adaptive_rag.cli.dense import list_project_document_version_ids
+from adaptive_rag.cli.dense import list_workspace_document_version_ids
 from adaptive_rag.db.base import Base
-from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Project, Source
+from adaptive_rag.db.models import Chunk, Document, DocumentVersion, Source, Workspace
 from adaptive_rag.db.repositories import ChunkRepository, DocumentRepository
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
 from adaptive_rag.embeddings import DenseEmbeddingPipeline, FakeDenseEmbeddingProvider
@@ -16,7 +16,7 @@ def _session():
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
@@ -27,22 +27,22 @@ def _session():
 
 
 def _seed_version_with_chunk(session, *, text: str = "chunk text for dense reindex"):
-    project = authoring.create_project(session, name="Reindex")
+    workspace = authoring.create_workspace(session, name="Reindex")
     source = authoring.create_source(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type="markdown",
         external_id="r.md",
         extra_metadata={"content": text},
     )
     doc_repo = DocumentRepository(session)
     document = doc_repo.create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=source.external_id,
     )
     version = doc_repo.create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -52,7 +52,7 @@ def _seed_version_with_chunk(session, *, text: str = "chunk text for dense reind
         extraction_metadata={},
     )
     ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=0,
@@ -61,20 +61,20 @@ def _seed_version_with_chunk(session, *, text: str = "chunk text for dense reind
         chunker_metadata={"chunker_version": "test"},
     )
     session.commit()
-    return project, version
+    return workspace, version
 
 
 def test_list_versions_and_reindex_embeds_chunks() -> None:
     session = _session()
-    project, version = _seed_version_with_chunk(session)
+    workspace, version = _seed_version_with_chunk(session)
 
-    ids = list_project_document_version_ids(session, project_id=project.id)
+    ids = list_workspace_document_version_ids(session, workspace_id=workspace.id)
     assert ids == [version.id]
 
     result = DenseEmbeddingPipeline(
         session, provider=FakeDenseEmbeddingProvider()
     ).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     assert result.embedded_chunk_count == 1
@@ -83,7 +83,7 @@ def test_list_versions_and_reindex_embeds_chunks() -> None:
     reused = DenseEmbeddingPipeline(
         session, provider=FakeDenseEmbeddingProvider()
     ).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
     )
     assert reused.embedded_chunk_count == 0
@@ -92,7 +92,7 @@ def test_list_versions_and_reindex_embeds_chunks() -> None:
     forced = DenseEmbeddingPipeline(
         session, provider=FakeDenseEmbeddingProvider()
     ).embed_document_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         force=True,
     )

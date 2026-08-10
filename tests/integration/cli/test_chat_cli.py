@@ -28,23 +28,23 @@ from adaptive_rag.db.models import (
     DocumentVersion,
     GlobalChatRetrievalSettings,
     KnowledgeProposal,
-    Project,
-    ProjectChatRetrievalSettings,
     ProviderUsage,
     RetrievalRun,
     RetrievedChunk,
     Source,
     ToolCall,
+    Workspace,
+    WorkspaceChatRetrievalSettings,
 )
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ChatRetrievalSettingsRepository,
     ChunkRepository,
     DocumentRepository,
-    ProjectRepository,
     ProviderUsageRepository,
     SourceRepository,
     SparseEmbeddingRepository,
+    WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
@@ -234,14 +234,14 @@ def _make_session_factory(tmp_path: Path) -> sessionmaker[Session]:
     Base.metadata.create_all(
         engine,
         tables=[
-            Project.__table__,
+            Workspace.__table__,
             Source.__table__,
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
             ChunkSparseEmbedding.__table__,
             GlobalChatRetrievalSettings.__table__,
-            ProjectChatRetrievalSettings.__table__,
+            WorkspaceChatRetrievalSettings.__table__,
             ChatSession.__table__,
             ChatMessage.__table__,
             KnowledgeProposal.__table__,
@@ -265,14 +265,14 @@ def _sparse_vector(value: float) -> SparseEmbeddingVector:
     return SparseEmbeddingVector(indices=(0,), values=(value,), tokens=("alpha",))
 
 
-def _create_project(session: Session, name: str = "demo") -> Project:
-    return ProjectRepository(session).create(name=name)
+def _create_workspace(session: Session, name: str = "demo") -> Workspace:
+    return WorkspaceRepository(session).create(name=name)
 
 
 def _create_embedded_chunk(
     session: Session,
     *,
-    project: Project,
+    workspace: Workspace,
     source_type: str = "markdown",
     external_id: str,
     tags: tuple[str, ...] = (),
@@ -282,19 +282,19 @@ def _create_embedded_chunk(
     embedding: list[float] | None,
 ) -> tuple[Source, Document, DocumentVersion, Chunk]:
     source = SourceRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_type=source_type,
         external_id=external_id,
         tags=tags,
         extra_metadata={"title": external_id},
     )
     document = DocumentRepository(session).create_document(
-        project_id=project.id,
+        workspace_id=workspace.id,
         source_id=source.id,
         stable_id=stable_id,
     )
     version = DocumentRepository(session).create_version(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_id=document.id,
         version_number=1,
         normalized_text=text,
@@ -303,7 +303,7 @@ def _create_embedded_chunk(
     )
     char_start = text.index(snippet)
     chunk = ChunkRepository(session).create(
-        project_id=project.id,
+        workspace_id=workspace.id,
         document_version_id=version.id,
         ordinal=0,
         char_start=char_start,
@@ -316,7 +316,7 @@ def _create_embedded_chunk(
     session.flush()
     if embedding is not None:
         SparseEmbeddingRepository(session).upsert_current(
-            project_id=project.id,
+            workspace_id=workspace.id,
             chunk_id=chunk.id,
             vector=_sparse_vector(max(0.01, 1.0 - embedding[0])),
             input_hash=f"sparse:{stable_id}",
@@ -356,7 +356,7 @@ def _set_session_timestamp(
 def _add_provider_usage(
     session: Session,
     *,
-    project_id: UUID,
+    workspace_id: UUID,
     created_at: datetime,
     session_id: UUID | None = None,
     operation: str = "chat",
@@ -373,7 +373,7 @@ def _add_provider_usage(
     error_message: str | None = None,
 ) -> ProviderUsage:
     usage = ProviderUsage(
-        project_id=project_id,
+        workspace_id=workspace_id,
         session_id=session_id,
         operation=operation,
         provider=provider,
@@ -450,10 +450,10 @@ def test_chat_ask_command_outputs_api_compatible_json(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _far_source, _far_document, _far_version, far = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="far.md",
         tags=("docs", "v1"),
         stable_id="far-doc",
@@ -463,7 +463,7 @@ def test_chat_ask_command_outputs_api_compatible_json(
     )
     source, document, version, near = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         tags=("docs", "v1"),
         stable_id="near-doc",
@@ -474,7 +474,7 @@ def test_chat_ask_command_outputs_api_compatible_json(
     _wrong_type_source, _wrong_type_document, _wrong_type_version, _wrong_type = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             source_type="text",
             external_id="wrong-type.txt",
             tags=("docs", "v1"),
@@ -499,8 +499,8 @@ def test_chat_ask_command_outputs_api_compatible_json(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             "What supports alpha?",
             "--retrieval-limit",
@@ -576,16 +576,16 @@ def test_chat_ask_command_outputs_api_compatible_json(
     assert [item.chunk_id for item in retrieved_chunks] == [near.id, far.id]
 
 
-def test_chat_ask_command_uses_project_retrieval_settings(
+def test_chat_ask_command_uses_workspace_retrieval_settings(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _source, _document, _version, _first = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="first.md",
         stable_id="first-doc",
         text="Alpha first evidence",
@@ -594,15 +594,15 @@ def test_chat_ask_command_uses_project_retrieval_settings(
     )
     _source, _document, _version, _second = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="second.md",
         stable_id="second-doc",
         text="Alpha second evidence",
         snippet="Alpha second evidence",
         embedding=_vector(0.2),
     )
-    ChatRetrievalSettingsRepository(session).upsert_project_settings(
-        project_id=project.id,
+    ChatRetrievalSettingsRepository(session).upsert_workspace_settings(
+        workspace_id=workspace.id,
         retrieval_limit=1,
         rerank_enabled=True,
         rerank_candidate_limit=2,
@@ -624,8 +624,8 @@ def test_chat_ask_command_uses_project_retrieval_settings(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             "What supports alpha?",
         ],
@@ -648,7 +648,7 @@ def test_chat_ask_command_reports_service_errors(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = RecordingNoToolChatRunner()
@@ -664,8 +664,8 @@ def test_chat_ask_command_reports_service_errors(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             " ",
         ],
@@ -683,7 +683,7 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runners: list[ProviderUsageRecordingChatRunner] = []
@@ -726,8 +726,8 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             "Record live usage.",
         ],
@@ -741,7 +741,7 @@ def test_chat_ask_command_persists_live_runner_usage_with_session_id(
     assert len(runners[0].requests) == 1
     fresh_session = session_factory()
     usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
-    assert usage.project_id == project.id
+    assert usage.workspace_id == workspace.id
     assert usage.provider == "qwen"
     assert usage.model == "qwen-plus"
     assert usage.operation == "chat"
@@ -759,10 +759,10 @@ def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     _source, _document, _version, _chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="near.md",
         stable_id="near-doc",
         text="Alpha original evidence",
@@ -822,8 +822,8 @@ def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             "What supports alpha?",
             "--retrieval-limit",
@@ -839,7 +839,7 @@ def test_chat_ask_command_persists_retrieval_embedding_usage_with_session_id(
     assert len(runners) == 1
     fresh_session = session_factory()
     usage = fresh_session.query(ProviderUsage).filter_by(session_id=session_id).one()
-    assert usage.project_id == project.id
+    assert usage.workspace_id == workspace.id
     assert usage.operation == "embedding"
     assert usage.provider == "fake"
     assert usage.model == "usage-recording-embedding-v1"
@@ -853,7 +853,7 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session)
+    workspace = _create_workspace(session)
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     runner = ExplodingChatRunner()
@@ -869,8 +869,8 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
         [
             "chat",
             "ask",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--message",
             "Please answer.",
         ],
@@ -885,7 +885,7 @@ def test_chat_ask_command_persists_failed_audit_for_unexpected_runner_error(
     assert len(runner.requests) == 1
     fresh_session = session_factory()
     chat_session = fresh_session.query(ChatSession).one()
-    assert chat_session.project_id == project.id
+    assert chat_session.workspace_id == workspace.id
     assert chat_session.status == "failed"
     assert chat_session.error_message == "runner exploded"
     messages = fresh_session.query(ChatMessage).filter_by(session_id=chat_session.id)
@@ -900,11 +900,11 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     _source, _document, _version, chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="history.md",
         stable_id="history-doc",
         text="Middle original evidence",
@@ -914,7 +914,7 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
     _other_source, _other_document, _other_version, other_chunk = (
         _create_embedded_chunk(
             session,
-            project=other_project,
+            workspace=other_workspace,
             external_id="other.md",
             stable_id="other-doc",
             text="Other original evidence",
@@ -927,33 +927,33 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
     base_time = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
 
     older = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "older"},
         prompt_version="history-v1",
     )
     _set_session_timestamp(older, base_time)
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=older.id,
         role="user",
         content="older question",
     )
-    repo.succeed_session(project_id=project.id, session_id=older.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=older.id)
 
     middle = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "middle"},
         prompt_version="history-v1",
     )
     _set_session_timestamp(middle, base_time + timedelta(minutes=1))
     middle_tool = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_name="retrieval.search",
         arguments_json={"query": "middle"},
     )
     middle_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         tool_call_id=middle_tool.id,
         query="middle",
@@ -962,36 +962,36 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=middle_run.id,
         chunk_id=chunk.id,
         rank=1,
         citation_json={"snippet": "middle evidence"},
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
     repo.fail_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=middle.id,
         error_message="runner failed",
     )
 
     newest = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake", "model": "newest"},
     )
     _set_session_timestamp(newest, base_time + timedelta(minutes=2))
-    repo.succeed_session(project_id=project.id, session_id=newest.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=newest.id)
 
-    other_session = repo.create_session(project_id=other_project.id)
+    other_session = repo.create_session(workspace_id=other_workspace.id)
     _set_session_timestamp(other_session, base_time + timedelta(minutes=3))
     other_run = repo.create_retrieval_run(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         session_id=other_session.id,
         tool_call_id=None,
         query="other",
@@ -1000,7 +1000,7 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
         used_rerank=False,
     )
     repo.add_retrieved_chunk(
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         retrieval_run_id=other_run.id,
         chunk_id=other_chunk.id,
         rank=1,
@@ -1015,8 +1015,8 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
             "chat",
             "sessions",
             "list",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--limit",
             "2",
         ],
@@ -1049,8 +1049,8 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
             "chat",
             "sessions",
             "list",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--limit",
             "2",
             "--cursor",
@@ -1069,8 +1069,8 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
             "chat",
             "sessions",
             "list",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--status",
             "failed",
         ],
@@ -1086,8 +1086,8 @@ def test_chat_sessions_list_command_outputs_api_compatible_json(
             "chat",
             "sessions",
             "list",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--limit",
             "0",
         ],
@@ -1102,19 +1102,19 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     base_time = datetime(2026, 1, 1, tzinfo=UTC)
 
-    failed = ChatAuditRepository(session).create_session(project_id=project.id)
+    failed = ChatAuditRepository(session).create_session(workspace_id=workspace.id)
     failed.status = "failed"
     failed.error_message = "runner failed"
     _set_session_timestamp(failed, base_time + timedelta(hours=1))
-    succeeded = ChatAuditRepository(session).create_session(project_id=project.id)
+    succeeded = ChatAuditRepository(session).create_session(workspace_id=workspace.id)
     succeeded.status = "succeeded"
     _set_session_timestamp(succeeded, base_time + timedelta(hours=2))
     other_failed = ChatAuditRepository(session).create_session(
-        project_id=other_project.id
+        workspace_id=other_workspace.id
     )
     other_failed.status = "failed"
     other_failed.error_message = "other failure"
@@ -1122,7 +1122,7 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
 
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed.id,
         created_at=base_time + timedelta(hours=1, seconds=1),
         status="failed",
@@ -1133,7 +1133,7 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=failed.id,
         created_at=base_time + timedelta(hours=1, seconds=2),
         input_tokens=10,
@@ -1145,7 +1145,7 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
     )
     _add_provider_usage(
         session,
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=succeeded.id,
         created_at=base_time + timedelta(hours=2, seconds=1),
         estimated_cost_usd=0.40,
@@ -1153,7 +1153,7 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
     )
     _add_provider_usage(
         session,
-        project_id=other_project.id,
+        workspace_id=other_workspace.id,
         created_at=base_time + timedelta(hours=1),
         estimated_cost_usd=9.99,
         latency_ms=999,
@@ -1167,8 +1167,8 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
             "chat",
             "observability",
             "summary",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--created-at-from",
             base_time.isoformat(),
             "--created-at-to",
@@ -1180,7 +1180,7 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
 
     assert result.exit_code == 0
     data = json.loads(result.stdout)
-    assert data["project_id"] == str(project.id)
+    assert data["workspace_id"] == str(workspace.id)
     assert data["filters"] == {
         "created_at_from": "2026-01-01T00:00:00Z",
         "created_at_to": "2026-01-01T02:00:00Z",
@@ -1231,8 +1231,8 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
             "chat",
             "observability",
             "summary",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--status",
             "done",
         ],
@@ -1241,17 +1241,17 @@ def test_chat_observability_summary_command_outputs_api_equivalent_json(
     assert "invalid chat session status" in invalid_status.output
 
 
-def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
+def test_chat_sessions_show_command_outputs_detail_and_scopes_workspace(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
-    project = _create_project(session, "demo")
-    other_project = _create_project(session, "other")
+    workspace = _create_workspace(session, "demo")
+    other_workspace = _create_workspace(session, "other")
     _source, _document, _version, first_chunk = _create_embedded_chunk(
         session,
-        project=project,
+        workspace=workspace,
         external_id="first.md",
         stable_id="first-doc",
         text="Alpha first evidence",
@@ -1261,7 +1261,7 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
     _second_source, _second_document, _second_version, second_chunk = (
         _create_embedded_chunk(
             session,
-            project=project,
+            workspace=workspace,
             external_id="second.md",
             stable_id="second-doc",
             text="Alpha second evidence",
@@ -1272,31 +1272,31 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
     repo = ChatAuditRepository(session)
     usage_repo = ProviderUsageRepository(session)
     chat_session = repo.create_session(
-        project_id=project.id,
+        workspace_id=workspace.id,
         model_config_json={"provider": "fake"},
         prompt_version="history-v1",
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="user",
         content="What supports alpha?",
         metadata_json={"retrieval_limit": 2},
     )
     tool_call = repo.start_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_name="retrieval.search",
         arguments_json={"query": "alpha"},
     )
     repo.complete_tool_call(
-        project_id=project.id,
+        workspace_id=workspace.id,
         tool_call_id=tool_call.id,
         result_summary_json={"result_count": 2},
         latency_ms=5,
     )
     retrieval_run = repo.create_retrieval_run(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         tool_call_id=tool_call.id,
         query="alpha",
@@ -1307,7 +1307,7 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
         latency_ms=5,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=second_chunk.id,
         rank=2,
@@ -1315,7 +1315,7 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
         dense_score=0.2,
     )
     repo.add_retrieved_chunk(
-        project_id=project.id,
+        workspace_id=workspace.id,
         retrieval_run_id=retrieval_run.id,
         chunk_id=first_chunk.id,
         rank=1,
@@ -1323,19 +1323,19 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
         dense_score=0.1,
     )
     repo.add_message(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         role="assistant",
         content="Alpha is supported.",
     )
     usage_repo.create_from_record(
-        project_id=project.id,
+        workspace_id=workspace.id,
         session_id=chat_session.id,
         job_id=None,
         eval_run_id=None,
         record=_make_provider_call_record(),
     )
-    repo.succeed_session(project_id=project.id, session_id=chat_session.id)
+    repo.succeed_session(workspace_id=workspace.id, session_id=chat_session.id)
     session.commit()
     _patch_chat_history_session_scope(monkeypatch, session=session)
 
@@ -1345,8 +1345,8 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
             "chat",
             "sessions",
             "show",
-            "--project-id",
-            str(project.id),
+            "--workspace-id",
+            str(workspace.id),
             "--session-id",
             str(chat_session.id),
         ],
@@ -1389,17 +1389,17 @@ def test_chat_sessions_show_command_outputs_detail_and_scopes_project(
     assert data["provider_usage"][0]["operation"] == "chat"
     assert data["provider_usage"][0]["estimated_cost_usd"] == pytest.approx(0.0001)
 
-    cross_project = CliRunner().invoke(
+    cross_workspace = CliRunner().invoke(
         app,
         [
             "chat",
             "sessions",
             "show",
-            "--project-id",
-            str(other_project.id),
+            "--workspace-id",
+            str(other_workspace.id),
             "--session-id",
             str(chat_session.id),
         ],
     )
-    assert cross_project.exit_code == 1
-    assert "chat session not found" in cross_project.output
+    assert cross_workspace.exit_code == 1
+    assert "chat session not found" in cross_workspace.output

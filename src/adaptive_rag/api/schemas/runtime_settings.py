@@ -11,16 +11,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from adaptive_rag.db.models import (
     GlobalChatModel,
     GlobalChatRetrievalSettings,
-    ProjectChatModel,
-    ProjectChatRetrievalSettings,
-    ProjectRuntimeSlotOverride,
     RuntimeSlotDefault,
+    WorkspaceChatModel,
+    WorkspaceChatRetrievalSettings,
+    WorkspaceRuntimeSlotOverride,
 )
 from adaptive_rag.db.repositories import (
     EffectiveChatModel,
     EffectiveChatRetrievalSettings,
     EffectiveRuntimeSlot,
-    ProjectRuntimeSettings,
+    WorkspaceRuntimeSettings,
 )
 
 
@@ -119,7 +119,7 @@ class GlobalChatRetrievalSettingsResponse(BaseModel):
         )
 
 
-class ProjectChatRetrievalSettingsResponse(BaseModel):
+class WorkspaceChatRetrievalSettingsResponse(BaseModel):
     source: str
     retrieval_limit: int
     rerank_enabled: bool
@@ -130,7 +130,7 @@ class ProjectChatRetrievalSettingsResponse(BaseModel):
     def from_effective(
         cls,
         settings: EffectiveChatRetrievalSettings,
-    ) -> ProjectChatRetrievalSettingsResponse:
+    ) -> WorkspaceChatRetrievalSettingsResponse:
         return cls(
             source=settings.source,
             retrieval_limit=settings.retrieval_limit,
@@ -142,10 +142,10 @@ class ProjectChatRetrievalSettingsResponse(BaseModel):
     @classmethod
     def from_model(
         cls,
-        settings: ProjectChatRetrievalSettings,
-    ) -> ProjectChatRetrievalSettingsResponse:
+        settings: WorkspaceChatRetrievalSettings,
+    ) -> WorkspaceChatRetrievalSettingsResponse:
         return cls(
-            source="project",
+            source="workspace",
             retrieval_limit=settings.retrieval_limit,
             rerank_enabled=settings.rerank_enabled,
             rerank_candidate_limit=settings.rerank_candidate_limit,
@@ -157,7 +157,7 @@ class DeleteResponse(BaseModel):
     deleted: bool = Field()
 
 
-class ProjectRuntimeSlotResponse(BaseModel):
+class WorkspaceRuntimeSlotResponse(BaseModel):
     slot: str
     source: str
     connection_id: str
@@ -168,7 +168,7 @@ class ProjectRuntimeSlotResponse(BaseModel):
     def from_effective(
         cls,
         slot: EffectiveRuntimeSlot,
-    ) -> ProjectRuntimeSlotResponse:
+    ) -> WorkspaceRuntimeSlotResponse:
         return cls(
             slot=slot.slot,
             source=slot.source,
@@ -180,8 +180,8 @@ class ProjectRuntimeSlotResponse(BaseModel):
     @classmethod
     def from_override(
         cls,
-        override: ProjectRuntimeSlotOverride,
-    ) -> ProjectRuntimeSlotResponse:
+        override: WorkspaceRuntimeSlotOverride,
+    ) -> WorkspaceRuntimeSlotResponse:
         return cls(
             slot=override.slot,
             source="overridden",
@@ -191,7 +191,7 @@ class ProjectRuntimeSlotResponse(BaseModel):
         )
 
 
-class ProjectChatModelResponse(BaseModel):
+class WorkspaceChatModelResponse(BaseModel):
     connection_id: str
     model_id: str
     is_default: bool
@@ -199,7 +199,7 @@ class ProjectChatModelResponse(BaseModel):
     parameters: dict[str, Any] | None
 
     @classmethod
-    def from_effective(cls, model: EffectiveChatModel) -> ProjectChatModelResponse:
+    def from_effective(cls, model: EffectiveChatModel) -> WorkspaceChatModelResponse:
         return cls(
             connection_id=model.connection_id,
             model_id=model.model_id,
@@ -209,7 +209,7 @@ class ProjectChatModelResponse(BaseModel):
         )
 
     @classmethod
-    def from_model(cls, model: ProjectChatModel) -> ProjectChatModelResponse:
+    def from_model(cls, model: WorkspaceChatModel) -> WorkspaceChatModelResponse:
         return cls(
             connection_id=model.connection_id,
             model_id=model.model_id,
@@ -219,28 +219,28 @@ class ProjectChatModelResponse(BaseModel):
         )
 
 
-class ProjectRuntimeSettingsResponse(BaseModel):
-    project_id: UUID
-    slots: list[ProjectRuntimeSlotResponse]
-    chat_models: list[ProjectChatModelResponse]
-    chat_retrieval: ProjectChatRetrievalSettingsResponse
+class WorkspaceRuntimeSettingsResponse(BaseModel):
+    workspace_id: UUID
+    slots: list[WorkspaceRuntimeSlotResponse]
+    chat_models: list[WorkspaceChatModelResponse]
+    chat_retrieval: WorkspaceChatRetrievalSettingsResponse
 
     @classmethod
     def from_settings(
         cls,
-        settings: ProjectRuntimeSettings,
-    ) -> ProjectRuntimeSettingsResponse:
+        settings: WorkspaceRuntimeSettings,
+    ) -> WorkspaceRuntimeSettingsResponse:
         return cls(
-            project_id=settings.project_id,
+            workspace_id=settings.workspace_id,
             slots=[
-                ProjectRuntimeSlotResponse.from_effective(slot)
+                WorkspaceRuntimeSlotResponse.from_effective(slot)
                 for slot in settings.slots
             ],
             chat_models=[
-                ProjectChatModelResponse.from_effective(model)
+                WorkspaceChatModelResponse.from_effective(model)
                 for model in settings.chat_models
             ],
-            chat_retrieval=ProjectChatRetrievalSettingsResponse.from_effective(
+            chat_retrieval=WorkspaceChatRetrievalSettingsResponse.from_effective(
                 settings.chat_retrieval
             ),
         )

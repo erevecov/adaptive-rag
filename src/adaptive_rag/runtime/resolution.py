@@ -13,8 +13,8 @@ from adaptive_rag.db.models import ProviderConnection, ProviderSecret
 from adaptive_rag.db.repositories import (
     EffectiveChatModel,
     EffectiveRuntimeSlot,
-    ProjectRuntimeSettingsRepository,
     RuntimeSettingsRepository,
+    WorkspaceRuntimeSettingsRepository,
 )
 from adaptive_rag.provider_secrets import (
     ProviderSecretDecryptError,
@@ -43,14 +43,14 @@ def _resolve_persisted_slot(
     slot: str,
     settings: Settings,
     *,
-    project_id: UUID | None,
+    workspace_id: UUID | None,
     secret_store: ProviderSecretStore | None,
     session: Session | None,
 ) -> ResolvedRuntimeSlot | None:
     if session is None:
         return None
 
-    if project_id is None:
+    if workspace_id is None:
         runtime_settings_repository = RuntimeSettingsRepository(session)
         if slot == "chat":
             chat_model = _global_chat_model(
@@ -76,9 +76,9 @@ def _resolve_persisted_slot(
             parameters = slot_default.parameters_json
     else:
         try:
-            runtime_settings = ProjectRuntimeSettingsRepository(
+            runtime_settings = WorkspaceRuntimeSettingsRepository(
                 session
-            ).get_project_runtime_settings(project_id)
+            ).get_workspace_runtime_settings(workspace_id)
         except ValueError as exc:
             raise ProviderConfigurationError(str(exc)) from exc
 
