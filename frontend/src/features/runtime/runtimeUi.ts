@@ -163,6 +163,34 @@ export function connectionForId(
   )
 }
 
+/**
+ * Catalog rows for one connection that can serve at least one declared slot.
+ * Hides stale seeds (rerank/embed on chat-only) and provider noise with empty
+ * capabilities (audio/image) when the connection only declares RAG slots.
+ */
+export function providerModelsForConnection({
+  connection,
+  providerModels,
+}: {
+  connection: ProviderConnection | null
+  providerModels: ProviderModel[]
+}): ProviderModel[] {
+  if (connection === null) {
+    return []
+  }
+  const connectionId = connection.connection_id
+  const declared = new Set(connection.capabilities)
+  return providerModels.filter((model) => {
+    if (model.connection_id !== connectionId) {
+      return false
+    }
+    if (declared.size === 0) {
+      return true
+    }
+    return model.capabilities.some((capability) => declared.has(capability))
+  })
+}
+
 /** Slot/catalog warning for a selected connection + model capability set. */
 export function selectedSlotEndpointWarning({
   connections,

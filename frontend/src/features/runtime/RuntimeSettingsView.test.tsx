@@ -476,6 +476,75 @@ describe('RuntimeModelCatalogPanel connection scope', () => {
     expect(screen.getByText('qwen3-rerank')).toBeTruthy()
     expect(screen.queryByText('qwen3.7-plus')).toBeNull()
   })
+
+  test('hides stale service seeds that do not match declared connection slots', () => {
+    const tokenPlan: ProviderConnection = {
+      ...providerConnections[0]!,
+      base_url:
+        'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1',
+      capabilities: ['chat', 'contextualization', 'vision'],
+      connection_id: 'qwen-token-plan',
+      metadata: { label: 'Bailian Token Plan' },
+    }
+    const models: ProviderModel[] = [
+      {
+        capabilities: ['chat'],
+        connection_id: 'qwen-token-plan',
+        created_at: '2026-06-01T00:00:00Z',
+        last_seen_at: '2026-06-01T00:00:00Z',
+        metadata: null,
+        model_id: 'qwen3.7-plus',
+        pricing: null,
+        updated_at: '2026-06-01T00:00:00Z',
+      },
+      {
+        capabilities: ['rerank'],
+        connection_id: 'qwen-token-plan',
+        created_at: '2026-06-01T00:00:00Z',
+        last_seen_at: '2026-06-01T00:00:00Z',
+        metadata: { source: 'qwen_declared_capability_seed' },
+        model_id: 'qwen3-rerank',
+        pricing: null,
+        updated_at: '2026-06-01T00:00:00Z',
+      },
+      {
+        capabilities: ['dense_embedding', 'sparse_embedding'],
+        connection_id: 'qwen-token-plan',
+        created_at: '2026-06-01T00:00:00Z',
+        last_seen_at: '2026-06-01T00:00:00Z',
+        metadata: { source: 'qwen_declared_capability_seed' },
+        model_id: 'text-embedding-v4',
+        pricing: null,
+        updated_at: '2026-06-01T00:00:00Z',
+      },
+      {
+        capabilities: [],
+        connection_id: 'qwen-token-plan',
+        created_at: '2026-06-01T00:00:00Z',
+        last_seen_at: '2026-06-01T00:00:00Z',
+        metadata: null,
+        model_id: 'wan2.7-image',
+        pricing: null,
+        updated_at: '2026-06-01T00:00:00Z',
+      },
+    ]
+
+    render(
+      <RuntimeModelCatalogPanel
+        connections={[tokenPlan]}
+        modelSyncConnectionId="qwen-token-plan"
+        onEditConnection={vi.fn()}
+        onModelSyncConnectionIdChange={vi.fn()}
+        providerModels={models}
+        state="idle"
+      />,
+    )
+
+    expect(screen.getByText('qwen3.7-plus')).toBeTruthy()
+    expect(screen.queryByText('qwen3-rerank')).toBeNull()
+    expect(screen.queryByText('text-embedding-v4')).toBeNull()
+    expect(screen.queryByText('wan2.7-image')).toBeNull()
+  })
 })
 
 describe('Global Defaults endpoint warning', () => {

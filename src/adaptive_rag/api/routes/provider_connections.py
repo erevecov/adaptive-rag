@@ -123,6 +123,12 @@ def upsert_provider_connection(
             connection_id=connection.connection_id,
             api_key=body.api_key,
         )
+        # Capability edits (e.g. Token Plan chat-only) must drop stale catalog
+        # seeds such as qwen3-rerank / text-embedding-v4.
+        ProviderModelCatalogRepository(session).prune_models_outside_declared_capabilities(
+            connection_id=connection.connection_id,
+            declared_capabilities=connection.capabilities_json,
+        )
     except (ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc
     session.commit()
@@ -254,6 +260,12 @@ def sync_provider_models(
             # Provider /models rarely returns list prices; fill pricing_json from
             # the published Alibaba catalog so Model Catalog UI is not empty.
             sync_provider_model_pricing(session, provider=QWEN_PROVIDER, dry_run=False)
+        # Drop rows that no longer match declared slots (stale seeds, audio/image
+        # listings with empty capabilities, caps removed from the connection).
+        catalog.prune_models_outside_declared_capabilities(
+            connection_id=connection.connection_id,
+            declared_capabilities=connection.capabilities_json,
+        )
         models = catalog.list_models(connection_id=connection.connection_id)
     except (ProviderSecretDecryptError, ProviderSecretKeyError, ValueError) as exc:
         raise _http_error(exc) from exc

@@ -2,6 +2,8 @@ import { describe, expect, test } from 'vitest'
 
 import type { ProviderConnection } from '@/lib/apiClient'
 
+import type { ProviderModel } from '@/lib/apiClient'
+
 import {
   RUNTIME_SLOTS,
   connectionOptionLabel,
@@ -9,6 +11,7 @@ import {
   formatProviderModelPricing,
   missingSyncedModelMessage,
   providerLabel,
+  providerModelsForConnection,
   qwenServiceModelEndpointWarning,
   slotLabel,
 } from './runtimeUi'
@@ -58,6 +61,63 @@ describe('runtimeUi labels', () => {
       'No Dense Embedding models in the catalog for this connection. ' +
         'Open Model Catalog to sync, or pick a connection that exposes Dense Embedding models.',
     )
+  })
+})
+
+describe('providerModelsForConnection', () => {
+  test('keeps only models that intersect declared connection capabilities', () => {
+    const connection: ProviderConnection = {
+      ...baseConnection,
+      capabilities: ['chat', 'contextualization', 'vision'],
+      connection_id: 'token-plan',
+    }
+    const models: ProviderModel[] = [
+      {
+        capabilities: ['chat'],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'qwen3.7-plus',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: ['rerank'],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'qwen3-rerank',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: [],
+        connection_id: 'token-plan',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'wan2.7-image',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        capabilities: ['chat'],
+        connection_id: 'other',
+        created_at: '2026-01-01T00:00:00Z',
+        last_seen_at: '2026-01-01T00:00:00Z',
+        metadata: null,
+        model_id: 'other-chat',
+        pricing: null,
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]
+    expect(
+      providerModelsForConnection({ connection, providerModels: models }).map(
+        (model) => model.model_id,
+      ),
+    ).toEqual(['qwen3.7-plus'])
   })
 })
 

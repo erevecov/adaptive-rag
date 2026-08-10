@@ -38,6 +38,7 @@ import {
   normalizeChatRetrievalLimit,
   providerLabel,
   providerModelOptions,
+  providerModelsForConnection,
   qwenServiceModelEndpointWarning,
   runtimeStatusLabel,
   selectedSlotEndpointWarning,
@@ -1043,14 +1044,12 @@ export function RuntimeModelCatalogPanel({
   const selectedConnection = connections.find(
     (connection) => connection.connection_id === selectedConnectionId,
   )
-  // Catalog is scoped to the selected connection only — never mix rows from
-  // other connections (e.g. Token Plan chat models on a DashScope card).
-  const catalogModels =
-    selectedConnectionId.length === 0
-      ? []
-      : providerModels.filter(
-          (model) => model.connection_id === selectedConnectionId,
-        )
+  // Scope to selected connection and only models that match its declared slots
+  // (drops stale qwen3-rerank / text-embedding-v4 seeds on chat-only gateways).
+  const catalogModels = providerModelsForConnection({
+    connection: selectedConnection ?? null,
+    providerModels,
+  })
 
   return (
     <RuntimePanel
