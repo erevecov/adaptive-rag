@@ -167,7 +167,25 @@ def get_chat_attachment_content(
             status_code=404,
             detail=_error_detail("attachment_not_found", "Attachment not found."),
         )
-    return Response(content=attachment.content, media_type=attachment.mime)
+    # Inline disposition so browsers can render images/PDF in a lightbox tab;
+    # filename is ASCII-sanitized for Content-Disposition compatibility.
+    safe_name = _safe_content_disposition_filename(attachment.filename)
+    return Response(
+        content=attachment.content,
+        media_type=attachment.mime,
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_name}"',
+            "Cache-Control": "private, max-age=60",
+        },
+    )
+
+
+def _safe_content_disposition_filename(filename: str) -> str:
+    cleaned = "".join(
+        char if char.isalnum() or char in {".", "-", "_", " "} else "_"
+        for char in filename.strip()
+    ).strip()
+    return cleaned[:180] if cleaned else "attachment"
 
 
 def _error_detail(code: str, message: str) -> dict[str, object]:

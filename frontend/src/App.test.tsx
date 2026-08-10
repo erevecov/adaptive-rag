@@ -178,6 +178,7 @@ function createClientStub(options: {
   deleteChatSession?: ApiClient['deleteChatSession']
   uploadChatAttachment?: ApiClient['uploadChatAttachment']
   deleteChatAttachment?: ApiClient['deleteChatAttachment']
+  getChatAttachmentContent?: ApiClient['getChatAttachmentContent']
   checkProviderConnection?: ApiClient['checkProviderConnection']
   createWorkspace?: ApiClient['createWorkspace']
   createProviderConnection?: ApiClient['createProviderConnection']
@@ -247,6 +248,9 @@ function createClientStub(options: {
     deleteChatSession: options.deleteChatSession ?? vi.fn(),
     uploadChatAttachment: options.uploadChatAttachment ?? vi.fn(),
     deleteChatAttachment: options.deleteChatAttachment ?? vi.fn(),
+    getChatAttachmentContent:
+      options.getChatAttachmentContent ??
+      vi.fn(async () => new Blob(['preview'], { type: 'image/png' })),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createWorkspace: options.createWorkspace ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),

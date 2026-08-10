@@ -722,7 +722,8 @@ describe('ChatWorkspacePanel', () => {
     expect(strips[2]?.className).toMatch(/(?:^|\s)sticky(?:\s|$)/)
   })
 
-  test('shows read-only attachment chips under questions that carried files', () => {
+  test('shows read-only attachment chips under questions that carried files', async () => {
+    const user = userEvent.setup()
     const { view } = renderChatWorkspace({
       activeResponseAttachments: [
         {
@@ -767,6 +768,9 @@ describe('ChatWorkspacePanel', () => {
       ],
       requestState: 'succeeded',
       response,
+      onLoadAttachmentContent: vi.fn(async () =>
+        new Blob(['diagram'], { type: 'image/png' }),
+      ),
     })
 
     const chipsRows = view.container.querySelectorAll(
@@ -783,6 +787,17 @@ describe('ChatWorkspacePanel', () => {
     expect(
       screen.queryByRole('button', { name: /Remove attachment/ }),
     ).toBeNull()
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Open attachment architecture-diagram.png',
+      }),
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeTruthy()
+    expect(
+      within(dialog).getByRole('heading', { name: 'architecture-diagram.png' }),
+    ).toBeTruthy()
   })
 
   test('composer paperclip, paste, and drop all call onAddAttachmentFiles', async () => {

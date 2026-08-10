@@ -52,6 +52,7 @@ const ACCEPT_ATTR = [
 
 export function AttachmentChips({
   attachments,
+  onOpen,
   onRemove,
   readOnly = false,
 }: {
@@ -60,9 +61,19 @@ export function AttachmentChips({
     filename: string
     previewUrl?: string
     kind?: 'image' | 'document'
+    mime?: string
+    attachmentId?: string
     status?: LocalAttachment['status']
     error?: string
   }>
+  onOpen?(item: {
+    localId: string
+    filename: string
+    previewUrl?: string
+    kind?: 'image' | 'document'
+    mime?: string
+    attachmentId?: string
+  }): void
   onRemove?(localId: string): void
   readOnly?: boolean
 }) {
@@ -77,6 +88,10 @@ export function AttachmentChips({
     >
       {attachments.map((item) => {
         const isImage = item.kind === 'image' && item.previewUrl
+        const canOpen =
+          onOpen !== undefined &&
+          item.status !== 'uploading' &&
+          item.status !== 'failed'
         return (
           <li
             className={cn(
@@ -87,20 +102,53 @@ export function AttachmentChips({
             key={item.localId}
             title={item.error}
           >
-            {isImage ? (
-              <img
-                alt=""
-                className="size-6 shrink-0 rounded object-cover"
-                height={24}
-                src={item.previewUrl}
-                width={24}
-              />
+            {canOpen ? (
+              <button
+                aria-label={`Open attachment ${item.filename}`}
+                className="flex min-w-0 flex-1 items-center gap-1.5 text-left hover:text-foreground"
+                data-slot="attachment-chip-open"
+                onClick={() => onOpen(item)}
+                type="button"
+              >
+                {isImage ? (
+                  <img
+                    alt=""
+                    className="size-6 shrink-0 rounded object-cover"
+                    height={24}
+                    src={item.previewUrl}
+                    width={24}
+                  />
+                ) : (
+                  <FileText
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                  />
+                )}
+                <span className="min-w-0 truncate text-foreground">
+                  {item.filename}
+                </span>
+              </button>
             ) : (
-              <FileText aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+              <>
+                {isImage ? (
+                  <img
+                    alt=""
+                    className="size-6 shrink-0 rounded object-cover"
+                    height={24}
+                    src={item.previewUrl}
+                    width={24}
+                  />
+                ) : (
+                  <FileText
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                  />
+                )}
+                <span className="min-w-0 truncate text-foreground">
+                  {item.filename}
+                </span>
+              </>
             )}
-            <span className="min-w-0 truncate text-foreground">
-              {item.filename}
-            </span>
             {!readOnly && onRemove !== undefined ? (
               <Button
                 aria-label={`Remove attachment ${item.filename}`}

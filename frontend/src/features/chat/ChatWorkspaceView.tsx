@@ -29,6 +29,11 @@ import {
 } from 'lucide-react'
 
 import {
+  AttachmentLightbox,
+  type AttachmentLightboxGallery,
+  type AttachmentLightboxItem,
+} from '@/features/chat/AttachmentLightbox'
+import {
   AttachmentChips,
   AttachmentFileInput,
   type LocalAttachment,
@@ -158,6 +163,8 @@ export type ChatWorkspacePanelProps = {
   onTranscriptScroll?: () => void
   /** Open Context dock scoped to one transcript turn. */
   onViewTurnDetails?(payload: ViewTurnDetailsPayload): void
+  /** Load attachment bytes for lightbox (transcript / remote ids). */
+  onLoadAttachmentContent?(attachmentId: string): Promise<Blob>
   /** Earlier turns in the selected session (newest last). */
   priorTurns?: ChatTranscriptTurn[]
   providerUsage: ChatHistoryProviderUsage[]
@@ -216,6 +223,7 @@ export function ChatWorkspacePanel({
   onSubmitKnowledgeDraft,
   onTranscriptScroll,
   onViewTurnDetails,
+  onLoadAttachmentContent,
   priorTurns = [],
   providerUsage,
   question,
@@ -231,6 +239,23 @@ export function ChatWorkspacePanel({
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const [isComposerDragActive, setIsComposerDragActive] = useState(false)
   const composerDragDepthRef = useRef(0)
+  const [lightbox, setLightbox] = useState<AttachmentLightboxGallery | null>(
+    null,
+  )
+
+  function openLightboxGallery(
+    items: AttachmentLightboxItem[],
+    activeId: string,
+  ) {
+    if (items.length === 0) {
+      return
+    }
+    const index = Math.max(
+      0,
+      items.findIndex((entry) => entry.id === activeId),
+    )
+    setLightbox({ items, index })
+  }
 
   useEffect(() => {
     if (question.length > 0) {
@@ -330,6 +355,15 @@ export function ChatWorkspacePanel({
                   ? undefined
                   : (text) => onEditQuestion(text, turn.id)
               }
+              onOpenAttachment={(attachment) => {
+                const gallery = (turn.attachments ?? []).map((entry) => ({
+                  id: entry.id,
+                  filename: entry.filename,
+                  kind: entry.kind,
+                  mime: entry.mime,
+                }))
+                openLightboxGallery(gallery, attachment.id)
+              }}
               onOpenSource={onOpenSource}
               onRefineKnowledgeDraft={onRefineKnowledgeDraft}
               onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
@@ -356,6 +390,15 @@ export function ChatWorkspacePanel({
             errorDetail={requestError}
             heartbeatElapsedMs={heartbeatElapsedMs}
             onEditQuestion={onEditQuestion}
+            onOpenAttachment={(attachment) => {
+              const gallery = activeResponseAttachments.map((entry) => ({
+                id: entry.id,
+                filename: entry.filename,
+                kind: entry.kind,
+                mime: entry.mime,
+              }))
+              openLightboxGallery(gallery, attachment.id)
+            }}
             onOpenSource={onOpenSource}
             onQuestionChange={onQuestionChange}
             onRefineKnowledgeDraft={onRefineKnowledgeDraft}
@@ -418,9 +461,26 @@ export function ChatWorkspacePanel({
                     filename: item.file.name,
                     previewUrl: item.previewUrl,
                     kind: item.kind,
+                    mime: item.mime ?? item.file.type,
+                    attachmentId: item.attachmentId,
                     status: item.status,
                     error: item.error,
                   }))}
+                  onOpen={(item) => {
+                    const gallery = attachments.map((entry) => ({
+                      id: entry.attachmentId ?? entry.localId,
+                      filename: entry.file.name,
+                      kind: entry.kind ?? 'document',
+                      mime:
+                        entry.mime ??
+                        (entry.file.type || 'application/octet-stream'),
+                      previewUrl: entry.previewUrl,
+                    }))
+                    openLightboxGallery(
+                      gallery,
+                      item.attachmentId ?? item.localId,
+                    )
+                  }}
                   onRemove={onRemoveAttachment}
                 />
               </div>
@@ -611,6 +671,14 @@ export function ChatWorkspacePanel({
               (see ResponsePanel). Avoid a second under-composer callout. */}
         </form>
       </div>
+      {lightbox !== null && lightbox.items.length > 0 ? (
+        <AttachmentLightbox
+          initialIndex={lightbox.index}
+          items={lightbox.items}
+          loadContent={onLoadAttachmentContent}
+          onClose={() => setLightbox(null)}
+        />
+      ) : null}
     </Panel>
   )
 }
@@ -730,6 +798,7 @@ function ResponsePanel({
   errorDetail = null,
   heartbeatElapsedMs = null,
   onEditQuestion,
+  onOpenAttachment,
   onOpenSource,
   onQuestionChange,
   onRefineKnowledgeDraft,
@@ -750,6 +819,7 @@ function ResponsePanel({
   errorDetail?: string | null
   heartbeatElapsedMs?: number | null
   onEditQuestion?(text: string, turnId?: string): void
+  onOpenAttachment?(attachment: ChatMessageAttachmentRef): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onQuestionChange?(value: string): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
@@ -774,6 +844,7 @@ function ResponsePanel({
           appliedMemories={appliedMemories}
           attachments={attachments}
           drafts={drafts}
+          onOpenAttachment={onOpenAttachment}
           onOpenSource={onOpenSource}
           onRefineKnowledgeDraft={onRefineKnowledgeDraft}
           onSubmitKnowledgeDraft={onSubmitKnowledgeDraft}
@@ -1007,6 +1078,7 @@ function ResponsePanel({
             ? undefined
             : (text) => onEditQuestion(text)
         }
+        onOpenAttachment={onOpenAttachment}
         onOpenSource={onOpenSource}
         onRefineKnowledgeDraft={onRefineKnowledgeDraft}
         onRegenerateLastAnswer={
@@ -1030,6 +1102,7 @@ function ResponseContent({
   detailsInstanceId,
   drafts,
   onEditQuestion,
+  onOpenAttachment,
   onOpenSource,
   onRefineKnowledgeDraft,
   onRegenerateLastAnswer,
@@ -1050,6 +1123,7 @@ function ResponseContent({
   detailsInstanceId?: string
   drafts: ChatKnowledgeDraftMap
   onEditQuestion?(text: string): void
+  onOpenAttachment?(attachment: ChatMessageAttachmentRef): void
   onOpenSource(sourceId: string, citationSnippet: string | null): void
   onRefineKnowledgeDraft(draft: ChatKnowledgeDraft): void
   onRegenerateLastAnswer?(): void
@@ -1260,6 +1334,7 @@ function ResponseContent({
             ? () => onEditQuestion(question)
             : undefined
         }
+        onOpenAttachment={onOpenAttachment}
         question={question}
         sticky={questionSticky}
       />
@@ -1490,12 +1565,14 @@ function ChatRoleMarker() {
 function QuestionPrompt({
   attachments,
   onEdit,
+  onOpenAttachment,
   question,
   sticky = true,
 }: {
   /** Read-only attachment refs echoed from the user message metadata. */
   attachments?: ChatMessageAttachmentRef[]
   onEdit?(): void
+  onOpenAttachment?(attachment: ChatMessageAttachmentRef): void
   question: string | null
   /** Current turn sticks to the transcript top; prior turns flow normally. */
   sticky?: boolean
@@ -1563,17 +1640,34 @@ function QuestionPrompt({
             >
               {attachments.map((attachment) => (
                 <li
-                  className="flex max-w-[12rem] items-center gap-1.5 rounded-md border border-border/80 bg-background px-1.5 py-1 text-[11px] tracking-tight"
+                  className="max-w-[12rem]"
                   key={attachment.id}
                 >
-                  {attachment.kind === 'image' ? (
-                    <ImageIcon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <FileText aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="min-w-0 truncate text-foreground">
-                    {attachment.filename}
-                  </span>
+                  <button
+                    aria-label={`Open attachment ${attachment.filename}`}
+                    className={cn(
+                      'flex w-full items-center gap-1.5 rounded-md border border-border/80 bg-background px-1.5 py-1 text-left text-[11px] tracking-tight',
+                      'hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    )}
+                    data-slot="attachment-chip-open"
+                    onClick={() => onOpenAttachment?.(attachment)}
+                    type="button"
+                  >
+                    {attachment.kind === 'image' ? (
+                      <ImageIcon
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                      />
+                    ) : (
+                      <FileText
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                      />
+                    )}
+                    <span className="min-w-0 truncate text-foreground">
+                      {attachment.filename}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
