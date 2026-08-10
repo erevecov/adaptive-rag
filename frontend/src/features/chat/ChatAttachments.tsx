@@ -118,6 +118,9 @@ export function AttachmentChips({
   )
 }
 
+// Hook co-located with attachment UI for the composer; not a second entry
+// component, so fast-refresh export restriction does not apply usefully here.
+// eslint-disable-next-line react-refresh/only-export-components -- hook + UI share types
 export function useChatAttachments({
   upload,
   deleteRemote,
@@ -129,7 +132,10 @@ export function useChatAttachments({
 }) {
   const [attachments, setAttachments] = useState<LocalAttachment[]>([])
   const attachmentsRef = useRef(attachments)
-  attachmentsRef.current = attachments
+
+  useEffect(() => {
+    attachmentsRef.current = attachments
+  }, [attachments])
 
   const revokePreview = useCallback((url: string) => {
     if (url.startsWith('blob:')) {

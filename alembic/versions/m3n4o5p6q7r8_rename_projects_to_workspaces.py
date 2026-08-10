@@ -197,7 +197,11 @@ def _index_renames() -> list[tuple[str, str, str]]:
             "ix_graph_projections_project_status",
             "ix_graph_projections_workspace_status",
         ),
-        ("chat_attachments", "ix_chat_attachments_project_user", "ix_chat_attachments_workspace_user"),
+        (
+            "chat_attachments",
+            "ix_chat_attachments_project_user",
+            "ix_chat_attachments_workspace_user",
+        ),
         ("projects", "ix_projects_deleted_at", "ix_workspaces_deleted_at"),
         (
             "workspace_chat_models",
@@ -225,7 +229,11 @@ def _index_renames() -> list[tuple[str, str, str]]:
 def _check_renames() -> list[tuple[str, str, str]]:
     """(tabla, nombre_antiguo, nombre_nuevo)."""
     return [
-        ("workspaces", "projects_embedding_mode_check", "workspaces_embedding_mode_check"),
+        (
+            "workspaces",
+            "projects_embedding_mode_check",
+            "workspaces_embedding_mode_check",
+        ),
         (
             "workspace_memberships",
             "project_memberships_role_check",
@@ -362,33 +370,48 @@ def _fk_renames() -> list[tuple[str, str, str]]:
 def _rename_indexes(upgrading: bool) -> None:
     for _table, old_name, new_name in _index_renames():
         if upgrading:
-            op.execute(f'ALTER INDEX IF EXISTS "{old_name}" RENAME TO "{new_name}"')
+            op.execute(
+                f'ALTER INDEX IF EXISTS "{old_name}" RENAME TO "{new_name}"'
+            )
         else:
-            op.execute(f'ALTER INDEX IF EXISTS "{new_name}" RENAME TO "{old_name}"')
+            op.execute(
+                f'ALTER INDEX IF EXISTS "{new_name}" RENAME TO "{old_name}"'
+            )
+
+
+def _rename_table_constraint_sql(
+    table: str,
+    from_name: str,
+    to_name: str,
+) -> str:
+    return (
+        f'ALTER TABLE "{table}" '
+        f'RENAME CONSTRAINT "{from_name}" TO "{to_name}"'
+    )
 
 
 def _rename_check_constraints(upgrading: bool) -> None:
     for table, old_name, new_name in _check_renames():
         if upgrading:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{old_name}" TO "{new_name}"')
+            op.execute(_rename_table_constraint_sql(table, old_name, new_name))
         else:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{new_name}" TO "{old_name}"')
+            op.execute(_rename_table_constraint_sql(table, new_name, old_name))
 
 
 def _rename_unique_constraints(upgrading: bool) -> None:
     for table, old_name, new_name in _unique_renames():
         if upgrading:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{old_name}" TO "{new_name}"')
+            op.execute(_rename_table_constraint_sql(table, old_name, new_name))
         else:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{new_name}" TO "{old_name}"')
+            op.execute(_rename_table_constraint_sql(table, new_name, old_name))
 
 
 def _rename_fks(upgrading: bool) -> None:
     for table, old_name, new_name in _fk_renames():
         if upgrading:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{old_name}" TO "{new_name}"')
+            op.execute(_rename_table_constraint_sql(table, old_name, new_name))
         else:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{new_name}" TO "{old_name}"')
+            op.execute(_rename_table_constraint_sql(table, new_name, old_name))
 
 
 def _pkey_renames() -> list[tuple[str, str, str]]:
@@ -421,9 +444,9 @@ def _pkey_renames() -> list[tuple[str, str, str]]:
 def _rename_pkeys(upgrading: bool) -> None:
     for table, old_name, new_name in _pkey_renames():
         if upgrading:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{old_name}" TO "{new_name}"')
+            op.execute(_rename_table_constraint_sql(table, old_name, new_name))
         else:
-            op.execute(f'ALTER TABLE "{table}" RENAME CONSTRAINT "{new_name}" TO "{old_name}"')
+            op.execute(_rename_table_constraint_sql(table, new_name, old_name))
 
 
 def upgrade() -> None:
@@ -468,8 +491,14 @@ def downgrade() -> None:
     with op.batch_alter_table("users") as batch_op:
         batch_op.alter_column("last_workspace_id", new_column_name="last_project_id")
 
-    op.rename_table("workspace_chat_retrieval_settings", "project_chat_retrieval_settings")
+    op.rename_table(
+        "workspace_chat_retrieval_settings",
+        "project_chat_retrieval_settings",
+    )
     op.rename_table("workspace_chat_models", "project_chat_models")
-    op.rename_table("workspace_runtime_slot_overrides", "project_runtime_slot_overrides")
+    op.rename_table(
+        "workspace_runtime_slot_overrides",
+        "project_runtime_slot_overrides",
+    )
     op.rename_table("workspace_memberships", "project_memberships")
     op.rename_table("workspaces", "projects")

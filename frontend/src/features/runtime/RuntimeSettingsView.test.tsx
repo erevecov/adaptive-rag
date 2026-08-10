@@ -396,6 +396,52 @@ describe('ProviderModelCatalogView pricing', () => {
     expect(missingLines[0]?.textContent).toBe('No pricing')
     expect(screen.getAllByText('No pricing').length).toBeGreaterThanOrEqual(2)
   })
+
+  test('flags seeded service models on OpenAI-compatible Qwen base URLs', () => {
+    render(
+      <ProviderModelCatalogView
+        connections={providerConnections}
+        providerModels={pricedProviderModels}
+      />,
+    )
+
+    expect(screen.getAllByText('Endpoint risk').length).toBeGreaterThanOrEqual(
+      1,
+    )
+    const warnings = document.querySelectorAll(
+      '[data-endpoint-warning="true"]',
+    )
+    expect(warnings.length).toBeGreaterThanOrEqual(1)
+    for (const node of warnings) {
+      expect(node.textContent ?? '').not.toMatch(/qwen-plus/)
+    }
+  })
+})
+
+describe('Global Defaults endpoint warning', () => {
+  test('warns when dense embedding is bound to Token Plan style base URL', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      globalSlot: 'dense_embedding',
+      globalSlotConnectionId: 'qwen-hosted',
+      globalSlotModelId: 'text-embedding-v4',
+    })
+
+    const warning = screen.getByTestId('global-slot-endpoint-warning')
+    expect(warning.textContent ?? '').toMatch(/embedding/i)
+    expect(warning.textContent ?? '').toMatch(/Token Plan|OpenAI-compatible/i)
+  })
+
+  test('does not warn for chat on the same connection', () => {
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      globalSlot: 'chat',
+      globalSlotConnectionId: 'qwen-hosted',
+      globalSlotModelId: 'qwen-plus',
+    })
+
+    expect(screen.queryByTestId('global-slot-endpoint-warning')).toBeNull()
+  })
 })
 
 describe('RuntimeSettingsPanel', () => {

@@ -38,7 +38,9 @@ import {
   normalizeChatRetrievalLimit,
   providerLabel,
   providerModelOptions,
+  qwenServiceModelEndpointWarning,
   runtimeStatusLabel,
+  selectedSlotEndpointWarning,
   slotLabel,
   titleCaseToken,
   type ProviderModelOption,
@@ -224,6 +226,13 @@ export function RuntimeSettingsPanel({
     modelOptions: globalSlotModelOptions,
     target: globalSlot,
   })
+  const globalSlotEndpointWarning = selectedSlotEndpointWarning({
+    connections,
+    connectionId: globalSlotConnectionId,
+    modelId: globalSlotModelId,
+    providerModels,
+    capability: globalSlot,
+  })
   const chatSyncMessage = missingSyncedModelMessage({
     connectionId: chatConnectionId,
     modelOptions: chatModelOptions,
@@ -233,6 +242,13 @@ export function RuntimeSettingsPanel({
     connectionId: workspaceSlotConnectionId,
     modelOptions: workspaceSlotModelOptions,
     target: workspaceSlot,
+  })
+  const workspaceSlotEndpointWarning = selectedSlotEndpointWarning({
+    connections,
+    connectionId: workspaceSlotConnectionId,
+    modelId: workspaceSlotModelId,
+    providerModels,
+    capability: workspaceSlot,
   })
 
   const activePanel =
@@ -292,6 +308,7 @@ export function RuntimeSettingsPanel({
         globalSlot={globalSlot}
         globalSlotConnectionId={globalSlotConnectionId}
         globalSlotConnections={globalSlotConnections}
+        globalSlotEndpointWarning={globalSlotEndpointWarning}
         globalSlotModelId={globalSlotModelId}
         globalSlotModelOptions={globalSlotModelOptions}
         globalSlotSyncMessage={globalSlotSyncMessage}
@@ -334,6 +351,7 @@ export function RuntimeSettingsPanel({
         workspaceSlot={workspaceSlot}
         workspaceSlotConnectionId={workspaceSlotConnectionId}
         workspaceSlotConnections={workspaceSlotConnections}
+        workspaceSlotEndpointWarning={workspaceSlotEndpointWarning}
         workspaceSlotModelId={workspaceSlotModelId}
         workspaceSlotModelOptions={workspaceSlotModelOptions}
         workspaceSlotSyncMessage={workspaceSlotSyncMessage}
@@ -1093,6 +1111,7 @@ export function RuntimeModelCatalogPanel({
       ) : null}
 
       <ProviderModelCatalogView
+        connections={connections}
         isLoading={state === 'loading'}
         providerModels={providerModels}
       />
@@ -1114,6 +1133,7 @@ export function RuntimeGlobalDefaultsPanel({
   globalSlot,
   globalSlotConnectionId,
   globalSlotConnections,
+  globalSlotEndpointWarning,
   globalSlotModelId,
   globalSlotModelOptions,
   globalSlotSyncMessage,
@@ -1144,6 +1164,7 @@ export function RuntimeGlobalDefaultsPanel({
   globalSlot: string
   globalSlotConnectionId: string
   globalSlotConnections: ProviderConnection[]
+  globalSlotEndpointWarning: string | null
   globalSlotModelId: string
   globalSlotModelOptions: ProviderModelOption[]
   globalSlotSyncMessage: string | null
@@ -1220,6 +1241,16 @@ export function RuntimeGlobalDefaultsPanel({
         {globalSlotSyncMessage ? (
           <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status" tone="warning">
             {globalSlotSyncMessage}
+          </InlineFeedback>
+        ) : null}
+        {globalSlotEndpointWarning ? (
+          <InlineFeedback
+            className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter"
+            data-testid="global-slot-endpoint-warning"
+            role="status"
+            tone="warning"
+          >
+            {globalSlotEndpointWarning}
           </InlineFeedback>
         ) : null}
         <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={globalSlotSyncMessage !== null} type="submit">
@@ -1443,6 +1474,7 @@ export function RuntimeWorkspaceOverridesPanel({
   workspaceSlot,
   workspaceSlotConnectionId,
   workspaceSlotConnections,
+  workspaceSlotEndpointWarning,
   workspaceSlotModelId,
   workspaceSlotModelOptions,
   workspaceSlotSyncMessage,
@@ -1467,6 +1499,7 @@ export function RuntimeWorkspaceOverridesPanel({
   workspaceSlot: string
   workspaceSlotConnectionId: string
   workspaceSlotConnections: ProviderConnection[]
+  workspaceSlotEndpointWarning: string | null
   workspaceSlotModelId: string
   workspaceSlotModelOptions: ProviderModelOption[]
   workspaceSlotSyncMessage: string | null
@@ -1624,6 +1657,16 @@ export function RuntimeWorkspaceOverridesPanel({
         {workspaceSlotSyncMessage ? (
           <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" role="status" tone="warning">
             {workspaceSlotSyncMessage}
+          </InlineFeedback>
+        ) : null}
+        {workspaceSlotEndpointWarning ? (
+          <InlineFeedback
+            className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter"
+            data-testid="workspace-slot-endpoint-warning"
+            role="status"
+            tone="warning"
+          >
+            {workspaceSlotEndpointWarning}
           </InlineFeedback>
         ) : null}
         <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={workspaceSlotSyncMessage !== null} type="submit">
@@ -1785,12 +1828,17 @@ export function ProviderModelSelect({
 }
 
 export function ProviderModelCatalogView({
+  connections = [],
   isLoading = false,
   providerModels,
 }: {
+  connections?: ProviderConnection[]
   isLoading?: boolean
   providerModels: ProviderModel[]
 }) {
+  const connectionsById = new Map(
+    connections.map((connection) => [connection.connection_id, connection]),
+  )
   return (
     <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0">
       <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
@@ -1811,6 +1859,15 @@ export function ProviderModelCatalogView({
         <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
           {providerModels.map((model) => {
             const pricing = formatProviderModelPricing(model.pricing)
+            const connection = connectionsById.get(model.connection_id)
+            const endpointWarning =
+              connection === undefined
+                ? null
+                : qwenServiceModelEndpointWarning({
+                    provider: connection.provider,
+                    baseUrl: connection.base_url,
+                    capabilities: model.capabilities,
+                  })
             return (
               <DataListItem
                 className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
@@ -1833,13 +1890,32 @@ export function ProviderModelCatalogView({
                   >
                     {pricing.hasPricing ? pricing.summary : 'No pricing'}
                   </small>
+                  {endpointWarning ? (
+                    <small
+                      className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full text-xs text-amber-700 dark:text-amber-400 max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter"
+                      data-endpoint-warning="true"
+                      role="status"
+                    >
+                      {endpointWarning}
+                    </small>
+                  ) : null}
                 </div>
-                <Badge
-                  className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                  tone={pricing.hasPricing ? 'primary' : 'neutral'}
-                >
-                  {pricing.badgeLabel}
-                </Badge>
+                <div className="flex flex-wrap items-start gap-2 max-[680px]:gap-0">
+                  {endpointWarning ? (
+                    <Badge
+                      className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                      tone="warning"
+                    >
+                      Endpoint risk
+                    </Badge>
+                  ) : null}
+                  <Badge
+                    className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
+                    tone={pricing.hasPricing ? 'primary' : 'neutral'}
+                  >
+                    {pricing.badgeLabel}
+                  </Badge>
+                </div>
               </DataListItem>
             )
           })}

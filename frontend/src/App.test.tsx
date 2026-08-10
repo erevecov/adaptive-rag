@@ -176,6 +176,8 @@ function createClientStub(options: {
   askChatStream?: ApiClient['askChatStream']
   archiveChatSession?: ApiClient['archiveChatSession']
   deleteChatSession?: ApiClient['deleteChatSession']
+  uploadChatAttachment?: ApiClient['uploadChatAttachment']
+  deleteChatAttachment?: ApiClient['deleteChatAttachment']
   checkProviderConnection?: ApiClient['checkProviderConnection']
   createWorkspace?: ApiClient['createWorkspace']
   createProviderConnection?: ApiClient['createProviderConnection']
@@ -243,6 +245,8 @@ function createClientStub(options: {
     searchRetrieval: options.searchRetrieval ?? vi.fn(),
     archiveChatSession: options.archiveChatSession ?? vi.fn(),
     deleteChatSession: options.deleteChatSession ?? vi.fn(),
+    uploadChatAttachment: options.uploadChatAttachment ?? vi.fn(),
+    deleteChatAttachment: options.deleteChatAttachment ?? vi.fn(),
     checkProviderConnection: options.checkProviderConnection ?? vi.fn(),
     createWorkspace: options.createWorkspace ?? vi.fn(),
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
@@ -343,7 +347,13 @@ function createClientStub(options: {
     revokeAccessToken: options.revokeAccessToken ?? vi.fn(),
     setDefaultChatModel: vi.fn(),
     setDefaultWorkspaceChatModel: vi.fn(),
-    syncProviderModels: options.syncProviderModels ?? vi.fn(),
+    syncProviderModels:
+      options.syncProviderModels ??
+      vi.fn(async (connectionId: string) => ({
+        connection_id: connectionId,
+        items: [],
+        synced_count: 0,
+      })),
   }
 }
 

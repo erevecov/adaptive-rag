@@ -1,4 +1,7 @@
-import type { ProviderConnection, ProviderModel } from '@/lib/apiClient'
+import type {
+  ProviderConnection,
+  ProviderModel,
+} from '@/lib/apiClient'
 
 const DEFAULT_RETRIEVAL_LIMIT = 5
 
@@ -84,6 +87,108 @@ export function missingSyncedModelMessage({
     `No ${slot} models in the catalog for this connection. ` +
     `Open Model Catalog to sync, or pick a connection that exposes ${slot} models.`
   )
+}
+
+/**
+ * Warn when a Qwen catalog model’s capabilities need a DashScope service URL
+ * but the connection base_url is an OpenAI-compatible chat gateway (e.g. Bailian
+ * Token Plan). Those gateways often list/seed rerank+embed models that 404 live.
+ */
+export function qwenServiceModelEndpointWarning({
+  provider,
+  baseUrl,
+  capabilities,
+}: {
+  provider: string
+  baseUrl: string | null | undefined
+  capabilities: readonly string[]
+}): string | null {
+  if (provider !== 'qwen') {
+    return null
+  }
+  const base = (baseUrl ?? '').trim().replace(/\/+$/, '')
+  if (base.length === 0) {
+    return null
+  }
+  const caps = new Set(capabilities)
+  const needsRerank = caps.has('rerank')
+  const needsDense = caps.has('dense_embedding')
+  const needsSparse = caps.has('sparse_embedding')
+  if (!needsRerank && !needsDense && !needsSparse) {
+    return null
+  }
+
+  const isCompatMode = base.includes('/compatible-mode/')
+  const isNativeEmbed = base.includes('/services/embeddings/text-embedding')
+  const isNativeRerank = base.includes('/services/rerank/text-rerank')
+  const isDashscopeApiRoot = /\/api\/v1$/i.test(base) && !isCompatMode
+
+  if (needsSparse && !isNativeEmbed) {
+    return (
+      'Sparse embeddings need a DashScope native text-embedding URL ' +
+      '(…/services/embeddings/…), not an OpenAI-compatible chat base URL.'
+    )
+  }
+  if (needsDense && !isNativeEmbed && isCompatMode) {
+    return (
+      'This OpenAI-compatible base URL often lacks embedding APIs ' +
+      '(e.g. Bailian Token Plan returns 404). Prefer a DashScope embeddings endpoint.'
+    )
+  }
+  if (needsRerank && !isNativeRerank && !isDashscopeApiRoot) {
+    return (
+      'Rerank needs a DashScope API root (…/api/v1) or native text-rerank URL. ' +
+      'OpenAI-compatible chat gateways typically return 404 for qwen3-rerank.'
+    )
+  }
+  return null
+}
+
+export function connectionForId(
+  connections: ProviderConnection[],
+  connectionId: string,
+): ProviderConnection | null {
+  const trimmed = connectionId.trim()
+  if (trimmed.length === 0) {
+    return null
+  }
+  return (
+    connections.find((connection) => connection.connection_id === trimmed) ??
+    null
+  )
+}
+
+/** Slot/catalog warning for a selected connection + model capability set. */
+export function selectedSlotEndpointWarning({
+  connections,
+  connectionId,
+  modelId,
+  providerModels,
+  capability,
+}: {
+  connections: ProviderConnection[]
+  connectionId: string
+  modelId: string
+  providerModels: ProviderModel[]
+  capability: string
+}): string | null {
+  const connection = connectionForId(connections, connectionId)
+  if (connection === null || modelId.trim().length === 0) {
+    return null
+  }
+  const model = providerModels.find(
+    (row) =>
+      row.connection_id === connection.connection_id &&
+      row.model_id === modelId.trim(),
+  )
+  const capabilities =
+    model?.capabilities ??
+    (capability.trim().length > 0 ? [capability.trim()] : [])
+  return qwenServiceModelEndpointWarning({
+    provider: connection.provider,
+    baseUrl: connection.base_url,
+    capabilities,
+  })
 }
 
 export function providerModelOptions({
