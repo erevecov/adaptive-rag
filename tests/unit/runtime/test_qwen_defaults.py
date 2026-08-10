@@ -18,6 +18,7 @@ from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.runtime.qwen_defaults import (
     ensure_qwen_declared_capability_models,
     infer_qwen_model_capabilities,
+    is_qwen_native_sparse_base_url,
     materialize_qwen_runtime_defaults,
 )
 
@@ -234,6 +235,56 @@ def test_materializes_qwen_sparse_default_only_from_native_text_embedding_url() 
     assert sparse_default is not None
     assert sparse_default.connection_id == "qwen-native-sparse"
     assert sparse_default.model_id == "text-embedding-v4"
+
+
+def test_materializes_qwen_sparse_default_from_dashscope_api_v1_root() -> None:
+    """Single DashScope …/api/v1 connection is enough for sparse + rerank slots."""
+
+    session = _session()
+    _add_connection(
+        session,
+        connection_id="qwen-dashscope",
+        base_url="https://dashscope.example.test/api/v1",
+        capabilities=["dense_embedding", "sparse_embedding", "rerank"],
+    )
+    _add_model(
+        session,
+        connection_id="qwen-dashscope",
+        model_id="text-embedding-v4",
+        capabilities=["dense_embedding", "sparse_embedding"],
+    )
+    _add_model(
+        session,
+        connection_id="qwen-dashscope",
+        model_id="qwen3-rerank",
+        capabilities=["rerank"],
+    )
+
+    materialize_qwen_runtime_defaults(session)
+
+    sparse_default = session.get(RuntimeSlotDefault, "sparse_embedding")
+    dense_default = session.get(RuntimeSlotDefault, "dense_embedding")
+    rerank_default = session.get(RuntimeSlotDefault, "rerank")
+    assert sparse_default is not None
+    assert sparse_default.connection_id == "qwen-dashscope"
+    assert dense_default is not None
+    assert dense_default.connection_id == "qwen-dashscope"
+    assert rerank_default is not None
+    assert rerank_default.connection_id == "qwen-dashscope"
+
+
+def test_is_qwen_native_sparse_base_url_accepts_api_v1_root() -> None:
+    assert is_qwen_native_sparse_base_url(
+        "https://dashscope-intl.aliyuncs.com/api/v1"
+    )
+    assert is_qwen_native_sparse_base_url(
+        "https://dashscope.example.test/api/v1/services/embeddings/"
+        "text-embedding/text-embedding"
+    )
+    assert not is_qwen_native_sparse_base_url(
+        "https://token-plan.example.test/compatible-mode/v1"
+    )
+    assert not is_qwen_native_sparse_base_url("http://localhost:11434/v1")
 
 
 def test_materialize_qwen_defaults_preserves_existing_user_choices() -> None:

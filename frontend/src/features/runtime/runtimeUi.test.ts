@@ -88,7 +88,7 @@ describe('qwenServiceModelEndpointWarning', () => {
     ).toMatch(/Sparse embeddings/i)
   })
 
-  test('is silent for chat and for native DashScope service URLs', () => {
+  test('is silent for chat and for a single DashScope api/v1 root', () => {
     expect(
       qwenServiceModelEndpointWarning({
         provider: 'qwen',
@@ -97,11 +97,19 @@ describe('qwenServiceModelEndpointWarning', () => {
         capabilities: ['chat'],
       }),
     ).toBeNull()
+    const dashscopeRoot = 'https://dashscope-intl.aliyuncs.com/api/v1'
     expect(
       qwenServiceModelEndpointWarning({
         provider: 'qwen',
-        baseUrl: 'https://dashscope-intl.aliyuncs.com/api/v1',
+        baseUrl: dashscopeRoot,
         capabilities: ['rerank'],
+      }),
+    ).toBeNull()
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl: dashscopeRoot,
+        capabilities: ['dense_embedding', 'sparse_embedding'],
       }),
     ).toBeNull()
     expect(

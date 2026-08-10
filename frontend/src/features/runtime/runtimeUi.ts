@@ -119,23 +119,28 @@ export function qwenServiceModelEndpointWarning({
   }
 
   const isCompatMode = base.includes('/compatible-mode/')
-  const isNativeEmbed = base.includes('/services/embeddings/text-embedding')
+  const isNativeEmbedService = base.includes(
+    '/services/embeddings/text-embedding',
+  )
   const isNativeRerank = base.includes('/services/rerank/text-rerank')
+  // Single DashScope connection can host embed + rerank from the API root.
   const isDashscopeApiRoot = /\/api\/v1$/i.test(base) && !isCompatMode
+  const canServeNativeEmbed = isNativeEmbedService || isDashscopeApiRoot
+  const canServeRerank = isNativeRerank || isDashscopeApiRoot
 
-  if (needsSparse && !isNativeEmbed) {
+  if (needsSparse && !canServeNativeEmbed) {
     return (
-      'Sparse embeddings need a DashScope native text-embedding URL ' +
-      '(…/services/embeddings/…), not an OpenAI-compatible chat base URL.'
+      'Sparse embeddings need a DashScope API root (…/api/v1) or native ' +
+      'text-embedding service URL, not an OpenAI-compatible chat gateway.'
     )
   }
-  if (needsDense && !isNativeEmbed && isCompatMode) {
+  if (needsDense && !canServeNativeEmbed && isCompatMode) {
     return (
       'This OpenAI-compatible base URL often lacks embedding APIs ' +
-      '(e.g. Bailian Token Plan returns 404). Prefer a DashScope embeddings endpoint.'
+      '(e.g. Bailian Token Plan returns 404). Prefer a DashScope …/api/v1 connection.'
     )
   }
-  if (needsRerank && !isNativeRerank && !isDashscopeApiRoot) {
+  if (needsRerank && !canServeRerank) {
     return (
       'Rerank needs a DashScope API root (…/api/v1) or native text-rerank URL. ' +
       'OpenAI-compatible chat gateways typically return 404 for qwen3-rerank.'

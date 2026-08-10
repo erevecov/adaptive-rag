@@ -204,6 +204,95 @@ def test_qwen_http_client_posts_dashscope_embedding_payload() -> None:
     )
 
 
+def test_qwen_http_client_expands_dashscope_api_v1_root_to_native_embed() -> None:
+    """One DashScope connection (…/api/v1) serves dense embed + rerank."""
+
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "output": {
+                    "embeddings": [
+                        {"text_index": 0, "embedding": _vector(0.2)},
+                    ]
+                }
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://dashscope-intl.example.test/api/v1",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    embeddings = client.embed_texts(
+        model="text-embedding-v4",
+        texts=["alpha"],
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert embeddings == [_vector(0.2)]
+    assert len(requests) == 1
+    request = requests[0]
+    assert str(request.url) == (
+        "https://dashscope-intl.example.test/api/v1/services/embeddings/"
+        "text-embedding/text-embedding"
+    )
+    assert request.read() == (
+        b'{"model":"text-embedding-v4","input":{"texts":["alpha"]},'
+        b'"parameters":{"dimension":1024}}'
+    )
+
+
+def test_qwen_http_client_sparse_from_dashscope_api_v1_root() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "output": {
+                    "embeddings": [
+                        {
+                            "text_index": 0,
+                            "sparse_embedding": [
+                                {"index": 1, "value": 0.9, "token": "a"}
+                            ],
+                        }
+                    ]
+                }
+            },
+        )
+
+    client = QwenHTTPEmbeddingClient(
+        api_key="sk-test",
+        base_url="https://dashscope-intl.example.test/api/v1",
+        timeout_seconds=5.0,
+        max_retries=0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    vectors = client.embed_sparse_texts(
+        model="text-embedding-v4",
+        texts=["alpha"],
+        text_type="query",
+        dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+    assert len(vectors) == 1
+    assert len(requests) == 1
+    assert str(requests[0].url) == (
+        "https://dashscope-intl.example.test/api/v1/services/embeddings/"
+        "text-embedding/text-embedding"
+    )
+
+
 def test_qwen_http_client_batches_dashscope_embedding_payloads() -> None:
     requests: list[httpx.Request] = []
 

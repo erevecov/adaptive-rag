@@ -403,14 +403,31 @@ def _embedding_batches(texts: list[str]) -> tuple[list[str], ...]:
 
 
 def _is_openai_compatible_base(base_url: str) -> bool:
+    """Return whether base_url is an OpenAI-compatible embeddings gateway.
+
+    Bailian Token Plan and local OpenAI-style servers use ``…/v1`` or
+    ``…/compatible-mode/v1`` and expect ``POST …/embeddings``.
+
+    DashScope's service root is also ``…/api/v1``, but it is **not**
+    OpenAI-compatible for embeddings (``/api/v1/embeddings`` 404s). That root
+    must use the native text-embedding service path instead.
+    """
+
     value = base_url.rstrip("/")
-    return value.endswith("/v1") or "/compatible-mode/" in value
+    if "/compatible-mode/" in value:
+        return True
+    if value.endswith("/api/v1"):
+        return False
+    return value.endswith("/v1")
 
 
 def _embedding_endpoint(base_url: str) -> str:
     value = base_url.rstrip("/")
     if value.endswith("/embeddings") or value.endswith("/text-embedding"):
         return value
+    # DashScope API root → native multimodal embedding service (dense + sparse).
+    if value.endswith("/api/v1"):
+        return f"{value}/services/embeddings/text-embedding/text-embedding"
     return f"{value}/embeddings"
 
 

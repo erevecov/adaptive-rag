@@ -204,16 +204,28 @@ def materialize_qwen_runtime_defaults(
 
 
 def is_qwen_native_sparse_base_url(base_url: str | None) -> bool:
-    """Return whether a Qwen base URL can serve native sparse embeddings."""
+    """Return whether a Qwen base URL can serve native sparse embeddings.
+
+    Accepts either the full DashScope text-embedding service URL or the API
+    root (``…/api/v1``), which the embedding client expands to the service path.
+    OpenAI-compatible chat gateways (Token Plan ``compatible-mode``, bare
+    ``…/v1``) cannot serve sparse embeddings.
+    """
 
     if base_url is None:
         return False
     normalized = base_url.strip().rstrip("/")
     if not normalized:
         return False
-    if "/compatible-mode/" in normalized or normalized.endswith("/v1"):
+    if "/compatible-mode/" in normalized:
         return False
-    return "/services/embeddings/text-embedding" in normalized
+    if "/services/embeddings/text-embedding" in normalized:
+        return True
+    if normalized.endswith("/api/v1"):
+        return True
+    if normalized.endswith("/v1"):
+        return False
+    return False
 
 
 def _qwen_catalog_candidate(
