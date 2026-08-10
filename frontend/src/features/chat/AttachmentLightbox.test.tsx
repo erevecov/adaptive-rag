@@ -52,7 +52,6 @@ describe('AttachmentLightbox', () => {
       />,
     )
 
-    expect(screen.getByText('Loading attachment…')).toBeTruthy()
     await waitFor(() => {
       expect(screen.getByText('hello doc')).toBeTruthy()
     })

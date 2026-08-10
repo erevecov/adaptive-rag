@@ -16,6 +16,12 @@ export type AttachmentLightboxItem = {
   previewUrl?: string | null
 }
 
+type RemoteLoadState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; objectUrl: string | null; textContent: string | null }
+  | { status: 'failed'; error: string }
+
 export function AttachmentLightbox({
   item,
   loadContent,
@@ -28,15 +34,12 @@ export function AttachmentLightbox({
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const [objectUrl, setObjectUrl] = useState<string | null>(
-    item.previewUrl ?? null,
-  )
-  const [textContent, setTextContent] = useState<string | null>(null)
-  const [state, setState] = useState<'loading' | 'ready' | 'failed'>(
-    item.previewUrl ? 'ready' : 'loading',
-  )
-  const [error, setError] = useState<string | null>(null)
   const ownedUrlRef = useRef<string | null>(null)
+  const localPreview = item.previewUrl?.trim() ?? ''
+  const hasLocalPreview = localPreview.length > 0
+
+  const [localText, setLocalText] = useState<string | null>(null)
+  const [remote, setRemote] = useState<RemoteLoadState>({ status: 'idle' })
 
   useFocusTrap(dialogRef, true)
 
@@ -55,77 +58,83 @@ export function AttachmentLightbox({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  // Local text/markdown: read blob URL asynchronously (no sync setState).
   useEffect(() => {
+    if (!hasLocalPreview || !isTextLikeMime(item.mime)) {
+      return
+    }
     let cancelled = false
-    const localPreview = item.previewUrl?.trim() ?? ''
-    if (localPreview.length > 0) {
-      setObjectUrl(localPreview)
-      setState('ready')
-      setError(null)
-      // Load text for local text files so docs are readable.
-      if (isTextLikeMime(item.mime) && loadContent === undefined) {
-        // previewUrl alone is enough for images; text needs blob read if File
-        // was not passed — leave image/doc-with-preview as URL-only.
-        return
-      }
-      if (isTextLikeMime(item.mime)) {
-        void fetch(localPreview)
-          .then((response) => response.text())
-          .then((text) => {
-            if (!cancelled) {
-              setTextContent(text)
-            }
-          })
-          .catch(() => {
-            /* image path still works via objectUrl */
-          })
-      }
-      return
-    }
-
-    if (loadContent === undefined) {
-      setState('failed')
-      setError('Attachment preview is not available.')
-      return
-    }
-
-    setState('loading')
-    setError(null)
-    setTextContent(null)
-    void loadContent(item.id)
-      .then(async (blob) => {
-        if (cancelled) {
-          return
+    void fetch(localPreview)
+      .then((response) => response.text())
+      .then((text) => {
+        if (!cancelled) {
+          setLocalText(text)
         }
-        if (isTextLikeMime(item.mime) || isTextLikeMime(blob.type)) {
-          const text = await blob.text()
-          if (cancelled) {
-            return
-          }
-          setTextContent(text)
-          setState('ready')
-          return
-        }
-        const url = URL.createObjectURL(blob)
-        if (ownedUrlRef.current !== null) {
-          URL.revokeObjectURL(ownedUrlRef.current)
-        }
-        ownedUrlRef.current = url
-        setObjectUrl(url)
-        setState('ready')
       })
-      .catch((err: unknown) => {
-        if (cancelled) {
-          return
-        }
-        setState('failed')
-        setError(err instanceof Error ? err.message : 'Failed to load attachment.')
+      .catch(() => {
+        /* image path still works via localPreview */
       })
-
     return () => {
       cancelled = true
     }
-  }, [item.id, item.mime, item.previewUrl, loadContent])
+  }, [hasLocalPreview, item.mime, localPreview])
+
+  // Remote content: load once when the lightbox opens without a local preview.
+  useEffect(() => {
+    if (hasLocalPreview) {
+      return
+    }
+    if (loadContent === undefined) {
+      // Defer setState out of the synchronous effect body.
+      const timer = window.setTimeout(() => {
+        setRemote({
+          status: 'failed',
+          error: 'Attachment preview is not available.',
+        })
+      }, 0)
+      return () => window.clearTimeout(timer)
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setRemote({ status: 'loading' })
+      void loadContent(item.id)
+        .then(async (blob) => {
+          if (cancelled) {
+            return
+          }
+          if (isTextLikeMime(item.mime) || isTextLikeMime(blob.type)) {
+            const text = await blob.text()
+            if (cancelled) {
+              return
+            }
+            setRemote({ status: 'ready', objectUrl: null, textContent: text })
+            return
+          }
+          const url = URL.createObjectURL(blob)
+          if (ownedUrlRef.current !== null) {
+            URL.revokeObjectURL(ownedUrlRef.current)
+          }
+          ownedUrlRef.current = url
+          setRemote({ status: 'ready', objectUrl: url, textContent: null })
+        })
+        .catch((err: unknown) => {
+          if (cancelled) {
+            return
+          }
+          setRemote({
+            status: 'failed',
+            error:
+              err instanceof Error ? err.message : 'Failed to load attachment.',
+          })
+        })
+    }, 0)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [hasLocalPreview, item.id, item.mime, loadContent])
 
   useEffect(() => {
     return () => {
@@ -136,10 +145,31 @@ export function AttachmentLightbox({
     }
   }, [])
 
+  const objectUrl = hasLocalPreview
+    ? localPreview
+    : remote.status === 'ready'
+      ? remote.objectUrl
+      : null
+  const textContent = hasLocalPreview
+    ? localText
+    : remote.status === 'ready'
+      ? remote.textContent
+      : null
+  const isLoading = !hasLocalPreview && remote.status === 'loading'
+  const isFailed =
+    !hasLocalPreview &&
+    (remote.status === 'failed' ||
+      (remote.status === 'idle' && loadContent === undefined))
+  const errorMessage =
+    remote.status === 'failed' ? remote.error : 'Attachment preview is not available.'
+  const isReady =
+    hasLocalPreview || remote.status === 'ready' || (hasLocalPreview && true)
+
   const isImage = item.kind === 'image' || item.mime.startsWith('image/')
   const isPdf =
-    item.mime === 'application/pdf' || item.filename.toLowerCase().endsWith('.pdf')
-  const isText = textContent !== null || isTextLikeMime(item.mime)
+    item.mime === 'application/pdf' ||
+    item.filename.toLowerCase().endsWith('.pdf')
+  const showText = textContent !== null
 
   return (
     <div
@@ -205,7 +235,7 @@ export function AttachmentLightbox({
           </div>
         </header>
         <div className="min-h-0 overflow-auto p-3 max-[680px]:p-2">
-          {state === 'loading' ? (
+          {isLoading ? (
             <p
               aria-busy="true"
               className="text-sm text-muted-foreground"
@@ -215,12 +245,12 @@ export function AttachmentLightbox({
               Loading attachment…
             </p>
           ) : null}
-          {state === 'failed' ? (
+          {isFailed ? (
             <InlineFeedback role="alert" tone="danger">
-              {error ?? 'Failed to load attachment.'}
+              {errorMessage}
             </InlineFeedback>
           ) : null}
-          {state === 'ready' && isImage && objectUrl !== null ? (
+          {isReady && isImage && objectUrl !== null ? (
             <img
               alt={item.filename}
               className="mx-auto max-h-[min(80vh,800px)] max-w-full object-contain"
@@ -228,7 +258,7 @@ export function AttachmentLightbox({
               src={objectUrl}
             />
           ) : null}
-          {state === 'ready' && isPdf && objectUrl !== null ? (
+          {isReady && isPdf && objectUrl !== null ? (
             <iframe
               className="h-[min(75vh,720px)] w-full rounded-md border border-border"
               data-slot="attachment-lightbox-pdf"
@@ -236,7 +266,7 @@ export function AttachmentLightbox({
               title={item.filename}
             />
           ) : null}
-          {state === 'ready' && isText && textContent !== null ? (
+          {isReady && showText ? (
             <pre
               className="max-h-[min(75vh,720px)] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/20 p-3 text-xs leading-relaxed text-foreground"
               data-slot="attachment-lightbox-text"
@@ -244,10 +274,10 @@ export function AttachmentLightbox({
               {textContent}
             </pre>
           ) : null}
-          {state === 'ready' &&
+          {isReady &&
           !isImage &&
           !isPdf &&
-          textContent === null &&
+          !showText &&
           objectUrl !== null ? (
             <div
               className="grid gap-3 p-2 text-sm text-muted-foreground"
