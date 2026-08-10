@@ -31,6 +31,7 @@ from adaptive_rag.provider_runtime import (
     get_chat_runner,
     get_dense_embedding_provider,
     get_sparse_embedding_provider,
+    get_vision_chat_runner,
 )
 from adaptive_rag.retrieval import RetrievalService
 
@@ -182,6 +183,7 @@ def runtime_settings_acceptance_report_payload(
                 "contextualization": _slot_payload(
                     report.global_slots["contextualization"]
                 ),
+                "vision": _slot_payload(report.global_slots["vision"]),
             },
             "effective_workspace_settings": {
                 "chat": _slot_payload(report.effective_slots["chat"]),
@@ -194,6 +196,7 @@ def runtime_settings_acceptance_report_payload(
                 "contextualization": _slot_payload(
                     report.effective_slots["contextualization"]
                 ),
+                "vision": _slot_payload(report.effective_slots["vision"]),
             },
             "resolved_runtime": {
                 "chat": _resolved_slot_payload(report.resolved_runtime["chat"]),
@@ -202,6 +205,9 @@ def runtime_settings_acceptance_report_payload(
                 ),
                 "sparse_embedding": _resolved_slot_payload(
                     report.resolved_runtime["sparse_embedding"]
+                ),
+                "vision": _resolved_slot_payload(
+                    report.resolved_runtime["vision"]
                 ),
             },
         },
@@ -228,6 +234,7 @@ def _configure_global_fake_connection(
             "sparse_embedding",
             "rerank",
             "contextualization",
+            "vision",
         ],
         metadata={"label": "Runtime acceptance fake"},
     )
@@ -265,6 +272,10 @@ def _required_model_ids(
         "contextualization": _model_id_for_capability(
             model_catalog,
             "contextualization",
+        ),
+        "vision": _model_id_for_capability(
+            model_catalog,
+            "vision",
         ),
     }
 
@@ -305,6 +316,11 @@ def _configure_global_defaults(
         slot="contextualization",
         connection_id=connection.connection_id,
         model_id=model_ids["contextualization"],
+    )
+    runtime.upsert_slot_default(
+        slot="vision",
+        connection_id=connection.connection_id,
+        model_id=model_ids["vision"],
     )
 
 
@@ -473,6 +489,12 @@ def _resolved_runtime(
         workspace_id=workspace_id,
         session=session,
     )
+    vision_runner = get_vision_chat_runner(
+        workspace_id=workspace_id,
+        session=session,
+    )
+    if vision_runner is None:
+        raise AcceptanceError("runtime acceptance vision slot did not resolve")
     return {
         "chat": {
             "provider": _provider_name(chat_runner, effective_slots["chat"]),
@@ -500,6 +522,11 @@ def _resolved_runtime(
                 sparse_provider,
                 effective_slots["sparse_embedding"],
             ),
+        },
+        "vision": {
+            "provider": _provider_name(vision_runner, effective_slots["vision"]),
+            "connection_id": effective_slots["vision"]["connection_id"],
+            "model_id": _model_name(vision_runner, effective_slots["vision"]),
         },
     }
 

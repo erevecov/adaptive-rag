@@ -173,6 +173,9 @@ def _fake_models(connection: ProviderConnection) -> list[ProviderModelInfo]:
         "sparse_embedding": "fake-sparse-embedding-v1",
         "rerank": "fake-rerank-v1",
         "contextualization": "deterministic-context-v1",
+        # The grounded local runner accepts images, so vision folds into the
+        # same catalog model (("chat", "vision") like hosted VL models).
+        "vision": "retrieval-grounded-local-v1",
     }
     models: dict[str, list[str]] = {}
     for capability in connection.capabilities_json:

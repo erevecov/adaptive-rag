@@ -87,7 +87,9 @@ import {
 } from './lib/theme'
 import {
   applyChatStepEvent,
+  parseChatAttachmentsFromMetadata,
   parseChatStepsFromMetadata,
+  type ChatMessageAttachmentRef,
   type ChatStepEvent,
 } from './lib/chatSteps'
 import { cn } from '@/lib/utils'
@@ -163,6 +165,10 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const [activeResponseQuestion, setActiveResponseQuestion] = useState<
     string | null
   >(null)
+  /** Attachment refs of the live turn (echo chips until metadata rehydrates). */
+  const [activeResponseAttachments, setActiveResponseAttachments] = useState<
+    ChatMessageAttachmentRef[]
+  >([])
   const [knowledgeDrafts, setKnowledgeDrafts] =
     useState<ChatKnowledgeDraftMap>({})
   const [sourceViewer, setSourceViewer] = useState<SourceViewerState>({
@@ -718,6 +724,10 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
           id: `local-${Date.now()}`,
           question: activeResponseQuestion,
           answer: answerText,
+          attachments:
+            activeResponseAttachments.length > 0
+              ? activeResponseAttachments
+              : undefined,
           citations: response?.citations ?? [],
           steps: response?.steps,
           tool_calls: response?.tool_calls ?? [],
@@ -742,6 +752,15 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     const readyAttachmentIds = chatAttachments.readyAttachments.map(
       (item) => item.attachmentId,
     )
+    // Snapshot refs so the just-sent bubble shows chips before any reload.
+    const readyAttachmentRefs: ChatMessageAttachmentRef[] =
+      chatAttachments.readyAttachments.map((item) => ({
+        id: item.attachmentId,
+        filename: item.file.name,
+        kind: item.kind ?? 'document',
+        mime: item.mime ?? item.file.type,
+      }))
+    setActiveResponseAttachments(readyAttachmentRefs)
     const requestBody = {
       message: trimmedQuestion,
       ...(continueSessionId === null ? {} : { session_id: continueSessionId }),
@@ -1041,6 +1060,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
       })
       setResponse(null)
       setActiveResponseQuestion(null)
+      setActiveResponseAttachments([])
       setRequestState('idle')
       setRequestError(null)
     }
@@ -1290,6 +1310,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     setQuestion('')
     setResponse(null)
     setActiveResponseQuestion(null)
+    setActiveResponseAttachments([])
     setPriorTurns([])
     setSelectedSessionId(null)
     setSessionDetail(null)
@@ -1427,6 +1448,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     handleChangeActiveView('chat')
     setQuestion('')
     setActiveResponseQuestion(null)
+    setActiveResponseAttachments([])
     setSelectedSessionId(sessionId)
     setPriorTurns([])
     setFocusedTurn(null)
@@ -1471,6 +1493,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
           tool_calls: latest.tool_calls,
         })
         setActiveResponseQuestion(latest.question)
+        setActiveResponseAttachments(latest.attachments ?? [])
         if (sessionStatus === 'failed') {
           setRequestState('failed')
           setRequestError(
@@ -2724,6 +2747,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
             >
               <ChatWorkspacePanel
                 activeResponseQuestion={activeResponseQuestion}
+                activeResponseAttachments={activeResponseAttachments}
                 appliedMemories={appliedMemories}
                 attachmentAccept={chatAttachments.accept}
                 attachments={chatAttachments.attachments}
@@ -3457,6 +3481,7 @@ function transcriptTurnsFromSessionDetail(
       assistantMessageId: assistantMessage?.message_id ?? null,
       question,
       answer: assistantMessage?.content ?? '',
+      attachments: parseChatAttachmentsFromMetadata(message.metadata ?? null),
       citations: turnRetrievalRuns.flatMap((run) =>
         run.retrieved_chunks.map((chunk) => retrievalResultFromHistory(chunk)),
       ),

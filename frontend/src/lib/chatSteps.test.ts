@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   applyChatStepEvent,
   formatStepDuration,
+  parseChatAttachmentsFromMetadata,
   parseChatStepsFromMetadata,
   summarizeContextWindow,
   summarizeCurrentStep,
@@ -63,6 +64,65 @@ describe('chatSteps', () => {
     expect(steps).toHaveLength(1)
     expect(steps[0].id).toBe('answer')
     expect(steps[0].usage?.model).toBe('qwen-plus')
+  })
+
+  test('parses valid persisted attachment refs from user message metadata', () => {
+    const refs = parseChatAttachmentsFromMetadata({
+      attachments: [
+        {
+          id: 'att-1',
+          filename: 'architecture.png',
+          kind: 'image',
+          mime: 'image/png',
+        },
+        {
+          id: 'att-2',
+          filename: 'notes.md',
+          kind: 'document',
+          mime: 'text/markdown',
+        },
+      ],
+    })
+
+    expect(refs).toEqual([
+      {
+        id: 'att-1',
+        filename: 'architecture.png',
+        kind: 'image',
+        mime: 'image/png',
+      },
+      {
+        id: 'att-2',
+        filename: 'notes.md',
+        kind: 'document',
+        mime: 'text/markdown',
+      },
+    ])
+  })
+
+  test('returns no attachment refs when metadata is missing or not a list', () => {
+    expect(parseChatAttachmentsFromMetadata(null)).toEqual([])
+    expect(parseChatAttachmentsFromMetadata({})).toEqual([])
+    expect(parseChatAttachmentsFromMetadata({ attachments: 'nope' })).toEqual([])
+    expect(parseChatAttachmentsFromMetadata({ attachments: [] })).toEqual([])
+  })
+
+  test('drops malformed attachment refs and keeps valid ones', () => {
+    const refs = parseChatAttachmentsFromMetadata({
+      attachments: [
+        { id: 'att-1', filename: 'ok.pdf', kind: 'document', mime: 'application/pdf' },
+        { id: '', filename: 'no-id.png', kind: 'image', mime: 'image/png' },
+        { id: 'att-2', kind: 'image', mime: 'image/png' },
+        { id: 'att-3', filename: 'no-kind.png', mime: 'image/png' },
+        { id: 'att-4', filename: 'no-mime.png', kind: 'image' },
+        { id: 'att-5', filename: 42, kind: 'document', mime: 'text/plain' },
+        'not a ref',
+      ],
+    })
+
+    expect(refs).toEqual([
+      { id: 'att-1', filename: 'ok.pdf', kind: 'document', mime: 'application/pdf' },
+    ])
   })
 
   test('formats duration and current ticker labels without inventing values', () => {
