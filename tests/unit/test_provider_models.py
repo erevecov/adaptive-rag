@@ -209,7 +209,7 @@ def test_qwen_model_lister_infers_safe_capabilities_when_provider_is_silent() ->
     models = lister.list_models(connection, api_key="sk-hosted-secret")
 
     assert [(model.model_id, model.capabilities) for model in models] == [
-        ("qwen-plus", ("chat",)),
+        ("qwen-plus", ("chat", "contextualization")),
         ("text-embedding-v4", ("dense_embedding", "sparse_embedding")),
         ("qwen3-rerank", ("rerank",)),
     ]
