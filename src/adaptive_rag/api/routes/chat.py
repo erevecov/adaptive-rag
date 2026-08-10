@@ -34,6 +34,7 @@ from adaptive_rag.api.schemas.chat import (
 )
 from adaptive_rag.auth import CurrentPrincipal
 from adaptive_rag.chat import ChatRequest, ChatService, ChatServiceError
+from adaptive_rag.chat.attachments import ChatAttachmentError
 from adaptive_rag.chat.streaming import ChatStreamEvent, serialize_chat_stream_event
 from adaptive_rag.db.models import Workspace
 from adaptive_rag.db.repositories import (
@@ -295,6 +296,14 @@ def stream_chat(
             )
 
         events = service.stream(request, enrich_request=_enrich)
+    except ChatAttachmentError as exc:
+        _release_chat_flight(flight_key)
+        _release_chat_user_flight(user_flight_key)
+        _commit_or_rollback_chat_error(session)
+        raise HTTPException(
+            status_code=422,
+            detail=exc.to_payload().as_dict(),
+        ) from exc
     except ChatServiceError as exc:
         _release_chat_flight(flight_key)
         _release_chat_user_flight(user_flight_key)
@@ -344,6 +353,12 @@ def chat(
         )
         response = service.respond(request)
         session.commit()
+    except ChatAttachmentError as exc:
+        _commit_or_rollback_chat_error(session)
+        raise HTTPException(
+            status_code=422,
+            detail=exc.to_payload().as_dict(),
+        ) from exc
     except ChatServiceError as exc:
         _commit_or_rollback_chat_error(session)
         raise HTTPException(
