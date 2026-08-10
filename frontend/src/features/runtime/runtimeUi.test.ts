@@ -9,6 +9,7 @@ import {
   formatProviderModelPricing,
   missingSyncedModelMessage,
   providerLabel,
+  qwenServiceModelEndpointWarning,
   slotLabel,
 } from './runtimeUi'
 
@@ -57,6 +58,60 @@ describe('runtimeUi labels', () => {
       'No Dense Embedding models in the catalog for this connection. ' +
         'Open Model Catalog to sync, or pick a connection that exposes Dense Embedding models.',
     )
+  })
+})
+
+describe('qwenServiceModelEndpointWarning', () => {
+  test('warns for rerank/embed on Bailian Token Plan compatible-mode URL', () => {
+    const baseUrl =
+      'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1'
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl,
+        capabilities: ['rerank'],
+      }),
+    ).toMatch(/DashScope|404/i)
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl,
+        capabilities: ['dense_embedding'],
+      }),
+    ).toMatch(/embedding/i)
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl,
+        capabilities: ['sparse_embedding'],
+      }),
+    ).toMatch(/Sparse embeddings/i)
+  })
+
+  test('is silent for chat and for native DashScope service URLs', () => {
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl:
+          'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1',
+        capabilities: ['chat'],
+      }),
+    ).toBeNull()
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl: 'https://dashscope-intl.aliyuncs.com/api/v1',
+        capabilities: ['rerank'],
+      }),
+    ).toBeNull()
+    expect(
+      qwenServiceModelEndpointWarning({
+        provider: 'qwen',
+        baseUrl:
+          'https://dashscope-intl.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding',
+        capabilities: ['dense_embedding', 'sparse_embedding'],
+      }),
+    ).toBeNull()
   })
 })
 
