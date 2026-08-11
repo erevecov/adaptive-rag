@@ -668,9 +668,10 @@ caller-supplied points; do not add `liveline` or a demo series.
 
 `index.ts` exports the component and public prop types from every catalog file.
 `README.md` records the source URL, inspection date `2026-08-11`, original name,
-internal name, removed dependency and adoption status. Mark only
-`SelectionToolbar` as `adapted-reserved`; all others are `adapted-adopted` once
-Tasks 6-9 complete.
+internal name, removed dependency and adoption status. At this task boundary,
+mark `SelectionToolbar` as `adapted-reserved` and the other 18 components as
+`adapted-planned`. Task 10 promotes only components with a real consumer to
+`adapted-adopted`.
 
 - [ ] **Step 5: Run GREEN, typecheck and catalog mutation check**
 
@@ -728,11 +729,13 @@ Expected: FAIL because the current views do not render the new pattern slots.
 
 - [ ] **Step 3: Replace presentation with pattern composition**
 
-Map current navigation arrays into `WorkspaceNavigation`. Add `CommandSearch`
-only to lists long enough to benefit; do not remove existing session filters.
+Map current navigation arrays into `WorkspaceNavigation`. Render
+`CommandSearch` for session lists containing at least five items; do not remove
+existing session filters.
 Replace inspector loading skeletons with `LoadingGrid`, context lists with
 `ContextChunkList`, and internal action steps with `ReasoningTrace`. Preserve
-overlay and mobile logic exactly.
+overlay and mobile logic exactly. Remove obsolete `data-chat-radius` attributes
+from shell-owned chat containers after the global square foundation is active.
 
 - [ ] **Step 4: Run GREEN and commit**
 
@@ -796,7 +799,8 @@ without moving feature-owned handlers. Refactor `ChatPipelineSteps` to render
 `ReasoningTrace`. Use `StreamingAnswer` around assistant content,
 `ToolActivity` for tool details, `ContextChunkList` for retrieved evidence and
 `CodeStream` for fenced code. Use `LoadingGrid` for retrieval loading without
-replacing error/empty feedback.
+replacing error/empty feedback. Remove obsolete `data-chat-radius` attributes
+from chat-owned containers.
 
 - [ ] **Step 4: Run GREEN and commit**
 
@@ -845,8 +849,9 @@ Expected: FAIL because current lists do not expose the new pattern contracts.
 
 - [ ] **Step 3: Map existing domain flows to patterns**
 
-Use `RecordsGrid` for data-dense workspaces/users/sources where it improves
-scanability; keep compact lists where actions require card layout. Use
+Use `RecordsGrid` for workspaces, users and sources; keep memberships and
+proposals in action-oriented card layouts. Render `CommandSearch` for each of
+those record collections when it contains at least five items. Use
 `RecommendationPanel` plus `ApprovalPrompt` for actual proposal lifecycle
 actions and `ChangeTable` only when both original and proposed values exist.
 Use `AgentTaskList`/`FilteredTaskTable` for ingestion jobs and `LoadingGrid` for
