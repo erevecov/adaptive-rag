@@ -374,22 +374,38 @@ function ObservabilityInsights({ summary }: { summary: ChatObservabilitySummary 
     summary.errors.session_error_count + summary.errors.provider_error_count
   const insights: InsightItem[] = [
     {
-      body: `${formatNumber(summary.sessions.total)} filtered chat sessions.`,
+      body: (
+        <span className="tabular-nums">
+          {formatNumber(summary.sessions.total)} filtered chat sessions.
+        </span>
+      ),
       id: 'sessions',
       title: 'Sessions',
     },
     {
-      body: `${formatNumber(summary.provider_usage.total_records)} provider usage records.`,
+      body: (
+        <span className="tabular-nums">
+          {formatNumber(summary.provider_usage.total_records)} provider usage records.
+        </span>
+      ),
       id: 'provider-calls',
       title: 'Provider Calls',
     },
     {
-      body: `${formatUsd(summary.provider_usage.total_estimated_cost_usd)} estimated cost from known usage.`,
+      body: (
+        <span className="tabular-nums">
+          {formatUsd(summary.provider_usage.total_estimated_cost_usd)} estimated cost from known usage.
+        </span>
+      ),
       id: 'estimated-cost',
       title: 'Estimated Cost',
     },
     {
-      body: `${formatNumber(errorCount)} session and provider errors.`,
+      body: (
+        <span className="tabular-nums">
+          {formatNumber(errorCount)} session and provider errors.
+        </span>
+      ),
       id: 'errors',
       title: 'Errors',
     },
@@ -397,7 +413,11 @@ function ObservabilityInsights({ summary }: { summary: ChatObservabilitySummary 
       body:
         slowestP95 === null
           ? 'No known provider latency.'
-          : `${formatNullableMs(slowestP95.latency_ms.p95)} slowest provider P95 latency.`,
+          : (
+              <span className="tabular-nums">
+                {formatNullableMs(slowestP95.latency_ms.p95)} slowest provider P95 latency.
+              </span>
+            ),
       id: 'latency',
       title: 'Latency',
     },
@@ -420,12 +440,12 @@ function ObservabilitySummaryMetrics({
       <MetricCard
         detail="Filtered Chat Sessions"
         label="Sessions"
-        value={String(summary.sessions.total)}
+        value={formatNumber(summary.sessions.total)}
       />
       <MetricCard
         detail={`${summary.provider_usage.missing_cost_count} Missing Cost`}
         label="Provider Calls"
-        value={String(summary.provider_usage.total_records)}
+        value={formatNumber(summary.provider_usage.total_records)}
       />
       <MetricCard
         detail="Known Usage Only"
@@ -435,7 +455,7 @@ function ObservabilitySummaryMetrics({
       <MetricCard
         detail={`${summary.errors.session_error_count} Sessions / ${summary.errors.provider_error_count} Providers`}
         label="Errors"
-        value={String(errorCount)}
+        value={formatNumber(errorCount)}
       />
       <MetricCard
         detail={
@@ -444,7 +464,7 @@ function ObservabilitySummaryMetrics({
             : `Slowest P95 ${slowestP95.provider} / ${slowestP95.model}`
         }
         label="Latency"
-        value={slowestP95 === null ? 'No P95' : `${slowestP95.latency_ms.p95} ms`}
+        value={slowestP95 === null ? 'No P95' : formatNullableMs(slowestP95.latency_ms.p95)}
       />
     </MetricGrid>
   )
@@ -461,7 +481,7 @@ function ObservabilityCostsContent({
         <MetricCard
           detail={`${summary.provider_usage.groups.length} Provider Groups`}
           label="Provider Calls"
-          value={String(summary.provider_usage.total_records)}
+          value={formatNumber(summary.provider_usage.total_records)}
         />
         <MetricCard
           detail="Known Usage Only"
@@ -471,7 +491,7 @@ function ObservabilityCostsContent({
         <MetricCard
           detail="Usage Records Without Cost"
           label="Missing Costs"
-          value={String(summary.provider_usage.missing_cost_count)}
+          value={formatNumber(summary.provider_usage.missing_cost_count)}
         />
       </MetricGrid>
       <div className="min-w-0 grid gap-3 max-[680px]:gap-0">
@@ -495,17 +515,17 @@ function ObservabilityErrorsContent({
         <MetricCard
           detail={`${summary.errors.session_error_count} Sessions / ${summary.errors.provider_error_count} Providers`}
           label="Errors"
-          value={String(errorCount)}
+          value={formatNumber(errorCount)}
         />
         <MetricCard
           detail={`${summary.sessions.total} Sessions in Filter`}
           label="Failed Sessions"
-          value={String(summary.sessions.by_status.failed ?? 0)}
+          value={formatNumber(summary.sessions.by_status.failed ?? 0)}
         />
         <MetricCard
           detail="Grouped Error Messages"
           label="Top Messages"
-          value={String(summary.errors.top_messages.length)}
+          value={formatNumber(summary.errors.top_messages.length)}
         />
       </MetricGrid>
       <BreakdownGrid>
@@ -541,12 +561,12 @@ function ObservabilityLatencyContent({
         <MetricCard
           detail="Latency Rollups"
           label="Provider Groups"
-          value={String(summary.provider_usage.groups.length)}
+          value={formatNumber(summary.provider_usage.groups.length)}
         />
         <MetricCard
           detail="Usage Records With Timing"
           label="Provider Calls"
-          value={String(summary.provider_usage.total_records)}
+          value={formatNumber(summary.provider_usage.total_records)}
         />
       </MetricGrid>
       <div className="min-w-0 grid gap-3 max-[680px]:gap-0">
@@ -766,10 +786,22 @@ type ProviderUsageRow = {
 function providerUsageRows(
   groups: readonly ChatObservabilityProviderUsageGroup[],
 ): ProviderUsageRow[] {
-  return groups.map((group, index) => ({
-    group,
-    id: `${group.operation}-${group.provider}-${group.model}-${index}`,
-  }))
+  const occurrences = new Map<string, number>()
+
+  return groups.map((group) => {
+    const identity = JSON.stringify([group.operation, group.provider, group.model])
+    const occurrence = occurrences.get(identity) ?? 0
+    occurrences.set(identity, occurrence + 1)
+    return {
+      group,
+      id: JSON.stringify([
+        group.operation,
+        group.provider,
+        group.model,
+        occurrence,
+      ]),
+    }
+  })
 }
 
 function NumericValue({ children }: { children: ReactNode }) {
@@ -777,28 +809,47 @@ function NumericValue({ children }: { children: ReactNode }) {
 }
 
 const PROVIDER_USAGE_COLUMNS: readonly RecordsGridColumn<ProviderUsageRow>[] = [
-  { header: 'Operation', id: 'operation', render: ({ group }) => group.operation },
-  { header: 'Provider', id: 'provider', render: ({ group }) => group.provider },
-  { header: 'Model', id: 'model', render: ({ group }) => group.model },
+  {
+    header: 'Operation',
+    id: 'operation',
+    render: ({ group }) => group.operation,
+    sortValue: ({ group }) => group.operation,
+  },
+  {
+    header: 'Provider',
+    id: 'provider',
+    render: ({ group }) => group.provider,
+    sortValue: ({ group }) => group.provider,
+  },
+  {
+    header: 'Model',
+    id: 'model',
+    render: ({ group }) => group.model,
+    sortValue: ({ group }) => group.model,
+  },
   {
     header: 'Calls',
     id: 'calls',
     render: ({ group }) => <NumericValue>{formatNumber(group.record_count)}</NumericValue>,
+    sortValue: ({ group }) => group.record_count,
   },
   {
     header: 'Tokens',
     id: 'tokens',
     render: ({ group }) => <NumericValue>{formatNullableNumber(group.total_tokens)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.total_tokens),
   },
   {
     header: 'Cost',
     id: 'cost',
     render: ({ group }) => <NumericValue>{formatNullableUsd(group.estimated_cost_usd)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.estimated_cost_usd),
   },
   {
     header: 'P95',
     id: 'p95',
     render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p95)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.latency_ms.p95),
   },
 ]
 
@@ -808,23 +859,31 @@ const PROVIDER_LATENCY_COLUMNS: readonly RecordsGridColumn<ProviderUsageRow>[] =
     header: 'Avg',
     id: 'avg',
     render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.avg)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.latency_ms.avg),
   },
   {
     header: 'P50',
     id: 'p50',
     render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p50)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.latency_ms.p50),
   },
   {
     header: 'P95',
     id: 'p95',
     render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p95)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.latency_ms.p95),
   },
   {
     header: 'Max',
     id: 'max',
     render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.max)}</NumericValue>,
+    sortValue: ({ group }) => sortableNullableNumber(group.latency_ms.max),
   },
 ]
+
+function sortableNullableNumber(value: number | null): number {
+  return value ?? Number.POSITIVE_INFINITY
+}
 
 function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   const total = summary.sessions.total

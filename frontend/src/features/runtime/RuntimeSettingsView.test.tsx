@@ -609,10 +609,11 @@ describe('RuntimeSettingsPanel', () => {
       onSaveGlobalChatRetrieval,
     })
 
-    const tuner = screen.getByRole('region', {
+    const tuner = screen.getByRole('group', {
       name: 'Chat retrieval parameters',
     })
     expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+    expect(screen.queryByRole('region', { name: 'Chat retrieval parameters' })).toBeNull()
 
     const retrievalLimit = within(tuner).getByLabelText('Retrieval Limit')
     expect(retrievalLimit.getAttribute('min')).toBe('1')
@@ -639,10 +640,13 @@ describe('RuntimeSettingsPanel', () => {
       onWorkspaceChatRerankCandidateLimitChange,
     })
 
-    const tuner = screen.getByRole('region', {
+    const tuner = screen.getByRole('group', {
       name: 'Workspace chat retrieval parameters',
     })
     expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+    expect(
+      screen.queryByRole('region', { name: 'Workspace chat retrieval parameters' }),
+    ).toBeNull()
     fireEvent.change(within(tuner).getByLabelText('Retrieval Limit'), {
       target: { value: '8' },
     })
@@ -888,6 +892,36 @@ describe('RuntimeSettingsPanel', () => {
         .getByRole('region', { name: 'Global Chat Models' })
         .getAttribute('data-slot'),
     ).toBe('records-grid')
+  })
+
+  test('sorts runtime identity and numeric pricing without mutating caller data', async () => {
+    const user = userEvent.setup()
+    const connections = [...providerConnections]
+    const connectionsView = renderRuntimeSettingsPanel({ connections })
+    const connectionGrid = screen.getByRole('region', { name: 'Provider Connections' })
+    const connectionSort = within(connectionGrid).getByRole('button', { name: 'Connection' })
+
+    await user.click(connectionSort)
+    expect(within(connectionGrid).getAllByRole('row')[1]?.textContent).toContain('local-chat')
+    await user.click(connectionSort)
+    expect(within(connectionGrid).getAllByRole('row')[1]?.textContent).toContain('qwen-hosted')
+    expect(connections).toEqual(providerConnections)
+    connectionsView.unmount()
+
+    const models = [...pricedProviderModels]
+    render(<ProviderModelCatalogView providerModels={models} />)
+    const catalog = screen.getByRole('region', { name: 'Provider Model Catalog' })
+    const pricingSort = within(catalog).getByRole('button', { name: 'Pricing' })
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('text-embedding-v4'),
+      expect.stringContaining('qwen-plus'),
+      expect.stringContaining('experimental-preview'),
+    ])
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row')[1]?.textContent).toContain('experimental-preview')
+    expect(models).toEqual(pricedProviderModels)
   })
 
   test('enables delete confirmation only for the exact connection id', async () => {

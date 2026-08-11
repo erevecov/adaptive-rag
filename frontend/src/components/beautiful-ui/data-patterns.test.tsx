@@ -350,6 +350,10 @@ describe('ParameterTuner', () => {
       />,
     )
 
+    expect(
+      screen.getByRole('group', { name: 'Retriever settings' }).getAttribute('data-slot'),
+    ).toBe('parameter-tuner')
+    expect(screen.queryByRole('region', { name: 'Retriever settings' })).toBeNull()
     const input = screen.getByRole('spinbutton', { name: 'Top K' })
     expect(input.getAttribute('step')).toBe('2')
     await user.clear(input)

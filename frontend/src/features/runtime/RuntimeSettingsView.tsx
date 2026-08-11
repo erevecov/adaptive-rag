@@ -866,7 +866,10 @@ export function RuntimeConnectionsPanel({
                   ) : null}
                 </div>
               )
-            }}]}
+            },
+            sortValue: ({ connection }: { connection: ProviderConnection; id: string }) =>
+              connection.connection_id,
+            }]}
             emptyLabel="No Connections Yet."
             label="Provider Connections"
             rows={connections.map((connection) => ({
@@ -1307,11 +1310,13 @@ export function RuntimeGlobalDefaultsPanel({
               header: 'Model',
               id: 'model',
               render: ({ model }) => <strong className="text-sm font-semibold">{model.model_id}</strong>,
+              sortValue: ({ model }) => model.model_id,
             },
             {
               header: 'Connection',
               id: 'connection',
               render: ({ model }) => <small className="text-xs text-muted-foreground">{model.connection_id}</small>,
+              sortValue: ({ model }) => model.connection_id,
             },
             {
               header: 'Status',
@@ -1321,12 +1326,13 @@ export function RuntimeGlobalDefaultsPanel({
                   {model.is_default ? 'Default' : 'Enabled'}
                 </Badge>
               ),
+              sortValue: ({ model }) => (model.is_default ? 'Default' : 'Enabled'),
             },
           ]}
           emptyLabel="No Chat Models Yet."
           label="Global Chat Models"
           rows={chatModels.map((model) => ({
-            id: `${model.connection_id}-${model.model_id}`,
+            id: JSON.stringify([model.connection_id, model.model_id]),
             model,
           }))}
         />
@@ -1846,7 +1852,7 @@ export function ProviderModelCatalogView({
   }
 
   const rows = providerModels.map((model) => ({
-    id: `${model.connection_id}-${model.model_id}`,
+    id: JSON.stringify([model.connection_id, model.model_id]),
     model,
   }))
   const columns: readonly RecordsGridColumn<(typeof rows)[number]>[] = [
@@ -1881,6 +1887,7 @@ export function ProviderModelCatalogView({
           </div>
         )
       },
+      sortValue: ({ model }) => model.model_id,
     },
     {
       header: 'Pricing',
@@ -1896,6 +1903,7 @@ export function ProviderModelCatalogView({
           </small>
         )
       },
+      sortValue: ({ model }) => providerModelSortPrice(model),
     },
     {
       header: 'Status',
@@ -1924,6 +1932,23 @@ export function ProviderModelCatalogView({
           </div>
         )
       },
+      sortValue: ({ model }) => {
+        const pricing = formatProviderModelPricing(model.pricing)
+        const connection = connectionsById.get(model.connection_id)
+        const displayCapabilities = effectiveModelCapabilities({
+          connection: connection ?? null,
+          model,
+        })
+        const endpointWarning =
+          connection === undefined
+            ? null
+            : qwenServiceModelEndpointWarning({
+                provider: connection.provider,
+                baseUrl: connection.base_url,
+                capabilities: displayCapabilities,
+              })
+        return `${endpointWarning ? 'Endpoint risk ' : ''}${pricing.badgeLabel}`
+      },
     },
   ]
 
@@ -1935,6 +1960,22 @@ export function ProviderModelCatalogView({
       rows={rows}
     />
   )
+}
+
+function providerModelSortPrice(model: ProviderModel): number {
+  const pricing = model.pricing
+  if (pricing === null) return Number.POSITIVE_INFINITY
+
+  for (const key of [
+    'input_per_million_tokens_usd',
+    'output_per_million_tokens_usd',
+    'output_thinking_per_million_tokens_usd',
+  ]) {
+    const value = pricing[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+
+  return Number.POSITIVE_INFINITY
 }
 
 export function RuntimeSlotList({

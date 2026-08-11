@@ -234,8 +234,127 @@ describe('ObservabilityPanel', () => {
     })
     expect(insights.getAttribute('data-slot')).toBe('insight-deck')
     expect(within(insights).getByRole('heading', { name: 'Sessions' })).toBeTruthy()
-    expect(within(insights).getByText('12 filtered chat sessions.')).toBeTruthy()
+    expect(
+      within(insights).getByText('12 filtered chat sessions.').className,
+    ).toMatch(/tabular-nums/)
     expect(within(insights).queryByRole('img')).toBeNull()
+  })
+
+  test('formats large summary counts consistently in insights and metric cards', () => {
+    renderObservabilityPanel({
+      summary: {
+        ...summary,
+        sessions: { ...summary.sessions, total: 1234 },
+      },
+    })
+
+    const insights = screen.getByRole('region', { name: 'Operational insights' })
+    expect(
+      within(insights).getByText('1,234 filtered chat sessions.').className,
+    ).toMatch(/tabular-nums/)
+    expect(
+      within(screen.getByLabelText('Chat Observability Metrics')).getByText('1,234'),
+    ).toBeTruthy()
+  })
+
+  test('sorts provider identity and numeric columns both ways without mutating summary data', async () => {
+    const user = userEvent.setup()
+    const sortableSummary: ChatObservabilitySummary = {
+      ...summary,
+      provider_usage: {
+        ...summary.provider_usage,
+        groups: [
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: 9,
+            provider: 'zeta',
+            record_count: 10,
+          },
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: 1,
+            provider: 'alpha',
+            record_count: 2,
+          },
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: null,
+            provider: 'missing-cost',
+            record_count: 5,
+          },
+        ],
+      },
+    }
+    const originalGroups = [...sortableSummary.provider_usage.groups]
+    renderObservabilityPanel({ activeSubmodule: 'costs', summary: sortableSummary })
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+
+    await user.click(within(usage).getByRole('button', { name: 'Provider' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('alpha'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('zeta'),
+    ])
+    await user.click(within(usage).getByRole('button', { name: 'Provider' }))
+    expect(within(usage).getAllByRole('row')[1]?.textContent).toContain('zeta')
+
+    await user.click(within(usage).getByRole('button', { name: 'Calls' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('alpha'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('zeta'),
+    ])
+    await user.click(within(usage).getByRole('button', { name: 'Calls' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('zeta'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('alpha'),
+    ])
+
+    await user.click(within(usage).getByRole('button', { name: 'Cost' }))
+    expect(within(usage).getAllByRole('row').at(-1)?.textContent).toContain('N/A')
+    expect(sortableSummary.provider_usage.groups).toEqual(originalGroups)
+  })
+
+  test('keeps collision-prone provider row identity stable across reorder', () => {
+    const collisionGroups = [
+      {
+        ...summary.provider_usage.groups[0]!,
+        model: 'd',
+        operation: 'a-b',
+        provider: 'c',
+      },
+      {
+        ...summary.provider_usage.groups[0]!,
+        model: 'd',
+        operation: 'a',
+        provider: 'b-c',
+      },
+    ]
+    const firstSummary: ChatObservabilitySummary = {
+      ...summary,
+      provider_usage: { ...summary.provider_usage, groups: collisionGroups },
+    }
+    const { props, view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      summary: firstSummary,
+    })
+    const originalCell = screen.getByText('a-b')
+
+    view.rerender(
+      <ObservabilityPanel
+        {...props}
+        summary={{
+          ...firstSummary,
+          provider_usage: {
+            ...firstSummary.provider_usage,
+            groups: [...collisionGroups].reverse(),
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('a-b')).toBe(originalCell)
   })
 
   test('cost and latency views use table primitives with stable headers', () => {

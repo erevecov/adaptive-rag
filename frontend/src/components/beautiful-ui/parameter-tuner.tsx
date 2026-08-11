@@ -25,7 +25,7 @@ export function ParameterTuner({ label, onChange, parameters }: ParameterTunerPr
   const instanceId = useId()
 
   return (
-    <section aria-label={label} className="grid gap-3" data-slot="parameter-tuner">
+    <div aria-label={label} className="grid gap-3" data-slot="parameter-tuner" role="group">
       <h2 className="text-sm font-medium">{label}</h2>
       <div className="grid gap-3">
         {parameters.map((parameter) => {
@@ -51,6 +51,6 @@ export function ParameterTuner({ label, onChange, parameters }: ParameterTunerPr
           )
         })}
       </div>
-    </section>
+    </div>
   )
 }
