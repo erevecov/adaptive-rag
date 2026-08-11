@@ -5,7 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import { AppSidebar } from './AppShell'
+import { AppShell, AppSidebar } from './AppShell'
 import appShellSource from './AppShell.tsx?raw'
 
 afterEach(() => {
@@ -20,6 +20,46 @@ describe('AppShell ≤680 density', () => {
       'max-[680px]:[&_[data-slot=sidebar-item][data-active]]:bg-primary/45',
     )
     expect(appShellSource).toContain('max-[680px]:pl-1')
+  })
+
+  test('collapses the mobile sidebar host without changing desktop sizing', () => {
+    const { container, rerender } = render(
+      <AppShell
+        isLeftSidebarOpen={false}
+        isRightDockOpen={false}
+        primaryView="chat"
+        sidebar={<div>Sidebar</div>}
+        topline={<div>Topline</div>}
+      >
+        <div>Workspace</div>
+      </AppShell>,
+    )
+
+    const shell = screen.getByRole('main')
+    const sidebarHost = container.querySelector(
+      '[data-slot="app-shell-sidebar-host"]',
+    )
+    expect(sidebarHost?.className).toContain('h-full')
+    expect(sidebarHost?.className).toContain(
+      'w-[var(--left-sidebar-width)]',
+    )
+    expect(sidebarHost?.className).toContain('max-[680px]:w-0')
+    expect(sidebarHost?.className).toContain('max-[680px]:h-0')
+    expect(shell.style.getPropertyValue('--left-sidebar-width')).toBe('0px')
+
+    rerender(
+      <AppShell
+        isLeftSidebarOpen
+        isRightDockOpen={false}
+        primaryView="chat"
+        sidebar={<div>Sidebar</div>}
+        topline={<div>Topline</div>}
+      >
+        <div>Workspace</div>
+      </AppShell>,
+    )
+
+    expect(shell.style.getPropertyValue('--left-sidebar-width')).toBe('280px')
   })
 })
 
