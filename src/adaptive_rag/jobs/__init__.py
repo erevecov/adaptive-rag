@@ -1,0 +1,56 @@
+"""Public contracts for the PostgreSQL background-job platform."""
+
+from adaptive_rag.jobs.errors import (
+    BlockedJobError,
+    JobCancelled,
+    JobEventMetadataTooLargeError,
+    JobPayloadTooLargeError,
+    JobPlatformError,
+    JobProgressTooLargeError,
+    JobResultTooLargeError,
+    JobSecretMaterialError,
+    PermanentJobError,
+    RetryableJobError,
+    UnknownJobHandlerError,
+)
+from adaptive_rag.jobs.registry import JobHandlerDefinition, JobRegistry
+from adaptive_rag.jobs.types import (
+    ConcurrencyPolicy,
+    HandlerKey,
+    JobContext,
+    JobScope,
+    RetryPolicy,
+    canonical_json_bytes,
+    ensure_json_size,
+    redact_error_message,
+    redact_secret_keys,
+    retry_delay_seconds,
+    truncate_utf8,
+)
+
+__all__ = [
+    "BlockedJobError",
+    "ConcurrencyPolicy",
+    "HandlerKey",
+    "JobCancelled",
+    "JobContext",
+    "JobEventMetadataTooLargeError",
+    "JobHandlerDefinition",
+    "JobPayloadTooLargeError",
+    "JobPlatformError",
+    "JobProgressTooLargeError",
+    "JobRegistry",
+    "JobResultTooLargeError",
+    "JobScope",
+    "JobSecretMaterialError",
+    "PermanentJobError",
+    "RetryPolicy",
+    "RetryableJobError",
+    "UnknownJobHandlerError",
+    "canonical_json_bytes",
+    "ensure_json_size",
+    "redact_error_message",
+    "redact_secret_keys",
+    "retry_delay_seconds",
+    "truncate_utf8",
+]
