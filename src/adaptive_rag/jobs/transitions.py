@@ -239,7 +239,7 @@ class JobTransitions:
         return True
 
     def _lock_current(self, *, job_id: UUID, attempt_id: UUID) -> Job | None:
-        return self._session.scalars(
+        job = self._session.scalars(
             select(Job)
             .where(
                 Job.id == job_id,
@@ -248,6 +248,26 @@ class JobTransitions:
             )
             .with_for_update()
         ).one_or_none()
+        if job is None:
+            self._record_fenced_rejection(job_id=job_id, attempt_id=attempt_id)
+        return job
+
+    def _record_fenced_rejection(self, *, job_id: UUID, attempt_id: UUID) -> None:
+        job = self._session.get(Job, job_id)
+        if job is None:
+            return
+        recorded_attempt_id = (
+            attempt_id
+            if self._session.get(JobAttempt, attempt_id) is not None
+            else None
+        )
+        self._event(
+            job=job,
+            attempt_id=recorded_attempt_id,
+            event_type="fenced_write_rejected",
+            message="stale attempt could not mutate the job",
+        )
+        self._session.flush()
 
     def _finish_attempt(
         self,
@@ -275,7 +295,7 @@ class JobTransitions:
         self,
         *,
         job: Job,
-        attempt_id: UUID,
+        attempt_id: UUID | None,
         event_type: str,
         message: str | None = None,
         metadata: Mapping[str, object] | None = None,

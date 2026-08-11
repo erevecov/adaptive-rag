@@ -8,7 +8,7 @@ import os
 import socket
 import time
 from dataclasses import asdict
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, NoReturn
 from uuid import UUID
 
@@ -28,6 +28,7 @@ from adaptive_rag.api.schemas.jobs import (
 from adaptive_rag.db.session import create_job_session_factory, session_scope
 from adaptive_rag.jobs.handlers import build_ingestion_registry
 from adaptive_rag.jobs.registry import JobRegistry
+from adaptive_rag.jobs.retention import JobRetention, RetentionPolicy
 from adaptive_rag.jobs.schedule_service import (
     CreateJobScheduleRequest,
     JobScheduleService,
@@ -46,6 +47,40 @@ app.add_typer(queues_app, name="queues")
 app.add_typer(workers_app, name="workers")
 
 _CLI_ACTOR = JobActor(actor_type="operator", actor_id="cli")
+
+
+@app.command("retention")
+def run_retention(
+    apply: Annotated[bool, typer.Option("--apply")] = False,
+    batch_size: Annotated[int, typer.Option("--batch-size", min=1, max=10_000)] = 1_000,
+    succeeded_days: Annotated[int, typer.Option("--succeeded-days", min=1)] = 30,
+    cancelled_days: Annotated[int, typer.Option("--cancelled-days", min=1)] = 30,
+    dead_letter_days: Annotated[
+        int, typer.Option("--dead-letter-days", min=1)
+    ] = 90,
+) -> None:
+    """Preview or apply bounded retention for unprotected terminal jobs."""
+
+    factory, _registry = _job_runtime()
+    try:
+        with factory() as session:
+            report = JobRetention(session=session).run(
+                policy=RetentionPolicy(
+                    succeeded_after=timedelta(days=succeeded_days),
+                    cancelled_after=timedelta(days=cancelled_days),
+                    dead_letter_after=timedelta(days=dead_letter_days),
+                ),
+                now=datetime.now(UTC),
+                dry_run=not apply,
+                batch_size=batch_size,
+            )
+            if apply:
+                session.commit()
+            else:
+                session.rollback()
+    except Exception as exc:  # noqa: BLE001 - stable CLI boundary
+        _exit_job_error(exc)
+    _echo_json(asdict(report))
 
 
 @app.command("enqueue")
@@ -144,17 +179,14 @@ def worker(
         float, typer.Option("--drain-timeout-seconds", min=0.0)
     ] = 30.0,
     concurrency: Annotated[int, typer.Option("--concurrency", min=1)] = 1,
+    reaper_interval_seconds: Annotated[
+        float, typer.Option("--reaper-interval-seconds", min=0.1)
+    ] = 15.0,
     max_jobs: Annotated[int | None, typer.Option("--max-jobs", min=1)] = None,
 ) -> None:
     """Run the general worker over one or more comma-separated queues."""
 
     queue_names = _parse_queue_names(queues)
-    if concurrency != 1:
-        typer.echo(
-            "local worker concurrency above 1 is not available yet; use replicas",
-            err=True,
-        )
-        raise typer.Exit(2)
     factory, registry = _job_runtime()
     active_worker = JobWorker(
         session_factory=factory,
@@ -162,6 +194,8 @@ def worker(
         queue_names=queue_names,
         worker_id=worker_id,
         workspace_id=workspace_id,
+        max_concurrency=concurrency,
+        reaper_interval_seconds=reaper_interval_seconds,
     )
     if once or max_jobs is not None:
         processed = 0

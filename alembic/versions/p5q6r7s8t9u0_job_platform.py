@@ -516,7 +516,8 @@ def _expand_events() -> None:
         "event_type IN ('created', 'queued', 'leased', 'progress', 'completed', "
         "'completed_after_cancel_request', 'failed_attempt', 'retry_scheduled', "
         "'blocked', 'unblocked', 'dead_lettered', 'cancel_requested', 'cancelled', "
-        "'expired', 'retried', 'released', 'scheduled', 'run_now')",
+        "'expired', 'retried', 'released', 'scheduled', 'run_now', "
+        "'fenced_write_rejected')",
     )
     op.create_check_constraint(
         "job_events_scope_workspace_check",
@@ -559,6 +560,12 @@ def _create_worker_table() -> None:
             server_default=sa.text("'[]'::jsonb"),
         ),
         sa.Column(
+            "max_concurrency",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("1"),
+        ),
+        sa.Column(
             "started_at",
             sa.DateTime(timezone=True),
             nullable=False,
@@ -575,6 +582,10 @@ def _create_worker_table() -> None:
         sa.CheckConstraint(
             "length(process_identity) >= 1 AND length(process_identity) <= 128",
             name="job_workers_process_identity_length_check",
+        ),
+        sa.CheckConstraint(
+            "max_concurrency >= 1 AND max_concurrency <= 64",
+            name="job_workers_max_concurrency_check",
         ),
     )
     op.create_index(

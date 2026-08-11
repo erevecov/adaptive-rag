@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, Index, String, func, text
+from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from adaptive_rag.db.base import Base
@@ -21,6 +21,10 @@ class JobWorker(Base):
         CheckConstraint(
             "length(process_identity) >= 1 AND length(process_identity) <= 128",
             name="job_workers_process_identity_length_check",
+        ),
+        CheckConstraint(
+            "max_concurrency >= 1 AND max_concurrency <= 64",
+            name="job_workers_max_concurrency_check",
         ),
         Index(
             "ix_job_workers_live_heartbeat",
@@ -38,6 +42,9 @@ class JobWorker(Base):
     )
     supported_handlers: Mapped[list[str]] = mapped_column(
         JSONWithJSONB(), nullable=False, default=list, server_default=text("'[]'")
+    )
+    max_concurrency: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default=text("1")
     )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

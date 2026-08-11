@@ -44,6 +44,7 @@ def test_job_platform_commands_are_registered() -> None:
     assert "unblock" in result.stdout
     assert "worker" in result.stdout
     assert "scheduler" in result.stdout
+    assert "retention" in result.stdout
     assert "schedules" in result.stdout
     assert "queues" in result.stdout
     assert "workers" in result.stdout

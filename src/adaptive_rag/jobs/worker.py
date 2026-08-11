@@ -28,6 +28,7 @@ from adaptive_rag.jobs.errors import (
     PermanentJobError,
     RetryableJobError,
 )
+from adaptive_rag.jobs.reaper import JobReaper
 from adaptive_rag.jobs.registry import JobHandlerDefinition, JobRegistry
 from adaptive_rag.jobs.transitions import JobTransitions
 from adaptive_rag.jobs.types import JobContext
@@ -102,9 +103,15 @@ class JobWorker:
         workspace_id: UUID | None = None,
         now_source: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_interval_seconds: float = 30.0,
+        max_concurrency: int = 1,
+        reaper_interval_seconds: float = 15.0,
     ) -> None:
         if heartbeat_interval_seconds <= 0:
             raise ValueError("heartbeat_interval_seconds must be positive")
+        if not 1 <= max_concurrency <= 64:
+            raise ValueError("max_concurrency must be within [1, 64]")
+        if reaper_interval_seconds <= 0:
+            raise ValueError("reaper_interval_seconds must be positive")
         self._session_factory = session_factory
         self._registry = registry
         self._queue_names = tuple(queue_names)
@@ -112,6 +119,8 @@ class JobWorker:
         self._workspace_id = workspace_id
         self._now_source = now_source
         self._heartbeat_interval_seconds = heartbeat_interval_seconds
+        self._max_concurrency = max_concurrency
+        self._reaper_interval_seconds = reaper_interval_seconds
         self._shutdown_requested = asyncio.Event()
 
     async def run_once(self) -> WorkerRunReport:
@@ -201,11 +210,40 @@ class JobWorker:
                 await asyncio.to_thread(notification_waiter.open)
             except (OSError, psycopg.Error):
                 notification_waiter = None
+        loop = asyncio.get_running_loop()
+        next_reaper_at = 0.0
         try:
             while not self._shutdown_requested.is_set():
-                report = await self.run_once()
+                if loop.time() >= next_reaper_at:
+                    await asyncio.to_thread(self._reap_once)
+                    next_reaper_at = loop.time() + self._reaper_interval_seconds
+                batch_task = asyncio.create_task(self._run_batch_once())
+                shutdown_task = asyncio.create_task(self._shutdown_requested.wait())
+                done, _pending = await asyncio.wait(
+                    {batch_task, shutdown_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if shutdown_task in done and not batch_task.done():
+                    await asyncio.to_thread(self._mark_presence_draining)
+                    try:
+                        reports = await asyncio.wait_for(
+                            asyncio.shield(batch_task),
+                            timeout=drain_timeout_seconds,
+                        )
+                    except TimeoutError:
+                        batch_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await batch_task
+                        break
+                else:
+                    reports = await batch_task
+                shutdown_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await shutdown_task
                 await asyncio.to_thread(self._heartbeat_presence)
-                if report.status == "idle":
+                if self._shutdown_requested.is_set():
+                    break
+                if all(report.status == "idle" for report in reports):
                     if notification_waiter is not None:
                         await asyncio.to_thread(
                             notification_waiter.wait,
@@ -224,6 +262,13 @@ class JobWorker:
                 await asyncio.to_thread(notification_waiter.close)
             await asyncio.to_thread(self._mark_presence_draining)
             await asyncio.to_thread(self._mark_presence_shutdown)
+
+    async def _run_batch_once(self) -> list[WorkerRunReport]:
+        return list(
+            await asyncio.gather(
+                *(self.run_once() for _index in range(self._max_concurrency))
+            )
+        )
 
     def request_shutdown(self) -> None:
         self._shutdown_requested.set()
@@ -296,6 +341,7 @@ class JobWorker:
                         f"{name}@{version}"
                         for name, version in sorted(self._registry.supported_handlers)
                     ],
+                    max_concurrency=self._max_concurrency,
                     started_at=now,
                     heartbeat_at=now,
                 )
@@ -304,6 +350,7 @@ class JobWorker:
                 presence.heartbeat_at = now
                 presence.draining_at = None
                 presence.shutdown_at = None
+                presence.max_concurrency = self._max_concurrency
             session.commit()
 
     def _heartbeat_presence(self) -> None:
@@ -341,6 +388,15 @@ class JobWorker:
             )
             session.commit()
             return healthy
+
+    def _reap_once(self) -> int:
+        with self._session_factory() as session:
+            reaped = JobReaper(session=session, registry=self._registry).run_once(
+                now=self._now_source(),
+                batch_size=100,
+            )
+            session.commit()
+            return reaped
 
     def _is_cancel_requested(self, claim: ClaimedJob) -> bool:
         with self._session_factory() as session:

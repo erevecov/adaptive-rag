@@ -32,6 +32,7 @@ JOB_EVENT_TYPE_VALUES = (
     "released",
     "scheduled",
     "run_now",
+    "fenced_write_rejected",
 )
 
 

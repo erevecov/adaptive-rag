@@ -275,6 +275,7 @@ class JobWorkerResponse(BaseModel):
     application_version: str
     supported_queues: list[str]
     supported_handlers: list[str]
+    max_concurrency: int
     started_at: datetime
     heartbeat_at: datetime
     draining_at: datetime | None

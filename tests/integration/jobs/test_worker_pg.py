@@ -3,16 +3,24 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from adaptive_rag.db.models import Job
+from adaptive_rag.db.models import Job, JobAttempt
 from adaptive_rag.db.models import JobWorker as JobWorkerPresence
 from adaptive_rag.db.repositories import SourceRepository, WorkspaceRepository
 from adaptive_rag.ingestion_ops import enqueue_source_ingestion
-from adaptive_rag.jobs import JobContext, JobHandlerDefinition, JobRegistry
+from adaptive_rag.jobs import (
+    JobContext,
+    JobHandlerDefinition,
+    JobRegistry,
+    RetryPolicy,
+)
+from adaptive_rag.jobs.dispatcher import JobDispatcher
 from adaptive_rag.jobs.handlers import build_ingestion_registry
 from adaptive_rag.jobs.service import EnqueueJobRequest, JobService
 from adaptive_rag.jobs.worker import JobWorker, PostgresNotificationWaiter
@@ -323,6 +331,89 @@ def test_worker_presence_progresses_live_draining_shutdown(
             assert presence.shutdown_at is not None
 
     asyncio.run(scenario())
+
+
+def test_daemon_worker_reaps_expired_attempt_before_claiming_again(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="reaping_worker",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, payload: {"value": payload.value},
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+            retry_policy=RetryPolicy(
+                max_retries=2,
+                base_delay_seconds=0.001,
+                max_delay_seconds=0.001,
+            ),
+            lease_seconds=15,
+        )
+    )
+    wall_now = datetime.now(UTC)
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="reaping_worker",
+                payload={"value": "recovered"},
+                run_after=wall_now - timedelta(seconds=20),
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+    with job_session_factory() as session:
+        first_claim = JobDispatcher(
+            session=session,
+            registry=registry,
+            queue_names=("default",),
+        ).claim_next(
+            worker_id=uuid4(),
+            now=wall_now - timedelta(seconds=16),
+        )
+        assert first_claim is not None
+        session.commit()
+
+    async def scenario() -> None:
+        worker = JobWorker(
+            session_factory=job_session_factory,
+            registry=registry,
+            queue_names=("default",),
+            reaper_interval_seconds=0.01,
+        )
+        task = asyncio.create_task(worker.run(poll_interval_seconds=0.01))
+        try:
+            for _index in range(500):
+                with job_session_factory() as observer:
+                    status = observer.scalar(
+                        select(Job.status).where(Job.id == job_id)
+                    )
+                if status == "succeeded":
+                    break
+                await asyncio.sleep(0.01)
+            else:
+                raise AssertionError("daemon worker did not recover expired work")
+        finally:
+            worker.request_shutdown()
+            await asyncio.wait_for(task, timeout=10)
+
+    asyncio.run(scenario())
+
+    with job_session_factory() as session:
+        job = session.get(Job, job_id)
+        attempts = list(
+            session.scalars(
+                select(JobAttempt)
+                .where(JobAttempt.job_id == job_id)
+                .order_by(JobAttempt.attempt_number)
+            )
+        )
+        assert job is not None
+        assert job.status == "succeeded"
+        assert job.retry_count == 1
+        assert [attempt.status for attempt in attempts] == ["expired", "succeeded"]
 
 
 def test_postgresql_notification_is_commit_aware(

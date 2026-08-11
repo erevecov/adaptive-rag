@@ -179,6 +179,7 @@ class JobRuntimeRepository:
             .returning(Job.id)
         ).scalar_one_or_none()
         if updated_job is None:
+            self._record_fenced_rejection(job_id=job_id, attempt_id=attempt_id)
             return False
         self._session.execute(
             update(JobAttempt)
@@ -186,6 +187,27 @@ class JobRuntimeRepository:
             .values(heartbeat_at=now, lease_expires_at=lease_expires_at)
         )
         return True
+
+    def _record_fenced_rejection(self, *, job_id: UUID, attempt_id: UUID) -> None:
+        job = self._session.get(Job, job_id)
+        if job is None:
+            return
+        recorded_attempt_id = (
+            attempt_id
+            if self._session.get(JobAttempt, attempt_id) is not None
+            else None
+        )
+        self._session.add(
+            JobEvent(
+                scope=job.scope,
+                workspace_id=job.workspace_id,
+                job_id=job.id,
+                attempt_id=recorded_attempt_id,
+                event_type="fenced_write_rejected",
+                message="stale attempt could not mutate the job",
+            )
+        )
+        self._session.flush()
 
     def update_progress(
         self,
@@ -204,6 +226,7 @@ class JobRuntimeRepository:
             )
         ).scalar_one_or_none()
         if current is None:
+            self._record_fenced_rejection(job_id=job_id, attempt_id=attempt_id)
             return False
         updated_attempt = self._session.execute(
             update(JobAttempt)
@@ -251,6 +274,7 @@ class JobRuntimeRepository:
             .returning(Job.id)
         ).scalar_one_or_none()
         if updated_job is None:
+            self._record_fenced_rejection(job_id=job_id, attempt_id=attempt_id)
             return False
         self._session.execute(
             update(JobAttempt)

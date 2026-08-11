@@ -376,6 +376,7 @@ export type JobWorker = {
   application_version: string
   supported_queues: string[]
   supported_handlers: string[]
+  max_concurrency: number
   started_at: string
   heartbeat_at: string
   draining_at: string | null

@@ -309,3 +309,21 @@ def test_handler_confirms_a_requested_cancellation() -> None:
     assert confirmed is True
     assert job.status == "cancelled"
     assert _event_types(session, job.id)[-1] == "cancelled"
+
+
+def test_stale_attempt_is_rejected_and_audited() -> None:
+    session, registry, job, claim = _running_job()
+    job.status = "queued"
+    job.current_attempt_id = None
+    session.flush()
+
+    completed = JobTransitions(session=session, registry=registry).complete(
+        job_id=job.id,
+        attempt_id=claim.attempt_id,
+        result={"done": True},
+        now=NOW + timedelta(seconds=1),
+    )
+
+    assert completed is False
+    assert job.status == "queued"
+    assert "fenced_write_rejected" in _event_types(session, job.id)

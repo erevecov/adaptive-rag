@@ -601,3 +601,41 @@ questions stay on that conversation.
 - **THEN** the chat request body includes that `session_id`
 - **AND** the selected session remains selected after a successful answer
 
+### Requirement: Frontend exposes the complete Background Jobs console
+
+Settings MUST include a `Background Jobs` module backed only by public job API
+contracts. Jobs and Schedules MUST be available to workspace readers; Queues
+and Workers MUST be available only to superadmins.
+
+#### Scenario: Workspace user inspects and operates jobs
+
+- **WHEN** a selected workspace user opens Background Jobs > Jobs
+- **THEN** URL-backed status/queue/handler/time filters and cursor pagination
+  load only that workspace
+- **AND** job detail shows redacted payload/result, attempts and audit events
+- **AND** role-allowed enqueue, cancel, retry and unblock use validation,
+  version checks, confirmations and standard toasts
+
+#### Scenario: Workspace admin manages schedules
+
+- **WHEN** an authorized workspace admin opens Schedules
+- **THEN** the UI lists cron, IANA timezone, policy and next/last occurrence
+- **AND** supports validated create/edit/pause/resume/run-now/archive operations
+- **AND** read-only roles see the same scoped state without mutation controls
+
+#### Scenario: Superadmin operates global queues and workers
+
+- **WHEN** a superadmin opens Queues or Workers
+- **THEN** Queues shows depth, oldest eligible age, running/capacity and
+  pause/resume/configure actions
+- **AND** Workers shows live/stale/draining state, heartbeat, version, queues,
+  handlers and advertised local slots
+- **AND** non-superadmins navigating directly are normalized to an allowed view
+  without issuing admin requests
+
+#### Scenario: Live console polling respects page visibility
+
+- **WHEN** a Background Jobs view is visible
+- **THEN** operational data refreshes on a bounded interval
+- **WHEN** the document becomes hidden
+- **THEN** polling pauses until visibility returns
