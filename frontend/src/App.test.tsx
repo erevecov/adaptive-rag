@@ -171,7 +171,7 @@ function installFakeSpeechRecognition() {
   })
 }
 
-function createClientStub(options: {
+function createClientStub(options: Partial<ApiClient> & {
   askChat?: ApiClient['askChat']
   askChatStream?: ApiClient['askChatStream']
   archiveChatSession?: ApiClient['archiveChatSession']
@@ -261,6 +261,32 @@ function createClientStub(options: {
     deleteWorkspaceMembership: options.deleteWorkspaceMembership ?? vi.fn(),
     deleteSource: options.deleteSource ?? vi.fn(),
     enqueueIngestionJob: options.enqueueIngestionJob ?? vi.fn(),
+    listJobHandlers: options.listJobHandlers ?? vi.fn(async () => []),
+    enqueueBackgroundJob: options.enqueueBackgroundJob ?? vi.fn(),
+    listBackgroundJobs:
+      options.listBackgroundJobs ??
+      vi.fn(async () => ({ items: [], next_cursor: null })),
+    getBackgroundJob: options.getBackgroundJob ?? vi.fn(),
+    cancelBackgroundJob: options.cancelBackgroundJob ?? vi.fn(),
+    retryBackgroundJob: options.retryBackgroundJob ?? vi.fn(),
+    unblockBackgroundJob: options.unblockBackgroundJob ?? vi.fn(),
+    listJobSchedules:
+      options.listJobSchedules ?? vi.fn(async () => ({ items: [] })),
+    createJobSchedule: options.createJobSchedule ?? vi.fn(),
+    getJobSchedule: options.getJobSchedule ?? vi.fn(),
+    updateJobSchedule: options.updateJobSchedule ?? vi.fn(),
+    archiveJobSchedule: options.archiveJobSchedule ?? vi.fn(),
+    pauseJobSchedule: options.pauseJobSchedule ?? vi.fn(),
+    resumeJobSchedule: options.resumeJobSchedule ?? vi.fn(),
+    runJobScheduleNow: options.runJobScheduleNow ?? vi.fn(),
+    listAdminBackgroundJobs:
+      options.listAdminBackgroundJobs ??
+      vi.fn(async () => ({ items: [], next_cursor: null })),
+    listJobQueues: options.listJobQueues ?? vi.fn(async () => []),
+    getJobQueue: options.getJobQueue ?? vi.fn(),
+    configureJobQueue: options.configureJobQueue ?? vi.fn(),
+    listJobWorkers: options.listJobWorkers ?? vi.fn(async () => []),
+    getJobMetrics: options.getJobMetrics ?? vi.fn(),
     getCurrentUser:
       options.getCurrentUser ??
       vi.fn(async () => ({
@@ -907,7 +933,7 @@ function createDeferred<T>(): {
 
 async function openSettingsSubmodule(
   user: { click(element: Element): Promise<void> },
-  moduleName: 'Authoring' | 'Observability' | 'Runtime',
+  moduleName: 'Authoring' | 'Background Jobs' | 'Observability' | 'Runtime',
   submoduleName: string,
 ) {
   await user.click(screen.getByRole('button', { name: 'Settings' }))
@@ -1085,6 +1111,9 @@ describe('App chat workspace', () => {
     expect(within(settingsNavigation).getByRole('button', { name: 'Sources' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Observability' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Runtime' })).toBeTruthy()
+    expect(
+      within(settingsNavigation).getByRole('button', { name: 'Background Jobs' }),
+    ).toBeTruthy()
     expect(screen.queryByRole('tablist', { name: 'Settings sections' })).toBeNull()
     const settingsShell = document.querySelector(
       '[data-slot="settings-shell"]',
@@ -1093,6 +1122,67 @@ describe('App chat workspace', () => {
     expect(
       document.querySelector('[data-slot="settings-shell-header"] .panel-label'),
     ).toBeNull()
+  })
+
+  test('shows workspace job sections but hides global controls from regular users', async () => {
+    const user = userEvent.setup()
+    const client = createClientStub({
+      getCurrentUser: vi.fn(async () => ({
+        display_name: 'Workspace Reader',
+        id: 'user-1',
+        is_bootstrap: false,
+        last_workspace_id: null,
+        login: 'reader',
+        system_role: 'user',
+      })),
+    })
+    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+
+    await openSettingsSubmodule(user, 'Background Jobs', 'Schedules')
+
+    const navigation = screen.getByRole('navigation', {
+      name: 'Settings Navigation',
+    })
+    expect(within(navigation).getByRole('button', { name: 'Jobs' })).toBeTruthy()
+    expect(
+      within(navigation).getByRole('button', { name: 'Schedules' }),
+    ).toBeTruthy()
+    expect(within(navigation).queryByRole('button', { name: 'Queues' })).toBeNull()
+    expect(within(navigation).queryByRole('button', { name: 'Workers' })).toBeNull()
+    expect(window.location.pathname).toBe('/settings/jobs/schedules')
+  })
+
+  test('shows global job controls to superadmins and restores their route', async () => {
+    const user = userEvent.setup()
+    render(<App apiClient={createClientStub({})} initialWorkspaceId={workspaceId} />)
+
+    await openSettingsSubmodule(user, 'Background Jobs', 'Queues')
+
+    expect(window.location.pathname).toBe('/settings/jobs/queues')
+    expect(screen.getByText('queues')).toBeTruthy()
+  })
+
+  test('normalizes an unauthorized global job route without a global request', async () => {
+    window.history.replaceState(null, '', '/settings/jobs/workers')
+    const listJobWorkers = vi.fn()
+    const client = createClientStub({
+      getCurrentUser: vi.fn(async () => ({
+        display_name: 'Workspace Reader',
+        id: 'user-1',
+        is_bootstrap: false,
+        last_workspace_id: null,
+        login: 'reader',
+        system_role: 'user',
+      })),
+      listJobWorkers,
+    })
+
+    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/settings/jobs/jobs'),
+    )
+    expect(listJobWorkers).not.toHaveBeenCalled()
   })
 
   test('routes settings sidebar submodules to focused content', async () => {

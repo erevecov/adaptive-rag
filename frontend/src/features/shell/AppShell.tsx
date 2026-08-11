@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/control'
 import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import * as Popover from '@/components/ui/popover'
 import { SessionNavigationPanel } from '@/features/history/HistoryInspectorView'
+import { type JobsSubmodule } from '@/features/jobs/jobPlatformUi'
 import { type RuntimeSubmodule } from '@/features/runtime/runtimeUi'
 import {
   type ChatSessionDetailResponse,
@@ -81,11 +82,22 @@ const SETTINGS_NAVIGATION = [
       { id: 'workspace_overrides', label: 'Workspace Overrides' },
     ],
   },
+  {
+    id: 'jobs',
+    label: 'Background Jobs',
+    submodules: [
+      { id: 'jobs', label: 'Jobs' },
+      { id: 'schedules', label: 'Schedules' },
+      { id: 'queues', label: 'Queues', superadminOnly: true },
+      { id: 'workers', label: 'Workers', superadminOnly: true },
+    ],
+  },
 ] as const
 
 const AUTHORING_NAVIGATION = SETTINGS_NAVIGATION[0]
 const OBSERVABILITY_NAVIGATION = SETTINGS_NAVIGATION[1]
 const RUNTIME_NAVIGATION = SETTINGS_NAVIGATION[2]
+const JOBS_NAVIGATION = SETTINGS_NAVIGATION[3]
 
 const ACCOUNT_MODULES = [
   { id: 'appearance', label: 'Appearance' },
@@ -104,10 +116,12 @@ export type SettingsSubmodule =
   | AuthoringSubmodule
   | ObservabilitySubmodule
   | RuntimeSubmodule
+  | JobsSubmodule
 export type SettingsNavigationSelection =
   | { module: 'authoring'; submodule: AuthoringSubmodule }
   | { module: 'observability'; submodule: ObservabilitySubmodule }
   | { module: 'runtime'; submodule: RuntimeSubmodule }
+  | { module: 'jobs'; submodule: JobsSubmodule }
 export type SessionNavigationFilter = 'active' | 'training' | 'archived'
 
 export function AppShell({
@@ -376,6 +390,8 @@ export function AppSidebar({
   canLoadMoreSessions,
   error,
   isOpen,
+  jobsSubmodule,
+  canManageJobPlatform,
   observabilitySubmodule,
   onArchiveSession,
   onAccountModuleChange,
@@ -404,9 +420,11 @@ export function AppSidebar({
 }: {
   accountModule: AccountModule
   authoringSubmodule: AuthoringSubmodule
+  canManageJobPlatform: boolean
   canLoadMoreSessions: boolean
   error: string | null
   isOpen: boolean
+  jobsSubmodule: JobsSubmodule
   observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
   onAccountModuleChange(module: AccountModule): void
@@ -629,6 +647,8 @@ export function AppSidebar({
             activeModule={settingsModule}
             activeObservabilitySubmodule={observabilitySubmodule}
             activeRuntimeSubmodule={runtimeSubmodule}
+            activeJobsSubmodule={jobsSubmodule}
+            canManageJobPlatform={canManageJobPlatform}
             onModuleChange={onSettingsModuleChange}
             onSubmoduleChange={onSettingsSubmoduleChange}
           />
@@ -710,6 +730,8 @@ function SettingsNavigationPanel({
   activeModule,
   activeObservabilitySubmodule,
   activeRuntimeSubmodule,
+  activeJobsSubmodule,
+  canManageJobPlatform,
   onModuleChange,
   onSubmoduleChange,
 }: {
@@ -717,6 +739,8 @@ function SettingsNavigationPanel({
   activeModule: SettingsModule
   activeObservabilitySubmodule: ObservabilitySubmodule
   activeRuntimeSubmodule: RuntimeSubmodule
+  activeJobsSubmodule: JobsSubmodule
+  canManageJobPlatform: boolean
   onModuleChange(module: SettingsModule): void
   onSubmoduleChange(selection: SettingsNavigationSelection): void
 }) {
@@ -725,6 +749,7 @@ function SettingsNavigationPanel({
     activeAuthoringSubmodule,
     activeObservabilitySubmodule,
     activeRuntimeSubmodule,
+    activeJobsSubmodule,
   )
   const renderSubmoduleButton = (
     selection: SettingsNavigationSelection,
@@ -797,6 +822,29 @@ function SettingsNavigationPanel({
       </div>
       <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
+          active={activeModule === JOBS_NAVIGATION.id}
+          onClick={() => onModuleChange(JOBS_NAVIGATION.id)}
+          slot="sidebar-contextual-item"
+        >
+          {JOBS_NAVIGATION.label}
+        </SidebarContextualButton>
+
+        {activeModule === JOBS_NAVIGATION.id
+          ? JOBS_NAVIGATION.submodules
+              .filter(
+                (submodule) =>
+                  !("superadminOnly" in submodule) || canManageJobPlatform,
+              )
+              .map((submodule) =>
+                renderSubmoduleButton(
+                  { module: JOBS_NAVIGATION.id, submodule: submodule.id },
+                  submodule.label,
+                ),
+              )
+          : null}
+      </div>
+      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
+        <SidebarContextualButton
           active={activeModule === RUNTIME_NAVIGATION.id}
           onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
           slot="sidebar-contextual-item"
@@ -864,6 +912,7 @@ function getActiveSettingsSubmodule(
   activeAuthoringSubmodule: AuthoringSubmodule,
   activeObservabilitySubmodule: ObservabilitySubmodule,
   activeRuntimeSubmodule: RuntimeSubmodule,
+  activeJobsSubmodule: JobsSubmodule,
 ): SettingsSubmodule {
   if (activeModule === 'authoring') {
     return activeAuthoringSubmodule
@@ -871,7 +920,10 @@ function getActiveSettingsSubmodule(
   if (activeModule === 'observability') {
     return activeObservabilitySubmodule
   }
-  return activeRuntimeSubmodule
+  if (activeModule === 'runtime') {
+    return activeRuntimeSubmodule
+  }
+  return activeJobsSubmodule
 }
 
 function SidebarWorkspaceSelector({

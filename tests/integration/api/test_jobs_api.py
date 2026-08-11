@@ -86,6 +86,29 @@ def test_workspace_reads_cannot_cross_scope() -> None:
     assert response.status_code == 404
 
 
+def test_workspace_job_list_accepts_stable_queue_filter_alias() -> None:
+    setup = make_job_api_setup()
+    base_url = f"/workspaces/{setup.workspace.id}/jobs"
+    for queue_name in ("ingestion", "default"):
+        response = setup.client.post(
+            base_url,
+            json={
+                "job_type": "ingest_source",
+                "payload": {"source_id": str(uuid4())},
+                "queue_name": queue_name,
+            },
+            headers=bearer(setup.admin_token),
+        )
+        assert response.status_code == 201
+
+    response = setup.client.get(
+        f"{base_url}?queue=default", headers=bearer(setup.viewer_token)
+    )
+
+    assert response.status_code == 200
+    assert [item["queue_name"] for item in response.json()["items"]] == ["default"]
+
+
 def test_job_detail_uses_handler_redaction() -> None:
     setup = make_job_api_setup()
 

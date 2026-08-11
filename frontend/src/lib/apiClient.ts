@@ -198,6 +198,206 @@ export type IngestionRunResponse = {
   error_message: string | null
 }
 
+export type BackgroundJob = {
+  id: string
+  scope: 'workspace' | 'system'
+  workspace_id: string | null
+  queue_name: string
+  job_type: string
+  handler_version: number
+  status: string
+  priority: number
+  payload_json: unknown
+  result_json: unknown
+  idempotency_key: string | null
+  run_after: string
+  attempt_count: number
+  retry_count: number
+  max_retries: number
+  current_attempt_id: string | null
+  schedule_id: string | null
+  scheduled_for: string | null
+  concurrency_key: string | null
+  cancellation_requested_at: string | null
+  last_error: {
+    code: string | null
+    message: string | null
+    trace_id: string | null
+  } | null
+  finished_at: string | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export type BackgroundJobAttempt = {
+  id: string
+  job_id: string
+  attempt_number: number
+  worker_id: string
+  status: string
+  started_at: string
+  heartbeat_at: string
+  lease_expires_at: string
+  finished_at: string | null
+  progress_json: JsonObject | null
+  error_code: string | null
+  error_message: string | null
+  trace_id: string | null
+}
+
+export type BackgroundJobEvent = {
+  id: string
+  job_id: string
+  attempt_id: string | null
+  event_type: string
+  message: string | null
+  extra_metadata: JsonObject | null
+  actor_type: string | null
+  actor_id: string | null
+  created_at: string
+}
+
+export type BackgroundJobDetail = {
+  job: BackgroundJob
+  attempts: BackgroundJobAttempt[]
+  events: BackgroundJobEvent[]
+}
+
+export type BackgroundJobListParams = {
+  status?: string | null
+  queue?: string | null
+  job_type?: string | null
+  limit?: number | null
+  cursor?: string | null
+}
+
+export type BackgroundJobPage = {
+  items: BackgroundJob[]
+  next_cursor: string | null
+}
+
+export type EnqueueBackgroundJobBody = {
+  job_type: string
+  handler_version?: number
+  payload?: JsonObject
+  queue_name?: string | null
+  priority?: number | null
+  idempotency_key?: string | null
+  run_after?: string | null
+  concurrency_key?: string | null
+}
+
+export type EnqueueBackgroundJobResponse = {
+  created: boolean
+  job: BackgroundJob
+}
+
+export type VersionMutationBody = {
+  version: number
+  reset_retry_count?: boolean
+}
+
+export type JobHandler = {
+  name: string
+  version: number
+  queue_name: string
+  allowed_scopes: string[]
+  allow_manual_enqueue: boolean
+  minimum_manual_role: string
+}
+
+export type JobSchedule = {
+  id: string
+  scope: 'workspace' | 'system'
+  workspace_id: string | null
+  name: string
+  description: string | null
+  queue_name: string
+  job_type: string
+  handler_version: number
+  payload_json: JsonObject
+  priority: number
+  concurrency_key: string | null
+  cron_expression: string
+  timezone: string
+  misfire_policy: 'skip' | 'run_once' | 'catch_up'
+  max_catch_up: number
+  paused_at: string | null
+  archived_at: string | null
+  next_run_at: string
+  last_scheduled_for: string | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export type JobScheduleListResponse = { items: JobSchedule[] }
+
+export type CreateJobScheduleBody = {
+  name: string
+  description?: string | null
+  job_type: string
+  handler_version?: number
+  payload?: JsonObject
+  queue_name?: string | null
+  priority?: number | null
+  concurrency_key?: string | null
+  cron_expression: string
+  timezone: string
+  misfire_policy?: 'skip' | 'run_once' | 'catch_up'
+  max_catch_up?: number
+}
+
+export type UpdateJobScheduleBody = Partial<
+  Omit<CreateJobScheduleBody, 'job_type' | 'handler_version'>
+> & { version: number }
+
+export type JobQueue = {
+  name: string
+  paused_at: string | null
+  global_concurrency_limit: number | null
+  workspace_concurrency_limit: number | null
+  default_lease_seconds: number
+  version: number
+}
+
+export type ConfigureJobQueueBody = {
+  version: number
+  paused?: boolean | null
+  global_concurrency_limit?: number | null
+  workspace_concurrency_limit?: number | null
+  default_lease_seconds?: number | null
+}
+
+export type JobWorker = {
+  id: string
+  process_identity: string
+  application_version: string
+  supported_queues: string[]
+  supported_handlers: string[]
+  started_at: string
+  heartbeat_at: string
+  draining_at: string | null
+  shutdown_at: string | null
+}
+
+export type JobMetrics = {
+  generated_at: string
+  queues: Array<{
+    name: string
+    queued: number
+    running: number
+    blocked: number
+    dead_letter: number
+    oldest_eligible_age_seconds: number | null
+    global_concurrency_limit: number | null
+  }>
+  workers: { live: number; stale: number; draining: number }
+  unroutable_queued: number
+  scheduler_lag_seconds: number
+}
+
 export type RetrievalMetadataFilter = {
   source_id?: string | null
   document_id?: string | null
@@ -844,6 +1044,79 @@ export type ApiClient = {
     workspaceId: string,
     body?: RunNextIngestionJobBody,
   ): Promise<IngestionRunResponse>
+  listJobHandlers(workspaceId: string): Promise<JobHandler[]>
+  enqueueBackgroundJob(
+    workspaceId: string,
+    body: EnqueueBackgroundJobBody,
+  ): Promise<EnqueueBackgroundJobResponse>
+  listBackgroundJobs(
+    workspaceId: string,
+    params?: BackgroundJobListParams,
+  ): Promise<BackgroundJobPage>
+  getBackgroundJob(
+    workspaceId: string,
+    jobId: string,
+  ): Promise<BackgroundJobDetail>
+  cancelBackgroundJob(
+    workspaceId: string,
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  retryBackgroundJob(
+    workspaceId: string,
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  unblockBackgroundJob(
+    workspaceId: string,
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  listJobSchedules(workspaceId: string): Promise<JobScheduleListResponse>
+  createJobSchedule(
+    workspaceId: string,
+    body: CreateJobScheduleBody,
+  ): Promise<JobSchedule>
+  getJobSchedule(workspaceId: string, scheduleId: string): Promise<JobSchedule>
+  updateJobSchedule(
+    workspaceId: string,
+    scheduleId: string,
+    body: UpdateJobScheduleBody,
+  ): Promise<JobSchedule>
+  archiveJobSchedule(
+    workspaceId: string,
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  pauseJobSchedule(
+    workspaceId: string,
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  resumeJobSchedule(
+    workspaceId: string,
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  runJobScheduleNow(
+    workspaceId: string,
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  listAdminBackgroundJobs(
+    params?: BackgroundJobListParams & {
+      scope?: 'workspace' | 'system'
+      workspace_id?: string | null
+    },
+  ): Promise<BackgroundJobPage>
+  listJobQueues(): Promise<JobQueue[]>
+  getJobQueue(queueName: string): Promise<JobQueue>
+  configureJobQueue(
+    queueName: string,
+    body: ConfigureJobQueueBody,
+  ): Promise<JobQueue>
+  listJobWorkers(): Promise<JobWorker[]>
+  getJobMetrics(): Promise<JobMetrics>
   askChat(workspaceId: string, body: ChatRequestBody): Promise<ChatResponseBody>
   askChatStream(
     workspaceId: string,
@@ -1191,6 +1464,185 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         url: `${baseUrl}/workspaces/${encodePathSegment(
           workspaceId,
         )}/ingestion-jobs/run-next`,
+      })
+    },
+    listJobHandlers(workspaceId) {
+      return requestJson<JobHandler[]>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-handlers`,
+      })
+    },
+    enqueueBackgroundJob(workspaceId, body) {
+      return requestJson<EnqueueBackgroundJobResponse>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/jobs`,
+      })
+    },
+    listBackgroundJobs(workspaceId, params = {}) {
+      const url = new URL(
+        `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/jobs`,
+      )
+      appendSearchParam(url, 'status', params.status)
+      appendSearchParam(url, 'queue', params.queue)
+      appendSearchParam(url, 'job_type', params.job_type)
+      appendSearchParam(url, 'limit', params.limit)
+      appendSearchParam(url, 'cursor', params.cursor)
+      return requestJson<BackgroundJobPage>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    getBackgroundJob(workspaceId, jobId) {
+      return requestJson<BackgroundJobDetail>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/jobs/${encodePathSegment(jobId)}`,
+      })
+    },
+    cancelBackgroundJob(workspaceId, jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/jobs/${encodePathSegment(jobId)}/cancel`,
+      })
+    },
+    retryBackgroundJob(workspaceId, jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/jobs/${encodePathSegment(jobId)}/retry`,
+      })
+    },
+    unblockBackgroundJob(workspaceId, jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/jobs/${encodePathSegment(jobId)}/unblock`,
+      })
+    },
+    listJobSchedules(workspaceId) {
+      return requestJson<JobScheduleListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules`,
+      })
+    },
+    createJobSchedule(workspaceId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules`,
+      })
+    },
+    getJobSchedule(workspaceId, scheduleId) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}`,
+      })
+    },
+    updateJobSchedule(workspaceId, scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}`,
+      })
+    },
+    archiveJobSchedule(workspaceId, scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'DELETE',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}`,
+      })
+    },
+    pauseJobSchedule(workspaceId, scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}/pause`,
+      })
+    },
+    resumeJobSchedule(workspaceId, scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}/resume`,
+      })
+    },
+    runJobScheduleNow(workspaceId, scheduleId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/job-schedules/${encodePathSegment(scheduleId)}/run-now`,
+      })
+    },
+    listAdminBackgroundJobs(params = {}) {
+      const url = new URL(`${baseUrl}/admin/jobs`)
+      appendSearchParam(url, 'scope', params.scope)
+      appendSearchParam(url, 'workspace_id', params.workspace_id)
+      appendSearchParam(url, 'status', params.status)
+      appendSearchParam(url, 'queue', params.queue)
+      appendSearchParam(url, 'job_type', params.job_type)
+      appendSearchParam(url, 'limit', params.limit)
+      appendSearchParam(url, 'cursor', params.cursor)
+      return requestJson<BackgroundJobPage>(fetchImpl, {
+        method: 'GET',
+        url: url.toString(),
+      })
+    },
+    listJobQueues() {
+      return requestJson<JobQueue[]>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-queues`,
+      })
+    },
+    getJobQueue(queueName) {
+      return requestJson<JobQueue>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-queues/${encodePathSegment(queueName)}`,
+      })
+    },
+    configureJobQueue(queueName, body) {
+      return requestJson<JobQueue>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/admin/job-queues/${encodePathSegment(queueName)}`,
+      })
+    },
+    listJobWorkers() {
+      return requestJson<JobWorker[]>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-workers`,
+      })
+    },
+    getJobMetrics() {
+      return requestJson<JobMetrics>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-metrics`,
       })
     },
     askChat(workspaceId, body) {

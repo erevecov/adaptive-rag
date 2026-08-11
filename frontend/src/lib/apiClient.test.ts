@@ -77,6 +77,32 @@ function jobPayload({
 }
 
 describe('createApiClient', () => {
+  test('lists background jobs with stable filters and mutates one job', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
+    const jobId = '33333333-3333-4333-8333-333333333333'
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({ items: [], next_cursor: null }),
+      jsonResponse({ id: jobId }),
+    )
+    const client = createApiClient({ baseUrl: 'http://api.local', fetch })
+
+    await client.listBackgroundJobs(workspaceId, {
+      cursor: 'next',
+      limit: 50,
+      queue: 'ingestion',
+      status: 'running',
+    })
+    await client.cancelBackgroundJob(workspaceId, jobId, { version: 3 })
+
+    expect(String(calls[0].input)).toBe(
+      `http://api.local/workspaces/${workspaceId}/jobs?status=running&queue=ingestion&limit=50&cursor=next`,
+    )
+    expect(String(calls[1].input)).toBe(
+      `http://api.local/workspaces/${workspaceId}/jobs/${jobId}/cancel`,
+    )
+    expect(calls[1].init?.body).toBe(JSON.stringify({ version: 3 }))
+  })
+
   test('attaches bearer auth headers to JSON requests', async () => {
     const { fetch, calls } = createFetchStub(
       jsonResponse({

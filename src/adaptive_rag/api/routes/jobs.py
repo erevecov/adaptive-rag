@@ -89,7 +89,7 @@ def list_workspace_jobs(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
     job_status: Annotated[str | None, Query(alias="status")] = None,
-    queue_name: str | None = None,
+    queue_name: Annotated[str | None, Query(alias="queue")] = None,
     job_type: str | None = None,
 ) -> JobPageResponse:
     page = JobService(session=session, registry=registry).list_jobs(
@@ -446,6 +446,9 @@ def list_admin_jobs(
     workspace_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
+    job_status: Annotated[str | None, Query(alias="status")] = None,
+    queue_name: Annotated[str | None, Query(alias="queue")] = None,
+    job_type: str | None = None,
 ) -> JobPageResponse:
     if scope not in {"workspace", "system"}:
         raise HTTPException(status_code=422, detail="invalid job scope")
@@ -456,6 +459,9 @@ def list_admin_jobs(
         workspace_id=workspace_id,
         limit=limit,
         cursor=cursor,
+        status=job_status,
+        queue_name=queue_name,
+        job_type=job_type,
     )
     return JobPageResponse.from_page(page)
 
