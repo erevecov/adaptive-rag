@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -37,6 +37,33 @@ const citation = (chunkId: string, sourceId = 'source-1'): RetrievalResult => ({
 })
 
 describe('MarkdownAnswer', () => {
+  test('copies fenced code exactly through the CodeStream action', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    render(
+      <MarkdownAnswer>
+        {'Before\n\n```ts\nconst answer = 42\nreturn answer\n```\n\nAfter'}
+      </MarkdownAnswer>,
+    )
+
+    const code = screen.getByLabelText('Code')
+    expect(code.closest('[data-slot="code-stream"]')).toBeTruthy()
+    expect(screen.getByText('Before')).toBeTruthy()
+    expect(screen.getByText('After')).toBeTruthy()
+
+    await user.click(
+      within(code.closest('[data-slot="code-stream"]')!).getByRole('button', {
+        name: 'Copy code',
+      }),
+    )
+    expect(writeText).toHaveBeenCalledWith('const answer = 42\nreturn answer')
+  })
+
   test('renders [doc-N] and [N] as beflow-style doc-N chips', async () => {
     const user = userEvent.setup()
     const onCitationClick = vi.fn()

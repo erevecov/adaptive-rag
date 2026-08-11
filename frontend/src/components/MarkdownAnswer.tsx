@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+import { CodeStream } from '@/components/beautiful-ui'
 import type { RetrievalResult } from '@/lib/apiClient'
 import { cn } from '@/lib/utils'
 
@@ -89,15 +90,15 @@ export function MarkdownAnswer({
       }) => {
         const isBlock = Boolean(codeClass) || String(node).includes('\n')
         if (isBlock) {
+          const code = String(node).replace(/\n$/, '')
+          const language = codeClass?.match(/(?:^|\s)language-([^\s]+)/)?.[1]
           return (
-            <code
-              className={cn(
-                'block overflow-x-auto rounded-md border border-border bg-muted/40 p-2.5 font-mono text-[12px] leading-relaxed',
-                codeClass,
-              )}
-            >
-              {node}
-            </code>
+            <CodeStream
+              code={code}
+              copyLabel="Copy code"
+              language={language}
+              onCopy={copyCode}
+            />
           )
         }
         return (
@@ -106,9 +107,7 @@ export function MarkdownAnswer({
           </code>
         )
       },
-      pre: ({ children: node }: { children?: ReactNode }) => (
-        <pre className="mb-2 overflow-x-auto last:mb-0">{node}</pre>
-      ),
+      pre: ({ children: node }: { children?: ReactNode }) => <>{node}</>,
       blockquote: ({ children: node }: { children?: ReactNode }) => (
         <blockquote className="mb-2 border-l-2 border-primary/40 pl-3 text-muted-foreground last:mb-0">
           {node}
@@ -131,6 +130,15 @@ export function MarkdownAnswer({
       </ReactMarkdown>
     </div>
   )
+}
+
+function copyCode(code: string): void | Promise<void> {
+  if (
+    typeof navigator !== 'undefined' &&
+    typeof navigator.clipboard?.writeText === 'function'
+  ) {
+    return navigator.clipboard.writeText(code)
+  }
 }
 
 /** `[doc-1]`, `[1]`, or `[uuid]` (chunk/source id). */

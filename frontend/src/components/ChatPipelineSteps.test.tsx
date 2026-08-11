@@ -72,6 +72,7 @@ describe('ChatPipelineSteps', () => {
     )
 
     const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    expect(stepper.getAttribute('data-slot')).toBe('reasoning-trace')
     expect(within(stepper).getByText('retrieval')).toBeTruthy()
     expect(within(stepper).queryByText('alpha')).toBeNull()
 
@@ -232,7 +233,7 @@ describe('ChatPipelineSteps', () => {
     )
 
     const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
-    expect(stepper.getAttribute('data-slot')).toBe('chat-pipeline-steps')
+    expect(stepper.getAttribute('data-slot')).toBe('reasoning-trace')
 
     await user.click(
       within(stepper).getByRole('button', {
@@ -245,24 +246,20 @@ describe('ChatPipelineSteps', () => {
     expect(container.querySelector('.pipeline-step-list')).toBeNull()
     expect(container.querySelector('.pipeline-step-row')).toBeNull()
     expect(container.querySelector('.pipeline-detail-chip')).toBeNull()
-    expect(container.querySelector('[data-slot="chat-pipeline-step-list"]')).toBeTruthy()
-    expect(container.querySelector('[data-slot="chat-pipeline-step-row"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="reasoning-trace-list"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="reasoning-trace-step"]')).toBeTruthy()
   })
 
-  test('uses the shared Button primitive for stepper toggles', () => {
-    expect(chatPipelineStepsSource).toContain('./ui/button')
+  test('delegates stepper toggle semantics to the real ReasoningTrace pattern', () => {
+    expect(chatPipelineStepsSource).toContain('ReasoningTrace')
+    expect(chatPipelineStepsSource).toContain('./beautiful-ui')
     expect(chatPipelineStepsSource).not.toContain('<button')
   })
   test('pipeline summary is borderless subtle text, not a chrome button', () => {
     expect(chatPipelineStepsSource).toContain('PIPELINE_SUMMARY_TEXT_CLASS')
     expect(chatPipelineStepsSource).toContain('hover:bg-transparent')
     expect(chatPipelineStepsSource).toContain('text-muted-foreground')
-    expect(chatPipelineStepsSource).toContain('variant="ghost"')
-    expect(chatPipelineStepsSource).not.toContain('variant="secondary"')
-    // Outer section no longer uses a bordered card chrome.
-    expect(chatPipelineStepsSource).not.toMatch(
-      /data-slot="chat-pipeline-steps"[\s\S]{0,120}border border-border/,
-    )
+    expect(chatPipelineStepsSource).toContain('toggleClassName')
   })
 
 

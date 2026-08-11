@@ -4,6 +4,7 @@ export type StreamingAnswerProps = {
   actions?: ReactNode
   children: ReactNode
   isStreaming?: boolean
+  label?: string
   sources?: ReactNode
 }
 
@@ -11,11 +12,13 @@ export function StreamingAnswer({
   actions,
   children,
   isStreaming = false,
+  label,
   sources,
 }: StreamingAnswerProps) {
   return (
     <article
       aria-busy={isStreaming || undefined}
+      aria-label={label}
       className="grid gap-3 rounded-[2px] border border-border bg-card p-4 text-sm leading-relaxed text-card-foreground motion-safe:transition-colors max-[680px]:p-3"
       data-slot="streaming-answer"
     >

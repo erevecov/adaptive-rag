@@ -7,6 +7,7 @@ export type ContextChunkItem = {
   content: ReactNode
   id: string
   meta?: ReactNode
+  openLabel?: string
   sourceLabel: string
 }
 
@@ -45,6 +46,7 @@ export function ContextChunkList({
               <div className="flex min-w-0 items-center justify-between gap-2">
                 {onOpenChunk ? (
                   <Button
+                    aria-label={chunk.openLabel}
                     className="h-auto min-h-9 max-w-full justify-start px-0 py-0 text-left underline-offset-2 hover:underline max-[680px]:min-h-11"
                     onClick={() => onOpenChunk(chunk.id)}
                     variant="ghost"

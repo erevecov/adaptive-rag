@@ -35,6 +35,68 @@ describe('LoadingGrid', () => {
 })
 
 describe('ReasoningTrace', () => {
+  test('supports a controlled feature accordion with preserved summary and detail slots', async () => {
+    const user = userEvent.setup()
+    const onExpandedChange = vi.fn()
+    const { rerender } = render(
+      <ReasoningTrace
+        empty={<p>Waiting for pipeline steps</p>}
+        expanded={false}
+        label="Chat Pipeline Steps"
+        onExpandedChange={onExpandedChange}
+        steps={[
+          {
+            elapsedLabel: '200 ms',
+            id: 'retrieval',
+            label: 'retrieval',
+            status: 'running',
+          },
+        ]}
+        summary={<span>Steps · 200 ms · 0 Sources</span>}
+        toggleClassName="feature-summary"
+        toggleLabel="Expand Chat Steps, retrieval, running, 200 ms"
+      >
+        <p>Feature-owned response details</p>
+      </ReasoningTrace>,
+    )
+
+    const toggle = screen.getByRole('button', {
+      name: 'Expand Chat Steps, retrieval, running, 200 ms',
+    })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('Waiting for pipeline steps')).toBeNull()
+    await user.click(toggle)
+    expect(onExpandedChange).toHaveBeenCalledWith(true)
+
+    rerender(
+      <ReasoningTrace
+        empty={<p>Waiting for pipeline steps</p>}
+        expanded
+        label="Chat Pipeline Steps"
+        onExpandedChange={onExpandedChange}
+        steps={[
+          {
+            elapsedLabel: '200 ms',
+            id: 'retrieval',
+            label: 'retrieval',
+            status: 'running',
+          },
+        ]}
+        summary={<span>Steps · 200 ms · 0 Sources</span>}
+        toggleClassName="feature-summary"
+        toggleLabel="Collapse Chat Steps, Steps · 200 ms · 0 Sources"
+      >
+        <p>Feature-owned response details</p>
+      </ReasoningTrace>,
+    )
+
+    expect(screen.getByText('200 ms')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /Collapse Chat Steps/ }).className,
+    ).toContain('feature-summary')
+    expect(screen.getByText('Feature-owned response details')).toBeTruthy()
+  })
+
   test('exposes expansion state and failed step detail', async () => {
     const user = userEvent.setup()
     render(
@@ -72,6 +134,29 @@ describe('ReasoningTrace', () => {
       screen.getByRole('button', { name: /Execution trace/ }).getAttribute('aria-expanded'),
     ).toBe('true')
     expect(screen.getByText('completed').getAttribute('data-tone')).toBe('success')
+  })
+
+  test('preserves a feature step whose detail is independently collapsible', () => {
+    render(
+      <ReasoningTrace
+        defaultExpanded
+        label="Execution trace"
+        steps={[
+          {
+            collapsibleDetail: true,
+            detail: 'Provider usage',
+            id: 'answer',
+            label: 'Answer',
+            status: 'completed',
+          },
+        ]}
+      />,
+    )
+
+    const details = screen.getByText('Answer').closest('details')
+    expect(details).not.toBeNull()
+    expect(details?.hasAttribute('open')).toBe(false)
+    expect(screen.getByText('Provider usage')).toBeTruthy()
   })
 })
 

@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { createRef } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -15,6 +16,30 @@ afterEach(() => {
 })
 
 describe('PromptComposer', () => {
+  test('accepts a feature-owned composer body and forwards form attributes without duplicating input state', () => {
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
+    render(
+      <PromptComposer
+        className="feature-composer"
+        content={<textarea aria-label="Feature question" defaultValue="Owned by feature" />}
+        formProps={{ id: 'feature-composer', tabIndex: -1 }}
+        onPromptChange={() => undefined}
+        onSubmit={onSubmit}
+        prompt="catalog prompt must not render"
+        promptLabel="Feature composer"
+        submitLabel="Send"
+      />,
+    )
+
+    const form = screen.getByRole('form', { name: 'Feature composer' })
+    expect(form.className).toContain('feature-composer')
+    expect(form.id).toBe('feature-composer')
+    expect(form.tabIndex).toBe(-1)
+    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getByRole('textbox', { name: 'Feature question' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull()
+  })
+
   test('submits through a labelled form and cancels while busy', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
@@ -67,6 +92,36 @@ describe('PromptComposer', () => {
 })
 
 describe('ChatSurface', () => {
+  test('lets a feature keep one labelled transcript scroller with its ref and scroll callback', () => {
+    const transcriptRef = createRef<HTMLDivElement>()
+    const onScroll = vi.fn()
+    const { container } = render(
+      <ChatSurface
+        className="feature-surface"
+        composer={<div>Composer</div>}
+        composerClassName="feature-composer-shell"
+        label="Chat Workspace"
+        transcript={<p>Transcript</p>}
+        transcriptClassName="feature-transcript"
+        transcriptProps={{ 'aria-busy': true, 'aria-label': 'Chat Transcript', onScroll, role: 'region' }}
+        transcriptRef={transcriptRef}
+      />,
+    )
+
+    const surface = screen.getByRole('region', { name: 'Chat Workspace' })
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
+    expect(surface.className).toContain('feature-surface')
+    expect(transcript.className).toContain('feature-transcript')
+    expect(transcript.getAttribute('aria-busy')).toBe('true')
+    expect(transcriptRef.current).toBe(transcript)
+    fireEvent.scroll(transcript)
+    expect(onScroll).toHaveBeenCalledTimes(1)
+    expect(
+      container.querySelector('[data-slot="chat-composer"]')?.className,
+    ).toContain('feature-composer-shell')
+    expect(screen.getAllByRole('region', { name: 'Chat Transcript' })).toHaveLength(1)
+  })
+
   test('renders the provided empty transcript with separate transcript and composer scroll regions', () => {
     const { container } = render(
       <ChatSurface
@@ -94,13 +149,14 @@ describe('StreamingAnswer', () => {
       <StreamingAnswer
         actions={<button type="button">Copy answer</button>}
         isStreaming
+        label="Answer"
         sources={<a href="#handbook">Handbook.pdf</a>}
       >
         The handbook is available in the workspace.
       </StreamingAnswer>,
     )
 
-    const answer = screen.getByRole('article')
+    const answer = screen.getByRole('article', { name: 'Answer' })
     expect(answer.getAttribute('aria-busy')).toBe('true')
     expect(answer.textContent).toContain('The handbook is available in the workspace.')
     expect(screen.getByRole('link', { name: 'Handbook.pdf' })).toBeTruthy()
@@ -114,7 +170,14 @@ describe('ContextChunkList', () => {
     const onOpenChunk = vi.fn()
     render(
       <ContextChunkList
-        chunks={[{ id: 'chunk-7', content: 'Evidence', sourceLabel: 'Guide.pdf' }]}
+        chunks={[
+          {
+            content: 'Evidence',
+            id: 'chunk-7',
+            openLabel: 'View Source Guide.pdf',
+            sourceLabel: 'Guide.pdf',
+          },
+        ]}
         emptyLabel="No context"
         label="Retrieved context"
         onOpenChunk={onOpenChunk}
@@ -126,7 +189,7 @@ describe('ContextChunkList', () => {
     expect(
       screen.queryByRole('region', { name: 'Retrieved context' }),
     ).toBeNull()
-    await user.click(screen.getByRole('button', { name: /Guide.pdf/ }))
+    await user.click(screen.getByRole('button', { name: 'View Source Guide.pdf' }))
     expect(onOpenChunk).toHaveBeenCalledWith('chunk-7')
   })
 
