@@ -2328,6 +2328,14 @@ describe('App chat workspace', () => {
     ).toBe('false')
     const darkThemeButton = screen.getByRole('button', { name: /Dark/ })
     expect(darkThemeButton.getAttribute('aria-pressed')).toBe('true')
+    // Button base is whitespace-nowrap; theme cards must wrap long copy.
+    expect(darkThemeButton.className).toContain('whitespace-normal')
+    expect(darkThemeButton.className).toContain('items-start')
+    expect(
+      screen.getByText(
+        'GrokNight-style charcoal with magenta accent for low-light sessions.',
+      ),
+    ).toBeTruthy()
     const purpleThemeButton = screen.getByRole('button', { name: /Purple/ })
     expect(
       purpleThemeButton.getAttribute('aria-pressed'),
@@ -2374,6 +2382,7 @@ describe('App chat workspace', () => {
   test('keeps appearance theme options out of App.css legacy selectors', () => {
     expect(appSource).toContain('max-[680px]:hover:bg-primary/65')
     expect(appSource).toContain('max-[680px]:bg-primary/45')
+    expect(appSource).toContain('whitespace-normal')
     expect(appStyles).not.toMatch(/\.theme-option\b/)
     expect(appStyles).not.toMatch(/\.theme-swatch\b/)
     expect(appStyles).not.toMatch(/\.settings-panel\b/)
