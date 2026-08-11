@@ -21,6 +21,7 @@ import {
 } from '@/features/chat/ChatWorkspaceView'
 import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
 import { type JobsSubmodule } from '@/features/jobs/jobPlatformUi'
+import { JobPlatformPanel } from '@/features/jobs/JobPlatformView'
 import {
   WorkspaceInspectorPanel,
   type FocusedTurn,
@@ -370,6 +371,12 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const primaryView: PrimaryView =
     activeView === 'chat' || activeView === 'account' ? activeView : 'settings'
   const canManageJobPlatform = currentUser?.system_role === 'superadmin'
+  const activeWorkspaceRole = workspaces.find(
+    (workspace) => workspace.id === workspaceId.trim(),
+  )?.access_role
+  const canAdminWorkspace =
+    workspaceId.trim().length > 0 &&
+    (canManageJobPlatform || activeWorkspaceRole === 'admin')
 
   useEffect(() => {
     applyTheme(theme)
@@ -3003,13 +3010,16 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                 slots={runtimeSlots}
                 state={runtimeState}
               />
+            ) : activeSettingsModule === 'jobs' ? (
+              <JobPlatformPanel
+                activeSubmodule={jobsSubmodule}
+                apiClient={client}
+                canAdminWorkspace={canAdminWorkspace}
+                isSuperadmin={canManageJobPlatform}
+                workspaceId={workspaceId}
+              />
             ) : authoringSubmodule === 'retrieval' ? (
               <RetrievalPlaygroundPanel client={client} workspaceId={workspaceId} />
-            ) : activeSettingsModule === 'jobs' ? (
-              <section aria-label="Background Jobs">
-                <h2>Background Jobs</h2>
-                <p>{jobsSubmodule}</p>
-              </section>
             ) : (
               <AuthoringPanel
                 activeSubmodule={authoringSubmodule}

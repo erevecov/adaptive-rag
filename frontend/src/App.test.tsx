@@ -1159,7 +1159,9 @@ describe('App chat workspace', () => {
     await openSettingsSubmodule(user, 'Background Jobs', 'Queues')
 
     expect(window.location.pathname).toBe('/settings/jobs/queues')
-    expect(screen.getByText('queues')).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Queues' }),
+    ).toBeTruthy()
   })
 
   test('normalizes an unauthorized global job route without a global request', async () => {
