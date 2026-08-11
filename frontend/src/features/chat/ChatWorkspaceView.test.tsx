@@ -141,6 +141,13 @@ function expectNoLegacyChatClasses(container: HTMLElement) {
 }
 
 describe('ChatWorkspacePanel', () => {
+  test('does not retain the obsolete chat-only radius probe', () => {
+    const { view } = renderChatWorkspace({ response: null })
+
+    expect(view.container.querySelector('[data-chat-radius]')).toBeNull()
+    expect(chatWorkspaceSource).not.toContain('data-chat-radius')
+  })
+
   test('cancel request is an icon-only destructive control while asking', () => {
     renderChatWorkspace({ isAsking: true, question: 'Stop me' })
 
@@ -180,7 +187,16 @@ describe('ChatWorkspacePanel', () => {
     const view = render(<QuestionHarness />)
 
     const workspace = screen.getByRole('region', { name: 'Chat Workspace' })
-    expect(workspace.getAttribute('data-slot')).toBe('panel')
+    expect(workspace.getAttribute('data-slot')).toBe('chat-surface')
+    expect(
+      screen.getByRole('form', { name: 'Chat composer' }).getAttribute(
+        'data-slot',
+      ),
+    ).toBe('prompt-composer')
+    expect(screen.getAllByRole('textbox', { name: 'Question' })).toHaveLength(1)
+    expect(
+      screen.getAllByRole('region', { name: 'Chat Transcript' }),
+    ).toHaveLength(1)
     expect(screen.getByLabelText('Question').getAttribute('data-slot')).toBe(
       'textarea',
     )
@@ -203,13 +219,27 @@ describe('ChatWorkspacePanel', () => {
       screen.getByRole('button', { name: 'Expand Response Details' }),
     )
 
-    expect(screen.getByRole('region', { name: 'Tool Calls Detail' })).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Sources Detail' })).toBeTruthy()
-    expect(view.container.querySelector('[data-slot="data-list"]')).toBeTruthy()
+    expect(
+      screen.getByRole('region', { name: 'Tool Calls Detail' }).getAttribute(
+        'data-slot',
+      ),
+    ).toBe('tool-activity')
+    expect(
+      within(screen.getByRole('region', { name: 'Tool Calls Detail' }))
+        .getByText('completed')
+        .getAttribute('data-tone'),
+    ).toBe('success')
+    await user.click(screen.getByRole('button', { name: /retrieve/ }))
+    expect(screen.getByText('Limit 3 / 1 Results')).toBeTruthy()
+    expect(
+      screen.getByRole('list', { name: 'Sources Detail' }).getAttribute(
+        'data-slot',
+      ),
+    ).toBe('context-chunk-list')
     expect(screen.getByText('$0.0123')).toBeTruthy()
 
     await user.click(
-      within(screen.getByRole('region', { name: 'Sources Detail' })).getByRole(
+      within(screen.getByRole('list', { name: 'Sources Detail' })).getByRole(
         'button',
         { name: 'View Source architecture.md' },
       ),
@@ -246,6 +276,9 @@ describe('ChatWorkspacePanel', () => {
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
     ).toMatch(/group\/assistant-turn/)
+    expect(
+      view.container.querySelector('[data-slot="streaming-answer"]'),
+    ).toBeTruthy()
     expect(
       view.container.querySelector('[data-slot="chat-message"]')?.className,
     ).not.toMatch(/bg-card/)
@@ -552,9 +585,9 @@ describe('ChatWorkspacePanel', () => {
       empty.view.container.querySelector('[data-slot="chat-sample-questions"]'),
     ).toBeTruthy()
     expect(screen.queryByText('Speech input ready.')).toBeNull()
-    const composer = empty.view.container.querySelector('[data-slot="chat-composer"]')
+    const composer = screen.getByRole('form', { name: 'Chat composer' })
     expect(composer?.className).toMatch(/max-w-3xl/)
-    expect(screen.getByLabelText('Question').className).toMatch(/rounded-xl/)
+    expect(screen.getByLabelText('Question').className).toContain('rounded-[2px]')
     const askButton = screen.getByRole('button', { name: 'Ask' })
     expect(askButton.textContent).not.toMatch(/Ask/)
     expect(askButton.querySelector('svg')).toBeTruthy()
@@ -566,7 +599,7 @@ describe('ChatWorkspacePanel', () => {
     )
     expect(inputShell).toBeTruthy()
     expect(inputShell?.className).toMatch(/border-border/)
-    expect(inputShell?.className).toMatch(/rounded-2xl/)
+    expect(inputShell?.className).toContain('rounded-[2px]')
     expect(inputShell?.className).not.toMatch(/focus-within:ring/)
     expect(inputShell?.className).not.toMatch(/focus-within:border-primary/)
     expect(screen.getByLabelText('Question').className).not.toMatch(
@@ -593,13 +626,13 @@ describe('ChatWorkspacePanel', () => {
       view.container.querySelector('[data-slot="chat-transcript"]')?.parentElement,
     ).toBe(workspace)
     expect(
-      view.container.querySelector('[data-slot="chat-composer-shell"]')?.parentElement,
+      view.container.querySelector('[data-slot="chat-composer"]')?.parentElement,
     ).toBe(workspace)
     expect(
-      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+      view.container.querySelector('[data-slot="chat-composer"]')?.className,
     ).toMatch(/max-\[680px\]:sticky/)
     expect(
-      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+      view.container.querySelector('[data-slot="chat-composer"]')?.className,
     ).toMatch(/max-\[680px\]:shadow-primary\/95/)
     // Height chain: flex column — transcript flex-1 scrolls, composer pins bottom.
     expect(workspace.className).toMatch(/(?:^|\s)h-full(?:\s|$)/)
@@ -614,10 +647,32 @@ describe('ChatWorkspacePanel', () => {
     expect(transcript?.className).toMatch(/scrollbar-chat/)
     expect(transcript?.className).not.toMatch(/-mr-/)
     expect(
-      view.container.querySelector('[data-slot="chat-composer-shell"]')?.className,
+      view.container.querySelector('[data-slot="chat-composer"]')?.className,
     ).toMatch(/shrink-0/)
     expect(screen.getByLabelText('Question').className).toMatch(/scrollbar-chat/)
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
+  })
+
+  test('keeps sample-question controls square and touch accessible', async () => {
+    const user = userEvent.setup()
+    const onQuestionChange = vi.fn()
+    renderChatWorkspace({
+      onQuestionChange,
+      requestState: 'idle',
+      response: null,
+    })
+
+    const sampleQuestion = screen.getByRole('button', {
+      name: 'What is the release mascot?',
+    })
+    expect(sampleQuestion.className).toContain('rounded-[2px]')
+    expect(sampleQuestion.className).not.toContain('rounded-full')
+    expect(sampleQuestion.className).toContain('max-[680px]:min-h-11')
+
+    await user.click(sampleQuestion)
+    expect(onQuestionChange).toHaveBeenCalledWith(
+      'What is the release mascot?',
+    )
   })
 
   test('docks tools and Ask inside the composer input shell', () => {

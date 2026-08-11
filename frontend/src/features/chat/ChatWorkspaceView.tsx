@@ -40,14 +40,20 @@ import {
 } from '@/features/chat/ChatAttachments'
 import { ChatPipelineSteps } from '@/components/ChatPipelineSteps'
 import { MarkdownAnswer } from '@/components/MarkdownAnswer'
+import {
+  ChatSurface,
+  ContextChunkList,
+  PromptComposer,
+  StreamingAnswer,
+  ToolActivity,
+  type ToolActivityItem,
+} from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/control'
-import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import * as DropdownMenu from '@/components/ui/dropdown-menu'
 import { Callout, EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldLabel } from '@/components/ui/field'
-import { Panel } from '@/components/ui/panel'
 import type {
   ChatHistoryProviderUsage,
   ChatResponseBody,
@@ -325,22 +331,267 @@ export function ChatWorkspacePanel({
   }
 
   return (
-    <Panel
-      aria-label="Chat Workspace"
-      className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden border-0 bg-transparent shadow-none"
-      data-chat-radius="square"
-      role="region"
-    >
-      {/* flex-1 + min-h-0: only the transcript scrolls; composer stays pinned. */}
-      <div
-        aria-busy={isAsking || requestState === 'loading' || undefined}
-        aria-label="Chat Transcript"
-        className="scrollbar-chat min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
-        data-slot="chat-transcript"
-        onScroll={onTranscriptScroll}
-        ref={transcriptRef}
-        role="region"
-      >
+    <>
+      <ChatSurface
+        className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-[2px] border-0 bg-transparent shadow-none"
+        composer={
+          <>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-1 max-[680px]:h-1 max-[680px]:via-card/80 max-[680px]:to-card"
+              data-slot="chat-composer-gradient"
+            />
+            <PromptComposer
+              busy={isAsking}
+              canSubmit={canSend}
+              className="relative mx-auto w-full max-w-3xl rounded-[2px] border-0 bg-transparent px-1 pb-0 pt-1 shadow-none sm:px-2 max-[680px]:px-1 max-[680px]:pt-1"
+              content={
+                <div
+                  className={cn(
+                    'rounded-[2px] border border-border bg-muted/15 p-1.5 shadow-sm',
+                    isComposerDragActive &&
+                      'border-primary/60 bg-primary/5 ring-1 ring-primary/30',
+                  )}
+                  data-drag-active={isComposerDragActive ? 'true' : undefined}
+                  data-slot="chat-composer-input-shell"
+                  onDragEnter={handleComposerDragEnter}
+                  onDragLeave={handleComposerDragLeave}
+                  onDragOver={handleComposerDragOver}
+                  onDrop={handleComposerDrop}
+                >
+                  {attachments.length > 0 ? (
+                    <div className="px-2 pb-1 pt-1">
+                      <AttachmentChips
+                        attachments={attachments.map((item) => ({
+                          localId: item.localId,
+                          filename: item.file.name,
+                          previewUrl: item.previewUrl,
+                          kind: item.kind,
+                          mime: item.mime ?? item.file.type,
+                          attachmentId: item.attachmentId,
+                          status: item.status,
+                          error: item.error,
+                        }))}
+                        onOpen={(item) => {
+                          const gallery = attachments.map((entry) => ({
+                            id: entry.attachmentId ?? entry.localId,
+                            filename: entry.file.name,
+                            kind: entry.kind ?? 'document',
+                            mime:
+                              entry.mime ??
+                              (entry.file.type || 'application/octet-stream'),
+                            previewUrl: entry.previewUrl,
+                          }))
+                          openLightboxGallery(
+                            gallery,
+                            item.attachmentId ?? item.localId,
+                          )
+                        }}
+                        onRemove={onRemoveAttachment}
+                      />
+                    </div>
+                  ) : null}
+
+                  <Field className="gap-0">
+                    <FieldLabel className="sr-only" htmlFor="chat-question">
+                      Question
+                    </FieldLabel>
+                    <FieldControl className="gap-0">
+                      <Textarea
+                        className={cn(
+                          'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-[2px] border-0 bg-transparent px-4 py-2.5 text-sm leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-[680px]:min-h-11 max-[680px]:text-base',
+                          'placeholder:text-muted-foreground',
+                        )}
+                        id="chat-question"
+                        name="question"
+                        onChange={(event) => {
+                          const el = event.currentTarget
+                          onQuestionChange(el.value)
+                          el.style.height = 'auto'
+                          el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                        }}
+                        onInput={(event) => {
+                          const el = event.currentTarget
+                          el.style.height = 'auto'
+                          el.style.height = `${Math.min(el.scrollHeight, 192)}px`
+                        }}
+                        onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+                          if (event.key === 'Escape' && isAsking) {
+                            event.preventDefault()
+                            onCancelRequest()
+                            return
+                          }
+                          if (
+                            event.key === 'Enter' &&
+                            !event.shiftKey &&
+                            !event.nativeEvent.isComposing
+                          ) {
+                            event.preventDefault()
+                            if (!canSend) {
+                              return
+                            }
+                            event.currentTarget.form?.requestSubmit()
+                          }
+                        }}
+                        onPaste={(event) => {
+                          if (onAddAttachmentFiles === undefined) {
+                            return
+                          }
+                          const files = event.clipboardData?.files
+                          if (files === undefined || files.length === 0) {
+                            return
+                          }
+                          event.preventDefault()
+                          onAddAttachmentFiles(files)
+                        }}
+                        placeholder="Ask a question about indexed sources"
+                        ref={questionInputRef}
+                        rows={2}
+                        title="Enter to send · Shift+Enter for a new line · Escape to cancel"
+                        value={question}
+                      />
+                    </FieldControl>
+                  </Field>
+
+                  <div
+                    className="mt-1 flex flex-wrap items-center justify-between gap-2 max-[680px]:mt-1.5 max-[680px]:gap-1.5"
+                    data-slot="chat-composer-actions"
+                  >
+                    <p
+                      className="order-last w-full text-[11px] leading-snug text-muted-foreground sm:order-none sm:w-auto max-[680px]:text-xs"
+                      data-slot="chat-composer-shortcuts"
+                    >
+                      <ComposerShortcutHint keys="Enter" label="Send" />
+                      <span aria-hidden="true" className="mx-1.5 text-border">
+                        ·
+                      </span>
+                      <ComposerShortcutHint keys="⇧Enter" label="New line" />
+                      {isAsking ? (
+                        <>
+                          <span aria-hidden="true" className="mx-1.5 text-border">
+                            ·
+                          </span>
+                          <ComposerShortcutHint keys="Esc" label="Cancel" />
+                        </>
+                      ) : null}
+                    </p>
+                    <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
+                        {onAddAttachmentFiles !== undefined &&
+                        attachmentAccept !== undefined ? (
+                          <>
+                            <AttachmentFileInput
+                              accept={attachmentAccept}
+                              disabled={attachmentsAtCap || isAsking}
+                              inputRef={attachmentInputRef}
+                              onChange={(event) => {
+                                const files = event.currentTarget.files
+                                if (files !== null && files.length > 0) {
+                                  onAddAttachmentFiles(files)
+                                }
+                                event.currentTarget.value = ''
+                              }}
+                            />
+                            <Button
+                              aria-label="Attach files"
+                              className={COMPOSER_TOOL_BUTTON_CLASS}
+                              disabled={attachmentsAtCap || isAsking}
+                              onClick={() => attachmentInputRef.current?.click()}
+                              size="icon"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <Paperclip aria-hidden="true" className="size-4" />
+                            </Button>
+                          </>
+                        ) : null}
+                        <Button
+                          aria-label="Open Context Sidebar"
+                          aria-pressed={isContextInspectorActive}
+                          className={cn(
+                            COMPOSER_TOOL_BUTTON_CLASS,
+                            isContextInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
+                          )}
+                          onClick={onOpenContextInspector}
+                          size="icon"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <CircleDot aria-hidden="true" className="size-4" />
+                        </Button>
+                        <Button
+                          aria-label="Open Minimap Sidebar"
+                          aria-pressed={isMinimapInspectorActive}
+                          className={cn(
+                            COMPOSER_TOOL_BUTTON_CLASS,
+                            isMinimapInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
+                          )}
+                          onClick={onOpenMinimapInspector}
+                          size="icon"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <MapIcon aria-hidden="true" className="size-4" />
+                        </Button>
+                        <SpeechInputControl
+                          feedback={speechFeedback}
+                          isSupported={isSpeechSupported}
+                          onStart={onStartSpeechRecognition}
+                          onStop={onStopSpeechRecognition}
+                          state={speechState}
+                        />
+                      </div>
+
+                      {isAsking ? (
+                        <Button
+                          aria-label="Cancel Request"
+                          className={cn(
+                            COMPOSER_TOOL_BUTTON_CLASS,
+                            'text-destructive hover:text-destructive',
+                          )}
+                          onClick={onCancelRequest}
+                          size="icon"
+                          title="Cancel Request"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Square aria-hidden="true" className="size-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          aria-label="Ask"
+                          className={COMPOSER_PRIMARY_ACTION_CLASS}
+                          disabled={!canSend}
+                          size="icon"
+                          title="Enter to send"
+                          type="submit"
+                        >
+                          <CornerDownLeft aria-hidden="true" className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              }
+              formProps={{ id: 'chat-composer', tabIndex: -1 }}
+              onPromptChange={onQuestionChange}
+              onSubmit={onSubmit}
+              prompt={question}
+              promptLabel="Chat composer"
+              submitLabel="Ask"
+            />
+          </>
+        }
+        composerClassName={cn(
+          'relative max-h-none shrink-0 overflow-visible border-t-0 bg-background p-0 pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1',
+          'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
+          'max-[680px]:border-t max-[680px]:border-primary/95',
+          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/95',
+          'max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]',
+        )}
+        label="Chat Workspace"
+        transcript={
+          <>
         {/* pb clears the composer fade (h-8) so Details / last turn stay readable. */}
         <div className="mx-auto grid w-full max-w-3xl gap-3 px-0.5 pb-12 pr-[18px] max-[900px]:pr-3.5 max-[680px]:gap-2 max-[680px]:pb-10 max-[680px]:pr-1">
           {priorTurns.map((turn) => (
@@ -414,263 +665,17 @@ export function ChatWorkspacePanel({
             state={requestState}
           />
         </div>
-      </div>
-
-      <div
-        className={cn(
-          'relative shrink-0 bg-background pr-[18px] max-[900px]:pr-3.5 max-[680px]:pr-1',
-          // Keep Ask docked above the fold on narrow shells / soft keyboards.
-          'max-[680px]:sticky max-[680px]:bottom-0 max-[680px]:z-20',
-          'max-[680px]:border-t max-[680px]:border-primary/95',
-          // Purple hairline above sticky Ask dock (mirrors question sticky).
-          'max-[680px]:shadow-[0_-1px_0_0] max-[680px]:shadow-primary/95',
-          'max-[680px]:pb-[max(0.25rem,env(safe-area-inset-bottom))]',
-        )}
-        data-slot="chat-composer-shell"
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-background/0 via-background/80 to-background max-[680px]:-top-1 max-[680px]:h-1 max-[680px]:via-card/80 max-[680px]:to-card"
-          data-slot="chat-composer-gradient"
-        />
-        <form
-          className="relative mx-auto w-full max-w-3xl px-1 pb-0 pt-1 sm:px-2 max-[680px]:px-1 max-[680px]:pt-1"
-          data-slot="chat-composer"
-          id="chat-composer"
-          onSubmit={onSubmit}
-          tabIndex={-1}
-        >
-          <div
-            className={cn(
-              'rounded-2xl border border-border bg-muted/15 p-1.5 shadow-sm',
-              isComposerDragActive &&
-                'border-primary/60 bg-primary/5 ring-1 ring-primary/30',
-            )}
-            data-drag-active={isComposerDragActive ? 'true' : undefined}
-            data-slot="chat-composer-input-shell"
-            onDragEnter={handleComposerDragEnter}
-            onDragLeave={handleComposerDragLeave}
-            onDragOver={handleComposerDragOver}
-            onDrop={handleComposerDrop}
-          >
-            {attachments.length > 0 ? (
-              <div className="px-2 pb-1 pt-1">
-                <AttachmentChips
-                  attachments={attachments.map((item) => ({
-                    localId: item.localId,
-                    filename: item.file.name,
-                    previewUrl: item.previewUrl,
-                    kind: item.kind,
-                    mime: item.mime ?? item.file.type,
-                    attachmentId: item.attachmentId,
-                    status: item.status,
-                    error: item.error,
-                  }))}
-                  onOpen={(item) => {
-                    const gallery = attachments.map((entry) => ({
-                      id: entry.attachmentId ?? entry.localId,
-                      filename: entry.file.name,
-                      kind: entry.kind ?? 'document',
-                      mime:
-                        entry.mime ??
-                        (entry.file.type || 'application/octet-stream'),
-                      previewUrl: entry.previewUrl,
-                    }))
-                    openLightboxGallery(
-                      gallery,
-                      item.attachmentId ?? item.localId,
-                    )
-                  }}
-                  onRemove={onRemoveAttachment}
-                />
-              </div>
-            ) : null}
-
-            <Field className="gap-0">
-              <FieldLabel className="sr-only" htmlFor="chat-question">
-                Question
-              </FieldLabel>
-              <FieldControl className="gap-0">
-                <Textarea
-                  className={cn(
-                    'scrollbar-chat max-h-48 min-h-[3.5rem] w-full resize-none overflow-y-auto rounded-xl border-0 bg-transparent px-4 py-2.5 text-sm leading-relaxed shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-[680px]:min-h-11 max-[680px]:text-base',
-                    'placeholder:text-muted-foreground',
-                  )}
-                  id="chat-question"
-                  name="question"
-                  onChange={(event) => {
-                    const el = event.currentTarget
-                    onQuestionChange(el.value)
-                    el.style.height = 'auto'
-                    el.style.height = `${Math.min(el.scrollHeight, 192)}px`
-                  }}
-                  onInput={(event) => {
-                    const el = event.currentTarget
-                    el.style.height = 'auto'
-                    el.style.height = `${Math.min(el.scrollHeight, 192)}px`
-                  }}
-                  onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-                    if (event.key === 'Escape' && isAsking) {
-                      event.preventDefault()
-                      onCancelRequest()
-                      return
-                    }
-                    if (
-                      event.key === 'Enter' &&
-                      !event.shiftKey &&
-                      !event.nativeEvent.isComposing
-                    ) {
-                      event.preventDefault()
-                      if (!canSend) {
-                        return
-                      }
-                      event.currentTarget.form?.requestSubmit()
-                    }
-                  }}
-                  onPaste={(event) => {
-                    if (onAddAttachmentFiles === undefined) {
-                      return
-                    }
-                    const files = event.clipboardData?.files
-                    if (files === undefined || files.length === 0) {
-                      return
-                    }
-                    event.preventDefault()
-                    onAddAttachmentFiles(files)
-                  }}
-                  placeholder="Ask a question about indexed sources"
-                  ref={questionInputRef}
-                  rows={2}
-                  title="Enter to send · Shift+Enter for a new line · Escape to cancel"
-                  value={question}
-                />
-              </FieldControl>
-            </Field>
-
-            <div
-              className="mt-1 flex flex-wrap items-center justify-between gap-2 max-[680px]:mt-1.5 max-[680px]:gap-1.5"
-              data-slot="chat-composer-actions"
-            >
-              <p
-                className="order-last w-full text-[11px] leading-snug text-muted-foreground sm:order-none sm:w-auto max-[680px]:text-xs"
-                data-slot="chat-composer-shortcuts"
-              >
-                <ComposerShortcutHint keys="Enter" label="Send" />
-                <span aria-hidden="true" className="mx-1.5 text-border">
-                  ·
-                </span>
-                <ComposerShortcutHint keys="⇧Enter" label="New line" />
-                {isAsking ? (
-                  <>
-                    <span aria-hidden="true" className="mx-1.5 text-border">
-                      ·
-                    </span>
-                    <ComposerShortcutHint keys="Esc" label="Cancel" />
-                  </>
-                ) : null}
-              </p>
-              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:gap-1">
-                <div className="flex min-w-0 flex-wrap items-center gap-1.5 max-[680px]:gap-1">
-                  {onAddAttachmentFiles !== undefined &&
-                  attachmentAccept !== undefined ? (
-                    <>
-                      <AttachmentFileInput
-                        accept={attachmentAccept}
-                        disabled={attachmentsAtCap || isAsking}
-                        inputRef={attachmentInputRef}
-                        onChange={(event) => {
-                          const files = event.currentTarget.files
-                          if (files !== null && files.length > 0) {
-                            onAddAttachmentFiles(files)
-                          }
-                          event.currentTarget.value = ''
-                        }}
-                      />
-                      <Button
-                        aria-label="Attach files"
-                        className={COMPOSER_TOOL_BUTTON_CLASS}
-                        disabled={attachmentsAtCap || isAsking}
-                        onClick={() => attachmentInputRef.current?.click()}
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Paperclip aria-hidden="true" className="size-4" />
-                      </Button>
-                    </>
-                  ) : null}
-                  <Button
-                    aria-label="Open Context Sidebar"
-                    aria-pressed={isContextInspectorActive}
-                    className={cn(
-                      COMPOSER_TOOL_BUTTON_CLASS,
-                      isContextInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
-                    )}
-                    onClick={onOpenContextInspector}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <CircleDot aria-hidden="true" className="size-4" />
-                  </Button>
-                  <Button
-                    aria-label="Open Minimap Sidebar"
-                    aria-pressed={isMinimapInspectorActive}
-                    className={cn(
-                      COMPOSER_TOOL_BUTTON_CLASS,
-                      isMinimapInspectorActive && COMPOSER_TOOL_ACTIVE_CLASS,
-                    )}
-                    onClick={onOpenMinimapInspector}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <MapIcon aria-hidden="true" className="size-4" />
-                  </Button>
-                  <SpeechInputControl
-                    feedback={speechFeedback}
-                    isSupported={isSpeechSupported}
-                    onStart={onStartSpeechRecognition}
-                    onStop={onStopSpeechRecognition}
-                    state={speechState}
-                  />
-                </div>
-
-                {isAsking ? (
-                  <Button
-                    aria-label="Cancel Request"
-                    className={cn(
-                      COMPOSER_TOOL_BUTTON_CLASS,
-                      'text-destructive hover:text-destructive',
-                    )}
-                    onClick={onCancelRequest}
-                    size="icon"
-                    title="Cancel Request"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Square aria-hidden="true" className="size-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    aria-label="Ask"
-                    className={COMPOSER_PRIMARY_ACTION_CLASS}
-                    disabled={!canSend}
-                    size="icon"
-                    title="Enter to send"
-                    type="submit"
-                  >
-                    <CornerDownLeft aria-hidden="true" className="size-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Error detail is co-located with the transcript failure/cancel state
-              (see ResponsePanel). Avoid a second under-composer callout. */}
-        </form>
-      </div>
+          </>
+        }
+        transcriptClassName="scrollbar-chat min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-0 max-[680px]:p-0"
+        transcriptProps={{
+          'aria-busy': isAsking || requestState === 'loading' || undefined,
+          'aria-label': 'Chat Transcript',
+          onScroll: onTranscriptScroll,
+          role: 'region',
+        }}
+        transcriptRef={transcriptRef}
+      />
       {lightbox !== null && lightbox.items.length > 0 ? (
         <AttachmentLightbox
           initialIndex={lightbox.index}
@@ -679,7 +684,7 @@ export function ChatWorkspacePanel({
           onClose={() => setLightbox(null)}
         />
       ) : null}
-    </Panel>
+    </>
   )
 }
 
@@ -1015,7 +1020,7 @@ function ResponsePanel({
               {SAMPLE_QUESTIONS.map((sample) => (
                 <Button
                   key={sample}
-                  className="h-auto max-w-full whitespace-normal rounded-full px-2.5 py-1 text-[11px]"
+                  className="h-auto max-w-full whitespace-normal px-2.5 py-1 text-[11px]"
                   onClick={() => onQuestionChange(sample)}
                   size="sm"
                   type="button"
@@ -1340,8 +1345,8 @@ function ResponseContent({
       />
 
       {response.answer.trim().length > 0 || !isStreaming ? (
-        <article
-          aria-label="Answer"
+        <StreamingAnswer isStreaming={isStreaming} label="Answer">
+        <div
           className={cn(
             /* beflow AssistantTurn: no card chrome; soft hover wash only */
             'group/assistant-turn relative rounded-lg px-1 py-2 text-foreground tracking-tight',
@@ -1467,7 +1472,8 @@ function ResponseContent({
           {/* Citation chips live inline in MarkdownAnswer (doc-N). Full
               source list is under Details → Sources Detail only. */}
           </div>
-        </article>
+        </div>
+        </StreamingAnswer>
       ) : null}
 
       {hasStepDetails ? (
@@ -1785,93 +1791,88 @@ function ResponseDetailsContent({
     >
       {usage !== null ? <ResponseUsageStrip usage={usage} /> : null}
       {toolCallCount > 0 ? (
-        <section
-          aria-label="Tool Calls Detail"
-          className="grid gap-2 max-[680px]:gap-1.5"
-        >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-            Tool Calls · {toolCallCount}
-          </h3>
-          <DataList>
-            {response.tool_calls.map((call, index) => (
-              <DataListItem
-                className="grid gap-1 max-[680px]:gap-1"
-                key={`${call.name}-${call.query ?? 'no-query'}-${index}`}
-              >
-                <strong className="text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-                  {call.name}
-                </strong>
-                <span className="text-sm text-muted-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-                  {call.query ?? 'No Query Stored.'}
-                </span>
-                <small className="text-xs text-muted-foreground max-[680px]:text-xs max-[680px]:leading-snug">
+        <ToolActivity
+          items={response.tool_calls.map((call, index) => ({
+            detail: (
+              <small className="grid min-w-0 gap-1 whitespace-normal break-words">
+                <span>
                   Limit {call.limit ?? 'Unknown'} /{' '}
                   {call.result_count ?? 'Unknown'} Results
-                </small>
-              </DataListItem>
-            ))}
-          </DataList>
-        </section>
+                </span>
+                {call.error_message?.trim() ? (
+                  <span data-slot="tool-activity-error">
+                    {operatorSafeMessage(call.error_message)}
+                  </span>
+                ) : null}
+              </small>
+            ),
+            id: `${call.name}-${call.query ?? 'no-query'}-${index}`,
+            label: call.name,
+            meta: call.query ?? 'No Query Stored.',
+            status: toolActivityStatus(call.status),
+          }))}
+          label="Tool Calls Detail"
+        />
       ) : null}
       {sourceCount > 0 ? (
-        <section
-          aria-label="Sources Detail"
-          className="grid gap-2 max-[680px]:gap-1.5"
-        >
-          <h3 className="text-sm font-semibold text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-            Sources · {sourceCount}
-          </h3>
-          <DataList>
-            {response.citations.map((result, index) => (
-              <DataListItem
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] max-[680px]:gap-2"
-                key={`${result.chunk_id ?? 'no-chunk'}-${result.citation.source_id}-${index}`}
-              >
-                <div className="grid min-w-0 gap-2 max-[680px]:gap-1.5">
-                  <strong className="break-words text-sm text-foreground max-[680px]:text-sm max-[680px]:leading-snug">
-                    <span className="mr-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold tabular-nums">
-                      {index + 1}
-                    </span>
-                    {result.citation.source_external_id}
-                  </strong>
-                  <p className="text-sm leading-relaxed tracking-tight text-muted-foreground max-[680px]:text-sm max-[680px]:leading-relaxed">
-                    {result.citation.snippet}
-                  </p>
-                  <div className="flex flex-wrap gap-2 max-[680px]:gap-1.5">
-                    <Badge>
-                      {sourceTypeLabel(result.citation.source_type)} Source
-                    </Badge>
-                    <Badge>
-                      Version {result.citation.document_version_number}
-                    </Badge>
-                    <Badge>
-                      Chars {result.citation.char_start}-{result.citation.char_end}
-                    </Badge>
-                  </div>
+        <ContextChunkList
+          chunks={response.citations.map((result, index) => ({
+            content: (
+              <div className="grid gap-2">
+                <Badge className="w-fit" tone="neutral">
+                  Rank {index + 1}
+                </Badge>
+                <p>{result.citation.snippet}</p>
+                <div className="flex flex-wrap gap-2 max-[680px]:gap-1.5">
+                  <Badge>
+                    {sourceTypeLabel(result.citation.source_type)} Source
+                  </Badge>
+                  <Badge>
+                    Version {result.citation.document_version_number}
+                  </Badge>
+                  <Badge>
+                    Chars {result.citation.char_start}-{result.citation.char_end}
+                  </Badge>
                 </div>
-                <DataListItemActions className="justify-start md:justify-end">
-                  <StatusBadge>Score {formatScore(result.score)}</StatusBadge>
-                  <Button
-                    aria-label={`View Source ${result.citation.source_external_id}`}
-                    onClick={() =>
-                      onOpenSource(
-                        result.citation.source_id,
-                        result.citation.snippet,
-                      )
-                    }
-                    type="button"
-                    variant="secondary"
-                  >
-                    View Source
-                  </Button>
-                </DataListItemActions>
-              </DataListItem>
-            ))}
-          </DataList>
-        </section>
+              </div>
+            ),
+            id: `${result.chunk_id ?? 'no-chunk'}-${index}`,
+            meta: `Score ${formatScore(result.score)}`,
+            openLabel: `View Source ${result.citation.source_external_id}`,
+            sourceLabel: result.citation.source_external_id,
+          }))}
+          emptyLabel="No Sources"
+          label="Sources Detail"
+          onOpenChunk={(id) => {
+            const sourceIndex = Number.parseInt(id.split('-').at(-1) ?? '', 10)
+            const result = response.citations[sourceIndex]
+            if (result !== undefined) {
+              onOpenSource(
+                result.citation.source_id,
+                result.citation.snippet,
+              )
+            }
+          }}
+        />
       ) : null}
     </div>
   )
+}
+
+function toolActivityStatus(
+  status: string | undefined,
+): ToolActivityItem['status'] {
+  if (status === undefined || status.trim().length === 0) {
+    return 'completed'
+  }
+  const normalized = status.trim().toLowerCase()
+  if (normalized === 'succeeded') {
+    return 'completed'
+  }
+  if (normalized === 'running') {
+    return 'running'
+  }
+  return 'failed'
 }
 
 function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {

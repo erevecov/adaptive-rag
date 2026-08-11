@@ -1538,7 +1538,7 @@ describe('App chat workspace', () => {
 
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(primaryNavigation.getAttribute('data-slot')).toBe(
-      'sidebar-primary-navigation',
+      'workspace-navigation',
     )
     expect(selector.getAttribute('data-slot')).toBe('workspace-selector-trigger')
     expect(selector.closest('[data-slot="workspace-selector"]')).toBeTruthy()
@@ -3933,7 +3933,12 @@ describe('App chat workspace', () => {
     })
     expect(within(sessionContext).getByText('This thread')).toBeTruthy()
     // Pipeline summary still available (collapsed by default).
-    expect(screen.getByText('Pipeline activity')).toBeTruthy()
+    const pipelineToggle = screen.getByRole('button', {
+      name: 'Pipeline activity · 3 Steps',
+    })
+    expect(pipelineToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('rag_search')).toBeNull()
+    await user.click(pipelineToggle)
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getByText('deployment import failure')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
@@ -4042,6 +4047,84 @@ describe('App chat workspace', () => {
     expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
+  test('preserves persisted tool status and redacts secrets from the visible failure detail', async () => {
+    const user = userEvent.setup()
+    const persistedError = [
+      'Connector authentication failed.',
+      'sk-abcdefghijklmnop',
+      'Bearer abc.def.ghi',
+      'api_key=supersecret123',
+      '-----BEGIN PRIVATE KEY-----',
+      'verysecretkeymaterial',
+      '-----END PRIVATE KEY-----',
+    ].join('\n')
+    const persistedToolStates: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      tool_calls: [
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'connector authentication check' },
+          error_message: persistedError,
+          result_summary: null,
+          status: 'failed',
+          tool_name: 'web_lookup',
+        },
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'still indexing evidence' },
+          created_at: '2026-06-21T00:00:01.500Z',
+          error_message: null,
+          result_summary: null,
+          status: 'running',
+          tool_call_id: 'tool-call-running',
+          tool_name: 'index_lookup',
+          updated_at: '2026-06-21T00:00:01.500Z',
+        },
+      ],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => persistedToolStates),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
+    await user.click(
+      within(transcript).getByRole('button', { name: 'Expand Response Details' }),
+    )
+
+    const tools = within(transcript).getByRole('region', {
+      name: 'Tool Calls Detail',
+    })
+    expect(within(tools).getByText('failed').getAttribute('data-tone')).toBe(
+      'danger',
+    )
+    expect(within(tools).getByText('running').getAttribute('data-tone')).toBe(
+      'primary',
+    )
+    const failedTool = within(tools).getByRole('button', {
+      name: /web_lookup.*connector authentication check.*failed/i,
+    })
+    await user.click(failedTool)
+    expect(tools.textContent).toContain('Connector authentication failed.')
+    expect(tools.textContent).toContain('[redacted]')
+    for (const secret of [
+      'sk-abcdefghijklmnop',
+      'abc.def.ghi',
+      'supersecret123',
+      'verysecretkeymaterial',
+    ]) {
+      expect(tools.textContent).not.toContain(secret)
+    }
+    expect(persistedToolStates.tool_calls[0]?.error_message).toBe(persistedError)
+  })
+
   test('keeps missing selected session usage values visible as unknown', async () => {
     const user = userEvent.setup()
     const client = createClientStub({
@@ -4126,6 +4209,11 @@ describe('App chat workspace', () => {
     const stepper = await screen.findByRole('region', {
       name: 'Internal Action Stepper',
     })
+    await user.click(
+      within(stepper).getByRole('button', {
+        name: 'Pipeline activity · 3 Steps',
+      }),
+    )
     expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
     expect(within(stepper).getByText('Provider Usage Succeeded')).toBeTruthy()

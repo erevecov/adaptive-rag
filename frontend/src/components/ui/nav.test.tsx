@@ -41,6 +41,7 @@ describe('SidebarItem', () => {
     const item = screen.getByRole('button', { name: 'Workspaces' })
     expect(item.getAttribute('aria-current')).toBe('page')
     expect(item.getAttribute('data-active')).toBe('')
+    expect(item.className).toContain('rounded-[2px]')
     expect(item.className).toContain('data-[active]:bg-primary/15')
     expect(item.className).toContain('max-[680px]:data-[active]:bg-primary/45')
     expect(item.className).toContain('hover:bg-primary/15')

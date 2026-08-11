@@ -62,7 +62,7 @@ describe('SegmentedControl', () => {
     ).toContain('bg-muted/40')
     expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
-    ).toContain('max-[680px]:rounded-sm')
+    ).toContain('rounded-[2px]')
     expect(
       screen.getByRole('group', { name: 'Runtime sections' }).className,
     ).toContain('max-[680px]:p-0.5')

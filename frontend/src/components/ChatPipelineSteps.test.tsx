@@ -72,6 +72,7 @@ describe('ChatPipelineSteps', () => {
     )
 
     const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    expect(stepper.getAttribute('data-slot')).toBe('reasoning-trace')
     expect(within(stepper).getByText('retrieval')).toBeTruthy()
     expect(within(stepper).queryByText('alpha')).toBeNull()
 
@@ -206,12 +207,69 @@ describe('ChatPipelineSteps', () => {
       }),
     )
 
-    const answerRow = within(stepper).getByText('answer').closest('details')
-    expect(answerRow).not.toBeNull()
-    expect(answerRow?.hasAttribute('open')).toBe(false)
-    expect(within(stepper).getAllByText('qwen-plus').length).toBeGreaterThan(0)
+    const usageDetails = within(stepper).getByText('Usage').closest('details')
+    expect(usageDetails).not.toBeNull()
+    expect(usageDetails?.hasAttribute('open')).toBe(false)
+    expect(within(stepper).getAllByText('qwen-plus')).toHaveLength(1)
+    await user.click(within(stepper).getByText('Usage'))
+    expect(usageDetails?.hasAttribute('open')).toBe(true)
     expect(within(stepper).getByText('$0.0012')).toBeTruthy()
     expect(within(stepper).getByText('144 Tokens')).toBeTruthy()
+  })
+
+  test('keeps baseline query result and model chips outside collapsed usage without duplicating the model', async () => {
+    const user = userEvent.setup()
+    render(
+      <ChatPipelineSteps
+        isStreaming={false}
+        sourceCount={0}
+        steps={[
+          {
+            detail: {
+              query: 'retrieval fidelity query',
+              result_count: 7,
+            },
+            elapsed_ms: 1250,
+            id: 'retrieval',
+            status: 'done',
+            usage: {
+              estimated_cost_usd: 0.0025,
+              input_tokens: 80,
+              model: 'qwen-fidelity',
+              output_tokens: 20,
+              provider: 'qwen',
+              slot: 'chat',
+              total_tokens: 100,
+            },
+          },
+        ]}
+      />,
+    )
+
+    const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
+    await user.click(
+      within(stepper).getByRole('button', {
+        name: 'Expand Chat Steps, 1.3 s, 0 Sources',
+      }),
+    )
+
+    const row = within(stepper)
+      .getByText('retrieval')
+      .closest('[data-slot="reasoning-trace-step"]')
+    expect(row).not.toBeNull()
+    const rowQueries = within(row as HTMLElement)
+    expect(rowQueries.getByText('retrieval fidelity query').closest('details')).toBeNull()
+    expect(rowQueries.getByText('7').closest('details')).toBeNull()
+    expect(rowQueries.getAllByText('qwen-fidelity')).toHaveLength(1)
+    expect(rowQueries.getByText('qwen-fidelity').closest('details')).toBeNull()
+
+    const usageDetails = rowQueries.getByText('Usage').closest('details')
+    expect(usageDetails).not.toBeNull()
+    expect(usageDetails?.hasAttribute('open')).toBe(false)
+    await user.click(rowQueries.getByText('Usage'))
+    expect(usageDetails?.hasAttribute('open')).toBe(true)
+    expect(rowQueries.getAllByText('qwen-fidelity')).toHaveLength(1)
+    expect(rowQueries.getByText('$0.0025')).toBeTruthy()
   })
 
   test('uses tokenized slots instead of legacy pipeline classes', async () => {
@@ -232,7 +290,7 @@ describe('ChatPipelineSteps', () => {
     )
 
     const stepper = screen.getByRole('region', { name: 'Chat Pipeline Steps' })
-    expect(stepper.getAttribute('data-slot')).toBe('chat-pipeline-steps')
+    expect(stepper.getAttribute('data-slot')).toBe('reasoning-trace')
 
     await user.click(
       within(stepper).getByRole('button', {
@@ -245,24 +303,20 @@ describe('ChatPipelineSteps', () => {
     expect(container.querySelector('.pipeline-step-list')).toBeNull()
     expect(container.querySelector('.pipeline-step-row')).toBeNull()
     expect(container.querySelector('.pipeline-detail-chip')).toBeNull()
-    expect(container.querySelector('[data-slot="chat-pipeline-step-list"]')).toBeTruthy()
-    expect(container.querySelector('[data-slot="chat-pipeline-step-row"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="reasoning-trace-list"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="reasoning-trace-step"]')).toBeTruthy()
   })
 
-  test('uses the shared Button primitive for stepper toggles', () => {
-    expect(chatPipelineStepsSource).toContain('./ui/button')
+  test('delegates stepper toggle semantics to the real ReasoningTrace pattern', () => {
+    expect(chatPipelineStepsSource).toContain('ReasoningTrace')
+    expect(chatPipelineStepsSource).toContain('./beautiful-ui')
     expect(chatPipelineStepsSource).not.toContain('<button')
   })
   test('pipeline summary is borderless subtle text, not a chrome button', () => {
     expect(chatPipelineStepsSource).toContain('PIPELINE_SUMMARY_TEXT_CLASS')
     expect(chatPipelineStepsSource).toContain('hover:bg-transparent')
     expect(chatPipelineStepsSource).toContain('text-muted-foreground')
-    expect(chatPipelineStepsSource).toContain('variant="ghost"')
-    expect(chatPipelineStepsSource).not.toContain('variant="secondary"')
-    // Outer section no longer uses a bordered card chrome.
-    expect(chatPipelineStepsSource).not.toMatch(
-      /data-slot="chat-pipeline-steps"[\s\S]{0,120}border border-border/,
-    )
+    expect(chatPipelineStepsSource).toContain('toggleClassName')
   })
 
 

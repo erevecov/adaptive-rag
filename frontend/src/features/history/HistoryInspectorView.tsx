@@ -6,6 +6,16 @@ import {
 } from 'react'
 import { Brain, ChevronDown, ChevronUp, MoreVertical, Plus, X } from 'lucide-react'
 
+import {
+  CommandSearch,
+  ContextChunkList,
+  LoadingGrid,
+  ReasoningTrace,
+  RecordsGrid,
+  type ContextChunkItem,
+  type RecordsGridColumn,
+  type TraceStep,
+} from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, IconButton } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
@@ -361,6 +371,20 @@ export function SessionNavigationPanel({
           ))}
         </SegmentedControl>
 
+        {sessions.length >= 5 ? (
+          <CommandSearch
+            emptyLabel="No matching sessions."
+            items={sessions.map((session) => ({
+              id: session.session_id,
+              label: sessionDisplayTitle(session),
+              meta: formatRelativeSessionAge(sessionLastActivityAt(session)),
+            }))}
+            label="Search sessions"
+            onSelect={onSelectSession}
+            placeholder="Search sessions"
+          />
+        ) : null}
+
         {error ? (
           <InlineFeedback tone="danger">{operatorSafeMessage(error)}</InlineFeedback>
         ) : null}
@@ -385,17 +409,8 @@ export function SessionNavigationPanel({
       >
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
-            <div
-              aria-busy="true"
-              aria-label="Cargando sesiones"
-              className="grid w-full gap-2 max-[680px]:gap-0.5"
-              data-slot="session-list-loading"
-              role="status"
-            >
-              <span className="sr-only">Cargando...</span>
-              <div aria-hidden="true" className="h-7 motion-safe:animate-pulse rounded-md bg-muted/25" />
-              <div aria-hidden="true" className="h-7 w-11/12 motion-safe:animate-pulse rounded-md bg-muted/35" />
-              <div aria-hidden="true" className="h-7 w-4/5 motion-safe:animate-pulse rounded-md bg-muted/30" />
+            <div data-slot="session-list-loading">
+              <LoadingGrid label="Cargando sesiones" />
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
@@ -852,32 +867,8 @@ function SourceViewerPanel({ viewer }: { viewer: SourceViewerState }) {
       </PanelHeader>
       <PanelBody className="grid gap-3 p-4 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         {viewer.state === 'loading' ? (
-          <div
-            aria-busy="true"
-            aria-label={`Loading Source ${viewer.sourceId ?? ''}`}
-            className="grid w-full gap-2 max-[680px]:gap-0.5"
-            data-slot="source-viewer-loading"
-            role="status"
-          >
-            <span className="sr-only">
-              Loading Source {viewer.sourceId}...
-            </span>
-            <div
-              aria-hidden="true"
-              className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25"
-            />
-            <div
-              aria-hidden="true"
-              className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35"
-            />
-            <div
-              aria-hidden="true"
-              className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30"
-            />
-            <div
-              aria-hidden="true"
-              className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25"
-            />
+          <div data-slot="source-viewer-loading">
+            <LoadingGrid label={`Loading Source ${viewer.sourceId ?? ''}`} />
           </div>
         ) : null}
 
@@ -980,10 +971,9 @@ function ConversationMinimap({
       </PanelHeader>
       <PanelBody className="p-4 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
         {state === 'loading' ? (
-          <InspectorLoadingSkeleton
-            ariaLabel="Loading Conversation Minimap"
-            slot="conversation-minimap-loading"
-          />
+          <div data-slot="conversation-minimap-loading">
+            <LoadingGrid label="Loading Conversation Minimap" />
+          </div>
         ) : detail === null || detail.messages.length === 0 ? (
           <EmptyState>Select A Session To Navigate Messages.</EmptyState>
         ) : (
@@ -1054,10 +1044,9 @@ function SessionContextPanel({
       </PanelHeader>
       <PanelBody className="grid gap-3 p-3 pt-0 max-[680px]:gap-0.5 max-[680px]:p-0.5 max-[680px]:pt-0">
         {state === 'loading' ? (
-          <InspectorLoadingSkeleton
-            ariaLabel="Loading Session Context"
-            slot="session-context-loading"
-          />
+          <div data-slot="session-context-loading">
+            <LoadingGrid label="Loading Session Context" />
+          </div>
         ) : detail === null ? (
           <EmptyState>
             Select a session to see model, usage, and context packing.
@@ -1342,130 +1331,102 @@ function InternalActionStepper({
   state: RequestState
 }) {
   const stepCount = countInternalSteps(detail)
-  // Controlled open so turn-focus starts expanded; user can still collapse.
-  // Key remounts when defaultOpen changes so initial open state resets without
-  // an effect that calls setState (react-hooks/set-state-in-effect).
+  const steps = detail === null ? [] : toReasoningTraceSteps(detail)
+
   return (
-    <PipelineActivityDetailsBody
-      detail={detail}
-      initiallyOpen={defaultOpen}
-      key={defaultOpen ? 'pipeline-open' : 'pipeline-closed'}
-      state={state}
-      stepCount={stepCount}
-    />
+    <div
+      aria-label="Internal Action Stepper"
+      data-slot="context-action-stepper-details"
+      role="region"
+    >
+      {state === 'loading' ? (
+        <div data-slot="action-stepper-loading">
+          <LoadingGrid label="Loading Action Stepper" />
+        </div>
+      ) : detail === null || stepCount === 0 ? (
+        <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+          No tool or retrieval activity stored for this session.
+        </EmptyState>
+      ) : (
+        <ReasoningTrace
+          defaultExpanded={defaultOpen}
+          key={defaultOpen ? 'pipeline-open' : 'pipeline-closed'}
+          label={`Pipeline activity · ${stepCount} ${stepCount === 1 ? 'Step' : 'Steps'}`}
+          steps={steps}
+        />
+      )}
+    </div>
   )
 }
 
-function PipelineActivityDetailsBody({
-  detail,
-  initiallyOpen,
-  state,
-  stepCount,
-}: {
-  detail: ChatSessionDetailResponse | null
-  initiallyOpen: boolean
-  state: RequestState
-  stepCount: number
-}) {
-  const [isOpen, setIsOpen] = useState(initiallyOpen)
+function toReasoningTraceSteps(detail: ChatSessionDetailResponse): TraceStep[] {
+  return [
+    ...detail.tool_calls.map((call) => ({
+      detail: (
+        <div className="grid gap-1 max-[680px]:gap-0.5">
+          <Badge>Tool Call {titleCaseToken(call.status)}</Badge>
+          <p>{formatJsonValue(call.arguments)}</p>
+          <small>{formatUnknownMs(call.latency_ms)}</small>
+        </div>
+      ),
+      id: `tool-${call.tool_call_id}`,
+      label: call.tool_name,
+      status: traceStatus(call.status),
+    })),
+    ...detail.retrieval_runs.map((run) => ({
+      detail: (
+        <div className="grid gap-1 max-[680px]:gap-0.5">
+          <Badge>Retrieval {titleCaseToken(run.strategy)}</Badge>
+          <p>Top {run.top_k}</p>
+          <small>{formatUnknownMs(run.latency_ms)}</small>
+          {run.retrieved_chunks.length > 0 ? (
+            <ul className="grid gap-1">
+              {run.retrieved_chunks.map((chunk) => (
+                <li key={chunk.retrieved_chunk_id}>
+                  <strong>Rank {chunk.rank}</strong>
+                  <small className="block">{formatStepperScores(chunk)}</small>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ),
+      id: `retrieval-${run.retrieval_run_id}`,
+      label: run.query,
+      status: traceStatus(run.error_message === null ? 'succeeded' : 'failed'),
+    })),
+    ...detail.provider_usage.map((usage) => ({
+      detail: (
+        <div className="grid gap-1 max-[680px]:gap-0.5">
+          <Badge>Provider Usage {titleCaseToken(usage.status)}</Badge>
+          <p>
+            {usage.provider} {usage.operation} /{' '}
+            {formatUnknownTokens(usage.total_tokens)} /{' '}
+            {formatUnknownCost(usage.estimated_cost_usd)}
+          </p>
+          <small>{formatUnknownMs(usage.latency_ms)}</small>
+        </div>
+      ),
+      id: `provider-${usage.provider_usage_id}`,
+      label: usage.model,
+      status: traceStatus(usage.status),
+    })),
+  ]
+}
 
-  return (
-    <details
-      className="group rounded-md border border-border/70 bg-card open:bg-card"
-      data-slot="context-action-stepper-details"
-      onToggle={(event) => {
-        setIsOpen(event.currentTarget.open)
-      }}
-      open={isOpen}
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-3 marker:content-none [&::-webkit-details-marker]:hidden max-[680px]:min-h-11 max-[680px]:p-0.5">
-        <span className="text-sm font-semibold text-foreground max-[680px]:text-[0.6875rem]">
-          Pipeline activity
-        </span>
-        <StatusBadge>
-          {stepCount} Step{stepCount === 1 ? '' : 's'}
-        </StatusBadge>
-      </summary>
-      <div
-        aria-label="Internal Action Stepper"
-        className="border-t border-border/60 p-3 pt-2 max-[680px]:p-0.5"
-        role="region"
-      >
-        {state === 'loading' ? (
-          <InspectorLoadingSkeleton
-            ariaLabel="Loading Action Stepper"
-            slot="action-stepper-loading"
-          />
-        ) : detail === null || stepCount === 0 ? (
-          <EmptyState className="max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-            No tool or retrieval activity stored for this session.
-          </EmptyState>
-        ) : (
-          <DataList>
-            {detail.tool_calls.map((call) => (
-              <DataListItem className="grid gap-1 max-[680px]:gap-0.5" key={`tool-${call.tool_call_id}`}>
-                <Badge>
-                  Tool Call {titleCaseToken(call.status)}
-                </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{call.tool_name}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {formatJsonValue(call.arguments)}
-                </p>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {formatUnknownMs(call.latency_ms)}
-                </small>
-              </DataListItem>
-            ))}
-            {detail.retrieval_runs.map((run) => (
-              <DataListItem
-                className="grid gap-2 max-[680px]:gap-0.5"
-                key={`retrieval-${run.retrieval_run_id}`}
-              >
-                <Badge>
-                  Retrieval {titleCaseToken(run.strategy)}
-                </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{run.query}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  Top {run.top_k} / {formatUnknownMs(run.latency_ms)}
-                </p>
-                <DataList>
-                  {run.retrieved_chunks.map((chunk) => (
-                    <DataListItem key={chunk.retrieved_chunk_id}>
-                      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                        Rank {chunk.rank}
-                      </strong>
-                      <small className="block text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                        {formatStepperScores(chunk)}
-                      </small>
-                    </DataListItem>
-                  ))}
-                </DataList>
-              </DataListItem>
-            ))}
-            {detail.provider_usage.map((usage) => (
-              <DataListItem
-                className="grid gap-1 max-[680px]:gap-0.5"
-                key={`provider-${usage.provider_usage_id}`}
-              >
-                <Badge>
-                  Provider Usage {titleCaseToken(usage.status)}
-                </Badge>
-                <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">{usage.model}</strong>
-                <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {usage.provider} {usage.operation} /{' '}
-                  {formatUnknownTokens(usage.total_tokens)} /{' '}
-                  {formatUnknownCost(usage.estimated_cost_usd)}
-                </p>
-                <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {formatUnknownMs(usage.latency_ms)}
-                </small>
-              </DataListItem>
-            ))}
-          </DataList>
-        )}
-      </div>
-    </details>
-  )
+function traceStatus(status: string): TraceStep['status'] {
+  if (status === 'succeeded') {
+    return 'completed'
+  }
+  if (
+    status === 'failed' ||
+    status === 'canceled' ||
+    status === 'cancelled' ||
+    status === 'blocked'
+  ) {
+    return 'failed'
+  }
+  return 'running'
 }
 
 function SessionDetailPanel({
@@ -1488,25 +1449,8 @@ function SessionDetailPanel({
           <PanelTitle>Messages</PanelTitle>
         </PanelHeader>
         <PanelBody className="p-3 pt-0 max-[680px]:p-0.5 max-[680px]:pt-0">
-          <div
-            aria-busy="true"
-            aria-label="Loading Session Detail"
-            className="grid w-full gap-3 max-[680px]:gap-0.5"
-            data-slot="session-detail-loading"
-            role="status"
-          >
-            <span className="sr-only">Loading Session Detail...</span>
-            <div aria-hidden="true" className="grid gap-2 max-[680px]:gap-0.5">
-              <div className="h-3 w-1/4 motion-safe:animate-pulse rounded bg-muted/25" />
-              <div className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
-              <div className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
-              <div className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
-            </div>
-            <div aria-hidden="true" className="grid gap-2 pt-1 max-[680px]:gap-0.5 max-[680px]:pt-0.5">
-              <div className="h-3 w-1/5 motion-safe:animate-pulse rounded bg-muted/25" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
-              <div className="h-16 w-full motion-safe:animate-pulse rounded-md bg-muted/25" />
-            </div>
+          <div data-slot="session-detail-loading">
+            <LoadingGrid label="Loading Session Detail" />
           </div>
         </PanelBody>
       </Panel>
@@ -1614,15 +1558,15 @@ function SessionDetailPanel({
           />
         </DetailSection>
 
-        <DetailSection id="provider-usage-title" title="Provider Usage">
-          <CompactStateList
-            emptyLabel="No Provider Usage Stored."
-            items={detail.provider_usage}
-            renderItem={(usage) => (
-              <ProviderUsageDetail key={usage.provider_usage_id} usage={usage} />
-            )}
-          />
-        </DetailSection>
+        <RecordsGrid
+          columns={PROVIDER_USAGE_COLUMNS}
+          emptyLabel="No Provider Usage Stored."
+          label="Provider Usage"
+          rows={detail.provider_usage.map((usage) => ({
+            id: usage.provider_usage_id,
+            usage,
+          }))}
+        />
       </PanelBody>
     </Panel>
   )
@@ -1692,26 +1636,21 @@ function RetrievalRunDetail({
           <Badge>Latency {run.latency_ms} ms</Badge>
         )}
       </div>
-      <DataList>
-        {run.retrieved_chunks.map((chunk) => (
-          <RetrievedChunkDetail
-            chunk={chunk}
-            key={chunk.retrieved_chunk_id}
-            onOpenSource={onOpenSource}
-          />
-        ))}
-      </DataList>
+      <ContextChunkList
+        chunks={run.retrieved_chunks.map((chunk) =>
+          toContextChunkItem(chunk, onOpenSource),
+        )}
+        emptyLabel="No Retrieved Context Stored."
+        label="Retrieved context"
+      />
     </DataListItem>
   )
 }
 
-function RetrievedChunkDetail({
-  chunk,
-  onOpenSource,
-}: {
-  chunk: ChatHistoryRetrievedChunk
-  onOpenSource(sourceId: string, citationSnippet: string | null): void
-}) {
+function toContextChunkItem(
+  chunk: ChatHistoryRetrievedChunk,
+  onOpenSource: (sourceId: string, citationSnippet: string | null) => void,
+): ContextChunkItem {
   const scores = [
     formatOptionalScore('Dense Score', chunk.dense_score),
     formatOptionalScore('Lexical Score', chunk.lexical_score),
@@ -1724,16 +1663,8 @@ function RetrievedChunkDetail({
     getJsonString(chunk.citation, 'source_external_id') ?? sourceId
   const isCascadeDeleted = chunk.chunk_id === null
 
-  return (
-    <DataListItem className="grid gap-2 max-[680px]:gap-0.5">
-      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
-        <Badge>Rank {chunk.rank}</Badge>
-        {isCascadeDeleted ? (
-          <StatusBadge className="w-fit" tone="warning">
-            Source Removed
-          </StatusBadge>
-        ) : null}
-      </div>
+  return {
+    content: (
       <div className="grid gap-2 max-[680px]:gap-0.5">
         <p
           className={cn(
@@ -1764,28 +1695,50 @@ function RetrievedChunkDetail({
           </span>
         )}
       </div>
-    </DataListItem>
-  )
+    ),
+    id: chunk.retrieved_chunk_id,
+    meta: (
+      <span className="flex flex-wrap items-center gap-2 max-[680px]:gap-0.5">
+        Rank {chunk.rank}
+        {isCascadeDeleted ? (
+          <StatusBadge className="w-fit" tone="warning">
+            Source Removed
+          </StatusBadge>
+        ) : null}
+      </span>
+    ),
+    sourceLabel: sourceLabel ?? 'Uncited source',
+  }
 }
 
-function ProviderUsageDetail({ usage }: { usage: ChatHistoryProviderUsage }) {
-  return (
-    <DataListItem key={usage.provider_usage_id}>
-      <strong className="text-sm text-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-        {usage.provider} / {usage.model}
-      </strong>
-      <p className="text-sm text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+type ProviderUsageRow = { id: string; usage: ChatHistoryProviderUsage }
+
+const PROVIDER_USAGE_COLUMNS: readonly RecordsGridColumn<ProviderUsageRow>[] = [
+  {
+    header: 'Provider / Model',
+    id: 'provider',
+    render: ({ usage }) => `${usage.provider} / ${usage.model}`,
+    sortValue: ({ usage }) => `${usage.provider} ${usage.model}`,
+  },
+  {
+    header: 'Tokens / Cost',
+    id: 'usage',
+    render: ({ usage }) => (
+      <span>
         {usage.total_tokens ?? 'Unknown'} Tokens
         {usage.estimated_cost_usd === null
           ? ''
           : ` / $${usage.estimated_cost_usd.toFixed(4)}`}
-      </p>
-      <small className="text-xs text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-        {titleCaseToken(usage.status)}
-      </small>
-    </DataListItem>
-  )
-}
+      </span>
+    ),
+  },
+  {
+    header: 'Status',
+    id: 'status',
+    render: ({ usage }) => titleCaseToken(usage.status),
+    sortValue: ({ usage }) => usage.status,
+  },
+]
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
@@ -1800,30 +1753,6 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-
-function InspectorLoadingSkeleton({
-  ariaLabel,
-  slot,
-}: {
-  ariaLabel: string
-  slot: string
-}) {
-  return (
-    <div
-      aria-busy="true"
-      aria-label={ariaLabel}
-      className="grid w-full gap-2 max-[680px]:gap-0.5"
-      data-slot={slot}
-      role="status"
-    >
-      <span className="sr-only">{ariaLabel}…</span>
-      <div aria-hidden="true" className="h-3 w-1/3 motion-safe:animate-pulse rounded bg-muted/25" />
-      <div aria-hidden="true" className="h-3 w-full motion-safe:animate-pulse rounded bg-muted/35" />
-      <div aria-hidden="true" className="h-3 w-11/12 motion-safe:animate-pulse rounded bg-muted/30" />
-      <div aria-hidden="true" className="h-3 w-4/5 motion-safe:animate-pulse rounded bg-muted/25" />
-    </div>
-  )
-}
 
 function sessionHasTraining(session: ChatSessionSummary): boolean {
   return session.has_pending_training || session.has_approved_training
@@ -2047,6 +1976,10 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
   return `${Math.round(average)} ms`
 }
 
+function formatUnknownMs(value: number | null): string {
+  return value === null ? 'Unknown Latency' : `${value} ms`
+}
+
 function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {
   if (run.strategy === 'dense' && !run.used_rerank) {
     return 'Default Dense Retrieval'
@@ -2131,10 +2064,6 @@ function formatUnknownCost(value: number | null): string {
 
 function formatUnknownTokens(value: number | null): string {
   return value === null ? 'Unknown Tokens' : `${formatNumber(value)} Tokens`
-}
-
-function formatUnknownMs(value: number | null): string {
-  return value === null ? 'Unknown Latency' : `${value} ms`
 }
 
 function formatUsd(value: number): string {

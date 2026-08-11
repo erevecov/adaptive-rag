@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 
+import { LoadingGrid } from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
@@ -243,15 +244,7 @@ export function RetrievalPlaygroundPanel({
           role="region"
         >
           {state === 'loading' ? (
-            <EmptyState
-              aria-busy="true"
-              className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-              data-slot-state="loading"
-              role="status"
-            >
-              <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Searching…</p>
-              <span className="sr-only">Searching Retrieval…</span>
-            </EmptyState>
+            <LoadingGrid label="Searching Retrieval" variant="grid" />
           ) : null}
 
           {state === 'failed' ? (
