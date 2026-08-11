@@ -16,7 +16,9 @@ from adaptive_rag.db.models import (
     Document,
     DocumentVersion,
     Job,
+    JobAttempt,
     JobEvent,
+    JobQueue,
     Source,
     Workspace,
 )
@@ -26,17 +28,75 @@ from adaptive_rag.db.repositories import (
     WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.jobs.handlers import build_ingestion_registry
 
 
-def test_jobs_run_worker_command_is_registered() -> None:
+def test_job_platform_commands_are_registered() -> None:
     result = CliRunner().invoke(app, ["jobs", "--help"])
 
     assert result.exit_code == 0
     assert "enqueue-ingest-source" in result.stdout
+    assert "enqueue" in result.stdout
     assert "list" in result.stdout
     assert "show" in result.stdout
+    assert "cancel" in result.stdout
     assert "retry" in result.stdout
+    assert "unblock" in result.stdout
+    assert "worker" in result.stdout
+    assert "scheduler" in result.stdout
+    assert "schedules" in result.stdout
+    assert "queues" in result.stdout
+    assert "workers" in result.stdout
     assert "run-worker" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["jobs", "worker", "--help"], "--once"),
+        (["jobs", "schedules", "list", "--help"], "--workspace-id"),
+        (["jobs", "queues", "list", "--help"], "Usage:"),
+        (["jobs", "workers", "list", "--help"], "Usage:"),
+    ],
+)
+def test_job_platform_nested_command_help(
+    args: list[str], expected: str
+) -> None:
+    result = CliRunner().invoke(app, args)
+
+    assert result.exit_code == 0
+    assert expected in result.stdout
+
+
+def test_jobs_enqueue_rejects_invalid_json_before_opening_transaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened = False
+
+    def forbidden_runtime():
+        nonlocal opened
+        opened = True
+        raise AssertionError("database runtime must not be created")
+
+    monkeypatch.setattr("adaptive_rag.cli.jobs._job_runtime", forbidden_runtime)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "jobs",
+            "enqueue",
+            "--job-type",
+            "ingest_source",
+            "--workspace-id",
+            "00000000-0000-0000-0000-000000000001",
+            "--payload-json",
+            "[1, 2]",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "must be a JSON object" in result.stderr
+    assert opened is False
 
 
 def test_jobs_enqueue_list_and_show_ingestion_job(
@@ -52,6 +112,7 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
     )
     session.commit()
     _patch_jobs_session_scope(monkeypatch, session=session)
+    _patch_job_runtime(monkeypatch, session=session)
     runner = CliRunner()
 
     created = runner.invoke(
@@ -82,8 +143,6 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
             "list",
             "--workspace-id",
             str(workspace.id),
-            "--source-id",
-            str(source.id),
         ],
     )
     shown = runner.invoke(
@@ -106,7 +165,7 @@ def test_jobs_enqueue_list_and_show_ingestion_job(
     assert [event["event_type"] for event in detail["events"]] == ["created"]
 
 
-def test_jobs_retry_requeues_blocked_job(
+def test_jobs_unblock_requeues_blocked_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _make_session()
@@ -118,13 +177,13 @@ def test_jobs_retry_requeues_blocked_job(
         workspace_id=workspace.id, job_id=job.id, reason="blocked"
     )
     session.commit()
-    _patch_jobs_session_scope(monkeypatch, session=session)
+    _patch_job_runtime(monkeypatch, session=session)
 
     result = CliRunner().invoke(
         app,
         [
             "jobs",
-            "retry",
+            "unblock",
             "--workspace-id",
             str(workspace.id),
             "--job-id",
@@ -145,6 +204,7 @@ def test_jobs_commands_return_stable_errors(
     workspace = WorkspaceRepository(session).create(name="demo")
     session.commit()
     _patch_jobs_session_scope(monkeypatch, session=session)
+    _patch_job_runtime(monkeypatch, session=session)
     runner = CliRunner()
 
     missing_source = runner.invoke(
@@ -173,7 +233,7 @@ def test_jobs_commands_return_stable_errors(
     assert missing_source.exit_code == 1
     assert missing_source.stderr.strip() == "source not found"
     assert missing_job.exit_code == 1
-    assert missing_job.stderr.strip() == "job not found"
+    assert missing_job.stderr.startswith("Job not found:")
 
 
 def test_jobs_run_worker_once_processes_ingest_source_job(
@@ -287,11 +347,18 @@ def _make_session():
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            JobQueue.__table__,
             Job.__table__,
+            JobAttempt.__table__,
             JobEvent.__table__,
         ],
     )
-    return create_session_factory(engine)()
+    session = create_session_factory(engine)()
+    session.add_all(
+        [JobQueue(name="default"), JobQueue(name="ingestion"), JobQueue(name="system")]
+    )
+    session.commit()
+    return session
 
 
 def _patch_jobs_session_scope(
@@ -304,3 +371,17 @@ def _patch_jobs_session_scope(
         yield session
 
     monkeypatch.setattr("adaptive_rag.cli.jobs.session_scope", override_session_scope)
+
+
+def _patch_job_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    session,
+) -> None:
+    def factory():
+        return session
+
+    registry = build_ingestion_registry(session_factory=factory)  # type: ignore[arg-type]
+    monkeypatch.setattr(
+        "adaptive_rag.cli.jobs._job_runtime", lambda: (factory, registry)
+    )
