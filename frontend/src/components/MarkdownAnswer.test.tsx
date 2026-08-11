@@ -69,6 +69,8 @@ describe('MarkdownAnswer', () => {
 
   test.each([
     { markdown: '```ts', name: 'an open language fence', language: 'ts' },
+    { markdown: '```', name: 'a bare opening backtick fence', language: null },
+    { markdown: '~~~', name: 'a bare opening tilde fence', language: null },
     { markdown: '```\n```', name: 'an empty closed fence', language: null },
   ])('copies empty code for $name without rendering undefined', async ({
     language,
@@ -93,6 +95,18 @@ describe('MarkdownAnswer', () => {
     await user.click(screen.getByRole('button', { name: 'Copy code' }))
     expect(writeText).toHaveBeenCalledTimes(1)
     expect(writeText).toHaveBeenCalledWith('')
+  })
+
+  test('keeps multiline CommonMark inline code inline without a copy action', () => {
+    const { container } = render(
+      <MarkdownAnswer>{'Before `line one\nline two` after'}</MarkdownAnswer>,
+    )
+
+    const inlineCode = screen.getByText('line one line two')
+    expect(inlineCode.tagName).toBe('CODE')
+    expect(inlineCode.closest('p')).not.toBeNull()
+    expect(container.querySelector('[data-slot="code-stream"]')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Copy code' })).toBeNull()
   })
 
   test('renders [doc-N] and [N] as beflow-style doc-N chips', async () => {

@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { isValidElement, type ReactNode, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -84,49 +84,38 @@ export function MarkdownAnswer({
       code: ({
         className: codeClass,
         children: node,
-        node: sourceNode,
       }: {
         className?: string
         children?: ReactNode
-        node?: {
-          position?: {
-            end: { line: number }
-            start: { line: number }
-          }
+      }) => (
+        <code
+          className={cn(
+            'rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.85em]',
+            codeClass,
+          )}
+        >
+          {node}
+        </code>
+      ),
+      pre: ({ children: node }: { children?: ReactNode }) => {
+        if (!isValidElement<{ children?: ReactNode; className?: string }>(node)) {
+          return <pre>{node}</pre>
         }
-      }) => {
-        const sourceSpansLines =
-          sourceNode?.position !== undefined &&
-          sourceNode.position.start.line !== sourceNode.position.end.line
-        const normalizedNode = node ?? ''
-        const isBlock =
-          Boolean(codeClass) ||
-          String(normalizedNode).includes('\n') ||
-          sourceSpansLines
-        if (isBlock) {
-          const code = String(normalizedNode).replace(/\n$/, '')
-          const language = codeClass?.match(/(?:^|\s)language-([^\s]+)/)?.[1]
-          return (
-            <div
-              className="mb-2 last:mb-0"
-              data-slot="markdown-code-block"
-            >
-              <CodeStream
-                code={code}
-                copyLabel="Copy code"
-                language={language}
-                onCopy={copyCode}
-              />
-            </div>
-          )
-        }
+        const code = String(node.props.children ?? '').replace(/\n$/, '')
+        const language = node.props.className?.match(
+          /(?:^|\s)language-([^\s]+)/,
+        )?.[1]
         return (
-          <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.85em]">
-            {node}
-          </code>
+          <div className="mb-2 last:mb-0" data-slot="markdown-code-block">
+            <CodeStream
+              code={code}
+              copyLabel="Copy code"
+              language={language}
+              onCopy={copyCode}
+            />
+          </div>
         )
       },
-      pre: ({ children: node }: { children?: ReactNode }) => <>{node}</>,
       blockquote: ({ children: node }: { children?: ReactNode }) => (
         <blockquote className="mb-2 border-l-2 border-primary/40 pl-3 text-muted-foreground last:mb-0">
           {node}

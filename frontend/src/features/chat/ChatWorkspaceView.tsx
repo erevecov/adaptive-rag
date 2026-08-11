@@ -1801,7 +1801,7 @@ function ResponseDetailsContent({
                 </span>
                 {call.error_message?.trim() ? (
                   <span data-slot="tool-activity-error">
-                    {call.error_message}
+                    {operatorSafeMessage(call.error_message)}
                   </span>
                 ) : null}
               </small>

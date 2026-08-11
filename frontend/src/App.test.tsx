@@ -3931,15 +3931,24 @@ describe('App chat workspace', () => {
     expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
-  test('preserves persisted failed and running tool status with the failure detail', async () => {
+  test('preserves persisted tool status and redacts secrets from the visible failure detail', async () => {
     const user = userEvent.setup()
+    const persistedError = [
+      'Connector authentication failed.',
+      'sk-abcdefghijklmnop',
+      'Bearer abc.def.ghi',
+      'api_key=supersecret123',
+      '-----BEGIN PRIVATE KEY-----',
+      'verysecretkeymaterial',
+      '-----END PRIVATE KEY-----',
+    ].join('\n')
     const persistedToolStates: ChatSessionDetailResponse = {
       ...sessionDetailResponse,
       tool_calls: [
         {
           ...sessionDetailResponse.tool_calls[0],
           arguments: { query: 'connector authentication check' },
-          error_message: 'Connector authentication expired.',
+          error_message: persistedError,
           result_summary: null,
           status: 'failed',
           tool_name: 'web_lookup',
@@ -3987,7 +3996,17 @@ describe('App chat workspace', () => {
       name: /web_lookup.*connector authentication check.*failed/i,
     })
     await user.click(failedTool)
-    expect(within(tools).getByText('Connector authentication expired.')).toBeTruthy()
+    expect(tools.textContent).toContain('Connector authentication failed.')
+    expect(tools.textContent).toContain('[redacted]')
+    for (const secret of [
+      'sk-abcdefghijklmnop',
+      'abc.def.ghi',
+      'supersecret123',
+      'verysecretkeymaterial',
+    ]) {
+      expect(tools.textContent).not.toContain(secret)
+    }
+    expect(persistedToolStates.tool_calls[0]?.error_message).toBe(persistedError)
   })
 
   test('keeps missing selected session usage values visible as unknown', async () => {
